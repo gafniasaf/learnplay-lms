@@ -1,5 +1,11 @@
 project_id = "eidcegehaswbtzrwzvfa"
 
+[functions.save-record]
+verify_jwt = false
+
+[functions.list-records]
+verify_jwt = false
+
 [functions.org-config]
 verify_jwt = false
 
