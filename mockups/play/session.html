@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Play Session - LearnPlay</title>
+  <link rel="stylesheet" href="../_base.css">
+</head>
+<body data-route="/play" data-entity="SessionEvent">
+  <header class="play-header">
+    <button data-cta-id="exit-session" data-action="navigate" data-target="/student/dashboard" class="btn-ghost">
+      ✕ Exit
+    </button>
+    <div class="session-progress">
+      <span data-field="current_item">1</span> / <span data-field="total_items">10</span>
+    </div>
+    <div class="session-timer">
+      <span data-field="elapsed_time">0:00</span>
+    </div>
+  </header>
+
+  <main class="play-container">
+    <!-- Question Area -->
+    <section class="question-card">
+      <div class="question-text" data-field="question_text">
+        What is 7 × 8?
+      </div>
+      
+      <!-- Stimulus (if any) -->
+      <div class="stimulus" data-field="stimulus">
+        <!-- Image/audio/video would go here -->
+      </div>
+    </section>
+
+    <!-- Answer Options -->
+    <section class="options-grid" data-form-id="answer-form">
+      <button class="option-btn" data-cta-id="select-option-0" data-action="ui" data-field="option_0">
+        54
+      </button>
+      <button class="option-btn" data-cta-id="select-option-1" data-action="ui" data-field="option_1">
+        56
+      </button>
+      <button class="option-btn" data-cta-id="select-option-2" data-action="ui" data-field="option_2">
+        48
+      </button>
+      <button class="option-btn" data-cta-id="select-option-3" data-action="ui" data-field="option_3">
+        64
+      </button>
+    </section>
+
+    <!-- Feedback Area (shown after answer) -->
+    <section class="feedback-card" data-state="hidden">
+      <div class="feedback-icon" data-field="feedback_icon">✅</div>
+      <div class="feedback-text" data-field="feedback_text">Correct!</div>
+      <div class="explanation" data-field="explanation">
+        7 × 8 = 56. Great job!
+      </div>
+      <button data-cta-id="next-question" data-action="ui" class="btn-primary">
+        Next Question →
+      </button>
+    </section>
+
+    <!-- Submit Button -->
+    <button data-cta-id="submit-answer" data-action="ui" class="btn-primary btn-large submit-btn">
+      Submit Answer
+    </button>
+  </main>
+
+  <!-- Progress Bar -->
+  <footer class="play-footer">
+    <div class="progress-bar full-width">
+      <div class="progress-fill" data-field="progress_percent" style="width: 10%"></div>
+    </div>
+    <div class="score-display">
+      Score: <span data-field="score">0</span>
+    </div>
+  </footer>
+</body>
+</html>
+
+
+

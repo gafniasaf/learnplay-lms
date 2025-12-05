@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Class Progress - LearnPlay</title>
+  <link rel="stylesheet" href="../_base.css">
+  <style>
+    .progress-overview {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+    .overview-card {
+      background: var(--color-surface);
+      padding: 1.5rem;
+      border-radius: var(--radius);
+      text-align: center;
+      box-shadow: var(--shadow);
+    }
+    .overview-value {
+      font-size: 2rem;
+      font-weight: 700;
+    }
+    .student-progress-table {
+      width: 100%;
+      background: var(--color-surface);
+      border-radius: var(--radius);
+      overflow: hidden;
+      box-shadow: var(--shadow);
+    }
+    .student-progress-table th,
+    .student-progress-table td {
+      padding: 1rem;
+      text-align: left;
+      border-bottom: 1px solid var(--color-border);
+    }
+    .student-progress-table th {
+      background: var(--color-bg);
+      font-weight: 600;
+      font-size: 0.875rem;
+      color: var(--color-text-muted);
+    }
+    .skill-bars {
+      display: flex;
+      gap: 0.25rem;
+    }
+    .skill-bar {
+      height: 24px;
+      border-radius: 4px;
+      min-width: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.625rem;
+      color: white;
+      font-weight: 500;
+    }
+    .skill-bar.mastered { background: var(--color-success); }
+    .skill-bar.learning { background: var(--color-warning); }
+    .skill-bar.struggling { background: var(--color-error); }
+    .status-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      display: inline-block;
+      margin-right: 0.5rem;
+    }
+    .status-dot.active { background: var(--color-success); }
+    .status-dot.inactive { background: var(--color-text-muted); }
+  </style>
+</head>
+<body data-route="/teacher/class-progress">
+  <header class="header">
+    <button class="btn-ghost" data-cta-id="back" data-action="navigate" data-target="/teacher/dashboard">← Back</button>
+    <h1>Class Progress</h1>
+    <select style="padding: 0.5rem; border-radius: 8px; border: 1px solid rgba(255,255,255,0.3); background: transparent; color: white;" data-field="classSelect">
+      <option value="mth501">5th Grade Math - P1</option>
+      <option value="mth503">5th Grade Math - P3</option>
+    </select>
+  </header>
+  
+  <div class="container">
+    <div class="progress-overview">
+      <div class="overview-card">
+        <div class="overview-value" style="color: var(--color-success);">18</div>
+        <div style="color: var(--color-text-muted);">On Track</div>
+      </div>
+      <div class="overview-card">
+        <div class="overview-value" style="color: var(--color-warning);">4</div>
+        <div style="color: var(--color-text-muted);">Needs Help</div>
+      </div>
+      <div class="overview-card">
+        <div class="overview-value" style="color: var(--color-error);">2</div>
+        <div style="color: var(--color-text-muted);">Falling Behind</div>
+      </div>
+    </div>
+    
+    <div class="card" style="margin-bottom: 1rem;">
+      <h3 style="margin-bottom: 1rem;">Skill Distribution</h3>
+      <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 0.5rem;">
+        <span style="width: 120px;">Fractions</span>
+        <div style="flex: 1; display: flex; height: 24px; border-radius: 4px; overflow: hidden;">
+          <div style="width: 60%; background: var(--color-success);"></div>
+          <div style="width: 25%; background: var(--color-warning);"></div>
+          <div style="width: 15%; background: var(--color-error);"></div>
+        </div>
+      </div>
+      <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 0.5rem;">
+        <span style="width: 120px;">Decimals</span>
+        <div style="flex: 1; display: flex; height: 24px; border-radius: 4px; overflow: hidden;">
+          <div style="width: 45%; background: var(--color-success);"></div>
+          <div style="width: 35%; background: var(--color-warning);"></div>
+          <div style="width: 20%; background: var(--color-error);"></div>
+        </div>
+      </div>
+      <div style="display: flex; align-items: center; gap: 1rem;">
+        <span style="width: 120px;">Percentages</span>
+        <div style="flex: 1; display: flex; height: 24px; border-radius: 4px; overflow: hidden;">
+          <div style="width: 70%; background: var(--color-success);"></div>
+          <div style="width: 20%; background: var(--color-warning);"></div>
+          <div style="width: 10%; background: var(--color-error);"></div>
+        </div>
+      </div>
+      <div style="display: flex; gap: 1rem; margin-top: 1rem; justify-content: flex-end; font-size: 0.75rem;">
+        <span><span style="display: inline-block; width: 12px; height: 12px; background: var(--color-success); border-radius: 2px;"></span> Mastered</span>
+        <span><span style="display: inline-block; width: 12px; height: 12px; background: var(--color-warning); border-radius: 2px;"></span> Learning</span>
+        <span><span style="display: inline-block; width: 12px; height: 12px; background: var(--color-error); border-radius: 2px;"></span> Struggling</span>
+      </div>
+    </div>
+    
+    <table class="student-progress-table">
+      <thead>
+        <tr>
+          <th>Student</th>
+          <th>Status</th>
+          <th>Completion</th>
+          <th>Accuracy</th>
+          <th>Last Active</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="status-dot active"></span>Emma Johnson</td>
+          <td><span class="badge badge-success">On Track</span></td>
+          <td>85%</td>
+          <td>88%</td>
+          <td>Today</td>
+          <td><button class="btn-ghost" data-cta-id="message-student" data-action="navigate" data-target="/messages">Message</button></td>
+        </tr>
+        <tr>
+          <td><span class="status-dot active"></span>Olivia Davis</td>
+          <td><span class="badge badge-info">Ahead</span></td>
+          <td>100%</td>
+          <td>94%</td>
+          <td>Today</td>
+          <td><button class="btn-ghost">Message</button></td>
+        </tr>
+        <tr>
+          <td><span class="status-dot inactive"></span>Liam Smith</td>
+          <td><span class="badge badge-warning">Needs Help</span></td>
+          <td>45%</td>
+          <td>62%</td>
+          <td>Yesterday</td>
+          <td><button class="btn-ghost">Message</button></td>
+        </tr>
+        <tr>
+          <td><span class="status-dot inactive"></span>Noah Wilson</td>
+          <td><span class="badge badge-error">Behind</span></td>
+          <td>20%</td>
+          <td>45%</td>
+          <td>3 days ago</td>
+          <td><button class="btn-ghost">Message</button></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</body>
+</html>
+
+
+

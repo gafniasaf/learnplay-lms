@@ -1,0 +1,424 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "description": "LearnPlay Platform Mock Coverage Matrix",
+  "version": "2.0.0",
+  "routes": [
+    {
+      "path": "/",
+      "name": "Landing",
+      "description": "Public landing page",
+      "states": [
+        { "id": "default", "file": "landing.html", "required": true }
+      ],
+      "requiredCTAs": [
+        { "id": "get-started", "action": "navigate", "target": "/auth" },
+        { "id": "learn-more", "action": "navigate", "target": "/about" }
+      ]
+    },
+    {
+      "path": "/auth",
+      "name": "Authentication",
+      "description": "Login and signup page",
+      "states": [
+        { "id": "default", "file": "auth.html", "required": true }
+      ],
+      "requiredCTAs": [
+        { "id": "login", "action": "navigate" },
+        { "id": "google-login", "action": "navigate" }
+      ]
+    },
+    {
+      "path": "/student/dashboard",
+      "name": "Student Dashboard",
+      "description": "Student's main view with goal progress and assignments",
+      "states": [
+        { "id": "default", "file": "student/dashboard.html", "required": true }
+      ],
+      "requiredCTAs": [
+        { "id": "continue-learning", "action": "navigate", "target": "/play/welcome" },
+        { "id": "view-assignments", "action": "navigate", "target": "/student/assignments" }
+      ]
+    },
+    {
+      "path": "/student/achievements",
+      "name": "Student Achievements",
+      "description": "Badges and XP progress",
+      "states": [
+        { "id": "default", "file": "student/achievements.html", "required": true }
+      ],
+      "requiredCTAs": [
+        { "id": "back", "action": "navigate", "target": "/student/dashboard" }
+      ]
+    },
+    {
+      "path": "/student/assignments",
+      "name": "Student Assignments",
+      "description": "List of assigned work",
+      "states": [
+        { "id": "default", "file": "student/assignments.html", "required": true }
+      ],
+      "requiredCTAs": [
+        { "id": "continue-assignment", "action": "navigate", "target": "/play" },
+        { "id": "back", "action": "navigate" }
+      ]
+    },
+    {
+      "path": "/student/goals",
+      "name": "Student Goals",
+      "description": "Weekly goal tracking",
+      "states": [
+        { "id": "default", "file": "student/goals.html", "required": true }
+      ],
+      "requiredCTAs": [
+        { "id": "practice-now", "action": "navigate", "target": "/play/welcome" },
+        { "id": "back", "action": "navigate" }
+      ]
+    },
+    {
+      "path": "/student/join-class",
+      "name": "Join Class",
+      "description": "Enter class code to join",
+      "states": [
+        { "id": "default", "file": "student/join-class.html", "required": true }
+      ],
+      "requiredCTAs": [
+        { "id": "join-class", "action": "save" },
+        { "id": "back", "action": "navigate" }
+      ]
+    },
+    {
+      "path": "/student/timeline",
+      "name": "Student Timeline",
+      "description": "Activity history",
+      "states": [
+        { "id": "default", "file": "student/timeline.html", "required": true }
+      ],
+      "requiredCTAs": [
+        { "id": "back", "action": "navigate" }
+      ]
+    },
+    {
+      "path": "/play",
+      "name": "Play Session",
+      "description": "Active learning session with questions",
+      "states": [
+        { "id": "default", "file": "play/session.html", "required": true }
+      ],
+      "requiredCTAs": [
+        { "id": "submit-answer", "action": "ui" },
+        { "id": "exit-session", "action": "navigate" }
+      ]
+    },
+    {
+      "path": "/play/welcome",
+      "name": "Play Welcome",
+      "description": "Session intro and level select",
+      "states": [
+        { "id": "default", "file": "play/welcome.html", "required": true }
+      ],
+      "requiredCTAs": [
+        { "id": "start-session", "action": "navigate", "target": "/play" },
+        { "id": "go-back", "action": "navigate" }
+      ]
+    },
+    {
+      "path": "/results",
+      "name": "Session Results",
+      "description": "Score and stats after completing a session",
+      "states": [
+        { "id": "default", "file": "play/results.html", "required": true }
+      ],
+      "requiredCTAs": [
+        { "id": "play-again", "action": "navigate", "target": "/play/welcome" },
+        { "id": "back-dashboard", "action": "navigate", "target": "/student/dashboard" }
+      ]
+    },
+    {
+      "path": "/teacher/dashboard",
+      "name": "Teacher Dashboard",
+      "description": "Class overview and quick actions",
+      "states": [
+        { "id": "default", "file": "teacher/dashboard.html", "required": true }
+      ],
+      "requiredCTAs": [
+        { "id": "view-classes", "action": "navigate" },
+        { "id": "create-assignment", "action": "navigate" }
+      ]
+    },
+    {
+      "path": "/teacher/control",
+      "name": "Teacher Control Panel",
+      "description": "Create and manage assignments with AI assist",
+      "states": [
+        { "id": "default", "file": "teacher/control.html", "required": true }
+      ],
+      "requiredCTAs": [
+        { "id": "draft-plan", "action": "enqueueJob", "jobType": "draft_assignment_plan" },
+        { "id": "save-assignment", "action": "save" }
+      ]
+    },
+    {
+      "path": "/teacher/classes",
+      "name": "Teacher Classes",
+      "description": "List of classes",
+      "states": [
+        { "id": "default", "file": "teacher/classes.html", "required": true }
+      ],
+      "requiredCTAs": [
+        { "id": "view-students", "action": "navigate" },
+        { "id": "view-progress", "action": "navigate" }
+      ]
+    },
+    {
+      "path": "/teacher/students",
+      "name": "Student Roster",
+      "description": "All students in classes",
+      "states": [
+        { "id": "default", "file": "teacher/students.html", "required": true }
+      ],
+      "requiredCTAs": [
+        { "id": "view-student", "action": "navigate" },
+        { "id": "back", "action": "navigate" }
+      ]
+    },
+    {
+      "path": "/teacher/assignments",
+      "name": "Assignment Manager",
+      "description": "All assignments",
+      "states": [
+        { "id": "default", "file": "teacher/assignments.html", "required": true }
+      ],
+      "requiredCTAs": [
+        { "id": "view-assignment", "action": "navigate" },
+        { "id": "create", "action": "navigate" }
+      ]
+    },
+    {
+      "path": "/teacher/analytics",
+      "name": "Teacher Analytics",
+      "description": "Class performance metrics",
+      "states": [
+        { "id": "default", "file": "teacher/analytics.html", "required": true }
+      ],
+      "requiredCTAs": [
+        { "id": "back", "action": "navigate" }
+      ]
+    },
+    {
+      "path": "/teacher/class-progress",
+      "name": "Class Progress",
+      "description": "Per-student progress view",
+      "states": [
+        { "id": "default", "file": "teacher/class-progress.html", "required": true }
+      ],
+      "requiredCTAs": [
+        { "id": "message-student", "action": "navigate" },
+        { "id": "back", "action": "navigate" }
+      ]
+    },
+    {
+      "path": "/teacher/assignment-progress",
+      "name": "Assignment Progress",
+      "description": "Per-assignment completion view",
+      "states": [
+        { "id": "default", "file": "teacher/assignment-progress.html", "required": true }
+      ],
+      "requiredCTAs": [
+        { "id": "edit", "action": "navigate" },
+        { "id": "back", "action": "navigate" }
+      ]
+    },
+    {
+      "path": "/parent/dashboard",
+      "name": "Parent Dashboard",
+      "description": "Child's progress summary",
+      "states": [
+        { "id": "default", "file": "parent/dashboard.html", "required": true }
+      ],
+      "requiredCTAs": [
+        { "id": "view-goals", "action": "navigate" },
+        { "id": "view-subjects", "action": "navigate" }
+      ]
+    },
+    {
+      "path": "/parent/goals",
+      "name": "Parent Goals View",
+      "description": "Child's weekly goal progress",
+      "states": [
+        { "id": "default", "file": "parent/goals.html", "required": true }
+      ],
+      "requiredCTAs": [
+        { "id": "adjust-goal", "action": "save" },
+        { "id": "send-encouragement", "action": "navigate" }
+      ]
+    },
+    {
+      "path": "/parent/subjects",
+      "name": "Parent Subjects View",
+      "description": "Per-subject breakdown",
+      "states": [
+        { "id": "default", "file": "parent/subjects.html", "required": true }
+      ],
+      "requiredCTAs": [
+        { "id": "back", "action": "navigate" }
+      ]
+    },
+    {
+      "path": "/parent/timeline",
+      "name": "Parent Timeline",
+      "description": "Child's activity history",
+      "states": [
+        { "id": "default", "file": "parent/timeline.html", "required": true }
+      ],
+      "requiredCTAs": [
+        { "id": "back", "action": "navigate" }
+      ]
+    },
+    {
+      "path": "/admin/console",
+      "name": "Admin Console",
+      "description": "System administration",
+      "states": [
+        { "id": "default", "file": "admin/console.html", "required": true }
+      ],
+      "requiredCTAs": [
+        { "id": "view-health", "action": "navigate" },
+        { "id": "view-jobs", "action": "navigate" }
+      ]
+    },
+    {
+      "path": "/admin/system-health",
+      "name": "System Health",
+      "description": "Service status and uptime",
+      "states": [
+        { "id": "default", "file": "admin/system-health.html", "required": true }
+      ],
+      "requiredCTAs": [
+        { "id": "refresh", "action": "ui" },
+        { "id": "back", "action": "navigate" }
+      ]
+    },
+    {
+      "path": "/admin/ai-pipeline",
+      "name": "AI Pipeline",
+      "description": "Job queue and execution monitor",
+      "states": [
+        { "id": "default", "file": "admin/ai-pipeline.html", "required": true }
+      ],
+      "requiredCTAs": [
+        { "id": "new-job", "action": "navigate" },
+        { "id": "cancel-job", "action": "enqueueJob" }
+      ]
+    },
+    {
+      "path": "/admin/jobs",
+      "name": "Job Queue",
+      "description": "All jobs list",
+      "states": [
+        { "id": "default", "file": "admin/jobs.html", "required": true }
+      ],
+      "requiredCTAs": [
+        { "id": "view-job", "action": "navigate" },
+        { "id": "retry-job", "action": "enqueueJob" }
+      ]
+    },
+    {
+      "path": "/catalog-builder",
+      "name": "Course Builder",
+      "description": "Create and edit courses",
+      "states": [
+        { "id": "default", "file": "catalog-builder.html", "required": true }
+      ],
+      "requiredCTAs": [
+        { "id": "new-course", "action": "save" },
+        { "id": "ai-generate", "action": "enqueueJob", "jobType": "ai_course_generate" },
+        { "id": "guard-course", "action": "enqueueJob", "jobType": "guard_course" },
+        { "id": "save-course", "action": "save" }
+      ]
+    },
+    {
+      "path": "/settings",
+      "name": "Settings",
+      "description": "User preferences",
+      "states": [
+        { "id": "default", "file": "settings.html", "required": true }
+      ],
+      "requiredCTAs": [
+        { "id": "save-settings", "action": "save" },
+        { "id": "cancel", "action": "navigate" }
+      ]
+    },
+    {
+      "path": "/messages",
+      "name": "Messages",
+      "description": "Inbox and chat",
+      "states": [
+        { "id": "default", "file": "messages/inbox.html", "required": true }
+      ],
+      "requiredCTAs": [
+        { "id": "send-message", "action": "save" },
+        { "id": "new-message", "action": "navigate" }
+      ]
+    },
+    {
+      "path": "/play/media",
+      "name": "Play Session with Media",
+      "description": "Learning session with embedded media (images/audio/video)",
+      "states": [
+        { "id": "default", "file": "play/session-media.html", "required": true }
+      ],
+      "requiredCTAs": [
+        { "id": "submit-answer", "action": "ui" },
+        { "id": "exit-session", "action": "navigate", "target": "/student/dashboard" }
+      ]
+    },
+    {
+      "path": "/catalog-builder/media",
+      "name": "Course Builder with Media",
+      "description": "Course editor with media upload, tiling, alt text, AI generate/guard",
+      "states": [
+        { "id": "default", "file": "catalog-builder-media.html", "required": true }
+      ],
+      "requiredCTAs": [
+        { "id": "ai-generate", "action": "enqueueJob", "jobType": "ai_course_generate" },
+        { "id": "guard-course", "action": "enqueueJob", "jobType": "guard_course" },
+        { "id": "save-course", "action": "save" },
+        { "id": "upload-media", "action": "ui" }
+      ]
+    },
+    {
+      "path": "/about",
+      "name": "About",
+      "description": "About page with platform information",
+      "states": [
+        { "id": "default", "file": "about.html", "required": true }
+      ],
+      "requiredCTAs": [
+        { "id": "back-home", "action": "navigate", "target": "/" },
+        { "id": "get-started", "action": "navigate", "target": "/auth" }
+      ]
+    }
+  ],
+  "sharedComponents": [
+    {
+      "id": "navigation",
+      "description": "Role-based navigation",
+      "requiredLinks": ["/student/dashboard", "/teacher/dashboard", "/parent/dashboard", "/admin/console", "/settings"]
+    },
+    {
+      "id": "toast-system",
+      "description": "Toast notifications",
+      "variants": ["success", "error", "warning", "info"]
+    },
+    {
+      "id": "loading-spinner",
+      "description": "Loading indicator"
+    }
+  ],
+  "validationRules": {
+    "everyRouteMustHaveDefaultState": true,
+    "everyStateMustHaveFile": true,
+    "everyFileMustHaveDataRoute": true,
+    "everyRequiredCTAMustExist": true
+  }
+}

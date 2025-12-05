@@ -1,0 +1,26 @@
+{
+  "branding": {
+    "name": "Mini-CRM Demo",
+    "tagline": "Reference workspace for Cursor"
+  },
+  "data_model": {
+    "root_entities": [
+      {
+        "name": "Contact",
+        "slug": "contact",
+        "fields": [
+          { "name": "name", "type": "string" },
+          { "name": "email", "type": "string" },
+          { "name": "status", "type": "enum", "options": ["lead", "customer"] }
+        ]
+      }
+    ],
+    "child_entities": []
+  },
+  "agent_jobs": [
+    {
+      "type": "sync_email",
+      "description": "Sync emails from external provider"
+    }
+  ]
+}

@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LearnPlay - Adaptive Learning Platform</title>
+  <link rel="stylesheet" href="_base.css">
+  <style>
+    .hero {
+      min-height: 80vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 50%, #8b5cf6 100%);
+      color: white;
+      padding: 2rem;
+    }
+    .hero-logo { font-size: 4rem; margin-bottom: 1rem; }
+    .hero h1 { font-size: 3rem; margin-bottom: 0.5rem; }
+    .hero-tagline { font-size: 1.25rem; opacity: 0.9; margin-bottom: 2rem; }
+    .hero-actions { display: flex; gap: 1rem; flex-wrap: wrap; justify-content: center; }
+    .btn-hero { padding: 1rem 2rem; font-size: 1.125rem; border-radius: 999px; }
+    .btn-hero-primary { background: white; color: #1e3a8a; border: none; }
+    .btn-hero-secondary { background: transparent; color: white; border: 2px solid white; }
+    .features { padding: 4rem 2rem; max-width: 1000px; margin: 0 auto; }
+    .features h2 { text-align: center; margin-bottom: 2rem; }
+    .feature-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 2rem; }
+    .feature-card { background: var(--color-surface); padding: 2rem; border-radius: var(--radius); box-shadow: var(--shadow); }
+    .feature-icon { font-size: 2rem; margin-bottom: 1rem; }
+    .feature-title { font-weight: 600; margin-bottom: 0.5rem; }
+  </style>
+</head>
+<body data-route="/">
+  <div class="hero">
+    <div class="hero-logo">🎓</div>
+    <h1>LearnPlay</h1>
+    <p class="hero-tagline">Adaptive learning with multi-role insights</p>
+    <div class="hero-actions">
+      <button class="btn-hero btn-hero-primary" data-cta-id="get-started" data-action="navigate" data-target="/auth">Get Started</button>
+      <button class="btn-hero btn-hero-secondary" data-cta-id="learn-more" data-action="navigate" data-target="/about">Learn More</button>
+    </div>
+  </div>
+  
+  <div class="features">
+    <h2>Why LearnPlay?</h2>
+    <div class="feature-grid">
+      <div class="feature-card">
+        <div class="feature-icon">🎯</div>
+        <div class="feature-title">Adaptive Learning</div>
+        <p>Questions adjust to each student's level with smart variant rotation.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">📊</div>
+        <div class="feature-title">Multi-Role Dashboards</div>
+        <p>Students, teachers, and parents each get tailored insights.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🤖</div>
+        <div class="feature-title">AI-Powered Content</div>
+        <p>Generate courses and assignments with intelligent assistance.</p>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
+
+
+

@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LearnPlay Platform</title>
+  <link rel="stylesheet" href="_base.css">
+</head>
+<body>
+  <!-- HEADER REGION -->
+  <header data-region="header" class="app-header">
+    <div class="header-brand">
+      <span class="logo">🎓</span>
+      <h1>LearnPlay</h1>
+    </div>
+    <nav class="header-nav">
+      <button data-cta-id="user-menu" data-action="navigate" data-target="/settings" class="btn-ghost">
+        ⚙️
+      </button>
+    </nav>
+  </header>
+
+  <div class="app-container">
+    <!-- SIDEBAR REGION -->
+    <aside data-region="sidebar" class="app-sidebar">
+      <nav class="sidebar-nav">
+        <a href="/student/dashboard" data-cta-id="nav-home" data-action="navigate" data-target="/student/dashboard" class="nav-item">
+          🏠 Home
+        </a>
+        <a href="/play" data-cta-id="nav-play" data-action="navigate" data-target="/play" class="nav-item">
+          🎮 Play
+        </a>
+        <a href="/student/goals" data-cta-id="nav-goals" data-action="navigate" data-target="/student/goals" class="nav-item">
+          🎯 Goals
+        </a>
+        <a href="/student/achievements" data-cta-id="nav-achievements" data-action="navigate" data-target="/student/achievements" class="nav-item">
+          🏆 Achievements
+        </a>
+        <hr>
+        <a href="/help" data-cta-id="nav-help" data-action="navigate" data-target="/help" class="nav-item">
+          ❓ Help
+        </a>
+      </nav>
+    </aside>
+
+    <!-- CONTENT REGION -->
+    <main data-region="content" class="app-content">
+      <!-- Page content renders here -->
+      <slot></slot>
+    </main>
+  </div>
+
+  <!-- FOOTER REGION -->
+  <footer data-region="footer" class="app-footer">
+    <p>© 2025 LearnPlay Platform • Adaptive learning with multi-role insights</p>
+  </footer>
+
+  <style>
+    .app-header {
+      background: linear-gradient(135deg, #1e3a8a, #3b82f6);
+      color: white;
+      padding: 0.75rem 1.5rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .header-brand {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    
+    .header-brand h1 {
+      font-size: 1.25rem;
+      font-weight: 600;
+      margin: 0;
+    }
+    
+    .logo {
+      font-size: 1.5rem;
+    }
+    
+    .app-container {
+      display: flex;
+      min-height: calc(100vh - 120px);
+    }
+    
+    .app-sidebar {
+      width: 200px;
+      background: #f8fafc;
+      border-right: 1px solid #e2e8f0;
+      padding: 1rem;
+    }
+    
+    .sidebar-nav {
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+    }
+    
+    .nav-item {
+      display: block;
+      padding: 0.75rem 1rem;
+      color: #1e293b;
+      text-decoration: none;
+      border-radius: 8px;
+      transition: background 0.2s;
+    }
+    
+    .nav-item:hover {
+      background: #e2e8f0;
+    }
+    
+    .sidebar-nav hr {
+      border: none;
+      border-top: 1px solid #e2e8f0;
+      margin: 0.5rem 0;
+    }
+    
+    .app-content {
+      flex: 1;
+      padding: 1.5rem;
+      background: #f1f5f9;
+    }
+    
+    .app-footer {
+      background: #f8fafc;
+      border-top: 1px solid #e2e8f0;
+      padding: 1rem;
+      text-align: center;
+      color: #64748b;
+      font-size: 0.875rem;
+    }
+  </style>
+</body>
+</html>

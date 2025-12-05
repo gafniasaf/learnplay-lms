@@ -1,0 +1,118 @@
+{
+  "role": "teacher",
+  "userId": "teacher-001",
+  "displayName": "Ms. Sarah Chen",
+  "stats": {
+    "activeClasses": 4,
+    "totalStudents": 87,
+    "assignmentsActive": 12,
+    "avgClassProgress": 72,
+    "studentsNeedingHelp": 5,
+    "coursesAssigned": 2
+  },
+  "upcoming": [
+    {
+      "id": "class-3a-modals",
+      "title": "Class 3A - English Modals Review",
+      "type": "assignment",
+      "dueDate": "2025-10-20T14:00:00Z",
+      "classId": "3a",
+      "courseId": "modals",
+      "studentsCompleted": 18,
+      "studentsTotal": 24,
+      "avgScore": 84
+    },
+    {
+      "id": "class-2b-verbs",
+      "title": "Class 2B - Verbs Practice",
+      "type": "assignment",
+      "dueDate": "2025-10-22T10:00:00Z",
+      "classId": "2b",
+      "courseId": "verbs",
+      "studentsCompleted": 15,
+      "studentsTotal": 22,
+      "avgScore": 78
+    },
+    {
+      "id": "parent-meeting",
+      "title": "Parent-Teacher Conference",
+      "type": "meeting",
+      "dueDate": "2025-10-23T16:00:00Z",
+      "participants": 12
+    }
+  ],
+  "recent": [
+    {
+      "id": "class-4c-modals",
+      "title": "Class 4C - English Modals",
+      "type": "assignment",
+      "completedAt": "2025-10-16T14:30:00Z",
+      "classId": "4c",
+      "courseId": "modals",
+      "studentsCompleted": 26,
+      "studentsTotal": 26,
+      "avgScore": 91
+    },
+    {
+      "id": "class-3a-verbs",
+      "title": "Class 3A - Verbs Exercise",
+      "type": "assignment",
+      "completedAt": "2025-10-14T11:00:00Z",
+      "classId": "3a",
+      "courseId": "verbs",
+      "studentsCompleted": 24,
+      "studentsTotal": 24,
+      "avgScore": 86
+    }
+  ],
+  "alerts": [
+    {
+      "id": "alert-001",
+      "type": "student-struggle",
+      "priority": "high",
+      "message": "3 students in Class 3A struggling with Level 2 of English Modals",
+      "students": ["student-042", "student-057", "student-063"],
+      "courseId": "modals",
+      "timestamp": "2025-10-17T08:30:00Z"
+    },
+    {
+      "id": "alert-002",
+      "type": "deadline-approaching",
+      "priority": "medium",
+      "message": "Class 2B Verbs Practice due in 48 hours - 7 students incomplete",
+      "classId": "2b",
+      "courseId": "verbs",
+      "timestamp": "2025-10-17T09:15:00Z"
+    }
+  ],
+  "classes": [
+    {
+      "id": "3a",
+      "name": "Class 3A",
+      "grade": 3,
+      "studentCount": 24,
+      "avgProgress": 78
+    },
+    {
+      "id": "2b",
+      "name": "Class 2B",
+      "grade": 2,
+      "studentCount": 22,
+      "avgProgress": 71
+    },
+    {
+      "id": "4c",
+      "name": "Class 4C",
+      "grade": 4,
+      "studentCount": 26,
+      "avgProgress": 85
+    },
+    {
+      "id": "5a",
+      "name": "Class 5A",
+      "grade": 5,
+      "studentCount": 15,
+      "avgProgress": 68
+    }
+  ]
+}

@@ -1,0 +1,233 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "description": "Golden Plan Mock Coverage Matrix - All routes and states that must be mocked before React compilation",
+  "version": "1.0.0",
+  "routes": [
+    {
+      "path": "/dashboard",
+      "name": "Dashboard",
+      "description": "Main landing page showing all plans",
+      "states": [
+        {
+          "id": "populated",
+          "file": "dashboard/populated.html",
+          "description": "Default view with existing plans",
+          "required": true
+        },
+        {
+          "id": "empty",
+          "file": "dashboard/empty.html",
+          "description": "No plans yet, onboarding state",
+          "required": true
+        },
+        {
+          "id": "loading",
+          "file": "dashboard/loading.html",
+          "description": "Fetching plans from backend",
+          "required": true
+        },
+        {
+          "id": "error",
+          "file": "dashboard/error.html",
+          "description": "Failed to fetch plans",
+          "required": true
+        },
+        {
+          "id": "unauthorized",
+          "file": "dashboard/unauthorized.html",
+          "description": "User not authenticated",
+          "required": true
+        }
+      ],
+      "requiredCTAs": [
+        { "id": "create-plan", "action": "save", "entity": "PlanBlueprint" },
+        { "id": "open-plan", "action": "navigate", "target": "/plans/editor" },
+        { "id": "menu-toggle", "action": "ui" }
+      ]
+    },
+    {
+      "path": "/plans/editor",
+      "name": "Plan Editor",
+      "description": "Main workspace for editing a plan with AI assistance",
+      "states": [
+        {
+          "id": "default",
+          "file": "editor/default.html",
+          "description": "Normal editing state with plan loaded",
+          "required": true
+        },
+        {
+          "id": "loading",
+          "file": "editor/loading.html",
+          "description": "Loading plan data",
+          "required": true
+        },
+        {
+          "id": "job-running",
+          "file": "editor/job-running.html",
+          "description": "AI job in progress (refine, guard, compile)",
+          "required": true
+        },
+        {
+          "id": "blocked",
+          "file": "editor/blocked.html",
+          "description": "Missing API key or configuration",
+          "required": true
+        },
+        {
+          "id": "unauthorized",
+          "file": "editor/unauthorized.html",
+          "description": "User not authenticated or session expired",
+          "required": true
+        },
+        {
+          "id": "not-found",
+          "file": "editor/not-found.html",
+          "description": "Plan ID does not exist",
+          "required": true
+        },
+        {
+          "id": "offline",
+          "file": "editor/offline.html",
+          "description": "Network connection lost",
+          "required": true
+        }
+      ],
+      "requiredCTAs": [
+        { "id": "send-message", "action": "enqueueJob", "jobType": "refine_plan" },
+        { "id": "export-plan", "action": "save", "entity": "PlanBlueprint" },
+        { "id": "back-dashboard", "action": "navigate", "target": "/dashboard" },
+        { "id": "copy-code", "action": "ui" },
+        { "id": "refresh-preview", "action": "ui" }
+      ]
+    },
+    {
+      "path": "/settings",
+      "name": "Settings",
+      "description": "Configuration for API keys, MCP proxy, preferences",
+      "states": [
+        {
+          "id": "default",
+          "file": "settings/default.html",
+          "description": "Normal settings view",
+          "required": true
+        },
+        {
+          "id": "saved",
+          "file": "settings/saved.html",
+          "description": "Settings saved successfully",
+          "required": true
+        },
+        {
+          "id": "validation-error",
+          "file": "settings/validation-error.html",
+          "description": "Invalid input in settings form",
+          "required": true
+        },
+        {
+          "id": "unauthorized",
+          "file": "settings/unauthorized.html",
+          "description": "User not authenticated",
+          "required": true
+        }
+      ],
+      "requiredCTAs": [
+        { "id": "save-settings", "action": "save", "entity": "Settings" },
+        { "id": "test-connection", "action": "ui" },
+        { "id": "back-dashboard", "action": "navigate", "target": "/dashboard" }
+      ]
+    },
+    {
+      "path": "/help",
+      "name": "Help & Documentation",
+      "description": "Help center and documentation links",
+      "states": [
+        {
+          "id": "default",
+          "file": "help/default.html",
+          "description": "Normal help view",
+          "required": true
+        },
+        {
+          "id": "mcp-offline",
+          "file": "help/mcp-offline.html",
+          "description": "MCP server not reachable",
+          "required": true
+        }
+      ],
+      "requiredCTAs": [
+        { "id": "back-dashboard", "action": "navigate", "target": "/dashboard" },
+        { "id": "open-docs", "action": "external", "target": "https://docs.ignitezero.dev" }
+      ]
+    },
+    {
+      "path": "/jobs",
+      "name": "Job History",
+      "description": "View past AI jobs and their results",
+      "states": [
+        {
+          "id": "populated",
+          "file": "jobs/populated.html",
+          "description": "List of past jobs",
+          "required": true
+        },
+        {
+          "id": "empty",
+          "file": "jobs/empty.html",
+          "description": "No jobs run yet",
+          "required": true
+        },
+        {
+          "id": "loading",
+          "file": "jobs/loading.html",
+          "description": "Fetching job history",
+          "required": true
+        },
+        {
+          "id": "error",
+          "file": "jobs/error.html",
+          "description": "Failed to fetch jobs",
+          "required": true
+        }
+      ],
+      "requiredCTAs": [
+        { "id": "view-job-details", "action": "ui" },
+        { "id": "retry-job", "action": "enqueueJob" },
+        { "id": "back-dashboard", "action": "navigate", "target": "/dashboard" }
+      ]
+    }
+  ],
+  "sharedComponents": [
+    {
+      "id": "hamburger-menu",
+      "description": "Navigation drawer with all routes",
+      "requiredLinks": ["/dashboard", "/plans/editor", "/settings", "/help", "/jobs"]
+    },
+    {
+      "id": "toast-system",
+      "description": "Toast notifications for success, error, warning, info",
+      "variants": ["success", "error", "warning", "info"]
+    },
+    {
+      "id": "export-modal",
+      "description": "Export options modal with format selection",
+      "requiredOptions": ["html", "react", "tailwind"]
+    },
+    {
+      "id": "loading-spinner",
+      "description": "Consistent loading indicator"
+    },
+    {
+      "id": "error-banner",
+      "description": "Inline error display with retry action"
+    }
+  ],
+  "validationRules": {
+    "everyRouteMustHaveDefaultState": true,
+    "everyStateMustHaveFile": true,
+    "everyFileMustHaveDataRoute": true,
+    "everyRequiredCTAMustExist": true,
+    "sharedComponentsMustBeConsistent": true
+  }
+}
+

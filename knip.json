@@ -1,0 +1,14 @@
+{
+  "$schema": "https://unpkg.com/knip@latest/schema.json",
+  "entry": [
+    "src/main.tsx",
+    "supabase/functions/index.ts"
+  ],
+  "ignore": [
+    "supabase/migrations/**",
+    "scripts/**",
+    "docs/_ARCHIVED_LEGACY_COURSE/**"
+  ]
+}
+
+

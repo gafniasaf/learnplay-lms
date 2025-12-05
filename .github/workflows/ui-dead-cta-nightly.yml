@@ -1,0 +1,38 @@
+name: UI Dead CTA Nightly
+
+on:
+  schedule:
+    - cron: "0 2 * * *" # 02:00 UTC daily
+  workflow_dispatch:
+
+jobs:
+  dead-cta-nightly:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install root deps
+        run: npm ci
+
+      - name: Install lms-mcp deps
+        run: npm --prefix lms-mcp ci
+
+      - name: Build lms-mcp
+        run: npm --prefix lms-mcp run build
+
+      - name: Run Dead CTA report
+        run: npm run ui:dead-cta-report:ci --silent
+
+      - name: Upload report artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: dead-cta-report-nightly
+          path: reports/dead-ctas-ci.json
+
+

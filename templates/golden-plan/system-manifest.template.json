@@ -1,0 +1,58 @@
+{
+  "$schema": "../schemas/system-manifest.schema.json",
+  "_comment": "Template for system-manifest.json. Replace all [PLACEHOLDERS] with your values.",
+  
+  "branding": {
+    "name": "[Product Name]",
+    "tagline": "[One-line description]"
+  },
+  
+  "data_model": {
+    "root_entities": [
+      {
+        "name": "[EntityName]",
+        "slug": "[entity-slug]",
+        "description": "[What this entity represents]",
+        "fields": [
+          { "name": "title", "type": "string" },
+          { "name": "status", "type": "enum", "options": ["draft", "active", "archived"] },
+          { "name": "created_at", "type": "date" },
+          { "name": "updated_at", "type": "date" }
+        ]
+      }
+    ],
+    "child_entities": [
+      {
+        "name": "[ChildEntity]",
+        "slug": "[child-slug]",
+        "parent": "[EntityName]",
+        "fields": [
+          { "name": "parent_id", "type": "string" },
+          { "name": "content", "type": "string" }
+        ]
+      }
+    ]
+  },
+  
+  "agent_jobs": [
+    {
+      "id": "[job_id]",
+      "target_entity": "[EntityName]",
+      "execution_mode": "async",
+      "ui": {
+        "label": "[Button Label]",
+        "icon": "Sparkles",
+        "placement": "[where_in_ui]"
+      },
+      "prompt_template": "You are a helpful assistant. Given the entity:\n- Title: {{title}}\n- Content: {{content}}\n\nAnalyze and return JSON:\n{\n  \"summary\": \"brief summary\",\n  \"suggestions\": [\"suggestion1\", \"suggestion2\"]\n}"
+    }
+  ],
+  
+  "table_mapping": {
+    "[entity-slug]": "records",
+    "[child-slug]": "records"
+  }
+}
+
+
+

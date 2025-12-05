@@ -1,0 +1,117 @@
+{
+  "role": "parent",
+  "userId": "parent-001",
+  "displayName": "Michael & Emma Rodriguez",
+  "stats": {
+    "children": 2,
+    "totalCoursesActive": 4,
+    "totalCoursesCompleted": 4,
+    "avgAccuracy": 85,
+    "weeklyMinutes": 420,
+    "monthlyProgress": 15
+  },
+  "children": [
+    {
+      "id": "student-001",
+      "name": "Alex Johnson",
+      "grade": 3,
+      "coursesActive": 2,
+      "coursesCompleted": 2,
+      "currentStreak": 7,
+      "avgAccuracy": 87,
+      "weeklyMinutes": 240
+    },
+    {
+      "id": "student-002",
+      "name": "Jamie Johnson",
+      "grade": 5,
+      "coursesActive": 2,
+      "coursesCompleted": 2,
+      "currentStreak": 5,
+      "avgAccuracy": 83,
+      "weeklyMinutes": 180
+    }
+  ],
+  "upcoming": [
+    {
+      "childId": "student-001",
+      "childName": "Alex",
+      "id": "modals",
+      "title": "English Modals",
+      "type": "course",
+      "dueDate": "2025-10-24T14:00:00Z",
+      "progress": 68,
+      "status": "on-track"
+    },
+    {
+      "childId": "student-002",
+      "childName": "Jamie",
+      "id": "verbs",
+      "title": "Verbs",
+      "type": "course",
+      "dueDate": "2025-10-23T10:00:00Z",
+      "progress": 34,
+      "status": "needs-attention"
+    },
+    {
+      "childId": "student-001",
+      "childName": "Alex",
+      "id": "verbs",
+      "title": "Verbs",
+      "type": "course",
+      "dueDate": "2025-10-25T10:00:00Z",
+      "progress": 45,
+      "status": "on-track"
+    }
+  ],
+  "recent": [
+    {
+      "childId": "student-001",
+      "childName": "Alex",
+      "id": "modals",
+      "title": "English Modals",
+      "type": "course",
+      "completedAt": "2025-10-15T12:30:00Z",
+      "score": 92,
+      "feedback": "Excellent understanding of modal verbs!"
+    },
+    {
+      "childId": "student-002",
+      "childName": "Jamie",
+      "id": "modals",
+      "title": "English Modals",
+      "type": "course",
+      "completedAt": "2025-10-14T16:20:00Z",
+      "score": 88,
+      "feedback": "Great work on modals!"
+    },
+    {
+      "childId": "student-001",
+      "childName": "Alex",
+      "id": "verbs",
+      "title": "Verbs",
+      "type": "course",
+      "completedAt": "2025-10-12T15:45:00Z",
+      "score": 88,
+      "feedback": "Strong grasp of verb tenses!"
+    }
+  ],
+  "recommendations": [
+    {
+      "childId": "student-002",
+      "childName": "Jamie",
+      "type": "additional-practice",
+      "message": "Jamie might benefit from additional practice in Verbs - progress is slower than usual",
+      "courseId": "verbs",
+      "priority": "medium"
+    },
+    {
+      "childId": "student-001",
+      "childName": "Alex",
+      "type": "new-course",
+      "message": "Based on Alex's performance, consider revisiting English Modals for mastery",
+      "suggestedCourse": "modals",
+      "priority": "low"
+    }
+  ]
+}

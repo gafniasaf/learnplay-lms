@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Goals - Parent View - LearnPlay</title>
+  <link rel="stylesheet" href="../_base.css">
+  <style>
+    .goal-overview {
+      background: linear-gradient(135deg, #22c55e, #06b6d4);
+      color: white;
+      padding: 2rem;
+      border-radius: var(--radius);
+      margin-bottom: 1.5rem;
+      text-align: center;
+    }
+    .goal-ring {
+      width: 150px;
+      height: 150px;
+      margin: 0 auto 1rem;
+      position: relative;
+    }
+    .goal-ring svg {
+      transform: rotate(-90deg);
+    }
+    .goal-ring-text {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      text-align: center;
+    }
+    .goal-value { font-size: 2rem; font-weight: 700; }
+    .goal-label { font-size: 0.875rem; opacity: 0.9; }
+    .week-calendar {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 0.5rem;
+      margin-bottom: 1.5rem;
+    }
+    .calendar-day {
+      aspect-ratio: 1;
+      background: var(--color-surface);
+      border-radius: 8px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      box-shadow: var(--shadow);
+    }
+    .calendar-day.active { background: #dcfce7; }
+    .calendar-day.partial { background: #fef3c7; }
+    .calendar-day.today { border: 2px solid var(--color-primary); }
+    .day-name { font-size: 0.625rem; color: var(--color-text-muted); }
+    .day-icon { font-size: 1.25rem; margin-top: 0.25rem; }
+    .goal-actions {
+      display: flex;
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+    .history-card {
+      background: var(--color-surface);
+      padding: 1.25rem;
+      border-radius: var(--radius);
+      margin-bottom: 0.75rem;
+      box-shadow: var(--shadow);
+    }
+    .history-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.75rem;
+    }
+  </style>
+</head>
+<body data-route="/parent/goals" data-entity="GoalUpdate">
+  <header class="header">
+    <button class="btn-ghost" data-cta-id="back" data-action="navigate" data-target="/parent/dashboard">← Back</button>
+    <h1>Emma's Goals</h1>
+    <div></div>
+  </header>
+  
+  <div class="container">
+    <div class="goal-overview">
+      <div class="goal-ring">
+        <svg width="150" height="150" viewBox="0 0 150 150">
+          <circle cx="75" cy="75" r="60" fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="12"/>
+          <circle cx="75" cy="75" r="60" fill="none" stroke="white" stroke-width="12" 
+                  stroke-dasharray="283" stroke-dashoffset="70" stroke-linecap="round"/>
+        </svg>
+        <div class="goal-ring-text">
+          <div class="goal-value">45</div>
+          <div class="goal-label">of 60 min</div>
+        </div>
+      </div>
+      <h2>This Week's Progress</h2>
+      <p style="opacity: 0.9;">15 minutes to reach the weekly goal!</p>
+    </div>
+    
+    <div class="week-calendar">
+      <div class="calendar-day active">
+        <span class="day-name">Mon</span>
+        <span class="day-icon">✅</span>
+      </div>
+      <div class="calendar-day active">
+        <span class="day-name">Tue</span>
+        <span class="day-icon">✅</span>
+      </div>
+      <div class="calendar-day partial">
+        <span class="day-name">Wed</span>
+        <span class="day-icon">⏳</span>
+      </div>
+      <div class="calendar-day active">
+        <span class="day-name">Thu</span>
+        <span class="day-icon">✅</span>
+      </div>
+      <div class="calendar-day today">
+        <span class="day-name">Fri</span>
+        <span class="day-icon">📅</span>
+      </div>
+      <div class="calendar-day">
+        <span class="day-name">Sat</span>
+        <span class="day-icon">—</span>
+      </div>
+      <div class="calendar-day">
+        <span class="day-name">Sun</span>
+        <span class="day-icon">—</span>
+      </div>
+    </div>
+    
+    <div class="goal-actions">
+      <button class="btn-secondary" style="flex: 1;" data-cta-id="adjust-goal" data-action="save" data-entity="GoalUpdate">
+        📝 Adjust Goal
+      </button>
+      <button class="btn-primary" style="flex: 1;" data-cta-id="send-encouragement" data-action="navigate" data-target="/messages">
+        💬 Send Message
+      </button>
+    </div>
+    
+    <h3 style="margin-bottom: 1rem;">Goal History</h3>
+    
+    <div class="history-card">
+      <div class="history-header">
+        <span style="font-weight: 600;">Nov 25 - Dec 1</span>
+        <span class="badge badge-success">Goal Met! ✓</span>
+      </div>
+      <div style="display: flex; justify-content: space-between; color: var(--color-text-muted); font-size: 0.875rem;">
+        <span>62 / 60 minutes</span>
+        <span>5 active days</span>
+      </div>
+    </div>
+    
+    <div class="history-card">
+      <div class="history-header">
+        <span style="font-weight: 600;">Nov 18 - Nov 24</span>
+        <span class="badge badge-warning">75%</span>
+      </div>
+      <div style="display: flex; justify-content: space-between; color: var(--color-text-muted); font-size: 0.875rem;">
+        <span>45 / 60 minutes</span>
+        <span>4 active days</span>
+      </div>
+    </div>
+    
+    <div class="history-card">
+      <div class="history-header">
+        <span style="font-weight: 600;">Nov 11 - Nov 17</span>
+        <span class="badge badge-success">Goal Met! ✓</span>
+      </div>
+      <div style="display: flex; justify-content: space-between; color: var(--color-text-muted); font-size: 0.875rem;">
+        <span>68 / 60 minutes</span>
+        <span>6 active days</span>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
+
+
+

@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Course Builder - LearnPlay</title>
+  <link rel="stylesheet" href="_base.css">
+  <style>
+    .builder-layout {
+      display: grid;
+      grid-template-columns: 280px 1fr;
+      height: calc(100vh - 60px);
+    }
+    .sidebar {
+      background: var(--color-surface);
+      border-right: 1px solid var(--color-border);
+      padding: 1rem;
+      overflow-y: auto;
+    }
+    .sidebar-section {
+      margin-bottom: 1.5rem;
+    }
+    .sidebar-title {
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--color-text-muted);
+      text-transform: uppercase;
+      margin-bottom: 0.5rem;
+    }
+    .course-list {
+      list-style: none;
+    }
+    .course-item {
+      padding: 0.75rem;
+      border-radius: 8px;
+      cursor: pointer;
+      margin-bottom: 0.25rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .course-item:hover { background: var(--color-bg); }
+    .course-item.active { background: #dbeafe; color: var(--color-primary); }
+    .editor-area {
+      display: flex;
+      flex-direction: column;
+      padding: 1.5rem;
+      overflow-y: auto;
+    }
+    .editor-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1.5rem;
+    }
+    .editor-title { font-size: 1.5rem; font-weight: 600; }
+    .editor-actions { display: flex; gap: 0.5rem; }
+    .metadata-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+    .section-list {
+      list-style: none;
+    }
+    .section-item {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius);
+      margin-bottom: 0.5rem;
+      overflow: hidden;
+    }
+    .section-header {
+      padding: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      cursor: pointer;
+    }
+    .section-header:hover { background: var(--color-bg); }
+    .section-drag { cursor: grab; color: var(--color-text-muted); }
+    .section-title { flex: 1; font-weight: 500; }
+    .section-meta { font-size: 0.875rem; color: var(--color-text-muted); }
+    .question-preview {
+      padding: 0.75rem 1rem;
+      background: var(--color-bg);
+      border-top: 1px solid var(--color-border);
+      font-size: 0.875rem;
+    }
+    .guard-status {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 1rem;
+      background: var(--color-bg);
+      border-radius: var(--radius);
+      margin-bottom: 1rem;
+    }
+    .guard-status.passed { background: #dcfce7; border: 1px solid #22c55e; }
+    .guard-status.failed { background: #fee2e2; border: 1px solid #ef4444; }
+    .guard-status.pending { background: #fef3c7; border: 1px solid #f59e0b; }
+  </style>
+</head>
+<body data-route="/catalog-builder" data-entity="CourseBlueprint">
+  <header class="header">
+    <button class="btn-ghost" data-cta-id="back" data-action="navigate" data-target="/admin/console">← Back</button>
+    <h1>Course Builder</h1>
+    <div></div>
+  </header>
+  
+  <div class="builder-layout">
+    <div class="sidebar">
+      <div class="sidebar-section">
+        <div class="sidebar-title">Courses</div>
+        <ul class="course-list">
+          <li class="course-item active">
+            <span>📐</span> 5th Grade Fractions
+          </li>
+          <li class="course-item">
+            <span>🔬</span> Cell Biology
+          </li>
+          <li class="course-item">
+            <span>📖</span> Reading Comprehension
+          </li>
+          <li class="course-item">
+            <span>🧮</span> Multiplication Tables
+          </li>
+        </ul>
+      </div>
+      
+      <button class="btn-primary" style="width: 100%;" data-cta-id="new-course" data-action="save" data-entity="CourseBlueprint">
+        + New Course
+      </button>
+    </div>
+    
+    <div class="editor-area">
+      <div class="editor-header">
+        <div class="editor-title" data-field="title">5th Grade Fractions</div>
+        <div class="editor-actions">
+          <button class="btn-ai" data-cta-id="ai-generate" data-action="enqueueJob" data-job-type="ai_course_generate">
+            ✨ AI Generate
+          </button>
+          <button class="btn-secondary" data-cta-id="guard-course" data-action="enqueueJob" data-job-type="guard_course">
+            🛡️ Guard Check
+          </button>
+          <button class="btn-primary" data-cta-id="save-course" data-action="save" data-entity="CourseBlueprint">
+            Save
+          </button>
+        </div>
+      </div>
+      
+      <div class="guard-status passed">
+        <span>🛡️</span>
+        <span style="font-weight: 500;">Guard Status: Passed</span>
+        <span style="color: var(--color-text-muted);">• Last checked 2h ago</span>
+      </div>
+      
+      <div class="metadata-grid">
+        <div class="form-group">
+          <label>Subject</label>
+          <select data-field="subject">
+            <option value="math" selected>Mathematics</option>
+            <option value="science">Science</option>
+            <option value="english">English</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Difficulty</label>
+          <select data-field="difficulty">
+            <option value="elementary" selected>Elementary</option>
+            <option value="middle">Middle School</option>
+            <option value="high">High School</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Published</label>
+          <select data-field="published">
+            <option value="true" selected>Yes - Visible to students</option>
+            <option value="false">No - Draft only</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Questions</label>
+          <input type="text" value="50 items" readonly style="background: var(--color-bg);">
+        </div>
+      </div>
+      
+      <h3 style="margin-bottom: 1rem;">Sections</h3>
+      <ul class="section-list">
+        <li class="section-item">
+          <div class="section-header">
+            <span class="section-drag">⋮⋮</span>
+            <span class="section-title">1. Introduction to Fractions</span>
+            <span class="section-meta">10 questions</span>
+            <span>▾</span>
+          </div>
+          <div class="question-preview">
+            Q1: What is 1/2 + 1/4? • Q2: Simplify 4/8 • Q3: Which is larger: 2/3 or 3/4? ...
+          </div>
+        </li>
+        <li class="section-item">
+          <div class="section-header">
+            <span class="section-drag">⋮⋮</span>
+            <span class="section-title">2. Adding Fractions</span>
+            <span class="section-meta">12 questions</span>
+            <span>▸</span>
+          </div>
+        </li>
+        <li class="section-item">
+          <div class="section-header">
+            <span class="section-drag">⋮⋮</span>
+            <span class="section-title">3. Subtracting Fractions</span>
+            <span class="section-meta">10 questions</span>
+            <span>▸</span>
+          </div>
+        </li>
+        <li class="section-item">
+          <div class="section-header">
+            <span class="section-drag">⋮⋮</span>
+            <span class="section-title">4. Multiplying Fractions</span>
+            <span class="section-meta">10 questions</span>
+            <span>▸</span>
+          </div>
+        </li>
+        <li class="section-item">
+          <div class="section-header">
+            <span class="section-drag">⋮⋮</span>
+            <span class="section-title">5. Word Problems</span>
+            <span class="section-meta">8 questions</span>
+            <span>▸</span>
+          </div>
+        </li>
+      </ul>
+      
+      <button class="btn-secondary" style="margin-top: 1rem;">
+        + Add Section
+      </button>
+    </div>
+  </div>
+</body>
+</html>
+
+
+

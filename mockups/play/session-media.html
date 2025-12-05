@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Play Session with Media - LearnPlay</title>
+  <link rel="stylesheet" href="../_base.css">
+  <style>
+    .play-container { min-height: 100vh; display: flex; flex-direction: column; background: #f8fafc; }
+    .play-header { display: flex; justify-content: space-between; align-items: center; padding: 1rem; background: white; border-bottom: 1px solid #e2e8f0; }
+    .progress-bar { flex: 1; margin: 0 1rem; height: 8px; background: #e2e8f0; border-radius: 4px; overflow: hidden; }
+    .progress-fill { height: 100%; background: linear-gradient(90deg, #3b82f6, #8b5cf6); transition: width 0.3s; }
+    .play-content { flex: 1; padding: 1.5rem; max-width: 700px; margin: 0 auto; width: 100%; }
+    
+    /* Media Panel */
+    .media-panel { background: white; border-radius: 12px; margin-bottom: 1.5rem; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
+    .media-panel.loading { background: linear-gradient(90deg, #f1f5f9, #e2e8f0, #f1f5f9); background-size: 200% 100%; animation: shimmer 1.5s infinite; }
+    @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+    .media-panel.error { background: #fef2f2; border: 1px solid #fecaca; }
+    .media-content { max-height: 40vh; display: flex; align-items: center; justify-content: center; }
+    .media-content img { max-width: 100%; max-height: 40vh; object-fit: contain; }
+    .media-content video, .media-content audio { max-width: 100%; }
+    .media-error { padding: 2rem; text-align: center; color: #ef4444; }
+    .media-error-icon { font-size: 2rem; margin-bottom: 0.5rem; }
+    .media-retry { margin-top: 1rem; padding: 0.5rem 1rem; background: #ef4444; color: white; border: none; border-radius: 6px; cursor: pointer; }
+    .media-offline { padding: 2rem; text-align: center; color: #64748b; background: #f1f5f9; }
+    .media-caption { padding: 0.75rem 1rem; font-size: 0.875rem; color: #64748b; border-top: 1px solid #e2e8f0; }
+    
+    /* Question Card */
+    .question-card { background: white; padding: 2rem; border-radius: 12px; text-align: center; margin-bottom: 1.5rem; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
+    .question-text { font-size: 1.5rem; font-weight: 600; line-height: 1.4; }
+    .question-hint { margin-top: 1rem; font-size: 0.875rem; color: #64748b; }
+    
+    /* Options Grid - supports media in options */
+    .options-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; margin-bottom: 1.5rem; }
+    .option-btn { padding: 1.25rem; border-radius: 12px; border: 2px solid #e2e8f0; background: white; cursor: pointer; transition: all 0.2s; text-align: center; }
+    .option-btn:hover { border-color: #3b82f6; background: #eff6ff; }
+    .option-btn.selected { border-color: #3b82f6; background: #eff6ff; }
+    .option-btn.correct { border-color: #22c55e; background: #dcfce7; }
+    .option-btn.incorrect { border-color: #ef4444; background: #fee2e2; }
+    .option-media { max-width: 100%; max-height: 120px; object-fit: contain; margin-bottom: 0.5rem; border-radius: 8px; }
+    .option-text { font-size: 1.125rem; }
+    
+    /* Feedback */
+    .feedback { padding: 1rem 1.5rem; border-radius: 12px; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.75rem; }
+    .feedback.correct { background: #dcfce7; color: #166534; }
+    .feedback.incorrect { background: #fee2e2; color: #991b1b; }
+    .feedback-icon { font-size: 1.5rem; }
+    
+    /* Footer */
+    .play-footer { padding: 1rem; background: white; border-top: 1px solid #e2e8f0; }
+    .submit-btn { width: 100%; padding: 1rem; background: #3b82f6; color: white; border: none; border-radius: 8px; font-size: 1rem; font-weight: 500; cursor: pointer; }
+    .submit-btn:disabled { background: #94a3b8; cursor: not-allowed; }
+    .next-btn { width: 100%; padding: 1rem; background: #22c55e; color: white; border: none; border-radius: 8px; font-size: 1rem; font-weight: 500; cursor: pointer; }
+  </style>
+</head>
+<body data-route="/play/media">
+  <div class="play-container">
+    <header class="play-header">
+      <button data-cta-id="exit-session" data-action="navigate" data-target="/student/dashboard" style="background:none;border:none;font-size:1.25rem;cursor:pointer;">✕</button>
+      <div class="progress-bar">
+        <div class="progress-fill" data-field="progress" style="width: 60%;"></div>
+      </div>
+      <span data-field="score">8/15</span>
+    </header>
+    
+    <div class="play-content">
+      <!-- Media Panel - shows stimulus for current question -->
+      <div class="media-panel" data-field="mediaPanel">
+        <div class="media-content">
+          <img src="https://placehold.co/600x300/3b82f6/white?text=Question+Image" alt="Fraction diagram showing 1/2 + 1/4" />
+        </div>
+        <div class="media-caption">Visual representation of adding fractions</div>
+      </div>
+      
+      <!-- Question -->
+      <div class="question-card">
+        <div class="question-text" data-field="questionText">What is 1/2 + 1/4?</div>
+        <div class="question-hint" data-field="hint">💡 Hint: Find a common denominator first</div>
+      </div>
+      
+      <!-- Options with optional media -->
+      <div class="options-grid">
+        <button class="option-btn" data-cta-id="option-0" data-action="ui">
+          <div class="option-text">1/4</div>
+        </button>
+        <button class="option-btn selected" data-cta-id="option-1" data-action="ui">
+          <img class="option-media" src="https://placehold.co/200x100/22c55e/white?text=3/4" alt="Three quarters" />
+          <div class="option-text">3/4</div>
+        </button>
+        <button class="option-btn" data-cta-id="option-2" data-action="ui">
+          <div class="option-text">1/2</div>
+        </button>
+        <button class="option-btn" data-cta-id="option-3" data-action="ui">
+          <div class="option-text">1</div>
+        </button>
+      </div>
+      
+      <!-- Feedback (shown after answer) -->
+      <div class="feedback correct" data-field="feedback" style="display: none;">
+        <span class="feedback-icon">✅</span>
+        <span data-field="feedbackText">Correct! 1/2 = 2/4, so 2/4 + 1/4 = 3/4</span>
+      </div>
+    </div>
+    
+    <footer class="play-footer">
+      <button class="submit-btn" data-cta-id="submit-answer" data-action="ui">Submit Answer</button>
+    </footer>
+  </div>
+</body>
+</html>
+
+
+
+
+
+
+

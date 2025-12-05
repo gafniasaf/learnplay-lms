@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en" data-route="/plans/editor" data-state="unauthorized">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Session Expired - Golden Plan Generator</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../_base.css">
+  <style>
+    .main { flex: 1; display: flex; align-items: center; justify-content: center; padding: 32px; }
+    .auth-card { max-width: 420px; width: 100%; background: var(--bg-secondary); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 48px; text-align: center; }
+    .auth-icon { width: 64px; height: 64px; color: var(--error); margin-bottom: 24px; }
+    .auth-card h2 { font-size: var(--text-2xl); margin-bottom: 12px; }
+    .auth-card p { color: var(--text-secondary); margin-bottom: 32px; }
+    .auth-actions { display: flex; flex-direction: column; gap: 12px; }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header class="header" data-region="header">
+      <div class="header-left">
+        <div class="logo">
+          <svg class="logo-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"></path></svg>
+          <span class="logo-text"><span>Golden</span> Plan Generator</span>
+        </div>
+      </div>
+    </header>
+    <main class="main" data-region="content">
+      <div class="auth-card animate-fadeIn">
+        <svg class="auth-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="12" y1="8" x2="12" y2="12"></line>
+          <line x1="12" y1="16" x2="12.01" y2="16"></line>
+        </svg>
+        <h2>Session Expired</h2>
+        <p>Your session has expired or you don't have permission to view this plan. Please sign in again to continue.</p>
+        <div class="auth-actions">
+          <button class="btn btn-primary btn-lg" data-cta-id="sign-in" data-action="navigate" data-target="/dashboard/unauthorized">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path><polyline points="10 17 15 12 10 7"></polyline><line x1="15" y1="12" x2="3" y2="12"></line></svg>
+            Sign In Again
+          </button>
+          <button class="btn btn-secondary" data-cta-id="back-dashboard" data-action="navigate" data-target="/dashboard">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+            Back to Dashboard
+          </button>
+        </div>
+      </div>
+    </main>
+  </div>
+</body>
+</html>
+

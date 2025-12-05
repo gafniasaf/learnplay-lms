@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Achievements - LearnPlay</title>
+  <link rel="stylesheet" href="../_base.css">
+  <style>
+    .achievement-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+      gap: 1rem;
+    }
+    .achievement-card {
+      background: var(--color-surface);
+      padding: 1.5rem;
+      border-radius: var(--radius);
+      text-align: center;
+      box-shadow: var(--shadow);
+    }
+    .achievement-card.locked {
+      opacity: 0.5;
+      filter: grayscale(1);
+    }
+    .achievement-icon { font-size: 3rem; margin-bottom: 0.5rem; }
+    .achievement-name { font-weight: 600; margin-bottom: 0.25rem; }
+    .achievement-desc { font-size: 0.75rem; color: var(--color-text-muted); }
+    .achievement-date { font-size: 0.75rem; color: var(--color-primary); margin-top: 0.5rem; }
+    .level-progress {
+      background: var(--color-surface);
+      padding: 1.5rem;
+      border-radius: var(--radius);
+      margin-bottom: 1.5rem;
+      box-shadow: var(--shadow);
+    }
+    .level-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
+    .level-badge { font-size: 2rem; }
+    .xp-text { font-size: 0.875rem; color: var(--color-text-muted); margin-top: 0.5rem; }
+  </style>
+</head>
+<body data-route="/student/achievements" data-entity="LearnerProfile">
+  <header class="header">
+    <button class="btn-ghost" data-cta-id="back" data-action="navigate" data-target="/student/dashboard">← Back</button>
+    <h1>Achievements</h1>
+    <div></div>
+  </header>
+  
+  <div class="container">
+    <div class="level-progress">
+      <div class="level-header">
+        <div>
+          <span class="level-badge">⭐</span>
+          <span style="font-size: 1.25rem; font-weight: 600;">Level 12</span>
+        </div>
+        <span class="badge badge-info">Rising Star</span>
+      </div>
+      <div class="progress-bar">
+        <div class="progress-fill" style="width: 65%"></div>
+      </div>
+      <p class="xp-text">1,250 / 2,000 XP to next level</p>
+    </div>
+    
+    <h2 style="margin-bottom: 1rem;">Earned (8)</h2>
+    <div class="achievement-grid" style="margin-bottom: 2rem;">
+      <div class="achievement-card">
+        <div class="achievement-icon">🏆</div>
+        <div class="achievement-name">First Steps</div>
+        <div class="achievement-desc">Complete your first session</div>
+        <div class="achievement-date">Dec 1, 2024</div>
+      </div>
+      <div class="achievement-card">
+        <div class="achievement-icon">🔥</div>
+        <div class="achievement-name">On Fire</div>
+        <div class="achievement-desc">5-day streak</div>
+        <div class="achievement-date">Dec 3, 2024</div>
+      </div>
+      <div class="achievement-card">
+        <div class="achievement-icon">💯</div>
+        <div class="achievement-name">Perfect Score</div>
+        <div class="achievement-desc">100% on a session</div>
+        <div class="achievement-date">Dec 2, 2024</div>
+      </div>
+      <div class="achievement-card">
+        <div class="achievement-icon">📚</div>
+        <div class="achievement-name">Bookworm</div>
+        <div class="achievement-desc">Complete 10 sessions</div>
+        <div class="achievement-date">Dec 4, 2024</div>
+      </div>
+    </div>
+    
+    <h2 style="margin-bottom: 1rem;">Locked</h2>
+    <div class="achievement-grid">
+      <div class="achievement-card locked">
+        <div class="achievement-icon">🌟</div>
+        <div class="achievement-name">Weekly Champion</div>
+        <div class="achievement-desc">Complete all weekly goals</div>
+      </div>
+      <div class="achievement-card locked">
+        <div class="achievement-icon">🚀</div>
+        <div class="achievement-name">Speed Demon</div>
+        <div class="achievement-desc">Finish under 5 minutes</div>
+      </div>
+      <div class="achievement-card locked">
+        <div class="achievement-icon">🎯</div>
+        <div class="achievement-name">Sharpshooter</div>
+        <div class="achievement-desc">10 correct in a row</div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
+
+
+

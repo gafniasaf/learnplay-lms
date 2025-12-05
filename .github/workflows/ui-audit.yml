@@ -1,0 +1,28 @@
+name: UI Audit
+
+on:
+  pull_request:
+  push:
+    branches: [ main ]
+
+jobs:
+  ui-audit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install
+        run: npm ci
+      - name: Ensure MCP (no-op in CI if not needed)
+        run: npm run mcp:ensure || true
+      - name: Run UI Audit
+        run: npm run ui:audit
+      - name: Always print audit (if failed)
+        if: failure()
+        run: npm run ui:audit || true
+
+

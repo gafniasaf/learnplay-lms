@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Assignment Control - LearnPlay</title>
+  <link rel="stylesheet" href="../_base.css">
+</head>
+<body data-route="/teacher/control" data-entity="Assignment">
+  <header class="header">
+    <button data-cta-id="back" data-action="navigate" data-target="/teacher/dashboard">← Back</button>
+    <h1>📝 Create Assignment</h1>
+  </header>
+
+  <main class="container">
+    <form data-form-id="assignment-form">
+      <!-- Assignment Details -->
+      <section class="card">
+        <h2>Assignment Details</h2>
+        
+        <div class="form-group">
+          <label for="title">Title *</label>
+          <input type="text" id="title" data-field="title" placeholder="Enter assignment title" required>
+        </div>
+
+        <div class="form-group">
+          <label for="subject">Subject *</label>
+          <select id="subject" data-field="subject" required>
+            <option value="">Select subject</option>
+            <option value="math">Mathematics</option>
+            <option value="reading">Reading</option>
+            <option value="science">Science</option>
+            <option value="history">History</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="due_date">Due Date</label>
+          <input type="date" id="due_date" data-field="due_date">
+        </div>
+
+        <div class="form-group">
+          <label for="learner_id">Assign To *</label>
+          <select id="learner_id" data-field="learner_id" required>
+            <option value="">Select student</option>
+            <option value="all">All Students</option>
+          </select>
+        </div>
+      </section>
+
+      <!-- AI Assistant -->
+      <section class="card ai-card">
+        <h2>✨ AI Assistant</h2>
+        <p>Let AI help you create the perfect assignment based on student performance.</p>
+        
+        <button type="button" data-cta-id="draft-plan" data-action="enqueueJob" data-job-type="draft_assignment_plan" class="btn-ai">
+          ✨ Generate with AI
+        </button>
+        
+        <div class="ai-suggestions" data-field="ai_suggestions" data-state="hidden">
+          <h4>AI Suggestions:</h4>
+          <ul data-list="suggested_actions">
+            <li data-field="suggestion">Focus on multiplication tables 6-9</li>
+          </ul>
+        </div>
+      </section>
+
+      <!-- Actions -->
+      <section class="form-actions">
+        <button type="button" data-cta-id="cancel" data-action="navigate" data-target="/teacher/dashboard" class="btn-secondary">
+          Cancel
+        </button>
+        <button type="submit" data-cta-id="save-assignment" data-action="save" data-entity="Assignment" data-form="assignment-form" class="btn-primary">
+          Save Assignment
+        </button>
+      </section>
+    </form>
+  </main>
+</body>
+</html>
+
+
+

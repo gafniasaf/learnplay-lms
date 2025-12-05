@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Activity Timeline - Parent View - LearnPlay</title>
+  <link rel="stylesheet" href="../_base.css">
+  <style>
+    .filter-chips {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 1.5rem;
+      overflow-x: auto;
+      padding-bottom: 0.5rem;
+    }
+    .chip {
+      padding: 0.5rem 1rem;
+      border-radius: 999px;
+      border: 1px solid var(--color-border);
+      background: white;
+      cursor: pointer;
+      white-space: nowrap;
+      font-size: 0.875rem;
+    }
+    .chip.active {
+      background: var(--color-primary);
+      color: white;
+      border-color: var(--color-primary);
+    }
+    .timeline-section {
+      margin-bottom: 2rem;
+    }
+    .timeline-date {
+      font-weight: 600;
+      color: var(--color-text-muted);
+      font-size: 0.875rem;
+      margin-bottom: 0.75rem;
+      padding-left: 3.5rem;
+    }
+    .timeline-event {
+      display: flex;
+      gap: 1rem;
+      padding: 1rem;
+      background: var(--color-surface);
+      border-radius: var(--radius);
+      margin-bottom: 0.5rem;
+      box-shadow: var(--shadow);
+    }
+    .event-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.25rem;
+      flex-shrink: 0;
+    }
+    .event-icon.session { background: #dbeafe; }
+    .event-icon.achievement { background: #fef3c7; }
+    .event-icon.goal { background: #dcfce7; }
+    .event-icon.assignment { background: #f3e8ff; }
+    .event-content { flex: 1; }
+    .event-title { font-weight: 500; margin-bottom: 0.25rem; }
+    .event-detail { font-size: 0.875rem; color: var(--color-text-muted); }
+    .event-time { font-size: 0.75rem; color: var(--color-text-muted); white-space: nowrap; }
+    .event-score {
+      font-weight: 600;
+      padding: 0.25rem 0.5rem;
+      border-radius: 4px;
+      font-size: 0.875rem;
+    }
+    .score-good { background: #dcfce7; color: #166534; }
+    .score-ok { background: #fef3c7; color: #92400e; }
+    .score-poor { background: #fee2e2; color: #991b1b; }
+  </style>
+</head>
+<body data-route="/parent/timeline" data-entity="SessionEvent">
+  <header class="header">
+    <button class="btn-ghost" data-cta-id="back" data-action="navigate" data-target="/parent/dashboard">← Back</button>
+    <h1>Activity</h1>
+    <div></div>
+  </header>
+  
+  <div class="container">
+    <div class="filter-chips">
+      <button class="chip active">All Activity</button>
+      <button class="chip">Sessions</button>
+      <button class="chip">Achievements</button>
+      <button class="chip">Goals</button>
+      <button class="chip">Assignments</button>
+    </div>
+    
+    <div class="timeline-section">
+      <div class="timeline-date">Today</div>
+      
+      <div class="timeline-event">
+        <div class="event-icon session">📚</div>
+        <div class="event-content">
+          <div class="event-title">Completed Fractions Practice</div>
+          <div class="event-detail">Math • 15 questions in 12 minutes</div>
+        </div>
+        <span class="event-score score-good">80%</span>
+        <div class="event-time">2:30 PM</div>
+      </div>
+      
+      <div class="timeline-event">
+        <div class="event-icon goal">🎯</div>
+        <div class="event-content">
+          <div class="event-title">Weekly goal progress</div>
+          <div class="event-detail">45 of 60 minutes completed (75%)</div>
+        </div>
+        <div class="event-time">2:30 PM</div>
+      </div>
+    </div>
+    
+    <div class="timeline-section">
+      <div class="timeline-date">Yesterday</div>
+      
+      <div class="timeline-event">
+        <div class="event-icon achievement">🏆</div>
+        <div class="event-content">
+          <div class="event-title">Earned "Perfect Score" badge!</div>
+          <div class="event-detail">100% accuracy on Multiplication Tables</div>
+        </div>
+        <div class="event-time">4:15 PM</div>
+      </div>
+      
+      <div class="timeline-event">
+        <div class="event-icon session">📚</div>
+        <div class="event-content">
+          <div class="event-title">Completed Multiplication Tables</div>
+          <div class="event-detail">Math • 12 questions in 8 minutes</div>
+        </div>
+        <span class="event-score score-good">100%</span>
+        <div class="event-time">4:15 PM</div>
+      </div>
+      
+      <div class="timeline-event">
+        <div class="event-icon assignment">📝</div>
+        <div class="event-content">
+          <div class="event-title">Started Reading Comprehension</div>
+          <div class="event-detail">English • 2 of 8 questions answered</div>
+        </div>
+        <div class="event-time">3:00 PM</div>
+      </div>
+    </div>
+    
+    <div class="timeline-section">
+      <div class="timeline-date">December 3</div>
+      
+      <div class="timeline-event">
+        <div class="event-icon goal">⭐</div>
+        <div class="event-content">
+          <div class="event-title">Met weekly goal!</div>
+          <div class="event-detail">62 minutes of learning completed</div>
+        </div>
+        <div class="event-time">5:00 PM</div>
+      </div>
+      
+      <div class="timeline-event">
+        <div class="event-icon session">📚</div>
+        <div class="event-content">
+          <div class="event-title">Completed Cell Biology Quiz</div>
+          <div class="event-detail">Science • 10 questions in 14 minutes</div>
+        </div>
+        <span class="event-score score-ok">70%</span>
+        <div class="event-time">4:30 PM</div>
+      </div>
+    </div>
+    
+    <button class="btn-secondary" style="width: 100%;">Load More Activity</button>
+  </div>
+</body>
+</html>
+
+
+

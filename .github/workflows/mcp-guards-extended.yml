@@ -1,0 +1,49 @@
+name: MCP Guards - Extended
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 7 * * *"
+
+jobs:
+  extended:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm ci
+      - name: Templates contract check
+        run: npm run mcp:templates-check
+        env:
+          MCP_BASE_URL: ${{ secrets.MCP_BASE_URL || 'http://127.0.0.1:4000' }}
+          MCP_AUTH_TOKEN: ${{ secrets.MCP_AUTH_TOKEN || 'dev-local-secret' }}
+      - name: Auto-fix batch (dry-run)
+        run: npm run mcp:auto-fix-batch
+        env:
+          MCP_BASE_URL: ${{ secrets.MCP_BASE_URL || 'http://127.0.0.1:4000' }}
+          MCP_AUTH_TOKEN: ${{ secrets.MCP_AUTH_TOKEN || 'dev-local-secret' }}
+      - name: RLS probe (optional)
+        run: npm run mcp:rls-probe || true
+        env:
+          MCP_BASE_URL: ${{ secrets.MCP_BASE_URL || 'http://127.0.0.1:4000' }}
+          MCP_AUTH_TOKEN: ${{ secrets.MCP_AUTH_TOKEN || 'dev-local-secret' }}
+          RLS_SUPER_TOKEN: ${{ secrets.RLS_SUPER_TOKEN }}
+          RLS_ADMIN_TOKEN: ${{ secrets.RLS_ADMIN_TOKEN }}
+          RLS_TEACHER_TOKEN: ${{ secrets.RLS_TEACHER_TOKEN }}
+          RLS_STUDENT_TOKEN: ${{ secrets.RLS_STUDENT_TOKEN }}
+      - name: Course cache check (optional)
+        run: npm run mcp:course-cache-check || true
+        env:
+          MCP_BASE_URL: ${{ secrets.MCP_BASE_URL || 'http://127.0.0.1:4000' }}
+          MCP_AUTH_TOKEN: ${{ secrets.MCP_AUTH_TOKEN || 'dev-local-secret' }}
+          COURSE_ID: ${{ secrets.COURSE_ID }}
+      - name: PR preview smoke (optional)
+        run: npm run mcp:pr-preview-smoke || true
+        env:
+          MCP_BASE_URL: ${{ secrets.MCP_BASE_URL || 'http://127.0.0.1:4000' }}
+          MCP_AUTH_TOKEN: ${{ secrets.MCP_AUTH_TOKEN || 'dev-local-secret' }}
+          PR_SMOKE_COURSE_ID: ${{ secrets.PR_SMOKE_COURSE_ID }}
+
+

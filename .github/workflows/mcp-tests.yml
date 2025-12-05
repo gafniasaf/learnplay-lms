@@ -1,0 +1,62 @@
+name: MCP Integration Tests
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+
+jobs:
+  mcp:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build MCP Docker image
+        run: docker build -t lms-mcp ./lms-mcp
+
+      - name: Run MCP server container
+        run: |
+          docker run -d --name mcp \
+            -p 4000:4000 \
+            -e MCP_AUTH_TOKEN="${{ secrets.MCP_AUTH_TOKEN }}" \
+            -e SUPABASE_URL="${{ secrets.SUPABASE_URL }}" \
+            -e SUPABASE_SERVICE_ROLE_KEY="${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" \
+            -e AGENT_TOKEN="${{ secrets.AGENT_TOKEN }}" \
+            lms-mcp
+
+      - name: Wait for MCP (health poll)
+        env:
+          MCP_AUTH_TOKEN: ${{ secrets.MCP_AUTH_TOKEN }}
+        run: |
+          for i in {1..20}; do
+            RES=$(curl -s -X POST -H "Authorization: Bearer $MCP_AUTH_TOKEN" -H "Content-Type: application/json" \
+              -d '{"method":"lms.health","params":{}}' http://127.0.0.1:4000)
+            echo "$RES" | grep -q '"ok":true' && echo "MCP ready" && break
+            sleep 1
+          done
+
+      - name: Run MCP Test Suite
+        env:
+          MCP_AUTH_TOKEN: ${{ secrets.MCP_AUTH_TOKEN }}
+          TEST_COURSE_ID: ${{ secrets.TEST_COURSE_ID }}
+          RUN_MCP_INTEGRATION: "true"
+        run: npx jest lms-mcp/tests --runInBand
+
+      - name: On failure - gather logs and diagnose
+        if: failure()
+        env:
+          MCP_AUTH_TOKEN: ${{ secrets.MCP_AUTH_TOKEN }}
+        run: |
+          docker logs mcp || true
+          node lms-mcp/scripts/mcp-diagnose.mjs || true
+
+

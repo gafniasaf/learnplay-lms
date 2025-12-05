@@ -1,0 +1,84 @@
+# 🧠 SYSTEM CONTEXT (PRIORITY ZERO)
+
+**CRITICAL:** Before answering any architectural question or writing code, YOU MUST READ `docs/AI_CONTEXT.md`.
+
+This file contains the specific architectural invariants of Ignite Zero that override general coding knowledge.
+
+## 🕵️ DIAGNOSTIC PROTOCOL (PRIORITY ONE)
+
+**When asked to "Debug," "Fix," "Troubleshoot," or "Why is X failing?":**
+
+1.  **HALT.** Do NOT read source code immediately.
+2.  **DIAGNOSE RUNTIME STATE.** Call the appropriate `lms` tool to gather evidence:
+    *   **System/Connection Issues:** `lms.health()`
+    *   **Job/Task Failures:** `lms.listJobs({ status: 'failed' })` + `lms.logs({ jobId: '...' })`
+    *   **Content/Data Issues:** `lms.getCourse({ id: '...' })`
+3.  **ANALYZE.** Form a hypothesis based on the *logs* and *state*.
+    *   *Example:* "Job failed with 404" -> Check Edge Function deployment, not just job logic.
+4.  **TARGET.** Only *after* diagnosing, read the specific file implicated by the evidence.
+
+**Anti-Pattern:** Reading `index.ts` or `strategies/` files before confirming the system is healthy.
+
+## 🔄 The Autonomous Refactor Loop
+
+**When asked to "Refactor to [Domain]":**
+
+1.  **Update Manifest:** Modify `system-manifest.json` to match the new domain.
+2.  **Scaffold:** Run `npx tsx scripts/scaffold-manifest.ts` to regenerate contracts.
+3.  **The Repair Loop:**
+
+    * Run `npm run verify`.
+    * If **FAIL**: Read the error log. Fix the specific components causing the error (rename files, map props). **Repeat.**
+    * If **PASS**: Stop. The refactor is complete. Ask for human review.
+
+## 🧪 Architect Edge Contracts
+
+- When editing `supabase/functions/architect-advisor` or introducing a new architect mode, update `tests/integration/architect-contract.spec.ts` **before** wiring UI changes.
+- `scripts/verify.ts` runs this suite automatically; do not skip it. If you add/remove modes, extend both the contract test and the verify script so every mode has coverage.
+
+## 🚫 CONFIGURATION ANTI-PATTERNS (NEVER DO THIS)
+
+**NEVER hardcode environment-specific values to "make it work".**
+
+```typescript
+// ❌ FORBIDDEN - Hardcoded bypass
+const forceEdge = true; // "temporary fix"
+const API_URL = "https://prod.example.com"; // hardcoded
+
+// ✅ REQUIRED - Use environment variables
+const useEdge = import.meta.env.VITE_USE_EDGE === 'true';
+const API_URL = import.meta.env.VITE_API_URL;
+```
+
+If something doesn't work locally:
+1. Document the required env var
+2. Tell the user to configure it
+3. DON'T hardcode a bypass
+
+---
+
+## 🚀 Edge Function Deployment (MANDATORY READING)
+
+**Before deploying ANY Supabase Edge Function, READ `docs/EDGE_DEPLOYMENT_RUNBOOK.md`.**
+
+### Quick Rules (Memorize):
+1. **Imports**: Use `npm:@supabase/supabase-js@2` (NOT `esm.sh`)
+2. **CORS**: Import `{ stdHeaders, handleOptions }` (NOT `corsHeaders`)
+3. **Auth**: Use Hybrid Auth (Agent Token + User Session) for shared functions.
+4. **Client**: Create at TOP LEVEL (outside `serve()`)
+5. **Verify**: ALWAYS run `npx tsx scripts/verify-live-deployment.ts` after deploy
+
+### 503 = Startup Crash
+Check: bad imports, non-existent exports, env var assertions.
+
+### Deployment
+```powershell
+$env:SUPABASE_ACCESS_TOKEN = "sbp_..."; .\scripts\ci\deploy-functions.ps1 -EnvPath supabase/.deploy.env
+npx tsx scripts/verify-live-deployment.ts  # ALWAYS verify after deploy
+```
+
+## 📋 Mock Coverage Mandate
+
+- `docs/mockups/coverage.json` is the source of truth for every route/state/CTA. Do **not** add or edit mock HTML without updating the matrix.
+- Before generating React pages (`scripts/compile-mockups.ts`) you must run `npm run mock:validate` and `npm run test:cta-smoke`. The compile step now halts if required CTAs are missing or miswired, so fix the mock instead of bypassing the check.
+- Every CTA must have a visible behavior (toast, BLOCKED banner, navigation, or job). If you temporarily disable a CTA, mark it `data-cta-id="cta-blocked"` and surface a BLOCKED message explaining why.

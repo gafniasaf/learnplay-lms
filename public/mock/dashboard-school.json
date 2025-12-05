@@ -1,0 +1,94 @@
+{
+  "role": "school",
+  "userId": "school-001",
+  "displayName": "Riverside Elementary",
+  "stats": {
+    "totalStudents": 487,
+    "totalTeachers": 28,
+    "activeClasses": 42,
+    "coursesDeployed": 2,
+    "avgStudentProgress": 74,
+    "activeLicenses": 500,
+    "licenseUsage": 97
+  },
+  "upcoming": [
+    {
+      "id": "staff-training",
+      "title": "New Course Platform Training",
+      "type": "training",
+      "dueDate": "2025-10-21T14:00:00Z",
+      "attendees": 28,
+      "location": "Main Hall"
+    },
+    {
+      "id": "curriculum-review",
+      "title": "Q4 Curriculum Review Meeting",
+      "type": "meeting",
+      "dueDate": "2025-10-25T10:00:00Z",
+      "attendees": 8,
+      "departments": ["English", "Math", "Science"]
+    },
+    {
+      "id": "parent-night",
+      "title": "Parent Information Night",
+      "type": "event",
+      "dueDate": "2025-10-28T18:00:00Z",
+      "expectedAttendees": 300
+    }
+  ],
+  "recent": [
+    {
+      "id": "deployment-modals",
+      "title": "English Modals Course Deployed",
+      "type": "deployment",
+      "completedAt": "2025-10-15T09:00:00Z",
+      "courseId": "modals",
+      "assignedTo": 156,
+      "teachers": 8
+    },
+    {
+      "id": "deployment-verbs",
+      "title": "Verbs Course Deployed",
+      "type": "deployment",
+      "completedAt": "2025-10-10T15:00:00Z",
+      "courseId": "verbs",
+      "assignedTo": 145,
+      "teachers": 7
+    }
+  ],
+  "performance": {
+    "byGrade": [
+      { "grade": 1, "students": 82, "avgProgress": 78, "avgAccuracy": 84 },
+      { "grade": 2, "students": 89, "avgProgress": 76, "avgAccuracy": 82 },
+      { "grade": 3, "students": 95, "avgProgress": 74, "avgAccuracy": 81 },
+      { "grade": 4, "students": 108, "avgProgress": 72, "avgAccuracy": 79 },
+      { "grade": 5, "students": 113, "avgProgress": 71, "avgAccuracy": 80 }
+    ],
+    "topCourses": [
+      { "id": "modals", "title": "English Modals", "enrollments": 245, "avgScore": 87 },
+      { "id": "verbs", "title": "Verbs", "enrollments": 242, "avgScore": 85 }
+    ],
+    "teacherEngagement": [
+      { "id": "teacher-001", "name": "Ms. Sarah Chen", "classCount": 4, "studentCount": 87, "avgProgress": 78 },
+      { "id": "teacher-005", "name": "Mr. David Kim", "classCount": 3, "studentCount": 72, "avgProgress": 82 },
+      { "id": "teacher-012", "name": "Mrs. Lisa Brown", "classCount": 3, "studentCount": 68, "avgProgress": 76 }
+    ]
+  },
+  "alerts": [
+    {
+      "id": "alert-license",
+      "type": "license-warning",
+      "priority": "high",
+      "message": "License usage at 97% - consider expanding capacity",
+      "timestamp": "2025-10-17T08:00:00Z"
+    },
+    {
+      "id": "alert-grade4",
+      "type": "performance",
+      "priority": "medium",
+      "message": "Grade 4 average progress below target (72% vs 75% target)",
+      "grade": 4,
+      "timestamp": "2025-10-16T12:00:00Z"
+    }
+  ]
+}

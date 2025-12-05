@@ -1,0 +1,65 @@
+name: UI Dead CTA Report
+
+on:
+  pull_request:
+    branches: [ main, develop, master ]
+
+jobs:
+  dead-cta:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install root deps
+        run: npm ci
+
+      - name: Install lms-mcp deps
+        run: npm --prefix lms-mcp ci
+
+      - name: Build lms-mcp
+        run: npm --prefix lms-mcp run build
+
+      - name: Run Dead CTA report
+        run: node scripts/ui-dead-cta-ci.mjs
+
+      - name: Upload report artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: dead-cta-report
+          path: reports/dead-ctas-ci.json
+
+      - name: Comment summary
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const p = 'reports/dead-ctas-ci.json';
+            if (!fs.existsSync(p)) {
+              core.warning('No report generated.');
+              return;
+            }
+            const data = JSON.parse(fs.readFileSync(p, 'utf8'));
+            const total = (data.issues?.length ?? data.actions?.length ?? 0);
+            let body = `UI Dead CTA Report\n\nTotal: ${total}\n`;
+            const items = (data.issues || data.actions || []).slice(0, 20);
+            for (const it of items) {
+              const file = it.file || 'unknown';
+              const line = it.line ? `:${it.line}` : '';
+              const reason = it.detail || it.reason || '';
+              const action = it.action || it.type || '';
+              body += `- ${action} @ ${file}${line} — ${reason}\n`;
+            }
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body
+            });
+
+

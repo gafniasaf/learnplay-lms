@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Pipeline - LearnPlay Admin</title>
+  <link rel="stylesheet" href="../_base.css">
+  <style>
+    .pipeline-layout {
+      display: grid;
+      grid-template-columns: 300px 1fr 300px;
+      gap: 1rem;
+      height: calc(100vh - 80px);
+    }
+    .panel {
+      background: var(--color-surface);
+      border-radius: var(--radius);
+      padding: 1rem;
+      overflow-y: auto;
+    }
+    .panel-header {
+      font-weight: 600;
+      margin-bottom: 1rem;
+      padding-bottom: 0.5rem;
+      border-bottom: 1px solid var(--color-border);
+    }
+    .job-card {
+      padding: 1rem;
+      background: var(--color-bg);
+      border-radius: 8px;
+      margin-bottom: 0.75rem;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .job-card:hover { background: var(--color-border); }
+    .job-card.active { border-left: 3px solid var(--color-primary); }
+    .job-type {
+      font-size: 0.75rem;
+      color: var(--color-text-muted);
+      text-transform: uppercase;
+    }
+    .job-title { font-weight: 500; margin: 0.25rem 0; }
+    .job-meta { font-size: 0.875rem; color: var(--color-text-muted); }
+    .main-canvas {
+      display: flex;
+      flex-direction: column;
+    }
+    .canvas-tabs {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+    }
+    .canvas-tab {
+      padding: 0.5rem 1rem;
+      border-radius: 8px;
+      border: none;
+      background: var(--color-bg);
+      cursor: pointer;
+    }
+    .canvas-tab.active {
+      background: var(--color-primary);
+      color: white;
+    }
+    .canvas-content {
+      flex: 1;
+      background: var(--color-bg);
+      border-radius: 8px;
+      padding: 1.5rem;
+      overflow-y: auto;
+    }
+    .step-item {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      padding: 1rem;
+      background: var(--color-surface);
+      border-radius: 8px;
+      margin-bottom: 0.5rem;
+    }
+    .step-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.875rem;
+    }
+    .step-icon.done { background: #dcfce7; color: #166534; }
+    .step-icon.running { background: #dbeafe; color: #1d4ed8; }
+    .step-icon.pending { background: var(--color-bg); color: var(--color-text-muted); }
+    .log-line {
+      font-family: monospace;
+      font-size: 0.875rem;
+      padding: 0.25rem 0;
+      border-bottom: 1px solid var(--color-border);
+    }
+    .log-time { color: var(--color-text-muted); margin-right: 1rem; }
+    .log-info { color: var(--color-info); }
+    .log-success { color: var(--color-success); }
+    .log-error { color: var(--color-error); }
+    .inspector-section {
+      margin-bottom: 1.5rem;
+    }
+    .inspector-label {
+      font-size: 0.75rem;
+      color: var(--color-text-muted);
+      text-transform: uppercase;
+      margin-bottom: 0.5rem;
+    }
+  </style>
+</head>
+<body data-route="/admin/ai-pipeline">
+  <header class="header">
+    <button class="btn-ghost" data-cta-id="back" data-action="navigate" data-target="/admin/console">← Back</button>
+    <h1>AI Pipeline</h1>
+    <button class="btn-ai" data-cta-id="new-job" data-action="navigate" data-target="/admin/ai-pipeline/new">
+      ✨ New Job
+    </button>
+  </header>
+  
+  <div class="container" style="max-width: none; padding: 1rem;">
+    <div class="pipeline-layout">
+      <!-- Left Panel: Job Queue -->
+      <div class="panel">
+        <div class="panel-header">Job Queue</div>
+        
+        <div class="job-card active">
+          <div class="job-type">ai_course_generate</div>
+          <div class="job-title">Generate Math Course</div>
+          <div class="job-meta">
+            <span class="badge badge-info" style="font-size: 0.625rem;">Running</span>
+            • Started 2m ago
+          </div>
+        </div>
+        
+        <div class="job-card">
+          <div class="job-type">guard_course</div>
+          <div class="job-title">Validate Science Course</div>
+          <div class="job-meta">
+            <span class="badge badge-warning" style="font-size: 0.625rem;">Queued</span>
+          </div>
+        </div>
+        
+        <div class="job-card">
+          <div class="job-type">ai_course_generate</div>
+          <div class="job-title">Generate Reading Course</div>
+          <div class="job-meta">
+            <span class="badge badge-success" style="font-size: 0.625rem;">Completed</span>
+            • 15m ago
+          </div>
+        </div>
+        
+        <div class="job-card">
+          <div class="job-type">draft_assignment_plan</div>
+          <div class="job-title">Draft Week 10 Assignments</div>
+          <div class="job-meta">
+            <span class="badge badge-success" style="font-size: 0.625rem;">Completed</span>
+            • 1h ago
+          </div>
+        </div>
+      </div>
+      
+      <!-- Main Canvas -->
+      <div class="panel main-canvas">
+        <div class="canvas-tabs">
+          <button class="canvas-tab active">Overview</button>
+          <button class="canvas-tab">Prompts</button>
+          <button class="canvas-tab">Output</button>
+          <button class="canvas-tab">Logs</button>
+        </div>
+        
+        <div class="canvas-content">
+          <h3 style="margin-bottom: 1rem;">Generate Math Course</h3>
+          
+          <div class="step-item">
+            <div class="step-icon done">✓</div>
+            <div style="flex: 1;">
+              <div style="font-weight: 500;">Initialize Course Structure</div>
+              <div style="font-size: 0.875rem; color: var(--color-text-muted);">Created base JSON schema</div>
+            </div>
+            <span style="font-size: 0.875rem; color: var(--color-text-muted);">2.3s</span>
+          </div>
+          
+          <div class="step-item">
+            <div class="step-icon done">✓</div>
+            <div style="flex: 1;">
+              <div style="font-weight: 500;">Generate Section Outlines</div>
+              <div style="font-size: 0.875rem; color: var(--color-text-muted);">5 sections created</div>
+            </div>
+            <span style="font-size: 0.875rem; color: var(--color-text-muted);">8.1s</span>
+          </div>
+          
+          <div class="step-item">
+            <div class="step-icon running">⟳</div>
+            <div style="flex: 1;">
+              <div style="font-weight: 500;">Generate Questions</div>
+              <div style="font-size: 0.875rem; color: var(--color-text-muted);">Processing section 3 of 5...</div>
+            </div>
+            <span style="font-size: 0.875rem; color: var(--color-info);">Running...</span>
+          </div>
+          
+          <div class="step-item">
+            <div class="step-icon pending">4</div>
+            <div style="flex: 1;">
+              <div style="font-weight: 500;">Generate Variants</div>
+              <div style="font-size: 0.875rem; color: var(--color-text-muted);">Waiting...</div>
+            </div>
+          </div>
+          
+          <div class="step-item">
+            <div class="step-icon pending">5</div>
+            <div style="flex: 1;">
+              <div style="font-weight: 500;">Validate & Save</div>
+              <div style="font-size: 0.875rem; color: var(--color-text-muted);">Waiting...</div>
+            </div>
+          </div>
+          
+          <h4 style="margin: 1.5rem 0 1rem;">Recent Logs</h4>
+          <div style="background: #1e293b; color: #e2e8f0; padding: 1rem; border-radius: 8px; font-family: monospace; font-size: 0.875rem;">
+            <div class="log-line"><span class="log-time">14:32:15</span><span class="log-info">[INFO]</span> Starting section 3: Fractions</div>
+            <div class="log-line"><span class="log-time">14:32:16</span><span class="log-info">[INFO]</span> Generating 10 questions...</div>
+            <div class="log-line"><span class="log-time">14:32:18</span><span class="log-success">[SUCCESS]</span> Question 1 generated</div>
+            <div class="log-line"><span class="log-time">14:32:19</span><span class="log-success">[SUCCESS]</span> Question 2 generated</div>
+            <div class="log-line"><span class="log-time">14:32:20</span><span class="log-info">[INFO]</span> Processing question 3...</div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Right Panel: Inspector -->
+      <div class="panel">
+        <div class="panel-header">Job Inspector</div>
+        
+        <div class="inspector-section">
+          <div class="inspector-label">Job ID</div>
+          <div style="font-family: monospace;">job_abc123xyz</div>
+        </div>
+        
+        <div class="inspector-section">
+          <div class="inspector-label">Type</div>
+          <div>ai_course_generate</div>
+        </div>
+        
+        <div class="inspector-section">
+          <div class="inspector-label">Status</div>
+          <span class="badge badge-info">Running</span>
+        </div>
+        
+        <div class="inspector-section">
+          <div class="inspector-label">Started</div>
+          <div>Dec 5, 2024 2:30 PM</div>
+        </div>
+        
+        <div class="inspector-section">
+          <div class="inspector-label">Duration</div>
+          <div>2m 15s</div>
+        </div>
+        
+        <div class="inspector-section">
+          <div class="inspector-label">Target Entity</div>
+          <div>CourseBlueprint: "5th Grade Fractions"</div>
+        </div>
+        
+        <div class="inspector-section">
+          <div class="inspector-label">Input Parameters</div>
+          <div style="background: var(--color-bg); padding: 0.75rem; border-radius: 8px; font-family: monospace; font-size: 0.75rem;">
+            {<br>
+            &nbsp;&nbsp;"subject": "Math",<br>
+            &nbsp;&nbsp;"difficulty": "elementary",<br>
+            &nbsp;&nbsp;"questionCount": 50<br>
+            }
+          </div>
+        </div>
+        
+        <div style="display: flex; gap: 0.5rem; margin-top: 1rem;">
+          <button class="btn-secondary" style="flex: 1;" data-cta-id="cancel-job" data-action="enqueueJob" data-job-type="cancel_job">Cancel</button>
+          <button class="btn-primary" style="flex: 1;" data-cta-id="view-output" data-action="navigate" data-target="/admin/ai-pipeline/output">Output</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
+
+
+

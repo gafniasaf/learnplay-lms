@@ -1,0 +1,147 @@
+{
+  "branding": {
+    "name": "LearnPlay Platform",
+    "tagline": "Adaptive learning with multi-role insights."
+  },
+  "data_model": {
+    "root_entities": [
+      {
+        "name": "LearnerProfile",
+        "slug": "learner-profile",
+        "fields": [
+          { "name": "full_name", "type": "string" },
+          { "name": "avatar_url", "type": "string" },
+          { "name": "grade_level", "type": "string" },
+          { "name": "weekly_goal_minutes", "type": "number" },
+          { "name": "current_assignment_id", "type": "string" },
+          { "name": "goal_status", "type": "string" },
+          { "name": "insights_snapshot", "type": "json" }
+        ]
+      },
+      {
+        "name": "Assignment",
+        "slug": "assignment",
+        "fields": [
+          { "name": "title", "type": "string" },
+          { "name": "status", "type": "enum", "options": ["draft", "scheduled", "in_progress", "graded", "archived"] },
+          { "name": "subject", "type": "string" },
+          { "name": "due_date", "type": "date" },
+          { "name": "adaptive_cluster_id", "type": "string" },
+          { "name": "ai_variant_id", "type": "string" },
+          { "name": "learner_id", "type": "string" },
+          { "name": "teacher_id", "type": "string" },
+          { "name": "rubric", "type": "json" },
+          { "name": "attachments", "type": "json" }
+        ]
+      },
+      {
+        "name": "CourseBlueprint",
+        "slug": "course-blueprint",
+        "fields": [
+          { "name": "title", "type": "string" },
+          { "name": "subject", "type": "string" },
+          { "name": "difficulty", "type": "enum", "options": ["elementary", "middle", "high", "college"] },
+          { "name": "catalog_path", "type": "string" },
+          { "name": "multimedia_manifest", "type": "json" },
+          { "name": "guard_status", "type": "enum", "options": ["pending", "passed", "failed"] },
+          { "name": "published", "type": "boolean" },
+          { "name": "notes", "type": "string" }
+        ]
+      },
+      {
+        "name": "MessageThread",
+        "slug": "message-thread",
+        "fields": [
+          { "name": "title", "type": "string" },
+          { "name": "participant_ids", "type": "json" },
+          { "name": "last_message", "type": "string" },
+          { "name": "unread_counts", "type": "json" },
+          { "name": "pinned", "type": "boolean" }
+        ]
+      },
+      {
+        "name": "JobTicket",
+        "slug": "job-ticket",
+        "fields": [
+          { "name": "job_type", "type": "string" },
+          { "name": "status", "type": "enum", "options": ["queued", "running", "completed", "failed"] },
+          { "name": "payload", "type": "json" },
+          { "name": "result", "type": "json" },
+          { "name": "target_id", "type": "string" }
+        ]
+      }
+    ],
+    "child_entities": [
+      {
+        "name": "SessionEvent",
+        "slug": "session-event",
+        "fields": [
+          { "name": "assignment_id", "type": "string" },
+          { "name": "question_ref", "type": "string" },
+          { "name": "outcome", "type": "enum", "options": ["correct", "incorrect", "skipped", "hint"] },
+          { "name": "duration_seconds", "type": "number" },
+          { "name": "transcript", "type": "string" },
+          { "name": "confidence_score", "type": "number" }
+        ]
+      },
+      {
+        "name": "GoalUpdate",
+        "slug": "goal-update",
+        "fields": [
+          { "name": "learner_id", "type": "string" },
+          { "name": "week_of", "type": "date" },
+          { "name": "target_minutes", "type": "number" },
+          { "name": "note", "type": "string" }
+        ]
+      }
+    ]
+  },
+  "agent_jobs": [
+    {
+      "id": "draft_assignment_plan",
+      "target_entity": "Assignment",
+      "execution_mode": "synchronous",
+      "ui": {
+        "label": "Draft Plan",
+        "icon": "Sparkles",
+        "placement": "assignment_toolbar"
+      },
+      "prompt_template": "You are an adaptive learning coach. Given {{title}}, {{subject}}, {{learner_id}}, and recent session context, propose the next best set of activities. Return JSON {\"summary\": string, \"suggested_actions\": string[], \"updated_fields\": {\"ai_variant_id\": string, \"status\": string}}."
+    },
+    {
+      "id": "ai_course_generate",
+      "target_entity": "CourseBlueprint",
+      "execution_mode": "async",
+      "ui": {
+        "label": "Generate Course",
+        "icon": "WandSparkles",
+        "placement": "catalog_builder"
+      },
+      "prompt_template": "Act as an instructional designer. Using {{subject}}, {{difficulty}}, and {{multimedia_manifest}}, output a full HTML/JSON pack with sections, objectives, CTA copy, and audio/video transcript references."
+    },
+    {
+      "id": "guard_course",
+      "target_entity": "CourseBlueprint",
+      "execution_mode": "synchronous",
+      "ui": {
+        "label": "Run Guard",
+        "icon": "ShieldCheck",
+        "placement": "catalog_builder"
+      },
+      "prompt_template": "Review the provided course blueprint for missing CTAs, accessibility violations, and policy blockers. Respond with JSON {\"summary\": string, \"violations\": string[], \"status\": \"passed\"|\"failed\"}."
+    },
+    {
+      "id": "compile_mockups",
+      "target_entity": "CourseBlueprint",
+      "execution_mode": "async",
+      "prompt_template": "Compile supplied mockup HTML into React routes. Ensure every data-cta-id is preserved. Return JSON {\"success\": boolean, \"files_generated\": string[], \"errors\": string[]}."
+    },
+    {
+      "id": "plan_matrix_run",
+      "target_entity": "JobTicket",
+      "execution_mode": "async",
+      "prompt_template": "Execute the LearnPlay regression checklist (CTA clicks, guard job, accessibility). Return JSON {\"total_tests\": number, \"passed\": number, \"failed\": number, \"details\": [{\"name\": string, \"status\": string, \"notes\": string}]}."
+    }
+  ]
+}
+

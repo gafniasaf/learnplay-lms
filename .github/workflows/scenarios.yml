@@ -1,0 +1,24 @@
+name: MCP Scenarios
+
+on:
+  schedule:
+    - cron: '15 2 * * *'
+  workflow_dispatch:
+
+jobs:
+  scenarios:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - run: npm ci
+      - name: Run MCP scenarios
+        run: node scripts/mcp-scenarios.mjs | tee scenarios.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: scenarios
+          path: scenarios.json
+
+

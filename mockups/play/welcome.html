@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ready to Learn? - LearnPlay</title>
+  <link rel="stylesheet" href="../_base.css">
+  <style>
+    .welcome-container {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      padding: 2rem;
+      background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+    }
+    .welcome-card {
+      background: white;
+      padding: 3rem;
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      max-width: 400px;
+      width: 100%;
+    }
+    .course-icon { font-size: 4rem; margin-bottom: 1rem; }
+    .course-title { font-size: 1.5rem; font-weight: 700; margin-bottom: 0.5rem; }
+    .course-meta { color: var(--color-text-muted); margin-bottom: 2rem; }
+    .session-info {
+      background: var(--color-bg);
+      padding: 1rem;
+      border-radius: 8px;
+      margin-bottom: 2rem;
+      text-align: left;
+    }
+    .info-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 0.5rem 0;
+      border-bottom: 1px solid var(--color-border);
+    }
+    .info-row:last-child { border-bottom: none; }
+    .info-label { color: var(--color-text-muted); }
+    .info-value { font-weight: 500; }
+    .level-selector {
+      display: flex;
+      gap: 0.5rem;
+      justify-content: center;
+      margin-bottom: 2rem;
+    }
+    .level-btn {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      border: 2px solid var(--color-border);
+      background: white;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .level-btn.active {
+      border-color: var(--color-primary);
+      background: var(--color-primary);
+      color: white;
+    }
+    .level-btn.locked {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+  </style>
+</head>
+<body data-route="/play/welcome" data-entity="CourseBlueprint">
+  <div class="welcome-container">
+    <div class="welcome-card">
+      <div class="course-icon">📐</div>
+      <h1 class="course-title" data-field="title">Fractions Practice</h1>
+      <p class="course-meta" data-field="subject">Math • Level 2</p>
+      
+      <div class="session-info">
+        <div class="info-row">
+          <span class="info-label">Questions</span>
+          <span class="info-value">15 items</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Est. Time</span>
+          <span class="info-value">~10 min</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Best Score</span>
+          <span class="info-value">87%</span>
+        </div>
+      </div>
+      
+      <p style="font-size: 0.875rem; color: var(--color-text-muted); margin-bottom: 0.5rem;">Select Level</p>
+      <div class="level-selector">
+        <button class="level-btn">1</button>
+        <button class="level-btn active">2</button>
+        <button class="level-btn">3</button>
+        <button class="level-btn locked">4</button>
+        <button class="level-btn locked">5</button>
+      </div>
+      
+      <button class="btn-primary btn-large" style="width: 100%;" data-cta-id="start-session" data-action="navigate" data-target="/play">
+        Start Learning 🚀
+      </button>
+      
+      <button class="btn-ghost" style="margin-top: 1rem;" data-cta-id="go-back" data-action="navigate" data-target="/student/dashboard">
+        ← Back to Dashboard
+      </button>
+    </div>
+  </div>
+</body>
+</html>
+
+
+

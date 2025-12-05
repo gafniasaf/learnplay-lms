@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Item Editor</title>
+  <link rel="stylesheet" href="_design-system.css">
+</head>
+<body data-route="/items/:id" data-entity="[EntityName]">
+  <header>
+    <button 
+      data-cta-id="back-to-list" 
+      data-action="navigate" 
+      data-target="/items"
+    >
+      ← Back
+    </button>
+    <h1 data-field="title">Item Title</h1>
+  </header>
+  
+  <main>
+    <form data-form-id="item-form">
+      <section class="card">
+        <h2>Details</h2>
+        
+        <div class="form-group">
+          <label for="title">Title *</label>
+          <input 
+            type="text" 
+            id="title" 
+            data-field="title" 
+            placeholder="Enter title"
+            required
+          >
+        </div>
+        
+        <div class="form-group">
+          <label for="description">Description</label>
+          <textarea 
+            id="description" 
+            data-field="description" 
+            placeholder="Enter description"
+            rows="4"
+          ></textarea>
+        </div>
+        
+        <div class="form-group">
+          <label for="status">Status</label>
+          <select id="status" data-field="status">
+            <option value="draft">Draft</option>
+            <option value="active">Active</option>
+            <option value="archived">Archived</option>
+          </select>
+        </div>
+      </section>
+      
+      <section class="action-bar">
+        <button 
+          type="button"
+          data-cta-id="cancel-edit" 
+          data-action="navigate" 
+          data-target="/items"
+          class="btn-secondary"
+        >
+          Cancel
+        </button>
+        
+        <button 
+          type="submit"
+          data-cta-id="save-item" 
+          data-action="save" 
+          data-entity="[EntityName]"
+          data-form="item-form"
+          class="btn-primary"
+        >
+          Save Item
+        </button>
+      </section>
+    </form>
+    
+    <!-- AI Actions (if applicable) -->
+    <section class="card ai-actions">
+      <h2>AI Assistance</h2>
+      <button 
+        data-cta-id="run-ai-analysis" 
+        data-action="enqueueJob" 
+        data-job-type="[job_id]"
+        class="btn-ai"
+      >
+        ✨ Analyze with AI
+      </button>
+    </section>
+  </main>
+</body>
+</html>
+
+
+

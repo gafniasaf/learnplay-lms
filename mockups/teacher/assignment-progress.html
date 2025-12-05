@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Assignment Progress - LearnPlay</title>
+  <link rel="stylesheet" href="../_base.css">
+  <style>
+    .assignment-header {
+      background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+      color: white;
+      padding: 2rem;
+      margin: -1.5rem -1.5rem 1.5rem -1.5rem;
+    }
+    .assignment-title { font-size: 1.5rem; font-weight: 600; margin-bottom: 0.5rem; }
+    .assignment-meta { opacity: 0.9; }
+    .completion-ring {
+      width: 120px;
+      height: 120px;
+      border-radius: 50%;
+      background: conic-gradient(white 0deg, white 270deg, rgba(255,255,255,0.3) 270deg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto;
+    }
+    .completion-inner {
+      width: 100px;
+      height: 100px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+    .completion-value { font-size: 1.75rem; font-weight: 700; }
+    .question-breakdown {
+      background: var(--color-surface);
+      border-radius: var(--radius);
+      padding: 1.5rem;
+      margin-bottom: 1rem;
+      box-shadow: var(--shadow);
+    }
+    .question-item {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      padding: 0.75rem 0;
+      border-bottom: 1px solid var(--color-border);
+    }
+    .question-item:last-child { border-bottom: none; }
+    .question-num {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: var(--color-bg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
+      font-size: 0.875rem;
+    }
+    .question-bar {
+      flex: 1;
+      height: 8px;
+      background: var(--color-border);
+      border-radius: 4px;
+      overflow: hidden;
+      display: flex;
+    }
+    .bar-correct { background: var(--color-success); }
+    .bar-incorrect { background: var(--color-error); }
+    .student-submission {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      padding: 1rem;
+      background: var(--color-surface);
+      border-radius: 8px;
+      margin-bottom: 0.5rem;
+      box-shadow: var(--shadow);
+    }
+    .submission-avatar {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
+    }
+    .submission-info { flex: 1; }
+  </style>
+</head>
+<body data-route="/teacher/assignment-progress" data-entity="Assignment">
+  <header class="header">
+    <button class="btn-ghost" data-cta-id="back" data-action="navigate" data-target="/teacher/assignments">← Back</button>
+    <h1>Assignment Detail</h1>
+    <button class="btn-ghost" data-cta-id="edit" data-action="navigate" data-target="/teacher/control">Edit</button>
+  </header>
+  
+  <div class="container">
+    <div class="assignment-header">
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <div>
+          <div class="assignment-title" data-field="title">Fractions Practice</div>
+          <div class="assignment-meta">Math • 5th Grade Math P1 • Due Dec 5</div>
+        </div>
+        <div class="completion-ring">
+          <div class="completion-inner">
+            <div class="completion-value">75%</div>
+            <div style="font-size: 0.75rem;">Complete</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="stats-row" style="margin-bottom: 1.5rem;">
+      <div class="stat-card">
+        <span class="stat-value">18</span>
+        <span class="stat-label">Completed</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-value">6</span>
+        <span class="stat-label">In Progress</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-value">82%</span>
+        <span class="stat-label">Avg Score</span>
+      </div>
+    </div>
+    
+    <div class="question-breakdown">
+      <h3 style="margin-bottom: 1rem;">Question Performance</h3>
+      <div class="question-item">
+        <div class="question-num">1</div>
+        <div class="question-bar">
+          <div class="bar-correct" style="width: 85%"></div>
+          <div class="bar-incorrect" style="width: 15%"></div>
+        </div>
+        <span style="width: 50px; text-align: right; font-size: 0.875rem;">85%</span>
+      </div>
+      <div class="question-item">
+        <div class="question-num">2</div>
+        <div class="question-bar">
+          <div class="bar-correct" style="width: 92%"></div>
+          <div class="bar-incorrect" style="width: 8%"></div>
+        </div>
+        <span style="width: 50px; text-align: right; font-size: 0.875rem;">92%</span>
+      </div>
+      <div class="question-item">
+        <div class="question-num">3</div>
+        <div class="question-bar">
+          <div class="bar-correct" style="width: 45%"></div>
+          <div class="bar-incorrect" style="width: 55%"></div>
+        </div>
+        <span style="width: 50px; text-align: right; font-size: 0.875rem; color: var(--color-error);">45%</span>
+      </div>
+      <div class="question-item">
+        <div class="question-num">4</div>
+        <div class="question-bar">
+          <div class="bar-correct" style="width: 78%"></div>
+          <div class="bar-incorrect" style="width: 22%"></div>
+        </div>
+        <span style="width: 50px; text-align: right; font-size: 0.875rem;">78%</span>
+      </div>
+    </div>
+    
+    <h3 style="margin-bottom: 1rem;">Recent Submissions</h3>
+    <div class="student-submission">
+      <div class="submission-avatar">EJ</div>
+      <div class="submission-info">
+        <div style="font-weight: 500;">Emma Johnson</div>
+        <div style="font-size: 0.875rem; color: var(--color-text-muted);">Completed 2 hours ago</div>
+      </div>
+      <span class="badge badge-success">88%</span>
+      <button class="btn-ghost">View</button>
+    </div>
+    <div class="student-submission">
+      <div class="submission-avatar" style="background: linear-gradient(135deg, #22c55e, #06b6d4);">LS</div>
+      <div class="submission-info">
+        <div style="font-weight: 500;">Liam Smith</div>
+        <div style="font-size: 0.875rem; color: var(--color-text-muted);">In progress • 8/15 questions</div>
+      </div>
+      <span class="badge badge-warning">In Progress</span>
+      <button class="btn-ghost">—</button>
+    </div>
+    <div class="student-submission">
+      <div class="submission-avatar" style="background: linear-gradient(135deg, #f59e0b, #ef4444);">AB</div>
+      <div class="submission-info">
+        <div style="font-weight: 500;">Aiden Brown</div>
+        <div style="font-size: 0.875rem; color: var(--color-text-muted);">Completed yesterday</div>
+      </div>
+      <span class="badge badge-success">92%</span>
+      <button class="btn-ghost">View</button>
+    </div>
+  </div>
+</body>
+</html>
+
+
+

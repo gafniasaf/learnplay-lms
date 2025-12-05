@@ -1,0 +1,1729 @@
+<!DOCTYPE html>
+<html lang="en" data-route="/cta-editor" data-state="default">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CTA Coverage Editor</title>
+    <style>
+        :root {
+            --bg: #0a0a0f;
+            --surface: #12121a;
+            --surface-2: #1a1a24;
+            --border: #2a2a3a;
+            --text: #e4e4e7;
+            --text-muted: #71717a;
+            --accent: #6366f1;
+            --accent-hover: #818cf8;
+            --success: #22c55e;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            line-height: 1.5;
+        }
+
+        .assistant-shell {
+            display: grid;
+            grid-template-columns: minmax(0, 1.4fr) minmax(260px, 320px);
+            gap: 1.5rem;
+            padding: 1.5rem;
+            border-bottom: 1px solid var(--border);
+            background: radial-gradient(circle at top left, rgba(99, 102, 241, 0.15), transparent);
+        }
+
+        .chat-window {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 1rem;
+            padding: 1.25rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .chat-window-header {
+            display: flex;
+            justify-content: space-between;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        .chat-label {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--text-muted);
+            margin-bottom: 0.25rem;
+        }
+
+        .chat-window-header h2 {
+            font-size: 1.25rem;
+            font-weight: 600;
+        }
+
+        .cta-counter {
+            padding: 0.5rem 0.75rem;
+            border-radius: 999px;
+            border: 1px solid var(--border);
+            font-size: 0.875rem;
+            color: var(--warning);
+            background: rgba(245, 158, 11, 0.1);
+        }
+
+        .chat-messages {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            max-height: 320px;
+            overflow-y: auto;
+            padding-right: 0.25rem;
+        }
+
+        .chat-messages .message {
+            display: flex;
+            gap: 0.75rem;
+            align-items: flex-start;
+        }
+
+        .chat-messages .message.ai .bubble {
+            background: var(--surface-2);
+        }
+
+        .chat-messages .message.user {
+            flex-direction: row-reverse;
+        }
+
+        .chat-messages .message.user .bubble {
+            background: var(--accent);
+            color: white;
+        }
+
+        .chat-messages .bubble {
+            border-radius: 1rem;
+            padding: 0.75rem 1rem;
+            font-size: 0.875rem;
+            line-height: 1.5;
+        }
+
+        .chat-messages .avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 999px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 0.75rem;
+            background: var(--border);
+            color: var(--text);
+        }
+
+        .chat-messages .avatar.ai {
+            background: var(--accent);
+            color: white;
+        }
+
+        .chat-messages .avatar.user {
+            background: #2563eb;
+        }
+
+        .chat-suggestions {
+            background: var(--surface-2);
+            border: 1px solid var(--border);
+            border-radius: 0.75rem;
+            padding: 0.75rem;
+        }
+
+        .suggestion-label {
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--text-muted);
+            display: block;
+            margin-bottom: 0.5rem;
+        }
+
+        .suggestion-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .suggestion-chip {
+            border: 1px solid var(--border);
+            background: transparent;
+            color: var(--text);
+            border-radius: 999px;
+            padding: 0.35rem 0.85rem;
+            font-size: 0.75rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .suggestion-chip:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+
+        .chat-input-row {
+            display: flex;
+            gap: 0.75rem;
+            align-items: center;
+        }
+
+        .chat-input-row input {
+            flex: 1;
+            padding: 0.75rem 0.9rem;
+            border-radius: 0.6rem;
+            border: 1px solid var(--border);
+            background: var(--surface-2);
+            color: var(--text);
+            font-size: 0.875rem;
+        }
+
+        .assistant-summary {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 1rem;
+            padding: 1.25rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .summary-card {
+            background: var(--surface-2);
+            border-radius: 0.75rem;
+            padding: 1rem;
+        }
+
+        .summary-label {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--text-muted);
+            margin-bottom: 0.25rem;
+        }
+
+        .summary-progress {
+            display: flex;
+            flex-direction: column;
+            gap: 0.35rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .progress-outer {
+            height: 6px;
+            border-radius: 999px;
+            background: var(--border);
+            overflow: hidden;
+        }
+
+        .progress-inner {
+            height: 100%;
+            background: var(--accent);
+        }
+
+        .cta-list {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            font-size: 0.8125rem;
+            color: var(--text-muted);
+        }
+
+        .summary-actions {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .full-width {
+            width: 100%;
+            justify-content: center;
+        }
+
+        .advanced-panel {
+            display: none;
+            margin: 1.5rem;
+            border: 1px solid var(--border);
+            border-radius: 1rem;
+            overflow: hidden;
+        }
+
+        .advanced-panel.open {
+            display: block;
+        }
+
+        .advanced-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 1.5rem;
+            background: var(--surface);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .advanced-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .current-cta-banner {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.75rem 1rem;
+            border-radius: 0.75rem;
+            border: 1px dashed var(--border);
+            background: var(--surface-2);
+            margin-top: 0.75rem;
+        }
+
+        .current-cta-banner strong {
+            color: var(--accent);
+        }
+
+        .context-card {
+            background: var(--surface-2);
+            border-radius: 0.75rem;
+            border: 1px solid var(--border);
+            padding: 1rem;
+            display: flex;
+            gap: 0.75rem;
+            margin-top: 0.75rem;
+        }
+
+        .context-thumb {
+            width: 48px;
+            height: 48px;
+            border-radius: 0.65rem;
+            background: var(--surface);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-muted);
+        }
+
+        .context-copy {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        .multi-answer-card {
+            margin-top: 0.75rem;
+            border-radius: 0.75rem;
+            border: 1px solid var(--border);
+            background: var(--surface-2);
+            padding: 0.75rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .multi-answer-card textarea {
+            width: 100%;
+            border-radius: 0.6rem;
+            border: 1px solid var(--border);
+            background: var(--surface);
+            color: var(--text);
+            padding: 0.75rem;
+            font-size: 0.85rem;
+            min-height: 70px;
+        }
+
+        .history-panel {
+            margin-top: 1rem;
+            border-top: 1px solid var(--border);
+            padding-top: 1rem;
+        }
+
+        .history-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.5rem 0;
+            font-size: 0.825rem;
+            color: var(--text-muted);
+        }
+
+        .history-item button {
+            border: none;
+            background: transparent;
+            color: var(--accent);
+            font-size: 0.75rem;
+            cursor: pointer;
+        }
+
+        .auto-save-indicator {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+
+        .auto-save-indicator .dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 999px;
+            background: var(--success);
+        }
+
+        /* Header */
+        .header {
+            background: var(--surface);
+            border-bottom: 1px solid var(--border);
+            padding: 1rem 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .back-btn {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text-muted);
+            padding: 0.5rem;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+
+        .back-btn:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+
+        .header h1 {
+            font-size: 1.25rem;
+            font-weight: 600;
+        }
+
+        .header-right {
+            display: flex;
+            gap: 0.75rem;
+        }
+
+        .btn {
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            font-size: 0.875rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            border: none;
+        }
+
+        .btn-outline {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text);
+        }
+
+        .btn-outline:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+
+        .btn-primary {
+            background: var(--accent);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--accent-hover);
+        }
+
+        .btn-success {
+            background: var(--success);
+            color: white;
+        }
+
+        /* Main Layout */
+        .main {
+            display: grid;
+            grid-template-columns: 280px 1fr 400px;
+            height: calc(100vh - 65px);
+        }
+
+        /* Sidebar - Route List */
+        .sidebar {
+            background: var(--surface);
+            border-right: 1px solid var(--border);
+            overflow-y: auto;
+        }
+
+        .sidebar-header {
+            padding: 1rem;
+            border-bottom: 1px solid var(--border);
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            letter-spacing: 0.05em;
+        }
+
+        .route-list {
+            padding: 0.5rem;
+        }
+
+        .route-item {
+            padding: 0.75rem 1rem;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            margin-bottom: 0.25rem;
+            transition: all 0.2s;
+        }
+
+        .route-item:hover {
+            background: var(--surface-2);
+        }
+
+        .route-item.active {
+            background: var(--accent);
+            color: white;
+        }
+
+        .route-name {
+            font-size: 0.875rem;
+            font-weight: 500;
+            margin-bottom: 0.25rem;
+        }
+
+        .route-meta {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            display: flex;
+            gap: 0.75rem;
+        }
+
+        .route-item.active .route-meta {
+            color: rgba(255,255,255,0.7);
+        }
+
+        .badge {
+            font-size: 0.625rem;
+            padding: 0.125rem 0.375rem;
+            border-radius: 9999px;
+            font-weight: 600;
+        }
+
+        .badge-success {
+            background: rgba(34, 197, 94, 0.2);
+            color: var(--success);
+        }
+
+        .badge-warning {
+            background: rgba(245, 158, 11, 0.2);
+            color: var(--warning);
+        }
+
+        .badge-danger {
+            background: rgba(239, 68, 68, 0.2);
+            color: var(--danger);
+        }
+
+        /* Center - CTA Table */
+        .content {
+            padding: 1.5rem;
+            overflow-y: auto;
+        }
+
+        .content-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .content-title {
+            font-size: 1.125rem;
+            font-weight: 600;
+        }
+
+        .content-subtitle {
+            font-size: 0.875rem;
+            color: var(--text-muted);
+            margin-top: 0.25rem;
+        }
+
+        .state-tabs {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .state-tab {
+            padding: 0.5rem 1rem;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 0.5rem;
+            font-size: 0.875rem;
+            color: var(--text-muted);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .state-tab:hover {
+            border-color: var(--accent);
+            color: var(--text);
+        }
+
+        .state-tab.active {
+            background: var(--accent);
+            border-color: var(--accent);
+            color: white;
+        }
+
+        /* CTA Table */
+        .cta-table {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 0.75rem;
+            overflow: hidden;
+        }
+
+        .cta-table-header {
+            display: grid;
+            grid-template-columns: 40px 160px 200px 1fr 120px;
+            gap: 1rem;
+            padding: 0.75rem 1rem;
+            background: var(--surface-2);
+            border-bottom: 1px solid var(--border);
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            letter-spacing: 0.05em;
+        }
+
+        .cta-row {
+            display: grid;
+            grid-template-columns: 40px 160px 200px 1fr 120px;
+            gap: 1rem;
+            padding: 1rem;
+            border-bottom: 1px solid var(--border);
+            align-items: center;
+            transition: background 0.2s;
+        }
+
+        .cta-row:last-child {
+            border-bottom: none;
+        }
+
+        .cta-row:hover {
+            background: var(--surface-2);
+        }
+
+        .cta-row.pending {
+            background: rgba(245, 158, 11, 0.05);
+        }
+
+        .cta-row.approved {
+            background: rgba(34, 197, 94, 0.05);
+        }
+
+        .cta-checkbox {
+            width: 1.25rem;
+            height: 1.25rem;
+            accent-color: var(--accent);
+            cursor: pointer;
+        }
+
+        .cta-id {
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 0.8125rem;
+            color: var(--accent);
+            background: rgba(99, 102, 241, 0.1);
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+        }
+
+        .cta-label {
+            font-size: 0.875rem;
+        }
+
+        .cta-action {
+            font-size: 0.8125rem;
+            color: var(--text-muted);
+        }
+
+        .cta-status {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .status-btn {
+            padding: 0.375rem 0.625rem;
+            border-radius: 0.375rem;
+            font-size: 0.75rem;
+            font-weight: 500;
+            cursor: pointer;
+            border: none;
+            transition: all 0.2s;
+        }
+
+        .status-btn.accept {
+            background: rgba(34, 197, 94, 0.2);
+            color: var(--success);
+        }
+
+        .status-btn.accept:hover {
+            background: var(--success);
+            color: white;
+        }
+
+        .status-btn.edit {
+            background: rgba(99, 102, 241, 0.2);
+            color: var(--accent);
+        }
+
+        .status-btn.edit:hover {
+            background: var(--accent);
+            color: white;
+        }
+
+        .status-btn.reject {
+            background: rgba(239, 68, 68, 0.2);
+            color: var(--danger);
+        }
+
+        .status-btn.reject:hover {
+            background: var(--danger);
+            color: white;
+        }
+
+        .approved-badge {
+            background: var(--success);
+            color: white;
+            padding: 0.375rem 0.75rem;
+            border-radius: 0.375rem;
+            font-size: 0.75rem;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 0.375rem;
+        }
+
+        /* Right Panel - Preview */
+        .preview-panel {
+            background: var(--surface);
+            border-left: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .preview-header {
+            padding: 1rem;
+            border-bottom: 1px solid var(--border);
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            letter-spacing: 0.05em;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .preview-tabs {
+            display: flex;
+            gap: 0.25rem;
+        }
+
+        .preview-tab {
+            padding: 0.375rem 0.75rem;
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            font-size: 0.75rem;
+            cursor: pointer;
+            border-radius: 0.25rem;
+        }
+
+        .preview-tab.active {
+            background: var(--surface-2);
+            color: var(--text);
+        }
+
+        .preview-content {
+            flex: 1;
+            overflow: auto;
+        }
+
+        .preview-visual {
+            padding: 1rem;
+            height: 100%;
+        }
+
+        .preview-mockup {
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 0.5rem;
+            height: 300px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .preview-mockup img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+        }
+
+        .cta-highlight {
+            position: absolute;
+            border: 2px dashed var(--accent);
+            background: rgba(99, 102, 241, 0.1);
+            border-radius: 0.25rem;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .preview-code {
+            padding: 1rem;
+        }
+
+        .code-block {
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 0.5rem;
+            padding: 1rem;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 0.75rem;
+            line-height: 1.6;
+            overflow-x: auto;
+            color: var(--text-muted);
+        }
+
+        .code-block .tag {
+            color: #f472b6;
+        }
+
+        .code-block .attr {
+            color: #a78bfa;
+        }
+
+        .code-block .value {
+            color: #34d399;
+        }
+
+        /* Summary Bar */
+        .summary-bar {
+            background: var(--surface-2);
+            border-top: 1px solid var(--border);
+            padding: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .summary-stats {
+            display: flex;
+            gap: 1.5rem;
+            font-size: 0.875rem;
+        }
+
+        .stat {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .stat-value {
+            font-weight: 600;
+        }
+
+        .stat-label {
+            color: var(--text-muted);
+        }
+
+        /* Edit Modal */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .modal {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 0.75rem;
+            width: 500px;
+            max-width: 90vw;
+        }
+
+        .modal-header {
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-title {
+            font-size: 1rem;
+            font-weight: 600;
+        }
+
+        .modal-close {
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            padding: 0.25rem;
+        }
+
+        .modal-body {
+            padding: 1.5rem;
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            margin-bottom: 0.5rem;
+            letter-spacing: 0.05em;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 0.625rem 0.75rem;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 0.5rem;
+            color: var(--text);
+            font-size: 0.875rem;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+
+        .form-textarea {
+            min-height: 80px;
+            resize: vertical;
+        }
+
+        .modal-footer {
+            padding: 1rem 1.5rem;
+            border-top: 1px solid var(--border);
+            display: flex;
+            justify-content: flex-end;
+            gap: 0.75rem;
+        }
+
+        /* AI Suggestion Banner */
+        .ai-banner {
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(168, 85, 247, 0.1));
+            border: 1px solid rgba(99, 102, 241, 0.3);
+            border-radius: 0.75rem;
+            padding: 1rem 1.25rem;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: flex-start;
+            gap: 1rem;
+        }
+
+        .ai-icon {
+            width: 2rem;
+            height: 2rem;
+            background: var(--accent);
+            border-radius: 0.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .ai-content {
+            flex: 1;
+        }
+
+        .ai-title {
+            font-size: 0.875rem;
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+
+        .ai-text {
+            font-size: 0.8125rem;
+            color: var(--text-muted);
+        }
+
+        .ai-actions {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 0.75rem;
+        }
+
+        /* Responsive */
+        @media (max-width: 1200px) {
+            .assistant-shell {
+                grid-template-columns: 1fr;
+            }
+            .advanced-panel {
+                margin: 1rem;
+            }
+            .main {
+                grid-template-columns: 240px 1fr;
+            }
+            .preview-panel {
+                display: none;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .assistant-shell {
+                padding: 1rem;
+            }
+            .chat-messages {
+                max-height: 240px;
+            }
+            .main {
+                grid-template-columns: 1fr;
+            }
+            .sidebar {
+                display: none;
+            }
+            .cta-table-header,
+            .cta-row {
+                grid-template-columns: 40px 1fr 100px;
+            }
+            .cta-label,
+            .cta-action {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="header-left">
+            <button class="back-btn" data-cta-id="back-dashboard">
+                <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path d="M19 12H5M12 19l-7-7 7-7"/>
+                </svg>
+            </button>
+            <div>
+                <h1>CTA Coverage Editor</h1>
+            </div>
+        </div>
+        <div class="header-right">
+            <button class="btn btn-outline" data-cta-id="run-validation">
+                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+                Validate
+            </button>
+            <button class="btn btn-primary" data-cta-id="save-coverage">
+                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path d="M5 13l4 4L19 7"/>
+                </svg>
+                Save All
+            </button>
+        </div>
+    </header>
+
+    <!-- Conversational Assistant -->
+    <section class="assistant-shell">
+        <div class="chat-window">
+            <div class="chat-window-header">
+                <div>
+                    <p class="chat-label">AI Assistant · CTA coverage</p>
+                    <h2>Let's finish these buttons together</h2>
+                    <p style="color: var(--text-muted); font-size: 0.85rem;">I can describe each CTA in normal language and keep the matrix up to date automatically.</p>
+                </div>
+                <span class="cta-counter"><strong>4</strong> left</span>
+            </div>
+
+            <div class="current-cta-banner">
+                <div style="flex:1;">
+                    <p class="chat-label" style="margin-bottom:0;">Now discussing</p>
+                    <strong>Start simulatie</strong> — sits in the simulation header next to the timer.
+                </div>
+                <button class="btn btn-outline" data-cta-id="skip-cta">
+                    Skip
+                </button>
+            </div>
+
+            <div class="context-card">
+                <div class="context-thumb">
+                    <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path d="M12 8v8m-4-4h8"></path>
+                        <rect x="3" y="3" width="18" height="18" rx="2"></rect>
+                    </svg>
+                </div>
+                <div class="context-copy">
+                    When students press this CTA they already completed intake and are looking at the ACTIE timer. Think about what feedback or confirmation they should see.
+                </div>
+            </div>
+
+            <div class="chat-messages">
+                <div class="message ai">
+                    <div class="avatar ai">AI</div>
+                    <div class="bubble">
+                        I have <strong>4</strong> CTAs we still need to describe:
+                        <ul style="margin-top: 0.5rem; padding-left: 1.25rem;">
+                            <li>“Start simulatie” — what should happen immediately?</li>
+                            <li>“Casus beëindigen” — confirm or allow undo?</li>
+                            <li>“Nieuwe sessie” — start fresh or reuse info?</li>
+                            <li>“Export Golden Plan” — preferred format + toast?</li>
+                        </ul>
+                        Answer in plain language and I’ll wire everything for you.
+                    </div>
+                </div>
+                <div class="message user">
+                    <div class="avatar user">You</div>
+                    <div class="bubble">
+                        When I hit “Start simulatie” I want it to open the first case immediately, show the ACTIE timer, and display a friendly toast so students know it worked.
+                    </div>
+                </div>
+                <div class="message ai">
+                    <div class="avatar ai">AI</div>
+                    <div class="bubble">
+                        Perfect — I’ll document that and move to the next button. I’ll also suggest details if I can infer them from the plan.
+                    </div>
+                </div>
+            </div>
+
+            <div class="chat-suggestions">
+                <span class="suggestion-label">Suggested replies</span>
+                <div class="suggestion-grid">
+                    <button class="suggestion-chip" data-suggestion="Start the simulation immediately, show the ACTIE timer, and toast success.">Immediate start + toast</button>
+                    <button class="suggestion-chip" data-suggestion="Ask for confirmation, then end the case and log a reflection note.">Confirm before ending</button>
+                    <button class="suggestion-chip" data-suggestion="Offer HTML and React downloads plus a toast once the file is ready.">Export options</button>
+                    <button class="suggestion-chip" data-suggestion="Create a fresh plan, reuse hospital + opleiding, and show a success toast.">Reuse intake data</button>
+                </div>
+            </div>
+
+            <div class="multi-answer-card">
+                <span class="suggestion-label">Know all answers already?</span>
+                <textarea placeholder="Example: Start simulatie → launch case instantly and toast success. Casus beëindigen → ask for confirmation, log reflection note."></textarea>
+                <button class="btn btn-outline" data-cta-id="submit-bulk">Log all CTA descriptions</button>
+            </div>
+
+            <div class="chat-input-row">
+                <input type="text" placeholder="Describe what should happen when the user clicks..." data-field="cta-answer" />
+                <button class="btn btn-primary" data-cta-id="send-cta-answer">
+                    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <line x1="22" y1="2" x2="11" y2="13"></line>
+                        <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                    </svg>
+                    Send
+                </button>
+            </div>
+        </div>
+
+        <aside class="assistant-summary">
+            <div class="summary-card">
+                <p class="summary-label">CTA progress</p>
+                <div class="summary-progress">
+                    <div class="progress-outer">
+                        <div class="progress-inner" style="width: 83%;"></div>
+                    </div>
+                    <span style="font-size: 0.8rem; color: var(--text-muted);">5 of 6 documented</span>
+                </div>
+                <ul class="cta-list">
+                    <li><strong>Start simulatie</strong> — waiting for action details</li>
+                    <li><strong>Casus beëindigen</strong> — need confirmation behaviour</li>
+                    <li><strong>Nieuwe sessie</strong> — ask if intake should be reused</li>
+                    <li><strong>Export Golden Plan</strong> — confirm preferred formats</li>
+                </ul>
+                <div class="history-panel">
+                    <p class="summary-label">History</p>
+                    <div class="history-item">
+                        <span>Send message → enqueueJob</span>
+                        <button data-cta-id="edit-history">Edit</button>
+                    </div>
+                    <div class="history-item">
+                        <span>Copy code → toast “Copied!”</span>
+                        <button data-cta-id="edit-history">Edit</button>
+                    </div>
+                </div>
+            </div>
+            <div class="summary-actions">
+                <button class="btn btn-primary full-width" data-cta-id="open-advanced">
+                    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                        <path d="M3 9h18M9 21V9"></path>
+                    </svg>
+                    Open advanced matrix
+                </button>
+                <button class="btn btn-outline full-width" data-cta-id="review-summary">
+                    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path d="M4 4h16v16H4z"></path>
+                        <path d="M4 9h16"></path>
+                    </svg>
+                    Email me this summary
+                </button>
+            </div>
+        </aside>
+    </section>
+
+    <!-- Advanced CTA Matrix -->
+    <div class="advanced-panel" id="advancedPanel">
+        <div class="advanced-header">
+            <div>
+                <p class="chat-label">Advanced controls</p>
+                <h3 style="font-size: 1rem; font-weight: 600;">CTA Matrix & Mock Wiring</h3>
+                <div class="auto-save-indicator">
+                    <span class="dot"></span>
+                    <span data-id="autosave-text">All changes saved • mock coverage up to date</span>
+                </div>
+            </div>
+            <div class="advanced-actions">
+                <button class="btn btn-outline" data-cta-id="run-mock-validate">Run mock:validate</button>
+                <button class="btn btn-primary" data-cta-id="close-advanced">Hide panel</button>
+            </div>
+        </div>
+        <!-- Main Layout -->
+        <div class="main">
+        <!-- Sidebar - Route List -->
+        <aside class="sidebar">
+            <div class="sidebar-header">Routes & States</div>
+            <div class="route-list">
+                <div class="route-item">
+                    <div class="route-name">/dashboard</div>
+                    <div class="route-meta">
+                        <span>4 CTAs</span>
+                        <span class="badge badge-success">100%</span>
+                    </div>
+                </div>
+                <div class="route-item active">
+                    <div class="route-name">/plans/editor</div>
+                    <div class="route-meta">
+                        <span>6 CTAs</span>
+                        <span class="badge badge-warning">83%</span>
+                    </div>
+                </div>
+                <div class="route-item">
+                    <div class="route-name">/settings</div>
+                    <div class="route-meta">
+                        <span>3 CTAs</span>
+                        <span class="badge badge-success">100%</span>
+                    </div>
+                </div>
+                <div class="route-item">
+                    <div class="route-name">/help</div>
+                    <div class="route-meta">
+                        <span>2 CTAs</span>
+                        <span class="badge badge-danger">0%</span>
+                    </div>
+                </div>
+                <div class="route-item">
+                    <div class="route-name">/jobs</div>
+                    <div class="route-meta">
+                        <span>3 CTAs</span>
+                        <span class="badge badge-success">100%</span>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Center - CTA Table -->
+        <main class="content">
+            <!-- AI Suggestion Banner -->
+            <div class="ai-banner">
+                <div class="ai-icon">
+                    <svg width="16" height="16" fill="white" viewBox="0 0 24 24">
+                        <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+                    </svg>
+                </div>
+                <div class="ai-content">
+                    <div class="ai-title">AI detected 2 new CTAs from your plan</div>
+                    <div class="ai-text">Based on "Klinisch Redeneren" documentation, I found buttons that should be tracked: "Start simulatie" and "Casus beëindigen". Review and approve below.</div>
+                    <div class="ai-actions">
+                        <button class="btn btn-primary" style="padding: 0.375rem 0.75rem; font-size: 0.75rem;" data-cta-id="accept-all-suggestions">Accept All</button>
+                        <button class="btn btn-outline" style="padding: 0.375rem 0.75rem; font-size: 0.75rem;" data-cta-id="dismiss-suggestions">Dismiss</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="content-header">
+                <div>
+                    <div class="content-title">/plans/editor</div>
+                    <div class="content-subtitle">6 CTAs defined • 5 approved • 1 pending</div>
+                </div>
+                <button class="btn btn-outline" data-cta-id="add-cta">
+                    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path d="M12 5v14M5 12h14"/>
+                    </svg>
+                    Add CTA
+                </button>
+            </div>
+
+            <!-- State Tabs -->
+            <div class="state-tabs">
+                <button class="state-tab active">default</button>
+                <button class="state-tab">loading</button>
+                <button class="state-tab">job-running</button>
+                <button class="state-tab">blocked</button>
+                <button class="state-tab">not-found</button>
+            </div>
+
+            <!-- CTA Table -->
+            <div class="cta-table">
+                <div class="cta-table-header">
+                    <span></span>
+                    <span>CTA ID</span>
+                    <span>Label</span>
+                    <span>Expected Action</span>
+                    <span>Status</span>
+                </div>
+
+                <!-- Approved Row -->
+                <div class="cta-row approved">
+                    <input type="checkbox" class="cta-checkbox" checked disabled>
+                    <span class="cta-id">back-dashboard</span>
+                    <span class="cta-label">← Back</span>
+                    <span class="cta-action">Navigate to /dashboard</span>
+                    <div class="cta-status">
+                        <span class="approved-badge">
+                            <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                <path d="M5 13l4 4L19 7"/>
+                            </svg>
+                            Approved
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Approved Row -->
+                <div class="cta-row approved">
+                    <input type="checkbox" class="cta-checkbox" checked disabled>
+                    <span class="cta-id">send-chat</span>
+                    <span class="cta-label">Send (arrow icon)</span>
+                    <span class="cta-action">enqueueJob('refine_plan')</span>
+                    <div class="cta-status">
+                        <span class="approved-badge">
+                            <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                <path d="M5 13l4 4L19 7"/>
+                            </svg>
+                            Approved
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Approved Row -->
+                <div class="cta-row approved">
+                    <input type="checkbox" class="cta-checkbox" checked disabled>
+                    <span class="cta-id">export-plan</span>
+                    <span class="cta-label">Export Golden Plan</span>
+                    <span class="cta-action">saveRecord() + toast success</span>
+                    <div class="cta-status">
+                        <span class="approved-badge">
+                            <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                <path d="M5 13l4 4L19 7"/>
+                            </svg>
+                            Approved
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Approved Row -->
+                <div class="cta-row approved">
+                    <input type="checkbox" class="cta-checkbox" checked disabled>
+                    <span class="cta-id">copy-code</span>
+                    <span class="cta-label">Copy (icon)</span>
+                    <span class="cta-action">Copy HTML to clipboard + toast</span>
+                    <div class="cta-status">
+                        <span class="approved-badge">
+                            <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                <path d="M5 13l4 4L19 7"/>
+                            </svg>
+                            Approved
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Approved Row -->
+                <div class="cta-row approved">
+                    <input type="checkbox" class="cta-checkbox" checked disabled>
+                    <span class="cta-id">download-code</span>
+                    <span class="cta-label">Download (icon)</span>
+                    <span class="cta-action">Download HTML file</span>
+                    <div class="cta-status">
+                        <span class="approved-badge">
+                            <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                <path d="M5 13l4 4L19 7"/>
+                            </svg>
+                            Approved
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Pending Row (AI Suggested) -->
+                <div class="cta-row pending">
+                    <input type="checkbox" class="cta-checkbox">
+                    <span class="cta-id">start-sim</span>
+                    <span class="cta-label">Start simulatie</span>
+                    <span class="cta-action">enqueueJob('start_simulation')</span>
+                    <div class="cta-status">
+                        <button class="status-btn accept" data-cta-id="accept-cta">✓</button>
+                        <button class="status-btn edit" data-cta-id="edit-cta">✎</button>
+                        <button class="status-btn reject" data-cta-id="reject-cta">✕</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Summary Bar -->
+            <div class="summary-bar" style="margin-top: 1.5rem; border-radius: 0.75rem;">
+                <div class="summary-stats">
+                    <div class="stat">
+                        <span class="stat-value" style="color: var(--success);">5</span>
+                        <span class="stat-label">Approved</span>
+                    </div>
+                    <div class="stat">
+                        <span class="stat-value" style="color: var(--warning);">1</span>
+                        <span class="stat-label">Pending</span>
+                    </div>
+                    <div class="stat">
+                        <span class="stat-value" style="color: var(--danger);">0</span>
+                        <span class="stat-label">Missing</span>
+                    </div>
+                </div>
+                <div style="font-size: 0.875rem; color: var(--text-muted);">
+                    Coverage: <strong style="color: var(--success);">83%</strong>
+                </div>
+            </div>
+        </main>
+
+        <!-- Right Panel - Preview -->
+        <aside class="preview-panel">
+            <div class="preview-header">
+                <span>Preview</span>
+                <div class="preview-tabs">
+                    <button class="preview-tab active">Visual</button>
+                    <button class="preview-tab">HTML</button>
+                </div>
+            </div>
+            <div class="preview-content">
+                <div class="preview-visual">
+                    <div class="preview-mockup">
+                        <!-- Simulated mockup preview -->
+                        <div style="text-align: center; color: var(--text-muted);">
+                            <svg width="48" height="48" fill="none" stroke="currentColor" stroke-width="1" viewBox="0 0 24 24" style="opacity: 0.5; margin-bottom: 0.5rem;">
+                                <rect x="3" y="3" width="18" height="18" rx="2"/>
+                                <path d="M3 9h18M9 21V9"/>
+                            </svg>
+                            <div style="font-size: 0.875rem;">Editor Preview</div>
+                            <div style="font-size: 0.75rem; margin-top: 0.25rem;">Hover a CTA to highlight</div>
+                        </div>
+                        <!-- CTA Highlight Example -->
+                        <div class="cta-highlight" style="top: 70%; left: 60%; width: 120px; height: 36px;"></div>
+                    </div>
+
+                    <div style="margin-top: 1rem; padding: 1rem; background: var(--surface-2); border-radius: 0.5rem;">
+                        <div style="font-size: 0.75rem; font-weight: 600; color: var(--text-muted); margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 0.05em;">Selected: start-sim</div>
+                        <div style="font-size: 0.8125rem; color: var(--text);">
+                            <strong>Element:</strong> &lt;button&gt;Start simulatie&lt;/button&gt;<br>
+                            <strong>Action:</strong> Triggers job queue<br>
+                            <strong>Mock:</strong> Shows loading spinner → success toast
+                        </div>
+                    </div>
+                </div>
+
+                <div class="preview-code" style="display: none;">
+                    <div class="code-block">
+<span class="tag">&lt;button</span>
+  <span class="attr">class</span>=<span class="value">"btn btn-primary"</span>
+  <span class="attr">data-cta-id</span>=<span class="value">"start-sim"</span>
+<span class="tag">&gt;</span>
+  Start simulatie
+<span class="tag">&lt;/button&gt;</span>
+                    </div>
+                </div>
+            </div>
+        </aside>
+    </div>
+
+    </div>
+
+    <!-- Edit Modal (hidden by default, shown for demo) -->
+    <div class="modal-overlay" style="display: none;">
+        <div class="modal">
+            <div class="modal-header">
+                <span class="modal-title">Edit CTA: start-sim</span>
+                <button class="modal-close">
+                    <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label class="form-label">CTA ID</label>
+                    <input type="text" class="form-input" value="start-sim">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Button Label</label>
+                    <input type="text" class="form-input" value="Start simulatie">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Expected Action</label>
+                    <textarea class="form-input form-textarea">enqueueJob('start_simulation')</textarea>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Mock Behavior</label>
+                    <textarea class="form-input form-textarea">Show loading spinner for 1s, then success toast "Simulation started"</textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-outline">Cancel</button>
+                <button class="btn btn-primary">Save Changes</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const advancedPanel = document.getElementById('advancedPanel');
+        const autosaveText = document.querySelector('[data-id="autosave-text"]');
+        const currentBanner = document.querySelector('.current-cta-banner strong');
+        const currentHint = document.querySelector('.context-copy');
+        const counterEl = document.querySelector('.cta-counter strong');
+        const historyPanel = document.querySelector('.history-panel');
+        const bulkTextarea = document.querySelector('.multi-answer-card textarea');
+        const chatInput = document.querySelector('[data-field="cta-answer"]');
+        const chatMessages = document.querySelector('.chat-messages');
+
+        const ctaQueue = [
+            { id: 'start-sim', label: 'Start simulatie', hint: 'Launches the first case and reveals the ACTIE timer.' },
+            { id: 'end-case', label: 'Casus beëindigen', hint: 'Used at the end of a case for summary and reflection.' },
+            { id: 'new-session', label: 'Nieuwe sessie', hint: 'Begins a fresh plan, potentially reusing intake data.' },
+            { id: 'export-plan', label: 'Export Golden Plan', hint: 'Downloads the approved plan for sharing.' }
+        ];
+        let currentIndex = 0;
+
+        function updateCurrentCTA() {
+            const cta = ctaQueue[currentIndex];
+            if (!cta) return;
+            if (currentBanner) currentBanner.textContent = cta.label;
+            if (currentHint) currentHint.textContent = `When users click ${cta.label} (${cta.id}) we need to define the exact outcome. ${cta.hint}`;
+        }
+
+        function autosave(state = 'saved') {
+            if (!autosaveText) return;
+            if (state === 'saving') {
+                autosaveText.innerHTML = '<span style="color: var(--warning);">Saving…</span>';
+            } else {
+                autosaveText.textContent = 'All changes saved • mock coverage up to date';
+            }
+        }
+
+        function appendHistory(entry) {
+            if (!historyPanel) return;
+            const item = document.createElement('div');
+            item.className = 'history-item';
+            item.innerHTML = `<span>${entry}</span><button data-cta-id="edit-history">Edit</button>`;
+            historyPanel.appendChild(item);
+        }
+
+        updateCurrentCTA();
+
+        document.querySelectorAll('[data-cta-id="open-advanced"]').forEach(btn => {
+            btn.addEventListener('click', () => advancedPanel?.classList.add('open'));
+        });
+        document.querySelectorAll('[data-cta-id="close-advanced"]').forEach(btn => {
+            btn.addEventListener('click', () => advancedPanel?.classList.remove('open'));
+        });
+
+        const mockValidateBtn = document.querySelector('[data-cta-id="run-mock-validate"]');
+        mockValidateBtn?.addEventListener('click', () => {
+            alert('Mock coverage validation started… (simulated)');
+        });
+
+        document.querySelectorAll('.suggestion-chip').forEach(chip => {
+            chip.addEventListener('click', () => {
+                if (!chatInput) return;
+                chatInput.value = chip.dataset.suggestion || chip.textContent?.trim() || '';
+                chatInput.focus();
+            });
+        });
+
+        const sendBtn = document.querySelector('[data-cta-id="send-cta-answer"]');
+        sendBtn?.addEventListener('click', () => {
+            if (!chatInput || !chatMessages) return;
+            const value = chatInput.value.trim();
+            if (!value) return;
+            autosave('saving');
+
+            const userMessage = document.createElement('div');
+            userMessage.className = 'message user';
+            userMessage.innerHTML = `
+                <div class="avatar user">You</div>
+                <div class="bubble">${value}</div>
+            `;
+            chatMessages.appendChild(userMessage);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+            chatInput.value = '';
+
+            const next = Math.max(0, parseInt(counterEl?.textContent || '0', 10) - 1);
+            if (counterEl) counterEl.textContent = String(next);
+            appendHistory(`${ctaQueue[currentIndex]?.label || 'CTA'} → ${value}`);
+
+            setTimeout(() => {
+                const aiMessage = document.createElement('div');
+                aiMessage.className = 'message ai';
+                aiMessage.innerHTML = `
+                    <div class="avatar ai">AI</div>
+                    <div class="bubble">
+                        Logged it! Updating the CTA matrix and preparing the next question.
+                    </div>
+                `;
+                chatMessages.appendChild(aiMessage);
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+                autosave('saved');
+
+                if (next === 0) {
+                    const validation = document.createElement('div');
+                    validation.className = 'message ai';
+                    validation.innerHTML = `
+                        <div class="avatar ai">AI</div>
+                        <div class="bubble">
+                            All CTAs documented ✅ Running mock coverage validation… <br>Result: <strong>PASS</strong>. We are wired to 100%.
+                        </div>
+                    `;
+                    chatMessages.appendChild(validation);
+                    chatMessages.scrollTop = chatMessages.scrollHeight;
+                } else {
+                    currentIndex = Math.min(ctaQueue.length - 1, currentIndex + 1);
+                    updateCurrentCTA();
+                }
+            }, 700);
+        });
+
+        document.querySelector('[data-cta-id="skip-cta"]')?.addEventListener('click', () => {
+            currentIndex = Math.min(ctaQueue.length - 1, currentIndex + 1);
+            updateCurrentCTA();
+            const skipMsg = document.createElement('div');
+            skipMsg.className = 'message ai';
+            skipMsg.innerHTML = `
+                <div class="avatar ai">AI</div>
+                <div class="bubble">No problem, we can revisit that CTA later. Moving on…</div>
+            `;
+            chatMessages?.appendChild(skipMsg);
+            chatMessages?.scrollTo(0, chatMessages.scrollHeight);
+        });
+
+        document.querySelector('[data-cta-id="submit-bulk"]')?.addEventListener('click', () => {
+            if (!bulkTextarea || !chatMessages) return;
+            const text = bulkTextarea.value.trim();
+            if (!text) return;
+            autosave('saving');
+            const userMessage = document.createElement('div');
+            userMessage.className = 'message user';
+            userMessage.innerHTML = `<div class="avatar user">You</div><div class="bubble">${text}</div>`;
+            chatMessages.appendChild(userMessage);
+            bulkTextarea.value = '';
+            setTimeout(() => {
+                autosave('saved');
+                const aiMessage = document.createElement('div');
+                aiMessage.className = 'message ai';
+                aiMessage.innerHTML = `<div class="avatar ai">AI</div><div class="bubble">Logged every CTA from your summary and updated the matrix.</div>`;
+                chatMessages.appendChild(aiMessage);
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+            }, 600);
+        });
+
+        // Demo interactions
+        document.querySelectorAll('.route-item').forEach(item => {
+            item.addEventListener('click', () => {
+                document.querySelectorAll('.route-item').forEach(i => i.classList.remove('active'));
+                item.classList.add('active');
+            });
+        });
+
+        document.querySelectorAll('.state-tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.state-tab').forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+            });
+        });
+
+        document.querySelectorAll('.preview-tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.preview-tab').forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                // Toggle preview content
+                const visual = document.querySelector('.preview-visual');
+                const code = document.querySelector('.preview-code');
+                if (tab.textContent === 'HTML') {
+                    visual.style.display = 'none';
+                    code.style.display = 'block';
+                } else {
+                    visual.style.display = 'block';
+                    code.style.display = 'none';
+                }
+            });
+        });
+
+        // Accept button demo
+        document.querySelectorAll('.status-btn.accept').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const row = btn.closest('.cta-row');
+                row.classList.remove('pending');
+                row.classList.add('approved');
+                const statusCell = row.querySelector('.cta-status');
+                statusCell.innerHTML = `
+                    <span class="approved-badge">
+                        <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path d="M5 13l4 4L19 7"/>
+                        </svg>
+                        Approved
+                    </span>
+                `;
+            });
+        });
+    </script>
+</body>
+</html>
+

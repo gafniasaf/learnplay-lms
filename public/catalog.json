@@ -1,0 +1,59 @@
+{
+  "courses": [
+    {
+      "id": "modals",
+      "title": "English Modals",
+      "subject": "English Language",
+      "gradeBand": "Grades 6-8",
+      "contentVersion": "1",
+      "description": "Master modal verbs like can, should, must, and might with interactive exercises.",
+      "itemCount": 48,
+      "duration": "15 min",
+      "difficulty": "Intermediate"
+    },
+    {
+      "id": "verbs",
+      "title": "English Verbs",
+      "subject": "English Language",
+      "gradeBand": "Grades 4-6",
+      "contentVersion": "1",
+      "description": "Learn verb tenses, forms, and usage with engaging practice exercises.",
+      "itemCount": 48,
+      "duration": "15 min",
+      "difficulty": "Beginner"
+    },
+    {
+      "id": "history",
+      "title": "US History",
+      "subject": "history-us",
+      "gradeBand": "Grades 4-6",
+      "contentVersion": "1",
+      "description": "Explore key events and figures in American history",
+      "itemCount": 30,
+      "duration": "25 min",
+      "difficulty": "Intermediate"
+    },
+    {
+      "id": "multiplication",
+      "title": "Multiplication Facts",
+      "subject": "math",
+      "gradeBand": "Grades 3-5",
+      "contentVersion": "1",
+      "description": "Master multiplication tables through practice",
+      "itemCount": 48,
+      "duration": "20 min",
+      "difficulty": "Beginner"
+    },
+    {
+      "id": "science",
+      "title": "Science Basics",
+      "subject": "science",
+      "gradeBand": "Grades 4-6",
+      "contentVersion": "1",
+      "description": "Learn fundamental science concepts",
+      "itemCount": 36,
+      "duration": "20 min",
+      "difficulty": "Intermediate"
+    }
+  ]
+}

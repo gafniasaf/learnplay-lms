@@ -1,0 +1,89 @@
+name: PR CI Gate
+
+on:
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  pr-ci:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run unit tests
+        run: npm run test --silent
+
+      - name: Build MCP Docker image
+        run: docker build -t lms-mcp ./lms-mcp
+
+      - name: Run MCP server container
+        run: |
+          docker run -d --name mcp \
+            -p 4000:4000 \
+            -e MCP_AUTH_TOKEN="${{ secrets.MCP_AUTH_TOKEN }}" \
+            -e SUPABASE_URL="${{ secrets.SUPABASE_URL }}" \
+            -e SUPABASE_SERVICE_ROLE_KEY="${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" \
+            -e AGENT_TOKEN="${{ secrets.AGENT_TOKEN }}" \
+            lms-mcp
+
+      - name: Wait for MCP (health poll)
+        env:
+          MCP_AUTH_TOKEN: ${{ secrets.MCP_AUTH_TOKEN }}
+        run: |
+          for i in {1..20}; do
+            RES=$(curl -s -X POST -H "Authorization: Bearer $MCP_AUTH_TOKEN" -H "Content-Type: application/json" \
+              -d '{"method":"lms.health","params":{}}' http://127.0.0.1:4000)
+            echo "$RES" | grep -q '"ok":true' && echo "MCP ready" && break
+            sleep 1
+          done
+
+      - name: MCP integration tests
+        env:
+          MCP_AUTH_TOKEN: ${{ secrets.MCP_AUTH_TOKEN }}
+          TEST_COURSE_ID: ${{ secrets.TEST_COURSE_ID }}
+          RUN_MCP_INTEGRATION: "true"
+        run: npx jest -c lms-mcp/jest.config.ts --rootDir lms-mcp tests/integration --runInBand --silent
+
+      - name: MCP AutoFix+Validate smoke
+        env:
+          MCP_AUTH_TOKEN: ${{ secrets.MCP_AUTH_TOKEN }}
+          TEST_COURSE_ID: ${{ secrets.TEST_COURSE_ID }}
+        run: npm run mcp:smoke:autofix --silent
+
+      - name: Contracts snapshot check
+        run: npm run contracts:check --silent
+
+      - name: Pipeline smoke
+        run: npm run pipeline:smoke --silent
+
+      - name: Editor E2E
+        run: npm run editor:e2e --silent
+
+      - name: Upload reports/artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: reports-and-artifacts
+          path: |
+            reports/**
+            artifacts/**
+          if-no-files-found: ignore
+
+      - name: On failure - gather logs and diagnose
+        if: failure()
+        env:
+          MCP_AUTH_TOKEN: ${{ secrets.MCP_AUTH_TOKEN }}
+        run: |
+          docker logs mcp || true
+          node lms-mcp/scripts/mcp-diagnose.mjs || true
+
+

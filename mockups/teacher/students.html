@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Student Roster - LearnPlay</title>
+  <link rel="stylesheet" href="../_base.css">
+  <style>
+    .search-bar {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 1.5rem;
+    }
+    .search-bar input {
+      flex: 1;
+      padding: 0.75rem 1rem;
+      border: 1px solid var(--color-border);
+      border-radius: 8px;
+    }
+    .student-table {
+      width: 100%;
+      background: var(--color-surface);
+      border-radius: var(--radius);
+      overflow: hidden;
+      box-shadow: var(--shadow);
+    }
+    .student-table th, .student-table td {
+      padding: 1rem;
+      text-align: left;
+      border-bottom: 1px solid var(--color-border);
+    }
+    .student-table th {
+      background: var(--color-bg);
+      font-weight: 600;
+      font-size: 0.875rem;
+      color: var(--color-text-muted);
+    }
+    .student-row:hover { background: var(--color-bg); }
+    .student-avatar {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
+    }
+    .student-name-cell { display: flex; align-items: center; gap: 0.75rem; }
+    .student-name { font-weight: 500; }
+    .student-email { font-size: 0.75rem; color: var(--color-text-muted); }
+    .progress-mini {
+      width: 60px;
+      height: 6px;
+      background: var(--color-border);
+      border-radius: 3px;
+      overflow: hidden;
+      display: inline-block;
+      vertical-align: middle;
+      margin-right: 0.5rem;
+    }
+  </style>
+</head>
+<body data-route="/teacher/students" data-entity="LearnerProfile">
+  <header class="header">
+    <button class="btn-ghost" data-cta-id="back" data-action="navigate" data-target="/teacher/dashboard">← Back</button>
+    <h1>Students</h1>
+    <div></div>
+  </header>
+  
+  <div class="container">
+    <div class="search-bar">
+      <input type="text" placeholder="Search students..." data-field="search">
+      <select data-field="classFilter">
+        <option value="">All Classes</option>
+        <option value="mth501">5th Grade Math - P1</option>
+        <option value="mth503">5th Grade Math - P3</option>
+        <option value="rmd100">Remedial Math</option>
+      </select>
+    </div>
+    
+    <table class="student-table">
+      <thead>
+        <tr>
+          <th>Student</th>
+          <th>Class</th>
+          <th>Progress</th>
+          <th>Last Active</th>
+          <th>Status</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr class="student-row">
+          <td>
+            <div class="student-name-cell">
+              <div class="student-avatar">EJ</div>
+              <div>
+                <div class="student-name">Emma Johnson</div>
+                <div class="student-email">emma.j@school.edu</div>
+              </div>
+            </div>
+          </td>
+          <td>5th Grade Math - P1</td>
+          <td>
+            <div class="progress-mini"><div class="progress-fill" style="width: 85%"></div></div>
+            85%
+          </td>
+          <td>Today</td>
+          <td><span class="badge badge-success">On Track</span></td>
+          <td><button class="btn-ghost" data-cta-id="view-student" data-action="navigate" data-target="/teacher/student-detail">→</button></td>
+        </tr>
+        <tr class="student-row">
+          <td>
+            <div class="student-name-cell">
+              <div class="student-avatar" style="background: linear-gradient(135deg, #22c55e, #06b6d4);">LS</div>
+              <div>
+                <div class="student-name">Liam Smith</div>
+                <div class="student-email">liam.s@school.edu</div>
+              </div>
+            </div>
+          </td>
+          <td>5th Grade Math - P1</td>
+          <td>
+            <div class="progress-mini"><div class="progress-fill" style="width: 72%"></div></div>
+            72%
+          </td>
+          <td>Yesterday</td>
+          <td><span class="badge badge-warning">Needs Help</span></td>
+          <td><button class="btn-ghost">→</button></td>
+        </tr>
+        <tr class="student-row">
+          <td>
+            <div class="student-name-cell">
+              <div class="student-avatar" style="background: linear-gradient(135deg, #f59e0b, #ef4444);">OD</div>
+              <div>
+                <div class="student-name">Olivia Davis</div>
+                <div class="student-email">olivia.d@school.edu</div>
+              </div>
+            </div>
+          </td>
+          <td>5th Grade Math - P3</td>
+          <td>
+            <div class="progress-mini"><div class="progress-fill" style="width: 94%"></div></div>
+            94%
+          </td>
+          <td>Today</td>
+          <td><span class="badge badge-info">Ahead</span></td>
+          <td><button class="btn-ghost">→</button></td>
+        </tr>
+        <tr class="student-row">
+          <td>
+            <div class="student-name-cell">
+              <div class="student-avatar">NW</div>
+              <div>
+                <div class="student-name">Noah Wilson</div>
+                <div class="student-email">noah.w@school.edu</div>
+              </div>
+            </div>
+          </td>
+          <td>Remedial Math</td>
+          <td>
+            <div class="progress-mini"><div class="progress-fill" style="width: 45%"></div></div>
+            45%
+          </td>
+          <td>3 days ago</td>
+          <td><span class="badge badge-error">Behind</span></td>
+          <td><button class="btn-ghost">→</button></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</body>
+</html>
+
+
+

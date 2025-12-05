@@ -1,0 +1,145 @@
+{
+  "role": "admin",
+  "userId": "admin-001",
+  "displayName": "Admin User",
+  "stats": {
+    "totalSchools": 12,
+    "totalStudents": 5847,
+    "totalTeachers": 336,
+    "activeClasses": 504,
+    "coursesPublished": 2,
+    "avgSystemProgress": 73,
+    "activeLicenses": 6000,
+    "licenseUsage": 97
+  },
+  "upcoming": [
+    {
+      "id": "course-release",
+      "title": "New Course Release: Advanced Grammar",
+      "type": "release",
+      "dueDate": "2025-10-25T10:00:00Z",
+      "status": "scheduled"
+    },
+    {
+      "id": "system-maintenance",
+      "title": "Scheduled System Maintenance",
+      "type": "maintenance",
+      "dueDate": "2025-10-28T02:00:00Z",
+      "duration": "3 hours",
+      "affectedUsers": "all"
+    },
+    {
+      "id": "quarterly-review",
+      "title": "Q4 Platform Performance Review",
+      "type": "meeting",
+      "dueDate": "2025-10-30T14:00:00Z",
+      "attendees": 8
+    }
+  ],
+  "recent": [
+    {
+      "id": "course-update-modals",
+      "title": "English Modals Course Updated",
+      "type": "update",
+      "completedAt": "2025-10-16T11:00:00Z",
+      "changes": "Added 12 new items, updated explanations"
+    },
+    {
+      "id": "course-launch-verbs",
+      "title": "Verbs Course Published",
+      "type": "launch",
+      "completedAt": "2025-10-14T09:00:00Z",
+      "deploymentsCount": 12,
+      "initialEnrollments": 1240
+    },
+    {
+      "id": "school-onboard",
+      "title": "New School Onboarded: Lakeside Academy",
+      "type": "onboarding",
+      "completedAt": "2025-10-12T15:30:00Z",
+      "students": 425,
+      "teachers": 24
+    }
+  ],
+  "systemHealth": {
+    "apiStatus": "operational",
+    "databaseStatus": "operational",
+    "storageStatus": "operational",
+    "uptime": 99.98,
+    "avgResponseTime": 145,
+    "errorRate": 0.02
+  },
+  "performance": {
+    "topSchools": [
+      {
+        "id": "school-001",
+        "name": "Riverside Elementary",
+        "students": 487,
+        "avgProgress": 74,
+        "avgAccuracy": 82
+      },
+      {
+        "id": "school-004",
+        "name": "Oakwood Academy",
+        "students": 612,
+        "avgProgress": 78,
+        "avgAccuracy": 85
+      },
+      {
+        "id": "school-007",
+        "name": "Maple Grove School",
+        "students": 445,
+        "avgProgress": 76,
+        "avgAccuracy": 83
+      }
+    ],
+    "coursePerformance": [
+      {
+        "id": "modals",
+        "title": "English Modals",
+        "totalEnrollments": 2847,
+        "completionRate": 68,
+        "avgScore": 84,
+        "avgTimeSpent": 1680
+      },
+      {
+        "id": "verbs",
+        "title": "Verbs",
+        "totalEnrollments": 3124,
+        "completionRate": 72,
+        "avgScore": 86,
+        "avgTimeSpent": 1560
+      }
+    ],
+    "userGrowth": [
+      { "month": "June", "students": 4982, "teachers": 298 },
+      { "month": "July", "students": 5245, "teachers": 312 },
+      { "month": "August", "students": 5568, "teachers": 324 },
+      { "month": "September", "students": 5723, "teachers": 331 },
+      { "month": "October", "students": 5847, "teachers": 336 }
+    ]
+  },
+  "alerts": [
+    {
+      "id": "alert-license-capacity",
+      "type": "license-warning",
+      "priority": "high",
+      "message": "System-wide license usage at 97% - expansion recommended",
+      "timestamp": "2025-10-17T08:00:00Z"
+    },
+    {
+      "id": "alert-server-load",
+      "type": "performance",
+      "priority": "medium",
+      "message": "Server load elevated during peak hours (3-4 PM)",
+      "timestamp": "2025-10-16T16:30:00Z"
+    },
+    {
+      "id": "alert-support-tickets",
+      "type": "support",
+      "priority": "low",
+      "message": "15 pending support tickets require review",
+      "timestamp": "2025-10-17T09:00:00Z"
+    }
+  ]
+}

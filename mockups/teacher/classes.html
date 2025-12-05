@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Classes - LearnPlay</title>
+  <link rel="stylesheet" href="../_base.css">
+  <style>
+    .class-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 1rem;
+    }
+    .class-card {
+      background: var(--color-surface);
+      border-radius: var(--radius);
+      overflow: hidden;
+      box-shadow: var(--shadow);
+    }
+    .class-header {
+      background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+      color: white;
+      padding: 1.5rem;
+    }
+    .class-name { font-size: 1.25rem; font-weight: 600; }
+    .class-grade { opacity: 0.9; font-size: 0.875rem; }
+    .class-body { padding: 1.25rem; }
+    .class-stat {
+      display: flex;
+      justify-content: space-between;
+      padding: 0.5rem 0;
+      border-bottom: 1px solid var(--color-border);
+    }
+    .class-stat:last-child { border-bottom: none; }
+    .class-actions {
+      display: flex;
+      gap: 0.5rem;
+      padding: 1rem 1.25rem;
+      border-top: 1px solid var(--color-border);
+    }
+    .class-code {
+      background: var(--color-bg);
+      padding: 0.5rem 1rem;
+      border-radius: 8px;
+      font-family: monospace;
+      font-size: 1.125rem;
+    }
+  </style>
+</head>
+<body data-route="/teacher/classes">
+  <header class="header">
+    <button class="btn-ghost" data-cta-id="menu" data-action="navigate" data-target="/teacher/dashboard">← Back</button>
+    <h1>My Classes</h1>
+    <button class="btn-ghost" data-cta-id="create-class" data-action="navigate" data-target="/teacher/classes/new">+ New</button>
+  </header>
+  
+  <div class="container">
+    <div class="class-grid">
+      <div class="class-card">
+        <div class="class-header">
+          <div class="class-name">5th Grade Math - Period 1</div>
+          <div class="class-grade">Grade 5 • Room 204</div>
+        </div>
+        <div class="class-body">
+          <div class="class-stat">
+            <span>Students</span>
+            <span style="font-weight: 600;">24</span>
+          </div>
+          <div class="class-stat">
+            <span>Avg. Progress</span>
+            <span style="font-weight: 600;">78%</span>
+          </div>
+          <div class="class-stat">
+            <span>Active Assignments</span>
+            <span style="font-weight: 600;">3</span>
+          </div>
+          <div class="class-stat">
+            <span>Class Code</span>
+            <span class="class-code">MTH501</span>
+          </div>
+        </div>
+        <div class="class-actions">
+          <button class="btn-secondary" style="flex: 1;" data-cta-id="view-students" data-action="navigate" data-target="/teacher/students">Students</button>
+          <button class="btn-primary" style="flex: 1;" data-cta-id="view-progress" data-action="navigate" data-target="/teacher/class-progress">Progress</button>
+        </div>
+      </div>
+      
+      <div class="class-card">
+        <div class="class-header" style="background: linear-gradient(135deg, #22c55e, #06b6d4);">
+          <div class="class-name">5th Grade Math - Period 3</div>
+          <div class="class-grade">Grade 5 • Room 204</div>
+        </div>
+        <div class="class-body">
+          <div class="class-stat">
+            <span>Students</span>
+            <span style="font-weight: 600;">22</span>
+          </div>
+          <div class="class-stat">
+            <span>Avg. Progress</span>
+            <span style="font-weight: 600;">82%</span>
+          </div>
+          <div class="class-stat">
+            <span>Active Assignments</span>
+            <span style="font-weight: 600;">2</span>
+          </div>
+          <div class="class-stat">
+            <span>Class Code</span>
+            <span class="class-code">MTH503</span>
+          </div>
+        </div>
+        <div class="class-actions">
+          <button class="btn-secondary" style="flex: 1;">Students</button>
+          <button class="btn-primary" style="flex: 1;">Progress</button>
+        </div>
+      </div>
+      
+      <div class="class-card">
+        <div class="class-header" style="background: linear-gradient(135deg, #f59e0b, #ef4444);">
+          <div class="class-name">Remedial Math</div>
+          <div class="class-grade">Mixed Grades • Room 208</div>
+        </div>
+        <div class="class-body">
+          <div class="class-stat">
+            <span>Students</span>
+            <span style="font-weight: 600;">12</span>
+          </div>
+          <div class="class-stat">
+            <span>Avg. Progress</span>
+            <span style="font-weight: 600;">65%</span>
+          </div>
+          <div class="class-stat">
+            <span>Active Assignments</span>
+            <span style="font-weight: 600;">4</span>
+          </div>
+          <div class="class-stat">
+            <span>Class Code</span>
+            <span class="class-code">RMD100</span>
+          </div>
+        </div>
+        <div class="class-actions">
+          <button class="btn-secondary" style="flex: 1;">Students</button>
+          <button class="btn-primary" style="flex: 1;">Progress</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
+
+
+

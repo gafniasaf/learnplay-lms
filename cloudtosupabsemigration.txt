@@ -1,0 +1,2896 @@
+# Lovable Cloud Setup Documentation
+## Complete Supabase Replication Guide
+
+This document provides a complete specification of the Lovable Cloud backend setup for replication in an external Supabase project.
+
+---
+
+## Table of Contents
+1. [Database Schema](#database-schema)
+2. [Row Level Security Policies](#row-level-security-policies)
+3. [Database Functions](#database-functions)
+4. [Database Triggers](#database-triggers)
+5. [Storage Buckets](#storage-buckets)
+6. [Authentication Configuration](#authentication-configuration)
+7. [Realtime Configuration](#realtime-configuration)
+8. [Environment Variables](#environment-variables)
+
+---
+
+## Database Schema
+
+### Extensions
+
+```sql
+-- Enable pgvector extension for vector embeddings
+CREATE EXTENSION IF NOT EXISTS vector;
+
+-- Enable pg_net for HTTP requests (used in triggers)
+CREATE EXTENSION IF NOT EXISTS pg_net;
+```
+
+### Sequences
+
+```sql
+-- Catalog version counter
+CREATE SEQUENCE IF NOT EXISTS public.catalog_version_seq START 1;
+```
+
+### Table: `profiles`
+User profile information linked to auth.users.
+
+```sql
+CREATE TABLE public.profiles (
+  id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  role TEXT NOT NULL DEFAULT 'student'::text,
+  full_name TEXT,
+  created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
+  PRIMARY KEY (id)
+);
+
+ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
+```
+
+### Table: `organizations`
+Multi-tenant organizations for schools/institutions.
+
+```sql
+CREATE TABLE public.organizations (
+  id UUID NOT NULL DEFAULT gen_random_uuid(),
+  name TEXT NOT NULL,
+  slug TEXT NOT NULL UNIQUE,
+  branding JSONB DEFAULT '{}'::jsonb,
+  settings JSONB DEFAULT '{}'::jsonb,
+  created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+  PRIMARY KEY (id)
+);
+
+ALTER TABLE public.organizations ENABLE ROW LEVEL SECURITY;
+```
+
+### Table: `organization_users`
+Junction table for organization membership.
+
+```sql
+CREATE TABLE public.organization_users (
+  org_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  org_role TEXT NOT NULL, -- 'school_admin', 'teacher', 'student'
+  PRIMARY KEY (org_id, user_id)
+);
+
+ALTER TABLE public.organization_users ENABLE ROW LEVEL SECURITY;
+```
+
+### Table: `organization_domains`
+Verified domains for SSO/auto-enrollment.
+
+```sql
+CREATE TABLE public.organization_domains (
+  id UUID NOT NULL DEFAULT gen_random_uuid(),
+  organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+  domain TEXT NOT NULL UNIQUE,
+  is_primary BOOLEAN DEFAULT false,
+  verified_at TIMESTAMP WITH TIME ZONE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+  PRIMARY KEY (id)
+);
+
+ALTER TABLE public.organization_domains ENABLE ROW LEVEL SECURITY;
+```
+
+### Table: `classes`
+Classes within organizations.
+
+```sql
+CREATE TABLE public.classes (
+  id UUID NOT NULL DEFAULT gen_random_uuid(),
+  org_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+  owner UUID REFERENCES auth.users(id),
+  name TEXT NOT NULL,
+  description TEXT,
+  created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
+  PRIMARY KEY (id)
+);
+
+ALTER TABLE public.classes ENABLE ROW LEVEL SECURITY;
+```
+
+### Table: `class_members`
+Student membership in classes.
+
+```sql
+CREATE TABLE public.class_members (
+  class_id UUID NOT NULL REFERENCES classes(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  role TEXT NOT NULL, -- 'student'
+  PRIMARY KEY (class_id, user_id)
+);
+
+ALTER TABLE public.class_members ENABLE ROW LEVEL SECURITY;
+```
+
+### Table: `class_join_codes`
+Time-limited codes for students to join classes.
+
+```sql
+CREATE TABLE public.class_join_codes (
+  id UUID NOT NULL DEFAULT gen_random_uuid(),
+  class_id UUID NOT NULL REFERENCES classes(id) ON DELETE CASCADE,
+  code TEXT NOT NULL UNIQUE,
+  created_by UUID NOT NULL REFERENCES auth.users(id),
+  created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
+  expires_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT (now() + '90 days'::interval),
+  is_active BOOLEAN NOT NULL DEFAULT true,
+  PRIMARY KEY (id)
+);
+
+ALTER TABLE public.class_join_codes ENABLE ROW LEVEL SECURITY;
+```
+
+### Table: `course_metadata`
+Course catalog metadata (tags, visibility, versioning).
+
+```sql
+CREATE TABLE public.course_metadata (
+  id TEXT NOT NULL, -- course_id
+  organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+  tags JSONB DEFAULT '{}'::jsonb,
+  tag_ids UUID[] DEFAULT '{}'::uuid[],
+  visibility TEXT NOT NULL DEFAULT 'org'::text, -- 'org', 'public'
+  etag INTEGER NOT NULL DEFAULT 1,
+  content_version INTEGER NOT NULL DEFAULT 1,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+  PRIMARY KEY (id, organization_id)
+);
+
+ALTER TABLE public.course_metadata ENABLE ROW LEVEL SECURITY;
+```
+
+### Table: `course_versions`
+Versioned snapshots of course content.
+
+```sql
+CREATE TABLE public.course_versions (
+  id UUID NOT NULL DEFAULT gen_random_uuid(),
+  course_id TEXT NOT NULL,
+  version INTEGER NOT NULL,
+  storage_path TEXT NOT NULL, -- Path in Supabase Storage
+  metadata_snapshot JSONB,
+  published_by UUID REFERENCES auth.users(id),
+  published_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+  change_summary TEXT,
+  PRIMARY KEY (id),
+  UNIQUE (course_id, version)
+);
+
+ALTER TABLE public.course_versions ENABLE ROW LEVEL SECURITY;
+```
+
+### Table: `tag_types`
+Admin-curated tag type definitions.
+
+```sql
+CREATE TABLE public.tag_types (
+  id UUID NOT NULL DEFAULT gen_random_uuid(),
+  key TEXT NOT NULL, -- e.g., 'subject', 'grade', 'difficulty'
+  label TEXT NOT NULL,
+  organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE,
+  is_enabled BOOLEAN NOT NULL DEFAULT true,
+  display_order INTEGER NOT NULL DEFAULT 0,
+  PRIMARY KEY (id),
+  UNIQUE (key, organization_id)
+);
+
+ALTER TABLE public.tag_types ENABLE ROW LEVEL SECURITY;
+```
+
+### Table: `tags`
+Admin-curated tag values.
+
+```sql
+CREATE TABLE public.tags (
+  id UUID NOT NULL DEFAULT gen_random_uuid(),
+  type_key TEXT NOT NULL, -- References tag_types.key
+  value TEXT NOT NULL,
+  slug TEXT NOT NULL,
+  organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE,
+  is_active BOOLEAN NOT NULL DEFAULT true,
+  PRIMARY KEY (id),
+  UNIQUE (type_key, slug, organization_id)
+);
+
+ALTER TABLE public.tags ENABLE ROW LEVEL SECURITY;
+```
+
+### Table: `course_tag_map`
+Many-to-many relationship between courses and tags.
+
+```sql
+CREATE TABLE public.course_tag_map (
+  course_id TEXT,
+  tag_id UUID REFERENCES tags(id) ON DELETE CASCADE,
+  organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE
+);
+
+ALTER TABLE public.course_tag_map ENABLE ROW LEVEL SECURITY;
+```
+
+### Table: `assignments`
+Course assignments for classes or students.
+
+```sql
+CREATE TABLE public.assignments (
+  id UUID NOT NULL DEFAULT gen_random_uuid(),
+  org_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+  title TEXT NOT NULL,
+  course_id TEXT NOT NULL,
+  created_by UUID NOT NULL REFERENCES auth.users(id),
+  created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
+  due_at TIMESTAMP WITH TIME ZONE,
+  PRIMARY KEY (id)
+);
+
+ALTER TABLE public.assignments ENABLE ROW LEVEL SECURITY;
+```
+
+### Table: `assignment_assignees`
+Who is assigned (students or entire classes).
+
+```sql
+CREATE TABLE public.assignment_assignees (
+  id UUID NOT NULL DEFAULT gen_random_uuid(),
+  assignment_id UUID NOT NULL REFERENCES assignments(id) ON DELETE CASCADE,
+  assignee_type TEXT NOT NULL, -- 'student' or 'class'
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+  class_id UUID REFERENCES classes(id) ON DELETE CASCADE,
+  PRIMARY KEY (id),
+  CHECK (
+    (assignee_type = 'student' AND user_id IS NOT NULL AND class_id IS NULL) OR
+    (assignee_type = 'class' AND class_id IS NOT NULL AND user_id IS NULL)
+  )
+);
+
+ALTER TABLE public.assignment_assignees ENABLE ROW LEVEL SECURITY;
+```
+
+### Table: `game_sessions`
+Top-level play session tracking.
+
+```sql
+CREATE TABLE public.game_sessions (
+  id UUID NOT NULL DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES auth.users(id),
+  course_id TEXT NOT NULL,
+  assignment_id UUID REFERENCES assignments(id),
+  content_version TEXT,
+  started_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
+  ended_at TIMESTAMP WITH TIME ZONE,
+  PRIMARY KEY (id)
+);
+
+ALTER TABLE public.game_sessions ENABLE ROW LEVEL SECURITY;
+```
+
+### Table: `game_rounds`
+Individual level/round attempts within a session.
+
+```sql
+CREATE TABLE public.game_rounds (
+  id UUID NOT NULL DEFAULT gen_random_uuid(),
+  session_id UUID NOT NULL REFERENCES game_sessions(id) ON DELETE CASCADE,
+  level INTEGER NOT NULL,
+  started_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
+  ended_at TIMESTAMP WITH TIME ZONE,
+  base_score INTEGER NOT NULL DEFAULT 0,
+  final_score INTEGER,
+  mistakes INTEGER NOT NULL DEFAULT 0,
+  distinct_items INTEGER NOT NULL DEFAULT 0,
+  elapsed_seconds INTEGER NOT NULL DEFAULT 0,
+  content_version TEXT NOT NULL DEFAULT 'legacy'::text,
+  share_enabled BOOLEAN NOT NULL DEFAULT false,
+  share_token TEXT UNIQUE,
+  share_expires_at TIMESTAMP WITH TIME ZONE,
+  PRIMARY KEY (id)
+);
+
+ALTER TABLE public.game_rounds ENABLE ROW LEVEL SECURITY;
+```
+
+### Table: `game_attempts`
+Individual question attempts.
+
+```sql
+CREATE TABLE public.game_attempts (
+  id UUID NOT NULL DEFAULT gen_random_uuid(),
+  round_id UUID NOT NULL REFERENCES game_rounds(id) ON DELETE CASCADE,
+  item_id INTEGER NOT NULL,
+  item_key TEXT NOT NULL DEFAULT '0:unknown:1'::text,
+  selected_index INTEGER NOT NULL,
+  correct BOOLEAN NOT NULL,
+  latency_ms INTEGER NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
+  PRIMARY KEY (id)
+);
+
+ALTER TABLE public.game_attempts ENABLE ROW LEVEL SECURITY;
+```
+
+### Table: `round_questions`
+Detailed question data for analysis.
+
+```sql
+CREATE TABLE public.round_questions (
+  id UUID NOT NULL DEFAULT gen_random_uuid(),
+  round_id UUID NOT NULL REFERENCES game_rounds(id) ON DELETE CASCADE,
+  attempt_id UUID,
+  question_id INTEGER NOT NULL,
+  prompt TEXT NOT NULL,
+  options JSONB NOT NULL DEFAULT '[]'::jsonb,
+  correct_option INTEGER NOT NULL,
+  student_choice INTEGER,
+  is_correct BOOLEAN NOT NULL DEFAULT false,
+  difficulty TEXT,
+  topic TEXT,
+  explanation TEXT,
+  created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
+  PRIMARY KEY (id)
+);
+
+ALTER TABLE public.round_questions ENABLE ROW LEVEL SECURITY;
+```
+
+### Table: `play_sessions`
+Frontend state persistence for play sessions.
+
+```sql
+CREATE TABLE public.play_sessions (
+  id UUID NOT NULL DEFAULT gen_random_uuid(),
+  student_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  course_id TEXT NOT NULL,
+  assignment_id UUID REFERENCES assignments(id),
+  state JSONB NOT NULL DEFAULT '{}'::jsonb,
+  created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
+  updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
+  PRIMARY KEY (id)
+);
+
+ALTER TABLE public.play_sessions ENABLE ROW LEVEL SECURITY;
+```
+
+### Table: `events`
+Application event logging.
+
+```sql
+CREATE TABLE public.events (
+  id UUID NOT NULL DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES auth.users(id),
+  session_id UUID NOT NULL,
+  event_type TEXT NOT NULL,
+  event_data JSONB NOT NULL DEFAULT '{}'::jsonb,
+  idempotency_key TEXT NOT NULL UNIQUE,
+  created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
+  PRIMARY KEY (id)
+);
+
+ALTER TABLE public.events ENABLE ROW LEVEL SECURITY;
+```
+
+### Table: `pending_invites`
+Student invitations to organizations/classes.
+
+```sql
+CREATE TABLE public.pending_invites (
+  id UUID NOT NULL DEFAULT gen_random_uuid(),
+  org_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+  class_id UUID REFERENCES classes(id) ON DELETE CASCADE,
+  email TEXT NOT NULL,
+  invited_by UUID NOT NULL REFERENCES auth.users(id),
+  created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
+  expires_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT (now() + '7 days'::interval),
+  accepted BOOLEAN NOT NULL DEFAULT false,
+  PRIMARY KEY (id),
+  UNIQUE (org_id, class_id, email)
+);
+
+ALTER TABLE public.pending_invites ENABLE ROW LEVEL SECURITY;
+```
+
+### Table: `parent_children`
+Parent-child account linking.
+
+```sql
+CREATE TABLE public.parent_children (
+  id UUID NOT NULL DEFAULT gen_random_uuid(),
+  parent_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  child_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  status TEXT NOT NULL DEFAULT 'active'::text, -- 'active', 'inactive'
+  linked_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
+  PRIMARY KEY (id),
+  UNIQUE (parent_id, child_id)
+);
+
+ALTER TABLE public.parent_children ENABLE ROW LEVEL SECURITY;
+```
+
+### Table: `child_codes`
+One-time codes for parent-child linking.
+
+```sql
+CREATE TABLE public.child_codes (
+  id UUID NOT NULL DEFAULT gen_random_uuid(),
+  student_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  code TEXT NOT NULL UNIQUE,
+  created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
+  expires_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT (now() + '30 days'::interval),
+  used BOOLEAN NOT NULL DEFAULT false,
+  PRIMARY KEY (id)
+);
+
+ALTER TABLE public.child_codes ENABLE ROW LEVEL SECURITY;
+```
+
+### Table: `student_achievements`
+Badges and achievements.
+
+```sql
+CREATE TABLE public.student_achievements (
+  id UUID NOT NULL DEFAULT gen_random_uuid(),
+  student_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  badge_code TEXT NOT NULL,
+  title TEXT NOT NULL,
+  description TEXT NOT NULL,
+  status TEXT NOT NULL, -- 'locked', 'unlocked', 'earned'
+  progress_pct INTEGER NOT NULL DEFAULT 0,
+  earned_at TIMESTAMP WITH TIME ZONE,
+  created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
+  updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
+  PRIMARY KEY (id)
+);
+
+ALTER TABLE public.student_achievements ENABLE ROW LEVEL SECURITY;
+```
+
+### Table: `messages`
+Direct messaging between users.
+
+```sql
+CREATE TABLE public.messages (
+  id UUID NOT NULL DEFAULT gen_random_uuid(),
+  sender_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  recipient_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  content TEXT NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
+  read_at TIMESTAMP WITH TIME ZONE,
+  PRIMARY KEY (id)
+);
+
+ALTER TABLE public.messages ENABLE ROW LEVEL SECURITY;
+```
+
+### Table: `ai_course_jobs`
+AI course generation job queue.
+
+```sql
+CREATE TABLE public.ai_course_jobs (
+  id UUID NOT NULL DEFAULT gen_random_uuid(),
+  course_id TEXT NOT NULL,
+  subject TEXT NOT NULL,
+  grade_band TEXT NOT NULL,
+  grade TEXT,
+  mode TEXT NOT NULL, -- 'generate', 'review', 'author', 'apply_patch'
+  items_per_group INTEGER NOT NULL DEFAULT 12,
+  status TEXT NOT NULL DEFAULT 'pending'::text, -- 'pending', 'processing', 'completed', 'failed'
+  idempotency_key TEXT UNIQUE,
+  progress_stage TEXT DEFAULT 'queued'::text,
+  progress_percent INTEGER DEFAULT 0,
+  progress_message TEXT,
+  error TEXT,
+  result_path TEXT,
+  created_by UUID REFERENCES auth.users(id),
+  created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
+  started_at TIMESTAMP WITH TIME ZONE,
+  completed_at TIMESTAMP WITH TIME ZONE,
+  generation_duration_ms BIGINT,
+  processing_duration_ms BIGINT,
+  last_heartbeat TIMESTAMP WITH TIME ZONE,
+  retry_count INTEGER NOT NULL DEFAULT 0,
+  max_retries INTEGER NOT NULL DEFAULT 3,
+  PRIMARY KEY (id)
+);
+
+ALTER TABLE public.ai_course_jobs ENABLE ROW LEVEL SECURITY;
+```
+
+### Table: `ai_media_jobs`
+AI media generation job queue.
+
+```sql
+CREATE TABLE public.ai_media_jobs (
+  id UUID NOT NULL DEFAULT gen_random_uuid(),
+  course_id TEXT NOT NULL,
+  item_id INTEGER NOT NULL,
+  media_type TEXT NOT NULL, -- 'image', 'audio', 'video'
+  prompt TEXT NOT NULL,
+  style TEXT,
+  target_ref JSONB, -- Reference to where this media is used
+  provider TEXT,
+  status TEXT NOT NULL DEFAULT 'pending'::text,
+  priority INTEGER DEFAULT 100,
+  attempts INTEGER DEFAULT 0,
+  idempotency_key TEXT UNIQUE,
+  result_url TEXT,
+  error TEXT,
+  cost_usd NUMERIC,
+  asset_version INTEGER DEFAULT 1,
+  metadata JSONB DEFAULT '{}'::jsonb,
+  created_by UUID DEFAULT auth.uid(),
+  created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
+  started_at TIMESTAMP WITH TIME ZONE,
+  completed_at TIMESTAMP WITH TIME ZONE,
+  last_heartbeat TIMESTAMP WITH TIME ZONE,
+  updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
+  dead_letter_reason TEXT,
+  PRIMARY KEY (id)
+);
+
+ALTER TABLE public.ai_media_jobs ENABLE ROW LEVEL SECURITY;
+```
+
+### Table: `media_generation_providers`
+Configuration for media generation providers.
+
+```sql
+CREATE TABLE public.media_generation_providers (
+  id TEXT NOT NULL,
+  name TEXT NOT NULL,
+  media_types TEXT[] NOT NULL, -- ['image', 'audio', 'video']
+  config JSONB DEFAULT '{}'::jsonb,
+  cost_per_unit NUMERIC,
+  quality_rating INTEGER, -- 1-10
+  avg_generation_time_seconds INTEGER,
+  enabled BOOLEAN DEFAULT true,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+  PRIMARY KEY (id)
+);
+
+ALTER TABLE public.media_generation_providers ENABLE ROW LEVEL SECURITY;
+```
+
+### Table: `media_assets`
+Generated media assets with versioning.
+
+```sql
+CREATE TABLE public.media_assets (
+  id UUID NOT NULL DEFAULT gen_random_uuid(),
+  logical_id TEXT NOT NULL, -- Stable identifier across versions
+  version INTEGER NOT NULL DEFAULT 1,
+  media_type TEXT NOT NULL,
+  prompt TEXT NOT NULL,
+  style TEXT,
+  provider TEXT NOT NULL,
+  model TEXT,
+  seed TEXT,
+  storage_bucket TEXT NOT NULL DEFAULT 'courses'::text,
+  storage_path TEXT NOT NULL,
+  public_url TEXT NOT NULL,
+  mime_type TEXT,
+  file_size_bytes INTEGER,
+  dimensions JSONB, -- {width, height}
+  duration_seconds NUMERIC,
+  cost_usd NUMERIC,
+  status TEXT NOT NULL DEFAULT 'active'::text, -- 'active', 'archived', 'deleted'
+  moderation_status TEXT, -- 'pending', 'approved', 'rejected'
+  moderation_flags JSONB,
+  alt_text TEXT,
+  caption TEXT,
+  metadata JSONB DEFAULT '{}'::jsonb,
+  organization_id UUID REFERENCES organizations(id),
+  usage_count INTEGER DEFAULT 0,
+  last_used_at TIMESTAMP WITH TIME ZONE,
+  created_by UUID DEFAULT auth.uid(),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+  embedding vector(1536), -- For semantic search
+  PRIMARY KEY (id),
+  UNIQUE (logical_id, version)
+);
+
+ALTER TABLE public.media_assets ENABLE ROW LEVEL SECURITY;
+```
+
+### Table: `content_embeddings`
+Vector embeddings for semantic search.
+
+```sql
+CREATE TABLE public.content_embeddings (
+  id UUID NOT NULL DEFAULT gen_random_uuid(),
+  course_id TEXT NOT NULL,
+  item_id INTEGER NOT NULL,
+  content_type TEXT NOT NULL, -- 'question', 'option', 'explanation'
+  content_text TEXT NOT NULL,
+  embedding vector(1536),
+  metadata JSONB DEFAULT '{}'::jsonb,
+  organization_id UUID REFERENCES organizations(id),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+  PRIMARY KEY (id)
+);
+
+ALTER TABLE public.content_embeddings ENABLE ROW LEVEL SECURITY;
+
+-- Index for vector similarity search
+CREATE INDEX ON content_embeddings USING ivfflat (embedding vector_cosine_ops);
+```
+
+### Table: `catalog_updates`
+Versioning for catalog changes.
+
+```sql
+CREATE TABLE public.catalog_updates (
+  id UUID NOT NULL DEFAULT gen_random_uuid(),
+  catalog_version INTEGER NOT NULL,
+  course_id TEXT NOT NULL,
+  action TEXT NOT NULL, -- 'add', 'update', 'remove'
+  course_title TEXT,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+  PRIMARY KEY (id)
+);
+
+ALTER TABLE public.catalog_updates ENABLE ROW LEVEL SECURITY;
+```
+
+### Table: `media_assets_search`
+Alternative media search index (full-text and vector).
+
+```sql
+CREATE TABLE public.media_assets_search (
+  id UUID NOT NULL DEFAULT gen_random_uuid(),
+  bucket TEXT NOT NULL,
+  path TEXT NOT NULL,
+  mime_type TEXT NOT NULL,
+  size_bytes BIGINT,
+  width INTEGER,
+  height INTEGER,
+  duration_ms INTEGER,
+  tags TEXT[],
+  alt_text TEXT,
+  uploaded_by UUID,
+  embedding vector(1536),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+  PRIMARY KEY (id)
+);
+
+ALTER TABLE public.media_assets_search ENABLE ROW LEVEL SECURITY;
+
+-- Index for vector similarity search
+CREATE INDEX ON media_assets_search USING ivfflat (embedding vector_cosine_ops);
+```
+
+### Table: `user_roles`
+User role assignments (supports multi-org and superadmin).
+
+```sql
+CREATE TABLE public.user_roles (
+  id UUID NOT NULL DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE,
+  role TEXT NOT NULL, -- 'superadmin', 'org_admin', 'teacher', 'student'
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+  PRIMARY KEY (id),
+  UNIQUE (user_id, organization_id, role)
+);
+
+ALTER TABLE public.user_roles ENABLE ROW LEVEL SECURITY;
+```
+
+### Table: `study_text_generation_jobs`
+AI text generation job queue for study materials.
+
+```sql
+CREATE TABLE public.study_text_generation_jobs (
+  id UUID NOT NULL DEFAULT gen_random_uuid(),
+  course_id TEXT NOT NULL,
+  item_id INTEGER NOT NULL,
+  content_type TEXT NOT NULL, -- 'explanation', 'summary', 'hint'
+  prompt TEXT NOT NULL,
+  context JSONB DEFAULT '{}'::jsonb,
+  status TEXT NOT NULL DEFAULT 'pending'::text, -- 'pending', 'processing', 'completed', 'failed'
+  result_text TEXT,
+  error TEXT,
+  retry_count INTEGER NOT NULL DEFAULT 0,
+  max_retries INTEGER NOT NULL DEFAULT 3,
+  created_by UUID REFERENCES auth.users(id),
+  created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
+  started_at TIMESTAMP WITH TIME ZONE,
+  completed_at TIMESTAMP WITH TIME ZONE,
+  last_heartbeat TIMESTAMP WITH TIME ZONE,
+  PRIMARY KEY (id)
+);
+
+ALTER TABLE public.study_text_generation_jobs ENABLE ROW LEVEL SECURITY;
+```
+
+### Views
+
+#### View: `parent_child_details`
+Aggregated view for parent dashboard.
+
+```sql
+CREATE OR REPLACE VIEW public.parent_child_details AS
+SELECT 
+  pc.parent_id,
+  pc.child_id AS student_id,
+  p.full_name AS student_name,
+  pc.status AS link_status,
+  pc.linked_at,
+  -- Add aggregation fields from sessions, achievements, assignments as needed
+  NULL::timestamp with time zone AS last_login_at,
+  0::integer AS xp_total,
+  0::integer AS streak_days,
+  0::bigint AS recent_activity_count,
+  0::bigint AS upcoming_assignments_count,
+  0::bigint AS overdue_assignments_count,
+  0::bigint AS goals_behind_count
+FROM parent_children pc
+LEFT JOIN profiles p ON p.id = pc.child_id;
+```
+
+#### View: `round_attempts`
+Aggregated view for round performance analytics.
+
+```sql
+CREATE OR REPLACE VIEW public.round_attempts AS
+SELECT 
+  r.id AS round_id,
+  s.user_id AS student_id,
+  s.course_id,
+  s.assignment_id,
+  r.level,
+  r.content_version,
+  r.started_at,
+  r.ended_at,
+  r.base_score,
+  r.final_score,
+  r.mistakes,
+  r.distinct_items,
+  r.elapsed_seconds,
+  CASE 
+    WHEN r.distinct_items > 0 THEN (r.base_score::numeric / r.distinct_items) * 100
+    ELSE 0
+  END AS score_pct
+FROM game_rounds r
+JOIN game_sessions s ON s.id = r.session_id;
+```
+
+---
+
+## Row Level Security Policies
+
+### `profiles`
+
+```sql
+-- Anyone authenticated can view profiles
+CREATE POLICY "authenticated users can view profiles"
+  ON public.profiles FOR SELECT
+  TO authenticated
+  USING (true);
+
+-- Users can update their own profile
+CREATE POLICY "users can update own profile"
+  ON public.profiles FOR UPDATE
+  TO authenticated
+  USING (auth.uid() = id)
+  WITH CHECK (auth.uid() = id);
+```
+
+### `organizations`
+
+```sql
+-- Members can read their organization
+CREATE POLICY "org_read_for_members"
+  ON public.organizations FOR SELECT
+  TO authenticated
+  USING (
+    EXISTS (
+      SELECT 1 FROM organization_users ou
+      WHERE ou.org_id = organizations.id
+        AND ou.user_id = auth.uid()
+    )
+  );
+```
+
+### `organization_users`
+
+```sql
+-- Members can read their org's users
+CREATE POLICY "org_users_read_for_members"
+  ON public.organization_users FOR SELECT
+  TO authenticated
+  USING (user_is_org_member(auth.uid(), org_id));
+
+-- View own org user record
+CREATE POLICY "view own org user"
+  ON public.organization_users FOR SELECT
+  TO authenticated
+  USING (auth.uid() = user_id);
+
+-- Org admins can insert members
+CREATE POLICY "org_users_admin_insert"
+  ON public.organization_users FOR INSERT
+  TO authenticated
+  WITH CHECK (user_is_org_admin(auth.uid(), org_id));
+
+-- Org admins can delete members
+CREATE POLICY "org_users_admin_delete"
+  ON public.organization_users FOR DELETE
+  TO authenticated
+  USING (user_is_org_admin(auth.uid(), org_id));
+```
+
+### `organization_domains`
+
+```sql
+-- Org members can view domains
+CREATE POLICY "org_members_view_org_domains"
+  ON public.organization_domains FOR SELECT
+  TO authenticated
+  USING (user_in_org(auth.uid(), organization_id));
+
+-- Org admins can manage domains
+CREATE POLICY "org_admins_manage_org_domains"
+  ON public.organization_domains FOR ALL
+  TO authenticated
+  USING (user_has_org_role(auth.uid(), organization_id, 'org_admin'::text))
+  WITH CHECK (user_has_org_role(auth.uid(), organization_id, 'org_admin'::text));
+
+-- Superadmins can manage all domains
+CREATE POLICY "superadmins_manage_org_domains"
+  ON public.organization_domains FOR ALL
+  TO authenticated
+  USING (is_superadmin(auth.uid()))
+  WITH CHECK (is_superadmin(auth.uid()));
+```
+
+### `classes`
+
+```sql
+-- Owners can read their classes
+CREATE POLICY "owners read their classes"
+  ON public.classes FOR SELECT
+  TO authenticated
+  USING (owner = auth.uid());
+
+-- Users can create classes (must own)
+CREATE POLICY "users create classes"
+  ON public.classes FOR INSERT
+  TO authenticated
+  WITH CHECK (owner = auth.uid());
+
+-- Owners can update their classes
+CREATE POLICY "owners update their classes"
+  ON public.classes FOR UPDATE
+  TO authenticated
+  USING (owner = auth.uid());
+
+-- Owners can delete their classes
+CREATE POLICY "owners delete their classes"
+  ON public.classes FOR DELETE
+  TO authenticated
+  USING (owner = auth.uid());
+```
+
+### `class_members`
+
+```sql
+-- Class owners view members
+CREATE POLICY "class owners view members"
+  ON public.class_members FOR SELECT
+  TO authenticated
+  USING (
+    EXISTS (
+      SELECT 1 FROM classes c
+      WHERE c.id = class_members.class_id
+        AND c.owner = auth.uid()
+    )
+  );
+
+-- Students view own membership
+CREATE POLICY "students view own membership"
+  ON public.class_members FOR SELECT
+  TO authenticated
+  USING (user_id = auth.uid());
+
+-- Class owners manage members
+CREATE POLICY "class owners manage members"
+  ON public.class_members FOR ALL
+  TO authenticated
+  USING (
+    EXISTS (
+      SELECT 1 FROM classes c
+      WHERE c.id = class_members.class_id
+        AND c.owner = auth.uid()
+    )
+  )
+  WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM classes c
+      WHERE c.id = class_members.class_id
+        AND c.owner = auth.uid()
+    )
+  );
+```
+
+### `class_join_codes`
+
+```sql
+-- Teachers manage class codes
+CREATE POLICY "teachers manage class codes"
+  ON public.class_join_codes FOR ALL
+  TO authenticated
+  USING (
+    EXISTS (
+      SELECT 1 FROM classes c
+      WHERE c.id = class_join_codes.class_id
+        AND user_has_org_role(auth.uid(), c.org_id, ARRAY['school_admin'::text, 'teacher'::text])
+    )
+  );
+```
+
+### `course_metadata`
+
+```sql
+-- Org members manage org courses
+CREATE POLICY "org_members_manage_org_course_metadata"
+  ON public.course_metadata FOR ALL
+  TO authenticated
+  USING (user_in_org(auth.uid(), organization_id))
+  WITH CHECK (user_in_org(auth.uid(), organization_id));
+
+-- Superadmins manage all
+CREATE POLICY "superadmins_manage_course_metadata"
+  ON public.course_metadata FOR ALL
+  TO authenticated
+  USING (is_superadmin(auth.uid()))
+  WITH CHECK (is_superadmin(auth.uid()));
+```
+
+### `course_versions`
+
+```sql
+-- Org members view org course versions
+CREATE POLICY "org_members_view_org_course_versions"
+  ON public.course_versions FOR SELECT
+  TO authenticated
+  USING (
+    EXISTS (
+      SELECT 1 FROM course_metadata cm
+      WHERE cm.id = course_versions.course_id
+        AND user_in_org(auth.uid(), cm.organization_id)
+    )
+  );
+
+-- Org members create versions
+CREATE POLICY "org_members_create_org_course_versions"
+  ON public.course_versions FOR INSERT
+  TO authenticated
+  WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM course_metadata cm
+      WHERE cm.id = course_versions.course_id
+        AND user_in_org(auth.uid(), cm.organization_id)
+    )
+  );
+
+-- Superadmins view all versions
+CREATE POLICY "superadmins_view_course_versions"
+  ON public.course_versions FOR SELECT
+  TO authenticated
+  USING (is_superadmin(auth.uid()));
+```
+
+### `assignments`
+
+```sql
+-- Users can read their assignments
+CREATE POLICY "users can read their assignments"
+  ON public.assignments FOR SELECT
+  TO authenticated
+  USING (user_can_access_assignment(auth.uid(), id));
+
+-- Teachers manage org assignments
+CREATE POLICY "teachers manage org assignments"
+  ON public.assignments FOR ALL
+  TO authenticated
+  USING (
+    EXISTS (
+      SELECT 1 FROM organization_users ou
+      WHERE ou.org_id = assignments.org_id
+        AND ou.user_id = auth.uid()
+        AND ou.org_role = ANY(ARRAY['school_admin'::text, 'teacher'::text])
+    )
+  )
+  WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM organization_users ou
+      WHERE ou.org_id = assignments.org_id
+        AND ou.user_id = auth.uid()
+        AND ou.org_role = ANY(ARRAY['school_admin'::text, 'teacher'::text])
+    )
+  );
+```
+
+### `assignment_assignees`
+
+```sql
+-- Users can read assignees for their assignments
+CREATE POLICY "users can read assignees for their assignments"
+  ON public.assignment_assignees FOR SELECT
+  TO authenticated
+  USING (user_can_access_assignment(auth.uid(), assignment_id));
+
+-- Teachers manage assignees
+CREATE POLICY "teachers manage assignees"
+  ON public.assignment_assignees FOR ALL
+  TO authenticated
+  USING (
+    EXISTS (
+      SELECT 1 FROM assignments a
+      JOIN organization_users ou ON ou.org_id = a.org_id
+      WHERE a.id = assignment_assignees.assignment_id
+        AND ou.user_id = auth.uid()
+        AND ou.org_role = ANY(ARRAY['school_admin'::text, 'teacher'::text])
+    )
+  )
+  WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM assignments a
+      JOIN organization_users ou ON ou.org_id = a.org_id
+      WHERE a.id = assignment_assignees.assignment_id
+        AND ou.user_id = auth.uid()
+        AND ou.org_role = ANY(ARRAY['school_admin'::text, 'teacher'::text])
+    )
+  );
+```
+
+### `game_sessions`
+
+```sql
+-- Insert own sessions
+CREATE POLICY "insert own sessions"
+  ON public.game_sessions FOR INSERT
+  TO authenticated
+  WITH CHECK (auth.uid() = user_id);
+
+-- Select own sessions
+CREATE POLICY "select own sessions"
+  ON public.game_sessions FOR SELECT
+  TO authenticated
+  USING (auth.uid() = user_id);
+```
+
+### `game_rounds`
+
+```sql
+-- Insert own rounds
+CREATE POLICY "insert own rounds"
+  ON public.game_rounds FOR INSERT
+  TO authenticated
+  WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM game_sessions s
+      WHERE s.id = game_rounds.session_id
+        AND s.user_id = auth.uid()
+    )
+  );
+
+-- Select own rounds
+CREATE POLICY "select own rounds"
+  ON public.game_rounds FOR SELECT
+  TO authenticated
+  USING (
+    EXISTS (
+      SELECT 1 FROM game_sessions s
+      WHERE s.id = game_rounds.session_id
+        AND s.user_id = auth.uid()
+    )
+  );
+
+-- Update own rounds
+CREATE POLICY "update own rounds"
+  ON public.game_rounds FOR UPDATE
+  TO authenticated
+  USING (
+    EXISTS (
+      SELECT 1 FROM game_sessions s
+      WHERE s.id = game_rounds.session_id
+        AND s.user_id = auth.uid()
+    )
+  );
+
+-- Public view shared rounds
+CREATE POLICY "public_view_shared_rounds"
+  ON public.game_rounds FOR SELECT
+  TO authenticated, anon
+  USING (
+    share_enabled = true
+    AND share_token IS NOT NULL
+    AND (share_expires_at IS NULL OR share_expires_at > now())
+  );
+```
+
+### `game_attempts`
+
+```sql
+-- Insert own attempts
+CREATE POLICY "insert own attempts"
+  ON public.game_attempts FOR INSERT
+  TO authenticated
+  WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM game_rounds r
+      JOIN game_sessions s ON s.id = r.session_id
+      WHERE r.id = game_attempts.round_id
+        AND s.user_id = auth.uid()
+    )
+  );
+
+-- Select own attempts
+CREATE POLICY "select own attempts"
+  ON public.game_attempts FOR SELECT
+  TO authenticated
+  USING (
+    EXISTS (
+      SELECT 1 FROM game_rounds r
+      JOIN game_sessions s ON s.id = r.session_id
+      WHERE r.id = game_attempts.round_id
+        AND s.user_id = auth.uid()
+    )
+  );
+```
+
+### `round_questions`
+
+```sql
+-- Students view own round questions
+CREATE POLICY "students_view_own_round_questions"
+  ON public.round_questions FOR SELECT
+  TO authenticated
+  USING (
+    EXISTS (
+      SELECT 1 FROM game_rounds r
+      JOIN game_sessions s ON s.id = r.session_id
+      WHERE r.id = round_questions.round_id
+        AND s.user_id = auth.uid()
+    )
+  );
+
+-- Students insert own round questions
+CREATE POLICY "students_insert_own_round_questions"
+  ON public.round_questions FOR INSERT
+  TO authenticated
+  WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM game_rounds r
+      JOIN game_sessions s ON s.id = r.session_id
+      WHERE r.id = round_questions.round_id
+        AND s.user_id = auth.uid()
+    )
+  );
+
+-- Teachers view org round questions
+CREATE POLICY "teachers_view_org_round_questions"
+  ON public.round_questions FOR SELECT
+  TO authenticated
+  USING (
+    EXISTS (
+      SELECT 1 FROM game_rounds r
+      JOIN game_sessions s ON s.id = r.session_id
+      JOIN organization_users ou1 ON ou1.user_id = auth.uid()
+      JOIN organization_users ou2 ON ou2.user_id = s.user_id
+      WHERE r.id = round_questions.round_id
+        AND ou1.org_id = ou2.org_id
+        AND ou1.org_role = ANY(ARRAY['teacher'::text, 'school_admin'::text])
+    )
+  );
+
+-- Parents view children round questions
+CREATE POLICY "parents_view_children_round_questions"
+  ON public.round_questions FOR SELECT
+  TO authenticated
+  USING (
+    EXISTS (
+      SELECT 1 FROM game_rounds r
+      JOIN game_sessions s ON s.id = r.session_id
+      JOIN parent_children pc ON pc.child_id = s.user_id
+      WHERE r.id = round_questions.round_id
+        AND pc.parent_id = auth.uid()
+        AND pc.status = 'active'::text
+    )
+  );
+
+-- Public view shared round questions
+CREATE POLICY "public_view_shared_round_questions"
+  ON public.round_questions FOR SELECT
+  TO authenticated, anon
+  USING (
+    EXISTS (
+      SELECT 1 FROM game_rounds r
+      WHERE r.id = round_questions.round_id
+        AND r.share_enabled = true
+        AND r.share_token IS NOT NULL
+        AND (r.share_expires_at IS NULL OR r.share_expires_at > now())
+    )
+  );
+```
+
+### `play_sessions`
+
+```sql
+-- Students CRUD own sessions
+CREATE POLICY "students_view_own_sessions"
+  ON public.play_sessions FOR SELECT
+  TO authenticated
+  USING (auth.uid() = student_id);
+
+CREATE POLICY "students_create_own_sessions"
+  ON public.play_sessions FOR INSERT
+  TO authenticated
+  WITH CHECK (auth.uid() = student_id);
+
+CREATE POLICY "students_update_own_sessions"
+  ON public.play_sessions FOR UPDATE
+  TO authenticated
+  USING (auth.uid() = student_id)
+  WITH CHECK (auth.uid() = student_id);
+
+CREATE POLICY "students_delete_own_sessions"
+  ON public.play_sessions FOR DELETE
+  TO authenticated
+  USING (auth.uid() = student_id);
+
+-- Teachers view org sessions
+CREATE POLICY "teachers_view_org_sessions"
+  ON public.play_sessions FOR SELECT
+  TO authenticated
+  USING (
+    EXISTS (
+      SELECT 1 FROM organization_users ou1
+      JOIN organization_users ou2 ON ou1.org_id = ou2.org_id
+      WHERE ou1.user_id = auth.uid()
+        AND ou1.org_role = ANY(ARRAY['teacher'::text, 'school_admin'::text])
+        AND ou2.user_id = play_sessions.student_id
+    )
+  );
+```
+
+### `events`
+
+```sql
+-- Users insert own events
+CREATE POLICY "users insert own events"
+  ON public.events FOR INSERT
+  TO authenticated
+  WITH CHECK ((auth.uid() = user_id) OR (user_id IS NULL));
+
+-- Users read own events
+CREATE POLICY "users read own events"
+  ON public.events FOR SELECT
+  TO authenticated
+  USING ((auth.uid() = user_id) OR (user_id IS NULL));
+
+-- Teachers read org events
+CREATE POLICY "teachers read org events"
+  ON public.events FOR SELECT
+  TO authenticated
+  USING (
+    EXISTS (
+      SELECT 1 FROM organization_users ou
+      WHERE ou.user_id = auth.uid()
+        AND ou.org_role = ANY(ARRAY['teacher'::text, 'school_admin'::text])
+        AND EXISTS (
+          SELECT 1 FROM organization_users ou2
+          WHERE ou2.user_id = events.user_id
+            AND ou2.org_id = ou.org_id
+        )
+    )
+  );
+```
+
+### `pending_invites`
+
+```sql
+-- Teachers view org invites
+CREATE POLICY "teachers view org invites"
+  ON public.pending_invites FOR SELECT
+  TO authenticated
+  USING (
+    EXISTS (
+      SELECT 1 FROM organization_users ou
+      WHERE ou.org_id = pending_invites.org_id
+        AND ou.user_id = auth.uid()
+        AND ou.org_role = ANY(ARRAY['school_admin'::text, 'teacher'::text])
+    )
+  );
+
+-- Teachers create org invites
+CREATE POLICY "teachers create org invites"
+  ON public.pending_invites FOR INSERT
+  TO authenticated
+  WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM organization_users ou
+      WHERE ou.org_id = pending_invites.org_id
+        AND ou.user_id = auth.uid()
+        AND ou.org_role = ANY(ARRAY['school_admin'::text, 'teacher'::text])
+    )
+  );
+
+-- Teachers delete org invites
+CREATE POLICY "teachers delete org invites"
+  ON public.pending_invites FOR DELETE
+  TO authenticated
+  USING (
+    EXISTS (
+      SELECT 1 FROM organization_users ou
+      WHERE ou.org_id = pending_invites.org_id
+        AND ou.user_id = auth.uid()
+        AND ou.org_role = ANY(ARRAY['school_admin'::text, 'teacher'::text])
+    )
+  );
+```
+
+### `parent_children`
+
+```sql
+-- Parents view own children
+CREATE POLICY "parents view own children"
+  ON public.parent_children FOR SELECT
+  TO authenticated
+  USING (auth.uid() = parent_id);
+
+-- Children view own parents
+CREATE POLICY "children view own parents"
+  ON public.parent_children FOR SELECT
+  TO authenticated
+  USING (auth.uid() = child_id);
+
+-- Parents link children
+CREATE POLICY "parents link children"
+  ON public.parent_children FOR INSERT
+  TO authenticated
+  WITH CHECK (auth.uid() = parent_id);
+
+-- Parents unlink children
+CREATE POLICY "parents unlink children"
+  ON public.parent_children FOR DELETE
+  TO authenticated
+  USING (auth.uid() = parent_id);
+```
+
+### `child_codes`
+
+```sql
+-- Students view own codes
+CREATE POLICY "students view own codes"
+  ON public.child_codes FOR SELECT
+  TO authenticated
+  USING (auth.uid() = student_id);
+
+-- Teachers create student codes (for org students)
+CREATE POLICY "teachers create student codes"
+  ON public.child_codes FOR INSERT
+  TO authenticated
+  WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM organization_users ou
+      WHERE ou.user_id = auth.uid()
+        AND ou.org_role = ANY(ARRAY['teacher'::text, 'school_admin'::text])
+        AND EXISTS (
+          SELECT 1 FROM organization_users ou2
+          WHERE ou2.user_id = child_codes.student_id
+            AND ou2.org_id = ou.org_id
+        )
+    )
+  );
+
+-- Teachers view org student codes
+CREATE POLICY "teachers view org student codes"
+  ON public.child_codes FOR SELECT
+  TO authenticated
+  USING (
+    EXISTS (
+      SELECT 1 FROM organization_users ou
+      WHERE ou.user_id = auth.uid()
+        AND ou.org_role = ANY(ARRAY['teacher'::text, 'school_admin'::text])
+        AND EXISTS (
+          SELECT 1 FROM organization_users ou2
+          WHERE ou2.user_id = child_codes.student_id
+            AND ou2.org_id = ou.org_id
+        )
+    )
+  );
+```
+
+### `student_achievements`
+
+```sql
+-- Students view own achievements
+CREATE POLICY "students view own achievements"
+  ON public.student_achievements FOR SELECT
+  TO authenticated
+  USING (auth.uid() = student_id);
+
+-- Students manage own achievements
+CREATE POLICY "students manage own achievements"
+  ON public.student_achievements FOR ALL
+  TO authenticated
+  USING (auth.uid() = student_id);
+
+-- Teachers view org student achievements
+CREATE POLICY "teachers view org student achievements"
+  ON public.student_achievements FOR SELECT
+  TO authenticated
+  USING (
+    EXISTS (
+      SELECT 1 FROM organization_users ou1
+      JOIN organization_users ou2 ON ou1.org_id = ou2.org_id
+      WHERE ou1.user_id = auth.uid()
+        AND ou1.org_role = ANY(ARRAY['teacher'::text, 'school_admin'::text])
+        AND ou2.user_id = student_achievements.student_id
+    )
+  );
+
+-- Parents view children achievements
+CREATE POLICY "parents view children achievements"
+  ON public.student_achievements FOR SELECT
+  TO authenticated
+  USING (
+    EXISTS (
+      SELECT 1 FROM parent_children pc
+      WHERE pc.parent_id = auth.uid()
+        AND pc.child_id = student_achievements.student_id
+    )
+  );
+```
+
+### `messages`
+
+```sql
+-- Users can view their messages
+CREATE POLICY "users can view their messages"
+  ON public.messages FOR SELECT
+  TO authenticated
+  USING ((auth.uid() = sender_id) OR (auth.uid() = recipient_id));
+
+-- Users can send messages
+CREATE POLICY "users can send messages"
+  ON public.messages FOR INSERT
+  TO authenticated
+  WITH CHECK (auth.uid() = sender_id);
+
+-- Users can mark received messages as read
+CREATE POLICY "users can mark received messages as read"
+  ON public.messages FOR UPDATE
+  TO authenticated
+  USING (auth.uid() = recipient_id)
+  WITH CHECK (auth.uid() = recipient_id);
+```
+
+### `ai_course_jobs`
+
+```sql
+-- Users insert own jobs (with rate limit)
+CREATE POLICY "ai_jobs_insert_self"
+  ON public.ai_course_jobs FOR INSERT
+  TO authenticated
+  WITH CHECK (
+    (created_by = auth.uid())
+    AND check_ai_job_rate_limit(auth.uid())
+  );
+
+-- Teachers view org jobs
+CREATE POLICY "teachers view org jobs"
+  ON public.ai_course_jobs FOR SELECT
+  TO authenticated
+  USING (
+    EXISTS (
+      SELECT 1 FROM profiles
+      WHERE profiles.id = auth.uid()
+        AND profiles.role = 'admin'::text
+    )
+  );
+
+-- Admins delete jobs
+CREATE POLICY "admins delete jobs"
+  ON public.ai_course_jobs FOR DELETE
+  TO authenticated
+  USING (
+    EXISTS (
+      SELECT 1 FROM profiles
+      WHERE profiles.id = auth.uid()
+        AND profiles.role = 'admin'::text
+    )
+  );
+```
+
+### `ai_media_jobs`
+
+```sql
+-- Users insert own jobs (with rate limit)
+CREATE POLICY "ai_media_jobs_insert_self"
+  ON public.ai_media_jobs FOR INSERT
+  TO authenticated
+  WITH CHECK (
+    (created_by = auth.uid())
+    AND check_ai_job_rate_limit(auth.uid())
+  );
+
+-- Users view own jobs
+CREATE POLICY "ai_media_jobs_select_own"
+  ON public.ai_media_jobs FOR SELECT
+  TO authenticated
+  USING (created_by = auth.uid());
+
+-- Users update own jobs
+CREATE POLICY "ai_media_jobs_update_self"
+  ON public.ai_media_jobs FOR UPDATE
+  TO authenticated
+  USING (created_by = auth.uid())
+  WITH CHECK (created_by = auth.uid());
+
+-- Admins delete media jobs
+CREATE POLICY "admins delete media jobs"
+  ON public.ai_media_jobs FOR DELETE
+  TO authenticated
+  USING (
+    EXISTS (
+      SELECT 1 FROM profiles
+      WHERE profiles.id = auth.uid()
+        AND profiles.role = 'admin'::text
+    )
+  );
+```
+
+### `media_generation_providers`
+
+```sql
+-- Anyone can view enabled providers
+CREATE POLICY "Anyone can view enabled providers"
+  ON public.media_generation_providers FOR SELECT
+  USING (enabled = true);
+
+-- Admins can manage providers
+CREATE POLICY "Admins can manage providers"
+  ON public.media_generation_providers FOR ALL
+  TO authenticated
+  USING ((auth.jwt() ->> 'role'::text) = 'admin'::text)
+  WITH CHECK ((auth.jwt() ->> 'role'::text) = 'admin'::text);
+```
+
+### `media_assets`
+
+```sql
+-- Anyone can view active, approved assets
+CREATE POLICY "Anyone can view active assets"
+  ON public.media_assets FOR SELECT
+  USING (
+    (status = 'active'::text)
+    AND ((moderation_status IS NULL) OR (moderation_status = 'approved'::text))
+  );
+
+-- Creators can view own assets
+CREATE POLICY "Creators can view own assets"
+  ON public.media_assets FOR SELECT
+  TO authenticated
+  USING (created_by = auth.uid());
+
+-- Authenticated can insert assets
+CREATE POLICY "Authenticated can insert assets"
+  ON public.media_assets FOR INSERT
+  TO authenticated
+  WITH CHECK (created_by = auth.uid());
+
+-- Creators can update own assets
+CREATE POLICY "Creators can update own assets"
+  ON public.media_assets FOR UPDATE
+  TO authenticated
+  USING (created_by = auth.uid())
+  WITH CHECK (created_by = auth.uid());
+
+-- Admins can manage all assets
+CREATE POLICY "Admins can manage all assets"
+  ON public.media_assets FOR ALL
+  TO authenticated
+  USING ((auth.jwt() ->> 'role'::text) = 'admin'::text)
+  WITH CHECK ((auth.jwt() ->> 'role'::text) = 'admin'::text);
+```
+
+### `content_embeddings`
+
+```sql
+-- Admins can manage content embeddings
+CREATE POLICY "Admins can manage content embeddings"
+  ON public.content_embeddings FOR ALL
+  TO authenticated
+  USING (
+    EXISTS (
+      SELECT 1 FROM profiles
+      WHERE profiles.id = auth.uid()
+        AND profiles.role = 'admin'::text
+    )
+  )
+  WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM profiles
+      WHERE profiles.id = auth.uid()
+        AND profiles.role = 'admin'::text
+    )
+  );
+```
+
+### `catalog_updates`
+
+```sql
+-- Anyone can view catalog updates
+CREATE POLICY "Anyone can view catalog updates"
+  ON public.catalog_updates FOR SELECT
+  USING (true);
+
+-- Service can insert updates
+CREATE POLICY "Service can insert updates"
+  ON public.catalog_updates FOR INSERT
+  WITH CHECK (true);
+```
+
+### `media_assets_search`
+
+```sql
+-- Admins can read all media_assets_search
+CREATE POLICY "Admins can read all media_assets_search"
+  ON public.media_assets_search FOR SELECT
+  TO authenticated
+  USING (
+    EXISTS (
+      SELECT 1 FROM profiles
+      WHERE profiles.id = auth.uid()
+        AND profiles.role = 'admin'::text
+    )
+  );
+
+-- Admins can insert media_assets_search
+CREATE POLICY "Admins can insert media_assets_search"
+  ON public.media_assets_search FOR INSERT
+  TO authenticated
+  WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM profiles
+      WHERE profiles.id = auth.uid()
+        AND profiles.role = 'admin'::text
+    )
+  );
+
+-- Admins can update media_assets_search
+CREATE POLICY "Admins can update media_assets_search"
+  ON public.media_assets_search FOR UPDATE
+  TO authenticated
+  USING (
+    EXISTS (
+      SELECT 1 FROM profiles
+      WHERE profiles.id = auth.uid()
+        AND profiles.role = 'admin'::text
+    )
+  );
+
+-- Admins can delete media_assets_search
+CREATE POLICY "Admins can delete media_assets_search"
+  ON public.media_assets_search FOR DELETE
+  TO authenticated
+  USING (
+    EXISTS (
+      SELECT 1 FROM profiles
+      WHERE profiles.id = auth.uid()
+        AND profiles.role = 'admin'::text
+    )
+  );
+```
+
+### `user_roles`
+
+```sql
+-- Superadmins can manage all roles
+CREATE POLICY "Superadmins can manage all roles"
+  ON public.user_roles FOR ALL
+  TO authenticated
+  USING (
+    EXISTS (
+      SELECT 1 FROM user_roles
+      WHERE user_id = auth.uid()
+        AND organization_id IS NULL
+        AND role = 'superadmin'
+    )
+  )
+  WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM user_roles
+      WHERE user_id = auth.uid()
+        AND organization_id IS NULL
+        AND role = 'superadmin'
+    )
+  );
+
+-- Org admins can manage org roles
+CREATE POLICY "Org admins can manage org roles"
+  ON public.user_roles FOR ALL
+  TO authenticated
+  USING (
+    EXISTS (
+      SELECT 1 FROM user_roles ur
+      WHERE ur.user_id = auth.uid()
+        AND ur.organization_id = user_roles.organization_id
+        AND ur.role = 'org_admin'
+    )
+  )
+  WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM user_roles ur
+      WHERE ur.user_id = auth.uid()
+        AND ur.organization_id = user_roles.organization_id
+        AND ur.role = 'org_admin'
+    )
+  );
+
+-- Users can view their own roles
+CREATE POLICY "Users can view own roles"
+  ON public.user_roles FOR SELECT
+  TO authenticated
+  USING (user_id = auth.uid());
+```
+
+### `study_text_generation_jobs`
+
+```sql
+-- Users insert own jobs
+CREATE POLICY "Users insert own study text jobs"
+  ON public.study_text_generation_jobs FOR INSERT
+  TO authenticated
+  WITH CHECK (created_by = auth.uid());
+
+-- Users view own jobs
+CREATE POLICY "Users view own study text jobs"
+  ON public.study_text_generation_jobs FOR SELECT
+  TO authenticated
+  USING (created_by = auth.uid());
+
+-- Admins view all jobs
+CREATE POLICY "Admins view all study text jobs"
+  ON public.study_text_generation_jobs FOR SELECT
+  TO authenticated
+  USING (
+    EXISTS (
+      SELECT 1 FROM profiles
+      WHERE profiles.id = auth.uid()
+        AND profiles.role = 'admin'::text
+    )
+  );
+```
+
+---
+
+## Database Functions
+
+### Helper Functions for RLS
+
+```sql
+-- Check if user is a superadmin
+CREATE OR REPLACE FUNCTION public.is_superadmin(_user_id uuid)
+RETURNS boolean
+LANGUAGE sql
+STABLE SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT EXISTS (
+    SELECT 1
+    FROM public.user_roles
+    WHERE user_id = _user_id
+      AND organization_id IS NULL
+      AND role = 'superadmin'
+  );
+$$;
+
+-- Check if user is a superadmin (using auth.uid)
+CREATE OR REPLACE FUNCTION public.is_superadmin()
+RETURNS boolean
+LANGUAGE sql
+STABLE SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM user_roles
+    WHERE user_id = auth.uid()
+      AND organization_id IS NULL
+      AND role = 'superadmin'
+  );
+$$;
+
+-- Check if user is in organization
+CREATE OR REPLACE FUNCTION public.user_in_org(_user_id uuid, _org_id uuid)
+RETURNS boolean
+LANGUAGE sql
+STABLE SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT EXISTS (
+    SELECT 1
+    FROM public.organization_users
+    WHERE user_id = _user_id
+      AND org_id = _org_id
+  );
+$$;
+
+-- Check if user is in organization (using auth.uid)
+CREATE OR REPLACE FUNCTION public.user_in_org(org_id uuid)
+RETURNS boolean
+LANGUAGE sql
+STABLE SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM organization_users
+    WHERE user_id = auth.uid()
+      AND org_id = org_id
+  );
+$$;
+
+-- Check if user is org member
+CREATE OR REPLACE FUNCTION public.user_is_org_member(_user_id uuid, _org_id uuid)
+RETURNS boolean
+LANGUAGE sql
+STABLE SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT EXISTS (
+    SELECT 1
+    FROM public.organization_users
+    WHERE user_id = _user_id
+      AND org_id = _org_id
+  );
+$$;
+
+-- Check if user is org admin
+CREATE OR REPLACE FUNCTION public.user_is_org_admin(_user_id uuid, _org_id uuid)
+RETURNS boolean
+LANGUAGE sql
+STABLE SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT EXISTS (
+    SELECT 1
+    FROM public.organization_users
+    WHERE user_id = _user_id
+      AND org_id = _org_id
+      AND org_role = 'school_admin'
+  );
+$$;
+
+-- Check if user has specific org role(s)
+CREATE OR REPLACE FUNCTION public.user_has_org_role(_user_id uuid, _org_id uuid, _roles text[])
+RETURNS boolean
+LANGUAGE sql
+STABLE SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT EXISTS (
+    SELECT 1
+    FROM public.organization_users
+    WHERE user_id = _user_id
+      AND org_id = _org_id
+      AND org_role = ANY(_roles)
+  )
+$$;
+
+-- Check if user can access assignment
+CREATE OR REPLACE FUNCTION public.user_can_access_assignment(_user_id uuid, _assignment_id uuid)
+RETURNS boolean
+LANGUAGE sql
+STABLE SECURITY DEFINER
+SET search_path = public
+AS $$
+  -- Check if user is teacher/admin in the org
+  SELECT EXISTS (
+    SELECT 1
+    FROM assignments a
+    JOIN organization_users ou ON ou.org_id = a.org_id
+    WHERE a.id = _assignment_id
+      AND ou.user_id = _user_id
+      AND ou.org_role = ANY(ARRAY['school_admin'::text, 'teacher'::text])
+  )
+  OR
+  -- Check if user is assigned directly
+  EXISTS (
+    SELECT 1
+    FROM assignment_assignees aa
+    WHERE aa.assignment_id = _assignment_id
+      AND aa.assignee_type = 'student'
+      AND aa.user_id = _user_id
+  )
+  OR
+  -- Check if user is in an assigned class
+  EXISTS (
+    SELECT 1
+    FROM assignment_assignees aa
+    JOIN class_members cm ON cm.class_id = aa.class_id
+    WHERE aa.assignment_id = _assignment_id
+      AND aa.assignee_type = 'class'
+      AND cm.user_id = _user_id
+      AND cm.role = 'student'
+  )
+$$;
+```
+
+### Utility Functions
+
+```sql
+-- Generate unique child code
+CREATE OR REPLACE FUNCTION public.generate_child_code()
+RETURNS text
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  code TEXT;
+  exists BOOLEAN;
+BEGIN
+  LOOP
+    -- Generate 6-character alphanumeric code (uppercase only)
+    code := UPPER(SUBSTRING(MD5(RANDOM()::TEXT) FROM 1 FOR 6));
+    
+    -- Check if code already exists
+    SELECT EXISTS(SELECT 1 FROM child_codes WHERE child_codes.code = code AND used = false) INTO exists;
+    
+    EXIT WHEN NOT exists;
+  END LOOP;
+  
+  RETURN code;
+END;
+$$;
+
+-- Generate unique class join code
+CREATE OR REPLACE FUNCTION public.generate_join_code()
+RETURNS text
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  new_code TEXT;
+  code_exists BOOLEAN;
+BEGIN
+  LOOP
+    -- Generate 6-character uppercase alphanumeric code
+    new_code := UPPER(SUBSTRING(MD5(RANDOM()::TEXT) FROM 1 FOR 6));
+    
+    -- Check if code already exists and is active
+    SELECT EXISTS(
+      SELECT 1 
+      FROM class_join_codes 
+      WHERE code = new_code 
+        AND is_active = true 
+        AND expires_at > now()
+    ) INTO code_exists;
+    
+    EXIT WHEN NOT code_exists;
+  END LOOP;
+  
+  RETURN new_code;
+END;
+$$;
+
+-- Join class with code (stored procedure)
+CREATE OR REPLACE FUNCTION public.join_class_with_code(p_user_id uuid, p_code text)
+RETURNS TABLE(class_id uuid, class_name text, org_id uuid, already_member boolean)
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_join_code RECORD;
+  v_org_id uuid;
+  v_class_id uuid;
+  v_class_name text;
+  v_existing_member boolean;
+BEGIN
+  -- Validate and fetch join code
+  SELECT 
+    jc.class_id,
+    c.name,
+    c.org_id
+  INTO v_join_code
+  FROM class_join_codes jc
+  JOIN classes c ON c.id = jc.class_id
+  WHERE jc.code = UPPER(p_code)
+    AND jc.is_active = true
+    AND jc.expires_at > now();
+
+  -- If code not found or invalid
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Invalid or expired join code';
+  END IF;
+
+  v_class_id := v_join_code.class_id;
+  v_class_name := v_join_code.name;
+  v_org_id := v_join_code.org_id;
+
+  -- Check if already a class member
+  SELECT EXISTS(
+    SELECT 1
+    FROM class_members
+    WHERE class_id = v_class_id
+      AND user_id = p_user_id
+  ) INTO v_existing_member;
+
+  -- If already a member, return early
+  IF v_existing_member THEN
+    RETURN QUERY SELECT v_class_id, v_class_name, v_org_id, true;
+    RETURN;
+  END IF;
+
+  -- Add user to organization (UPSERT - no error if already exists)
+  INSERT INTO organization_users (org_id, user_id, org_role)
+  VALUES (v_org_id, p_user_id, 'student')
+  ON CONFLICT (org_id, user_id) DO NOTHING;
+
+  -- Add user to class
+  INSERT INTO class_members (class_id, user_id, role)
+  VALUES (v_class_id, p_user_id, 'student');
+
+  -- Return success
+  RETURN QUERY SELECT v_class_id, v_class_name, v_org_id, false;
+END;
+$$;
+
+-- AI job rate limiting
+CREATE OR REPLACE FUNCTION public.check_ai_job_rate_limit(user_id uuid)
+RETURNS boolean
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+declare
+  job_count integer;
+begin
+  -- Count jobs created by user in the last hour
+  select count(*)
+  into job_count
+  from public.ai_course_jobs
+  where created_by = user_id
+    and created_at > now() - interval '1 hour';
+  
+  -- Return true if under limit (10 jobs per hour)
+  return job_count < 10;
+end;
+$$;
+
+-- Get next pending course generation job
+CREATE OR REPLACE FUNCTION public.get_next_pending_job()
+RETURNS TABLE(id uuid, course_id text, subject text, grade_band text, grade text, items_per_group integer, mode text)
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  job_row public.ai_course_jobs;
+BEGIN
+  SELECT *
+  INTO job_row
+  FROM public.ai_course_jobs
+  WHERE (public.ai_course_jobs.status = 'pending')
+     OR (public.ai_course_jobs.status = 'failed' AND public.ai_course_jobs.retry_count < public.ai_course_jobs.max_retries)
+  ORDER BY public.ai_course_jobs.created_at ASC
+  LIMIT 1
+  FOR UPDATE SKIP LOCKED;
+  
+  IF job_row.id IS NOT NULL THEN
+    IF job_row.status = 'failed' THEN
+      UPDATE public.ai_course_jobs
+      SET status = 'processing',
+          started_at = now(),
+          retry_count = retry_count + 1,
+          last_heartbeat = now()
+      WHERE public.ai_course_jobs.id = job_row.id;
+    ELSE
+      UPDATE public.ai_course_jobs
+      SET status = 'processing',
+          started_at = now(),
+          last_heartbeat = now()
+      WHERE public.ai_course_jobs.id = job_row.id;
+    END IF;
+    
+    RETURN QUERY
+    SELECT job_row.id, job_row.course_id, job_row.subject, job_row.grade_band, 
+           job_row.grade, job_row.items_per_group, job_row.mode;
+  END IF;
+END;
+$$;
+
+-- Get next pending media generation job
+CREATE OR REPLACE FUNCTION public.get_next_pending_media_job()
+RETURNS SETOF ai_media_jobs
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+declare
+  job_row public.ai_media_jobs;
+begin
+  -- Select oldest pending job and lock it
+  select *
+  into job_row
+  from public.ai_media_jobs
+  where status = 'pending'
+  order by created_at asc
+  limit 1
+  for update skip locked;
+  
+  if job_row.id is not null then
+    -- Mark as processing
+    update public.ai_media_jobs
+    set status = 'processing',
+        started_at = now()
+    where id = job_row.id;
+    
+    return query
+    select * from public.ai_media_jobs where id = job_row.id;
+  end if;
+end;
+$$;
+
+-- Get next pending study text generation job
+CREATE OR REPLACE FUNCTION public.get_next_pending_study_text_job()
+RETURNS SETOF study_text_generation_jobs
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+declare
+  job_row public.study_text_generation_jobs;
+begin
+  select *
+  into job_row
+  from public.study_text_generation_jobs
+  where (status = 'pending')
+     or (status = 'failed' and retry_count < max_retries)
+  order by created_at asc
+  limit 1
+  for update skip locked;
+  
+  if job_row.id is not null then
+    if job_row.status = 'failed' then
+      update public.study_text_generation_jobs
+      set status = 'processing',
+          started_at = now(),
+          retry_count = retry_count + 1,
+          last_heartbeat = now()
+      where id = job_row.id;
+    else
+      update public.study_text_generation_jobs
+      set status = 'processing',
+          started_at = now(),
+          last_heartbeat = now()
+      where id = job_row.id;
+    end if;
+    
+    return query
+    select * from public.study_text_generation_jobs where id = job_row.id;
+  end if;
+end;
+$$;
+
+-- Update job heartbeat
+CREATE OR REPLACE FUNCTION public.update_job_heartbeat(job_id uuid, job_table text DEFAULT 'ai_course_jobs'::text)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  IF job_table = 'ai_course_jobs' THEN
+    UPDATE public.ai_course_jobs
+    SET last_heartbeat = now()
+    WHERE id = job_id;
+  ELSIF job_table = 'ai_media_jobs' THEN
+    UPDATE public.ai_media_jobs
+    SET last_heartbeat = now()
+    WHERE id = job_id;
+  END IF;
+END;
+$$;
+
+-- Process pending jobs (trigger all)
+CREATE OR REPLACE FUNCTION public.process_pending_jobs()
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  -- Touch all pending jobs to trigger the instant processing trigger
+  UPDATE public.ai_course_jobs
+  SET last_heartbeat = now()
+  WHERE status = 'pending';
+END;
+$$;
+
+-- Media job idempotency key generator
+CREATE OR REPLACE FUNCTION public.generate_media_idempotency_key(
+  p_media_type text,
+  p_prompt text,
+  p_target_ref jsonb,
+  p_provider text
+)
+RETURNS text
+LANGUAGE plpgsql
+AS $$
+declare
+  v_hash text;
+begin
+  v_hash := encode(
+    digest(
+      p_media_type || '||' || 
+      p_prompt || '||' || 
+      p_target_ref::text || '||' || 
+      p_provider,
+      'sha256'
+    ),
+    'hex'
+  );
+  return v_hash;
+end;
+$$;
+
+-- Mark stale media jobs
+CREATE OR REPLACE FUNCTION public.mark_stale_media_jobs()
+RETURNS integer
+LANGUAGE plpgsql
+AS $$
+declare
+  v_stale_count integer;
+begin
+  update public.ai_media_jobs
+  set status = 'failed',
+      error = 'Job stalled - no heartbeat for 5 minutes',
+      dead_letter_reason = 'stale_heartbeat'
+  where status = 'processing'
+    and last_heartbeat < now() - interval '5 minutes';
+  
+  get diagnostics v_stale_count = row_count;
+  return v_stale_count;
+end;
+$$;
+
+-- Move failed media jobs to dead letter
+CREATE OR REPLACE FUNCTION public.move_media_jobs_to_dead_letter()
+RETURNS integer
+LANGUAGE plpgsql
+AS $$
+declare
+  v_moved_count integer;
+begin
+  update public.ai_media_jobs
+  set dead_letter_reason = 'max_attempts_exceeded'
+  where status = 'failed'
+    and attempts >= 3
+    and dead_letter_reason is null;
+  
+  get diagnostics v_moved_count = row_count;
+  return v_moved_count;
+end;
+$$;
+
+-- Increment asset usage
+CREATE OR REPLACE FUNCTION public.increment_asset_usage(p_asset_id uuid)
+RETURNS void
+LANGUAGE plpgsql
+AS $$
+begin
+  update public.media_assets
+  set usage_count = usage_count + 1,
+      last_used_at = now()
+  where id = p_asset_id;
+end;
+$$;
+
+-- Get providers for media type
+CREATE OR REPLACE FUNCTION public.get_providers_for_media_type(p_media_type text)
+RETURNS SETOF media_generation_providers
+LANGUAGE sql
+STABLE
+SET search_path = public
+AS $$
+  select *
+  from public.media_generation_providers
+  where enabled = true
+    and p_media_type = any(media_types)
+  order by quality_rating desc, cost_per_unit asc;
+$$;
+
+-- Get latest asset version
+CREATE OR REPLACE FUNCTION public.get_latest_asset_version(p_logical_id text)
+RETURNS media_assets
+LANGUAGE sql
+STABLE
+SET search_path = public
+AS $$
+  select *
+  from public.media_assets
+  where logical_id = p_logical_id
+    and status = 'active'
+  order by version desc
+  limit 1;
+$$;
+
+-- Search assets by prompt
+CREATE OR REPLACE FUNCTION public.search_assets_by_prompt(p_query text, p_limit integer DEFAULT 10)
+RETURNS SETOF media_assets
+LANGUAGE sql
+STABLE
+SET search_path = public
+AS $$
+  select *
+  from public.media_assets
+  where status = 'active'
+    and to_tsvector('english', prompt || ' ' || coalesce(alt_text, '')) @@ plainto_tsquery('english', p_query)
+  order by ts_rank(to_tsvector('english', prompt || ' ' || coalesce(alt_text, '')), plainto_tsquery('english', p_query)) desc
+  limit p_limit;
+$$;
+
+-- Get enabled tag types
+CREATE OR REPLACE FUNCTION public.get_enabled_tag_types(org_id uuid)
+RETURNS TABLE(id uuid, key text, label text, display_order integer)
+LANGUAGE sql
+STABLE SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT DISTINCT ON (tt.key) tt.id, tt.key, tt.label, tt.display_order
+  FROM tag_types tt
+  WHERE tt.is_enabled = true AND (tt.organization_id = org_id OR tt.organization_id IS NULL)
+  ORDER BY tt.key, tt.organization_id NULLS LAST, tt.display_order;
+$$;
+
+-- Get active tags
+CREATE OR REPLACE FUNCTION public.get_active_tags(org_id uuid, p_type_key text)
+RETURNS TABLE(id uuid, value text, slug text)
+LANGUAGE sql
+STABLE SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT DISTINCT ON (t.slug) t.id, t.value, t.slug
+  FROM tags t
+  WHERE t.is_active = true AND t.type_key = p_type_key 
+    AND (t.organization_id = org_id OR t.organization_id IS NULL)
+  ORDER BY t.slug, t.organization_id NULLS LAST;
+$$;
+
+-- Get catalog version sequence
+CREATE OR REPLACE FUNCTION public.get_next_catalog_version()
+RETURNS integer
+LANGUAGE sql
+AS $$
+  select nextval('public.catalog_version_seq')::integer;
+$$;
+
+-- Make user admin
+CREATE OR REPLACE FUNCTION public.make_user_admin(user_email text)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  target_user_id uuid;
+BEGIN
+  -- Find user by email
+  SELECT id INTO target_user_id
+  FROM auth.users
+  WHERE email = user_email;
+  
+  IF target_user_id IS NULL THEN
+    RAISE EXCEPTION 'User with email % not found', user_email;
+  END IF;
+  
+  -- Update or insert admin profile
+  INSERT INTO public.profiles (id, role, created_at)
+  VALUES (target_user_id, 'admin', now())
+  ON CONFLICT (id) 
+  DO UPDATE SET role = 'admin';
+  
+  RAISE NOTICE 'User % is now an admin', user_email;
+END;
+$$;
+```
+
+### Trigger Functions
+
+```sql
+-- Auto-create profile on user signup
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  -- Insert profile with default student role
+  INSERT INTO public.profiles (id, role, full_name, created_at)
+  VALUES (
+    new.id,
+    'student',
+    COALESCE(new.raw_user_meta_data->>'full_name', ''),
+    now()
+  );
+  
+  RETURN new;
+END;
+$$;
+
+-- Auto-update updated_at
+CREATE OR REPLACE FUNCTION public.set_updated_at()
+RETURNS trigger
+LANGUAGE plpgsql
+SET search_path = public
+AS $$
+begin
+  new.updated_at = now();
+  return new;
+end;
+$$;
+
+-- Update updated_at for specific tables
+CREATE OR REPLACE FUNCTION public.update_updated_at_column()
+RETURNS trigger
+LANGUAGE plpgsql
+SET search_path = public
+AS $$
+BEGIN
+  NEW.updated_at = now();
+  RETURN NEW;
+END;
+$$;
+
+-- Update media_assets search updated_at
+CREATE OR REPLACE FUNCTION public.update_media_assets_search_updated_at()
+RETURNS trigger
+LANGUAGE plpgsql
+AS $$
+BEGIN
+  NEW.updated_at = now();
+  RETURN NEW;
+END;
+$$;
+
+-- Update content_embeddings updated_at
+CREATE OR REPLACE FUNCTION public.update_content_embeddings_updated_at()
+RETURNS trigger
+LANGUAGE plpgsql
+AS $$
+BEGIN
+  NEW.updated_at = now();
+  RETURN NEW;
+END;
+$$;
+
+-- Validate tag type key exists
+CREATE OR REPLACE FUNCTION public.validate_tag_type_key()
+RETURNS trigger
+LANGUAGE plpgsql
+SET search_path = public
+AS $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM tag_types
+    WHERE key = NEW.type_key
+      AND (organization_id = NEW.organization_id OR organization_id IS NULL)
+  ) THEN
+    RAISE EXCEPTION 'Tag type_key "%" does not exist for this organization', NEW.type_key;
+  END IF;
+  
+  RETURN NEW;
+END;
+$$;
+
+-- Trigger AI job runner
+CREATE OR REPLACE FUNCTION public.trigger_ai_job_runner()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  supabase_url text;
+  service_role_key text;
+  request_id bigint;
+BEGIN
+  supabase_url := current_setting('app.supabase_url', true);
+  service_role_key := current_setting('app.service_role_key', true);
+  
+  IF supabase_url IS NULL THEN
+    supabase_url := 'YOUR_SUPABASE_URL'; -- Replace with actual URL
+  END IF;
+  
+  -- Trigger when:
+  -- 1. New job inserted as pending
+  -- 2. Job status changes to pending
+  -- 3. Pending job heartbeat is updated (for manual reprocessing)
+  IF (TG_OP = 'INSERT' AND new.status = 'pending') OR
+     (TG_OP = 'UPDATE' AND new.status = 'pending' AND (old.status IS NULL OR old.status != 'pending')) OR
+     (TG_OP = 'UPDATE' AND new.status = 'pending' AND old.status = 'pending' AND 
+      new.last_heartbeat IS DISTINCT FROM old.last_heartbeat) THEN
+    
+    -- Call edge function with 120-second timeout (jobs can take 60+ seconds)
+    SELECT net.http_post(
+      url := supabase_url || '/functions/v1/ai-job-runner',
+      headers := jsonb_build_object(
+        'Content-Type', 'application/json',
+        'Authorization', 'Bearer ' || coalesce(service_role_key, current_setting('app.service_role_key', true))
+      ),
+      body := jsonb_build_object('job_id', new.id),
+      timeout_milliseconds := 120000  -- 120 seconds
+    ) INTO request_id;
+    
+    RAISE NOTICE 'Triggered ai-job-runner for job % (request_id: %)', new.id, request_id;
+  END IF;
+  
+  RETURN new;
+END;
+$$;
+```
+
+---
+
+## Database Triggers
+
+```sql
+-- Auto-create profile on user signup
+CREATE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW
+  EXECUTE FUNCTION public.handle_new_user();
+
+-- Auto-update timestamps
+CREATE TRIGGER update_organizations_updated_at
+  BEFORE UPDATE ON public.organizations
+  FOR EACH ROW
+  EXECUTE FUNCTION public.update_updated_at_column();
+
+CREATE TRIGGER update_course_metadata_updated_at
+  BEFORE UPDATE ON public.course_metadata
+  FOR EACH ROW
+  EXECUTE FUNCTION public.update_updated_at_column();
+
+CREATE TRIGGER update_play_sessions_updated_at
+  BEFORE UPDATE ON public.play_sessions
+  FOR EACH ROW
+  EXECUTE FUNCTION public.update_updated_at_column();
+
+CREATE TRIGGER update_student_achievements_updated_at
+  BEFORE UPDATE ON public.student_achievements
+  FOR EACH ROW
+  EXECUTE FUNCTION public.update_updated_at_column();
+
+CREATE TRIGGER update_ai_media_jobs_updated_at
+  BEFORE UPDATE ON public.ai_media_jobs
+  FOR EACH ROW
+  EXECUTE FUNCTION public.update_updated_at_column();
+
+CREATE TRIGGER update_media_generation_providers_updated_at
+  BEFORE UPDATE ON public.media_generation_providers
+  FOR EACH ROW
+  EXECUTE FUNCTION public.update_updated_at_column();
+
+CREATE TRIGGER update_media_assets_search_updated_at
+  BEFORE UPDATE ON public.media_assets_search
+  FOR EACH ROW
+  EXECUTE FUNCTION public.update_media_assets_search_updated_at();
+
+CREATE TRIGGER update_content_embeddings_updated_at
+  BEFORE UPDATE ON public.content_embeddings
+  FOR EACH ROW
+  EXECUTE FUNCTION public.update_content_embeddings_updated_at();
+
+-- Validate tags reference valid tag types
+CREATE TRIGGER validate_tag_type_before_insert
+  BEFORE INSERT ON public.tags
+  FOR EACH ROW
+  EXECUTE FUNCTION public.validate_tag_type_key();
+
+-- Trigger AI job runner on pending jobs
+CREATE TRIGGER trigger_ai_job_on_pending
+  AFTER INSERT OR UPDATE ON public.ai_course_jobs
+  FOR EACH ROW
+  EXECUTE FUNCTION public.trigger_ai_job_runner();
+```
+
+---
+
+## Storage Buckets
+
+### Bucket: `courses`
+**Public:** Yes  
+**Purpose:** Store course JSON files and media assets
+
+**Policies:**
+```sql
+-- Anyone can read from courses bucket
+CREATE POLICY "Public Access"
+  ON storage.objects FOR SELECT
+  USING (bucket_id = 'courses');
+
+-- Authenticated users can insert
+CREATE POLICY "Authenticated users can upload courses"
+  ON storage.objects FOR INSERT
+  TO authenticated
+  WITH CHECK (bucket_id = 'courses');
+
+-- Authenticated users can update their uploads
+CREATE POLICY "Users can update own uploads"
+  ON storage.objects FOR UPDATE
+  TO authenticated
+  USING (bucket_id = 'courses' AND owner = auth.uid());
+
+-- Authenticated users can delete their uploads
+CREATE POLICY "Users can delete own uploads"
+  ON storage.objects FOR DELETE
+  TO authenticated
+  USING (bucket_id = 'courses' AND owner = auth.uid());
+```
+
+### Bucket: `analytics`
+**Public:** No  
+**Purpose:** Store analytics exports and reports
+
+**Policies:**
+```sql
+-- Only teachers/admins can access
+CREATE POLICY "Teachers access analytics"
+  ON storage.objects FOR SELECT
+  TO authenticated
+  USING (
+    bucket_id = 'analytics'
+    AND EXISTS (
+      SELECT 1 FROM organization_users ou
+      WHERE ou.user_id = auth.uid()
+        AND ou.org_role = ANY(ARRAY['teacher'::text, 'school_admin'::text])
+    )
+  );
+
+-- Teachers/admins can insert
+CREATE POLICY "Teachers upload analytics"
+  ON storage.objects FOR INSERT
+  TO authenticated
+  WITH CHECK (
+    bucket_id = 'analytics'
+    AND EXISTS (
+      SELECT 1 FROM organization_users ou
+      WHERE ou.user_id = auth.uid()
+        AND ou.org_role = ANY(ARRAY['teacher'::text, 'school_admin'::text])
+    )
+  );
+```
+
+---
+
+## Authentication Configuration
+
+### Email Settings
+- **Auto-confirm email:** Enabled (for non-production testing)
+- **Disable signup:** No
+- **Anonymous users:** Disabled
+
+### Password Requirements
+- Minimum length: 6 characters
+- No special requirements enforced
+
+### Session Settings
+- JWT expiry: 3600 seconds (1 hour)
+- Refresh token rotation: Enabled
+
+### OAuth Providers
+None configured by default. Can add Google, GitHub, etc.
+
+---
+
+## Realtime Configuration
+
+Enable realtime for specific tables as needed:
+
+```sql
+-- Enable realtime for messages
+ALTER PUBLICATION supabase_realtime ADD TABLE public.messages;
+
+-- Enable realtime for game_rounds (for live leaderboards)
+ALTER PUBLICATION supabase_realtime ADD TABLE public.game_rounds;
+
+-- Enable realtime for round_questions (for live gameplay)
+ALTER PUBLICATION supabase_realtime ADD TABLE public.round_questions;
+```
+
+---
+
+## Environment Variables
+
+### Required Edge Function Environment Variables
+
+```bash
+SUPABASE_URL=https://[project-ref].supabase.co
+SUPABASE_ANON_KEY=[your-anon-key]
+SUPABASE_SERVICE_ROLE_KEY=[your-service-role-key]
+
+# Optional: AI API Keys (if using AI features)
+OPENAI_API_KEY=[your-openai-key]
+ANTHROPIC_API_KEY=[your-anthropic-key]
+
+# Optional: Admin features
+ADMIN_UPLOAD_KEY=[your-admin-key]
+
+# Optional: CORS configuration
+ALLOWED_ORIGINS=http://localhost:3000,https://yourdomain.com
+ALLOW_ALL_ORIGINS=false
+```
+
+---
+
+## Post-Setup Steps
+
+1. **Create initial superadmin:**
+```sql
+SELECT public.make_user_admin('admin@example.com');
+```
+
+2. **Create test organization:**
+```sql
+INSERT INTO organizations (name, slug)
+VALUES ('Test School', 'test-school');
+```
+
+3. **Add superadmin to organization:**
+```sql
+INSERT INTO organization_users (org_id, user_id, org_role)
+SELECT 
+  (SELECT id FROM organizations WHERE slug = 'test-school'),
+  (SELECT id FROM auth.users WHERE email = 'admin@example.com'),
+  'school_admin';
+```
+
+4. **Initialize catalog version sequence:**
+```sql
+CREATE SEQUENCE IF NOT EXISTS public.catalog_version_seq START 1;
+```
+
+5. **Deploy edge functions** (copy from original project's `supabase/functions/` directory)
+
+**Edge Functions List** (from `supabase/config.toml`):
+- `org-config` - Organization configuration
+- `list-courses-filtered` - Course catalog with filters
+- `list-courses` - Course listing
+- `get-course` - Get single course
+- `author-course` - Course authoring
+- `generate-course` - AI course generation
+- `review-course` - Course review workflow
+- `publish-course` - Publish course version
+- `restore-course-version` - Restore previous version
+- `update-course` - Update course metadata
+- `apply-course-patch` - Apply patches to courses
+- `update-catalog` - Update catalog entries
+- `debug-catalog` - Debug catalog data
+- `fix-catalog-entry` - Fix catalog inconsistencies
+- `search-media` - Search media assets
+- `search-content` - Search course content
+- `ai-job-runner` - Process AI generation jobs
+- `ai-rewrite-text` - AI text rewriting
+- `ai-generate-media` - AI media generation
+- `ai-generate-exercises` - AI exercise generation
+- `chat-course-assistant` - Course assistant chatbot
+- `create-assignment` - Create assignments
+- `list-assignments` - List assignments
+- `list-assignments-student` - Student assignment view
+- `assign-assignees` - Assign students/classes
+- `get-assignment-progress` - Assignment progress tracking
+- `create-class` - Create classes
+- `list-classes` - List classes
+- `add-class-member` - Add student to class
+- `remove-class-member` - Remove student from class
+- `generate-class-code` - Generate join code
+- `join-class` - Join class via code
+- `get-class-roster` - Get class members
+- `get-class-progress` - Class progress analytics
+- `list-org-students` - List organization students
+- `invite-student` - Invite student to org/class
+- `link-child` - Link parent to child account
+- `create-child-code` - Create parent-child link code
+- `game-start-round` - Start game round
+- `game-log-attempt` - Log game attempt
+- `game-end-round` - End game round
+- `get-dashboard` - User dashboard data
+- `get-analytics` - Analytics data
+- `export-analytics` - Export analytics reports
+- `export-gradebook` - Export gradebook
+- `list-conversations` - Message conversations
+- `list-messages` - List messages
+- `send-message` - Send message
+- `list-students-for-course` - Course enrollment
+- `log-event` - Event logging
+- `debug-storage` - Debug storage issues
+
+All edge functions have `verify_jwt = false` in config.
+
+6. **Populate media_generation_providers** (if using AI media generation):
+```sql
+INSERT INTO media_generation_providers (id, name, media_types, enabled)
+VALUES
+  ('openai-dalle', 'DALL-E 3', ARRAY['image'], true),
+  ('stability-ai', 'Stable Diffusion', ARRAY['image'], true);
+```
+
+---
+
+## Migration Checklist
+
+- [ ] Execute all table creation SQL
+- [ ] Create all database functions
+- [ ] Create all triggers
+- [ ] Apply all RLS policies
+- [ ] Create storage buckets and policies
+- [ ] Configure authentication settings
+- [ ] Set environment variables
+- [ ] Deploy edge functions
+- [ ] Create initial superadmin
+- [ ] Test authentication flow
+- [ ] Test course creation
+- [ ] Test assignment workflow
+- [ ] Test parent-child linking
+- [ ] Verify RLS policies
+- [ ] Enable realtime for required tables
+
+---
+
+## Notes
+
+- All UUIDs use `gen_random_uuid()` for generation
+- All timestamps use `TIMESTAMP WITH TIME ZONE`
+- All text fields use `TEXT` type (no VARCHAR limits)
+- Vector embeddings use dimension 1536 (OpenAI embedding size)
+- Course content is stored as JSON files in Supabase Storage, not in database
+- Tag system uses both global (NULL org_id) and org-specific tags
+- Parent-child linking uses one-time codes generated server-side
+- AI job queues use `FOR UPDATE SKIP LOCKED` for concurrency safety
+- Media assets support versioning with logical_id + version
+
+---
+
+**Document Version:** 1.0  
+**Last Updated:** 2025  
+**Project:** LearnPlay Platform Lovable Cloud Setup

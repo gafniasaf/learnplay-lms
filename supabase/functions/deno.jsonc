@@ -1,0 +1,20 @@
+{
+  "compilerOptions": {
+    "lib": ["deno.window"],
+    "types": ["./test-globals.d.ts"],
+    "noImplicitAny": false,
+    "strict": false,
+    "skipLibCheck": true,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+    "noImplicitReturns": false,
+    "noFallthroughCasesInSwitch": false
+  },
+  "exclude": [
+    "**/node_modules/**",
+    "**/__tests__/**",
+    "**/*.test.ts",
+    "**/tests/**",
+    "**/*.spec.ts"
+  ]
+}

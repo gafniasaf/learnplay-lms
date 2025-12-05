@@ -1,0 +1,83 @@
+name: Comment Triggers
+
+on:
+  issue_comment:
+    types: [created, edited]
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: read
+
+jobs:
+  dispatch:
+    if: ${{ github.event.issue.pull_request }}
+    runs-on: ubuntu-latest
+    outputs:
+      command: ${{ steps.parse.outputs.command }}
+      pr_number: ${{ steps.parse.outputs.pr_number }}
+    steps:
+      - name: Parse command
+        id: parse
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const body = context.payload.comment.body || '';
+            const prNumber = context.payload.issue.number;
+            // Only allow repository write members
+            const { data: perm } = await github.rest.repos.getCollaboratorPermissionLevel({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              username: context.payload.comment.user.login
+            });
+            const level = perm.permission || 'none';
+            if (!['admin','write','maintain'].includes(level)) {
+              core.setOutput('command', '');
+              core.setOutput('pr_number', prNumber);
+              return;
+            }
+            const lines = body.trim().split(/\r?\n/).map(s => s.trim());
+            const first = (lines[0] || '').toLowerCase();
+            const known = ['guard:all','mcp:smoke','ui:fix'];
+            let cmd = '';
+            if (known.includes(first)) cmd = first;
+            else if (first.startsWith('auto:scaffold')) cmd = first; // placeholder
+            core.setOutput('command', cmd);
+            core.setOutput('pr_number', prNumber);
+
+  run:
+    needs: dispatch
+    if: ${{ needs.dispatch.outputs.command != '' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: refs/pull/${{ needs.dispatch.outputs.pr_number }}/merge
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Install deps
+        run: npm ci
+      - name: Run guard:all
+        if: ${{ needs.dispatch.outputs.command == 'guard:all' }}
+        run: |
+          npm run guard:all || echo "::warning title=guard:all failed::See logs above"
+      - name: Run mcp:smoke
+        if: ${{ needs.dispatch.outputs.command == 'mcp:smoke' }}
+        run: |
+          npm run mcp:check-auth-health
+          npm run mcp:edge-smoke
+          npm run mcp:jobs-health
+      - name: Run ui:fix (dry-run)
+        if: ${{ needs.dispatch.outputs.command == 'ui:fix' }}
+        env:
+          MCP_SCAN_ROOT: ${{ github.workspace }}
+          MCP_SCAN_SRC: src
+        run: |
+          npm run ui:fix-dead-ctas
+      - name: Scaffold placeholder
+        if: ${{ startsWith(needs.dispatch.outputs.command, 'auto:scaffold') }}
+        run: echo "Scaffold request received. A dedicated scaffolder will open a PR in a follow-up workflow."
+
+

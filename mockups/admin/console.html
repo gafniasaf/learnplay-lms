@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Admin Console - LearnPlay</title>
+  <link rel="stylesheet" href="../_base.css">
+</head>
+<body data-route="/admin/console" data-entity="JobTicket">
+  <header class="header">
+    <h1>🔧 Admin Console</h1>
+    <button data-cta-id="settings" data-action="navigate" data-target="/settings">⚙️</button>
+  </header>
+
+  <main class="container">
+    <!-- System Health -->
+    <section class="card">
+      <h2>💚 System Health</h2>
+      <div class="health-grid">
+        <div class="health-item healthy">
+          <span class="health-icon">✅</span>
+          <span class="health-label">Database</span>
+          <span class="health-status">Connected</span>
+        </div>
+        <div class="health-item healthy">
+          <span class="health-icon">✅</span>
+          <span class="health-label">Edge Functions</span>
+          <span class="health-status">11 Active</span>
+        </div>
+        <div class="health-item healthy">
+          <span class="health-icon">✅</span>
+          <span class="health-label">MCP Server</span>
+          <span class="health-status">Running</span>
+        </div>
+        <div class="health-item healthy">
+          <span class="health-icon">✅</span>
+          <span class="health-label">AI Services</span>
+          <span class="health-status">Available</span>
+        </div>
+      </div>
+      <button data-cta-id="view-health" data-action="navigate" data-target="/admin/system-health" class="btn-secondary">
+        View Details
+      </button>
+    </section>
+
+    <!-- Platform Stats -->
+    <section class="card">
+      <h2>📊 Platform Stats</h2>
+      <div class="stats-row">
+        <div class="stat-card">
+          <span class="stat-value" data-field="total_users">1,234</span>
+          <span class="stat-label">Total Users</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-value" data-field="active_today">156</span>
+          <span class="stat-label">Active Today</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-value" data-field="sessions_today">423</span>
+          <span class="stat-label">Sessions Today</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Job Queue -->
+    <section class="card">
+      <h2>⚙️ AI Job Queue</h2>
+      <div class="job-stats">
+        <span class="badge badge-success" data-field="jobs_completed">45 completed</span>
+        <span class="badge badge-info" data-field="jobs_running">2 running</span>
+        <span class="badge badge-warning" data-field="jobs_queued">3 queued</span>
+      </div>
+      <button data-cta-id="view-jobs" data-action="navigate" data-target="/admin/jobs" class="btn-secondary">
+        View Job Queue
+      </button>
+    </section>
+
+    <!-- Quick Actions -->
+    <section class="card">
+      <h2>⚡ Quick Actions</h2>
+      <div class="action-grid">
+        <button data-cta-id="manage-courses" data-action="navigate" data-target="/catalog-builder" class="action-btn">
+          📚 Manage Courses
+        </button>
+        <button data-cta-id="view-pipeline" data-action="navigate" data-target="/admin/ai-pipeline" class="action-btn">
+          🤖 AI Pipeline
+        </button>
+        <button data-cta-id="view-metrics" data-action="navigate" data-target="/admin/metrics" class="action-btn">
+          📈 Metrics
+        </button>
+      </div>
+    </section>
+  </main>
+</body>
+</html>
+
+
+

@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Job Queue - LearnPlay Admin</title>
+  <link rel="stylesheet" href="../_base.css">
+  <style>
+    .filter-bar {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 1.5rem;
+      flex-wrap: wrap;
+    }
+    .job-table {
+      width: 100%;
+      background: var(--color-surface);
+      border-radius: var(--radius);
+      overflow: hidden;
+      box-shadow: var(--shadow);
+    }
+    .job-table th,
+    .job-table td {
+      padding: 1rem;
+      text-align: left;
+      border-bottom: 1px solid var(--color-border);
+    }
+    .job-table th {
+      background: var(--color-bg);
+      font-weight: 600;
+      font-size: 0.875rem;
+      color: var(--color-text-muted);
+    }
+    .job-id {
+      font-family: monospace;
+      font-size: 0.875rem;
+      color: var(--color-primary);
+    }
+    .job-type-badge {
+      display: inline-block;
+      padding: 0.25rem 0.5rem;
+      border-radius: 4px;
+      font-size: 0.75rem;
+      font-weight: 500;
+    }
+    .job-type-generate { background: #f3e8ff; color: #7c3aed; }
+    .job-type-guard { background: #dbeafe; color: #1d4ed8; }
+    .job-type-draft { background: #dcfce7; color: #166534; }
+    .job-type-compile { background: #fef3c7; color: #92400e; }
+    .duration {
+      font-family: monospace;
+      font-size: 0.875rem;
+    }
+    .pagination {
+      display: flex;
+      justify-content: center;
+      gap: 0.5rem;
+      margin-top: 1.5rem;
+    }
+    .page-btn {
+      width: 36px;
+      height: 36px;
+      border-radius: 8px;
+      border: 1px solid var(--color-border);
+      background: white;
+      cursor: pointer;
+    }
+    .page-btn.active {
+      background: var(--color-primary);
+      color: white;
+      border-color: var(--color-primary);
+    }
+  </style>
+</head>
+<body data-route="/admin/jobs" data-entity="JobTicket">
+  <header class="header">
+    <button class="btn-ghost" data-cta-id="back" data-action="navigate" data-target="/admin/console">← Back</button>
+    <h1>Job Queue</h1>
+    <button class="btn-ghost" data-cta-id="refresh" data-action="ui">↻ Refresh</button>
+  </header>
+  
+  <div class="container">
+    <div class="filter-bar">
+      <select data-field="statusFilter" style="padding: 0.5rem 1rem; border-radius: 8px; border: 1px solid var(--color-border);">
+        <option value="">All Status</option>
+        <option value="running">Running</option>
+        <option value="queued">Queued</option>
+        <option value="completed">Completed</option>
+        <option value="failed">Failed</option>
+      </select>
+      <select data-field="typeFilter" style="padding: 0.5rem 1rem; border-radius: 8px; border: 1px solid var(--color-border);">
+        <option value="">All Types</option>
+        <option value="ai_course_generate">ai_course_generate</option>
+        <option value="guard_course">guard_course</option>
+        <option value="draft_assignment_plan">draft_assignment_plan</option>
+        <option value="compile_mockups">compile_mockups</option>
+      </select>
+      <input type="text" placeholder="Search by ID..." data-field="search" style="padding: 0.5rem 1rem; border-radius: 8px; border: 1px solid var(--color-border); flex: 1;">
+    </div>
+    
+    <table class="job-table">
+      <thead>
+        <tr>
+          <th>Job ID</th>
+          <th>Type</th>
+          <th>Target</th>
+          <th>Status</th>
+          <th>Duration</th>
+          <th>Created</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="job-id">job_abc123</span></td>
+          <td><span class="job-type-badge job-type-generate">ai_course_generate</span></td>
+          <td>5th Grade Fractions</td>
+          <td><span class="badge badge-info">Running</span></td>
+          <td class="duration">2m 15s</td>
+          <td>Dec 5, 2:30 PM</td>
+          <td><button class="btn-ghost" data-cta-id="view-job" data-action="navigate" data-target="/admin/ai-pipeline">View</button></td>
+        </tr>
+        <tr>
+          <td><span class="job-id">job_def456</span></td>
+          <td><span class="job-type-badge job-type-guard">guard_course</span></td>
+          <td>Cell Biology Course</td>
+          <td><span class="badge badge-warning">Queued</span></td>
+          <td class="duration">—</td>
+          <td>Dec 5, 2:28 PM</td>
+          <td><button class="btn-ghost">View</button></td>
+        </tr>
+        <tr>
+          <td><span class="job-id">job_ghi789</span></td>
+          <td><span class="job-type-badge job-type-generate">ai_course_generate</span></td>
+          <td>Reading Comprehension</td>
+          <td><span class="badge badge-success">Completed</span></td>
+          <td class="duration">3m 42s</td>
+          <td>Dec 5, 2:15 PM</td>
+          <td><button class="btn-ghost">View</button></td>
+        </tr>
+        <tr>
+          <td><span class="job-id">job_jkl012</span></td>
+          <td><span class="job-type-badge job-type-draft">draft_assignment_plan</span></td>
+          <td>Week 10 Assignments</td>
+          <td><span class="badge badge-success">Completed</span></td>
+          <td class="duration">45s</td>
+          <td>Dec 5, 1:30 PM</td>
+          <td><button class="btn-ghost">View</button></td>
+        </tr>
+        <tr>
+          <td><span class="job-id">job_mno345</span></td>
+          <td><span class="job-type-badge job-type-compile">compile_mockups</span></td>
+          <td>LearnPlay UI</td>
+          <td><span class="badge badge-success">Completed</span></td>
+          <td class="duration">12s</td>
+          <td>Dec 5, 11:00 AM</td>
+          <td><button class="btn-ghost">View</button></td>
+        </tr>
+        <tr>
+          <td><span class="job-id">job_pqr678</span></td>
+          <td><span class="job-type-badge job-type-generate">ai_course_generate</span></td>
+          <td>Advanced Algebra</td>
+          <td><span class="badge badge-error">Failed</span></td>
+          <td class="duration">1m 23s</td>
+          <td>Dec 5, 10:45 AM</td>
+          <td><button class="btn-ghost" data-cta-id="retry-job" data-action="enqueueJob" data-job-type="ai_course_generate">Retry</button></td>
+        </tr>
+      </tbody>
+    </table>
+    
+    <div class="pagination">
+      <button class="page-btn">←</button>
+      <button class="page-btn active">1</button>
+      <button class="page-btn">2</button>
+      <button class="page-btn">3</button>
+      <button class="page-btn">→</button>
+    </div>
+  </div>
+</body>
+</html>
+
+
+

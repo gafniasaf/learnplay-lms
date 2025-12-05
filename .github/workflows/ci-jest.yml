@@ -1,0 +1,46 @@
+name: CI - Jest
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run test:coverage
+      - name: Enforce coverage thresholds
+        run: |
+          lines=$(jq -r '.total.lines.pct' reports/coverage/coverage-summary.json || echo 0)
+          funcs=$(jq -r '.total.functions.pct' reports/coverage/coverage-summary.json || echo 0)
+          stmts=$(jq -r '.total.statements.pct' reports/coverage/coverage-summary.json || echo 0)
+          branches=$(jq -r '.total.branches.pct' reports/coverage/coverage-summary.json || echo 0)
+          echo "lines=$lines funcs=$funcs stmts=$stmts branches=$branches"
+          awk -v l=$lines -v f=$funcs -v s=$stmts -v b=$branches 'BEGIN{exit !(l>=90 && f>=90 && s>=88 && b>=70)}'
+      - name: Upload JUnit
+        uses: actions/upload-artifact@v4
+        with:
+          name: junit
+          path: reports/junit.xml
+      - name: Upload coverage lcov
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage
+          path: |
+            reports/coverage/lcov.info
+            reports/coverage/coverage-summary.json
+

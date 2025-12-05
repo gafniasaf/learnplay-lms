@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Messages - LearnPlay</title>
+  <link rel="stylesheet" href="../_base.css">
+  <style>
+    .messages-layout {
+      display: grid;
+      grid-template-columns: 320px 1fr;
+      height: calc(100vh - 60px);
+    }
+    .thread-list {
+      background: var(--color-surface);
+      border-right: 1px solid var(--color-border);
+      overflow-y: auto;
+    }
+    .thread-item {
+      padding: 1rem;
+      border-bottom: 1px solid var(--color-border);
+      cursor: pointer;
+      display: flex;
+      gap: 0.75rem;
+    }
+    .thread-item:hover { background: var(--color-bg); }
+    .thread-item.active { background: #dbeafe; }
+    .thread-avatar {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
+      flex-shrink: 0;
+    }
+    .thread-content { flex: 1; min-width: 0; }
+    .thread-header { display: flex; justify-content: space-between; margin-bottom: 0.25rem; }
+    .thread-name { font-weight: 500; }
+    .thread-time { font-size: 0.75rem; color: var(--color-text-muted); }
+    .thread-preview {
+      font-size: 0.875rem;
+      color: var(--color-text-muted);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .unread-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--color-primary);
+      margin-left: auto;
+    }
+    .chat-area {
+      display: flex;
+      flex-direction: column;
+    }
+    .chat-header {
+      padding: 1rem;
+      border-bottom: 1px solid var(--color-border);
+      background: var(--color-surface);
+    }
+    .chat-messages {
+      flex: 1;
+      padding: 1rem;
+      overflow-y: auto;
+      background: var(--color-bg);
+    }
+    .message {
+      max-width: 70%;
+      margin-bottom: 1rem;
+    }
+    .message.sent {
+      margin-left: auto;
+    }
+    .message-bubble {
+      padding: 0.75rem 1rem;
+      border-radius: 1rem;
+      background: var(--color-surface);
+      box-shadow: var(--shadow);
+    }
+    .message.sent .message-bubble {
+      background: var(--color-primary);
+      color: white;
+    }
+    .message-time {
+      font-size: 0.75rem;
+      color: var(--color-text-muted);
+      margin-top: 0.25rem;
+      text-align: right;
+    }
+    .message.sent .message-time { text-align: left; }
+    .chat-input {
+      padding: 1rem;
+      background: var(--color-surface);
+      border-top: 1px solid var(--color-border);
+      display: flex;
+      gap: 0.5rem;
+    }
+    .chat-input input {
+      flex: 1;
+      padding: 0.75rem 1rem;
+      border: 1px solid var(--color-border);
+      border-radius: 999px;
+    }
+  </style>
+</head>
+<body data-route="/messages" data-entity="MessageThread">
+  <header class="header">
+    <button class="btn-ghost" data-cta-id="back" data-action="navigate" data-target="/student/dashboard">← Back</button>
+    <h1>Messages</h1>
+    <button class="btn-ghost" data-cta-id="new-message" data-action="navigate" data-target="/messages/new">+ New</button>
+  </header>
+  
+  <div class="messages-layout">
+    <div class="thread-list">
+      <div class="thread-item active">
+        <div class="thread-avatar">MJ</div>
+        <div class="thread-content">
+          <div class="thread-header">
+            <span class="thread-name">Mrs. Johnson</span>
+            <span class="thread-time">2:30 PM</span>
+          </div>
+          <div class="thread-preview">Great work on your fractions assignment!</div>
+        </div>
+        <span class="unread-dot"></span>
+      </div>
+      
+      <div class="thread-item">
+        <div class="thread-avatar" style="background: linear-gradient(135deg, #22c55e, #06b6d4);">P</div>
+        <div class="thread-content">
+          <div class="thread-header">
+            <span class="thread-name">Mom</span>
+            <span class="thread-time">Yesterday</span>
+          </div>
+          <div class="thread-preview">Proud of you! Keep up the good work 💪</div>
+        </div>
+      </div>
+      
+      <div class="thread-item">
+        <div class="thread-avatar" style="background: linear-gradient(135deg, #f59e0b, #ef4444);">LS</div>
+        <div class="thread-content">
+          <div class="thread-header">
+            <span class="thread-name">LearnPlay Support</span>
+            <span class="thread-time">Dec 3</span>
+          </div>
+          <div class="thread-preview">Welcome to LearnPlay! Here's how to get started...</div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="chat-area">
+      <div class="chat-header">
+        <div style="display: flex; align-items: center; gap: 0.75rem;">
+          <div class="thread-avatar">MJ</div>
+          <div>
+            <div style="font-weight: 600;">Mrs. Johnson</div>
+            <div style="font-size: 0.875rem; color: var(--color-text-muted);">5th Grade Math Teacher</div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="chat-messages">
+        <div class="message">
+          <div class="message-bubble">
+            Hi Emma! I saw you completed your fractions assignment. Great job! 🎉
+          </div>
+          <div class="message-time">2:28 PM</div>
+        </div>
+        
+        <div class="message">
+          <div class="message-bubble">
+            You scored 80% which is a big improvement from last week!
+          </div>
+          <div class="message-time">2:29 PM</div>
+        </div>
+        
+        <div class="message sent">
+          <div class="message-bubble">
+            Thank you Mrs. Johnson! The practice sessions really helped.
+          </div>
+          <div class="message-time">2:30 PM</div>
+        </div>
+        
+        <div class="message">
+          <div class="message-bubble">
+            Keep it up! If you need extra help with word problems, let me know. I can assign some extra practice.
+          </div>
+          <div class="message-time">2:30 PM</div>
+        </div>
+      </div>
+      
+      <div class="chat-input">
+        <input type="text" placeholder="Type a message..." data-field="messageText">
+        <button class="btn-primary" data-cta-id="send-message" data-action="save" data-entity="MessageThread">
+          Send
+        </button>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
+
+
+

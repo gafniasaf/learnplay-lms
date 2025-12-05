@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Goals - LearnPlay</title>
+  <link rel="stylesheet" href="../_base.css">
+  <style>
+    .goal-card {
+      background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+      color: white;
+      padding: 2rem;
+      border-radius: var(--radius);
+      margin-bottom: 1.5rem;
+    }
+    .goal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
+    .goal-title { font-size: 1.25rem; font-weight: 600; }
+    .goal-progress-text { font-size: 2rem; font-weight: 700; }
+    .goal-bar { background: rgba(255,255,255,0.3); height: 12px; border-radius: 6px; margin: 1rem 0; }
+    .goal-bar-fill { background: white; height: 100%; border-radius: 6px; }
+    .goal-meta { display: flex; justify-content: space-between; font-size: 0.875rem; opacity: 0.9; }
+    .week-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 0.5rem;
+      margin-bottom: 1.5rem;
+    }
+    .day-cell {
+      aspect-ratio: 1;
+      background: var(--color-surface);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.75rem;
+      position: relative;
+    }
+    .day-cell.completed { background: #dcfce7; color: #166534; }
+    .day-cell.partial { background: #fef3c7; color: #92400e; }
+    .day-cell.today { border: 2px solid var(--color-primary); }
+    .history-list { list-style: none; }
+    .history-item {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      padding: 1rem;
+      background: var(--color-surface);
+      border-radius: 8px;
+      margin-bottom: 0.5rem;
+    }
+    .history-week { font-weight: 600; }
+    .history-stats { flex: 1; }
+  </style>
+</head>
+<body data-route="/student/goals" data-entity="LearnerProfile">
+  <header class="header">
+    <button class="btn-ghost" data-cta-id="back" data-action="navigate" data-target="/student/dashboard">← Back</button>
+    <h1>My Goals</h1>
+    <button class="btn-ghost" data-cta-id="edit-goal" data-action="navigate" data-target="/student/goals/edit">Edit</button>
+  </header>
+  
+  <div class="container">
+    <div class="goal-card">
+      <div class="goal-header">
+        <div class="goal-title">Weekly Study Goal</div>
+        <span class="goal-progress-text" data-field="weekly_goal_minutes">45 / 60 min</span>
+      </div>
+      <div class="goal-bar">
+        <div class="goal-bar-fill" style="width: 75%"></div>
+      </div>
+      <div class="goal-meta">
+        <span>15 minutes to go!</span>
+        <span>Resets Sunday</span>
+      </div>
+    </div>
+    
+    <div class="card">
+      <h2>This Week</h2>
+      <div class="week-grid">
+        <div class="day-cell completed">M<br>✓</div>
+        <div class="day-cell completed">T<br>✓</div>
+        <div class="day-cell partial">W<br>½</div>
+        <div class="day-cell completed">T<br>✓</div>
+        <div class="day-cell today">F<br>—</div>
+        <div class="day-cell">S<br>—</div>
+        <div class="day-cell">S<br>—</div>
+      </div>
+      <p style="text-align: center; color: var(--color-text-muted); font-size: 0.875rem;">
+        4 days active this week • 2 days remaining
+      </p>
+    </div>
+    
+    <div class="card">
+      <h2>History</h2>
+      <ul class="history-list">
+        <li class="history-item">
+          <span class="badge badge-success">✓</span>
+          <div class="history-stats">
+            <div class="history-week">Nov 25 - Dec 1</div>
+            <div style="font-size: 0.875rem; color: var(--color-text-muted);">62 minutes • Goal met!</div>
+          </div>
+        </li>
+        <li class="history-item">
+          <span class="badge badge-warning">—</span>
+          <div class="history-stats">
+            <div class="history-week">Nov 18 - Nov 24</div>
+            <div style="font-size: 0.875rem; color: var(--color-text-muted);">45 minutes • 75% of goal</div>
+          </div>
+        </li>
+        <li class="history-item">
+          <span class="badge badge-success">✓</span>
+          <div class="history-stats">
+            <div class="history-week">Nov 11 - Nov 17</div>
+            <div style="font-size: 0.875rem; color: var(--color-text-muted);">68 minutes • Goal met!</div>
+          </div>
+        </li>
+      </ul>
+    </div>
+    
+    <button class="btn-primary btn-large" style="width: 100%;" data-cta-id="practice-now" data-action="navigate" data-target="/play/welcome">
+      Practice Now 🚀
+    </button>
+  </div>
+</body>
+</html>
+
+
+

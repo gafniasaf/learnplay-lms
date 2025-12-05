@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en" data-route="/settings" data-state="default">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Settings - Golden Plan Generator</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../_base.css">
+  <style>
+    .main { flex: 1; padding: 32px 24px; max-width: 800px; margin: 0 auto; width: 100%; }
+    .page-header { margin-bottom: 32px; }
+    .page-header h1 { font-size: var(--text-2xl); margin-bottom: 8px; }
+    .page-header p { color: var(--text-secondary); }
+    .settings-section { background: var(--bg-secondary); border: 1px solid var(--border); border-radius: var(--radius-lg); margin-bottom: 24px; }
+    .settings-section-header { padding: 20px 24px; border-bottom: 1px solid var(--border); }
+    .settings-section-header h2 { font-size: var(--text-lg); margin-bottom: 4px; }
+    .settings-section-header p { font-size: var(--text-sm); color: var(--text-secondary); }
+    .settings-section-body { padding: 24px; }
+    .form-group { margin-bottom: 20px; }
+    .form-group:last-child { margin-bottom: 0; }
+    .form-label { display: block; font-size: var(--text-sm); font-weight: 500; margin-bottom: 8px; }
+    .form-input { width: 100%; padding: 12px 14px; font-size: var(--text-base); color: var(--text-primary); background: var(--bg-tertiary); border: 1px solid var(--border); border-radius: var(--radius-sm); outline: none; }
+    .form-input:focus { border-color: var(--accent-gold); box-shadow: 0 0 0 3px var(--accent-gold-muted); }
+    .form-hint { font-size: var(--text-xs); color: var(--text-tertiary); margin-top: 6px; }
+    .form-row { display: flex; gap: 16px; }
+    .form-row .form-group { flex: 1; }
+    .toggle-group { display: flex; align-items: center; justify-content: space-between; padding: 16px 0; border-bottom: 1px solid var(--border); }
+    .toggle-group:last-child { border-bottom: none; }
+    .toggle-label { flex: 1; }
+    .toggle-label h4 { font-size: var(--text-sm); font-weight: 500; margin-bottom: 4px; }
+    .toggle-label p { font-size: var(--text-xs); color: var(--text-secondary); }
+    .toggle { width: 48px; height: 28px; background: var(--bg-tertiary); border-radius: 14px; position: relative; cursor: pointer; transition: background var(--transition-fast); }
+    .toggle.active { background: var(--accent-gold); }
+    .toggle::after { content: ''; position: absolute; top: 4px; left: 4px; width: 20px; height: 20px; background: white; border-radius: 50%; transition: transform var(--transition-fast); }
+    .toggle.active::after { transform: translateX(20px); }
+    .settings-footer { display: flex; justify-content: flex-end; gap: 12px; padding: 20px 24px; border-top: 1px solid var(--border); background: var(--bg-tertiary); border-radius: 0 0 var(--radius-lg) var(--radius-lg); }
+    .connection-status { display: flex; align-items: center; gap: 8px; padding: 12px 16px; background: var(--success-muted); border: 1px solid var(--success); border-radius: var(--radius-sm); margin-bottom: 20px; }
+    .connection-status.error { background: var(--error-muted); border-color: var(--error); }
+    .connection-dot { width: 8px; height: 8px; background: var(--success); border-radius: 50%; }
+    .connection-status.error .connection-dot { background: var(--error); }
+    .connection-text { font-size: var(--text-sm); color: var(--success); }
+    .connection-status.error .connection-text { color: var(--error); }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header class="header" data-region="header">
+      <div class="header-left">
+        <button class="menu-btn" id="menuBtn" data-cta-id="menu-toggle" data-action="ui">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+        </button>
+        <div class="logo">
+          <svg class="logo-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"></path></svg>
+          <span class="logo-text"><span>Golden</span> Plan Generator</span>
+        </div>
+      </div>
+    </header>
+
+    <main class="main" data-region="content">
+      <div class="page-header">
+        <h1>Settings</h1>
+        <p>Configure your API keys and preferences for Golden Plan Generator.</p>
+      </div>
+
+      <form data-form-id="settings-form">
+        <div class="settings-section">
+          <div class="settings-section-header">
+            <h2>🔑 API Keys</h2>
+            <p>Configure the AI providers used for plan generation and review.</p>
+          </div>
+          <div class="settings-section-body">
+            <div class="connection-status">
+              <span class="connection-dot"></span>
+              <span class="connection-text">All services connected</span>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="openai-key">OpenAI API Key</label>
+              <input type="password" id="openai-key" class="form-input" placeholder="sk-..." value="sk-••••••••••••••••••••••••" data-field="openai_api_key">
+              <p class="form-hint">Used for GPT-5.1 reviewer. Get your key at platform.openai.com</p>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="anthropic-key">Anthropic API Key</label>
+              <input type="password" id="anthropic-key" class="form-input" placeholder="sk-ant-..." value="sk-ant-••••••••••••••••••••" data-field="anthropic_api_key">
+              <p class="form-hint">Used for Claude Sonnet 4.5 builder. Get your key at console.anthropic.com</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="settings-section">
+          <div class="settings-section-header">
+            <h2>⚙️ Preferences</h2>
+            <p>Customize how Golden Plan Generator works for you.</p>
+          </div>
+          <div class="settings-section-body">
+            <div class="toggle-group">
+              <div class="toggle-label">
+                <h4>Auto-save drafts</h4>
+                <p>Automatically save your work every 30 seconds</p>
+              </div>
+              <div class="toggle active" data-field="auto_save"></div>
+            </div>
+            <div class="toggle-group">
+              <div class="toggle-label">
+                <h4>Use MCP Proxy</h4>
+                <p>Route requests through local MCP server (development only)</p>
+              </div>
+              <div class="toggle" data-field="use_mcp_proxy"></div>
+            </div>
+            <div class="toggle-group">
+              <div class="toggle-label">
+                <h4>Dark mode</h4>
+                <p>Use dark theme throughout the application</p>
+              </div>
+              <div class="toggle active" data-field="dark_mode"></div>
+            </div>
+          </div>
+          <div class="settings-footer">
+            <button type="button" class="btn btn-ghost" data-cta-id="back-dashboard" data-action="navigate" data-target="/dashboard">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+              Back to Dashboard
+            </button>
+            <button type="button" class="btn btn-secondary" data-cta-id="test-connection" data-action="ui">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
+              Test Connection
+            </button>
+            <button type="submit" class="btn btn-primary" data-cta-id="save-settings" data-action="save" data-entity="Settings" data-form="settings-form">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
+              Save Settings
+            </button>
+          </div>
+        </div>
+      </form>
+    </main>
+  </div>
+
+  <div class="menu-overlay" id="menuOverlay">
+    <nav class="menu-drawer">
+      <div class="menu-header">
+        <div class="logo"><svg class="logo-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"></path></svg><span class="logo-text"><span>Golden</span> Plan</span></div>
+        <button class="menu-close" id="menuClose"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
+      </div>
+      <div class="menu-nav">
+        <a href="/dashboard" class="menu-item" data-cta-id="nav-dashboard" data-action="navigate" data-target="/dashboard"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>Dashboard</a>
+        <a href="/plans/editor" class="menu-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>Editor</a>
+        <a href="/settings" class="menu-item active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle></svg>Settings</a>
+        <a href="/jobs" class="menu-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>Job History</a>
+        <a href="/help" class="menu-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>Help & Docs</a>
+      </div>
+    </nav>
+  </div>
+
+  <div class="toast-container" id="toastContainer"></div>
+
+  <script>
+    const menuBtn = document.getElementById('menuBtn');
+    const menuOverlay = document.getElementById('menuOverlay');
+    const menuClose = document.getElementById('menuClose');
+    menuBtn.addEventListener('click', () => menuOverlay.classList.add('open'));
+    menuClose.addEventListener('click', () => menuOverlay.classList.remove('open'));
+    menuOverlay.addEventListener('click', (e) => { if (e.target === menuOverlay) menuOverlay.classList.remove('open'); });
+
+    // Toggle functionality
+    document.querySelectorAll('.toggle').forEach(toggle => {
+      toggle.addEventListener('click', () => toggle.classList.toggle('active'));
+    });
+  </script>
+</body>
+</html>
+

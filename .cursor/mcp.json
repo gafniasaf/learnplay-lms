@@ -1,0 +1,39 @@
+{
+  "mcpServers": {},
+  "clients": [
+    {
+      "name": "lms-mcp",
+      "type": "http",
+      "base_url": "http://127.0.0.1:4000",
+      "headers": {
+        "Authorization": "Bearer dev-local-secret",
+        "Content-Type": "application/json"
+      },
+      "methods": {
+        "lms.getCourse": {},
+        "lms.listJobs": {},
+        "lms.getJob": {},
+        "lms.enqueueJob": {},
+        "lms.enqueueAndTrack": {},
+        "lms.listMediaJobs": {},
+        "lms.getMediaJob": {},
+        "lms.enqueueMedia": {},
+        "lms.enqueueMediaAndTrack": {},
+        "lms.applyJobResult": {},
+        "lms.health": {},
+        "lms.logs": {},
+        "lms.saveCourse": {},
+        "lms.localize": {},
+        "lms.generateImage": {},
+        "lms.attachImage": {},
+        "lms.validateCourseStructure": {},
+        "lms.autoFix": {},
+        "lms.listCourses": {},
+        "lms.itemRewriteQuality": {},
+        "lms.studytextRewrite": {},
+        "lms.publishCourse": {}
+      }
+    }
+  ]
+}
+

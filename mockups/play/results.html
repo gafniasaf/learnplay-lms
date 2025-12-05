@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Session Results - LearnPlay</title>
+  <link rel="stylesheet" href="../_base.css">
+</head>
+<body data-route="/results" data-entity="SessionEvent">
+  <main class="results-container">
+    <!-- Celebration Header -->
+    <header class="results-header">
+      <div class="celebration-icon">🎉</div>
+      <h1>Session Complete!</h1>
+      <p data-field="assignment_title">Math Practice</p>
+    </header>
+
+    <!-- Score Card -->
+    <section class="results-card score-card">
+      <div class="big-score">
+        <span data-field="score">8</span>
+        <span class="score-divider">/</span>
+        <span data-field="total_items">10</span>
+      </div>
+      <p class="accuracy">
+        <span data-field="accuracy_percent">80%</span> Accuracy
+      </p>
+    </section>
+
+    <!-- Stats Grid -->
+    <section class="stats-grid">
+      <div class="stat-item">
+        <span class="stat-icon">⏱️</span>
+        <span class="stat-value" data-field="elapsed_time">3:45</span>
+        <span class="stat-label">Time</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-icon">✅</span>
+        <span class="stat-value" data-field="correct_count">8</span>
+        <span class="stat-label">Correct</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-icon">❌</span>
+        <span class="stat-value" data-field="mistakes">2</span>
+        <span class="stat-label">Mistakes</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-icon">🔥</span>
+        <span class="stat-value" data-field="streak_days">7</span>
+        <span class="stat-label">Day Streak</span>
+      </div>
+    </section>
+
+    <!-- Goal Progress -->
+    <section class="results-card goal-update">
+      <h3>Weekly Goal Progress</h3>
+      <div class="progress-bar">
+        <div class="progress-fill" data-field="goal_progress" style="width: 75%"></div>
+      </div>
+      <p>
+        <span data-field="minutes_today">15</span> minutes added • 
+        <span data-field="minutes_remaining">15</span> minutes to goal
+      </p>
+    </section>
+
+    <!-- Action Buttons -->
+    <section class="results-actions">
+      <button data-cta-id="play-again" data-action="navigate" data-target="/play" class="btn-primary btn-large">
+        🔄 Play Again
+      </button>
+      <button data-cta-id="back-dashboard" data-action="navigate" data-target="/student/dashboard" class="btn-secondary">
+        🏠 Back to Dashboard
+      </button>
+    </section>
+  </main>
+</body>
+</html>
+
+
+

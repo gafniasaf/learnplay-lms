@@ -1,0 +1,28 @@
+name: MCP Guards - Auth & Edge Smoke
+
+on:
+  pull_request:
+  schedule:
+    - cron: "0 6 * * *" # daily
+
+jobs:
+  auth-and-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm ci
+      - name: Run MCP check-auth-health
+        run: npm run mcp:check-auth-health
+        env:
+          MCP_BASE_URL: ${{ secrets.MCP_BASE_URL || 'http://127.0.0.1:4000' }}
+          MCP_AUTH_TOKEN: ${{ secrets.MCP_AUTH_TOKEN || 'dev-local-secret' }}
+      - name: Run MCP edge smoke
+        run: npm run mcp:edge-smoke
+        env:
+          MCP_BASE_URL: ${{ secrets.MCP_BASE_URL || 'http://127.0.0.1:4000' }}
+          MCP_AUTH_TOKEN: ${{ secrets.MCP_AUTH_TOKEN || 'dev-local-secret' }}
+
+

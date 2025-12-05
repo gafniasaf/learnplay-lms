@@ -1,0 +1,1550 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Course Pipeline - UI Mockup</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #0066CC;
+            --success: #10B981;
+            --warning: #F59E0B;
+            --error: #EF4444;
+            --info: #3B82F6;
+            --gray-50: #F9FAFB;
+            --gray-100: #F3F4F6;
+            --gray-200: #E5E7EB;
+            --gray-300: #D1D5DB;
+            --gray-400: #9CA3AF;
+            --gray-500: #6B7280;
+            --gray-600: #4B5563;
+            --gray-700: #374151;
+            --gray-800: #1F2937;
+            --gray-900: #111827;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: var(--gray-50);
+            color: var(--gray-900);
+            overflow: hidden;
+            height: 100vh;
+        }
+
+        /* Top Navigation */
+        .top-nav {
+            background: white;
+            border-bottom: 1px solid var(--gray-200);
+            padding: 12px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            height: 56px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .nav-left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .logo {
+            font-weight: 700;
+            font-size: 18px;
+            color: var(--primary);
+        }
+
+        .breadcrumb {
+            color: var(--gray-500);
+            font-size: 14px;
+        }
+
+        .nav-right {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .search-box {
+            padding: 6px 12px;
+            border: 1px solid var(--gray-300);
+            border-radius: 6px;
+            width: 240px;
+            font-size: 14px;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border-radius: 6px;
+            border: none;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #0052A3;
+        }
+
+        .btn-secondary {
+            background: var(--gray-100);
+            color: var(--gray-700);
+        }
+
+        .btn-secondary:hover {
+            background: var(--gray-200);
+        }
+
+        .avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: var(--primary);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        /* Main Layout */
+        .main-layout {
+            display: flex;
+            height: calc(100vh - 56px);
+            overflow: hidden;
+        }
+
+        /* Left Sidebar */
+        .left-sidebar {
+            width: 320px;
+            background: white;
+            border-right: 1px solid var(--gray-200);
+            overflow-y: auto;
+            padding: 16px;
+        }
+
+        .panel {
+            background: white;
+            border: 1px solid var(--gray-200);
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 16px;
+        }
+
+        .panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .panel-title {
+            font-weight: 600;
+            font-size: 14px;
+            color: var(--gray-700);
+        }
+
+        .form-group {
+            margin-bottom: 12px;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--gray-700);
+            margin-bottom: 4px;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid var(--gray-300);
+            border-radius: 6px;
+            font-size: 14px;
+        }
+
+        .form-select {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid var(--gray-300);
+            border-radius: 6px;
+            font-size: 14px;
+            background: white;
+        }
+
+        .grade-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            margin-top: 4px;
+        }
+
+        .grade-btn {
+            padding: 8px;
+            border: 2px solid var(--gray-300);
+            border-radius: 6px;
+            background: white;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+
+        .grade-btn:hover {
+            border-color: var(--primary);
+        }
+
+        .grade-btn.active {
+            border-color: var(--primary);
+            background: rgba(0, 102, 204, 0.1);
+            color: var(--primary);
+        }
+
+        .slider-container {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .slider {
+            flex: 1;
+        }
+
+        .slider-value {
+            font-weight: 600;
+            color: var(--primary);
+            min-width: 30px;
+        }
+
+        .mode-toggle {
+            display: flex;
+            gap: 8px;
+        }
+
+        .mode-btn {
+            flex: 1;
+            padding: 10px;
+            border: 2px solid var(--gray-300);
+            border-radius: 6px;
+            background: white;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.2s;
+        }
+
+        .mode-btn.active {
+            border-color: var(--primary);
+            background: rgba(0, 102, 204, 0.1);
+            color: var(--primary);
+        }
+
+        .btn-create {
+            width: 100%;
+            padding: 12px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 14px;
+            margin-top: 16px;
+        }
+
+        .btn-create:hover {
+            background: #0052A3;
+        }
+
+        /* Job Cards */
+        .job-card {
+            background: white;
+            border: 1px solid var(--gray-200);
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .job-card:hover {
+            border-color: var(--primary);
+            box-shadow: 0 2px 8px rgba(0, 102, 204, 0.1);
+        }
+
+        .job-card.active {
+            border-color: var(--primary);
+            background: rgba(0, 102, 204, 0.05);
+        }
+
+        .job-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+
+        .status-dot.processing {
+            background: var(--success);
+            animation: pulse 2s infinite;
+        }
+
+        .status-dot.queued {
+            background: var(--warning);
+        }
+
+        .status-dot.complete {
+            background: var(--success);
+        }
+
+        .status-dot.failed {
+            background: var(--error);
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .job-title {
+            font-weight: 600;
+            font-size: 14px;
+            flex: 1;
+        }
+
+        .job-phase {
+            font-size: 12px;
+            color: var(--gray-600);
+            margin-bottom: 8px;
+        }
+
+        .progress-bar {
+            height: 4px;
+            background: var(--gray-200);
+            border-radius: 2px;
+            overflow: hidden;
+            margin-bottom: 8px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: var(--success);
+            transition: width 0.3s;
+        }
+
+        .job-time {
+            font-size: 11px;
+            color: var(--gray-500);
+        }
+
+        /* Main Canvas */
+        .main-canvas {
+            flex: 1;
+            background: var(--gray-50);
+            overflow-y: auto;
+            padding: 24px;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 24px;
+            border-bottom: 1px solid var(--gray-200);
+        }
+
+        .tab {
+            padding: 12px 20px;
+            border: none;
+            background: transparent;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--gray-600);
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s;
+        }
+
+        .tab:hover {
+            color: var(--gray-900);
+        }
+
+        .tab.active {
+            color: var(--primary);
+            border-bottom-color: var(--primary);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* Job Header */
+        .job-detail-header {
+            background: white;
+            border: 1px solid var(--gray-200);
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 24px;
+        }
+
+        .job-detail-title {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .job-meta {
+            display: flex;
+            gap: 16px;
+            color: var(--gray-600);
+            font-size: 14px;
+            margin-bottom: 16px;
+        }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .badge-success {
+            background: rgba(16, 185, 129, 0.1);
+            color: var(--success);
+        }
+
+        .badge-warning {
+            background: rgba(245, 158, 11, 0.1);
+            color: var(--warning);
+        }
+
+        .badge-error {
+            background: rgba(239, 68, 68, 0.1);
+            color: var(--error);
+        }
+
+        .job-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        /* Phase Stepper */
+        .phase-stepper {
+            background: white;
+            border: 1px solid var(--gray-200);
+            border-radius: 8px;
+            padding: 24px;
+            margin-bottom: 24px;
+        }
+
+        .stepper-container {
+            display: flex;
+            justify-content: space-between;
+            position: relative;
+        }
+
+        .stepper-line {
+            position: absolute;
+            top: 20px;
+            left: 40px;
+            right: 40px;
+            height: 2px;
+            background: var(--gray-200);
+            z-index: 1;
+        }
+
+        .step {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            z-index: 2;
+            background: var(--gray-50);
+            padding: 0 8px;
+        }
+
+        .step-circle {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border: 2px solid var(--gray-300);
+            background: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .step.complete .step-circle {
+            border-color: var(--success);
+            background: var(--success);
+            color: white;
+        }
+
+        .step.active .step-circle {
+            border-color: var(--primary);
+            background: var(--primary);
+            color: white;
+            animation: pulse 2s infinite;
+        }
+
+        .step-label {
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--gray-700);
+            text-align: center;
+        }
+
+        .step-time {
+            font-size: 11px;
+            color: var(--gray-500);
+        }
+
+        /* Metrics Cards */
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .metric-card {
+            background: white;
+            border: 1px solid var(--gray-200);
+            border-radius: 8px;
+            padding: 20px;
+        }
+
+        .metric-icon {
+            font-size: 24px;
+            margin-bottom: 8px;
+        }
+
+        .metric-value {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+
+        .metric-label {
+            font-size: 14px;
+            color: var(--gray-600);
+            margin-bottom: 4px;
+        }
+
+        .metric-detail {
+            font-size: 12px;
+            color: var(--gray-500);
+        }
+
+        /* Activity Log */
+        .activity-log {
+            background: white;
+            border: 1px solid var(--gray-200);
+            border-radius: 8px;
+            padding: 20px;
+        }
+
+        .log-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .log-title {
+            font-weight: 600;
+            font-size: 16px;
+        }
+
+        .log-filters {
+            display: flex;
+            gap: 8px;
+        }
+
+        .filter-btn {
+            padding: 4px 12px;
+            border: 1px solid var(--gray-300);
+            border-radius: 6px;
+            background: white;
+            font-size: 12px;
+            cursor: pointer;
+        }
+
+        .filter-btn.active {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+
+        .log-entries {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .log-entry {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 8px;
+        }
+
+        .log-entry:hover {
+            background: var(--gray-50);
+        }
+
+        .log-icon {
+            font-size: 16px;
+            margin-top: 2px;
+        }
+
+        .log-content {
+            flex: 1;
+        }
+
+        .log-time {
+            font-size: 11px;
+            color: var(--gray-500);
+            margin-bottom: 4px;
+        }
+
+        .log-message {
+            font-size: 13px;
+            color: var(--gray-700);
+        }
+
+        /* Phase Accordion */
+        .phase-accordion {
+            background: white;
+            border: 1px solid var(--gray-200);
+            border-radius: 8px;
+            margin-bottom: 12px;
+            overflow: hidden;
+        }
+
+        .phase-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 20px;
+            cursor: pointer;
+            background: white;
+            transition: background 0.2s;
+        }
+
+        .phase-header:hover {
+            background: var(--gray-50);
+        }
+
+        .phase-header-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .phase-number {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: var(--gray-200);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .phase-header.complete .phase-number {
+            background: var(--success);
+            color: white;
+        }
+
+        .phase-info h3 {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .phase-info p {
+            font-size: 13px;
+            color: var(--gray-600);
+        }
+
+        .phase-body {
+            display: none;
+            padding: 20px;
+            border-top: 1px solid var(--gray-200);
+            background: var(--gray-50);
+        }
+
+        .phase-body.open {
+            display: block;
+        }
+
+        .phase-section {
+            margin-bottom: 20px;
+        }
+
+        .phase-section h4 {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 12px;
+        }
+
+        .repair-card {
+            background: white;
+            border: 1px solid var(--gray-200);
+            border-radius: 6px;
+            padding: 12px;
+            margin-bottom: 8px;
+        }
+
+        .repair-item {
+            font-size: 13px;
+            margin-bottom: 4px;
+        }
+
+        .repair-issue {
+            color: var(--warning);
+            font-weight: 500;
+        }
+
+        .repair-fixed {
+            color: var(--success);
+            font-weight: 500;
+        }
+
+        /* Right Inspector */
+        .right-inspector {
+            width: 280px;
+            background: white;
+            border-left: 1px solid var(--gray-200);
+            overflow-y: auto;
+            padding: 16px;
+        }
+
+        .inspector-section {
+            margin-bottom: 24px;
+        }
+
+        .inspector-title {
+            font-weight: 600;
+            font-size: 13px;
+            color: var(--gray-700);
+            margin-bottom: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* Vertical Timeline */
+        .vertical-timeline {
+            position: relative;
+            padding-left: 32px;
+        }
+
+        .vertical-timeline::before {
+            content: '';
+            position: absolute;
+            left: 11px;
+            top: 8px;
+            bottom: 8px;
+            width: 2px;
+            background: var(--gray-200);
+        }
+
+        .timeline-step {
+            position: relative;
+            margin-bottom: 20px;
+        }
+
+        .timeline-dot {
+            position: absolute;
+            left: -32px;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            border: 2px solid var(--gray-300);
+            background: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .timeline-step.complete .timeline-dot {
+            border-color: var(--success);
+            background: var(--success);
+            color: white;
+        }
+
+        .timeline-step.active .timeline-dot {
+            border-color: var(--primary);
+            background: var(--primary);
+            color: white;
+        }
+
+        .timeline-content h4 {
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .timeline-content p {
+            font-size: 12px;
+            color: var(--gray-600);
+            margin-bottom: 4px;
+        }
+
+        .timeline-progress {
+            height: 3px;
+            background: var(--gray-200);
+            border-radius: 2px;
+            overflow: hidden;
+            margin-top: 8px;
+        }
+
+        .timeline-progress-fill {
+            height: 100%;
+            background: var(--primary);
+            transition: width 0.3s;
+        }
+
+        /* Live Logs */
+        .live-logs {
+            background: var(--gray-900);
+            border-radius: 6px;
+            padding: 12px;
+            font-family: 'SF Mono', 'Consolas', monospace;
+            font-size: 11px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .live-logs-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .live-logs-title {
+            color: white;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .live-logs-controls {
+            display: flex;
+            gap: 8px;
+        }
+
+        .log-control-btn {
+            background: rgba(255, 255, 255, 0.1);
+            border: none;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 10px;
+            cursor: pointer;
+        }
+
+        .live-log-entry {
+            margin-bottom: 4px;
+            line-height: 1.5;
+        }
+
+        .log-timestamp {
+            color: var(--gray-400);
+        }
+
+        .log-success {
+            color: var(--success);
+        }
+
+        .log-ai {
+            color: var(--info);
+        }
+
+        .log-warning {
+            color: var(--warning);
+        }
+
+        .log-repair {
+            color: #FB923C;
+        }
+
+        /* Responsive */
+        @media (max-width: 1200px) {
+            .right-inspector {
+                display: none;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .left-sidebar {
+                width: 100%;
+                height: auto;
+                border-right: none;
+                border-bottom: 1px solid var(--gray-200);
+            }
+
+            .main-layout {
+                flex-direction: column;
+            }
+
+            .metrics-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Top Navigation -->
+    <nav class="top-nav">
+        <div class="nav-left">
+            <div class="logo">🌅 Dawn</div>
+            <div class="breadcrumb">Admin → AI Pipeline → Fractions Grade 3-5</div>
+        </div>
+        <div class="nav-right">
+            <input type="text" class="search-box" placeholder="Search jobs...">
+            <button class="btn btn-secondary">Actions ▼</button>
+            <div class="avatar">SM</div>
+        </div>
+    </nav>
+
+    <!-- Main Layout -->
+    <div class="main-layout">
+        <!-- Left Sidebar -->
+        <aside class="left-sidebar">
+            <!-- Quick Start Panel -->
+            <div class="panel">
+                <div class="panel-header">
+                    <h3 class="panel-title">✨ Quick Start</h3>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Subject</label>
+                    <input type="text" class="form-input" placeholder="e.g., Fractions, Ancient Rome" value="Fractions">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Grade Level</label>
+                    <div class="grade-grid">
+                        <button class="grade-btn">K-2</button>
+                        <button class="grade-btn active">3-5</button>
+                        <button class="grade-btn">6-8</button>
+                        <button class="grade-btn">9-12</button>
+                        <button class="grade-btn">College</button>
+                        <button class="grade-btn">All</button>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Items per Group</label>
+                    <div class="slider-container">
+                        <input type="range" class="slider" min="8" max="20" value="12">
+                        <span class="slider-value">12</span>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Question Mode</label>
+                    <div class="mode-toggle">
+                        <button class="mode-btn active">📝 MCQ</button>
+                        <button class="mode-btn">🔢 Numeric</button>
+                    </div>
+                </div>
+                <button class="btn-create">✨ Create Course</button>
+            </div>
+
+            <!-- Active Jobs -->
+            <div class="panel">
+                <div class="panel-header">
+                    <h3 class="panel-title">Active Jobs</h3>
+                </div>
+                <div class="job-card active">
+                    <div class="job-header">
+                        <span class="status-dot processing"></span>
+                        <span class="job-title">Fractions Grade 3-5</span>
+                    </div>
+                    <div class="job-phase">Phase 3/5 · Review Gating</div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: 65%"></div>
+                    </div>
+                    <div class="job-time">2 minutes ago</div>
+                </div>
+                <div class="job-card">
+                    <div class="job-header">
+                        <span class="status-dot queued"></span>
+                        <span class="job-title">Ancient Rome Grade 6-8</span>
+                    </div>
+                    <div class="job-phase">Queued</div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: 0%"></div>
+                    </div>
+                    <div class="job-time">5 minutes ago</div>
+                </div>
+            </div>
+
+            <!-- Recent Jobs -->
+            <div class="panel">
+                <div class="panel-header">
+                    <h3 class="panel-title">Recent Jobs</h3>
+                </div>
+                <div class="job-card">
+                    <div class="job-header">
+                        <span class="status-dot complete"></span>
+                        <span class="job-title">Multiplication Grade 3-5</span>
+                    </div>
+                    <div class="job-phase">Complete</div>
+                    <div class="job-time">1 hour ago · 2m 34s</div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Canvas -->
+        <main class="main-canvas">
+            <!-- Tabs -->
+            <div class="tabs">
+                <button class="tab active" onclick="switchTab('overview')">Overview</button>
+                <button class="tab" onclick="switchTab('phases')">Phases</button>
+                <button class="tab" onclick="switchTab('prompts')">Prompts</button>
+                <button class="tab" onclick="switchTab('output')">Output</button>
+            </div>
+
+            <!-- Overview Tab -->
+            <div id="overview" class="tab-content active">
+                <!-- Job Header -->
+                <div class="job-detail-header">
+                    <h1 class="job-detail-title">Fractions Grade 3-5</h1>
+                    <div class="job-meta">
+                        <span class="badge badge-success">✓ Phase 3 Complete</span>
+                        <span>Duration: 2m 12s</span>
+                        <span>Created: 2 minutes ago by Sarah M.</span>
+                    </div>
+                    <div class="job-actions">
+                        <button class="btn btn-primary">View Course</button>
+                        <button class="btn btn-secondary">Re-run</button>
+                        <button class="btn btn-secondary">Download JSON</button>
+                    </div>
+                </div>
+
+                <!-- Phase Stepper -->
+                <div class="phase-stepper">
+                    <div class="stepper-container">
+                        <div class="stepper-line"></div>
+                        <div class="step complete">
+                            <div class="step-circle">✓</div>
+                            <div class="step-label">Generate</div>
+                            <div class="step-time">12s</div>
+                        </div>
+                        <div class="step complete">
+                            <div class="step-circle">✓</div>
+                            <div class="step-label">Validate</div>
+                            <div class="step-time">3s</div>
+                        </div>
+                        <div class="step complete">
+                            <div class="step-circle">✓</div>
+                            <div class="step-label">Repair</div>
+                            <div class="step-time">8s</div>
+                        </div>
+                        <div class="step active">
+                            <div class="step-circle">3</div>
+                            <div class="step-label">Review</div>
+                            <div class="step-time">45s</div>
+                        </div>
+                        <div class="step">
+                            <div class="step-circle">4</div>
+                            <div class="step-label">Images</div>
+                            <div class="step-time">—</div>
+                        </div>
+                        <div class="step">
+                            <div class="step-circle">5</div>
+                            <div class="step-label">Enrich</div>
+                            <div class="step-time">—</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Metrics -->
+                <div class="metrics-grid">
+                    <div class="metric-card">
+                        <div class="metric-icon">📊</div>
+                        <div class="metric-value">48</div>
+                        <div class="metric-label">Items Generated</div>
+                        <div class="metric-detail">4 groups</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-icon">🔄</div>
+                        <div class="metric-value">3</div>
+                        <div class="metric-label">Items Repaired</div>
+                        <div class="metric-detail">1 batch</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-icon">⚡</div>
+                        <div class="metric-value">5</div>
+                        <div class="metric-label">AI Calls</div>
+                        <div class="metric-detail">$0.12 cost</div>
+                    </div>
+                </div>
+
+                <!-- Activity Log -->
+                <div class="activity-log">
+                    <div class="log-header">
+                        <h3 class="log-title">Recent Activity</h3>
+                        <div class="log-filters">
+                            <button class="filter-btn active">All</button>
+                            <button class="filter-btn">AI</button>
+                            <button class="filter-btn">Repairs</button>
+                            <button class="filter-btn">Errors</button>
+                        </div>
+                    </div>
+                    <div class="log-entries">
+                        <div class="log-entry">
+                            <div class="log-icon">🤖</div>
+                            <div class="log-content">
+                                <div class="log-time">14:32:10</div>
+                                <div class="log-message">AI review: Analyzing 48 items for quality and coherence</div>
+                            </div>
+                        </div>
+                        <div class="log-entry">
+                            <div class="log-icon">⚠️</div>
+                            <div class="log-content">
+                                <div class="log-time">14:31:58</div>
+                                <div class="log-message">Placeholder detected in 3 items</div>
+                            </div>
+                        </div>
+                        <div class="log-entry">
+                            <div class="log-icon">🔧</div>
+                            <div class="log-content">
+                                <div class="log-time">14:31:45</div>
+                                <div class="log-message">Repair batch 1: 3 items fixed successfully</div>
+                            </div>
+                        </div>
+                        <div class="log-entry">
+                            <div class="log-icon">🤖</div>
+                            <div class="log-content">
+                                <div class="log-time">14:31:30</div>
+                                <div class="log-message">AI generation: Created 48 items across 4 groups</div>
+                            </div>
+                        </div>
+                        <div class="log-entry">
+                            <div class="log-icon">✅</div>
+                            <div class="log-content">
+                                <div class="log-time">14:31:15</div>
+                                <div class="log-message">Schema validation passed</div>
+                            </div>
+                        </div>
+                        <div class="log-entry">
+                            <div class="log-icon">🚀</div>
+                            <div class="log-content">
+                                <div class="log-time">14:31:00</div>
+                                <div class="log-message">Job started: Fractions Grade 3-5</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Phases Tab -->
+            <div id="phases" class="tab-content">
+                <div class="phase-accordion">
+                    <div class="phase-header complete" onclick="togglePhase(this)">
+                        <div class="phase-header-left">
+                            <div class="phase-number">✓</div>
+                            <div class="phase-info">
+                                <h3>Phase 0: Course Generation</h3>
+                                <p>Duration: 12.3s · AI Calls: 1 · Items Created: 48</p>
+                            </div>
+                        </div>
+                        <span>▼</span>
+                    </div>
+                    <div class="phase-body">
+                        <div class="phase-section">
+                            <h4>📋 Summary</h4>
+                            <p>Successfully generated complete course with 48 items across 4 groups. Created study texts with section markers and image placeholders.</p>
+                        </div>
+                        <div class="phase-section">
+                            <h4>📊 Details</h4>
+                            <p>• Groups: Understanding Fractions, Comparing Fractions, Adding Fractions, Word Problems</p>
+                            <p>• Study Texts: 3 created with [SECTION] markers</p>
+                            <p>• All items include [blank] placeholders</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="phase-accordion">
+                    <div class="phase-header complete" onclick="togglePhase(this)">
+                        <div class="phase-header-left">
+                            <div class="phase-number">✓</div>
+                            <div class="phase-info">
+                                <h3>Phase 2: Batched Repair</h3>
+                                <p>Duration: 8.3s · AI Calls: 2 · Items Fixed: 3</p>
+                            </div>
+                        </div>
+                        <span>▼</span>
+                    </div>
+                    <div class="phase-body">
+                        <div class="phase-section">
+                            <h4>📋 Summary</h4>
+                            <p>Found 3 items with invalid [blank] placeholders. Batched into 1 repair request. All items successfully repaired.</p>
+                        </div>
+                        <div class="phase-section">
+                            <h4>🔧 Repairs Performed</h4>
+                            <div class="repair-card">
+                                <div class="repair-item"><strong>Item #12:</strong> "Simplify the fraction 4/8"</div>
+                                <div class="repair-issue">Issue: No [blank] placeholder</div>
+                                <div class="repair-fixed">Fixed: "Simplify the fraction [blank]/8"</div>
+                            </div>
+                            <div class="repair-card">
+                                <div class="repair-item"><strong>Item #27:</strong> "Add [blank] + [blank]"</div>
+                                <div class="repair-issue">Issue: Multiple placeholders</div>
+                                <div class="repair-fixed">Fixed: "Add 3 + [blank]"</div>
+                            </div>
+                            <div class="repair-card">
+                                <div class="repair-item"><strong>Item #35:</strong> "What is 1/2 of 8?"</div>
+                                <div class="repair-issue">Issue: No [blank] placeholder</div>
+                                <div class="repair-fixed">Fixed: "What is 1/2 of [blank]?"</div>
+                            </div>
+                        </div>
+                        <div class="phase-section">
+                            <button class="btn btn-secondary">🤖 View Repair Prompt Used</button>
+                            <button class="btn btn-secondary">🔄 Re-run This Phase</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="phase-accordion">
+                    <div class="phase-header complete" onclick="togglePhase(this)">
+                        <div class="phase-header-left">
+                            <div class="phase-number">3</div>
+                            <div class="phase-info">
+                                <h3>Phase 3: Reviewer Gating</h3>
+                                <p>In Progress · 65% complete</p>
+                            </div>
+                        </div>
+                        <span>▼</span>
+                    </div>
+                    <div class="phase-body">
+                        <div class="phase-section">
+                            <h4>📋 Summary</h4>
+                            <p>AI is reviewing all items for quality, accuracy, and pedagogical soundness. This phase ensures content meets educational standards.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Prompts Tab -->
+            <div id="prompts" class="tab-content">
+                <div style="background: white; border: 1px solid var(--gray-200); border-radius: 8px; padding: 24px;">
+                    <h2 style="margin-bottom: 16px;">📝 Prompt Templates</h2>
+                    <p style="color: var(--gray-600); margin-bottom: 24px;">View and edit the prompts used for AI course generation. Changes are saved to your custom template library.</p>
+                    
+                    <div style="display: grid; grid-template-columns: 200px 1fr; gap: 24px;">
+                        <div style="border-right: 1px solid var(--gray-200); padding-right: 16px;">
+                            <div style="font-weight: 600; margin-bottom: 12px; font-size: 13px; color: var(--gray-700);">Templates</div>
+                            <div style="display: flex; flex-direction: column; gap: 8px;">
+                                <button class="btn btn-secondary" style="justify-content: flex-start; width: 100%;">System Prompt</button>
+                                <button class="btn btn-secondary" style="justify-content: flex-start; width: 100%;">Schema Template</button>
+                                <button class="btn btn-secondary" style="justify-content: flex-start; width: 100%; background: rgba(0, 102, 204, 0.1); border-color: var(--primary); color: var(--primary);">Course Generation</button>
+                                <button class="btn btn-secondary" style="justify-content: flex-start; width: 100%;">Repair Prompt</button>
+                                <button class="btn btn-secondary" style="justify-content: flex-start; width: 100%;">Enrichment Rules</button>
+                            </div>
+                        </div>
+                        <div>
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                                <h3 style="font-weight: 600;">Course Generation Prompt</h3>
+                                <div style="display: flex; gap: 8px;">
+                                    <button class="btn btn-secondary">Preview</button>
+                                    <button class="btn btn-secondary">Test</button>
+                                    <button class="btn btn-primary">Save as Custom</button>
+                                </div>
+                            </div>
+                            <div style="background: var(--gray-900); color: #A8B5C4; padding: 16px; border-radius: 6px; font-family: 'Consolas', monospace; font-size: 13px; line-height: 1.6; max-height: 500px; overflow-y: auto;">
+<pre style="margin: 0;">Generate a complete educational course in JSON format following Course v2 schema.
+
+Requirements:
+- Subject: <span style="color: #FB923C;">{{subject}}</span>
+- Grade Level: <span style="color: #FB923C;">{{grade}}</span>
+- Items per group: <span style="color: #FB923C;">{{itemsPerGroup}}</span>
+- Levels requested: <span style="color: #FB923C;">{{levelsCount}}</span>
+- Mode: <span style="color: #FB923C;">{{mode}}</span>
+
+Course Structure:
+1. Create 3-5 groups covering different aspects of the subject
+2. Each group should have exactly <span style="color: #FB923C;">{{itemsPerGroup}}</span> items
+3. Each item must have exactly 1 placeholder ([blank])
+4. For options mode: 3-4 options with correctIndex
+5. For numeric mode: answer field (no options)
+6. Include clusterId and variant (1/2/3) for adaptive rotation
+7. Create 2-4 study texts (reference materials) teaching the concepts
+
+Schema Requirements (CRITICAL - FOLLOW EXACTLY):
+- id (course): kebab-case string (e.g., "subject-name")
+- title: string (descriptive course name, REQUIRED)
+- contentVersion: string timestamp
+- groups: array of objects with id, name, optional color
+- items: array with id, text (with [blank]), groupId, mode, etc.
+- levels: array covering all items with start/end indices</pre>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Output Tab -->
+            <div id="output" class="tab-content">
+                <div style="background: white; border: 1px solid var(--gray-200); border-radius: 8px; padding: 24px;">
+                    <h2 style="margin-bottom: 16px;">📦 Generated Course Output</h2>
+                    <div style="display: flex; gap: 8px; margin-bottom: 24px;">
+                        <button class="btn btn-primary">JSON</button>
+                        <button class="btn btn-secondary">Visual</button>
+                        <button class="btn btn-secondary">Items Grid</button>
+                        <button class="btn btn-secondary">Study Texts</button>
+                    </div>
+                    <div style="background: var(--gray-50); padding: 16px; border-radius: 6px; font-family: 'Consolas', monospace; font-size: 12px; max-height: 500px; overflow-y: auto;">
+<pre style="margin: 0;">{
+  "id": "fractions-grade-3-5",
+  "title": "Fractions Grade 3-5",
+  "contentVersion": "2025-01-13T14:31:00Z",
+  "groups": [
+    { "id": 1, "name": "Understanding Fractions" },
+    { "id": 2, "name": "Comparing Fractions" },
+    { "id": 3, "name": "Adding Fractions" },
+    { "id": 4, "name": "Word Problems" }
+  ],
+  "items": [
+    {
+      "id": 0,
+      "text": "What fraction represents one half? [blank]",
+      "groupId": 1,
+      "clusterId": "basic-half",
+      "variant": "1",
+      "mode": "options",
+      "options": ["1/2", "1/4", "2/3", "3/4"],
+      "correctIndex": 0
+    },
+    ...
+  ],
+  "levels": [
+    { "id": 1, "title": "Beginner", "start": 0, "end": 15 },
+    { "id": 2, "title": "Intermediate", "start": 16, "end": 31 },
+    { "id": 3, "title": "Advanced", "start": 32, "end": 47 }
+  ]
+}</pre>
+                    </div>
+                    <div style="display: flex; gap: 8px; margin-top: 16px;">
+                        <button class="btn btn-primary">Download JSON</button>
+                        <button class="btn btn-primary">Deploy to Catalog</button>
+                        <button class="btn btn-secondary">Edit in Course Studio</button>
+                        <button class="btn btn-secondary">Copy to Clipboard</button>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Right Inspector -->
+        <aside class="right-inspector">
+            <!-- Phase Timeline -->
+            <div class="inspector-section">
+                <h4 class="inspector-title">Phase Timeline</h4>
+                <div class="vertical-timeline">
+                    <div class="timeline-step complete">
+                        <div class="timeline-dot">✓</div>
+                        <div class="timeline-content">
+                            <h4>Phase 0: Generate</h4>
+                            <p>Complete · 12.3s</p>
+                        </div>
+                    </div>
+                    <div class="timeline-step complete">
+                        <div class="timeline-dot">✓</div>
+                        <div class="timeline-content">
+                            <h4>Phase 1: Validate</h4>
+                            <p>Complete · 3.1s</p>
+                        </div>
+                    </div>
+                    <div class="timeline-step complete">
+                        <div class="timeline-dot">✓</div>
+                        <div class="timeline-content">
+                            <h4>Phase 2: Repair</h4>
+                            <p>Complete · 8.3s</p>
+                        </div>
+                    </div>
+                    <div class="timeline-step active">
+                        <div class="timeline-dot">3</div>
+                        <div class="timeline-content">
+                            <h4>Phase 3: Review</h4>
+                            <p>In progress...</p>
+                            <div class="timeline-progress">
+                                <div class="timeline-progress-fill" style="width: 65%"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="timeline-step">
+                        <div class="timeline-dot">4</div>
+                        <div class="timeline-content">
+                            <h4>Phase 4: Images</h4>
+                            <p>Waiting...</p>
+                        </div>
+                    </div>
+                    <div class="timeline-step">
+                        <div class="timeline-dot">5</div>
+                        <div class="timeline-content">
+                            <h4>Phase 5: Enrich</h4>
+                            <p>Waiting...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Live Logs -->
+            <div class="inspector-section">
+                <h4 class="inspector-title">Live Logs</h4>
+                <div class="live-logs">
+                    <div class="live-logs-header">
+                        <span class="live-logs-title">● Live</span>
+                        <div class="live-logs-controls">
+                            <button class="log-control-btn">Clear</button>
+                            <button class="log-control-btn">Filter</button>
+                        </div>
+                    </div>
+                    <div class="live-log-entry">
+                        <span class="log-timestamp">14:32:10</span> <span class="log-ai">🤖 AI review in progress...</span>
+                    </div>
+                    <div class="live-log-entry">
+                        <span class="log-timestamp">14:31:58</span> <span class="log-warning">⚠️  Found 3 items needing repair</span>
+                    </div>
+                    <div class="live-log-entry">
+                        <span class="log-timestamp">14:31:45</span> <span class="log-repair">🔧 Repairing batch 1 (3 items)</span>
+                    </div>
+                    <div class="live-log-entry">
+                        <span class="log-timestamp">14:31:30</span> <span class="log-ai">🤖 Generated 48 items</span>
+                    </div>
+                    <div class="live-log-entry">
+                        <span class="log-timestamp">14:31:15</span> <span class="log-success">✅ Validation passed</span>
+                    </div>
+                    <div class="live-log-entry">
+                        <span class="log-timestamp">14:31:00</span> <span class="log-success">🚀 Job started</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- System Health -->
+            <div class="inspector-section">
+                <h4 class="inspector-title">System Health</h4>
+                <div style="font-size: 12px; line-height: 2;">
+                    <div>🟢 AI Provider: Online</div>
+                    <div>🟢 Queue: 2 pending</div>
+                    <div>🟢 Storage: Healthy</div>
+                </div>
+            </div>
+        </aside>
+    </div>
+
+    <script>
+        // Tab switching
+        function switchTab(tabName) {
+            // Hide all tab contents
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            
+            // Remove active class from all tabs
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // Show selected tab content
+            document.getElementById(tabName).classList.add('active');
+            
+            // Add active class to clicked tab
+            event.target.classList.add('active');
+        }
+
+        // Phase accordion toggle
+        function togglePhase(header) {
+            const body = header.nextElementSibling;
+            const arrow = header.querySelector('span:last-child');
+            
+            if (body.classList.contains('open')) {
+                body.classList.remove('open');
+                arrow.textContent = '▼';
+            } else {
+                body.classList.add('open');
+                arrow.textContent = '▲';
+            }
+        }
+
+        // Slider interaction
+        document.querySelector('.slider').addEventListener('input', function(e) {
+            document.querySelector('.slider-value').textContent = e.target.value;
+        });
+
+        // Grade button interaction
+        document.querySelectorAll('.grade-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('.grade-btn').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+            });
+        });
+
+        // Mode toggle interaction
+        document.querySelectorAll('.mode-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+            });
+        });
+
+        // Simulate live progress
+        setInterval(() => {
+            const progressFill = document.querySelector('.timeline-progress-fill');
+            const currentWidth = parseInt(progressFill.style.width) || 65;
+            if (currentWidth < 100) {
+                progressFill.style.width = (currentWidth + 1) + '%';
+            }
+        }, 500);
+
+        // Simulate live log updates
+        setInterval(() => {
+            const logs = document.querySelector('.live-logs');
+            const newLog = document.createElement('div');
+            newLog.className = 'live-log-entry';
+            const now = new Date();
+            const time = now.toTimeString().split(' ')[0];
+            newLog.innerHTML = `<span class="log-timestamp">${time}</span> <span class="log-ai">🤖 Processing item ${Math.floor(Math.random() * 48)}...</span>`;
+            logs.appendChild(newLog);
+            logs.scrollTop = logs.scrollHeight;
+        }, 3000);
+    </script>
+</body>
+</html>

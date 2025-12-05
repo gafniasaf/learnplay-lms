@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Parent Dashboard - LearnPlay</title>
+  <link rel="stylesheet" href="../_base.css">
+</head>
+<body data-route="/parent/dashboard" data-entity="LearnerProfile">
+  <header class="header">
+    <h1>👪 Parent Dashboard</h1>
+    <button data-cta-id="settings" data-action="navigate" data-target="/settings">⚙️</button>
+  </header>
+
+  <main class="container">
+    <!-- Child Selector -->
+    <section class="card">
+      <h2>👧 My Children</h2>
+      <div class="child-selector" data-list="children">
+        <button class="child-chip active" data-field="child_name">Emma</button>
+      </div>
+    </section>
+
+    <!-- Weekly Summary -->
+    <section class="card">
+      <h2>📊 This Week</h2>
+      <div class="stats-row">
+        <div class="stat-card">
+          <span class="stat-value" data-field="minutes_this_week">45</span>
+          <span class="stat-label">Minutes</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-value" data-field="sessions_this_week">6</span>
+          <span class="stat-label">Sessions</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-value" data-field="avg_accuracy">87%</span>
+          <span class="stat-label">Accuracy</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Goal Progress -->
+    <section class="card">
+      <h2>🎯 Weekly Goal</h2>
+      <div class="goal-progress">
+        <div class="progress-bar">
+          <div class="progress-fill" style="width: 75%"></div>
+        </div>
+        <p>
+          <span data-field="current_minutes">45</span> / 
+          <span data-field="weekly_goal_minutes">60</span> minutes
+        </p>
+        <span class="badge badge-success" data-field="goal_status">On Track</span>
+      </div>
+      <button data-cta-id="view-goals" data-action="navigate" data-target="/parent/goals" class="btn-secondary">
+        Manage Goals
+      </button>
+    </section>
+
+    <!-- Subject Progress -->
+    <section class="card">
+      <h2>📚 Subjects</h2>
+      <ul class="subject-list" data-list="subjects">
+        <li class="subject-item">
+          <span data-field="subject_name">Mathematics</span>
+          <div class="mini-progress">
+            <div class="progress-fill" style="width: 85%"></div>
+          </div>
+          <span data-field="mastery_percent">85%</span>
+        </li>
+        <li class="subject-item">
+          <span data-field="subject_name">Reading</span>
+          <div class="mini-progress">
+            <div class="progress-fill" style="width: 72%"></div>
+          </div>
+          <span data-field="mastery_percent">72%</span>
+        </li>
+      </ul>
+      <button data-cta-id="view-subjects" data-action="navigate" data-target="/parent/subjects" class="btn-secondary">
+        View All Subjects
+      </button>
+    </section>
+
+    <!-- Recent Activity -->
+    <section class="card">
+      <h2>📅 Recent Activity</h2>
+      <ul class="timeline" data-list="recent_activity">
+        <li class="timeline-item">
+          <span class="time">Today 3:30 PM</span>
+          <span class="activity">Completed <strong>Multiplication Quiz</strong></span>
+          <span class="badge badge-success">92%</span>
+        </li>
+      </ul>
+      <button data-cta-id="view-timeline" data-action="navigate" data-target="/parent/timeline" class="btn-secondary">
+        View Full Timeline
+      </button>
+    </section>
+  </main>
+</body>
+</html>
+
+
+

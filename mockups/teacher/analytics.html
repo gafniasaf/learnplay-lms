@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Analytics - LearnPlay</title>
+  <link rel="stylesheet" href="../_base.css">
+  <style>
+    .date-range {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 1.5rem;
+    }
+    .chart-card {
+      background: var(--color-surface);
+      padding: 1.5rem;
+      border-radius: var(--radius);
+      margin-bottom: 1rem;
+      box-shadow: var(--shadow);
+    }
+    .chart-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+    }
+    .chart-placeholder {
+      height: 200px;
+      background: var(--color-bg);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--color-text-muted);
+    }
+    .metric-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+    .metric-card {
+      background: var(--color-surface);
+      padding: 1.25rem;
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    }
+    .metric-value { font-size: 1.75rem; font-weight: 700; }
+    .metric-label { font-size: 0.875rem; color: var(--color-text-muted); }
+    .metric-change {
+      font-size: 0.75rem;
+      margin-top: 0.25rem;
+    }
+    .metric-change.positive { color: var(--color-success); }
+    .metric-change.negative { color: var(--color-error); }
+    .leaderboard {
+      list-style: none;
+    }
+    .leaderboard-item {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      padding: 0.75rem;
+      border-bottom: 1px solid var(--color-border);
+    }
+    .leaderboard-rank {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: var(--color-bg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
+      font-size: 0.875rem;
+    }
+    .leaderboard-rank.gold { background: #fef3c7; color: #92400e; }
+    .leaderboard-rank.silver { background: #e2e8f0; color: #475569; }
+    .leaderboard-rank.bronze { background: #fed7aa; color: #9a3412; }
+  </style>
+</head>
+<body data-route="/teacher/analytics">
+  <header class="header">
+    <button class="btn-ghost" data-cta-id="back" data-action="navigate" data-target="/teacher/dashboard">← Back</button>
+    <h1>Analytics</h1>
+    <div></div>
+  </header>
+  
+  <div class="container">
+    <div class="date-range">
+      <select data-field="period">
+        <option value="week">This Week</option>
+        <option value="month">This Month</option>
+        <option value="quarter">This Quarter</option>
+      </select>
+      <select data-field="class">
+        <option value="">All Classes</option>
+        <option value="mth501">5th Grade Math - P1</option>
+        <option value="mth503">5th Grade Math - P3</option>
+      </select>
+    </div>
+    
+    <div class="metric-grid">
+      <div class="metric-card">
+        <div class="metric-value" style="color: var(--color-primary);">78%</div>
+        <div class="metric-label">Avg. Accuracy</div>
+        <div class="metric-change positive">↑ 5% from last week</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-value" style="color: var(--color-success);">142</div>
+        <div class="metric-label">Sessions</div>
+        <div class="metric-change positive">↑ 12 from last week</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-value" style="color: var(--color-secondary);">8.5</div>
+        <div class="metric-label">Avg. Time (min)</div>
+        <div class="metric-change negative">↓ 0.5 from last week</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-value" style="color: var(--color-warning);">85%</div>
+        <div class="metric-label">Goal Completion</div>
+        <div class="metric-change positive">↑ 3% from last week</div>
+      </div>
+    </div>
+    
+    <div class="chart-card">
+      <div class="chart-header">
+        <h3>Progress Over Time</h3>
+        <select style="padding: 0.25rem 0.5rem; border-radius: 4px; border: 1px solid var(--color-border);">
+          <option>Accuracy</option>
+          <option>Sessions</option>
+          <option>Time Spent</option>
+        </select>
+      </div>
+      <div class="chart-placeholder">
+        📊 Chart: Average accuracy trending up from 72% to 78% over 4 weeks
+      </div>
+    </div>
+    
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+      <div class="chart-card">
+        <h3 style="margin-bottom: 1rem;">Subject Breakdown</h3>
+        <div class="chart-placeholder" style="height: 150px;">
+          🥧 Pie Chart: Math 45%, Science 30%, English 25%
+        </div>
+      </div>
+      
+      <div class="chart-card">
+        <h3 style="margin-bottom: 1rem;">Top Performers</h3>
+        <ul class="leaderboard">
+          <li class="leaderboard-item">
+            <span class="leaderboard-rank gold">1</span>
+            <span style="flex: 1;">Olivia Davis</span>
+            <span style="font-weight: 600;">94%</span>
+          </li>
+          <li class="leaderboard-item">
+            <span class="leaderboard-rank silver">2</span>
+            <span style="flex: 1;">Emma Johnson</span>
+            <span style="font-weight: 600;">88%</span>
+          </li>
+          <li class="leaderboard-item">
+            <span class="leaderboard-rank bronze">3</span>
+            <span style="flex: 1;">Aiden Brown</span>
+            <span style="font-weight: 600;">85%</span>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
+
+
+

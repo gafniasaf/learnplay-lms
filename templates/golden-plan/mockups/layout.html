@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>[Product Name] - Layout</title>
+  <link rel="stylesheet" href="_design-system.css">
+  <style>
+    /* Layout structure */
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    
+    .app-container {
+      display: flex;
+      flex: 1;
+    }
+    
+    [data-region="header"] {
+      background: #1a1a2e;
+      color: white;
+      padding: 1rem 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    [data-region="sidebar"] {
+      width: 240px;
+      background: #16213e;
+      color: white;
+      padding: 1rem;
+    }
+    
+    [data-region="content"] {
+      flex: 1;
+      padding: 2rem;
+      background: #f8f9fa;
+    }
+    
+    [data-region="footer"] {
+      background: #1a1a2e;
+      color: #888;
+      padding: 1rem 2rem;
+      text-align: center;
+      font-size: 0.875rem;
+    }
+    
+    .nav-link {
+      display: block;
+      padding: 0.75rem 1rem;
+      color: rgba(255,255,255,0.8);
+      text-decoration: none;
+      border-radius: 6px;
+      margin-bottom: 0.5rem;
+    }
+    
+    .nav-link:hover {
+      background: rgba(255,255,255,0.1);
+    }
+    
+    .nav-link.active {
+      background: #0f3460;
+      color: white;
+    }
+  </style>
+</head>
+<body>
+  <!-- HEADER REGION -->
+  <header data-region="header">
+    <div class="logo">
+      <h1 style="margin: 0; font-size: 1.25rem;">[Product Name]</h1>
+    </div>
+    <nav>
+      <button data-cta-id="user-menu" data-action="navigate" data-target="/settings">
+        Settings
+      </button>
+    </nav>
+  </header>
+  
+  <div class="app-container">
+    <!-- SIDEBAR REGION -->
+    <aside data-region="sidebar">
+      <nav>
+        <a href="/dashboard" class="nav-link" data-cta-id="nav-dashboard" data-action="navigate" data-target="/dashboard">
+          Dashboard
+        </a>
+        <a href="/items" class="nav-link" data-cta-id="nav-items" data-action="navigate" data-target="/items">
+          Items
+        </a>
+        <a href="/settings" class="nav-link" data-cta-id="nav-settings" data-action="navigate" data-target="/settings">
+          Settings
+        </a>
+      </nav>
+    </aside>
+    
+    <!-- CONTENT REGION (pages inject here) -->
+    <main data-region="content">
+      <!-- Page content will be rendered here -->
+      <slot name="page-content"></slot>
+    </main>
+  </div>
+  
+  <!-- FOOTER REGION -->
+  <footer data-region="footer">
+    <p>&copy; 2025 [Product Name]. Built with Ignite Zero.</p>
+  </footer>
+</body>
+</html>
+
+
+

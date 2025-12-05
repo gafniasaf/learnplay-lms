@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>System Health - LearnPlay Admin</title>
+  <link rel="stylesheet" href="../_base.css">
+  <style>
+    .status-banner {
+      padding: 1rem 1.5rem;
+      border-radius: var(--radius);
+      margin-bottom: 1.5rem;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+    .status-banner.healthy {
+      background: linear-gradient(135deg, #dcfce7, #d1fae5);
+      border: 1px solid #22c55e;
+    }
+    .status-banner.degraded {
+      background: linear-gradient(135deg, #fef3c7, #fde68a);
+      border: 1px solid #f59e0b;
+    }
+    .status-banner.down {
+      background: linear-gradient(135deg, #fee2e2, #fecaca);
+      border: 1px solid #ef4444;
+    }
+    .status-icon { font-size: 2rem; }
+    .status-text { flex: 1; }
+    .status-title { font-weight: 600; }
+    .service-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+    .service-card {
+      background: var(--color-surface);
+      padding: 1.25rem;
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    }
+    .service-header {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      margin-bottom: 1rem;
+    }
+    .service-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+    }
+    .service-dot.up { background: var(--color-success); }
+    .service-dot.down { background: var(--color-error); }
+    .service-dot.degraded { background: var(--color-warning); }
+    .service-name { font-weight: 600; }
+    .service-stat {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.875rem;
+      padding: 0.25rem 0;
+    }
+    .metric-card {
+      background: var(--color-surface);
+      padding: 1.5rem;
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    }
+    .metric-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+    }
+    .uptime-bar {
+      display: flex;
+      gap: 2px;
+      margin-top: 0.5rem;
+    }
+    .uptime-segment {
+      flex: 1;
+      height: 20px;
+      border-radius: 2px;
+    }
+    .uptime-segment.up { background: var(--color-success); }
+    .uptime-segment.down { background: var(--color-error); }
+    .uptime-segment.degraded { background: var(--color-warning); }
+  </style>
+</head>
+<body data-route="/admin/system-health">
+  <header class="header">
+    <button class="btn-ghost" data-cta-id="back" data-action="navigate" data-target="/admin/console">← Back</button>
+    <h1>System Health</h1>
+    <button class="btn-ghost" data-cta-id="refresh" data-action="ui">↻ Refresh</button>
+  </header>
+  
+  <div class="container">
+    <div class="status-banner healthy">
+      <span class="status-icon">✅</span>
+      <div class="status-text">
+        <div class="status-title">All Systems Operational</div>
+        <div style="font-size: 0.875rem; color: var(--color-text-muted);">Last checked 30 seconds ago</div>
+      </div>
+      <span class="badge badge-success">99.9% Uptime</span>
+    </div>
+    
+    <div class="service-grid">
+      <div class="service-card">
+        <div class="service-header">
+          <span class="service-dot up"></span>
+          <span class="service-name">Supabase Database</span>
+        </div>
+        <div class="service-stat">
+          <span>Response Time</span>
+          <span style="font-weight: 500;">45ms</span>
+        </div>
+        <div class="service-stat">
+          <span>Connections</span>
+          <span style="font-weight: 500;">12 / 100</span>
+        </div>
+        <div class="service-stat">
+          <span>Last Error</span>
+          <span style="color: var(--color-success);">None</span>
+        </div>
+      </div>
+      
+      <div class="service-card">
+        <div class="service-header">
+          <span class="service-dot up"></span>
+          <span class="service-name">Edge Functions</span>
+        </div>
+        <div class="service-stat">
+          <span>Response Time</span>
+          <span style="font-weight: 500;">120ms</span>
+        </div>
+        <div class="service-stat">
+          <span>Invocations (24h)</span>
+          <span style="font-weight: 500;">1,247</span>
+        </div>
+        <div class="service-stat">
+          <span>Error Rate</span>
+          <span style="color: var(--color-success);">0.2%</span>
+        </div>
+      </div>
+      
+      <div class="service-card">
+        <div class="service-header">
+          <span class="service-dot up"></span>
+          <span class="service-name">MCP Server</span>
+        </div>
+        <div class="service-stat">
+          <span>Status</span>
+          <span style="font-weight: 500; color: var(--color-success);">Running</span>
+        </div>
+        <div class="service-stat">
+          <span>Port</span>
+          <span style="font-weight: 500;">4000</span>
+        </div>
+        <div class="service-stat">
+          <span>Uptime</span>
+          <span style="font-weight: 500;">4h 32m</span>
+        </div>
+      </div>
+      
+      <div class="service-card">
+        <div class="service-header">
+          <span class="service-dot up"></span>
+          <span class="service-name">AI Services</span>
+        </div>
+        <div class="service-stat">
+          <span>OpenAI</span>
+          <span style="color: var(--color-success);">✓ Connected</span>
+        </div>
+        <div class="service-stat">
+          <span>Anthropic</span>
+          <span style="color: var(--color-success);">✓ Connected</span>
+        </div>
+        <div class="service-stat">
+          <span>Jobs Processed (24h)</span>
+          <span style="font-weight: 500;">87</span>
+        </div>
+      </div>
+    </div>
+    
+    <div class="metric-card" style="margin-bottom: 1rem;">
+      <div class="metric-header">
+        <h3>30-Day Uptime</h3>
+        <span style="font-weight: 600; color: var(--color-success);">99.9%</span>
+      </div>
+      <div class="uptime-bar">
+        <div class="uptime-segment up" title="Dec 1 - OK"></div>
+        <div class="uptime-segment up" title="Dec 2 - OK"></div>
+        <div class="uptime-segment up" title="Dec 3 - OK"></div>
+        <div class="uptime-segment degraded" title="Dec 4 - Degraded (2h)"></div>
+        <div class="uptime-segment up" title="Dec 5 - OK"></div>
+        <div class="uptime-segment up"></div>
+        <div class="uptime-segment up"></div>
+        <div class="uptime-segment up"></div>
+        <div class="uptime-segment up"></div>
+        <div class="uptime-segment up"></div>
+        <div class="uptime-segment up"></div>
+        <div class="uptime-segment up"></div>
+        <div class="uptime-segment up"></div>
+        <div class="uptime-segment up"></div>
+        <div class="uptime-segment up"></div>
+        <div class="uptime-segment up"></div>
+        <div class="uptime-segment up"></div>
+        <div class="uptime-segment up"></div>
+        <div class="uptime-segment up"></div>
+        <div class="uptime-segment up"></div>
+        <div class="uptime-segment up"></div>
+        <div class="uptime-segment up"></div>
+        <div class="uptime-segment up"></div>
+        <div class="uptime-segment up"></div>
+        <div class="uptime-segment up"></div>
+        <div class="uptime-segment up"></div>
+        <div class="uptime-segment up"></div>
+        <div class="uptime-segment up"></div>
+        <div class="uptime-segment up"></div>
+        <div class="uptime-segment up"></div>
+      </div>
+      <div style="display: flex; justify-content: space-between; margin-top: 0.5rem; font-size: 0.75rem; color: var(--color-text-muted);">
+        <span>30 days ago</span>
+        <span>Today</span>
+      </div>
+    </div>
+    
+    <div class="metric-card">
+      <h3 style="margin-bottom: 1rem;">Recent Incidents</h3>
+      <div style="padding: 1rem; background: var(--color-bg); border-radius: 8px; margin-bottom: 0.5rem;">
+        <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+          <span style="font-weight: 500;">Edge Function Latency Spike</span>
+          <span class="badge badge-warning">Resolved</span>
+        </div>
+        <div style="font-size: 0.875rem; color: var(--color-text-muted);">
+          Dec 4, 2:15 PM - 4:15 PM • Duration: 2 hours
+        </div>
+      </div>
+      <p style="text-align: center; color: var(--color-text-muted); padding: 1rem;">No other incidents in the last 30 days</p>
+    </div>
+  </div>
+</body>
+</html>
+
+
+

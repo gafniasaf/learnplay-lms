@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Teacher Dashboard - LearnPlay</title>
+  <link rel="stylesheet" href="../_base.css">
+</head>
+<body data-route="/teacher/dashboard" data-entity="Assignment">
+  <header class="header">
+    <h1>👩‍🏫 Teacher Dashboard</h1>
+    <button data-cta-id="settings" data-action="navigate" data-target="/settings">⚙️</button>
+  </header>
+
+  <main class="container">
+    <!-- Class Overview -->
+    <section class="card">
+      <h2>📊 Class Overview</h2>
+      <div class="stats-row">
+        <div class="stat-card">
+          <span class="stat-value" data-field="total_students">24</span>
+          <span class="stat-label">Students</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-value" data-field="active_assignments">5</span>
+          <span class="stat-label">Active Assignments</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-value" data-field="avg_completion">78%</span>
+          <span class="stat-label">Avg Completion</span>
+        </div>
+      </div>
+      <button data-cta-id="view-classes" data-action="navigate" data-target="/teacher/classes" class="btn-secondary">
+        View All Classes
+      </button>
+    </section>
+
+    <!-- Quick Actions -->
+    <section class="card">
+      <h2>⚡ Quick Actions</h2>
+      <div class="action-grid">
+        <button data-cta-id="create-assignment" data-action="navigate" data-target="/teacher/control" class="action-btn">
+          ➕ New Assignment
+        </button>
+        <button data-cta-id="view-analytics" data-action="navigate" data-target="/teacher/analytics" class="action-btn">
+          📈 Analytics
+        </button>
+        <button data-cta-id="view-gradebook" data-action="navigate" data-target="/gradebook" class="action-btn">
+          📝 Gradebook
+        </button>
+      </div>
+    </section>
+
+    <!-- Students Needing Attention -->
+    <section class="card">
+      <h2>⚠️ Needs Attention</h2>
+      <ul class="attention-list" data-list="struggling_students">
+        <li class="attention-item">
+          <span data-field="student_name">Alex J.</span>
+          <span class="badge badge-warning" data-field="issue">Behind on goals</span>
+          <button data-cta-id="view-student" data-action="navigate" data-target="/teacher/students/{id}">
+            View →
+          </button>
+        </li>
+      </ul>
+    </section>
+
+    <!-- Recent Activity -->
+    <section class="card">
+      <h2>📋 Recent Submissions</h2>
+      <ul class="activity-list" data-list="recent_submissions">
+        <li class="activity-item">
+          <span data-field="student_name">Sam K.</span>
+          completed
+          <span data-field="assignment_title">Multiplication Basics</span>
+          <span class="badge badge-success">92%</span>
+        </li>
+      </ul>
+    </section>
+  </main>
+</body>
+</html>
+
+
+

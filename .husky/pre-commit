@@ -1,0 +1,14 @@
+#!/bin/sh
+
+echo "🔎 Running lint..."
+npm run lint || exit 1
+
+echo "🧪 Running unit tests..."
+npm run test --silent || exit 1
+
+echo "🚀 Ensuring MCP is running (fast health + auto-start if needed)..."
+npm run mcp:ensure || exit 1
+
+echo "✅ pre-commit checks passed."
+
+

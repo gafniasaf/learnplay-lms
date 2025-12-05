@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Student Dashboard - LearnPlay</title>
+  <link rel="stylesheet" href="../_base.css">
+</head>
+<body data-route="/student/dashboard" data-entity="LearnerProfile">
+  <header class="header">
+    <h1>🎓 Welcome back!</h1>
+    <div class="user-info">
+      <span data-field="full_name">Student</span>
+      <button data-cta-id="settings" data-action="navigate" data-target="/settings">⚙️</button>
+    </div>
+  </header>
+
+  <main class="container">
+    <!-- Goal Progress Card -->
+    <section class="card goal-card">
+      <h2>📊 Weekly Goal</h2>
+      <div class="goal-progress">
+        <div class="progress-bar">
+          <div class="progress-fill" style="width: 65%"></div>
+        </div>
+        <p><span data-field="current_minutes">45</span> / <span data-field="weekly_goal_minutes">60</span> minutes</p>
+      </div>
+      <span class="badge" data-field="goal_status">On Track</span>
+      <button data-cta-id="view-goals" data-action="navigate" data-target="/student/goals" class="btn-secondary">
+        View Goals
+      </button>
+    </section>
+
+    <!-- Current Assignment -->
+    <section class="card assignment-card">
+      <h2>📚 Continue Learning</h2>
+      <div class="assignment-info">
+        <h3 data-field="assignment_title">Math Practice</h3>
+        <p data-field="assignment_subject">Mathematics</p>
+        <span class="badge badge-info" data-field="assignment_status">In Progress</span>
+      </div>
+      <button data-cta-id="continue-learning" data-action="navigate" data-target="/play" class="btn-primary btn-large">
+        ▶️ Continue
+      </button>
+    </section>
+
+    <!-- Quick Stats -->
+    <section class="stats-row">
+      <div class="stat-card">
+        <span class="stat-value" data-field="sessions_today">3</span>
+        <span class="stat-label">Sessions Today</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-value" data-field="streak_days">7</span>
+        <span class="stat-label">Day Streak 🔥</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-value" data-field="accuracy_percent">85%</span>
+        <span class="stat-label">Accuracy</span>
+      </div>
+    </section>
+
+    <!-- Navigation -->
+    <nav class="nav-grid">
+      <a href="/student/assignments" data-cta-id="nav-assignments" data-action="navigate" data-target="/student/assignments" class="nav-card">
+        📋 Assignments
+      </a>
+      <a href="/student/achievements" data-cta-id="nav-achievements" data-action="navigate" data-target="/student/achievements" class="nav-card">
+        🏆 Achievements
+      </a>
+      <a href="/student/timeline" data-cta-id="nav-timeline" data-action="navigate" data-target="/student/timeline" class="nav-card">
+        📅 Timeline
+      </a>
+    </nav>
+  </main>
+</body>
+</html>
+
+
+

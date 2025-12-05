@@ -1,0 +1,98 @@
+{
+  "id": "verbs",
+  "title": "English Verbs",
+  "subject": "english-verbs",
+  "contentVersion": "2025-10-19.3",
+  "groups": [
+    { "id": 0, "name": "Present: He/She/It + -s" },
+    { "id": 1, "name": "Present: I/You/We/They (base)" },
+    { "id": 2, "name": "Present Continuous (-ing) now" },
+    { "id": 3, "name": "Present Habit (every day)" },
+    { "id": 4, "name": "Past: Regular -ed" },
+    { "id": 5, "name": "Past: Irregular" },
+    { "id": 6, "name": "Past of be: was/were" },
+    { "id": 7, "name": "Past: did/didn't" },
+    { "id": 8, "name": "Future: will + base" },
+    { "id": 9, "name": "Future: going to + base" },
+    { "id": 10, "name": "Questions: do/does" },
+    { "id": 11, "name": "Questions: did" },
+    { "id": 12, "name": "Have/has (present)" },
+    { "id": 13, "name": "Had (past)" },
+    { "id": 14, "name": "Imperative (base verb)" },
+    { "id": 15, "name": "Infinitive (to + verb)" }
+  ],
+  "levels": [
+    { "id": 1, "title": "Level 1: Present (today/every day)", "start": 0, "end": 3 },
+    { "id": 2, "title": "Level 2: Past (yesterday/last night)", "start": 4, "end": 7 },
+    { "id": 3, "title": "Level 3: Present + Past (review)", "start": 0, "end": 7 },
+    { "id": 4, "title": "Level 4: Future + Questions", "start": 8, "end": 11 },
+    { "id": 5, "title": "Level 5: Have/has/had + forms", "start": 12, "end": 15 },
+    { "id": 6, "title": "Level 6: Future + Helpers (review)", "start": 8, "end": 15 },
+    { "id": 7, "title": "Level 7: All groups (final)", "start": 0, "end": 15 }
+  ],
+  "items": [
+    { "id": 0, "text": "Now: He [blank] to school every day.", "groupId": 0, "clusterId": "v0-3ps", "variant": "1", "mode": "options", "options": ["walks","walk","walking"], "correctIndex": 0, "explain": "When talking about he, she, or it, add -s to the word. Example: He walks (not walk, not walking)." },
+    { "id": 1, "text": "Now: She [blank] tea in the morning.", "groupId": 0, "clusterId": "v0-3ps", "variant": "2", "mode": "options", "options": ["drinks","drink","drinking"], "correctIndex": 0, "explain": "When talking about he, she, or it, add -s to the word. Example: She drinks (not drink, not drinking)." },
+    { "id": 2, "text": "Now: It [blank] loudly at night.", "groupId": 0, "clusterId": "v0-3ps", "variant": "3", "mode": "options", "options": ["barks","bark","barking"], "correctIndex": 0, "explain": "When talking about he, she, or it, add -s to the word. Example: It barks (not bark, not barking)." },
+
+    { "id": 3, "text": "Now: I [blank] to school every day.", "groupId": 1, "clusterId": "v1-base", "variant": "1", "mode": "options", "options": ["walk","walks","walking"], "correctIndex": 0, "explain": "When talking about I, you, we, or they, use the simple word. Example: I walk (not walks, not walking)." },
+    { "id": 4, "text": "Now: You [blank] tea in the morning.", "groupId": 1, "clusterId": "v1-base", "variant": "2", "mode": "options", "options": ["drink","drinks","drinking"], "correctIndex": 0, "explain": "When talking about I, you, we, or they, use the simple word. Example: You drink (not drinks, not drinking)." },
+    { "id": 5, "text": "Now: They [blank] loudly at night.", "groupId": 1, "clusterId": "v1-base", "variant": "3", "mode": "options", "options": ["bark","barks","barking"], "correctIndex": 0, "explain": "When talking about I, you, we, or they, use the simple word. Example: They bark (not barks, not barking)." },
+
+    { "id": 6, "text": "Right now: She is [blank] dinner.", "groupId": 2, "clusterId": "v2-cont", "variant": "1", "mode": "options", "options": ["eating","eats","eat"], "correctIndex": 0, "explain": "When something is happening right now, add -ing to the word. Example: She is eating (not eats, not eat)." },
+    { "id": 7, "text": "Right now: They are [blank] homework.", "groupId": 2, "clusterId": "v2-cont", "variant": "2", "mode": "options", "options": ["doing","do","does"], "correctIndex": 0, "explain": "When something is happening right now, add -ing to the word. Example: They are doing (not do, not does)." },
+    { "id": 8, "text": "Right now: We are [blank] dinner.", "groupId": 2, "clusterId": "v2-cont", "variant": "3", "mode": "options", "options": ["cooking","cook","cooks"], "correctIndex": 0, "explain": "When something is happening right now, add -ing to the word. Example: We are cooking (not cook, not cooks)." },
+
+    { "id": 9, "text": "Every day: They [blank] after lunch every day.", "groupId": 3, "clusterId": "v3-habit", "variant": "1", "mode": "options", "options": ["eat","are eating","eats"], "correctIndex": 0, "explain": "When something happens every day, use the simple word. Example: They eat (not are eating, not eats)." },
+    { "id": 10, "text": "Every day: We [blank] early every day.", "groupId": 3, "clusterId": "v3-habit", "variant": "2", "mode": "options", "options": ["get up","are getting up","gets up"], "correctIndex": 0, "explain": "When something happens every day, use the simple word. Example: We get up (not are getting up, not gets up)." },
+    { "id": 11, "text": "Every day: They [blank] lunch at noon every day.", "groupId": 3, "clusterId": "v3-habit", "variant": "3", "mode": "options", "options": ["eat","are eating","eats"], "correctIndex": 0, "explain": "When something happens every day, use the simple word. Example: They eat (not are eating, not eats)." },
+
+    { "id": 12, "text": "Yesterday: We [blank] to the park yesterday.", "groupId": 4, "clusterId": "v4-regular", "variant": "1", "mode": "options", "options": ["walked","walk","are walking"], "correctIndex": 0, "explain": "When something already happened, add -ed to the word. Example: We walked yesterday (not walk, not are walking)." },
+    { "id": 13, "text": "Last week: She [blank] the kitchen last week.", "groupId": 4, "clusterId": "v4-regular", "variant": "2", "mode": "options", "options": ["cleaned","cleans","is cleaning"], "correctIndex": 0, "explain": "When something already happened, add -ed to the word. Example: She cleaned (not cleans, not is cleaning)." },
+    { "id": 14, "text": "On Sunday: They [blank] the car on Sunday.", "groupId": 4, "clusterId": "v4-regular", "variant": "3", "mode": "options", "options": ["washed","wash","are washing"], "correctIndex": 0, "explain": "When something already happened, add -ed to the word. Example: They washed (not wash, not are washing)." },
+
+    { "id": 15, "text": "Last week: John [blank] to Cebu last week.", "groupId": 5, "clusterId": "v5-irregular", "variant": "1", "mode": "options", "options": ["went","goes","is going"], "correctIndex": 0, "explain": "Some words change completely for the past. Example: go becomes went (not goes, not is going)." },
+    { "id": 16, "text": "Last month: Jane [blank] to Barcelona last month.", "groupId": 5, "clusterId": "v5-irregular", "variant": "2", "mode": "options", "options": ["went","goes","is going"], "correctIndex": 0, "explain": "Some words change completely for the past. Example: go becomes went (not goes, not is going)." },
+    { "id": 17, "text": "Yesterday: We [blank] dinner at 7 yesterday.", "groupId": 5, "clusterId": "v5-irregular", "variant": "3", "mode": "options", "options": ["ate","eat","are eating"], "correctIndex": 0, "explain": "Some words change completely for the past. Example: eat becomes ate (not eat, not are eating)." },
+
+    { "id": 18, "text": "A minute ago: He [blank] happy a minute ago.", "groupId": 6, "clusterId": "v6-waswere", "variant": "1", "mode": "options", "options": ["was","were","is"], "correctIndex": 0, "explain": "In the past, he/she/it uses was. Example: He was happy (not were, not is)." },
+    { "id": 19, "text": "Yesterday: They [blank] at home yesterday.", "groupId": 6, "clusterId": "v6-waswere", "variant": "2", "mode": "options", "options": ["were","was","are"], "correctIndex": 0, "explain": "In the past, we/you/they use were. Example: They were at home (not was, not are)." },
+    { "id": 20, "text": "Last night: I [blank] tired last night.", "groupId": 6, "clusterId": "v6-waswere", "variant": "3", "mode": "options", "options": ["was","were","am"], "correctIndex": 0, "explain": "In the past, I uses was. Example: I was tired (not were, not am)." },
+
+    { "id": 21, "text": "Yesterday: They [blank] their homework yesterday.", "groupId": 7, "clusterId": "v7-did", "variant": "1", "mode": "options", "options": ["did","do","does"], "correctIndex": 0, "explain": "For past actions, use did before the simple word. Example: They did their homework (not do, not does)." },
+    { "id": 22, "text": "Last week: He [blank] finish the report last week.", "groupId": 7, "clusterId": "v7-did", "variant": "2", "mode": "options", "options": ["didn't","don't","doesn't"], "correctIndex": 0, "explain": "When something didn't happen in the past, use didn't. Example: He didn't finish (not don't, not doesn't)." },
+    { "id": 23, "text": "Yesterday: We [blank] see the movie yesterday.", "groupId": 7, "clusterId": "v7-did", "variant": "3", "mode": "options", "options": ["didn't","don't","doesn't"], "correctIndex": 0, "explain": "When something didn't happen in the past, use didn't. Example: We didn't see (not don't, not doesn't)." },
+
+    { "id": 24, "text": "Tomorrow: I [blank] call you tomorrow.", "groupId": 8, "clusterId": "v8-will", "variant": "1", "mode": "options", "options": ["will","am","are"], "correctIndex": 0, "explain": "When something will happen later, use will before the simple word. Example: I will call you (not am, not are)." },
+    { "id": 25, "text": "Next week: They [blank] start school next week.", "groupId": 8, "clusterId": "v8-will", "variant": "2", "mode": "options", "options": ["will","are going to","are"], "correctIndex": 0, "explain": "When something will happen later, use will before the simple word. Example: They will start (not are going to, not are)." },
+    { "id": 26, "text": "Soon: She [blank] arrive soon.", "groupId": 8, "clusterId": "v8-will", "variant": "3", "mode": "options", "options": ["will","is going to","is"], "correctIndex": 0, "explain": "When something will happen later, use will before the simple word. Example: She will arrive (not is going to, not is)." },
+
+    { "id": 27, "text": "Plan: We are [blank] to visit Lola tomorrow.", "groupId": 9, "clusterId": "v9-goingto", "variant": "1", "mode": "options", "options": ["going","go","goes"], "correctIndex": 0, "explain": "When you have a plan for later, use going to. Example: We are going to visit Lola (not go, not goes)." },
+    { "id": 28, "text": "Plan: He is [blank] to buy a bike.", "groupId": 9, "clusterId": "v9-goingto", "variant": "2", "mode": "options", "options": ["going","go","goes"], "correctIndex": 0, "explain": "When you have a plan for later, use going to. Example: He is going to buy a bike (not go, not goes)." },
+    { "id": 29, "text": "Plan: They are [blank] to move next year.", "groupId": 9, "clusterId": "v9-goingto", "variant": "3", "mode": "options", "options": ["going","go","goes"], "correctIndex": 0, "explain": "When you have a plan for later, use going to. Example: They are going to move (not go, not goes)." },
+
+    { "id": 30, "text": "Question: [blank] you like apples?", "groupId": 10, "clusterId": "v10-does", "variant": "1", "mode": "options", "options": ["Do","Does","Did"], "correctIndex": 0, "explain": "When asking about I/you/we/they, start with Do. Example: Do you like apples? (not Does, not Did)." },
+    { "id": 31, "text": "Question: [blank] she play tennis?", "groupId": 10, "clusterId": "v10-does", "variant": "2", "mode": "options", "options": ["Does","Do","Did"], "correctIndex": 0, "explain": "When asking about he/she/it, start with Does. Example: Does she play tennis? (not Do, not Did)." },
+    { "id": 32, "text": "Question: [blank] they live here?", "groupId": 10, "clusterId": "v10-does", "variant": "3", "mode": "options", "options": ["Do","Does","Did"], "correctIndex": 0, "explain": "When asking about I/you/we/they, start with Do. Example: Do they live here? (not Does, not Did)." },
+
+    { "id": 33, "text": "Question about yesterday: [blank] he finish yesterday?", "groupId": 11, "clusterId": "v11-didQ", "variant": "1", "mode": "options", "options": ["Did","Does","Do"], "correctIndex": 0, "explain": "When asking about something that already happened, start with Did. Example: Did he finish? (not Does, not Do)." },
+    { "id": 34, "text": "Question about last night: [blank] they call you last night?", "groupId": 11, "clusterId": "v11-didQ", "variant": "2", "mode": "options", "options": ["Did","Does","Do"], "correctIndex": 0, "explain": "When asking about something that already happened, start with Did. Example: Did they call? (not Does, not Do)." },
+    { "id": 35, "text": "Question about the past: [blank] you see the match?", "groupId": 11, "clusterId": "v11-didQ", "variant": "3", "mode": "options", "options": ["Did","Does","Do"], "correctIndex": 0, "explain": "When asking about something that already happened, start with Did. Example: Did you see? (not Does, not Do)." },
+
+    { "id": 36, "text": "Now: She [blank] a new pencil now.", "groupId": 12, "clusterId": "v12-have", "variant": "1", "mode": "options", "options": ["has","have","had"], "correctIndex": 0, "explain": "When talking about he/she/it having something now, use has. Example: She has a pencil (not have, not had)." },
+    { "id": 37, "text": "Now: They [blank] a problem now.", "groupId": 12, "clusterId": "v12-have", "variant": "2", "mode": "options", "options": ["have","has","had"], "correctIndex": 0, "explain": "When talking about we/you/they having something now, use have. Example: They have a problem (not has, not had)." },
+    { "id": 38, "text": "Now: He [blank] two brothers.", "groupId": 12, "clusterId": "v12-have", "variant": "3", "mode": "options", "options": ["has","have","had"], "correctIndex": 0, "explain": "When talking about he/she/it having something now, use has. Example: He has two brothers (not have, not had)." },
+
+    { "id": 39, "text": "Yesterday: They [blank] fun yesterday.", "groupId": 13, "clusterId": "v13-had", "variant": "1", "mode": "options", "options": ["had","have","has"], "correctIndex": 0, "explain": "When talking about having something in the past, use had. Example: They had fun (not have, not has)." },
+    { "id": 40, "text": "Last night: I [blank] a fever last night.", "groupId": 13, "clusterId": "v13-had", "variant": "2", "mode": "options", "options": ["had","have","has"], "correctIndex": 0, "explain": "When talking about having something in the past, use had. Example: I had a fever (not have, not has)." },
+    { "id": 41, "text": "In June: We [blank] a holiday in June.", "groupId": 13, "clusterId": "v13-had", "variant": "3", "mode": "options", "options": ["had","have","has"], "correctIndex": 0, "explain": "When talking about having something in the past, use had. Example: We had a holiday (not have, not has)." },
+
+    { "id": 42, "text": "Command: [blank] your hands before eating.", "groupId": 14, "clusterId": "v14-imp", "variant": "1", "mode": "options", "options": ["Wash","Washes","Washed"], "correctIndex": 0, "explain": "When you tell someone to do something, use the simple word. Example: Wash your hands (not Washes, not Washed)." },
+    { "id": 43, "text": "Command: [blank] quiet in class.", "groupId": 14, "clusterId": "v14-imp", "variant": "2", "mode": "options", "options": ["Be","Is","Are"], "correctIndex": 0, "explain": "When you tell someone to do something, use the simple word. Example: Be quiet (not Is, not Are)." },
+    { "id": 44, "text": "Command: [blank] your homework now.", "groupId": 14, "clusterId": "v14-imp", "variant": "3", "mode": "options", "options": ["Do","Does","Did"], "correctIndex": 0, "explain": "When you tell someone to do something, use the simple word. Example: Do your homework (not Does, not Did)." },
+
+    { "id": 45, "text": "I like to [blank] at night.", "groupId": 15, "clusterId": "v15-inf", "variant": "1", "mode": "options", "options": ["read","reads","reading"], "correctIndex": 0, "explain": "After the word to, use the simple word. Example: I like to read (not reads, not reading)." },
+    { "id": 46, "text": "He wants to [blank] early.", "groupId": 15, "clusterId": "v15-inf", "variant": "2", "mode": "options", "options": ["leave","leaves","leaving"], "correctIndex": 0, "explain": "After the word to, use the simple word. Example: He wants to leave (not leaves, not leaving)." },
+    { "id": 47, "text": "They plan to [blank] a house.", "groupId": 15, "clusterId": "v15-inf", "variant": "3", "mode": "options", "options": ["build","builds","building"], "correctIndex": 0, "explain": "After the word to, use the simple word. Example: They plan to build (not builds, not building)." }
+  ]
+}

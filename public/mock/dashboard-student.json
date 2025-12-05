@@ -1,0 +1,67 @@
+{
+  "role": "student",
+  "userId": "student-001",
+  "displayName": "Alex Johnson",
+  "stats": {
+    "coursesInProgress": 2,
+    "coursesCompleted": 2,
+    "totalPoints": 1250,
+    "currentStreak": 7,
+    "bestStreak": 14,
+    "accuracyRate": 87
+  },
+  "upcoming": [
+    {
+      "id": "modals",
+      "title": "English Modals",
+      "type": "course",
+      "dueDate": "2025-10-24T14:00:00Z",
+      "progress": 68,
+      "nextLevel": 3
+    },
+    {
+      "id": "verbs",
+      "title": "Verbs",
+      "type": "course",
+      "dueDate": "2025-10-25T10:00:00Z",
+      "progress": 45,
+      "nextLevel": 2
+    }
+  ],
+  "recent": [
+    {
+      "id": "modals",
+      "title": "English Modals",
+      "type": "course",
+      "completedAt": "2025-10-15T12:30:00Z",
+      "score": 92,
+      "level": 3,
+      "timeSpent": 1800
+    },
+    {
+      "id": "verbs",
+      "title": "Verbs",
+      "type": "course",
+      "completedAt": "2025-10-12T15:45:00Z",
+      "score": 88,
+      "level": 2,
+      "timeSpent": 1440
+    }
+  ],
+  "achievements": [
+    {
+      "id": "streak-7",
+      "title": "Week Warrior",
+      "description": "Completed 7 days in a row",
+      "earnedAt": "2025-10-17T09:00:00Z",
+      "icon": "trophy"
+    },
+    {
+      "id": "perfect-score",
+      "title": "Perfect Score",
+      "description": "Got 100% on a course",
+      "earnedAt": "2025-10-10T14:30:00Z",
+      "icon": "star"
+    }
+  ]
+}

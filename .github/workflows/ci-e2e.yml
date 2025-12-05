@@ -1,0 +1,60 @@
+name: CI - Playwright
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+      
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: ${{ runner.os }}-playwright-
+      
+      - run: npm ci
+      
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+      
+      - name: Build
+        run: npm run build
+        env:
+          VITE_USE_MOCK: 'true'
+      
+      - name: Run Playwright (with retry on failure)
+        id: e2e-run
+        continue-on-error: true
+        run: npm run e2e
+        env:
+          VITE_USE_MOCK: 'true'
+          E2E_LIVE: '0'
+      
+      - name: Retry Playwright on failure
+        if: steps.e2e-run.outcome == 'failure'
+        run: npm run e2e -- --retries=1
+        env:
+          VITE_USE_MOCK: 'true'
+          E2E_LIVE: '0'
+      - name: Upload Playwright HTML report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-html
+          path: reports/playwright-html
+

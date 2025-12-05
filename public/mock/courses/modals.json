@@ -1,0 +1,114 @@
+{
+  "id": "modals",
+  "title": "English Modals",
+  "subject": "english-modals",
+  "contentVersion": "2025-10-19.4",
+  "studyTexts": [
+    {
+      "id": "intro-modals",
+      "title": "Introduction to Modal Verbs",
+      "content": "[SECTION:What are Modal Verbs?]\nModal verbs are special helping verbs that express ability, possibility, permission, or obligation. They are used before main verbs to modify their meaning.\n\nCommon modal verbs include: can, could, may, might, must, shall, should, will, and would.\n\n[SECTION:Key Rules]\nModal verbs follow special grammar rules:\n1. They do not change form (no -s, -ed, or -ing)\n2. They are always followed by the base form of the main verb\n3. Questions are formed by inverting the modal and subject\n4. Negatives are formed by adding 'not' after the modal\n\nExample: She can swim. (NOT: She cans swim)",
+      "order": 1,
+      "learningObjectives": ["understand-modal-basics"]
+    },
+    {
+      "id": "ability-permission",
+      "title": "Ability and Permission",
+      "content": "[SECTION:Expressing Ability]\n'Can' and 'could' express ability:\n- Can: present ability (I can speak English)\n- Could: past ability (I could swim when I was five)\n- Could: polite requests (Could you help me?)\n\n[SECTION:Asking Permission]\nUse 'can', 'could', or 'may' for permission:\n- Can I borrow your pen? (informal)\n- Could I use your phone? (polite)\n- May I leave early? (formal)\n\n[SECTION:Common Mistakes]\n❌ Can you to help me?\n✅ Can you help me?\n\nRemember: Modal + base verb (no 'to')",
+      "order": 2,
+      "learningObjectives": ["use-can-could"]
+    }
+  ],
+  "groups": [
+    { "id": 0, "name": "Ability: can/could" },
+    { "id": 1, "name": "Permission: can/may" },
+    { "id": 2, "name": "Possibility: may/might/could" },
+    { "id": 3, "name": "Advice: should/ought to" },
+    { "id": 4, "name": "Obligation: must/have to" },
+    { "id": 5, "name": "No obligation: don't have to/needn't" },
+    { "id": 6, "name": "Prohibition: mustn't/can't" },
+    { "id": 7, "name": "Requests & offers: can/could/will/would" },
+    { "id": 8, "name": "Deductions (present): must/can't be" },
+    { "id": 9, "name": "Deductions (past): must/can't have + V-ed" },
+    { "id": 10, "name": "Preference: would rather" },
+    { "id": 11, "name": "Used to vs be used to" },
+    { "id": 12, "name": "Causatives: make/let/have/get + object + verb" },
+    { "id": 13, "name": "Perception verbs: see/hear/feel + obj + bare inf/-ing" },
+    { "id": 14, "name": "Verb + to-infinitive" },
+    { "id": 15, "name": "Verb + -ing" }
+  ],
+  "levels": [
+    { "id": 1, "title": "Level 1: Present (today/every day)", "start": 0, "end": 3 },
+    { "id": 2, "title": "Level 2: Past (yesterday/last night)", "start": 4, "end": 7 },
+    { "id": 3, "title": "Level 3: Present + Past (review)", "start": 0, "end": 7 },
+    { "id": 4, "title": "Level 4: Future + Questions", "start": 8, "end": 11 },
+    { "id": 5, "title": "Level 5: Have/has/had + forms", "start": 12, "end": 15 },
+    { "id": 6, "title": "Level 6: Future + Helpers (review)", "start": 8, "end": 15 },
+    { "id": 7, "title": "Level 7: All groups (final)", "start": 0, "end": 15 }
+  ],
+  "items": [
+    { "id": 0, "text": "When I was 5 years old, I [blank] swim.", "groupId": 0, "clusterId": "m0-ability", "variant": "1", "mode": "options", "options": ["could","can","may"], "correctIndex": 0, "explain": "When you could do something in the past, use could. Example: I could swim when I was 5." },
+    { "id": 1, "text": "She [blank] speak three languages now.", "groupId": 0, "clusterId": "m0-ability", "variant": "2", "mode": "options", "options": ["can","could","may"], "correctIndex": 0, "explain": "When you can do something now, use can. Example: She can speak three languages!" },
+    { "id": 2, "text": "He [blank] ride a bike without help now.", "groupId": 0, "clusterId": "m0-ability", "variant": "3", "mode": "options", "options": ["can","may","must"], "correctIndex": 0, "explain": "When you can do something now, use can. Example: He can ride a bike!" },
+
+    { "id": 3, "text": "(polite) Johnny asks Mom: [blank] I open the window, please?", "groupId": 1, "clusterId": "m1-permission", "variant": "1", "mode": "options", "options": ["may","must","will"], "correctIndex": 0, "explain": "When you ask nicely, say may. Example: May I open the window, please?" },
+    { "id": 4, "text": "(polite) The kids ask Teacher: [blank] we sit here, please?", "groupId": 1, "clusterId": "m1-permission", "variant": "2", "mode": "options", "options": ["may","must","are"], "correctIndex": 0, "explain": "When you ask nicely, say may. Example: May we sit here, please?" },
+    { "id": 5, "text": "(polite) Sara asks Teacher: [blank] we use the lab after class, please?", "groupId": 1, "clusterId": "m1-permission", "variant": "3", "mode": "options", "options": ["may","must","are"], "correctIndex": 0, "explain": "When you ask nicely, say may. Example: May we use the lab, please?" },
+
+    { "id": 6, "text": "Maybe it [blank] rain later.", "groupId": 2, "clusterId": "m2-possibility", "variant": "1", "mode": "options", "options": ["might","must","can"], "correctIndex": 0, "explain": "When you're not sure if something will happen, use might. Example: It might rain later." },
+    { "id": 7, "text": "Perhaps he [blank] be at home.", "groupId": 2, "clusterId": "m2-possibility", "variant": "2", "mode": "options", "options": ["might","must","can"], "correctIndex": 0, "explain": "When you're not sure if something will happen, use might. Example: He might be at home." },
+    { "id": 8, "text": "There is a chance they [blank] arrive early.", "groupId": 2, "clusterId": "m2-possibility", "variant": "3", "mode": "options", "options": ["might","must","can"], "correctIndex": 0, "explain": "When you're not sure if something will happen, use might. Example: They might arrive early." },
+
+    { "id": 9, "text": "Tip: You feel sick — you [blank] see a doctor.", "groupId": 3, "clusterId": "m3-advice", "variant": "1", "mode": "options", "options": ["should","must","can"], "correctIndex": 0, "explain": "When you give a helpful tip, use should. Example: You should see a doctor." },
+    { "id": 10, "text": "Tip: To finish on time — they [blank] start earlier.", "groupId": 3, "clusterId": "m3-advice", "variant": "2", "mode": "options", "options": ["should","must","can"], "correctIndex": 0, "explain": "When you give a helpful tip, use should. Example: They should start earlier!" },
+    { "id": 11, "text": "Tip: She's worried about math — she [blank] talk to her teacher.", "groupId": 3, "clusterId": "m3-advice", "variant": "3", "mode": "options", "options": ["should","must","will"], "correctIndex": 0, "explain": "When you give a helpful tip, use should. Example: She should talk to her teacher." },
+
+    { "id": 12, "text": "School rule: Cyclists [blank] wear a helmet.", "groupId": 4, "clusterId": "m4-obligation", "variant": "1", "mode": "options", "options": ["must","may","can"], "correctIndex": 0, "explain": "When there's a rule you have to follow, use must. Example: Cyclists must wear a helmet." },
+    { "id": 13, "text": "At work I [blank] get up at 6.", "groupId": 4, "clusterId": "m4-obligation", "variant": "2", "mode": "options", "options": ["have to","must","may"], "correctIndex": 0, "explain": "When you need to do something, use have to. Example: I have to get up at 6." },
+    { "id": 14, "text": "School rule: You [blank] show your ID at the gate.", "groupId": 4, "clusterId": "m4-obligation", "variant": "3", "mode": "options", "options": ["must","may","can"], "correctIndex": 0, "explain": "When there's a rule you have to follow, use must. Example: You must show your ID." },
+
+    { "id": 15, "text": "It's okay: You [blank] come if you don't want to.", "groupId": 5, "clusterId": "m5-noobligation", "variant": "1", "mode": "options", "options": ["don't have to","must","should"], "correctIndex": 0, "explain": "When something is okay to skip, use don't have to. Example: You don't have to come." },
+    { "id": 16, "text": "It's okay: We [blank] pay now, we can pay later.", "groupId": 5, "clusterId": "m5-noobligation", "variant": "2", "mode": "options", "options": ["don't have to","must","should"], "correctIndex": 0, "explain": "When something is okay to skip, use don't have to. Example: We don't have to pay now." },
+    { "id": 17, "text": "It's okay: He [blank] attend the meeting if he's busy.", "groupId": 5, "clusterId": "m5-noobligation", "variant": "3", "mode": "options", "options": ["doesn't have to","must","should"], "correctIndex": 0, "explain": "When something is okay to skip, use doesn't have to. Example: He doesn't have to attend." },
+
+    { "id": 18, "text": "Not allowed: You [blank] smoke here.", "groupId": 6, "clusterId": "m6-prohibition", "variant": "1", "mode": "options", "options": ["mustn't","may","should"], "correctIndex": 0, "explain": "When something is not allowed, use mustn't. Example: You mustn't smoke here." },
+    { "id": 19, "text": "Exam rule: Students [blank] use phones during exams.", "groupId": 6, "clusterId": "m6-prohibition", "variant": "2", "mode": "options", "options": ["mustn't","may","will"], "correctIndex": 0, "explain": "When something is not allowed, use mustn't. Example: Students mustn't use phones." },
+    { "id": 20, "text": "Not allowed: Visitors [blank] park in this area.", "groupId": 6, "clusterId": "m6-prohibition", "variant": "3", "mode": "options", "options": ["can't","may","should"], "correctIndex": 0, "explain": "When something is not allowed, use can't. Example: Visitors can't park here." },
+
+    { "id": 21, "text": "(polite) Tom asks: [blank] you help me, please?", "groupId": 7, "clusterId": "m7-requests", "variant": "1", "mode": "options", "options": ["could","will","can"], "correctIndex": 0, "explain": "When you ask nicely for help, use could. Example: Could you help me, please?" },
+    { "id": 22, "text": "(offer) Anna says: [blank] I carry that for you?", "groupId": 7, "clusterId": "m7-requests", "variant": "2", "mode": "options", "options": ["can","will","would"], "correctIndex": 0, "explain": "When you offer to help, use can. Example: Can I carry that for you?" },
+    { "id": 23, "text": "(polite) Dad asks: [blank] you please call me later?", "groupId": 7, "clusterId": "m7-requests", "variant": "3", "mode": "options", "options": ["could","will","can"], "correctIndex": 0, "explain": "When you ask nicely for help, use could. Example: Could you please call me?" },
+
+    { "id": 24, "text": "The lights are on — she [blank] be home.", "groupId": 8, "clusterId": "m8-deduction-present", "variant": "1", "mode": "options", "options": ["must","might","can't"], "correctIndex": 0, "explain": "When you're very sure about something now, use must. Example: The lights are on—she must be home!" },
+    { "id": 25, "text": "That [blank] be true, it contradicts the facts.", "groupId": 8, "clusterId": "m8-deduction-present", "variant": "2", "mode": "options", "options": ["can't","must","might"], "correctIndex": 0, "explain": "When something is impossible now, use can't. Example: That can't be true!" },
+    { "id": 26, "text": "It's Sunday — the office [blank] be closed.", "groupId": 8, "clusterId": "m8-deduction-present", "variant": "3", "mode": "options", "options": ["must","might","can't"], "correctIndex": 0, "explain": "When you're very sure about something now, use must. Example: The office must be closed!" },
+
+    { "id": 27, "text": "He missed the meeting and his watch was at home — he [blank] have forgotten the time.", "groupId": 9, "clusterId": "m9-deduction-past", "variant": "1", "mode": "options", "options": ["must","can't","might"], "correctIndex": 0, "explain": "When you're very sure about something that happened, use must have. Example: He must have forgotten!" },
+    { "id": 28, "text": "Their tickets were for Route 18, but they arrived on Route 27 — they [blank] have taken the wrong bus.", "groupId": 9, "clusterId": "m9-deduction-past", "variant": "2", "mode": "options", "options": ["must","can't","might"], "correctIndex": 0, "explain": "When you're very sure about something that happened, use must have. Example: They must have taken the wrong bus!" },
+    { "id": 29, "text": "Her phone was off all day — she [blank] have seen your message.", "groupId": 9, "clusterId": "m9-deduction-past", "variant": "3", "mode": "options", "options": ["can't","must","might"], "correctIndex": 0, "explain": "When something was impossible in the past, use can't have. Example: She can't have seen your message." },
+
+    { "id": 30, "text": "I'd [blank] stay in tonight.", "groupId": 10, "clusterId": "m10-rather", "variant": "1", "mode": "options", "options": ["rather","prefer","like"], "correctIndex": 0, "explain": "When you like one thing more than another, use would rather. Example: I'd rather stay in tonight." },
+    { "id": 31, "text": "Would you [blank] have tea or coffee?", "groupId": 10, "clusterId": "m10-rather", "variant": "2", "mode": "options", "options": ["rather","prefer","like"], "correctIndex": 0, "explain": "When you like one thing more than another, use would rather. Example: Would you rather have tea?" },
+    { "id": 32, "text": "I'd [blank] not talk about it.", "groupId": 10, "clusterId": "m10-rather", "variant": "3", "mode": "options", "options": ["rather","prefer","like"], "correctIndex": 0, "explain": "When you like one thing more than another, use would rather. Example: I'd rather not talk about it." },
+
+    { "id": 33, "text": "When I was little, I [blank] play outside every day.", "groupId": 11, "clusterId": "m11-usedto", "variant": "1", "mode": "options", "options": ["used to","play","am playing"], "correctIndex": 0, "explain": "When you talk about an old habit that changed, use used to. Example: I used to play outside." },
+    { "id": 34, "text": "She works at 5 am, so she [blank] used to early mornings.", "groupId": 11, "clusterId": "m11-usedto", "variant": "2", "mode": "options", "options": ["is","are","be"], "correctIndex": 0, "explain": "When you're familiar with something now, use is used to. Example: She is used to early mornings." },
+    { "id": 35, "text": "In 2010, he [blank] live in Manila.", "groupId": 11, "clusterId": "m11-usedto", "variant": "3", "mode": "options", "options": ["used to","is used to","lives"], "correctIndex": 0, "explain": "When you talk about an old habit that changed, use used to. Example: He used to live in Manila." },
+
+    { "id": 36, "text": "Service: They [blank] the car repaired at the shop.", "groupId": 12, "clusterId": "m12-causatives", "variant": "1", "mode": "options", "options": ["had","made","let"], "correctIndex": 0, "explain": "When someone does something for you, use had. Example: They had the car repaired." },
+    { "id": 37, "text": "Service: I [blank] my hair cut at the salon yesterday.", "groupId": 12, "clusterId": "m12-causatives", "variant": "2", "mode": "options", "options": ["had","made","let"], "correctIndex": 0, "explain": "When someone does something for you, use had. Example: I had my hair cut." },
+    { "id": 38, "text": "The teacher [blank] us rewrite the essay.", "groupId": 12, "clusterId": "m12-causatives", "variant": "3", "mode": "options", "options": ["made","let","had"], "correctIndex": 0, "explain": "When someone makes you do something, use made. Example: The teacher made us rewrite it." },
+
+    { "id": 39, "text": "Suddenly, I saw him [blank] the door.", "groupId": 13, "clusterId": "m13-perception", "variant": "1", "mode": "options", "options": ["open","opens","opening"], "correctIndex": 0, "explain": "When you see something happen quickly, use the simple word. Example: I saw him open the door." },
+    { "id": 40, "text": "We heard the baby [blank] for a while.", "groupId": 13, "clusterId": "m13-perception", "variant": "2", "mode": "options", "options": ["crying","cries","cry"], "correctIndex": 0, "explain": "When you hear something for a while, add -ing. Example: We heard the baby crying." },
+    { "id": 41, "text": "Suddenly, she felt the ground [blank].", "groupId": 13, "clusterId": "m13-perception", "variant": "3", "mode": "options", "options": ["shake","shakes","shaking"], "correctIndex": 0, "explain": "When you feel something happen quickly, use the simple word. Example: She felt the ground shake." },
+
+    { "id": 42, "text": "She decided [blank] early.", "groupId": 14, "clusterId": "m14-toinf", "variant": "1", "mode": "options", "options": ["to leave","leaves","leaving"], "correctIndex": 0, "explain": "Some verbs need to before the next verb. Example: She decided to leave early." },
+    { "id": 43, "text": "He promised [blank] me later.", "groupId": 14, "clusterId": "m14-toinf", "variant": "2", "mode": "options", "options": ["to call","calls","calling"], "correctIndex": 0, "explain": "Some verbs need to before the next verb. Example: He promised to call me." },
+    { "id": 44, "text": "We plan [blank] a new project.", "groupId": 14, "clusterId": "m14-toinf", "variant": "3", "mode": "options", "options": ["to start","starts","starting"], "correctIndex": 0, "explain": "Some verbs need to before the next verb. Example: We plan to start a new project." },
+
+    { "id": 45, "text": "I enjoy [blank] books.", "groupId": 15, "clusterId": "m15-ing", "variant": "1", "mode": "options", "options": ["reading","to read","read"], "correctIndex": 0, "explain": "Some verbs need -ing on the next verb. Example: I enjoy reading books." },
+    { "id": 46, "text": "They avoided [blank] late.", "groupId": 15, "clusterId": "m15-ing", "variant": "2", "mode": "options", "options": ["arriving","to arrive","arrive"], "correctIndex": 0, "explain": "Some verbs need -ing on the next verb. Example: They avoided arriving late." },
+    { "id": 47, "text": "She finished [blank] the report.", "groupId": 15, "clusterId": "m15-ing", "variant": "3", "mode": "options", "options": ["writing","to write","writes"], "correctIndex": 0, "explain": "Some verbs need -ing on the next verb. Example: She finished writing the report." }
+  ]
+}

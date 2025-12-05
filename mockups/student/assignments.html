@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Assignments - LearnPlay</title>
+  <link rel="stylesheet" href="../_base.css">
+  <style>
+    .filter-tabs {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 1.5rem;
+      overflow-x: auto;
+    }
+    .filter-tab {
+      padding: 0.5rem 1rem;
+      border-radius: 999px;
+      border: 1px solid var(--color-border);
+      background: white;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .filter-tab.active {
+      background: var(--color-primary);
+      color: white;
+      border-color: var(--color-primary);
+    }
+    .assignment-card {
+      background: var(--color-surface);
+      padding: 1.25rem;
+      border-radius: var(--radius);
+      margin-bottom: 1rem;
+      box-shadow: var(--shadow);
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+    .assignment-icon { font-size: 2rem; }
+    .assignment-info { flex: 1; }
+    .assignment-title { font-weight: 600; margin-bottom: 0.25rem; }
+    .assignment-meta { font-size: 0.875rem; color: var(--color-text-muted); }
+    .assignment-due {
+      font-size: 0.75rem;
+      padding: 0.25rem 0.5rem;
+      border-radius: 4px;
+      background: var(--color-bg);
+    }
+    .assignment-due.overdue { background: #fee2e2; color: #991b1b; }
+    .assignment-due.today { background: #fef3c7; color: #92400e; }
+    .assignment-due.upcoming { background: #e0f2fe; color: #0369a1; }
+  </style>
+</head>
+<body data-route="/student/assignments" data-entity="Assignment">
+  <header class="header">
+    <button class="btn-ghost" data-cta-id="back" data-action="navigate" data-target="/student/dashboard">← Back</button>
+    <h1>My Assignments</h1>
+    <div></div>
+  </header>
+  
+  <div class="container">
+    <div class="filter-tabs">
+      <button class="filter-tab active">All (8)</button>
+      <button class="filter-tab">In Progress (3)</button>
+      <button class="filter-tab">Not Started (2)</button>
+      <button class="filter-tab">Completed (3)</button>
+    </div>
+    
+    <div class="assignment-card">
+      <div class="assignment-icon">📐</div>
+      <div class="assignment-info">
+        <div class="assignment-title" data-field="title">Fractions Practice</div>
+        <div class="assignment-meta">Math • 15 questions</div>
+        <div class="progress-bar" style="margin-top: 0.5rem; height: 6px;">
+          <div class="progress-fill" data-field="progress" data-format="style-width" style="width: 60%"></div>
+        </div>
+      </div>
+      <span class="assignment-due today">Due Today</span>
+      <button class="btn-primary" data-cta-id="continue-assignment" data-action="navigate" data-target="/play">Continue</button>
+    </div>
+    
+    <div class="assignment-card">
+      <div class="assignment-icon">🔬</div>
+      <div class="assignment-info">
+        <div class="assignment-title">Cell Biology Quiz</div>
+        <div class="assignment-meta">Science • 10 questions</div>
+      </div>
+      <span class="assignment-due overdue">Overdue</span>
+      <button class="btn-primary" data-cta-id="start-assignment" data-action="navigate" data-target="/play">Start</button>
+    </div>
+    
+    <div class="assignment-card">
+      <div class="assignment-icon">📖</div>
+      <div class="assignment-info">
+        <div class="assignment-title">Reading Comprehension</div>
+        <div class="assignment-meta">English • 8 questions</div>
+        <div class="progress-bar" style="margin-top: 0.5rem; height: 6px;">
+          <div class="progress-fill" style="width: 25%"></div>
+        </div>
+      </div>
+      <span class="assignment-due upcoming">Due Dec 10</span>
+      <button class="btn-secondary" data-cta-id="view-assignment" data-action="navigate" data-target="/play">Continue</button>
+    </div>
+    
+    <div class="assignment-card" style="opacity: 0.7;">
+      <div class="assignment-icon">✅</div>
+      <div class="assignment-info">
+        <div class="assignment-title">Multiplication Tables</div>
+        <div class="assignment-meta">Math • Completed Dec 3</div>
+      </div>
+      <span class="badge badge-success">100%</span>
+      <button class="btn-secondary" data-cta-id="review-assignment" data-action="navigate" data-target="/results">Review</button>
+    </div>
+  </div>
+</body>
+</html>
+
+
+

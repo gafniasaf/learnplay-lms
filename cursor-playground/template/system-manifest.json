@@ -1,0 +1,11 @@
+{
+  \"branding\": {
+    \"name\": \"{{PROJECT_NAME}}\",
+    \"tagline\": \"Describe the mission\"
+  },
+  \"data_model\": {
+    \"root_entities\": [],
+    \"child_entities\": []
+  },
+  \"agent_jobs\": []
+}

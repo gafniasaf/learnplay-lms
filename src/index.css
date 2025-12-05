@@ -1,0 +1,300 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
+All colors MUST be HSL.
+*/
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 220 20% 10%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 220 20% 10%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 220 20% 10%;
+
+    --primary: 262 70% 50%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 220 15% 96%;
+    --secondary-foreground: 220 20% 10%;
+
+    --muted: 220 15% 96%;
+    --muted-foreground: 220 10% 46%;
+
+    --accent: 340 80% 55%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 100%;
+    
+    --success: 142 76% 36%;
+    --success-foreground: 0 0% 100%;
+    
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 100%;
+
+    --border: 220 15% 90%;
+    --input: 220 15% 90%;
+    --ring: 262 70% 50%;
+
+    --radius: 0.5rem;
+    
+    --role-kids: 280 80% 60%;
+    --role-parents: 200 70% 50%;
+    --role-schools: 160 60% 45%;
+    --role-admin: 340 70% 50%;
+
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 240 5.3% 26.1%;
+    --sidebar-primary: 240 5.9% 10%;
+    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-accent: 240 4.8% 95.9%;
+    --sidebar-accent-foreground: 240 5.9% 10%;
+    --sidebar-border: 220 13% 91%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+
+  .dark {
+    --background: 220 25% 8%;
+    --foreground: 220 15% 95%;
+
+    --card: 220 20% 12%;
+    --card-foreground: 220 15% 95%;
+
+    --popover: 220 20% 12%;
+    --popover-foreground: 220 15% 95%;
+
+    --primary: 262 70% 55%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 220 20% 18%;
+    --secondary-foreground: 220 15% 95%;
+
+    --muted: 220 20% 18%;
+    --muted-foreground: 220 15% 65%;
+
+    --accent: 340 75% 55%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 62.8% 50%;
+    --destructive-foreground: 0 0% 100%;
+    
+    --success: 142 70% 45%;
+    --success-foreground: 0 0% 100%;
+    
+    --warning: 38 90% 55%;
+    --warning-foreground: 0 0% 100%;
+
+    --border: 220 20% 18%;
+    --input: 220 20% 18%;
+    --ring: 262 70% 55%;
+    
+    --role-kids: 280 75% 65%;
+    --role-parents: 200 70% 55%;
+    --role-schools: 160 60% 50%;
+    --role-admin: 340 70% 55%;
+    
+    --sidebar-background: 240 5.9% 10%;
+    --sidebar-foreground: 240 4.8% 95.9%;
+    --sidebar-primary: 224.3 76.3% 48%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 240 3.7% 15.9%;
+    --sidebar-accent-foreground: 240 4.8% 95.9%;
+    --sidebar-border: 240 3.7% 15.9%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+  }
+
+  /* Screen reader only utility */
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
+  }
+
+  /* Focus visible styles for keyboard navigation - Kid-friendly with high visibility */
+  *:focus-visible {
+    @apply outline-none ring-4 ring-primary ring-offset-4 ring-offset-background;
+    transition: box-shadow 0.2s ease-in-out;
+  }
+
+  /* Extra prominent focus for interactive game elements */
+  button:focus-visible,
+  a:focus-visible,
+  [role="button"]:focus-visible {
+    @apply ring-4 ring-primary ring-offset-4 ring-offset-background;
+    box-shadow: 0 0 0 4px hsl(var(--background)), 0 0 0 8px hsl(var(--primary)), 0 8px 16px -4px hsl(var(--primary) / 0.3);
+  }
+
+  /* Ensure touch targets are at least 44x44px (WCAG AA) */
+  button,
+  a,
+  input[type="checkbox"],
+  input[type="radio"],
+  [role="button"] {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  /* Better touch feedback with subtle animation */
+  button:active,
+  a:active,
+  [role="button"]:active {
+    @apply scale-[0.98];
+    transition: transform 0.1s ease-out;
+  }
+
+  /* Skip link styles - visible on focus for keyboard users */
+  .skip-link:focus-visible {
+    @apply fixed top-4 left-4 z-[9999] px-6 py-3 bg-primary text-primary-foreground rounded-2xl ring-4 ring-primary ring-offset-4 ring-offset-background;
+    transform: translateY(0);
+  }
+
+  /* High contrast mode support */
+  @media (prefers-contrast: high) {
+    *:focus-visible {
+      @apply ring-8 ring-offset-4;
+    }
+  }
+
+  /* Reduced motion support */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+
+  /* Course fullscreen mode styles */
+  html, body, #root {
+    height: 100%;
+  }
+
+  .course-frame {
+    position: fixed;
+    inset: 0;
+    background: hsl(var(--background));
+    color: hsl(var(--foreground));
+    padding: max(env(safe-area-inset-top), 16px) max(env(safe-area-inset-right), 16px)
+             max(env(safe-area-inset-bottom), 16px) max(env(safe-area-inset-left), 16px);
+    overflow: hidden;
+  }
+
+  .course-back {
+    position: fixed;
+    top: max(env(safe-area-inset-top), 12px);
+    left: max(env(safe-area-inset-left), 12px);
+    z-index: 50;
+    background: hsl(var(--background) / 0.95);
+    backdrop-filter: saturate(1.2) blur(10px);
+    border: 1px solid hsl(var(--border));
+    padding: 8px 16px;
+    border-radius: 10px;
+    transition: all 0.2s ease;
+  }
+
+  .course-back:hover {
+    background: hsl(var(--background));
+    border-color: hsl(var(--primary));
+    box-shadow: 0 4px 12px hsl(var(--primary) / 0.1);
+  }
+
+  .course-back:focus-visible {
+    @apply ring-4 ring-primary ring-offset-2;
+  }
+
+  .course-content {
+    height: 100%;
+    width: 100%;
+    padding-top: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    overflow: hidden;
+  }
+
+  .play-root {
+    width: 100%;
+    max-width: 1100px;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  /* Option button states for snappy feedback */
+  .option-button {
+    transition: transform 0.06s ease, background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+  }
+
+  .option-button.is-selected {
+    transform: scale(0.98);
+  }
+
+  .option-button.is-correct {
+    background-color: hsl(142 70% 50%);
+    color: white;
+    border-color: hsl(142 70% 45%);
+  }
+
+  .option-button.is-wrong {
+    background-color: hsl(var(--destructive));
+    color: hsl(var(--destructive-foreground));
+    border-color: hsl(var(--destructive));
+  }
+
+  .option-button.is-locked {
+    pointer-events: none;
+    opacity: 0.6;
+  }
+}
+
+/* Sonner Toast Styles - Ensure visibility */
+[data-sonner-toaster] {
+  position: fixed !important;
+  z-index: 999999 !important;
+  pointer-events: auto !important;
+}
+
+[data-sonner-toast] {
+  background: hsl(var(--card)) !important;
+  color: hsl(var(--card-foreground)) !important;
+  border: 1px solid hsl(var(--border)) !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+}
+
+[data-sonner-toast][data-type="success"] {
+  background: hsl(142 76% 36%) !important;
+  color: white !important;
+  border-color: hsl(142 76% 30%) !important;
+}
+
+[data-sonner-toast][data-type="error"] {
+  background: hsl(var(--destructive)) !important;
+  color: hsl(var(--destructive-foreground)) !important;
+  border-color: hsl(var(--destructive)) !important;
+}

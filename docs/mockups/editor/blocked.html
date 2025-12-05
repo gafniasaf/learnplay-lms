@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en" data-route="/plans/editor" data-state="blocked">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Configuration Required - Golden Plan Generator</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../_base.css">
+  <style>
+    .main-container { display: flex; flex: 1; overflow: hidden; }
+    .sidebar { width: 380px; background: var(--bg-secondary); border-right: 1px solid var(--border); display: flex; flex-direction: column; }
+    .sidebar-header { padding: 20px; border-bottom: 1px solid var(--border); }
+    .content { flex: 1; display: flex; align-items: center; justify-content: center; padding: 32px; }
+    .blocked-card { max-width: 500px; width: 100%; background: var(--warning-muted); border: 1px solid var(--warning); border-radius: var(--radius-lg); padding: 40px; text-align: center; }
+    .blocked-icon { width: 64px; height: 64px; color: var(--warning); margin-bottom: 24px; }
+    .blocked-card h2 { font-size: var(--text-2xl); color: var(--text-primary); margin-bottom: 12px; }
+    .blocked-card p { color: var(--text-secondary); margin-bottom: 24px; }
+    .blocked-code { display: block; padding: 16px; background: var(--bg-primary); border-radius: var(--radius-sm); font-family: 'SF Mono', monospace; font-size: var(--text-sm); color: var(--warning); text-align: left; margin-bottom: 24px; white-space: pre-wrap; }
+    .blocked-actions { display: flex; gap: 12px; justify-content: center; }
+    .chat-blocked { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 24px; text-align: center; color: var(--text-tertiary); }
+    .chat-blocked svg { width: 48px; height: 48px; margin-bottom: 16px; color: var(--warning); }
+    .chat-input-container { padding: 16px; border-top: 1px solid var(--border); }
+    .chat-input-wrapper { display: flex; align-items: center; gap: 10px; padding: 4px 4px 4px 16px; background: var(--bg-tertiary); border: 1px solid var(--border); border-radius: var(--radius-md); opacity: 0.5; }
+    .chat-input { flex: 1; padding: 10px 0; font-size: var(--text-sm); color: var(--text-primary); background: transparent; border: none; outline: none; }
+    .send-btn { width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; background: var(--bg-elevated); border: none; border-radius: var(--radius-sm); color: var(--text-disabled); cursor: not-allowed; }
+  </style>
+</head>
+<body>
+  <div class="app-fixed">
+    <header class="header" data-region="header">
+      <div class="header-left">
+        <button class="menu-btn" id="menuBtn" data-cta-id="menu-toggle" data-action="ui">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+        </button>
+        <div class="logo">
+          <svg class="logo-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"></path></svg>
+          <span class="logo-text"><span>Golden</span> Plan Generator</span>
+        </div>
+      </div>
+      <div class="header-right">
+        <button class="btn btn-primary" disabled>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+          Download Code
+        </button>
+      </div>
+    </header>
+
+    <div class="main-container">
+      <aside class="sidebar">
+        <div class="sidebar-header">
+          <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 12px;">
+            <svg style="width: 20px; height: 20px; color: var(--accent-gold);" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path></svg>
+            <h2 style="font-size: var(--text-lg); font-weight: 600;">My Plan</h2>
+          </div>
+          <div style="height: 6px; background: var(--bg-tertiary); border-radius: 3px; overflow: hidden;">
+            <div style="width: 0%; height: 100%; background: var(--warning);"></div>
+          </div>
+          <p style="font-size: var(--text-xs); color: var(--text-tertiary); margin-top: 6px;">AI Confidence: 0%</p>
+        </div>
+
+        <div class="chat-blocked">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+            <line x1="12" y1="9" x2="12" y2="13"></line>
+            <line x1="12" y1="17" x2="12.01" y2="17"></line>
+          </svg>
+          <p>AI features are blocked until configuration is complete.</p>
+        </div>
+
+        <div class="chat-input-container">
+          <div class="chat-input-wrapper">
+            <input type="text" class="chat-input" placeholder="Configuration required..." disabled>
+            <button class="send-btn" disabled>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+            </button>
+          </div>
+        </div>
+      </aside>
+
+      <main class="content" data-region="content">
+        <div class="blocked-card animate-fadeIn">
+          <svg class="blocked-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+            <line x1="12" y1="9" x2="12" y2="13"></line>
+            <line x1="12" y1="17" x2="12.01" y2="17"></line>
+          </svg>
+          <h2>Configuration Required</h2>
+          <p>The AI features are blocked because required API keys are not configured.</p>
+          <div class="blocked-code">BLOCKED: OPENAI_API_KEY is missing.
+
+Please set OPENAI_API_KEY in your Edge Function secrets to enable AI-powered plan refinement.</div>
+          <div class="blocked-actions">
+            <button class="btn btn-primary" data-cta-id="go-to-settings" data-action="navigate" data-target="/settings">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle></svg>
+              Configure Settings
+            </button>
+            <button class="btn btn-secondary" data-cta-id="back-dashboard" data-action="navigate" data-target="/dashboard">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+              Back to Dashboard
+            </button>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <!-- HAMBURGER MENU -->
+  <div class="menu-overlay" id="menuOverlay">
+    <nav class="menu-drawer">
+      <div class="menu-header">
+        <div class="logo">
+          <svg class="logo-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"></path></svg>
+          <span class="logo-text"><span>Golden</span> Plan</span>
+        </div>
+        <button class="menu-close" id="menuClose"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
+      </div>
+      <div class="menu-nav">
+        <a href="/dashboard" class="menu-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>Dashboard</a>
+        <a href="/plans/editor" class="menu-item active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>Editor</a>
+        <a href="/settings" class="menu-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle></svg>Settings</a>
+        <a href="/jobs" class="menu-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>Job History</a>
+        <a href="/help" class="menu-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>Help & Docs</a>
+      </div>
+    </nav>
+  </div>
+
+  <script>
+    const menuBtn = document.getElementById('menuBtn');
+    const menuOverlay = document.getElementById('menuOverlay');
+    const menuClose = document.getElementById('menuClose');
+    menuBtn.addEventListener('click', () => menuOverlay.classList.add('open'));
+    menuClose.addEventListener('click', () => menuOverlay.classList.remove('open'));
+    menuOverlay.addEventListener('click', (e) => { if (e.target === menuOverlay) menuOverlay.classList.remove('open'); });
+  </script>
+</body>
+</html>
+

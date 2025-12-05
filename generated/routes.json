@@ -1,0 +1,2192 @@
+[
+  {
+    "route": "/about",
+    "title": "About Dawn LMS",
+    "ctas": [
+      {
+        "id": "get-started",
+        "action": "navigate",
+        "target": "/auth"
+      }
+    ],
+    "fields": []
+  },
+  {
+    "route": "/admin/course-versions",
+    "title": "Version History",
+    "ctas": [
+      {
+        "id": "back-to-editor",
+        "action": "navigate",
+        "target": "/admin/course-editor"
+      },
+      {
+        "id": "view-diff",
+        "action": "ui"
+      },
+      {
+        "id": "restore-version",
+        "action": "ui"
+      },
+      {
+        "id": "compare-versions",
+        "action": "ui"
+      },
+      {
+        "id": "restore-version",
+        "action": "ui"
+      },
+      {
+        "id": "compare-versions",
+        "action": "ui"
+      },
+      {
+        "id": "restore-version",
+        "action": "ui"
+      },
+      {
+        "id": "compare-versions",
+        "action": "ui"
+      },
+      {
+        "id": "restore-version",
+        "action": "ui"
+      }
+    ],
+    "fields": []
+  },
+  {
+    "route": "/admin/logs",
+    "title": "System Logs",
+    "ctas": [
+      {
+        "id": "export-logs",
+        "action": "ui"
+      },
+      {
+        "id": "search-logs",
+        "action": "navigate"
+      },
+      {
+        "id": "filter-logs",
+        "action": "navigate"
+      },
+      {
+        "id": "clear-filters",
+        "action": "ui"
+      }
+    ],
+    "fields": [
+      {
+        "name": "search_query",
+        "type": "text",
+        "formId": "default"
+      },
+      {
+        "name": "filter_level",
+        "type": "text",
+        "formId": "default"
+      },
+      {
+        "name": "filter_source",
+        "type": "text",
+        "formId": "default"
+      }
+    ]
+  },
+  {
+    "route": "/admin/media-manager",
+    "title": "Media Library",
+    "ctas": [
+      {
+        "id": "generate-image",
+        "action": "enqueueJob",
+        "jobType": "generate_image"
+      },
+      {
+        "id": "upload-media",
+        "action": "ui"
+      },
+      {
+        "id": "search-media",
+        "action": "navigate"
+      },
+      {
+        "id": "filter-media",
+        "action": "navigate"
+      },
+      {
+        "id": "edit-metadata",
+        "action": "ui"
+      },
+      {
+        "id": "delete-media",
+        "action": "ui"
+      },
+      {
+        "id": "edit-metadata",
+        "action": "ui"
+      },
+      {
+        "id": "delete-media",
+        "action": "ui"
+      },
+      {
+        "id": "edit-metadata",
+        "action": "ui"
+      },
+      {
+        "id": "delete-media",
+        "action": "ui"
+      },
+      {
+        "id": "edit-metadata",
+        "action": "ui"
+      },
+      {
+        "id": "delete-media",
+        "action": "ui"
+      },
+      {
+        "id": "edit-metadata",
+        "action": "ui"
+      },
+      {
+        "id": "delete-media",
+        "action": "ui"
+      },
+      {
+        "id": "generate-audio",
+        "action": "enqueueJob",
+        "jobType": "generate_audio_tts"
+      },
+      {
+        "id": "delete-media",
+        "action": "ui"
+      }
+    ],
+    "fields": [
+      {
+        "name": "search_query",
+        "type": "text",
+        "formId": "default"
+      },
+      {
+        "name": "filter_type",
+        "type": "text",
+        "formId": "default"
+      },
+      {
+        "name": "filter_source",
+        "type": "text",
+        "formId": "default"
+      }
+    ]
+  },
+  {
+    "route": "/admin/metrics",
+    "title": "Platform Metrics",
+    "ctas": [
+      {
+        "id": "filter-metrics",
+        "action": "navigate"
+      },
+      {
+        "id": "export-metrics",
+        "action": "ui"
+      },
+      {
+        "id": "refresh-metrics",
+        "action": "ui"
+      }
+    ],
+    "fields": [
+      {
+        "name": "date_range",
+        "type": "text",
+        "formId": "default"
+      }
+    ]
+  },
+  {
+    "route": "/admin/performance",
+    "title": "Performance Monitoring",
+    "ctas": [
+      {
+        "id": "filter-performance",
+        "action": "navigate"
+      },
+      {
+        "id": "export-data",
+        "action": "ui"
+      }
+    ],
+    "fields": [
+      {
+        "name": "time_range",
+        "type": "text",
+        "formId": "default"
+      }
+    ]
+  },
+  {
+    "route": "/admin/system-health",
+    "title": "System Health",
+    "ctas": [
+      {
+        "id": "refresh-health",
+        "action": "ui"
+      },
+      {
+        "id": "run-diagnostics",
+        "action": "ui"
+      },
+      {
+        "id": "view-details",
+        "action": "navigate",
+        "target": "/admin/logs"
+      },
+      {
+        "id": "view-logs",
+        "action": "navigate",
+        "target": "/admin/logs"
+      },
+      {
+        "id": "view-metrics",
+        "action": "navigate",
+        "target": "/admin/metrics"
+      },
+      {
+        "id": "view-performance",
+        "action": "navigate",
+        "target": "/admin/performance"
+      }
+    ],
+    "fields": []
+  },
+  {
+    "route": "/admin/tag-approval",
+    "title": "Pending Tag Approvals",
+    "ctas": [
+      {
+        "id": "back-to-tags",
+        "action": "navigate",
+        "target": "/admin/tags"
+      },
+      {
+        "id": "view-details",
+        "action": "ui"
+      },
+      {
+        "id": "reject-tag",
+        "action": "ui"
+      },
+      {
+        "id": "approve-tag",
+        "action": "ui"
+      },
+      {
+        "id": "view-details",
+        "action": "ui"
+      },
+      {
+        "id": "reject-tag",
+        "action": "ui"
+      },
+      {
+        "id": "approve-tag",
+        "action": "ui"
+      },
+      {
+        "id": "view-details",
+        "action": "ui"
+      },
+      {
+        "id": "reject-tag",
+        "action": "ui"
+      },
+      {
+        "id": "approve-tag",
+        "action": "ui"
+      },
+      {
+        "id": "back-to-tags",
+        "action": "navigate",
+        "target": "/admin/tags"
+      }
+    ],
+    "fields": []
+  },
+  {
+    "route": "/admin/tags",
+    "title": "Tag Management",
+    "ctas": [
+      {
+        "id": "view-approval-queue",
+        "action": "navigate",
+        "target": "/admin/tag-approval"
+      },
+      {
+        "id": "create-tag-type",
+        "action": "ui"
+      },
+      {
+        "id": "toggle-tag-type",
+        "action": "ui"
+      },
+      {
+        "id": "edit-tag-type",
+        "action": "ui"
+      },
+      {
+        "id": "add-tag-value",
+        "action": "ui"
+      },
+      {
+        "id": "toggle-tag-type",
+        "action": "ui"
+      },
+      {
+        "id": "edit-tag-type",
+        "action": "ui"
+      },
+      {
+        "id": "add-tag-value",
+        "action": "ui"
+      },
+      {
+        "id": "toggle-tag-type",
+        "action": "ui"
+      },
+      {
+        "id": "edit-tag-type",
+        "action": "ui"
+      },
+      {
+        "id": "add-tag-value",
+        "action": "ui"
+      },
+      {
+        "id": "toggle-tag-type",
+        "action": "ui"
+      },
+      {
+        "id": "edit-tag-type",
+        "action": "ui"
+      },
+      {
+        "id": "add-tag-value",
+        "action": "ui"
+      },
+      {
+        "id": "toggle-tag-type",
+        "action": "ui"
+      },
+      {
+        "id": "delete-tag-value",
+        "action": "ui"
+      }
+    ],
+    "fields": []
+  },
+  {
+    "route": "/admin",
+    "title": "Admin Dashboard",
+    "ctas": [
+      {
+        "id": "generate-course",
+        "action": "navigate",
+        "target": "/admin/ai-pipeline"
+      },
+      {
+        "id": "view-courses",
+        "action": "navigate",
+        "target": "/admin/courses"
+      },
+      {
+        "id": "view-ai-pipeline",
+        "action": "navigate",
+        "target": "/admin/ai-pipeline"
+      },
+      {
+        "id": "view-jobs",
+        "action": "navigate",
+        "target": "/admin/jobs"
+      },
+      {
+        "id": "view-media",
+        "action": "navigate",
+        "target": "/admin/media-manager"
+      },
+      {
+        "id": "view-tags",
+        "action": "navigate",
+        "target": "/admin/tags"
+      },
+      {
+        "id": "view-health",
+        "action": "navigate",
+        "target": "/admin/system-health"
+      },
+      {
+        "id": "refresh-jobs",
+        "action": "ui"
+      },
+      {
+        "id": "view-job-details",
+        "action": "navigate",
+        "target": "/admin/jobs"
+      },
+      {
+        "id": "view-job-details",
+        "action": "navigate",
+        "target": "/admin/jobs"
+      },
+      {
+        "id": "view-job-details",
+        "action": "navigate",
+        "target": "/admin/jobs"
+      }
+    ],
+    "fields": [
+      {
+        "name": "total_courses",
+        "type": "text",
+        "formId": "default"
+      },
+      {
+        "name": "published_courses",
+        "type": "text",
+        "formId": "default"
+      },
+      {
+        "name": "jobs_running",
+        "type": "text",
+        "formId": "default"
+      },
+      {
+        "name": "active_students",
+        "type": "text",
+        "formId": "default"
+      }
+    ]
+  },
+  {
+    "route": "/admin/ai-pipeline",
+    "title": "AI Course Generation",
+    "ctas": [
+      {
+        "id": "start-generation",
+        "action": "enqueueJob",
+        "jobType": "generate_course",
+        "form": "course-generation-form"
+      },
+      {
+        "id": "cancel-generation",
+        "action": "ui"
+      },
+      {
+        "id": "edit-course",
+        "action": "navigate",
+        "target": "/admin/course-editor"
+      }
+    ],
+    "fields": [
+      {
+        "name": "title",
+        "type": "text",
+        "formId": "default"
+      },
+      {
+        "name": "subject",
+        "type": "text",
+        "formId": "default"
+      },
+      {
+        "name": "grade_level",
+        "type": "text",
+        "formId": "default"
+      },
+      {
+        "name": "description",
+        "type": "text",
+        "formId": "default"
+      }
+    ]
+  },
+  {
+    "route": "/auth/reset-password",
+    "title": "Reset Password",
+    "ctas": [
+      {
+        "id": "reset-password",
+        "action": "save",
+        "entity": "Auth",
+        "form": "reset-password-form"
+      },
+      {
+        "id": "back-to-login",
+        "action": "navigate",
+        "target": "/auth"
+      }
+    ],
+    "fields": [
+      {
+        "name": "email",
+        "type": "email",
+        "formId": "default"
+      }
+    ]
+  },
+  {
+    "route": "/auth",
+    "title": "Welcome Back",
+    "ctas": [
+      {
+        "id": "forgot-password",
+        "action": "navigate",
+        "target": "/auth/reset-password"
+      },
+      {
+        "id": "login",
+        "action": "save",
+        "entity": "Auth",
+        "form": "auth-form"
+      },
+      {
+        "id": "oauth-google",
+        "action": "ui"
+      },
+      {
+        "id": "register",
+        "action": "ui"
+      }
+    ],
+    "fields": [
+      {
+        "name": "email",
+        "type": "email",
+        "formId": "default"
+      },
+      {
+        "name": "password",
+        "type": "password",
+        "formId": "default"
+      },
+      {
+        "name": "remember_me",
+        "type": "checkbox",
+        "formId": "default"
+      }
+    ]
+  },
+  {
+    "route": "/admin/course-editor",
+    "title": "course-editor",
+    "ctas": [
+      {
+        "id": "back-to-courses",
+        "action": "navigate",
+        "target": "/admin/courses"
+      },
+      {
+        "id": "co-pilot",
+        "action": "ui"
+      },
+      {
+        "id": "auto-fix",
+        "action": "enqueueJob",
+        "jobType": "editor_auto_fix"
+      },
+      {
+        "id": "validate-course",
+        "action": "enqueueJob",
+        "jobType": "validate_course_structure"
+      },
+      {
+        "id": "save-draft",
+        "action": "save",
+        "entity": "Course",
+        "form": "course-editor-form"
+      },
+      {
+        "id": "publish-course",
+        "action": "enqueueJob",
+        "jobType": "publish_course"
+      },
+      {
+        "id": "add-module",
+        "action": "ui"
+      },
+      {
+        "id": "delete-item",
+        "action": "ui"
+      },
+      {
+        "id": "ai-rewrite",
+        "action": "enqueueJob",
+        "jobType": "ai_rewrite_text"
+      },
+      {
+        "id": "upload-media",
+        "action": "ui"
+      },
+      {
+        "id": "generate-image",
+        "action": "enqueueJob",
+        "jobType": "generate_image"
+      },
+      {
+        "id": "generate-audio",
+        "action": "enqueueJob",
+        "jobType": "generate_audio_tts"
+      },
+      {
+        "id": "add-option",
+        "action": "ui"
+      },
+      {
+        "id": "remove-option",
+        "action": "ui"
+      },
+      {
+        "id": "remove-option",
+        "action": "ui"
+      },
+      {
+        "id": "remove-option",
+        "action": "ui"
+      },
+      {
+        "id": "remove-option",
+        "action": "ui"
+      },
+      {
+        "id": "ai-rewrite",
+        "action": "enqueueJob",
+        "jobType": "ai_rewrite_text"
+      },
+      {
+        "id": "preview-mobile",
+        "action": "ui"
+      },
+      {
+        "id": "preview-desktop",
+        "action": "ui"
+      },
+      {
+        "id": "audit-variants",
+        "action": "enqueueJob",
+        "jobType": "editor_variants_audit"
+      },
+      {
+        "id": "generate-variants",
+        "action": "enqueueJob",
+        "jobType": "generate_variants"
+      },
+      {
+        "id": "view-versions",
+        "action": "navigate",
+        "target": "/admin/course-versions"
+      }
+    ],
+    "fields": [
+      {
+        "name": "title",
+        "type": "text",
+        "formId": "default"
+      },
+      {
+        "name": "item_type",
+        "type": "text",
+        "formId": "default"
+      },
+      {
+        "name": "stem",
+        "type": "text",
+        "formId": "default"
+      },
+      {
+        "name": "option_0",
+        "type": "text",
+        "formId": "default"
+      },
+      {
+        "name": "option_1",
+        "type": "text",
+        "formId": "default"
+      },
+      {
+        "name": "option_2",
+        "type": "text",
+        "formId": "default"
+      },
+      {
+        "name": "option_3",
+        "type": "text",
+        "formId": "default"
+      },
+      {
+        "name": "reference",
+        "type": "text",
+        "formId": "default"
+      }
+    ]
+  },
+  {
+    "route": "/admin/courses",
+    "title": "Course Catalog",
+    "ctas": [
+      {
+        "id": "filter-courses",
+        "action": "ui"
+      },
+      {
+        "id": "create-course",
+        "action": "navigate",
+        "target": "/admin/ai-pipeline"
+      },
+      {
+        "id": "search-courses",
+        "action": "navigate"
+      },
+      {
+        "id": "edit-course",
+        "action": "navigate",
+        "target": "/admin/course-editor"
+      },
+      {
+        "id": "delete-course",
+        "action": "ui"
+      },
+      {
+        "id": "edit-course",
+        "action": "navigate",
+        "target": "/admin/course-editor"
+      },
+      {
+        "id": "delete-course",
+        "action": "ui"
+      },
+      {
+        "id": "edit-course",
+        "action": "navigate",
+        "target": "/admin/course-editor"
+      },
+      {
+        "id": "delete-course",
+        "action": "ui"
+      },
+      {
+        "id": "edit-course",
+        "action": "navigate",
+        "target": "/admin/course-editor"
+      },
+      {
+        "id": "delete-course",
+        "action": "ui"
+      }
+    ],
+    "fields": [
+      {
+        "name": "search_query",
+        "type": "text",
+        "formId": "default"
+      },
+      {
+        "name": "filter_subject",
+        "type": "text",
+        "formId": "default"
+      },
+      {
+        "name": "filter_grade",
+        "type": "text",
+        "formId": "default"
+      },
+      {
+        "name": "filter_status",
+        "type": "text",
+        "formId": "default"
+      }
+    ]
+  },
+  {
+    "route": "/docs/integration-guide",
+    "title": "Integration Guide",
+    "ctas": [
+      {
+        "id": "view-api",
+        "action": "ui"
+      },
+      {
+        "id": "download-sdk",
+        "action": "ui"
+      },
+      {
+        "id": "copy-code",
+        "action": "ui"
+      },
+      {
+        "id": "copy-code",
+        "action": "ui"
+      },
+      {
+        "id": "copy-code",
+        "action": "ui"
+      }
+    ],
+    "fields": []
+  },
+  {
+    "route": "/help",
+    "title": "How can we help?",
+    "ctas": [
+      {
+        "id": "search-help",
+        "action": "ui"
+      },
+      {
+        "id": "view-docs",
+        "action": "navigate",
+        "target": "/docs/integration-guide"
+      },
+      {
+        "id": "contact-support",
+        "action": "navigate",
+        "target": "/messages/inbox"
+      }
+    ],
+    "fields": []
+  },
+  {
+    "route": "/admin/jobs",
+    "title": "AI Job Queue",
+    "ctas": [
+      {
+        "id": "refresh-jobs",
+        "action": "ui"
+      },
+      {
+        "id": "view-ai-pipeline",
+        "action": "navigate",
+        "target": "/admin/ai-pipeline"
+      },
+      {
+        "id": "filter-jobs",
+        "action": "ui"
+      },
+      {
+        "id": "clear-filters",
+        "action": "ui"
+      },
+      {
+        "id": "view-job-details",
+        "action": "ui"
+      },
+      {
+        "id": "cancel-job",
+        "action": "ui"
+      },
+      {
+        "id": "view-job-details",
+        "action": "ui"
+      },
+      {
+        "id": "cancel-job",
+        "action": "ui"
+      },
+      {
+        "id": "view-job-details",
+        "action": "ui"
+      },
+      {
+        "id": "view-job-details",
+        "action": "ui"
+      },
+      {
+        "id": "retry-job",
+        "action": "enqueueJob",
+        "jobType": "generate_course"
+      },
+      {
+        "id": "cancel-job",
+        "action": "ui"
+      }
+    ],
+    "fields": [
+      {
+        "name": "running_count",
+        "type": "text",
+        "formId": "default"
+      },
+      {
+        "name": "queued_count",
+        "type": "text",
+        "formId": "default"
+      },
+      {
+        "name": "completed_count",
+        "type": "text",
+        "formId": "default"
+      },
+      {
+        "name": "failed_count",
+        "type": "text",
+        "formId": "default"
+      },
+      {
+        "name": "filter_status",
+        "type": "text",
+        "formId": "default"
+      },
+      {
+        "name": "filter_type",
+        "type": "text",
+        "formId": "default"
+      }
+    ]
+  },
+  {
+    "route": "/kids",
+    "title": "Kids Zone",
+    "ctas": [
+      {
+        "id": "start-learning",
+        "action": "navigate",
+        "target": "/student/dashboard"
+      },
+      {
+        "id": "login",
+        "action": "navigate",
+        "target": "/auth"
+      },
+      {
+        "id": "register",
+        "action": "navigate",
+        "target": "/auth"
+      },
+      {
+        "id": "join-class",
+        "action": "navigate",
+        "target": "/student/join-class"
+      }
+    ],
+    "fields": []
+  },
+  {
+    "route": "/",
+    "title": "landing",
+    "ctas": [
+      {
+        "id": "view-about",
+        "action": "navigate",
+        "target": "/about"
+      },
+      {
+        "id": "view-help",
+        "action": "navigate",
+        "target": "/help"
+      },
+      {
+        "id": "login",
+        "action": "navigate",
+        "target": "/auth"
+      },
+      {
+        "id": "portal-kids",
+        "action": "navigate",
+        "target": "/kids"
+      },
+      {
+        "id": "portal-parents",
+        "action": "navigate",
+        "target": "/parents"
+      },
+      {
+        "id": "portal-schools",
+        "action": "navigate",
+        "target": "/schools"
+      }
+    ],
+    "fields": []
+  },
+  {
+    "route": "/messages/inbox",
+    "title": "Messages",
+    "ctas": [
+      {
+        "id": "compose-message",
+        "action": "ui"
+      },
+      {
+        "id": "view-thread",
+        "action": "ui"
+      },
+      {
+        "id": "view-thread",
+        "action": "ui"
+      },
+      {
+        "id": "view-thread",
+        "action": "ui"
+      },
+      {
+        "id": "reply-message",
+        "action": "save",
+        "entity": "Message",
+        "form": "reply-form"
+      }
+    ],
+    "fields": [
+      {
+        "name": "search_query",
+        "type": "text",
+        "formId": "default"
+      },
+      {
+        "name": "message_content",
+        "type": "text",
+        "formId": "default"
+      }
+    ]
+  },
+  {
+    "route": "/parent/dashboard",
+    "title": "Family Dashboard",
+    "ctas": [
+      {
+        "id": "link-child",
+        "action": "navigate",
+        "target": "/parent/link-child"
+      },
+      {
+        "id": "view-goals",
+        "action": "navigate",
+        "target": "/parent/goals"
+      },
+      {
+        "id": "view-subjects",
+        "action": "navigate",
+        "target": "/parent/subjects"
+      },
+      {
+        "id": "view-timeline",
+        "action": "navigate",
+        "target": "/parent/timeline"
+      },
+      {
+        "id": "view-goals",
+        "action": "navigate",
+        "target": "/parent/goals"
+      },
+      {
+        "id": "view-subjects",
+        "action": "navigate",
+        "target": "/parent/subjects"
+      },
+      {
+        "id": "view-timeline",
+        "action": "navigate",
+        "target": "/parent/timeline"
+      },
+      {
+        "id": "link-child",
+        "action": "navigate",
+        "target": "/parent/link-child"
+      },
+      {
+        "id": "contact-teacher",
+        "action": "navigate",
+        "target": "/messages/inbox"
+      }
+    ],
+    "fields": [
+      {
+        "name": "child_name",
+        "type": "text",
+        "formId": "default"
+      }
+    ]
+  },
+  {
+    "route": "/parent/goals",
+    "title": "Learning Goals",
+    "ctas": [
+      {
+        "id": "back-to-dashboard",
+        "action": "navigate",
+        "target": "/parent/dashboard"
+      },
+      {
+        "id": "adjust-goal",
+        "action": "ui"
+      },
+      {
+        "id": "view-history",
+        "action": "ui"
+      }
+    ],
+    "fields": [
+      {
+        "name": "selected_child",
+        "type": "text",
+        "formId": "default"
+      }
+    ]
+  },
+  {
+    "route": "/parent/link-child",
+    "title": "Link Your Child",
+    "ctas": [
+      {
+        "id": "link-child",
+        "action": "save",
+        "entity": "StudentProfile",
+        "form": "link-child-form"
+      },
+      {
+        "id": "cancel",
+        "action": "navigate",
+        "target": "/parent/dashboard"
+      },
+      {
+        "id": "link-another",
+        "action": "ui"
+      }
+    ],
+    "fields": [
+      {
+        "name": "child_code",
+        "type": "text",
+        "formId": "default"
+      }
+    ]
+  },
+  {
+    "route": "/parent/subjects",
+    "title": "Subject Progress",
+    "ctas": [
+      {
+        "id": "back-to-dashboard",
+        "action": "navigate",
+        "target": "/parent/dashboard"
+      },
+      {
+        "id": "view-topics",
+        "action": "navigate",
+        "target": "/parent/topics"
+      },
+      {
+        "id": "view-topics",
+        "action": "navigate",
+        "target": "/parent/topics"
+      },
+      {
+        "id": "view-details",
+        "action": "navigate",
+        "target": "/parent/topics"
+      }
+    ],
+    "fields": [
+      {
+        "name": "selected_child",
+        "type": "text",
+        "formId": "default"
+      }
+    ]
+  },
+  {
+    "route": "/parent/timeline",
+    "title": "Activity Timeline",
+    "ctas": [
+      {
+        "id": "filter-timeline",
+        "action": "navigate"
+      },
+      {
+        "id": "back-to-dashboard",
+        "action": "navigate",
+        "target": "/parent/dashboard"
+      },
+      {
+        "id": "view-session",
+        "action": "ui"
+      },
+      {
+        "id": "view-session",
+        "action": "ui"
+      },
+      {
+        "id": "load-more",
+        "action": "ui"
+      }
+    ],
+    "fields": [
+      {
+        "name": "selected_child",
+        "type": "text",
+        "formId": "default"
+      }
+    ]
+  },
+  {
+    "route": "/parent/topics",
+    "title": "Mathematics Skills",
+    "ctas": [
+      {
+        "id": "back-to-subjects",
+        "action": "navigate",
+        "target": "/parent/subjects"
+      },
+      {
+        "id": "view-skills",
+        "action": "ui"
+      }
+    ],
+    "fields": []
+  },
+  {
+    "route": "/parents",
+    "title": "Parents Portal",
+    "ctas": [
+      {
+        "id": "get-started",
+        "action": "navigate",
+        "target": "/parent/dashboard"
+      },
+      {
+        "id": "login",
+        "action": "navigate",
+        "target": "/auth"
+      },
+      {
+        "id": "register",
+        "action": "navigate",
+        "target": "/auth"
+      },
+      {
+        "id": "link-child",
+        "action": "navigate",
+        "target": "/parent/link-child"
+      }
+    ],
+    "fields": []
+  },
+  {
+    "route": "/play/welcome",
+    "title": "Multiplication Practice",
+    "ctas": [
+      {
+        "id": "start-session",
+        "action": "navigate",
+        "target": "/play"
+      },
+      {
+        "id": "view-objectives",
+        "action": "ui"
+      },
+      {
+        "id": "back-to-dashboard",
+        "action": "navigate",
+        "target": "/student/dashboard"
+      }
+    ],
+    "fields": [
+      {
+        "name": "title",
+        "type": "text",
+        "formId": "default"
+      },
+      {
+        "name": "description",
+        "type": "text",
+        "formId": "default"
+      },
+      {
+        "name": "question_count",
+        "type": "text",
+        "formId": "default"
+      },
+      {
+        "name": "estimated_time",
+        "type": "text",
+        "formId": "default"
+      },
+      {
+        "name": "best_score",
+        "type": "text",
+        "formId": "default"
+      }
+    ]
+  },
+  {
+    "route": "/play",
+    "title": "play",
+    "ctas": [
+      {
+        "id": "exit-session",
+        "action": "navigate",
+        "target": "/student/dashboard"
+      },
+      {
+        "id": "select-option",
+        "action": "ui"
+      },
+      {
+        "id": "select-option",
+        "action": "ui"
+      },
+      {
+        "id": "select-option",
+        "action": "ui"
+      },
+      {
+        "id": "select-option",
+        "action": "ui"
+      },
+      {
+        "id": "request-hint",
+        "action": "enqueueJob",
+        "jobType": "generate_hint"
+      },
+      {
+        "id": "skip-question",
+        "action": "ui"
+      },
+      {
+        "id": "next-question",
+        "action": "ui"
+      },
+      {
+        "id": "play-audio",
+        "action": "ui"
+      }
+    ],
+    "fields": [
+      {
+        "name": "assignment_title",
+        "type": "text",
+        "formId": "default"
+      },
+      {
+        "name": "assignment_subject",
+        "type": "text",
+        "formId": "default"
+      },
+      {
+        "name": "current_question",
+        "type": "text",
+        "formId": "default"
+      },
+      {
+        "name": "total_questions",
+        "type": "text",
+        "formId": "default"
+      },
+      {
+        "name": "session_progress",
+        "type": "text",
+        "formId": "default"
+      },
+      {
+        "name": "correct_count",
+        "type": "text",
+        "formId": "default"
+      },
+      {
+        "name": "incorrect_count",
+        "type": "text",
+        "formId": "default"
+      },
+      {
+        "name": "stem",
+        "type": "text",
+        "formId": "default"
+      },
+      {
+        "name": "stem_media",
+        "type": "text",
+        "formId": "default"
+      },
+      {
+        "name": "option_0",
+        "type": "text",
+        "formId": "default"
+      },
+      {
+        "name": "option_1",
+        "type": "text",
+        "formId": "default"
+      },
+      {
+        "name": "option_2",
+        "type": "text",
+        "formId": "default"
+      },
+      {
+        "name": "option_3",
+        "type": "text",
+        "formId": "default"
+      },
+      {
+        "name": "hint_text",
+        "type": "text",
+        "formId": "default"
+      },
+      {
+        "name": "explanation",
+        "type": "text",
+        "formId": "default"
+      }
+    ]
+  },
+  {
+    "route": "/results",
+    "title": "Great Job!",
+    "ctas": [
+      {
+        "id": "view-details",
+        "action": "ui"
+      },
+      {
+        "id": "share-results",
+        "action": "ui"
+      },
+      {
+        "id": "retry-session",
+        "action": "navigate",
+        "target": "/play"
+      },
+      {
+        "id": "back-to-dashboard",
+        "action": "navigate",
+        "target": "/student/dashboard"
+      },
+      {
+        "id": "next-assignment",
+        "action": "navigate",
+        "target": "/play"
+      }
+    ],
+    "fields": [
+      {
+        "name": "score",
+        "type": "text",
+        "formId": "default"
+      },
+      {
+        "name": "correct_count",
+        "type": "text",
+        "formId": "default"
+      },
+      {
+        "name": "incorrect_count",
+        "type": "text",
+        "formId": "default"
+      },
+      {
+        "name": "time_spent",
+        "type": "text",
+        "formId": "default"
+      }
+    ]
+  },
+  {
+    "route": "/schools",
+    "title": "Schools Portal",
+    "ctas": [
+      {
+        "id": "get-started",
+        "action": "navigate",
+        "target": "/teacher/dashboard"
+      },
+      {
+        "id": "login",
+        "action": "navigate",
+        "target": "/auth"
+      },
+      {
+        "id": "register",
+        "action": "navigate",
+        "target": "/auth"
+      },
+      {
+        "id": "admin-access",
+        "action": "navigate",
+        "target": "/admin"
+      }
+    ],
+    "fields": []
+  },
+  {
+    "route": "/student/achievements",
+    "title": "My Achievements",
+    "ctas": [
+      {
+        "id": "back-to-dashboard",
+        "action": "navigate",
+        "target": "/student/dashboard"
+      },
+      {
+        "id": "view-badge",
+        "action": "ui"
+      },
+      {
+        "id": "view-badge",
+        "action": "ui"
+      },
+      {
+        "id": "view-badge",
+        "action": "ui"
+      },
+      {
+        "id": "view-badge",
+        "action": "ui"
+      },
+      {
+        "id": "view-badge",
+        "action": "ui"
+      },
+      {
+        "id": "view-badge",
+        "action": "ui"
+      },
+      {
+        "id": "share-achievement",
+        "action": "ui"
+      }
+    ],
+    "fields": [
+      {
+        "name": "total_badges",
+        "type": "text",
+        "formId": "default"
+      },
+      {
+        "name": "best_streak",
+        "type": "text",
+        "formId": "default"
+      },
+      {
+        "name": "total_stars",
+        "type": "text",
+        "formId": "default"
+      }
+    ]
+  },
+  {
+    "route": "/student/assignments",
+    "title": "My Assignments",
+    "ctas": [
+      {
+        "id": "back-to-dashboard",
+        "action": "navigate",
+        "target": "/student/dashboard"
+      },
+      {
+        "id": "resume-assignment",
+        "action": "navigate",
+        "target": "/play"
+      },
+      {
+        "id": "start-assignment",
+        "action": "navigate",
+        "target": "/play"
+      },
+      {
+        "id": "start-assignment",
+        "action": "navigate",
+        "target": "/play"
+      },
+      {
+        "id": "view-details",
+        "action": "navigate",
+        "target": "/results"
+      }
+    ],
+    "fields": [
+      {
+        "name": "title",
+        "type": "text",
+        "formId": "default"
+      }
+    ]
+  },
+  {
+    "route": "/student/dashboard",
+    "title": "student-dashboard",
+    "ctas": [
+      {
+        "id": "resume-session",
+        "action": "navigate",
+        "target": "/play"
+      },
+      {
+        "id": "view-assignments",
+        "action": "navigate",
+        "target": "/student/assignments"
+      },
+      {
+        "id": "view-goals",
+        "action": "navigate",
+        "target": "/student/goals"
+      },
+      {
+        "id": "view-achievements",
+        "action": "navigate",
+        "target": "/student/achievements"
+      },
+      {
+        "id": "view-timeline",
+        "action": "navigate",
+        "target": "/student/timeline"
+      }
+    ],
+    "fields": [
+      {
+        "name": "full_name",
+        "type": "text",
+        "formId": "default"
+      },
+      {
+        "name": "streak_days",
+        "type": "text",
+        "formId": "default"
+      },
+      {
+        "name": "weekly_progress",
+        "type": "text",
+        "formId": "default"
+      },
+      {
+        "name": "weekly_progress_percent",
+        "type": "text",
+        "formId": "default"
+      },
+      {
+        "name": "correct_today",
+        "type": "text",
+        "formId": "default"
+      },
+      {
+        "name": "skills_mastered",
+        "type": "text",
+        "formId": "default"
+      },
+      {
+        "name": "badges_count",
+        "type": "text",
+        "formId": "default"
+      },
+      {
+        "name": "assignment_title",
+        "type": "text",
+        "formId": "default"
+      },
+      {
+        "name": "assignment_subject",
+        "type": "text",
+        "formId": "default"
+      },
+      {
+        "name": "assignment_progress",
+        "type": "text",
+        "formId": "default"
+      },
+      {
+        "name": "assignment_due",
+        "type": "text",
+        "formId": "default"
+      }
+    ]
+  },
+  {
+    "route": "/student/goals",
+    "title": "My Goals",
+    "ctas": [
+      {
+        "id": "back-to-dashboard",
+        "action": "navigate",
+        "target": "/student/dashboard"
+      },
+      {
+        "id": "adjust-goal",
+        "action": "ui"
+      },
+      {
+        "id": "start-learning",
+        "action": "navigate",
+        "target": "/play"
+      },
+      {
+        "id": "set-goal",
+        "action": "ui"
+      },
+      {
+        "id": "view-history",
+        "action": "ui"
+      }
+    ],
+    "fields": [
+      {
+        "name": "weekly_current",
+        "type": "text",
+        "formId": "default"
+      },
+      {
+        "name": "weekly_target",
+        "type": "text",
+        "formId": "default"
+      },
+      {
+        "name": "weekly_percent",
+        "type": "text",
+        "formId": "default"
+      }
+    ]
+  },
+  {
+    "route": "/student/join-class",
+    "title": "Join a Class",
+    "ctas": [
+      {
+        "id": "join-class",
+        "action": "save",
+        "entity": "Class",
+        "form": "join-class-form"
+      },
+      {
+        "id": "back-to-dashboard",
+        "action": "navigate",
+        "target": "/student/dashboard"
+      }
+    ],
+    "fields": [
+      {
+        "name": "class_code",
+        "type": "text",
+        "formId": "default"
+      }
+    ]
+  },
+  {
+    "route": "/student/timeline",
+    "title": "Activity Timeline",
+    "ctas": [
+      {
+        "id": "filter-timeline",
+        "action": "navigate"
+      },
+      {
+        "id": "back-to-dashboard",
+        "action": "navigate",
+        "target": "/student/dashboard"
+      },
+      {
+        "id": "view-session",
+        "action": "navigate",
+        "target": "/results"
+      },
+      {
+        "id": "view-session",
+        "action": "navigate",
+        "target": "/results"
+      },
+      {
+        "id": "load-more",
+        "action": "ui"
+      }
+    ],
+    "fields": [
+      {
+        "name": "filter_period",
+        "type": "text",
+        "formId": "default"
+      }
+    ]
+  },
+  {
+    "route": "/teacher/analytics",
+    "title": "Analytics Dashboard",
+    "ctas": [
+      {
+        "id": "filter-analytics",
+        "action": "navigate"
+      },
+      {
+        "id": "export-analytics",
+        "action": "ui"
+      },
+      {
+        "id": "export-gradebook",
+        "action": "ui"
+      },
+      {
+        "id": "back-to-dashboard",
+        "action": "navigate",
+        "target": "/teacher/dashboard"
+      }
+    ],
+    "fields": [
+      {
+        "name": "date_range",
+        "type": "text",
+        "formId": "default"
+      }
+    ]
+  },
+  {
+    "route": "/teacher/assignment-progress",
+    "title": "Multiplication Practice",
+    "ctas": [
+      {
+        "id": "back-to-assignments",
+        "action": "navigate",
+        "target": "/teacher/assignments"
+      },
+      {
+        "id": "export-data",
+        "action": "ui"
+      },
+      {
+        "id": "send-reminder",
+        "action": "ui"
+      },
+      {
+        "id": "view-student",
+        "action": "ui"
+      },
+      {
+        "id": "view-student",
+        "action": "ui"
+      },
+      {
+        "id": "view-student",
+        "action": "ui"
+      },
+      {
+        "id": "send-reminder",
+        "action": "ui"
+      }
+    ],
+    "fields": [
+      {
+        "name": "filter_status",
+        "type": "text",
+        "formId": "default"
+      }
+    ]
+  },
+  {
+    "route": "/teacher/assignments",
+    "title": "Assignments",
+    "ctas": [
+      {
+        "id": "ai-recommend",
+        "action": "ui"
+      },
+      {
+        "id": "create-assignment",
+        "action": "ui"
+      },
+      {
+        "id": "view-progress",
+        "action": "navigate",
+        "target": "/teacher/assignment-progress"
+      },
+      {
+        "id": "edit-assignment",
+        "action": "ui"
+      },
+      {
+        "id": "delete-assignment",
+        "action": "ui"
+      },
+      {
+        "id": "view-progress",
+        "action": "navigate",
+        "target": "/teacher/assignment-progress"
+      },
+      {
+        "id": "edit-assignment",
+        "action": "ui"
+      },
+      {
+        "id": "delete-assignment",
+        "action": "ui"
+      },
+      {
+        "id": "edit-assignment",
+        "action": "ui"
+      },
+      {
+        "id": "delete-assignment",
+        "action": "ui"
+      },
+      {
+        "id": "back-to-dashboard",
+        "action": "navigate",
+        "target": "/teacher/dashboard"
+      }
+    ],
+    "fields": []
+  },
+  {
+    "route": "/teacher/class-progress",
+    "title": "Class Progress",
+    "ctas": [
+      {
+        "id": "export-data",
+        "action": "ui"
+      },
+      {
+        "id": "back-to-classes",
+        "action": "navigate",
+        "target": "/teacher/classes"
+      },
+      {
+        "id": "view-skill-gaps",
+        "action": "ui"
+      },
+      {
+        "id": "view-student",
+        "action": "ui"
+      },
+      {
+        "id": "view-student",
+        "action": "ui"
+      }
+    ],
+    "fields": [
+      {
+        "name": "selected_class",
+        "type": "text",
+        "formId": "default"
+      },
+      {
+        "name": "sort_by",
+        "type": "text",
+        "formId": "default"
+      }
+    ]
+  },
+  {
+    "route": "/teacher/classes",
+    "title": "My Classes",
+    "ctas": [
+      {
+        "id": "back-to-dashboard",
+        "action": "navigate",
+        "target": "/teacher/dashboard"
+      },
+      {
+        "id": "create-class",
+        "action": "ui"
+      },
+      {
+        "id": "copy-code",
+        "action": "ui"
+      },
+      {
+        "id": "view-roster",
+        "action": "navigate",
+        "target": "/teacher/students"
+      },
+      {
+        "id": "edit-class",
+        "action": "ui"
+      },
+      {
+        "id": "generate-code",
+        "action": "ui"
+      },
+      {
+        "id": "copy-code",
+        "action": "ui"
+      },
+      {
+        "id": "view-roster",
+        "action": "navigate",
+        "target": "/teacher/students"
+      },
+      {
+        "id": "edit-class",
+        "action": "ui"
+      },
+      {
+        "id": "generate-code",
+        "action": "ui"
+      },
+      {
+        "id": "copy-code",
+        "action": "ui"
+      },
+      {
+        "id": "view-roster",
+        "action": "navigate",
+        "target": "/teacher/students"
+      },
+      {
+        "id": "edit-class",
+        "action": "ui"
+      },
+      {
+        "id": "delete-class",
+        "action": "ui"
+      },
+      {
+        "id": "create-class",
+        "action": "ui"
+      }
+    ],
+    "fields": []
+  },
+  {
+    "route": "/teacher/dashboard",
+    "title": "Welcome, Mrs. Johnson!",
+    "ctas": [
+      {
+        "id": "create-assignment",
+        "action": "navigate",
+        "target": "/teacher/assignments"
+      },
+      {
+        "id": "view-classes",
+        "action": "navigate",
+        "target": "/teacher/classes"
+      },
+      {
+        "id": "view-roster",
+        "action": "navigate",
+        "target": "/teacher/students"
+      },
+      {
+        "id": "view-roster",
+        "action": "navigate",
+        "target": "/teacher/students"
+      },
+      {
+        "id": "view-roster",
+        "action": "navigate",
+        "target": "/teacher/students"
+      },
+      {
+        "id": "view-assignments",
+        "action": "navigate",
+        "target": "/teacher/assignments"
+      },
+      {
+        "id": "view-analytics",
+        "action": "navigate",
+        "target": "/teacher/analytics"
+      },
+      {
+        "id": "view-progress",
+        "action": "navigate",
+        "target": "/teacher/class-progress"
+      },
+      {
+        "id": "view-progress",
+        "action": "navigate",
+        "target": "/teacher/class-progress"
+      },
+      {
+        "id": "send-reminder",
+        "action": "ui"
+      }
+    ],
+    "fields": [
+      {
+        "name": "total_students",
+        "type": "text",
+        "formId": "default"
+      },
+      {
+        "name": "completed_today",
+        "type": "text",
+        "formId": "default"
+      },
+      {
+        "name": "active_assignments",
+        "type": "text",
+        "formId": "default"
+      },
+      {
+        "name": "class_average",
+        "type": "text",
+        "formId": "default"
+      }
+    ]
+  },
+  {
+    "route": "/teacher/students",
+    "title": "Student Roster",
+    "ctas": [
+      {
+        "id": "back-to-dashboard",
+        "action": "navigate",
+        "target": "/teacher/dashboard"
+      },
+      {
+        "id": "add-student",
+        "action": "ui"
+      },
+      {
+        "id": "invite-student",
+        "action": "ui"
+      },
+      {
+        "id": "view-progress",
+        "action": "navigate",
+        "target": "/teacher/class-progress"
+      },
+      {
+        "id": "remove-student",
+        "action": "ui"
+      },
+      {
+        "id": "view-progress",
+        "action": "navigate",
+        "target": "/teacher/class-progress"
+      },
+      {
+        "id": "remove-student",
+        "action": "ui"
+      },
+      {
+        "id": "view-progress",
+        "action": "navigate",
+        "target": "/teacher/class-progress"
+      },
+      {
+        "id": "remove-student",
+        "action": "ui"
+      },
+      {
+        "id": "send-reminder",
+        "action": "ui"
+      },
+      {
+        "id": "remove-student",
+        "action": "ui"
+      }
+    ],
+    "fields": [
+      {
+        "name": "selected_class",
+        "type": "text",
+        "formId": "default"
+      },
+      {
+        "name": "search_query",
+        "type": "text",
+        "formId": "default"
+      },
+      {
+        "name": "filter_status",
+        "type": "text",
+        "formId": "default"
+      }
+    ]
+  }
+]

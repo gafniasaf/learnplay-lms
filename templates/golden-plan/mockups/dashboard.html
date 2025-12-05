@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Dashboard</title>
+  <link rel="stylesheet" href="_design-system.css">
+</head>
+<body data-route="/dashboard" data-entity="[EntityName]">
+  <header>
+    <h1>Dashboard</h1>
+    <button 
+      data-cta-id="create-new" 
+      data-action="navigate" 
+      data-target="/items/new"
+      class="btn-primary"
+    >
+      + New Item
+    </button>
+  </header>
+  
+  <main>
+    <!-- KPI Cards -->
+    <section class="kpi-row">
+      <div class="kpi-card">
+        <span class="kpi-label">Total Items</span>
+        <span class="kpi-value" data-field="total_count">0</span>
+      </div>
+      <div class="kpi-card">
+        <span class="kpi-label">Active</span>
+        <span class="kpi-value" data-field="active_count">0</span>
+      </div>
+      <div class="kpi-card">
+        <span class="kpi-label">Draft</span>
+        <span class="kpi-value" data-field="draft_count">0</span>
+      </div>
+    </section>
+    
+    <!-- Recent Items List -->
+    <section class="card">
+      <h2>Recent Items</h2>
+      <ul class="item-list" data-list="recent_items">
+        <li class="item-row">
+          <span data-field="title">Sample Item</span>
+          <span data-field="status" class="badge">Active</span>
+          <button 
+            data-cta-id="view-item" 
+            data-action="navigate" 
+            data-target="/items/{id}"
+          >
+            View
+          </button>
+        </li>
+      </ul>
+      
+      <div class="empty-state" data-state="empty">
+        <p>No items yet. Create your first one!</p>
+        <button 
+          data-cta-id="create-first" 
+          data-action="navigate" 
+          data-target="/items/new"
+        >
+          Create Item
+        </button>
+      </div>
+    </section>
+  </main>
+</body>
+</html>
+
+
+

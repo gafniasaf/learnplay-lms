@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Activity Timeline - LearnPlay</title>
+  <link rel="stylesheet" href="../_base.css">
+  <style>
+    .timeline-container { padding: 0; }
+    .timeline-day {
+      margin-bottom: 2rem;
+    }
+    .day-header {
+      font-weight: 600;
+      color: var(--color-text-muted);
+      font-size: 0.875rem;
+      margin-bottom: 0.75rem;
+      padding-left: 3rem;
+    }
+    .timeline-item {
+      display: flex;
+      gap: 1rem;
+      padding: 1rem;
+      background: var(--color-surface);
+      border-radius: var(--radius);
+      margin-bottom: 0.5rem;
+      box-shadow: var(--shadow);
+    }
+    .timeline-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.25rem;
+      flex-shrink: 0;
+    }
+    .timeline-icon.correct { background: #dcfce7; }
+    .timeline-icon.session { background: #dbeafe; }
+    .timeline-icon.goal { background: #fef3c7; }
+    .timeline-icon.badge { background: #f3e8ff; }
+    .timeline-content { flex: 1; }
+    .timeline-title { font-weight: 500; }
+    .timeline-meta { font-size: 0.875rem; color: var(--color-text-muted); margin-top: 0.25rem; }
+    .timeline-time { font-size: 0.75rem; color: var(--color-text-muted); }
+  </style>
+</head>
+<body data-route="/student/timeline" data-entity="SessionEvent">
+  <header class="header">
+    <button class="btn-ghost" data-cta-id="back" data-action="navigate" data-target="/student/dashboard">← Back</button>
+    <h1>Activity</h1>
+    <div></div>
+  </header>
+  
+  <div class="container timeline-container">
+    <div class="timeline-day">
+      <div class="day-header">Today</div>
+      
+      <div class="timeline-item">
+        <div class="timeline-icon session">📚</div>
+        <div class="timeline-content">
+          <div class="timeline-title">Completed Fractions Practice</div>
+          <div class="timeline-meta">Math • Score: 8/10 (80%)</div>
+        </div>
+        <div class="timeline-time">2:30 PM</div>
+      </div>
+      
+      <div class="timeline-item">
+        <div class="timeline-icon goal">🎯</div>
+        <div class="timeline-content">
+          <div class="timeline-title">Weekly goal progress</div>
+          <div class="timeline-meta">45/60 minutes completed</div>
+        </div>
+        <div class="timeline-time">2:30 PM</div>
+      </div>
+    </div>
+    
+    <div class="timeline-day">
+      <div class="day-header">Yesterday</div>
+      
+      <div class="timeline-item">
+        <div class="timeline-icon badge">🏆</div>
+        <div class="timeline-content">
+          <div class="timeline-title">Earned "Perfect Score" badge</div>
+          <div class="timeline-meta">100% on Multiplication Tables</div>
+        </div>
+        <div class="timeline-time">4:15 PM</div>
+      </div>
+      
+      <div class="timeline-item">
+        <div class="timeline-icon session">📚</div>
+        <div class="timeline-content">
+          <div class="timeline-title">Completed Multiplication Tables</div>
+          <div class="timeline-meta">Math • Score: 12/12 (100%)</div>
+        </div>
+        <div class="timeline-time">4:15 PM</div>
+      </div>
+      
+      <div class="timeline-item">
+        <div class="timeline-icon session">📚</div>
+        <div class="timeline-content">
+          <div class="timeline-title">Started Reading Comprehension</div>
+          <div class="timeline-meta">English • 2/8 questions</div>
+        </div>
+        <div class="timeline-time">3:00 PM</div>
+      </div>
+    </div>
+    
+    <div class="timeline-day">
+      <div class="day-header">December 3</div>
+      
+      <div class="timeline-item">
+        <div class="timeline-icon goal">⭐</div>
+        <div class="timeline-content">
+          <div class="timeline-title">Met weekly goal!</div>
+          <div class="timeline-meta">62 minutes this week</div>
+        </div>
+        <div class="timeline-time">5:00 PM</div>
+      </div>
+      
+      <div class="timeline-item">
+        <div class="timeline-icon session">📚</div>
+        <div class="timeline-content">
+          <div class="timeline-title">Completed Cell Biology Quiz</div>
+          <div class="timeline-meta">Science • Score: 7/10 (70%)</div>
+        </div>
+        <div class="timeline-time">4:30 PM</div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
+
+
+

@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Subjects - Parent View - LearnPlay</title>
+  <link rel="stylesheet" href="../_base.css">
+  <style>
+    .subject-card {
+      background: var(--color-surface);
+      border-radius: var(--radius);
+      margin-bottom: 1rem;
+      overflow: hidden;
+      box-shadow: var(--shadow);
+    }
+    .subject-header {
+      padding: 1.25rem;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      cursor: pointer;
+    }
+    .subject-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+    }
+    .subject-math { background: #dbeafe; }
+    .subject-science { background: #dcfce7; }
+    .subject-english { background: #fef3c7; }
+    .subject-info { flex: 1; }
+    .subject-name { font-weight: 600; margin-bottom: 0.25rem; }
+    .subject-progress { font-size: 0.875rem; color: var(--color-text-muted); }
+    .subject-score {
+      font-size: 1.5rem;
+      font-weight: 700;
+    }
+    .subject-body {
+      padding: 0 1.25rem 1.25rem;
+      border-top: 1px solid var(--color-border);
+    }
+    .skill-item {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      padding: 0.75rem 0;
+      border-bottom: 1px solid var(--color-border);
+    }
+    .skill-item:last-child { border-bottom: none; }
+    .skill-name { flex: 1; }
+    .skill-bar {
+      width: 100px;
+      height: 6px;
+      background: var(--color-border);
+      border-radius: 3px;
+      overflow: hidden;
+    }
+    .trend-up { color: var(--color-success); }
+    .trend-down { color: var(--color-error); }
+    .trend-same { color: var(--color-text-muted); }
+  </style>
+</head>
+<body data-route="/parent/subjects" data-entity="LearnerProfile">
+  <header class="header">
+    <button class="btn-ghost" data-cta-id="back" data-action="navigate" data-target="/parent/dashboard">← Back</button>
+    <h1>Subjects</h1>
+    <div></div>
+  </header>
+  
+  <div class="container">
+    <div class="subject-card">
+      <div class="subject-header">
+        <div class="subject-icon subject-math">📐</div>
+        <div class="subject-info">
+          <div class="subject-name">Mathematics</div>
+          <div class="subject-progress">12 skills • 8 mastered</div>
+        </div>
+        <div class="subject-score" style="color: var(--color-primary);">78%</div>
+        <span class="trend-up">↑ 5%</span>
+      </div>
+      <div class="subject-body">
+        <div class="skill-item">
+          <span class="skill-name">Fractions</span>
+          <div class="skill-bar"><div class="progress-fill" style="width: 85%"></div></div>
+          <span style="font-weight: 500;">85%</span>
+        </div>
+        <div class="skill-item">
+          <span class="skill-name">Decimals</span>
+          <div class="skill-bar"><div class="progress-fill" style="width: 72%"></div></div>
+          <span style="font-weight: 500;">72%</span>
+        </div>
+        <div class="skill-item">
+          <span class="skill-name">Percentages</span>
+          <div class="skill-bar"><div class="progress-fill" style="width: 68%"></div></div>
+          <span style="font-weight: 500;">68%</span>
+        </div>
+        <div class="skill-item">
+          <span class="skill-name">Word Problems</span>
+          <div class="skill-bar"><div class="progress-fill" style="width: 55%; background: var(--color-warning);"></div></div>
+          <span style="font-weight: 500; color: var(--color-warning);">55%</span>
+        </div>
+      </div>
+    </div>
+    
+    <div class="subject-card">
+      <div class="subject-header">
+        <div class="subject-icon subject-science">🔬</div>
+        <div class="subject-info">
+          <div class="subject-name">Science</div>
+          <div class="subject-progress">8 skills • 5 mastered</div>
+        </div>
+        <div class="subject-score" style="color: var(--color-success);">82%</div>
+        <span class="trend-up">↑ 3%</span>
+      </div>
+      <div class="subject-body">
+        <div class="skill-item">
+          <span class="skill-name">Cell Biology</span>
+          <div class="skill-bar"><div class="progress-fill" style="width: 90%"></div></div>
+          <span style="font-weight: 500;">90%</span>
+        </div>
+        <div class="skill-item">
+          <span class="skill-name">Ecosystems</span>
+          <div class="skill-bar"><div class="progress-fill" style="width: 78%"></div></div>
+          <span style="font-weight: 500;">78%</span>
+        </div>
+        <div class="skill-item">
+          <span class="skill-name">Matter & Energy</span>
+          <div class="skill-bar"><div class="progress-fill" style="width: 75%"></div></div>
+          <span style="font-weight: 500;">75%</span>
+        </div>
+      </div>
+    </div>
+    
+    <div class="subject-card">
+      <div class="subject-header">
+        <div class="subject-icon subject-english">📖</div>
+        <div class="subject-info">
+          <div class="subject-name">English</div>
+          <div class="subject-progress">10 skills • 4 mastered</div>
+        </div>
+        <div class="subject-score" style="color: var(--color-warning);">65%</div>
+        <span class="trend-down">↓ 2%</span>
+      </div>
+      <div class="subject-body">
+        <div class="skill-item">
+          <span class="skill-name">Reading Comprehension</span>
+          <div class="skill-bar"><div class="progress-fill" style="width: 62%; background: var(--color-warning);"></div></div>
+          <span style="font-weight: 500; color: var(--color-warning);">62%</span>
+        </div>
+        <div class="skill-item">
+          <span class="skill-name">Vocabulary</span>
+          <div class="skill-bar"><div class="progress-fill" style="width: 70%"></div></div>
+          <span style="font-weight: 500;">70%</span>
+        </div>
+        <div class="skill-item">
+          <span class="skill-name">Grammar</span>
+          <div class="skill-bar"><div class="progress-fill" style="width: 58%; background: var(--color-warning);"></div></div>
+          <span style="font-weight: 500; color: var(--color-warning);">58%</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
+
+
+

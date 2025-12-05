@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en" data-route="/dashboard" data-state="empty">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard - Golden Plan Generator</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../_base.css">
+  <style>
+    .main { flex: 1; padding: 32px 24px; max-width: 1200px; margin: 0 auto; width: 100%; }
+    .hero { text-align: center; padding: 48px 24px; margin-bottom: 48px; background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-tertiary) 100%); border-radius: var(--radius-lg); border: 1px solid var(--border); }
+    .hero-icon { width: 80px; height: 80px; color: var(--accent-gold); margin-bottom: 24px; }
+    .hero h1 { font-size: var(--text-3xl); font-weight: 700; color: var(--text-primary); margin-bottom: 12px; }
+    .hero h1 span { color: var(--accent-gold); }
+    .hero p { font-size: var(--text-lg); color: var(--text-secondary); max-width: 500px; margin: 0 auto 28px; }
+    .hero-input-group { display: flex; gap: 12px; max-width: 500px; margin: 0 auto; }
+    .hero-input { flex: 1; padding: 14px 18px; font-size: var(--text-base); color: var(--text-primary); background: var(--bg-primary); border: 1px solid var(--border); border-radius: var(--radius-md); outline: none; }
+    .hero-input:focus { border-color: var(--accent-gold); box-shadow: 0 0 0 3px var(--accent-gold-muted); }
+    .hero-btn { padding: 14px 24px; font-size: var(--text-base); }
+    .empty-plans { text-align: center; padding: 80px 24px; background: var(--bg-secondary); border: 2px dashed var(--border); border-radius: var(--radius-lg); }
+    .empty-plans-icon { width: 80px; height: 80px; color: var(--text-tertiary); margin-bottom: 24px; }
+    .empty-plans h3 { font-size: var(--text-xl); color: var(--text-primary); margin-bottom: 12px; }
+    .empty-plans p { color: var(--text-secondary); max-width: 400px; margin: 0 auto 24px; }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header class="header" data-region="header">
+      <div class="header-left">
+        <button class="menu-btn" id="menuBtn" data-cta-id="menu-toggle" data-action="ui">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+        </button>
+        <div class="logo">
+          <svg class="logo-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"></path></svg>
+          <span class="logo-text"><span>Golden</span> Plan Generator</span>
+        </div>
+      </div>
+    </header>
+
+    <main class="main" data-region="content">
+      <section class="hero animate-fadeIn">
+        <svg class="hero-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"></path></svg>
+        <h1>Create Your <span>Golden Plan</span></h1>
+        <p>Generate production-ready UI mockups with AI. Describe your app and watch it come to life.</p>
+        <div class="hero-input-group" data-form-id="new-plan-form">
+          <input type="text" class="hero-input" placeholder="My awesome app idea..." data-field="title">
+          <button class="btn btn-primary hero-btn" data-cta-id="create-plan" data-action="save" data-entity="PlanBlueprint" data-form="new-plan-form">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+            Start New Project
+          </button>
+        </div>
+      </section>
+
+      <section class="empty-plans animate-fadeIn" style="animation-delay: 100ms;">
+        <svg class="empty-plans-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="12" y1="18" x2="12" y2="12"></line><line x1="9" y1="15" x2="15" y2="15"></line></svg>
+        <h3>No Plans Yet</h3>
+        <p>You haven't created any plans yet. Start by describing your app idea above and let AI help you build something amazing.</p>
+        <button class="btn btn-secondary" data-cta-id="create-plan-empty" data-action="save" data-entity="PlanBlueprint">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+          Create Your First Plan
+        </button>
+      </section>
+    </main>
+  </div>
+
+  <!-- HAMBURGER MENU -->
+  <div class="menu-overlay" id="menuOverlay">
+    <nav class="menu-drawer">
+      <div class="menu-header">
+        <div class="logo">
+          <svg class="logo-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"></path></svg>
+          <span class="logo-text"><span>Golden</span> Plan</span>
+        </div>
+        <button class="menu-close" id="menuClose"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
+      </div>
+      <div class="menu-nav">
+        <a href="/dashboard" class="menu-item active" data-cta-id="nav-dashboard" data-action="navigate" data-target="/dashboard"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>Dashboard</a>
+        <a href="/plans/editor" class="menu-item" data-cta-id="nav-editor" data-action="navigate" data-target="/plans/editor"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>Editor</a>
+        <a href="/settings" class="menu-item" data-cta-id="nav-settings" data-action="navigate" data-target="/settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>Settings</a>
+        <a href="/jobs" class="menu-item" data-cta-id="nav-jobs" data-action="navigate" data-target="/jobs"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>Job History</a>
+        <a href="/help" class="menu-item" data-cta-id="nav-help" data-action="navigate" data-target="/help"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>Help & Docs</a>
+      </div>
+      <div class="menu-footer">
+        <p class="menu-footer-text">Golden Plan Generator v1.0</p>
+        <p class="menu-footer-text">Powered by Ignite Zero</p>
+      </div>
+    </nav>
+  </div>
+
+  <div class="toast-container" id="toastContainer"></div>
+
+  <script>
+    const menuBtn = document.getElementById('menuBtn');
+    const menuOverlay = document.getElementById('menuOverlay');
+    const menuClose = document.getElementById('menuClose');
+    menuBtn.addEventListener('click', () => menuOverlay.classList.add('open'));
+    menuClose.addEventListener('click', () => menuOverlay.classList.remove('open'));
+    menuOverlay.addEventListener('click', (e) => { if (e.target === menuOverlay) menuOverlay.classList.remove('open'); });
+  </script>
+</body>
+</html>
+

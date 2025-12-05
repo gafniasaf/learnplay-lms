@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Assignment Manager - LearnPlay</title>
+  <link rel="stylesheet" href="../_base.css">
+  <style>
+    .assignment-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+    .assignment-item {
+      background: var(--color-surface);
+      padding: 1.25rem;
+      border-radius: var(--radius);
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      box-shadow: var(--shadow);
+    }
+    .assignment-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 8px;
+      background: var(--color-bg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+    }
+    .assignment-details { flex: 1; }
+    .assignment-title { font-weight: 600; margin-bottom: 0.25rem; }
+    .assignment-meta { font-size: 0.875rem; color: var(--color-text-muted); }
+    .assignment-stats {
+      display: flex;
+      gap: 1.5rem;
+      text-align: center;
+    }
+    .stat-num { font-size: 1.25rem; font-weight: 600; }
+    .stat-label { font-size: 0.75rem; color: var(--color-text-muted); }
+    .filter-row {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 1.5rem;
+      flex-wrap: wrap;
+    }
+  </style>
+</head>
+<body data-route="/teacher/assignments" data-entity="Assignment">
+  <header class="header">
+    <button class="btn-ghost" data-cta-id="back" data-action="navigate" data-target="/teacher/dashboard">← Back</button>
+    <h1>Assignments</h1>
+    <button class="btn-ghost" data-cta-id="create" data-action="navigate" data-target="/teacher/control">+ New</button>
+  </header>
+  
+  <div class="container">
+    <div class="filter-row">
+      <button class="btn-secondary" style="padding: 0.5rem 1rem;">All (12)</button>
+      <button class="btn-secondary" style="padding: 0.5rem 1rem;">Active (5)</button>
+      <button class="btn-secondary" style="padding: 0.5rem 1rem;">Scheduled (3)</button>
+      <button class="btn-secondary" style="padding: 0.5rem 1rem;">Completed (4)</button>
+    </div>
+    
+    <div class="assignment-list">
+      <div class="assignment-item">
+        <div class="assignment-icon">📐</div>
+        <div class="assignment-details">
+          <div class="assignment-title">Fractions Practice</div>
+          <div class="assignment-meta">Math • 5th Grade Math P1 • Due Dec 5</div>
+        </div>
+        <div class="assignment-stats">
+          <div>
+            <div class="stat-num">18</div>
+            <div class="stat-label">Completed</div>
+          </div>
+          <div>
+            <div class="stat-num">6</div>
+            <div class="stat-label">In Progress</div>
+          </div>
+          <div>
+            <div class="stat-num">82%</div>
+            <div class="stat-label">Avg Score</div>
+          </div>
+        </div>
+        <button class="btn-secondary" data-cta-id="view-assignment" data-action="navigate" data-target="/teacher/assignment-progress">View</button>
+      </div>
+      
+      <div class="assignment-item">
+        <div class="assignment-icon">🔬</div>
+        <div class="assignment-details">
+          <div class="assignment-title">Cell Biology Quiz</div>
+          <div class="assignment-meta">Science • 5th Grade Math P1 • Due Dec 8</div>
+        </div>
+        <div class="assignment-stats">
+          <div>
+            <div class="stat-num">5</div>
+            <div class="stat-label">Completed</div>
+          </div>
+          <div>
+            <div class="stat-num">12</div>
+            <div class="stat-label">In Progress</div>
+          </div>
+          <div>
+            <div class="stat-num">75%</div>
+            <div class="stat-label">Avg Score</div>
+          </div>
+        </div>
+        <button class="btn-secondary">View</button>
+      </div>
+      
+      <div class="assignment-item" style="opacity: 0.7;">
+        <div class="assignment-icon">📚</div>
+        <div class="assignment-details">
+          <div class="assignment-title">Reading Comprehension</div>
+          <div class="assignment-meta">English • 5th Grade Math P3 • Scheduled Dec 10</div>
+        </div>
+        <div class="assignment-stats">
+          <div>
+            <div class="stat-num">—</div>
+            <div class="stat-label">Not Started</div>
+          </div>
+        </div>
+        <button class="btn-secondary">Edit</button>
+      </div>
+      
+      <div class="assignment-item" style="opacity: 0.6;">
+        <div class="assignment-icon">✅</div>
+        <div class="assignment-details">
+          <div class="assignment-title">Multiplication Tables</div>
+          <div class="assignment-meta">Math • Completed Dec 1</div>
+        </div>
+        <div class="assignment-stats">
+          <div>
+            <div class="stat-num">24</div>
+            <div class="stat-label">Completed</div>
+          </div>
+          <div>
+            <div class="stat-num">89%</div>
+            <div class="stat-label">Avg Score</div>
+          </div>
+        </div>
+        <button class="btn-ghost">Archive</button>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
+
+
+

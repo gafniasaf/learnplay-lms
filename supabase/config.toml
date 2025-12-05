@@ -1,0 +1,187 @@
+project_id = "eidcegehaswbtzrwzvfa"
+
+[functions.org-config]
+verify_jwt = false
+
+[functions.list-courses-filtered]
+verify_jwt = false
+
+[functions.publish-course]
+verify_jwt = false
+
+[functions.restore-course-version]
+verify_jwt = false
+
+[functions.ai-job-runner]
+verify_jwt = false
+
+[functions.list-courses]
+verify_jwt = false
+
+[functions.author-course]
+verify_jwt = false
+
+[functions.generate-course]
+verify_jwt = false
+
+[functions.review-course]
+verify_jwt = false
+
+[functions.apply-course-patch]
+verify_jwt = false
+
+[functions.create-assignment]
+verify_jwt = false
+
+[functions.list-assignments]
+verify_jwt = false
+
+[functions.get-class-progress]
+verify_jwt = false
+
+[functions.list-classes]
+verify_jwt = false
+
+[functions.list-org-students]
+verify_jwt = false
+
+[functions.game-log-attempt]
+verify_jwt = false
+
+[functions.game-start-round]
+verify_jwt = false
+
+[functions.game-end-round]
+verify_jwt = false
+
+[functions.get-course]
+verify_jwt = false
+
+[functions.list-assignments-student]
+verify_jwt = false
+
+[functions.log-event]
+verify_jwt = false
+
+[functions.debug-catalog]
+verify_jwt = false
+
+[functions.debug-storage]
+verify_jwt = false
+
+[functions.export-analytics]
+verify_jwt = false
+
+[functions.export-gradebook]
+verify_jwt = false
+
+[functions.get-analytics]
+verify_jwt = false
+
+[functions.get-assignment-progress]
+verify_jwt = false
+
+[functions.get-class-roster]
+verify_jwt = false
+
+[functions.get-dashboard]
+verify_jwt = false
+
+[functions.invite-student]
+verify_jwt = false
+
+[functions.link-child]
+verify_jwt = false
+
+[functions.join-class]
+verify_jwt = false
+
+[functions.list-conversations]
+verify_jwt = false
+
+[functions.list-messages]
+verify_jwt = false
+
+[functions.list-students-for-course]
+verify_jwt = false
+
+[functions.send-message]
+verify_jwt = false
+
+[functions.update-catalog]
+verify_jwt = false
+
+[functions.create-child-code]
+verify_jwt = false
+
+[functions.create-class]
+verify_jwt = false
+
+[functions.add-class-member]
+verify_jwt = false
+
+[functions.remove-class-member]
+verify_jwt = false
+
+[functions.assign-assignees]
+verify_jwt = false
+
+[functions.generate-class-code]
+verify_jwt = false
+
+[functions.fix-catalog-entry]
+verify_jwt = false
+
+[functions.chat-course-assistant]
+verify_jwt = false
+
+[functions.search-media]
+verify_jwt = false
+
+[functions.search-content]
+verify_jwt = false
+
+[functions.update-course]
+verify_jwt = false
+
+[functions.ai-rewrite-text]
+verify_jwt = false
+
+[functions.ai-generate-media]
+verify_jwt = false
+
+[functions.ai-generate-exercises]
+verify_jwt = false
+
+[functions.ai-media-runner]
+verify_jwt = false
+
+[functions.ai-job-batch-runner]
+verify_jwt = false
+
+[functions.jobs-reconciler]
+verify_jwt = false
+
+[functions.job-status]
+verify_jwt = false
+
+[functions.enqueue-course-media]
+verify_jwt = false
+
+[functions.architect-advisor]
+verify_jwt = false
+
+[functions.enqueue-job]
+verify_jwt = false
+
+[functions.save-plan]
+verify_jwt = false
+
+[functions.enqueue-media-job]
+verify_jwt = false
+
+[functions.generate-image]
+verify_jwt = false
+
+[functions.generate-localize]
+verify_jwt = false
