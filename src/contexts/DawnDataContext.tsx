@@ -253,10 +253,11 @@ export function DawnDataProvider({ children }: { children: React.ReactNode }) {
     await refreshEntity("job-ticket");
   }, [mcp, refreshEntity]);
 
-  // Initial load
+  // Initial load - run once on mount only
   useEffect(() => {
     refresh();
-  }, [refresh]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <DawnDataContext.Provider value={{
