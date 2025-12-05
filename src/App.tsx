@@ -7,6 +7,7 @@ import { lazy, Suspense } from "react";
 import { generatedRouteElements, GeneratedFallback } from "./routes.generated";
 import { useSentryUser } from "./hooks/useSentryUser";
 import { DawnDataProvider } from "./contexts/DawnDataContext";
+import { HamburgerMenu } from "./components/HamburgerMenu";
 
 const Auth = lazy(() => import("./pages/Auth"));
 const ResetPassword = lazy(() => import("./pages/auth/ResetPassword"));
@@ -33,6 +34,7 @@ const App = () => {
           <Sonner />
           <BrowserRouter>
             <SentryUserProvider>
+              <HamburgerMenu />
               <Suspense fallback={<div className="flex items-center justify-center min-h-screen">Loading...</div>}>
                 <Routes>
                   <Route path="/auth" element={<Auth />} />
