@@ -41,7 +41,8 @@ const App = () => {
                   <Route path="/crm/contacts" element={<CrmContacts />} />
                   <Route path="/demo/generic" element={<GenericList />} />
                   <Route path="/demo/generic/board" element={<GenericBoard />} />
-                  {generatedRouteElements}
+                {generatedRouteElements}
+                  <Route path="*" element={<NotFound />} />
                 </Routes>
                 <GeneratedFallback />
               </Suspense>
