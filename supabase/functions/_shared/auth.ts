@@ -49,10 +49,14 @@ export async function authenticateRequest(req: Request): Promise<AuthContext> {
     }
   }
 
-  // For development/demo: allow unauthenticated requests with default org
-  // In production, you should remove this fallback
-  console.log("Using default organization for unauthenticated request");
-  return { type: "agent", organizationId: "default" };
+  // Only allow unauthenticated requests in development mode (when ALLOW_ANON is set)
+  const allowAnon = Deno.env.get("ALLOW_ANON") === "true";
+  if (allowAnon) {
+    console.log("[Auth] Anonymous request allowed (ALLOW_ANON=true)");
+    return { type: "agent", organizationId: "default" };
+  }
+
+  throw new Error("Unauthorized");
 }
 
 export function requireOrganizationId(context: AuthContext, fallback?: string): string {
