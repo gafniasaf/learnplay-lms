@@ -4,7 +4,6 @@ import { useEffect } from "react";
 import { useLocation, useNavigationType, createRoutesFromChildren, matchRoutes } from "react-router-dom";
 import App from "./App.tsx";
 import "./index.css";
-import "./styles/generated.css";
 import { initAuth } from "./lib/supabase";
 import { validateEnv, isLiveMode } from "./lib/env";
 
