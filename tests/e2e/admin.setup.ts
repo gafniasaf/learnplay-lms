@@ -18,13 +18,13 @@ const authFile = 'playwright/.auth/admin.json';
 setup('authenticate as admin', async ({ page }) => {
   // Read admin credentials
   const envFile = path.resolve(__dirname, '../../learnplay.env');
-  let adminEmail = process.env.E2E_ADMIN_EMAIL || 'admin@learnplay.dev';
-  let adminPassword = process.env.E2E_ADMIN_PASSWORD || 'AdminPass123!';
+  const adminEmail = process.env.E2E_ADMIN_EMAIL || 'admin@learnplay.dev';
+  const adminPassword = process.env.E2E_ADMIN_PASSWORD || 'AdminPass123!';
   
   try {
-    const envContent = readFileSync(envFile, 'utf-8');
     // Could parse from env file if needed
-  } catch (error) {
+    readFileSync(envFile, 'utf-8');
+  } catch {
     console.warn('Using default admin credentials');
   }
 
