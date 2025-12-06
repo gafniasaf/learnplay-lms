@@ -14,9 +14,9 @@ export function FallbackBanner() {
 
   useEffect(() => {
     // Skip MCP proxy check in Lovable preview environments (CORS issues)
+    // Don't show banner in preview - it's expected that proxy is unavailable
     if (isLovablePreview()) {
-      setUnavailable(true);
-      return;
+      return; // Don't set unavailable, just skip the check
     }
 
     let cancelled = false;
