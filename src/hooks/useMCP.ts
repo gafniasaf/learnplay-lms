@@ -80,7 +80,7 @@ export function useMCP() {
   const callEdgeFunction = async <T = unknown>(functionName: string, body: Record<string, unknown>): Promise<T> => {
     // Use the common helper which has improved error handling, CORS detection, and auth retry logic
     const { callEdgeFunction: callEdgeFn } = await import('@/lib/api/common');
-    return callEdgeFn<T, T>(functionName, body);
+    return callEdgeFn<Record<string, unknown>, T>(functionName, body);
   };
 
   // Call MCP proxy (for local development only)
