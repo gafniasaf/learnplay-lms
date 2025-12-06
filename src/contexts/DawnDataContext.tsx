@@ -255,7 +255,20 @@ export function DawnDataProvider({ children }: { children: React.ReactNode }) {
 
   // Initial load - run once on mount only
   useEffect(() => {
-    refresh();
+    // Wrap in try-catch to prevent crashes in preview/iframe environments
+    const safeRefresh = async () => {
+      try {
+        await refresh();
+      } catch (err) {
+        console.warn('[DawnDataProvider] Initial load failed, continuing with empty state:', err);
+        setState(s => ({
+          ...s,
+          loading: false,
+          error: err instanceof Error ? err.message : 'Initial load failed',
+        }));
+      }
+    };
+    safeRefresh();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
