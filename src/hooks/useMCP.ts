@@ -76,16 +76,22 @@ export function useMCP() {
 
   // Call Supabase Edge Function via the official client (for production/Lovable)
   const callEdgeFunction = async <T = unknown>(functionName: string, body: Record<string, unknown>): Promise<T> => {
-    const { data, error } = await supabase.functions.invoke(functionName, {
-      body,
-    });
+    try {
+      const { data, error } = await supabase.functions.invoke(functionName, {
+        body,
+      });
 
-    if (error) {
-      console.error(`[MCP] Edge Function error (${functionName}):`, error);
-      throw new Error(error.message || `Edge Function ${functionName} failed`);
+      if (error) {
+        console.error(`[MCP] Edge Function error (${functionName}):`, error);
+        throw new Error(error.message || `Edge Function ${functionName} failed`);
+      }
+
+      return data as T;
+    } catch (err) {
+      // Log but don't crash - preview environment may have different CORS/security restrictions
+      console.warn(`[MCP] Edge Function call failed (${functionName}):`, err);
+      throw err;
     }
-
-    return data as T;
   };
 
   // Call MCP proxy (for local development only)
