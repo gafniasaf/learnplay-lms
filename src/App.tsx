@@ -7,7 +7,7 @@ import { lazy, Suspense, Component, ReactNode } from "react";
 import { generatedRouteElements, GeneratedFallback } from "./routes.generated";
 import { useSentryUser } from "./hooks/useSentryUser";
 import { DawnDataProvider } from "./contexts/DawnDataContext";
-import { HamburgerMenu } from "./components/layout/HamburgerMenu";
+import { Layout } from "./components/layout/Layout";
 
 const Auth = lazy(() => import("./pages/Auth"));
 const ResetPassword = lazy(() => import("./pages/auth/ResetPassword"));
@@ -74,25 +74,26 @@ const App = () => {
             <Sonner />
             <BrowserRouter>
               <SentryUserProvider>
-                <HamburgerMenu />
-                <Suspense fallback={<div className="flex items-center justify-center min-h-screen">Loading...</div>}>
-                  <Routes>
-                    <Route path="/admin" element={<Navigate to="/admin/ai-pipeline" replace />} />
-                    <Route path="/auth" element={<Auth />} />
-                    <Route path="/auth/reset-password" element={<ResetPassword />} />
-                    <Route path="/kids" element={<Kids />} />
-                    <Route path="/schools" element={<Schools />} />
-                    <Route path="/parents" element={<Parents />} />
-                    <Route path="/crm/dashboard" element={<CrmDashboard />} />
-                    <Route path="/teacher" element={<Navigate to="/teacher/dashboard" replace />} />
-                    <Route path="/crm/contacts" element={<CrmContacts />} />
-                    <Route path="/demo/generic" element={<GenericList />} />
-                    <Route path="/demo/generic/board" element={<GenericBoard />} />
-                  {generatedRouteElements}
-                    <Route path="*" element={<NotFound />} />
-                  </Routes>
-                  <GeneratedFallback />
-                </Suspense>
+                <Layout>
+                  <Suspense fallback={<div className="flex items-center justify-center min-h-screen">Loading...</div>}>
+                    <Routes>
+                      <Route path="/admin" element={<Navigate to="/admin/ai-pipeline" replace />} />
+                      <Route path="/auth" element={<Auth />} />
+                      <Route path="/auth/reset-password" element={<ResetPassword />} />
+                      <Route path="/kids" element={<Kids />} />
+                      <Route path="/schools" element={<Schools />} />
+                      <Route path="/parents" element={<Parents />} />
+                      <Route path="/crm/dashboard" element={<CrmDashboard />} />
+                      <Route path="/teacher" element={<Navigate to="/teacher/dashboard" replace />} />
+                      <Route path="/crm/contacts" element={<CrmContacts />} />
+                      <Route path="/demo/generic" element={<GenericList />} />
+                      <Route path="/demo/generic/board" element={<GenericBoard />} />
+                      {generatedRouteElements}
+                      <Route path="*" element={<NotFound />} />
+                    </Routes>
+                    <GeneratedFallback />
+                  </Suspense>
+                </Layout>
               </SentryUserProvider>
             </BrowserRouter>
           </DawnDataProvider>

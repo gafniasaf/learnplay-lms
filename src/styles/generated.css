@@ -478,8 +478,8 @@ h1 {
   color: var(--gen-foreground);
 }
 
-/* Page-level padding override */
-.p-6 {
+/* Page-level padding override - SCOPED to gpg pages only */
+.gpg-layout .p-6 {
   padding: 24px !important;
   max-width: 1200px !important;
   margin: 0 auto !important;
