@@ -229,3 +229,5 @@ verify_jwt = false
 verify_jwt = false
 [functions.get-job-metrics]
 verify_jwt = false
+[functions.list-media-jobs]
+verify_jwt = false

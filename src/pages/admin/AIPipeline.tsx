@@ -1,10 +1,16 @@
+/**
+ * AIPipeline - IgniteZero compliant
+ * Uses edge functions via API layer instead of direct Supabase calls
+ */
 import { useEffect, useState } from 'react';
 import { PageContainer } from '@/components/layout/PageContainer';
 import { PipelineLayout } from '@/components/admin/pipeline/PipelineLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { supabase } from '@/integrations/supabase/client';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { listCourseJobs, getJobMetrics } from '@/lib/api/jobs';
+import { callEdgeFunction } from '@/lib/api/common';
+import { useMCP } from '@/hooks/useMCP';
 
 export default function AIPipeline() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -16,6 +22,7 @@ export default function AIPipeline() {
   const [mkSubject, setMkSubject] = useState('Course Marketing Assets');
   const [mkSubmitting, setMkSubmitting] = useState(false);
   const navigate = useNavigate();
+  const { enqueueJob } = useMCP();
 
   // Enforce jobId routing: if absent, resolve to latest job and redirect
   useEffect(() => {
@@ -23,16 +30,13 @@ export default function AIPipeline() {
     if (!jobId && !loading) {
       const resolveJobId = async () => {
         try {
-          const { data } = await supabase
-            .from('ai_course_jobs')
-            .select('id')
-            .order('created_at', { ascending: false })
-            .limit(1)
-            .single();
-          if (data?.id) {
-            setSearchParams({ jobId: data.id }, { replace: true });
+          const response = await listCourseJobs({ limit: 1 });
+          if (response.ok && response.jobs.length > 0) {
+            setSearchParams({ jobId: response.jobs[0].id }, { replace: true });
           }
-        } catch {}
+        } catch (error) {
+          console.warn('[AIPipeline] Failed to resolve latest job:', error);
+        }
       };
       resolveJobId();
     }
@@ -42,22 +46,49 @@ export default function AIPipeline() {
     const load = async () => {
       setLoading(true);
       try {
-        const statuses = ['pending', 'processing', 'done', 'failed'] as const;
-        const results = await Promise.all(statuses.map(s =>
-          supabase.from('ai_course_jobs').select('id', { count: 'exact', head: true }).eq('status', s)
-        ));
-        setCounts({
-          pending: results[0].count || 0,
-          processing: results[1].count || 0,
-          done: results[2].count || 0,
-          failed: results[3].count || 0,
-        });
+        const response = await getJobMetrics(24);
+        if (response.ok) {
+          const byStatus = response.courseJobs.byStatus || {};
+          setCounts({
+            pending: byStatus['pending'] || 0,
+            processing: byStatus['processing'] || 0,
+            done: byStatus['done'] || 0,
+            failed: byStatus['failed'] || 0,
+          });
+        }
+      } catch (error) {
+        console.warn('[AIPipeline] Failed to load metrics:', error);
       } finally {
         setLoading(false);
       }
     };
     load();
   }, []);
+
+  const handleGenerateMarketing = async () => {
+    try {
+      setMkSubmitting(true);
+      
+      // Use MCP enqueueJob
+      const result = await enqueueJob('marketing', {
+        subject: mkSubject,
+        target: mkTarget,
+        tone: mkTone,
+        channel: mkChannel,
+      });
+      
+      if (result.ok) {
+        alert(`Marketing job enqueued: ${result.jobId || 'Success'}`);
+      } else {
+        throw new Error('Failed to enqueue marketing job');
+      }
+    } catch (error) {
+      console.error('[AIPipeline] Marketing enqueue failed:', error);
+      alert(error instanceof Error ? error.message : 'Failed to enqueue');
+    } finally {
+      setMkSubmitting(false);
+    }
+  };
 
   return (
     <PageContainer>
@@ -79,6 +110,7 @@ export default function AIPipeline() {
                   variant="outline"
                   size="sm"
                   onClick={() => navigate(`/admin/jobs?status=${t.status}`)}
+                  data-cta-id={`view-${t.status}-jobs`}
                 >
                   View
                 </Button>
@@ -125,39 +157,8 @@ export default function AIPipeline() {
                 size="sm"
                 disabled={mkSubmitting}
                 data-testid="btn-generate-marketing"
-                onClick={async () => {
-                  try {
-                    setMkSubmitting(true);
-                    try {
-                      const { data, error } = await supabase.functions.invoke('mcp-metrics-proxy', {
-                        body: { method: 'lms.enqueueAndTrack', params: { type: 'marketing', subject: mkSubject, payload: { target: mkTarget, tone: mkTone, channel: mkChannel }, timeoutSec: 60 } },
-                      });
-                      if (!error && data?.ok !== false) {
-                        const jid = (data?.data || data)?.jobId;
-                        alert(`Marketing job enqueued: ${jid || 'N/A'}`);
-                      } else {
-                        throw new Error(error?.message || 'proxy_failed');
-                      }
-                    } catch {
-                      const res = await fetch('/functions/v1/enqueue-marketing-job', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                          subject: mkSubject,
-                          payload: { target: mkTarget, tone: mkTone, channel: mkChannel },
-                        }),
-                      });
-                      const json = await res.json();
-                      if (!res.ok) throw new Error(json?.error || 'Failed to enqueue');
-                      alert(`Marketing job enqueued: ${json.jobId}`);
-                    }
-                  } catch (e) {
-                    console.error('[AIPipeline] Marketing enqueue failed:', e);
-                    alert(e instanceof Error ? e.message : 'Failed to enqueue');
-                  } finally {
-                    setMkSubmitting(false);
-                  }
-                }}
+                data-cta-id="generate-marketing"
+                onClick={handleGenerateMarketing}
               >
                 {mkSubmitting ? 'Submitting…' : 'Generate Marketing'}
               </Button>

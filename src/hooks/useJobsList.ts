@@ -1,95 +1,87 @@
-import { useEffect, useState } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+/**
+ * useJobsList - IgniteZero compliant
+ * Uses edge functions instead of direct Supabase calls
+ * Polls for updates instead of realtime subscriptions
+ */
+import { useEffect, useState, useCallback } from 'react';
+import { listCourseJobs, CourseJob } from '@/lib/api/jobs';
 
 export interface Job {
   id: string;
-  course_id: string;
-  subject: string;
-  grade: string | null;
-  grade_band: string;
-  items_per_group: number;
-  levels_count: number | null;
-  mode: string;
+  course_id?: string;
+  subject?: string;
+  grade?: string | null;
+  grade_band?: string;
+  items_per_group?: number;
+  levels_count?: number | null;
+  mode?: string;
   status: string;
-  result_path: string | null;
-  error: string | null;
-  summary: string | null;
-  created_by: string | null;
+  result_path?: string | null;
+  error?: string | null;
+  summary?: string | Record<string, unknown> | null;
+  created_by?: string | null;
   created_at: string;
-  updated_at: string;
+  updated_at?: string;
 }
 
 interface UseJobsListOptions {
-  status?: 'pending' | 'running' | 'done' | 'failed';
+  status?: 'pending' | 'running' | 'done' | 'failed' | 'processing';
   limit?: number;
+  pollInterval?: number; // ms, default 5000
+  enabled?: boolean;
 }
 
 export function useJobsList(options?: UseJobsListOptions) {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
+  const { status, limit = 50, pollInterval = 5000, enabled = true } = options || {};
+
+  const fetchJobs = useCallback(async () => {
+    if (!enabled) return;
+    
+    try {
+      setLoading(true);
+      const response = await listCourseJobs({
+        status,
+        limit,
+      });
+
+      if (response.ok) {
+        setJobs(response.jobs as Job[]);
+        setError(null);
+      } else {
+        throw new Error('Failed to fetch jobs');
+      }
+    } catch (err) {
+      console.warn('[useJobsList] Error fetching jobs:', err);
+      setError(err instanceof Error ? err : new Error('Failed to fetch jobs'));
+    } finally {
+      setLoading(false);
+    }
+  }, [status, limit, enabled]);
 
   useEffect(() => {
-    let isMounted = true;
+    if (!enabled) {
+      setLoading(false);
+      return;
+    }
 
-    const fetchJobs = async () => {
-      try {
-        setLoading(true);
-        let query = supabase
-          .from('ai_course_jobs')
-          .select('*')
-          .order('created_at', { ascending: false });
-
-        if (options?.status) {
-          query = query.eq('status', options.status);
-        }
-
-        if (options?.limit) {
-          query = query.limit(options.limit);
-        }
-
-        const { data, error: fetchError } = await query;
-
-        if (fetchError) throw fetchError;
-
-        if (isMounted) {
-          setJobs(data || []);
-          setError(null);
-        }
-      } catch (err) {
-        if (isMounted) {
-          setError(err instanceof Error ? err : new Error('Failed to fetch jobs'));
-        }
-      } finally {
-        if (isMounted) {
-          setLoading(false);
-        }
-      }
-    };
-
+    // Initial fetch
     fetchJobs();
 
-    // Subscribe to realtime updates
-    const channel = supabase
-      .channel('ai_course_jobs_changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'ai_course_jobs'
-        },
-        () => {
-          fetchJobs();
-        }
-      )
-      .subscribe();
+    // Poll for updates (replaces realtime subscription)
+    const interval = setInterval(fetchJobs, pollInterval);
 
     return () => {
-      isMounted = false;
-      supabase.removeChannel(channel);
+      clearInterval(interval);
     };
-  }, [options?.status, options?.limit]);
+  }, [fetchJobs, pollInterval, enabled]);
 
-  return { jobs, loading, error };
+  // Manual refresh function
+  const refresh = useCallback(() => {
+    fetchJobs();
+  }, [fetchJobs]);
+
+  return { jobs, loading, error, refresh };
 }

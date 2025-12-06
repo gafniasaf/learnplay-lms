@@ -1,3 +1,7 @@
+/**
+ * GenerateCourseForm - IgniteZero compliant
+ * Uses useMCP for job enqueueing instead of direct Supabase calls
+ */
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -5,10 +9,11 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle, Loader2, Sparkles } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
+import { useMCP } from "@/hooks/useMCP";
+import { getCourseJob } from "@/lib/api/jobs";
 
 interface GenerateCourseFormProps {
   onGenerated: (course: any) => void;
@@ -28,6 +33,7 @@ interface GenerationResult {
 
 export const GenerateCourseForm = ({ onGenerated }: GenerateCourseFormProps) => {
   const { toast } = useToast();
+  const { enqueueJob } = useMCP();
   const [subject, setSubject] = useState("");
   const [grade, setGrade] = useState("");
   const [itemsPerGroup, setItemsPerGroup] = useState(12);
@@ -46,204 +52,201 @@ export const GenerateCourseForm = ({ onGenerated }: GenerateCourseFormProps) => 
     setError(null);
     setResult(null);
     
-    // Insert AI job; browser reads live without calling functions
     try {
       // Generate course_id from subject
       const courseId = subject.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
       
-      const { data, error: insertErr } = await supabase
-        .from('ai_course_jobs')
-        .insert({ 
-          course_id: courseId,
-          subject, 
-          grade_band: grade,
-          items_per_group: itemsPerGroup, 
-          mode 
-        })
-        .select('id')
-        .single();
+      // Enqueue job via MCP
+      const jobResult = await enqueueJob('ai_course_generate', {
+        course_id: courseId,
+        subject, 
+        grade_band: grade,
+        items_per_group: itemsPerGroup, 
+        mode 
+      });
 
-      if (insertErr) throw insertErr;
+      if (!jobResult.ok) {
+        throw new Error(jobResult.error || 'Failed to enqueue job');
+      }
 
-      const jobId = data.id as string;
-      // Poll job status
+      const jobId = jobResult.jobId as string;
+      
+      // Poll job status via edge function
       let attempts = 0;
       const maxAttempts = 60; // ~60s
       const delay = (ms: number) => new Promise(res => setTimeout(res, ms));
 
       while (attempts < maxAttempts) {
-        const { data: job, error: selErr } = await supabase
-          .from('ai_course_jobs')
-          .select('status, result_path, error')
-          .eq('id', jobId)
-          .single();
+        try {
+          const jobResponse = await getCourseJob(jobId);
+          
+          if (jobResponse.ok && jobResponse.job) {
+            const job = jobResponse.job;
+            
+            if (job.status === 'done') {
+              // Fetch result from storage
+              const resultPath = (job as any).result_path;
+              if (resultPath) {
+                try {
+                  const response = await fetch(resultPath);
+                  const courseData = await response.json();
+                  setResult({
+                    course: courseData,
+                    metadata: {
+                      subject,
+                      grade,
+                      itemsPerGroup,
+                      mode,
+                      generatedAt: new Date().toISOString()
+                    }
+                  });
+                  onGenerated(courseData);
+                  toast({
+                    title: "Course Generated!",
+                    description: `Generated ${courseData?.metadata?.title || subject} successfully`,
+                  });
+                } catch {
+                  setResult({
+                    course: { id: courseId },
+                    metadata: { subject, grade, itemsPerGroup, mode, generatedAt: new Date().toISOString() }
+                  });
+                  onGenerated({ id: courseId });
+                  toast({
+                    title: "Job Completed",
+                    description: "Course generation completed. Check the editor for results.",
+                  });
+                }
+              }
+              break;
+            }
 
-        if (selErr) throw selErr;
+            if (job.status === 'failed') {
+              throw new Error(job.error || 'Job failed');
+            }
+          }
+        } catch (pollError) {
+          console.warn('[GenerateCourseForm] Poll error:', pollError);
+        }
 
-        if (job.status === 'done' && job.result_path) {
-          // Fetch course JSON from Storage public URL
-          const url = `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/${job.result_path}`;
-          const resp = await fetch(url);
-          const courseJson = await resp.json();
-          setResult({ course: courseJson });
-          break;
-        }
-        if (job.status === 'failed') {
-          setError(job.error || 'AI job failed');
-          break;
-        }
-        attempts++;
         await delay(1000);
+        attempts++;
       }
-      if (attempts >= maxAttempts) setError('Timed out waiting for AI job');
-    } catch (e: any) {
-      setError(e?.message || 'Failed to submit AI job');
+
+      if (attempts >= maxAttempts) {
+        toast({
+          title: "Job Still Running",
+          description: "The generation is taking longer than expected. Check the jobs dashboard for status.",
+        });
+      }
+    } catch (err) {
+      console.error("[GenerateCourseForm] Generation error:", err);
+      setError(err instanceof Error ? err.message : "Generation failed");
+      toast({
+        title: "Generation Failed",
+        description: err instanceof Error ? err.message : "Unknown error",
+        variant: "destructive",
+      });
     } finally {
       setGenerating(false);
     }
   };
 
-  const handleUse = () => {
-    if (result?.course) {
-      onGenerated(result.course);
-    }
-  };
-
   return (
-    <div className="space-y-6">
-      {/* Form */}
-      <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label htmlFor="subject">Subject *</Label>
-          <Input
-            id="subject"
-            value={subject}
-            onChange={(e) => setSubject(e.target.value)}
-            placeholder="e.g., Modal Verbs, Fractions, Ancient Rome"
-            disabled={generating}
-          />
+    <Card>
+      <CardContent className="pt-6 space-y-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label htmlFor="subject">Subject *</Label>
+            <Input
+              id="subject"
+              placeholder="e.g., Algebra, World History"
+              value={subject}
+              onChange={(e) => setSubject(e.target.value)}
+              disabled={generating}
+            />
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="grade">Grade Level *</Label>
+            <Select value={grade} onValueChange={setGrade} disabled={generating}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select grade" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="K-2">K-2</SelectItem>
+                <SelectItem value="3-5">3-5</SelectItem>
+                <SelectItem value="6-8">6-8</SelectItem>
+                <SelectItem value="9-12">9-12</SelectItem>
+                <SelectItem value="college">College</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="items">Items Per Group</Label>
+            <Input
+              id="items"
+              type="number"
+              min={4}
+              max={24}
+              value={itemsPerGroup}
+              onChange={(e) => setItemsPerGroup(Number(e.target.value))}
+              disabled={generating}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="mode">Question Mode</Label>
+            <Select value={mode} onValueChange={(v) => setMode(v as "options" | "numeric")} disabled={generating}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select mode" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="options">Multiple Choice</SelectItem>
+                <SelectItem value="numeric">Numeric Entry</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="grade">Grade Level *</Label>
-          <Select value={grade} onValueChange={setGrade} disabled={generating}>
-            <SelectTrigger id="grade">
-              <SelectValue placeholder="Select grade" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="K-2">K-2</SelectItem>
-              <SelectItem value="3-5">3-5</SelectItem>
-              <SelectItem value="6-8">6-8</SelectItem>
-              <SelectItem value="9-12">9-12</SelectItem>
-              <SelectItem value="College">College</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="itemsPerGroup">Items per Group</Label>
-          <Input
-            id="itemsPerGroup"
-            type="number"
-            min={8}
-            max={20}
-            value={itemsPerGroup}
-            onChange={(e) => setItemsPerGroup(parseInt(e.target.value) || 12)}
-            disabled={generating}
-          />
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="mode">Question Mode</Label>
-          <Select value={mode} onValueChange={(v) => setMode(v as "options" | "numeric")} disabled={generating}>
-            <SelectTrigger id="mode">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="options">Multiple Choice</SelectItem>
-              <SelectItem value="numeric">Numeric Answer</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
-
-      {error && (
-        <Alert className="border-destructive bg-destructive/10">
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      )}
-
-      <Button onClick={handleGenerate} disabled={generating || !subject || !grade} className="w-full">
-        {generating ? (
-          <>
-            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-            Generating Course...
-          </>
-        ) : (
-          <>
-            <Sparkles className="h-4 w-4 mr-2" />
-            Generate Course
-          </>
+        {error && (
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
         )}
-      </Button>
 
-      {/* Result Preview */}
-      {result && (
-        <Card className="border-green-500 bg-green-50 dark:bg-green-950">
-          <CardContent className="pt-6 space-y-4">
-            <div className="flex items-start justify-between">
-              <div>
-                <h3 className="font-semibold text-lg">{result.course.title}</h3>
-                <p className="text-sm text-muted-foreground">{result.course.description}</p>
+        {result && (
+          <Alert>
+            <Sparkles className="h-4 w-4" />
+            <AlertDescription>
+              <div className="flex items-center gap-2">
+                <span>Course generated successfully!</span>
+                <Badge variant="secondary">{result.metadata?.generatedAt}</Badge>
               </div>
-              <Badge variant="secondary">Generated</Badge>
-            </div>
+            </AlertDescription>
+          </Alert>
+        )}
 
-            <div className="grid grid-cols-3 gap-4 text-sm">
-              <div>
-                <p className="text-muted-foreground">Items</p>
-                <p className="font-semibold">{result.course.items?.length || 0}</p>
-              </div>
-              <div>
-                <p className="text-muted-foreground">Groups</p>
-                <p className="font-semibold">{result.course.groups?.length || 0}</p>
-              </div>
-              <div>
-                <p className="text-muted-foreground">Levels</p>
-                <p className="font-semibold">{result.course.levels?.length || 0}</p>
-              </div>
-            </div>
-
-            {result.sources && result.sources.length > 0 && (
-              <div>
-                <p className="text-sm font-semibold mb-2">Research Sources:</p>
-                <div className="space-y-1">
-                  {result.sources.map((source, idx) => (
-                    <div key={idx} className="text-xs">
-                      <Badge variant="outline" className="mr-2">
-                        {idx + 1}
-                      </Badge>
-                      <a
-                        href={source.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-primary hover:underline"
-                      >
-                        {source.title || source.url}
-                      </a>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            <Button onClick={handleUse} className="w-full">
-              Use This Course
-            </Button>
-          </CardContent>
-        </Card>
-      )}
-    </div>
+        <Button 
+          onClick={handleGenerate} 
+          disabled={generating || !subject || !grade}
+          className="w-full"
+          data-cta-id="generate-course"
+        >
+          {generating ? (
+            <>
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              Generating...
+            </>
+          ) : (
+            <>
+              <Sparkles className="h-4 w-4 mr-2" />
+              Generate Course
+            </>
+          )}
+        </Button>
+      </CardContent>
+    </Card>
   );
 };

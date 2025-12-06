@@ -53,10 +53,15 @@ export interface JobSummary {
   }>;
 }
 
-export function parseJobSummary(summaryJson: string | null): JobSummary | null {
+export function parseJobSummary(summaryJson: string | Record<string, unknown> | null): JobSummary | null {
   if (!summaryJson) return null;
   
   try {
+    // If it's already an object, use it directly
+    if (typeof summaryJson === 'object') {
+      return summaryJson as unknown as JobSummary;
+    }
+    // Otherwise parse as JSON string
     const parsed = JSON.parse(summaryJson);
     return parsed as JobSummary;
   } catch (error) {

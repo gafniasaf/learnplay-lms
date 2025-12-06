@@ -124,7 +124,13 @@ export function useMCP() {
     return data.result as T;
   };
 
-  const enqueueJob = async (jobType: string, payload: Record<string, unknown> = {}) => {
+  interface EnqueueJobResult {
+    ok: boolean;
+    jobId?: string;
+    error?: string;
+  }
+
+  const enqueueJob = async (jobType: string, payload: Record<string, unknown> = {}): Promise<EnqueueJobResult> => {
     setLoading(true);
     try {
       // Mock mode for E2E testing
@@ -134,7 +140,7 @@ export function useMCP() {
       }
 
       if (isLocalDev) {
-        return await callMCP('lms.enqueueJob', { jobType, payload });
+        return await callMCP<EnqueueJobResult>('lms.enqueueJob', { jobType, payload });
       }
 
       // Check execution mode from manifest contract
@@ -142,11 +148,11 @@ export function useMCP() {
       
       if (mode === 'synchronous') {
         // Bypass queue, call runner directly (Live Pipeline)
-        return await callEdgeFunction('ai-job-runner', { jobType, payload });
+        return await callEdgeFunction<EnqueueJobResult>('ai-job-runner', { jobType, payload });
       }
 
       // Default: Async queue (Factory Pipeline)
-      return await callEdgeFunction('enqueue-job', { jobType, payload });
+      return await callEdgeFunction<EnqueueJobResult>('enqueue-job', { jobType, payload });
     } finally {
       setLoading(false);
     }

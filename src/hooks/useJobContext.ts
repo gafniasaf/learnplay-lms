@@ -1,22 +1,27 @@
-import { useEffect, useState, useMemo } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+/**
+ * useJobContext - IgniteZero compliant
+ * Uses edge functions instead of direct Supabase calls
+ * Polls for updates instead of realtime subscriptions
+ */
+import { useEffect, useState, useMemo, useCallback } from 'react';
+import { getCourseJob, CourseJob, JobEvent as ApiJobEvent } from '@/lib/api/jobs';
 
 export interface Job {
   id: string;
-  course_id: string;
-  subject: string;
-  grade: string | null;
-  grade_band: string;
-  items_per_group: number;
-  levels_count: number | null;
-  mode: string;
+  course_id?: string;
+  subject?: string;
+  grade?: string | null;
+  grade_band?: string;
+  items_per_group?: number;
+  levels_count?: number | null;
+  mode?: string;
   status: string;
-  result_path: string | null;
-  error: string | null;
-  summary: string | null;
-  created_by: string | null;
+  result_path?: string | null;
+  error?: string | null;
+  summary?: string | Record<string, unknown> | null;
+  created_by?: string | null;
   created_at: string;
-  updated_at: string;
+  updated_at?: string;
   completed_at?: string | null;
   generation_duration_ms?: number | null;
 }
@@ -24,10 +29,12 @@ export interface Job {
 export interface JobEvent {
   id: string;
   job_id: string;
-  status: string;
-  step: string;
-  progress: number | null;
-  message: string | null;
+  status?: string;
+  step?: string;
+  event_type?: string;
+  progress?: number | null;
+  message?: string | null;
+  payload?: Record<string, unknown>;
   created_at: string;
   seq?: number;
 }
@@ -37,19 +44,21 @@ export interface JobContext {
   events: JobEvent[];
   loading: boolean;
   error: Error | null;
+  refresh: () => void;
 }
 
 /**
- * Unified job context hook: fetches job + events by jobId, subscribes to realtime updates.
+ * Unified job context hook: fetches job + events by jobId via edge function.
+ * Polls for updates (replaces realtime subscriptions).
  * Single source of truth for all pipeline panels.
  */
-export function useJobContext(jobId: string | null): JobContext {
+export function useJobContext(jobId: string | null, pollInterval = 2000): JobContext {
   const [job, setJob] = useState<Job | null>(null);
   const [events, setEvents] = useState<JobEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
-  useEffect(() => {
+  const fetchJobDetails = useCallback(async () => {
     if (!jobId) {
       setJob(null);
       setEvents([]);
@@ -58,93 +67,55 @@ export function useJobContext(jobId: string | null): JobContext {
       return;
     }
 
-    let isMounted = true;
+    try {
+      const response = await getCourseJob(jobId, true);
 
-    const fetchJobDetails = async () => {
-      try {
-        setLoading(true);
-
-        // Fetch job
-        const { data: jobData, error: jobError } = await supabase
-          .from('ai_course_jobs')
-          .select('*')
-          .eq('id', jobId)
-          .single();
-
-        if (jobError) throw jobError;
-
-        // Fetch events
-        const { data: eventsData, error: eventsError } = await supabase
-          .from('job_events')
-          .select('*')
-          .eq('job_id', jobId)
-          .order('seq', { ascending: true });
-
-        if (eventsError) throw eventsError;
-
-        if (isMounted) {
-          setJob(jobData as Job);
-          setEvents((eventsData || []) as JobEvent[]);
-          setError(null);
-        }
-      } catch (err) {
-        if (isMounted) {
-          setError(err instanceof Error ? err : new Error('Failed to fetch job'));
-        }
-      } finally {
-        if (isMounted) {
-          setLoading(false);
-        }
+      if (response.ok) {
+        setJob(response.job as Job);
+        setEvents((response.events || []) as JobEvent[]);
+        setError(null);
+      } else {
+        throw new Error('Failed to fetch job');
       }
-    };
-
-    fetchJobDetails();
-
-    // Subscribe to job updates
-    const jobChannel = supabase
-      .channel(`job_${jobId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'ai_course_jobs',
-          filter: `id=eq.${jobId}`
-        },
-        (payload) => {
-          if (isMounted && payload?.new) {
-            setJob(payload.new as Job);
-          }
-        }
-      )
-      .subscribe();
-
-    // Subscribe to events
-    const eventsChannel = supabase
-      .channel(`job_events_${jobId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'job_events',
-          filter: `job_id=eq.${jobId}`
-        },
-        (payload) => {
-          if (isMounted && payload?.new) {
-            setEvents(prev => [...prev, payload.new as JobEvent]);
-          }
-        }
-      )
-      .subscribe();
-
-    return () => {
-      isMounted = false;
-      supabase.removeChannel(jobChannel);
-      supabase.removeChannel(eventsChannel);
-    };
+    } catch (err) {
+      console.warn('[useJobContext] Error fetching job:', err);
+      setError(err instanceof Error ? err : new Error('Failed to fetch job'));
+    } finally {
+      setLoading(false);
+    }
   }, [jobId]);
 
-  return useMemo(() => ({ job, events, loading, error }), [job, events, loading, error]);
-}
+  useEffect(() => {
+    if (!jobId) {
+      setJob(null);
+      setEvents([]);
+      setLoading(false);
+      return;
+    }
 
+    setLoading(true);
+
+    // Initial fetch
+    fetchJobDetails();
+
+    // Poll for updates (replaces realtime subscription)
+    // Only poll if job is not in terminal state
+    const interval = setInterval(() => {
+      // Check if job is in terminal state
+      if (job && ['done', 'failed', 'dead_letter'].includes(job.status)) {
+        return; // Don't poll for completed jobs
+      }
+      fetchJobDetails();
+    }, pollInterval);
+
+    return () => {
+      clearInterval(interval);
+    };
+  }, [jobId, fetchJobDetails, pollInterval, job?.status]);
+
+  const refresh = useCallback(() => {
+    fetchJobDetails();
+  }, [fetchJobDetails]);
+
+  return useMemo(() => ({ job, events, loading, error, refresh }), [job, events, loading, error, refresh]);
+}

@@ -162,6 +162,44 @@ export async function getJobMetrics(sinceHours = 24): Promise<GetJobMetricsRespo
   });
 }
 
+// List media jobs
+export interface ListMediaJobsParams {
+  courseId?: string;
+  status?: string;
+  limit?: number;
+}
+
+export interface MediaJob {
+  id: string;
+  course_id: string;
+  item_id: number;
+  media_type: 'image' | 'audio' | 'video';
+  prompt: string;
+  provider: string;
+  status: 'pending' | 'processing' | 'done' | 'failed';
+  result_url?: string;
+  error?: string;
+  created_at: string;
+  updated_at: string;
+  metadata?: Record<string, unknown>;
+}
+
+export interface ListMediaJobsResponse {
+  ok: boolean;
+  jobs: MediaJob[];
+  total: number;
+}
+
+export async function listMediaJobs(params: ListMediaJobsParams = {}): Promise<ListMediaJobsResponse> {
+  const queryParams: Record<string, string> = {};
+  
+  if (params.courseId) queryParams.courseId = params.courseId;
+  if (params.status) queryParams.status = params.status;
+  if (params.limit) queryParams.limit = String(params.limit);
+
+  return callEdgeFunctionGet<ListMediaJobsResponse>("list-media-jobs", queryParams);
+}
+
 // Get job quota (with guest mode fallback)
 export async function getJobQuota(): Promise<JobQuota> {
   // Check if in guest mode

@@ -1,27 +1,59 @@
-import { useEffect, useState } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+/**
+ * usePipelineJob - IgniteZero compliant
+ * Uses edge functions instead of direct Supabase calls
+ * Polls for updates instead of realtime subscriptions
+ */
+import { useEffect, useState, useCallback } from 'react';
+import { getCourseJob } from '@/lib/api/jobs';
 import type { Job } from './useJobsList';
 
 interface JobEvent {
   id: string;
   job_id: string;
-  status: string;
-  step: string;
-  progress: number | null;
-  message: string | null;
+  status?: string;
+  step?: string;
+  event_type?: string;
+  progress?: number | null;
+  message?: string | null;
+  payload?: Record<string, unknown>;
   created_at: string;
+  seq?: number;
 }
 
 interface UsePipelineJobOptions {
   enabled?: boolean;
+  pollInterval?: number;
 }
 
 export function usePipelineJob(jobId: string | null, options?: UsePipelineJobOptions) {
-  const { enabled = true } = options || {};
+  const { enabled = true, pollInterval = 2000 } = options || {};
   const [job, setJob] = useState<Job | null>(null);
   const [events, setEvents] = useState<JobEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
+
+  const fetchJobDetails = useCallback(async () => {
+    if (!jobId || !enabled) {
+      return;
+    }
+
+    try {
+      const response = await getCourseJob(jobId, true);
+
+      if (response.ok) {
+        setJob(response.job as Job);
+        setEvents((response.events || []) as JobEvent[]);
+        setError(null);
+      } else {
+        throw new Error('Failed to fetch job');
+      }
+    } catch (err) {
+      console.warn('[usePipelineJob] Error fetching job:', err);
+      setError(err instanceof Error ? err : new Error('Failed to fetch job'));
+    } finally {
+      setLoading(false);
+    }
+  }, [jobId, enabled]);
 
   useEffect(() => {
     if (!jobId || !enabled) {
@@ -31,92 +63,28 @@ export function usePipelineJob(jobId: string | null, options?: UsePipelineJobOpt
       return;
     }
 
-    let isMounted = true;
+    setLoading(true);
 
-    const fetchJobDetails = async () => {
-      try {
-        setLoading(true);
-
-        // Fetch job
-        const { data: jobData, error: jobError } = await supabase
-          .from('ai_course_jobs')
-          .select('*')
-          .eq('id', jobId)
-          .single();
-
-        if (jobError) throw jobError;
-
-        // Fetch events
-        const { data: eventsData, error: eventsError } = await supabase
-          .from('job_events')
-          .select('*')
-          .eq('job_id', jobId)
-          .order('seq', { ascending: true });
-
-        if (eventsError) throw eventsError;
-
-        if (isMounted) {
-          setJob(jobData);
-          setEvents(eventsData || []);
-          setError(null);
-        }
-      } catch (err) {
-        if (isMounted) {
-          setError(err instanceof Error ? err : new Error('Failed to fetch job'));
-        }
-      } finally {
-        if (isMounted) {
-          setLoading(false);
-        }
-      }
-    };
-
+    // Initial fetch
     fetchJobDetails();
 
-    // Subscribe to job updates
-    const jobChannel = supabase
-      .channel(`job_${jobId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'ai_course_jobs',
-          filter: `id=eq.${jobId}`
-        },
-        (payload) => {
-          if (isMounted) {
-            setJob(payload.new as Job);
-          }
-        }
-      )
-      .subscribe();
-
-    // Subscribe to events
-    const eventsChannel = supabase
-      .channel(`job_events_${jobId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'job_events',
-          filter: `job_id=eq.${jobId}`
-        },
-        (payload) => {
-          if (isMounted) {
-            setEvents(prev => [...prev, payload.new as JobEvent]);
-          }
-        }
-      )
-      .subscribe();
+    // Poll for updates (replaces realtime subscription)
+    const interval = setInterval(() => {
+      // Check if job is in terminal state
+      if (job && ['done', 'failed', 'dead_letter'].includes(job.status)) {
+        return; // Don't poll for completed jobs
+      }
+      fetchJobDetails();
+    }, pollInterval);
 
     return () => {
-      isMounted = false;
-      supabase.removeChannel(jobChannel);
-      supabase.removeChannel(eventsChannel);
+      clearInterval(interval);
     };
-  }, [jobId, enabled]);
+  }, [jobId, enabled, fetchJobDetails, pollInterval, job?.status]);
 
-  return { job, events, loading, error };
+  const refresh = useCallback(() => {
+    fetchJobDetails();
+  }, [fetchJobDetails]);
+
+  return { job, events, loading, error, refresh };
 }
