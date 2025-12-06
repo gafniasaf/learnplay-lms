@@ -237,3 +237,5 @@ verify_jwt = false
 verify_jwt = false
 [functions.save-course-json]
 verify_jwt = false
+[functions.create-tag]
+verify_jwt = false

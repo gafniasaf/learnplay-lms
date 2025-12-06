@@ -9,8 +9,8 @@ import { Check, X, ExternalLink, Plus, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { callEdgeFunction } from '@/lib/api/common';
 import {
   Select,
   SelectContent,
@@ -69,14 +69,17 @@ export function TagApprovalCard({
 
     const slug = newValue.toLowerCase().replace(/\s+/g, '-');
     try {
-      const { error } = await supabase.from('tags').insert({
-        type_key: typeKey,
+      // Use edge function instead of direct Supabase call (IgniteZero compliant)
+      const result = await callEdgeFunction<
+        { typeKey: string; value: string; slug: string },
+        { ok: boolean; tag?: any; error?: string }
+      >('create-tag', {
+        typeKey,
         value: newValue,
-        slug,
-        is_active: true
-      }).select().single();
+        slug
+      });
       
-      if (error) throw error;
+      if (!result.ok) throw new Error(result.error || 'Failed to create tag');
       
       handleMapTag(typeKey, aiValue, slug);
     } catch (e) {

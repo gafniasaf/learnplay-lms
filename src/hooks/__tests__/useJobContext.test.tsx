@@ -1,15 +1,25 @@
 import { renderHook, waitFor } from '@testing-library/react';
 import { useJobContext } from '../useJobContext';
-import { supabase } from '@/integrations/supabase/client';
 
-// Mock Supabase
+// Mock the useMCP hook
+jest.mock('../useMCP', () => ({
+  useMCP: () => ({
+    getCourseJob: jest.fn(),
+  }),
+}));
+
+// Mock Supabase for realtime (still used for subscriptions)
 jest.mock('@/integrations/supabase/client', () => ({
   supabase: {
-    from: jest.fn(),
-    channel: jest.fn(),
+    channel: jest.fn(() => ({
+      on: jest.fn().mockReturnThis(),
+      subscribe: jest.fn().mockReturnThis(),
+    })),
     removeChannel: jest.fn(),
   },
 }));
+
+import { useMCP } from '../useMCP';
 
 describe('useJobContext', () => {
   beforeEach(() => {
@@ -26,46 +36,39 @@ describe('useJobContext', () => {
     });
   });
 
-  it('fetches job and events when jobId is provided', async () => {
-    const mockJob = { id: 'job-1', subject: 'Math', status: 'done', created_at: new Date().toISOString() };
-    const mockEvents = [{ id: 'e1', job_id: 'job-1', step: 'generating', status: 'done', message: 'Done', created_at: new Date().toISOString() }];
-
-    const mockChannel = {
-      on: jest.fn().mockReturnThis(),
-      subscribe: jest.fn().mockReturnThis(),
+  it('fetches job via edge function when jobId is provided', async () => {
+    const mockJob = { 
+      id: 'job-1', 
+      subject: 'Math', 
+      status: 'done', 
+      created_at: new Date().toISOString(),
+      summary: {}
     };
 
-    (supabase.from as jest.Mock).mockImplementation((table: string) => ({
-      select: jest.fn().mockReturnThis(),
-      eq: jest.fn().mockReturnThis(),
-      order: jest.fn().mockReturnThis(),
-      single: jest.fn().mockResolvedValue({ data: table === 'ai_course_jobs' ? mockJob : null, error: null }),
-      then: jest.fn((cb) => cb({ data: table === 'job_events' ? mockEvents : null, error: null })),
-    }));
-
-    (supabase.channel as jest.Mock).mockReturnValue(mockChannel);
+    (useMCP as jest.Mock).mockReturnValue({
+      getCourseJob: jest.fn().mockResolvedValue({ 
+        ok: true, 
+        job: mockJob, 
+        error: null 
+      }),
+    });
 
     const { result } = renderHook(() => useJobContext('job-1'));
 
     await waitFor(() => expect(result.current.loading).toBe(false));
 
     expect(result.current.job).toEqual(mockJob);
-    expect(result.current.events).toEqual(mockEvents);
     expect(result.current.error).toBeNull();
   });
 
   it('sets error when fetch fails', async () => {
-    (supabase.from as jest.Mock).mockImplementation(() => ({
-      select: jest.fn().mockReturnThis(),
-      eq: jest.fn().mockReturnThis(),
-      single: jest.fn().mockResolvedValue({ data: null, error: new Error('Not found') }),
-    }));
-
-    const mockChannel = {
-      on: jest.fn().mockReturnThis(),
-      subscribe: jest.fn().mockReturnThis(),
-    };
-    (supabase.channel as jest.Mock).mockReturnValue(mockChannel);
+    (useMCP as jest.Mock).mockReturnValue({
+      getCourseJob: jest.fn().mockResolvedValue({ 
+        ok: false, 
+        job: null, 
+        error: { message: 'Not found' } 
+      }),
+    });
 
     const { result } = renderHook(() => useJobContext('job-missing'));
 
@@ -75,4 +78,3 @@ describe('useJobContext', () => {
     expect(result.current.job).toBeNull();
   });
 });
-
