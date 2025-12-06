@@ -1,0 +1,1955 @@
+import { useState, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { PageContainer } from '@/components/layout/PageContainer';
+import { Button } from '@/components/ui/button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { getCourse } from '@/lib/api/course';
+import { updateCourse, PatchOperation } from '@/lib/api/updateCourse';
+import { publishCourse } from '@/lib/api/publishCourse';
+import { rewriteText } from '@/lib/api/aiRewrites';
+import { invalidateCourseCache } from '@/lib/utils/cacheInvalidation';
+import { editorTelemetry } from '@/lib/utils/telemetry';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
+import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
+import { Loader2 } from 'lucide-react';
+import { toast } from 'sonner';
+import { Navigator } from '@/components/admin/editor/Navigator';
+import { StemTab } from '@/components/admin/editor/StemTab';
+import { OptionsTab } from '@/components/admin/editor/OptionsTab';
+import { ReferenceTab } from '@/components/admin/editor/ReferenceTab';
+import { ExercisesTab } from '@/components/admin/editor/ExercisesTab';
+import { MediaLibraryPanel } from '@/components/admin/editor/MediaLibraryPanel';
+import { ComparePanel } from '@/components/admin/editor/ComparePanel';
+import { AIRewriteChatPanel } from '@/components/admin/editor/AIRewriteChatPanel';
+import { HamburgerMenu } from '@/components/layout/HamburgerMenu';
+import { Link } from 'react-router-dom';
+import { JobProgress } from '@/components/shared/JobProgress';
+import { ItemPreview } from '@/components/admin/ItemPreview';
+import type { Course, CourseItem } from '@/lib/types/course';
+import { DiffViewer } from '@/components/admin/DiffViewer';
+import { logger } from '@/lib/logging';
+
+const CourseEditor = () => {
+  const { courseId } = useParams<{ courseId: string }>();
+  const navigate = useNavigate();
+  const { user, role } = useAuth();
+  
+  const [course, setCourse] = useState<Course | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [activeGroupIndex, setActiveGroupIndex] = useState(0);
+  const [activeItemIndex, setActiveItemIndex] = useState(0);
+  const [unsavedItems, setUnsavedItems] = useState<Set<string>>(new Set());
+  const [lastSavedAt, setLastSavedAt] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState('stem');
+  const [topLevelTab, setTopLevelTab] = useState<'exercises' | 'studyTexts'>('exercises');
+  const [showMediaLibrary, setShowMediaLibrary] = useState(false);
+  const [showComparePanel, setShowComparePanel] = useState(false);
+  const [compareData, setCompareData] = useState<{
+    original: string;
+    proposed: string;
+    type: 'text' | 'media';
+    scope: 'stem' | 'reference' | 'option';
+    optionIndex?: number;
+  } | null>(null);
+  const [showRewriteChat, setShowRewriteChat] = useState(false);
+  const [chatTarget, setChatTarget] = useState<{ segment: 'stem' | 'reference' | 'option'; optionIndex?: number } | null>(null);
+  const [coPilotJobId, setCoPilotJobId] = useState<string | null>(null);
+  // Destination for Media Library inserts
+  const [mediaInsertTarget, setMediaInsertTarget] = useState<{ scope: 'stem' | 'option'; optionIndex?: number }>({ scope: 'stem' });
+  const [archivedBanner, setArchivedBanner] = useState<{ at: string; by?: string } | null>(null);
+  // Diff preview (Phase 3: dry-run + approve)
+  const [showDiffViewer, setShowDiffViewer] = useState(false);
+  const [diffOps, setDiffOps] = useState<Array<{ op: string; path: string; value?: unknown }>>([]);
+  const [approving, setApproving] = useState(false);
+  const [auditInfo, setAuditInfo] = useState<{ coverage?: number; axes?: string[] } | null>(null);
+  const [orgThresholds, setOrgThresholds] = useState<{ variantsCoverageMin: number }>({ variantsCoverageMin: 0.9 });
+
+  // Admin guard
+  const devOverrideRole = typeof window !== 'undefined' ? localStorage.getItem('role') : null;
+  const isAdmin = role === 'admin' || devOverrideRole === 'admin' || 
+                  user?.app_metadata?.role === 'admin' || user?.user_metadata?.role === 'admin';
+
+  const hasUnsavedChanges = unsavedItems.size > 0;
+
+  // Leave-page guards (browser refresh/close)
+  useEffect(() => {
+    const handler = (event: BeforeUnloadEvent) => {
+      if (!hasUnsavedChanges) return;
+      event.preventDefault();
+      event.returnValue = '';
+    };
+    window.addEventListener('beforeunload', handler);
+    return () => window.removeEventListener('beforeunload', handler);
+  }, [hasUnsavedChanges]);
+
+  useEffect(() => {
+    if (!isAdmin) {
+      navigate('/admin');
+      return;
+    }
+
+    if (!courseId) {
+      setError('No course ID provided');
+      setLoading(false);
+      return;
+    }
+
+    loadCourse();
+    // Load org thresholds (best-effort)
+    (async () => {
+      try {
+        const res = await fetch('/functions/v1/get-org-settings');
+        const json = await res.json();
+        if (res.ok && json?.ok) {
+          setOrgThresholds({ variantsCoverageMin: Number(json?.thresholds?.variantsCoverageMin ?? 0.9) });
+        }
+      } catch {}
+    })();
+  }, [courseId, isAdmin, navigate]);
+
+  const loadCourse = async () => {
+    if (!courseId) return;
+
+    try {
+      setLoading(true);
+      setError(null);
+      editorTelemetry.opened(courseId); // Track editor opened
+      const courseData = await getCourse(courseId);
+      
+      // Transform course structure: group items by groupId
+      const transformedCourse = { ...courseData };
+      const groups = (courseData as any).groups || [];
+      const items = (courseData as any).items || [];
+      
+      // Initialize empty items arrays for each group
+      const groupedItems = groups.map((group: any) => ({
+        ...group,
+        items: items.filter((item: any) => item.groupId === group.id)
+      }));
+      
+      (transformedCourse as any).groups = groupedItems;
+      
+      logger.debug('[CourseEditor] Loaded course with grouped items:', {
+        totalItems: items.length,
+        groups: groupedItems.map((g: any) => ({ id: g.id, name: g.name, itemCount: g.items.length }))
+      });
+      
+      setCourse(transformedCourse as Course);
+      setUnsavedItems(new Set());
+      // Try to fetch archived status (best-effort)
+      try {
+        const { data: meta } = await supabase
+          .from('course_metadata')
+          .select('archived_at, archived_by')
+          .eq('id', courseId)
+          .maybeSingle?.() ?? await supabase
+            .from('course_metadata')
+            .select('archived_at, archived_by')
+            .eq('id', courseId)
+            .single();
+        const m: any = meta as any;
+        if (m?.archived_at) {
+          setArchivedBanner({ at: m.archived_at as string, by: (m.archived_by as string | undefined) || undefined });
+        } else {
+          setArchivedBanner(null);
+        }
+      } catch (_ignored) {
+        // ignore RLS-restricted or missing metadata
+      }
+    } catch (err) {
+      logger.error('[CourseEditor] Failed to load course:', err);
+      setError(err instanceof Error ? err.message : 'Failed to load course');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getCurrentItem = (): CourseItem | null => {
+    if (!course) return null;
+    const group = (course as any).groups?.[activeGroupIndex];
+    const item = group?.items?.[activeItemIndex] || null;
+    
+    // Debug log to see actual item structure (guarded by logger)
+    if (item) {
+      logger.debug('[CourseEditor] Current item structure:', {
+        id: item.id,
+        hasText: !!item.text,
+        hasStem: !!item.stem,
+        hasStemText: !!item.stem?.text,
+        text: item.text,
+        stemText: item.stem?.text,
+        mode: item.mode,
+        options: item.options,
+      });
+    }
+    
+    return item;
+  };
+
+  const handleItemChange = (updatedItem: CourseItem) => {
+    if (!course) return;
+
+    const updatedCourse = { ...course };
+    const groups = (updatedCourse as any).groups || [];
+    if (!groups[activeGroupIndex]?.items) return;
+
+    groups[activeGroupIndex].items[activeItemIndex] = updatedItem;
+    (updatedCourse as any).groups = groups;
+    
+    setCourse(updatedCourse);
+    
+    // Mark as unsaved
+    const itemKey = `${activeGroupIndex}-${activeItemIndex}`;
+    setUnsavedItems(prev => new Set(prev).add(itemKey));
+  };
+
+  const handleItemSelect = (groupIndex: number, itemIndex: number) => {
+    setActiveGroupIndex(groupIndex);
+    setActiveItemIndex(itemIndex);
+    setActiveTab('stem');
+  };
+
+  const generatePatchOps = (): PatchOperation[] => {
+    if (!course || unsavedItems.size === 0) return [];
+
+    const ops: PatchOperation[] = [];
+
+    unsavedItems.forEach(itemKey => {
+      if (itemKey.startsWith('ST-')) {
+        const idx = Number(itemKey.split('-')[1]);
+        const st = (course as any).studyTexts?.[idx];
+        if (st) {
+          ops.push({ op: 'replace', path: `/studyTexts/${idx}`, value: st });
+        }
+        return;
+      }
+
+      const [groupIdx, itemIdx] = itemKey.split('-').map(Number);
+      const group = (course as any).groups?.[groupIdx];
+      const item = group?.items?.[itemIdx];
+
+      if (item) {
+        // Find the global item index in the course.items array
+        let globalItemIndex = 0;
+        for (let g = 0; g < groupIdx; g++) {
+          globalItemIndex += ((course as any).groups[g]?.items?.length || 0);
+        }
+        globalItemIndex += itemIdx;
+
+        // Replace the entire item
+        ops.push({
+          op: 'replace',
+          path: `/items/${globalItemIndex}`,
+          value: item,
+        });
+      }
+    });
+
+    return ops;
+  };
+
+  const handleSaveDraft = async () => {
+    if (!course || !courseId || unsavedItems.size === 0) {
+      toast.info('No changes to save');
+      return;
+    }
+
+    try {
+      setSaving(true);
+      const ops = generatePatchOps();
+
+      if (ops.length === 0) {
+        toast.info('No changes to save');
+        return;
+      }
+
+      console.log('[CourseEditor] Saving draft with ops:', ops);
+
+      await updateCourse({
+        courseId,
+        ops,
+      });
+
+      setUnsavedItems(new Set());
+      setLastSavedAt(new Date().toLocaleTimeString());
+      toast.success(`Draft saved (${ops.length} changes)`);
+    } catch (err) {
+      console.error('[CourseEditor] Save failed:', err);
+      toast.error(err instanceof Error ? err.message : 'Failed to save draft');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handlePublish = async () => {
+    if (!course || !courseId) return;
+
+    if (unsavedItems.size > 0) {
+      toast.error('Please save all changes before publishing');
+      return;
+    }
+
+    const changelog = prompt('Enter a brief description of changes:');
+    if (!changelog) {
+      return; // User cancelled
+    }
+
+    try {
+      setSaving(true);
+      toast.info('Publishing course...');
+
+      // Preflight validation
+      try {
+        const vres = await fetch('/functions/v1/validate-course-structure', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ courseId }),
+        });
+        const vjson = await vres.json();
+        if (!vres.ok || vjson?.ok === false) {
+          const issues = Array.isArray(vjson?.issues) ? vjson.issues.slice(0, 5).join(', ') : 'unknown issues';
+          toast.error(`Validation failed: ${issues}`);
+          setSaving(false);
+          return;
+        }
+        // Coverage audit gating (variants/options completeness)
+        const ares = await fetch('/functions/v1/generate-variants-audit', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ courseId }),
+        });
+        const ajson = await ares.json();
+        if (!ares.ok || ajson?.ok === false) {
+          toast.error('Variants audit failed');
+          setSaving(false);
+          return;
+        }
+        const coverage = Number(ajson?.report?.coverage ?? 1);
+        const threshold = Number(orgThresholds.variantsCoverageMin ?? 0.9);
+        if (coverage < threshold) {
+          const pct = Math.round(coverage * 100);
+          toast.error(`Coverage ${pct}% below threshold ${threshold * 100}% — run Auto‑Fix or Generate Missing Variants`);
+          setSaving(false);
+          return;
+        }
+      } catch (e) {
+        console.warn('[CourseEditor] Validation preflight failed, aborting publish', e);
+        toast.error('Validation preflight failed');
+        setSaving(false);
+        return;
+      }
+
+      // Call publish-course edge function
+      const result = await publishCourse(courseId, changelog);
+
+      // Invalidate CDN cache
+      await invalidateCourseCache(courseId);
+
+      toast.success(`Course published as version ${result.version}`);
+      navigate('/admin/courses/select');
+    } catch (err) {
+      console.error('[CourseEditor] Publish failed:', err);
+      toast.error(err instanceof Error ? err.message : 'Failed to publish');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleArchiveCourse = async () => {
+    if (!courseId) return;
+    const reason = prompt('Reason for archiving (optional):') || undefined;
+    try {
+      const res = await fetch('/functions/v1/archive-course', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ courseId, reason }),
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        throw new Error(json?.error || 'Archive failed');
+      }
+      await invalidateCourseCache(courseId);
+      setArchivedBanner({ at: new Date().toISOString() });
+      toast.success('Course archived');
+      navigate('/admin/courses/select');
+    } catch (e) {
+      console.error('[CourseEditor] Archive failed:', e);
+      toast.error(e instanceof Error ? e.message : 'Archive failed');
+    }
+  };
+
+  const handleDeleteCourse = async () => {
+    if (!courseId) return;
+    const confirmText = prompt(`Type the course ID to confirm deletion:\n${courseId}`);
+    if (!confirmText) return;
+    if (confirmText.trim() !== courseId.trim()) {
+      toast.error('Confirmation text does not match course ID');
+      return;
+    }
+    try {
+      const res = await fetch('/functions/v1/delete-course', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ courseId, confirm: confirmText.trim() }),
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        throw new Error(json?.error || 'Delete failed');
+      }
+      await invalidateCourseCache(courseId);
+      toast.success('Course deleted');
+      navigate('/admin/ai-pipeline');
+    } catch (e) {
+      console.error('[CourseEditor] Delete failed:', e);
+      toast.error(e instanceof Error ? e.message : 'Delete failed');
+    }
+  };
+
+  const handleDiscard = () => {
+    if (!hasUnsavedChanges) return;
+
+    if (confirm(`Discard ${unsavedItems.size} unsaved change(s)?`)) {
+      loadCourse();
+    }
+  };
+
+  // AI Rewrite Handler
+  const handleAIRewriteStem = async () => {
+    const currentItem = getCurrentItem();
+    if (!currentItem || !course) return;
+
+    const stemText = (currentItem as any).stem?.text || currentItem.text || '';
+    if (!stemText) {
+      toast.error('No stem text to rewrite');
+      return;
+    }
+
+    try {
+      toast.info('Generating AI rewrite...');
+      const optionsTexts = ((currentItem as any).options || []).map((o: any) => typeof o === 'string' ? o : (o?.text ?? ''));
+const result = await rewriteText({
+        segmentType: 'stem',
+        currentText: stemText,
+        context: {
+          subject: (course as any).subject || course.title,
+          difficulty: 'intermediate',
+          mode: (currentItem as any).mode || 'options',
+          options: optionsTexts,
+          correctIndex: (currentItem as any).correctIndex ?? -1,
+          guidance: 'Rewrite the question clearly without changing its meaning or the expected correct option/answer. Keep HTML only.',
+          // Rich context
+          course: { id: course.id, title: course.title, description: course.description, gradeBand: (course as any).gradeBand, subject: (course as any).subject },
+          group: { name: (course as any).groups?.[activeGroupIndex]?.name },
+          studyTexts: ((course as any).studyTexts || []).slice(0, 2).map((st: any) => ({ title: st.title, content: st.content, learningObjectives: st.learningObjectives })),
+          adjacentItems: {
+            prev: (course as any).groups?.[activeGroupIndex]?.items?.[activeItemIndex - 1]?.stem?.text || (course as any).groups?.[activeGroupIndex]?.items?.[activeItemIndex - 1]?.text || '',
+            next: (course as any).groups?.[activeGroupIndex]?.items?.[activeItemIndex + 1]?.stem?.text || (course as any).groups?.[activeGroupIndex]?.items?.[activeItemIndex + 1]?.text || '',
+          },
+          audience: { gradeBand: (course as any).gradeBand },
+          brandVoice: { tone: 'encouraging, clear, concise' },
+        },
+        candidateCount: 1,
+      });
+
+      if (result.candidates && result.candidates.length > 0) {
+        const newText = result.candidates[0].text;
+        const rationale = result.candidates[0].rationale;
+        // Use compare overlay instead of confirm
+        setCompareData({ original: stemText, proposed: newText, type: 'text', scope: 'stem' });
+        setShowComparePanel(true);
+      }
+    } catch (error) {
+      console.error('AI rewrite failed:', error);
+      toast.error(error instanceof Error ? error.message : 'AI rewrite failed');
+    }
+  };
+
+  // Group/Item actions
+  const handleAddGroup = () => {
+    if (!course) return;
+    const groups = ((course as any).groups || []).map((g: any) => ({ ...g, items: [...(g.items||[])] }));
+    const nextId = groups.reduce((m: number, g: any) => Math.max(m, Number(g.id || 0)), 0) + 1;
+    groups.push({ id: nextId, name: `Group ${groups.length + 1}`, items: [] });
+    setCourse({ ...(course as any), groups } as Course);
+  };
+
+  const handleAddItem = (groupIdx: number) => {
+    if (!course) return;
+    const groups = ((course as any).groups || []).map((g: any) => ({ ...g, items: [...(g.items||[])] }));
+    const group = groups[groupIdx];
+    if (!group) return;
+    const allItems = groups.flatMap((g: any) => g.items || []);
+    const nextId = allItems.reduce((m: number, it: any) => Math.max(m, Number(it.id || 0)), 0) + 1;
+    const newItem: any = { id: nextId, groupId: group.id, mode: 'options', stem: { text: '' }, options: ['', ''], correctIndex: 0 };
+    group.items.push(newItem);
+    const updated = { ...(course as any), groups } as Course;
+    setCourse(updated);
+    const itemIndex = group.items.length - 1;
+    setUnsavedItems(prev => new Set(prev).add(`${groupIdx}-${itemIndex}`));
+  };
+
+  const handleDuplicateItem = (groupIdx: number, itemIdx: number) => {
+    if (!course) return;
+    const groups = ((course as any).groups || []).map((g: any) => ({ ...g, items: [...(g.items||[])] }));
+    const group = groups[groupIdx];
+    const src = group?.items?.[itemIdx];
+    if (!src) return;
+    const allItems = groups.flatMap((g: any) => g.items || []);
+    const nextId = allItems.reduce((m: number, it: any) => Math.max(m, Number(it.id || 0)), 0) + 1;
+    const copy = JSON.parse(JSON.stringify(src));
+    copy.id = nextId;
+    group.items.splice(itemIdx + 1, 0, copy);
+    setCourse({ ...(course as any), groups } as Course);
+    setUnsavedItems(prev => new Set(prev).add(`${groupIdx}-${itemIdx + 1}`));
+  };
+
+  const handleDeleteItem = (groupIdx: number, itemIdx: number) => {
+    if (!course) return;
+    const groups = ((course as any).groups || []).map((g: any) => ({ ...g, items: [...(g.items||[])] }));
+    const group = groups[groupIdx];
+    if (!group) return;
+    group.items.splice(itemIdx, 1);
+    setCourse({ ...(course as any), groups } as Course);
+    // Easiest: mark everything unsaved in that group to reshape positions
+    const newUnsaved = new Set(unsavedItems);
+    (group.items || []).forEach((_: any, idx: number) => newUnsaved.add(`${groupIdx}-${idx}`));
+    setUnsavedItems(newUnsaved);
+  };
+
+  const handleMoveItem = (groupIdx: number, itemIdx: number, dir: -1 | 1) => {
+    handleReorderItems(groupIdx, itemIdx, itemIdx + dir);
+  };
+
+  const handleReorderItems = (groupIdx: number, from: number, to: number) => {
+    if (!course) return;
+    const groups = ((course as any).groups || []).map((g: any) => ({ ...g, items: [...(g.items||[])] }));
+    const group = groups[groupIdx];
+    if (!group || to < 0 || to >= (group.items?.length || 0) || from === to) return;
+    const [moved] = group.items.splice(from,1);
+    group.items.splice(to,0,moved);
+    setCourse({ ...(course as any), groups } as Course);
+    const newUnsaved = new Set(unsavedItems);
+    newUnsaved.add(`${groupIdx}-${from}`);
+    newUnsaved.add(`${groupIdx}-${to}`);
+    setUnsavedItems(newUnsaved);
+  };
+
+  const handleMoveGroup = (groupIdx: number, dir: -1 | 1) => {
+    const j = groupIdx + dir;
+    handleReorderGroups(groupIdx, j);
+  };
+
+  const handleReorderGroups = (from: number, to: number) => {
+    if (!course) return;
+    const groups = ((course as any).groups || []).map((g: any) => ({ ...g, items: [...(g.items||[])] }));
+    if (to < 0 || to >= groups.length || from === to) return;
+    const [moved] = groups.splice(from,1);
+    groups.splice(to,0,moved);
+    setCourse({ ...(course as any), groups } as Course);
+    const newUnsaved = new Set(unsavedItems);
+    groups.forEach((g:any, gi:number) => g.items?.forEach((_: any, ii:number) => newUnsaved.add(`${gi}-${ii}`)));
+    setUnsavedItems(newUnsaved);
+  };
+
+  // Add Media Handler (simplified - direct upload)
+  const handleAddMediaToStem = async () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*,audio/*,video/*';
+    
+    input.onchange = async (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (!file) return;
+
+      try {
+        toast.info('Uploading media...');
+        
+        // Upload to Supabase storage
+        const { data, error } = await supabase.storage
+          .from('courses')
+          .upload(`temp/${Date.now()}-${file.name}`, file);
+
+        if (error) throw error;
+
+        // Get public URL
+        const { data: urlData } = supabase.storage
+          .from('courses')
+          .getPublicUrl(data.path);
+
+        // Add to item media
+        const currentItem = getCurrentItem();
+        if (!currentItem) return;
+
+        const newMedia = {
+          id: `media-${Date.now()}`,
+          type: file.type.startsWith('image/') ? 'image' :
+                file.type.startsWith('audio/') ? 'audio' : 'video',
+          url: urlData.publicUrl,
+          alt: file.name,
+        };
+
+        const existingMedia = (currentItem as any).stem?.media || (currentItem as any).stimulus?.media || [];
+        const updatedItem = (currentItem as any).stem
+          ? { ...currentItem, stem: { ...(currentItem as any).stem, media: [...existingMedia, newMedia] } }
+          : { ...currentItem, stimulus: { ...currentItem.stimulus, media: [...existingMedia, newMedia] } };
+
+        handleItemChange(updatedItem);
+        toast.success('Media uploaded');
+      } catch (error) {
+        console.error('Upload failed:', error);
+        toast.error(error instanceof Error ? error.message : 'Upload failed');
+      }
+    };
+
+    input.click();
+  };
+
+  // Keyboard shortcuts (must be after handlers are defined)
+  useKeyboardShortcuts({
+    onSave: hasUnsavedChanges ? handleSaveDraft : undefined,
+    onPublish: !hasUnsavedChanges ? handlePublish : undefined,
+  });
+
+  // Add Media from URL
+  const handleAddMediaFromURL = (url: string, type: 'image' | 'audio' | 'video') => {
+    const currentItem = getCurrentItem();
+    if (!currentItem) return;
+
+    const newMedia = {
+      id: `media-${Date.now()}`,
+      type,
+      url,
+      alt: url.split('/').pop() || 'Media from URL',
+    };
+
+    const existingMedia = (currentItem as any).stem?.media || (currentItem as any).stimulus?.media || [];
+    const updatedItem = (currentItem as any).stem
+      ? { ...currentItem, stem: { ...(currentItem as any).stem, media: [...existingMedia, newMedia] } }
+      : { ...currentItem, stimulus: { ...currentItem.stimulus, media: [...existingMedia, newMedia] } };
+
+    handleItemChange(updatedItem);
+    toast.success('Media added from URL');
+  };
+
+  // Remove Media
+  const handleRemoveMedia = (mediaId: string) => {
+    const currentItem = getCurrentItem();
+    if (!currentItem) return;
+
+    if (!confirm('Remove this media?')) return;
+
+    const existingMedia = (currentItem as any).stem?.media || (currentItem as any).stimulus?.media || [];
+    const filtered = existingMedia.filter((m: any) => m.id !== mediaId);
+
+    const updatedItem = (currentItem as any).stem
+      ? { ...currentItem, stem: { ...(currentItem as any).stem, media: filtered } }
+      : { ...currentItem, stimulus: { ...currentItem.stimulus, media: filtered } };
+
+    handleItemChange(updatedItem);
+    toast.success('Media removed');
+  };
+
+  // Replace Media
+  const handleReplaceMedia = (mediaId: string) => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*,audio/*,video/*';
+    
+    input.onchange = async (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (!file) return;
+
+      try {
+        toast.info('Uploading replacement media...');
+        
+        const { data, error } = await supabase.storage
+          .from('courses')
+          .upload(`temp/${Date.now()}-${file.name}`, file);
+
+        if (error) throw error;
+
+        const { data: urlData } = supabase.storage
+          .from('courses')
+          .getPublicUrl(data.path);
+
+        const currentItem = getCurrentItem();
+        if (!currentItem) return;
+
+        const existingMedia = (currentItem as any).stem?.media || (currentItem as any).stimulus?.media || [];
+        const updated = existingMedia.map((m: any) => 
+          m.id === mediaId 
+            ? { 
+                ...m, 
+                url: urlData.publicUrl,
+                alt: file.name,
+                type: file.type.startsWith('image/') ? 'image' :
+                      file.type.startsWith('audio/') ? 'audio' : 'video',
+              }
+            : m
+        );
+
+        const updatedItem = (currentItem as any).stem
+          ? { ...currentItem, stem: { ...(currentItem as any).stem, media: updated } }
+          : { ...currentItem, stimulus: { ...currentItem.stimulus, media: updated } };
+
+        handleItemChange(updatedItem);
+        toast.success('Media replaced');
+      } catch (error) {
+        console.error('Replace failed:', error);
+        toast.error(error instanceof Error ? error.message : 'Failed to replace media');
+      }
+    };
+
+    input.click();
+  };
+
+  // AI Rewrite for Reference
+  const handleAIRewriteReference = async () => {
+    const currentItem = getCurrentItem();
+    if (!currentItem || !course) return;
+
+    const refText = (currentItem as any).reference?.html || (currentItem as any).referenceHtml || currentItem.explain || '';
+    if (!refText) {
+      toast.error('No reference text to rewrite');
+      return;
+    }
+
+    try {
+      toast.info('Generating AI rewrite...');
+      const stemText = (currentItem as any).stem?.text || (currentItem as any).text || '';
+      const optionsTexts = ((currentItem as any).options || []).map((o: any) => typeof o === 'string' ? o : (o?.text ?? ''));
+const result = await rewriteText({
+        segmentType: 'reference',
+        currentText: refText,
+        context: {
+          subject: (course as any).subject || course.title,
+          difficulty: 'intermediate',
+          stem: stemText,
+          options: optionsTexts,
+          guidance: 'Rewrite the explanation to match the question and options. Keep concepts consistent; output HTML only.',
+          course: { id: course.id, title: course.title, description: course.description, gradeBand: (course as any).gradeBand, subject: (course as any).subject },
+          group: { name: (course as any).groups?.[activeGroupIndex]?.name },
+          studyTexts: ((course as any).studyTexts || []).slice(0, 2).map((st: any) => ({ title: st.title, content: st.content, learningObjectives: st.learningObjectives })),
+          adjacentItems: {
+            prev: (course as any).groups?.[activeGroupIndex]?.items?.[activeItemIndex - 1]?.stem?.text || (course as any).groups?.[activeGroupIndex]?.items?.[activeItemIndex - 1]?.text || '',
+            next: (course as any).groups?.[activeGroupIndex]?.items?.[activeItemIndex + 1]?.stem?.text || (course as any).groups?.[activeGroupIndex]?.items?.[activeItemIndex + 1]?.text || '',
+          },
+          audience: { gradeBand: (course as any).gradeBand },
+          brandVoice: { tone: 'encouraging, clear, concise' },
+        },
+        candidateCount: 1,
+      });
+
+      if (result.candidates && result.candidates.length > 0) {
+        const newText = result.candidates[0].text;
+        const rationale = result.candidates[0].rationale;
+        setCompareData({ original: refText, proposed: newText, type: 'text', scope: 'reference' });
+        setShowComparePanel(true);
+      }
+    } catch (error) {
+      console.error('AI rewrite failed:', error);
+      toast.error(error instanceof Error ? error.message : 'AI rewrite failed');
+    }
+  };
+
+  // AI Rewrite for Options
+  const handleAIRewriteOption = async (index: number) => {
+    const currentItem = getCurrentItem();
+    if (!currentItem || !course) return;
+
+    const options = currentItem.options || (currentItem as any).choices || [];
+    if (!options[index]) {
+      toast.error('Option not found');
+      return;
+    }
+
+    const optionText = typeof options[index] === 'string' 
+      ? options[index] 
+      : options[index].text || '';
+
+    try {
+      toast.info(`Rewriting option ${index + 1}...`);
+const result = await rewriteText({
+        segmentType: 'option',
+        currentText: optionText,
+        context: {
+          subject: (course as any).subject || course.title,
+          difficulty: 'intermediate',
+          stem: (currentItem as any).stem?.text || (currentItem as any).text || '',
+          options: options.map((o: any) => typeof o === 'string' ? o : (o?.text ?? '')),
+          optionIndex: index,
+          correctIndex: (currentItem as any).correctIndex ?? -1,
+          role: ((currentItem as any).correctIndex ?? -1) === index ? 'correct' : 'distractor',
+          guidance: 'Preserve the role of this option. If distractor, keep it plausible but not the correct answer. Avoid duplicating other options. Output HTML only.',
+          course: { id: course.id, title: course.title, description: course.description, gradeBand: (course as any).gradeBand, subject: (course as any).subject },
+          group: { name: (course as any).groups?.[activeGroupIndex]?.name },
+          studyTexts: ((course as any).studyTexts || []).slice(0, 2).map((st: any) => ({ title: st.title, content: st.content, learningObjectives: st.learningObjectives })),
+          adjacentItems: {
+            prev: (course as any).groups?.[activeGroupIndex]?.items?.[activeItemIndex - 1]?.stem?.text || (course as any).groups?.[activeGroupIndex]?.items?.[activeItemIndex - 1]?.text || '',
+            next: (course as any).groups?.[activeGroupIndex]?.items?.[activeItemIndex + 1]?.stem?.text || (course as any).groups?.[activeGroupIndex]?.items?.[activeItemIndex + 1]?.text || '',
+          },
+          audience: { gradeBand: (course as any).gradeBand },
+          brandVoice: { tone: 'encouraging, clear, concise' },
+        },
+        candidateCount: 1,
+      });
+
+      if (result.candidates && result.candidates.length > 0) {
+        const newText = result.candidates[0].text;
+        setCompareData({ original: optionText, proposed: newText, type: 'text', scope: 'option', optionIndex: index });
+        setShowComparePanel(true);
+      }
+    } catch (error) {
+      console.error('AI rewrite failed:', error);
+      toast.error(error instanceof Error ? error.message : 'AI rewrite failed');
+    }
+  };
+
+  // Add Media to Option
+  const handleAddMediaToOption = (index: number) => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*,audio/*,video/*';
+    
+    input.onchange = async (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (!file) return;
+
+      try {
+        toast.info(`Uploading media for option ${index + 1}...`);
+        
+        const { data, error } = await supabase.storage
+          .from('courses')
+          .upload(`temp/${Date.now()}-${file.name}`, file);
+
+        if (error) throw error;
+
+        const { data: urlData } = supabase.storage
+          .from('courses')
+          .getPublicUrl(data.path);
+
+        const currentItem = getCurrentItem();
+        if (!currentItem) return;
+
+        const newMedia = {
+          type: file.type.startsWith('image/') ? 'image' :
+                file.type.startsWith('audio/') ? 'audio' : 'video',
+          url: urlData.publicUrl,
+          alt: file.name,
+        };
+
+        // Update optionMedia array
+        const existingOptionMedia = (currentItem as any).optionMedia || [];
+        const updatedOptionMedia = [...existingOptionMedia];
+        updatedOptionMedia[index] = newMedia;
+
+        const updatedItem = { ...currentItem, optionMedia: updatedOptionMedia };
+        handleItemChange(updatedItem);
+        toast.success(`Media uploaded for option ${index + 1}`);
+      } catch (error) {
+        console.error('Upload failed:', error);
+        toast.error(error instanceof Error ? error.message : 'Failed to upload media');
+      }
+    };
+
+    input.click();
+  };
+
+  // Handle media library selection
+  const handleMediaLibrarySelect = (assets: any[]) => {
+    const currentItem = getCurrentItem();
+    if (!currentItem || assets.length === 0) return;
+
+    const newMediaItems = assets.map(asset => ({
+      id: asset.id,
+      type: asset.mime_type?.startsWith('image/') ? 'image' :
+            asset.mime_type?.startsWith('audio/') ? 'audio' : 'video',
+      url: asset.public_url,
+      alt: asset.alt_text || asset.filename,
+    }));
+
+    let updatedItem = { ...currentItem } as any;
+
+    if (mediaInsertTarget.scope === 'stem') {
+      const existingMedia = (currentItem as any).stem?.media || (currentItem as any).stimulus?.media || [];
+      updatedItem = (currentItem as any).stem
+        ? { ...currentItem, stem: { ...(currentItem as any).stem, media: [...existingMedia, ...newMediaItems] } }
+        : { ...currentItem, stimulus: { ...currentItem.stimulus, media: [...existingMedia, ...newMediaItems] } };
+    } else if (mediaInsertTarget.scope === 'option' && typeof mediaInsertTarget.optionIndex === 'number') {
+      // Single media per option (use first selected asset)
+      const idx = mediaInsertTarget.optionIndex;
+      const optionAsset = newMediaItems[0];
+      const existingOptionMedia = (currentItem as any).optionMedia || [];
+      const updatedOptionMedia = [...existingOptionMedia];
+      updatedOptionMedia[idx] = optionAsset;
+      updatedItem = { ...currentItem, optionMedia: updatedOptionMedia };
+    }
+
+    handleItemChange(updatedItem);
+    setShowMediaLibrary(false);
+    toast.success(`Added ${assets.length} media item(s) from library`);
+  };
+
+  // Handle comparison panel actions
+  const handleAdoptComparison = () => {
+    if (!compareData) return;
+    
+    const currentItem = getCurrentItem();
+    if (!currentItem) return;
+
+    if (compareData.type === 'text') {
+      if (compareData.scope === 'stem') {
+        const updatedItem = (currentItem as any).stem
+          ? { ...currentItem, stem: { ...(currentItem as any).stem, text: compareData.proposed } }
+          : { ...currentItem, text: compareData.proposed };
+        handleItemChange(updatedItem);
+      } else if (compareData.scope === 'reference') {
+        const updatedItem = (currentItem as any).reference
+          ? { ...currentItem, reference: { ...(currentItem as any).reference, html: compareData.proposed } }
+          : (currentItem as any).referenceHtml !== undefined
+            ? { ...currentItem, referenceHtml: compareData.proposed }
+            : { ...currentItem, explain: compareData.proposed };
+        handleItemChange(updatedItem);
+      } else if (compareData.scope === 'option' && typeof compareData.optionIndex === 'number') {
+        const options = (currentItem as any).options || [];
+        const newOptions = [...options];
+        newOptions[compareData.optionIndex] = typeof options[compareData.optionIndex] === 'string'
+          ? compareData.proposed
+          : { ...options[compareData.optionIndex], text: compareData.proposed };
+        const updatedItem = { ...currentItem, options: newOptions };
+        handleItemChange(updatedItem);
+      }
+    }
+
+    setShowComparePanel(false);
+    setCompareData(null);
+    toast.success('Applied AI suggestion');
+  };
+
+  const handleRejectComparison = () => {
+    setShowComparePanel(false);
+    setCompareData(null);
+    toast.info('Kept original text');
+  };
+
+  // Preview latest job result via dryRun and show DiffViewer
+  const previewJobResultDryRun = async (jobId: string) => {
+    if (!courseId) return;
+    try {
+      // Fetch job details to extract mergePlan/attachments
+      const resJob = await fetch(`/functions/v1/get-job?id=${encodeURIComponent(jobId)}`);
+      const jobJson = await resJob.json();
+      if (!resJob.ok) {
+        throw new Error(jobJson?.error || 'Failed to fetch job');
+      }
+      const mergePlan = jobJson?.result?.mergePlan || jobJson?.payload?.mergePlan || undefined;
+      const attachments = jobJson?.result?.attachments || jobJson?.payload?.attachments || undefined;
+      if (!mergePlan && !attachments) {
+        toast.info('Job completed but no merge plan or attachments to preview.');
+        return;
+      }
+      // Ask server to compute preview (no persistence)
+      const resApply = await fetch('/functions/v1/apply-job-result', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          jobId,
+          courseId,
+          mergePlan,
+          attachments,
+          dryRun: true,
+        }),
+      });
+      const applyJson = await resApply.json();
+      if (!resApply.ok || !applyJson?.ok) {
+        throw new Error(applyJson?.error || 'Preview failed');
+      }
+      const diff = Array.isArray(applyJson?.preview?.diff) ? applyJson.preview.diff : (mergePlan?.patch || []);
+      setDiffOps(diff);
+      setShowDiffViewer(true);
+    } catch (e) {
+      console.error('[CourseEditor] Preview failed:', e);
+      toast.error(e instanceof Error ? e.message : 'Failed to preview changes');
+    }
+  };
+
+  // Approve: apply result for real (persist), invalidate cache, reload course
+  const approveApplyJobResult = async () => {
+    if (!courseId || !coPilotJobId) {
+      setShowDiffViewer(false);
+      return;
+    }
+    try {
+      setApproving(true);
+      if (coPilotJobId === '__editor_repair__') {
+        const res = await fetch('/functions/v1/editor-repair-course', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ courseId, apply: true }),
+        });
+        const json = await res.json();
+        if (!res.ok || !json?.ok) throw new Error(json?.error || 'Apply failed');
+      } else if (coPilotJobId === '__editor_variants_audit__') {
+        const res = await fetch('/functions/v1/editor-variants-audit', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ courseId, apply: true }),
+        });
+        const json = await res.json();
+        if (!res.ok || !json?.ok) throw new Error(json?.error || 'Apply failed');
+      } else if (coPilotJobId === '__editor_variants_missing__') {
+        const res = await fetch('/functions/v1/editor-variants-missing', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ courseId, apply: true }),
+        });
+        const json = await res.json();
+        if (!res.ok || !json?.ok) throw new Error(json?.error || 'Apply failed');
+      } else if (coPilotJobId === '__editor_autofix__') {
+        const res = await fetch('/functions/v1/editor-auto-fix', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ courseId, apply: true }),
+        });
+        if (res.status === 403) {
+          toast.info('Enable Option B to apply Auto‑Fix');
+          setShowDiffViewer(false);
+          setDiffOps([]);
+          return;
+        }
+        const json = await res.json();
+        if (!res.ok || !json?.ok) throw new Error(json?.error || 'Apply failed');
+      } else {
+        // Re-fetch job to ensure latest mergePlan/attachments
+        const resJob = await fetch(`/functions/v1/get-job?id=${encodeURIComponent(coPilotJobId)}`);
+        const jobJson = await resJob.json();
+        const mergePlan = jobJson?.result?.mergePlan || jobJson?.payload?.mergePlan || undefined;
+        const attachments = jobJson?.result?.attachments || jobJson?.payload?.attachments || undefined;
+        const resApply = await fetch('/functions/v1/apply-job-result', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            jobId: coPilotJobId,
+            courseId,
+            mergePlan,
+            attachments,
+            description: 'Applied AI result from Co‑Pilot',
+          }),
+        });
+        const applyJson = await resApply.json();
+        if (!resApply.ok || !applyJson?.ok) {
+          throw new Error(applyJson?.error || 'Apply failed');
+        }
+      }
+      toast.success('Changes applied');
+      setShowDiffViewer(false);
+      setDiffOps([]);
+      await invalidateCourseCache(courseId);
+      await loadCourse();
+    } catch (e) {
+      console.error('[CourseEditor] Apply failed:', e);
+      toast.error(e instanceof Error ? e.message : 'Failed to apply changes');
+    } finally {
+      setApproving(false);
+    }
+  };
+
+  // Adopt Generated Exercises
+  const handleAdoptExercises = (exercises: any[]) => {
+    if (!course) return;
+
+    try {
+      // Destination: last group (or create virtual group 1 if none)
+      const groups = ((course as any).groups || []).map((g: any) => ({ ...g, items: [...(g.items || [])] }));
+      const destGroupIndex = groups.length > 0 ? groups.length - 1 : 0;
+      if (groups.length === 0) {
+        groups.push({ id: 1, name: 'Group 1', items: [] });
+      }
+      const destItems = groups[destGroupIndex].items;
+      const startIdx = destItems.length;
+
+      const newItemsWithIds = exercises.map((ex, idx) => ({
+        ...ex,
+        id: (course as any).items?.length ? (course as any).items.length + idx + 1 : idx + 1,
+        groupId: groups[destGroupIndex].id,
+      }));
+
+      // Push into grouped structure for editor
+      newItemsWithIds.forEach((ni) => destItems.push(ni));
+
+      const updatedCourse = {
+        ...course,
+        groups,
+        // maintain items list for completeness
+        items: ([...(((course as any).items) || []), ...newItemsWithIds]),
+      } as any;
+
+      setCourse(updatedCourse as Course);
+      
+      // Mark the newly inserted positions as unsaved using groupIndex-itemIndex keys
+      const newUnsaved = new Set(unsavedItems);
+      for (let i = 0; i < newItemsWithIds.length; i++) {
+        const itemIndex = startIdx + i;
+        newUnsaved.add(`${destGroupIndex}-${itemIndex}`);
+      }
+      setUnsavedItems(newUnsaved);
+
+      toast.success(`Adopted ${exercises.length} exercise(s) - remember to Save Draft`);
+    } catch (error) {
+      console.error('Failed to adopt exercises:', error);
+      toast.error('Failed to adopt exercises');
+    }
+  };
+
+  if (loading) {
+    return (
+      <PageContainer>
+        <div className="flex items-center justify-center h-screen">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <span className="ml-3 text-lg">Loading course...</span>
+        </div>
+      </PageContainer>
+    );
+  }
+
+  if (error) {
+    return (
+      <PageContainer>
+        <div className="flex flex-col items-center justify-center h-screen">
+          <h2 className="text-2xl font-bold text-red-600 mb-4">Failed to load course</h2>
+          <p className="text-muted-foreground mb-6">{error}</p>
+          <div className="flex gap-3">
+            <Button onClick={() => navigate('/admin/courses/select')}>Back to Course Selector</Button>
+            <Button variant="outline" onClick={() => navigate('/admin')}>Back to Admin</Button>
+          </div>
+        </div>
+      </PageContainer>
+    );
+  }
+
+  if (!course) {
+    return (
+      <PageContainer>
+        <div className="flex items-center justify-center h-screen">
+          <p>No course data</p>
+        </div>
+      </PageContainer>
+    );
+  }
+
+  const currentItem = getCurrentItem();
+  const groups = (course as any).groups || [];
+
+  return (
+    <div className="h-screen flex flex-col overflow-hidden">
+      {/* Top Navbar */}
+      <div className="flex items-center justify-between py-3 px-6 bg-white border-b border-gray-200 shadow-sm">
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <span>Course Editor</span>
+            <span>›</span>
+            <strong className="text-foreground">{course.title || courseId}</strong>
+            {lastSavedAt && (
+              <span className="ml-3 text-xs text-muted-foreground">Last saved {lastSavedAt}</span>
+            )}
+          </div>
+          {hasUnsavedChanges && (
+            <span className="px-2 py-1 bg-yellow-100 text-yellow-800 rounded-full text-xs font-semibold">
+              ● {unsavedItems.size} unsaved change{unsavedItems.size > 1 ? 's' : ''}
+            </span>
+          )}
+          {archivedBanner && (
+            <span className="ml-2 px-2 py-1 bg-gray-100 text-gray-700 rounded-full text-xs">
+              Archived on {new Date(archivedBanner.at).toLocaleString()}
+            </span>
+          )}
+        </div>
+
+        <div className="flex gap-3 items-center">
+          {/* Media insert target selector */}
+          <div className="hidden md:flex items-center gap-2 text-sm text-muted-foreground">
+            <span>Insert to:</span>
+            <select
+              className="px-2 py-1 border rounded bg-background"
+              value={mediaInsertTarget.scope === 'stem' ? 'stem' : `option-${mediaInsertTarget.optionIndex ?? 0}`}
+              onChange={(e) => {
+                const v = e.target.value;
+                if (v === 'stem') {
+                  setMediaInsertTarget({ scope: 'stem' });
+                } else if (v.startsWith('option-')) {
+                  const idx = Number(v.split('-')[1] || 0);
+                  setMediaInsertTarget({ scope: 'option', optionIndex: idx });
+                }
+              }}
+            >
+              <option value="stem">Stem</option>
+              {(() => {
+                const opts = (getCurrentItem() as any)?.options || [];
+                return opts.map((_: any, i: number) => (
+                  <option key={i} value={`option-${i}`}>Option {String.fromCharCode(65 + i)}</option>
+                ));
+              })()}
+            </select>
+          </div>
+
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={() => setShowMediaLibrary(!showMediaLibrary)}
+          >
+            {showMediaLibrary ? '✕ Close' : '📁 Media Library'}
+          </Button>
+          <Button variant="ghost" onClick={handleDiscard} disabled={!hasUnsavedChanges}>
+            Discard
+          </Button>
+          <Button 
+            variant="outline" 
+            onClick={handleSaveDraft} 
+            disabled={!hasUnsavedChanges || saving}
+          >
+            {saving ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                Saving...
+              </>
+            ) : (
+              <>💾 Save Draft</>
+            )}
+          </Button>
+          <Button onClick={handlePublish} disabled={!hasUnsavedChanges || saving} data-testid="btn-publish">
+            🚀 Publish
+          </Button>
+          {/* Self-heal / Variants Automation */}
+          <Button
+            variant="outline"
+            data-testid="btn-repair"
+            onClick={async () => {
+              if (!courseId) return;
+              try {
+                const res = await fetch('/functions/v1/editor-repair-course', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ courseId, apply: false }),
+                });
+                const json = await res.json();
+                if (!res.ok) throw new Error(json?.error || 'Repair failed');
+                const diff = json?.preview?.diff || [];
+                if (!Array.isArray(diff) || diff.length === 0) {
+                  toast.info('Repair found nothing to change');
+                  return;
+                }
+                setDiffOps(diff);
+                setAuditInfo(null);
+                setShowDiffViewer(true);
+                setCoPilotJobId('__editor_repair__');
+              } catch (e) {
+                toast.error(e instanceof Error ? e.message : 'Repair failed');
+              }
+            }}
+          >
+            🛠️ Repair Course
+          </Button>
+          <Button
+            variant="outline"
+            data-testid="btn-variants-audit"
+            onClick={async () => {
+              if (!courseId) return;
+              try {
+                // Try MCP proxy first
+                const { data, error } = await supabase.functions.invoke('mcp-metrics-proxy', {
+                  body: { method: 'lms.variantsAudit', params: { courseId } },
+                });
+                let json: any;
+                if (!error && data) {
+                  json = data?.data || data;
+                } else {
+                  const res = await fetch('/functions/v1/editor-variants-audit', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ courseId, apply: false }),
+                  });
+                  json = await res.json();
+                  if (!res.ok) throw new Error(json?.error || 'Variants audit failed');
+                }
+                const diff = json?.preview?.diff || (json?.mergePlan?.patch || []);
+                setDiffOps(Array.isArray(diff) ? diff : []);
+                setAuditInfo(json?.report || null);
+                setShowDiffViewer(true);
+                setCoPilotJobId('__editor_variants_audit__');
+                if (json?.report) console.log('[Variants Audit] report:', json.report);
+              } catch (e) {
+                toast.error(e instanceof Error ? e.message : 'Variants audit failed');
+              }
+            }}
+          >
+            🔍 Audit Variants
+          </Button>
+          <Button
+            variant="outline"
+            data-testid="btn-variants-missing"
+            onClick={async () => {
+              if (!courseId) return;
+              try {
+                // Try MCP proxy first
+                const { data, error } = await supabase.functions.invoke('mcp-metrics-proxy', {
+                  body: { method: 'lms.variantsGenerateMissing', params: { courseId, axes: undefined, dryRun: true } },
+                });
+                let json: any;
+                if (!error && data) {
+                  json = data?.data || data;
+                } else {
+                  const res = await fetch('/functions/v1/editor-variants-missing', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ courseId, apply: false }),
+                  });
+                  json = await res.json();
+                  if (!res.ok) throw new Error(json?.error || 'Generate missing variants failed');
+                }
+                const diff = json?.preview?.diff || (json?.mergePlan?.patch || []);
+                if (!Array.isArray(diff) || diff.length === 0) {
+                  toast.info('No missing variants were generated in this pass');
+                }
+                setDiffOps(Array.isArray(diff) ? diff : []);
+                setAuditInfo(null);
+                setShowDiffViewer(true);
+                setCoPilotJobId('__editor_variants_missing__');
+              } catch (e) {
+                toast.error(e instanceof Error ? e.message : 'Generate missing variants failed');
+              }
+            }}
+          >
+            ➕ Generate Missing Variants
+          </Button>
+
+          {/* Archive/Delete actions */}
+          <Button variant="outline" onClick={handleArchiveCourse}>
+            🗄️ Archive
+          </Button>
+          <Button variant="destructive" onClick={handleDeleteCourse}>
+            🗑️ Delete
+          </Button>
+
+          {/* Co‑Pilot actions */}
+          <Button
+            variant="outline"
+            data-testid="btn-copilot-variants"
+            onClick={async () => {
+              try {
+                const subject = (course as any).subject || course.title || (courseId ?? 'Untitled');
+                // Proxy-first via MCP, fallback to Edge editor-co-pilot
+                try {
+                  const { data, error } = await supabase.functions.invoke('mcp-metrics-proxy', {
+                    body: { method: 'lms.enqueueAndTrack', params: { type: 'variants', subject, courseId, timeoutSec: 60 } },
+                  });
+                  if (!error && data?.ok !== false) {
+                    const jid = (data?.data || data)?.jobId;
+                    if (jid) setCoPilotJobId(jid);
+                    toast.success(`Co‑Pilot started (variants).`);
+                  } else {
+                    throw new Error(error?.message || 'proxy_failed');
+                  }
+                } catch {
+                  const res = await fetch('/functions/v1/editor-co-pilot', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'variants', subject, format: 'practice', courseId }),
+                  });
+                  const json = await res.json();
+                  if (res.ok) {
+                    toast.success(`Co‑Pilot started (variants). Job: ${json.jobId}`);
+                    setCoPilotJobId(json.jobId);
+                  } else {
+                    toast.error(json?.error?.message || 'Co‑Pilot failed to start');
+                  }
+                }
+              } catch (e) {
+                toast.error(e instanceof Error ? e.message : 'Co‑Pilot failed');
+              }
+            }}
+          >
+            🤖 Variants
+          </Button>
+          <Button
+            variant="outline"
+            data-testid="btn-copilot-enrich"
+            onClick={async () => {
+              try {
+                const subject = (course as any).subject || course.title || (courseId ?? 'Untitled');
+                try {
+                  const { data, error } = await supabase.functions.invoke('mcp-metrics-proxy', {
+                    body: { method: 'lms.enqueueAndTrack', params: { type: 'enrich', subject, courseId, timeoutSec: 60 } },
+                  });
+                  if (!error && data?.ok !== false) {
+                    const jid = (data?.data || data)?.jobId;
+                    if (jid) setCoPilotJobId(jid);
+                    toast.success(`Co‑Pilot started (enrich).`);
+                  } else {
+                    throw new Error(error?.message || 'proxy_failed');
+                  }
+                } catch {
+                  const res = await fetch('/functions/v1/editor-co-pilot', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'enrich', subject, format: 'explainer', courseId }),
+                  });
+                  const json = await res.json();
+                  if (res.ok) {
+                    toast.success(`Co‑Pilot started (enrich). Job: ${json.jobId}`);
+                    setCoPilotJobId(json.jobId);
+                  } else {
+                    toast.error(json?.error?.message || 'Co‑Pilot failed to start');
+                  }
+                }
+              } catch (e) {
+                toast.error(e instanceof Error ? e.message : 'Co‑Pilot failed');
+              }
+            }}
+          >
+            ✨ Enrich
+          </Button>
+          <Button
+            variant="outline"
+            data-testid="btn-localize"
+            onClick={async () => {
+              try {
+                const subject = (course as any).subject || course.title || (courseId ?? 'Untitled');
+                const locale = prompt('Target locale (e.g., es-419, fr-FR)?') || 'es-419';
+                // Try MCP proxy first
+                try {
+                  const { data, error } = await supabase.functions.invoke('mcp-metrics-proxy', {
+                    body: { method: 'lms.localize', params: { courseId, target_lang: locale } },
+                  });
+                  if (!error && data?.ok !== false) {
+                    toast.success(`Localization queued (${locale}).`);
+                    return;
+                  }
+                  throw new Error(error?.message || 'proxy_failed');
+                } catch {
+                  const res = await fetch('/functions/v1/editor-co-pilot', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'localize', subject, format: 'explainer', courseId, locale }),
+                  });
+                  const json = await res.json();
+                  if (res.ok) {
+                    toast.success(`Co‑Pilot started (localize ${locale}). Job: ${json.jobId}`);
+                    setCoPilotJobId(json.jobId);
+                  } else {
+                    toast.error(json?.error?.message || 'Co‑Pilot failed to start');
+                  }
+                }
+              } catch (e) {
+                toast.error(e instanceof Error ? e.message : 'Co‑Pilot failed');
+              }
+            }}
+          >
+            🌐 Localize
+          </Button>
+          <HamburgerMenu />
+          {coPilotJobId && (
+            <div className="flex items-center gap-2">
+              <JobProgress jobId={coPilotJobId} onDone={(final) => {
+                if (final === 'done' && coPilotJobId) {
+                  // Attempt dry-run preview if job produced a mergePlan/attachments
+                  previewJobResultDryRun(coPilotJobId);
+                }
+              }} />
+              <Link
+                to={`/admin/jobs?jobId=${encodeURIComponent(coPilotJobId)}`}
+                className="text-sm underline text-primary"
+                title="Open in Jobs Dashboard"
+              >
+                View job
+              </Link>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Top-Level Tabs: Exercises | Study Texts */}
+      <div className="border-b border-gray-200 bg-white px-6">
+        <div className="flex gap-1">
+          <button
+            onClick={() => setTopLevelTab('exercises')}
+            className={`px-6 py-3 border-b-2 font-medium text-sm transition-colors ${
+              topLevelTab === 'exercises'
+                ? 'border-primary text-primary'
+                : 'border-transparent text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            📝 Exercises
+          </button>
+          <button
+            onClick={() => setTopLevelTab('studyTexts')}
+            className={`px-6 py-3 border-b-2 font-medium text-sm transition-colors ${
+              topLevelTab === 'studyTexts'
+                ? 'border-primary text-primary'
+                : 'border-transparent text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            📚 Study Texts
+          </button>
+        </div>
+      </div>
+
+      {/* Main Editor Layout */}
+      <div className="flex-1 flex overflow-hidden">
+        {topLevelTab === 'exercises' && (
+          <>
+            {/* Left: Navigator */}
+            <div className="w-64 flex-shrink-0">
+              <Navigator
+                course={course}
+                activeGroupIndex={activeGroupIndex}
+                activeItemIndex={activeItemIndex}
+                onItemSelect={handleItemSelect}
+                unsavedItems={unsavedItems}
+                onAddGroup={() => handleAddGroup()}
+                onAddItem={(g) => handleAddItem(g)}
+                onDuplicateItem={(g,i) => handleDuplicateItem(g,i)}
+                onDeleteItem={(g,i) => handleDeleteItem(g,i)}
+                onMoveGroup={(g,dir) => handleMoveGroup(g,dir)}
+                onMoveItem={(g,i,dir) => handleMoveItem(g,i,dir)}
+                onReorderGroups={(from,to) => handleReorderGroups(from,to)}
+                onReorderItems={(g,from,to) => handleReorderItems(g,from,to)}
+              />
+            </div>
+
+        {/* Center: Item Editor */}
+        <div className="flex-1 overflow-auto bg-gray-50">
+          {currentItem ? (
+            <div className="max-w-4xl mx-auto p-6">
+              {/* Item Header */}
+              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h2 className="text-lg font-semibold">
+                      Item {currentItem.id} 
+                      <span className="text-muted-foreground ml-2">
+                        ({groups[activeGroupIndex]?.name || `Group ${activeGroupIndex + 1}`})
+                      </span>
+                    </h2>
+                    <p className="text-sm text-muted-foreground mt-1 flex items-center gap-3">
+                      <span>Mode:</span>
+                      <select
+                        className="px-2 py-1 border rounded text-foreground bg-background"
+                        value={currentItem.mode || 'options'}
+                        onChange={(e) => {
+                          const nextMode = e.target.value as 'options' | 'numeric';
+                          let updated = { ...currentItem } as any;
+                          if (nextMode === 'numeric') {
+                            updated = { ...updated, mode: 'numeric', answer: typeof updated.answer === 'number' ? updated.answer : 0 };
+                          } else {
+                            updated = { ...updated, mode: 'options', options: Array.isArray(updated.options) && updated.options.length > 0 ? updated.options : ['', ''], correctIndex: typeof updated.correctIndex === 'number' ? updated.correctIndex : 0 };
+                          }
+                          handleItemChange(updated);
+                        }}
+                      >
+                        <option value="options">options</option>
+                        <option value="numeric">numeric</option>
+                      </select>
+                      {currentItem.clusterId && (
+                        <span className="ml-1">Cluster: <span className="font-medium">{currentItem.clusterId}</span></span>
+                      )}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {(() => {
+                      const hasImage = (() => {
+                        const key = `item:${currentItem.id}:stem`;
+                        const imgMap = (course as any)?.images?.[key];
+                        if (Array.isArray(imgMap) && imgMap.length > 0) return true;
+                        const media = (currentItem as any)?.stem?.media || (currentItem as any)?.stimulus?.media || [];
+                        return Array.isArray(media) && media.some((m: any) => (m?.type || '').startsWith('image'));
+                      })();
+                      return !hasImage ? (
+                        <span className="px-2 py-1 bg-red-50 text-red-700 rounded text-xs">🖼️ Missing image</span>
+                      ) : null;
+                    })()}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={async () => {
+                        if (!courseId) return;
+                        const item = getCurrentItem() as any;
+                        if (!item) return;
+                        try {
+                          const stemText = item?.stem?.text || item?.text || '';
+                          const prompt = stemText ? `Generate an illustrative image: ${stemText}` : `Generate an illustrative image for item ${item.id}`;
+                          // Proxy-first MCP call, fallback to Edge
+                          let jid: string | undefined;
+                          try {
+                            const { data, error } = await supabase.functions.invoke('mcp-metrics-proxy', {
+                              body: { method: 'lms.enqueueMedia', params: { courseId, itemId: item.id, prompt, style: 'clean-diagram' } },
+                            });
+                            if (!error && data) {
+                              jid = String((data?.data || data)?.jobId || (data?.data || data)?.id || '');
+                            } else {
+                              throw new Error(error?.message || 'proxy_failed');
+                            }
+                          } catch {
+                            const res = await fetch('/functions/v1/enqueue-course-media', {
+                              method: 'POST',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({
+                                courseId,
+                                itemId: item.id,
+                                prompt,
+                                style: 'clean-diagram',
+                              }),
+                            });
+                            const json = await res.json();
+                            if (!res.ok) {
+                              throw new Error(json?.error || 'Failed to enqueue image job');
+                            }
+                            jid = json?.jobId || json?.mediaJobId || json?.id;
+                          }
+                          if (jid) {
+                            setCoPilotJobId(jid);
+                            toast.success(`Image generation started. Job ${jid}`);
+                          } else {
+                            toast.info('Image job enqueued.');
+                          }
+                        } catch (e) {
+                          console.error('[CourseEditor] enqueue image failed:', e);
+                          toast.error(e instanceof Error ? e.message : 'Failed to start image job');
+                        }
+                      }}
+                    >
+                      🖼️ Add Image (AI)
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={async () => {
+                        if (!courseId) return;
+                        try {
+                          let n = 0;
+                          try {
+                            const { data, error } = await supabase.functions.invoke('mcp-metrics-proxy', {
+                              body: { method: 'lms.enqueueCourseMediaMissing', params: { courseId, limit: 25 } },
+                            });
+                            if (!error && data) {
+                              n = Number((data?.data || data)?.enqueued ?? (data?.data || data)?.count ?? 0);
+                            } else {
+                              throw new Error(error?.message || 'proxy_failed');
+                            }
+                          } catch {
+                            const res = await fetch('/functions/v1/enqueue-course-missing-images', {
+                              method: 'POST',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({ courseId, limit: 25 }),
+                            });
+                            const json = await res.json();
+                            if (!res.ok) throw new Error(json?.error || 'Failed to enqueue missing images');
+                            n = Number(json?.count ?? 0);
+                          }
+                          toast.success(`Enqueued ${n} image job(s) for missing items`);
+                        } catch (e) {
+                          toast.error(e instanceof Error ? e.message : 'Failed to enqueue missing images');
+                        }
+                      }}
+                    >
+                      🧩 Fix Missing Images (AI)
+                    </Button>
+                  </div>
+                </div>
+              </div>
+              {/* Audit Panel */}
+              {auditInfo && (
+                <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-4">
+                  <div className="flex items-center justify-between">
+                    <div className="font-medium">Audit</div>
+                    <div className="text-sm text-muted-foreground">
+                      Coverage: {Math.round((auditInfo.coverage ?? 0) * 100)}% (min {Math.round((orgThresholds.variantsCoverageMin ?? 0.9) * 100)}%)
+                    </div>
+                  </div>
+                  <div className="text-xs text-muted-foreground mt-2">
+                    Use “🛠️ Repair Course” or “➕ Generate Missing Variants” to improve coverage before publishing.
+                  </div>
+                </div>
+              )}
+
+              {/* Tabs */}
+              <Tabs value={activeTab} onValueChange={setActiveTab} className="bg-white rounded-lg shadow-sm border border-gray-200">
+                <div className="border-b border-gray-200 px-4">
+                  <TabsList className="bg-transparent">
+                    <TabsTrigger value="stem">Stem</TabsTrigger>
+                    <TabsTrigger value="options">Options</TabsTrigger>
+                    <TabsTrigger value="reference">Explanation</TabsTrigger>
+                    <TabsTrigger value="exercises">New Exercises</TabsTrigger>
+                  </TabsList>
+                </div>
+
+                <div className="p-6">
+                  <TabsContent value="stem" className="mt-0">
+<StemTab
+                      item={currentItem}
+                      onChange={handleItemChange}
+                      onAIRewrite={handleAIRewriteStem}
+                      onOpenAIChat={() => { setChatTarget({ segment: 'stem' }); setShowRewriteChat(true); }}
+                      onAddMedia={handleAddMediaToStem}
+                      onFromURL={handleAddMediaFromURL}
+                      onRemoveMedia={handleRemoveMedia}
+                      onReplaceMedia={handleReplaceMedia}
+                      courseId={courseId || ''}
+                      course={course}
+                    />
+                  </TabsContent>
+
+                  <TabsContent value="options" className="mt-0">
+<OptionsTab
+                      item={currentItem}
+                      onChange={handleItemChange}
+                      onAIRewrite={handleAIRewriteOption}
+                      onOpenAIChatOption={(idx) => { setChatTarget({ segment: 'option', optionIndex: idx }); setShowRewriteChat(true); }}
+                      onAddMedia={handleAddMediaToOption}
+                      onRemoveOptionMedia={(idx) => {
+                        const it = getCurrentItem() as any;
+                        if (!it) return;
+                        const optionMedia = [...(it.optionMedia || [])];
+                        optionMedia[idx] = null;
+                        const updated = { ...it, optionMedia };
+                        handleItemChange(updated);
+                      }}
+                      courseId={courseId || ''}
+                      course={course}
+                    />
+                  </TabsContent>
+
+                  <TabsContent value="reference" className="mt-0">
+                    <ReferenceTab
+                      item={currentItem}
+                      onChange={handleItemChange}
+                      onAIRewrite={handleAIRewriteReference}
+                    />
+                  </TabsContent>
+
+                  <TabsContent value="exercises" className="mt-0">
+                    <ExercisesTab
+                      courseId={courseId || ''}
+                      onAdopt={handleAdoptExercises}
+                    />
+                  </TabsContent>
+                </div>
+              </Tabs>
+
+              {/* Mobile/Tablet live preview */}
+              <div className="mt-6 xl:hidden">
+                <ItemPreview item={currentItem as any} courseTitle={course?.title} />
+              </div>
+            </div>
+          ) : (
+            <div className="h-full flex items-center justify-center text-muted-foreground">
+              <p>Select an item to edit</p>
+            </div>
+          )}
+        </div>
+
+            {/* Right: Live Preview */}
+            <div className="hidden xl:block w-[460px] flex-shrink-0 overflow-auto bg-gray-50 border-l">
+              <div className="p-4">
+                {currentItem ? (
+                  <ItemPreview item={currentItem as any} courseTitle={course?.title} />
+                ) : (
+                  <div className="text-sm text-muted-foreground p-4">Select an item to see preview</div>
+                )}
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* Study Texts Tab */}
+        {topLevelTab === 'studyTexts' && (
+          <div className="flex-1 overflow-auto bg-gray-50 p-6">
+            <div className="max-w-5xl mx-auto">
+              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                <h2 className="text-xl font-semibold mb-4">Study Texts</h2>
+                <p className="text-muted-foreground mb-6">
+                  Course-level reference content and learning materials.
+                </p>
+                
+                {/* Study Texts List */}
+                <div className="space-y-3">
+                  {((course as any).studyTexts || []).map((studyText: any, index: number) => (
+                    <div
+                      key={studyText.id || index}
+                      className="border border-gray-200 rounded-lg p-4 hover:border-primary transition-colors"
+                    >
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <h3 className="font-semibold">{studyText.title}</h3>
+                          <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
+                            {studyText.content?.substring(0, 150)}...
+                          </p>
+                          {studyText.learningObjectives && (
+                            <div className="flex gap-2 mt-2">
+                              {studyText.learningObjectives.map((obj: string) => (
+                                <span key={obj} className="px-2 py-0.5 bg-primary/10 text-primary text-xs rounded">
+                                  {obj}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                        <Button variant="outline" size="sm" onClick={() => {
+                          const next = prompt('Edit study text HTML', studyText.content || '');
+                          if (next === null) return;
+                          const sts = [ ...(((course as any).studyTexts) || []) ];
+                          sts[index] = { ...studyText, content: next };
+                          setCourse({ ...(course as any), studyTexts: sts } as Course);
+                          setUnsavedItems(prev => new Set(prev).add(`ST-${index}`));
+                        }}>
+                          Edit
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                  
+                  {((course as any).studyTexts || []).length === 0 && (
+                    <div className="text-center py-12 text-muted-foreground">
+                      No study texts yet. Click "Add Study Text" to create one.
+                    </div>
+                  )}
+                </div>
+
+                <Button className="w-full mt-6">
+                  + Add Study Text
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Right Sidebar - Media Library Panel */}
+      {showMediaLibrary && (
+        <div className="w-80 border-l border-gray-200 bg-gray-50 overflow-hidden">
+          <MediaLibraryPanel onSelect={handleMediaLibrarySelect} />
+        </div>
+      )}
+
+      {/* AI Rewrite Chat Overlay */}
+      {showRewriteChat && currentItem && chatTarget && (
+        <AIRewriteChatPanel
+          open={showRewriteChat}
+          onClose={() => setShowRewriteChat(false)}
+          course={course}
+          item={currentItem}
+          target={chatTarget}
+          onRewrite={async (target, userPrompt) => {
+            const stemText = (currentItem as any).stem?.text || (currentItem as any).text || '';
+            const options = ((currentItem as any).options || []).map((o: any) => typeof o === 'string' ? o : (o?.text ?? ''));
+            try {
+              const current = target.segment === 'stem'
+                ? stemText
+                : target.segment === 'reference'
+                  ? ((currentItem as any).reference?.html || (currentItem as any).referenceHtml || (currentItem as any).explain || '')
+                  : (() => {
+                      const idx = target.optionIndex ?? 0;
+                      return options[idx] || '';
+                    })();
+
+const result = await rewriteText({
+                segmentType: target.segment === 'option' ? 'option' : target.segment,
+                currentText: current,
+                context: {
+                  subject: (course as any).subject || course!.title,
+                  difficulty: 'intermediate',
+                  stem: stemText,
+                  options,
+                  optionIndex: target.optionIndex,
+                  correctIndex: (currentItem as any).correctIndex ?? -1,
+                  userPrompt,
+                  guidance: target.segment === 'option'
+                    ? 'Preserve this option\'s role. Keep it plausible but not the correct answer unless marked correct. Output HTML only.'
+                    : 'Output HTML only.',
+                  // Rich context from chat
+                  course: { id: course!.id, title: course!.title, description: course!.description, gradeBand: (course as any).gradeBand, subject: (course as any).subject },
+                  group: { name: (course as any).groups?.[activeGroupIndex]?.name },
+                  studyTexts: ((course as any).studyTexts || []).slice(0, 2).map((st: any) => ({ title: st.title, content: st.content, learningObjectives: st.learningObjectives })),
+                  adjacentItems: {
+                    prev: (course as any).groups?.[activeGroupIndex]?.items?.[activeItemIndex - 1]?.stem?.text || (course as any).groups?.[activeGroupIndex]?.items?.[activeItemIndex - 1]?.text || '',
+                    next: (course as any).groups?.[activeGroupIndex]?.items?.[activeItemIndex + 1]?.stem?.text || (course as any).groups?.[activeGroupIndex]?.items?.[activeItemIndex + 1]?.text || '',
+                  },
+                  audience: { gradeBand: (course as any).gradeBand },
+                  brandVoice: { tone: 'encouraging, clear, concise' },
+                },
+                candidateCount: 1,
+              });
+              const proposed = result.candidates?.[0]?.text || '';
+              return { original: current, proposed };
+            } catch (e) {
+              toast.error(e instanceof Error ? e.message : 'AI rewrite failed');
+              return null;
+            }
+          }}
+        />
+      )}
+
+      {/* Comparison Panel Overlay */}
+      {showComparePanel && compareData && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-2xl max-w-4xl w-full max-h-[80vh] overflow-hidden">
+            <ComparePanel
+              original={compareData.original}
+              proposed={compareData.proposed}
+              type={compareData.type}
+              onAdopt={handleAdoptComparison}
+              onReject={handleRejectComparison}
+              label={`AI Suggestion — ${compareData.scope}${typeof compareData.optionIndex === 'number' ? ` ${String.fromCharCode(65 + compareData.optionIndex)}` : ''}`}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Diff Viewer Overlay (dry-run preview → approve/apply) */}
+      {showDiffViewer && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <DiffViewer
+            diff={diffOps}
+            title={auditInfo?.coverage !== undefined ? `Proposed Patch (coverage ${(auditInfo.coverage * 100).toFixed(0)}%)` : 'Proposed Patch (dry-run preview)'}
+            onApprove={approveApplyJobResult}
+            onCancel={() => { setShowDiffViewer(false); setAuditInfo(null); }}
+          />
+          {approving && (
+            <div className="absolute bottom-6 text-white text-sm">Applying changes…</div>
+          )}
+        </div>
+      )}
+
+          <Button
+            variant="outline"
+            onClick={async () => {
+              if (!courseId) return;
+              try {
+                const res = await fetch('/functions/v1/editor-auto-fix', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ courseId, apply: true }),
+                });
+                if (res.status === 403) {
+                  toast.info('Enable Option B to apply Auto‑Fix');
+                  setShowDiffViewer(false);
+                  setDiffOps([]);
+                  return;
+                }
+                const json = await res.json();
+                if (!res.ok || !json?.ok) throw new Error(json?.error || 'Apply failed');
+              } catch (e) {
+                toast.error(e instanceof Error ? e.message : 'Auto-Fix failed');
+              }
+            }}
+          >
+            ⚡ Auto-Fix
+          </Button>
+    </div>
+  );
+};
+
+export default CourseEditor;
+

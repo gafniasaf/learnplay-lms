@@ -152,14 +152,14 @@ export default function AdminConsole() {
     <section className="card">
       <h2>⚡ Quick Actions</h2>
       <div className="action-grid">
-        <button data-cta-id="manage-courses" data-action="navigate" data-target="/catalog-builder" className="action-btn" onClick={() => nav("/catalog-builder")} type="button">
+        <button data-cta-id="manage-courses" data-action="navigate" data-target="/admin/courses/select" className="action-btn" onClick={() => nav("/admin/courses/select")} type="button">
           📚 Manage Courses
         </button>
         <button data-cta-id="view-pipeline" data-action="navigate" data-target="/admin/ai-pipeline" className="action-btn" onClick={() => nav("/admin/ai-pipeline")} type="button">
           🤖 AI Pipeline
         </button>
-        <button data-cta-id="view-metrics" data-action="navigate" data-target="/admin/metrics" className="action-btn" onClick={() => nav("/admin/metrics")} type="button">
-          📈 Metrics
+        <button data-cta-id="view-health" data-action="navigate" data-target="/admin/system-health" className="action-btn" onClick={() => nav("/admin/system-health")} type="button">
+          🩺 System Health
         </button>
       </div>
     </section>

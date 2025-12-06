@@ -2,102 +2,385 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Parent Dashboard - LearnPlay</title>
-  <link rel="stylesheet" href="../_base.css">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Parent Dashboard - LearnPlay LMS</title>
+  <link rel="stylesheet" href="../_dawn.css">
 </head>
-<body data-route="/parent/dashboard" data-entity="LearnerProfile">
+<body data-route="/parent/dashboard" data-entity="ParentDashboard">
+  <!-- Header -->
   <header class="header">
-    <h1>👪 Parent Dashboard</h1>
-    <button data-cta-id="settings" data-action="navigate" data-target="/settings">⚙️</button>
+    <a href="/" class="header-brand">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/>
+      </svg>
+      LearnPlay
+    </a>
+    <div class="header-actions">
+      <span class="mock-badge">Mock</span>
+      <button class="menu-btn" data-cta-id="nav-menu">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="3" y1="12" x2="21" y2="12"/>
+          <line x1="3" y1="6" x2="21" y2="6"/>
+          <line x1="3" y1="18" x2="21" y2="18"/>
+        </svg>
+      </button>
+    </div>
   </header>
 
-  <main class="container">
-    <!-- Child Selector -->
-    <section class="card">
-      <h2>👧 My Children</h2>
-      <div class="child-selector" data-list="children">
-        <button class="child-chip active" data-field="child_name">Emma</button>
-      </div>
-    </section>
+  <main class="page-container">
+    <div class="main-content">
+      <!-- Breadcrumb -->
+      <nav class="breadcrumb">
+        <a href="/">Home</a>
+        <span class="breadcrumb-separator">›</span>
+        <a href="/parent">Parent</a>
+        <span class="breadcrumb-separator">›</span>
+        <span>Overview</span>
+      </nav>
 
-    <!-- Weekly Summary -->
-    <section class="card">
-      <h2>📊 This Week</h2>
-      <div class="stats-row">
-        <div class="stat-card">
-          <span class="stat-value" data-field="minutes_this_week">45</span>
-          <span class="stat-label">Minutes</span>
+      <!-- Tab Navigation -->
+      <nav class="tab-nav">
+        <a href="/parent/dashboard" class="tab-item active" data-cta-id="tab-overview">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
+            <rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/>
+          </svg>
+          Overview
+        </a>
+        <a href="/parent/subjects" class="tab-item" data-cta-id="tab-subjects">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+          </svg>
+          Subjects
+        </a>
+        <a href="/parent/topics" class="tab-item" data-cta-id="tab-topics">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/>
+          </svg>
+          Topics
+        </a>
+        <a href="/parent/timeline" class="tab-item" data-cta-id="tab-timeline">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+          </svg>
+          Timeline
+        </a>
+        <a href="/parent/goals" class="tab-item" data-cta-id="tab-goals">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/>
+          </svg>
+          Goals
+        </a>
+      </nav>
+
+      <!-- Page Header -->
+      <div class="page-header">
+        <div>
+          <h1 class="page-title" data-field="parent_name">Hello, Parent</h1>
+          <p class="page-subtitle">Monitor progress across your children and stay ahead of upcoming work.</p>
         </div>
-        <div class="stat-card">
-          <span class="stat-value" data-field="sessions_this_week">6</span>
-          <span class="stat-label">Sessions</span>
-        </div>
-        <div class="stat-card">
-          <span class="stat-value" data-field="avg_accuracy">87%</span>
-          <span class="stat-label">Accuracy</span>
+        <div class="page-actions">
+          <button class="btn btn-outline btn-sm" data-cta-id="link-child" data-action="navigate" data-target="/parent/children">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/>
+              <line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/>
+            </svg>
+            Link Child
+          </button>
+          <button class="btn btn-primary btn-sm" data-cta-id="messages" data-action="navigate" data-target="/parent/messages">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+              <polyline points="22,6 12,13 2,6"/>
+            </svg>
+            Messages
+          </button>
         </div>
       </div>
-    </section>
 
-    <!-- Goal Progress -->
-    <section class="card">
-      <h2>🎯 Weekly Goal</h2>
-      <div class="goal-progress">
-        <div class="progress-bar">
-          <div class="progress-fill" style="width: 75%"></div>
-        </div>
-        <p>
-          <span data-field="current_minutes">45</span> / 
-          <span data-field="weekly_goal_minutes">60</span> minutes
-        </p>
-        <span class="badge badge-success" data-field="goal_status">On Track</span>
-      </div>
-      <button data-cta-id="view-goals" data-action="navigate" data-target="/parent/goals" class="btn-secondary">
-        Manage Goals
-      </button>
-    </section>
-
-    <!-- Subject Progress -->
-    <section class="card">
-      <h2>📚 Subjects</h2>
-      <ul class="subject-list" data-list="subjects">
-        <li class="subject-item">
-          <span data-field="subject_name">Mathematics</span>
-          <div class="mini-progress">
-            <div class="progress-fill" style="width: 85%"></div>
+      <!-- Summary Cards -->
+      <div class="summary-grid" data-list="summary">
+        <div class="summary-card">
+          <div class="summary-card-header">
+            <span class="summary-card-label">Children Linked</span>
+            <div class="summary-card-icon purple">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
+                <path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+              </svg>
+            </div>
           </div>
-          <span data-field="mastery_percent">85%</span>
-        </li>
-        <li class="subject-item">
-          <span data-field="subject_name">Reading</span>
-          <div class="mini-progress">
-            <div class="progress-fill" style="width: 72%"></div>
-          </div>
-          <span data-field="mastery_percent">72%</span>
-        </li>
-      </ul>
-      <button data-cta-id="view-subjects" data-action="navigate" data-target="/parent/subjects" class="btn-secondary">
-        View All Subjects
-      </button>
-    </section>
+          <p class="summary-card-value" data-field="total_children">1</p>
+          <p class="text-xs text-muted">Active connections</p>
+        </div>
 
-    <!-- Recent Activity -->
-    <section class="card">
-      <h2>📅 Recent Activity</h2>
-      <ul class="timeline" data-list="recent_activity">
-        <li class="timeline-item">
-          <span class="time">Today 3:30 PM</span>
-          <span class="activity">Completed <strong>Multiplication Quiz</strong></span>
-          <span class="badge badge-success">92%</span>
-        </li>
-      </ul>
-      <button data-cta-id="view-timeline" data-action="navigate" data-target="/parent/timeline" class="btn-secondary">
-        View Full Timeline
-      </button>
-    </section>
+        <div class="summary-card">
+          <div class="summary-card-header">
+            <span class="summary-card-label">Total Alerts</span>
+            <div class="summary-card-icon red">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+                <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+              </svg>
+            </div>
+          </div>
+          <p class="summary-card-value" data-field="total_alerts">0</p>
+          <p class="text-xs text-muted">Overdue items & goals</p>
+        </div>
+
+        <div class="summary-card">
+          <div class="summary-card-header">
+            <span class="summary-card-label">Average Streak</span>
+            <div class="summary-card-icon green">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/>
+              </svg>
+            </div>
+          </div>
+          <p class="summary-card-value" data-field="average_streak">5</p>
+          <p class="text-xs text-muted">Days consistent</p>
+        </div>
+
+        <div class="summary-card">
+          <div class="summary-card-header">
+            <span class="summary-card-label">Total XP</span>
+            <div class="summary-card-icon amber">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+              </svg>
+            </div>
+          </div>
+          <p class="summary-card-value" data-field="total_xp">2,450</p>
+          <p class="text-xs text-muted">Experience points</p>
+        </div>
+      </div>
+
+      <!-- Growth Tracker Card -->
+      <div class="card mb-6">
+        <div class="card-header">
+          <div class="flex items-center justify-between">
+            <div>
+              <h3 class="card-title">Growth Tracker</h3>
+              <p class="card-subtitle">Track skill development across domains</p>
+            </div>
+            <a href="/parent/skills" class="btn btn-ghost btn-sm" data-cta-id="view-skills">
+              View details →
+            </a>
+          </div>
+        </div>
+        <div class="card-content">
+          <div class="grid-2" data-list="domains">
+            <!-- Math Domain -->
+            <div class="flex items-center justify-between" style="padding: 1rem; background: var(--border-light); border-radius: var(--radius-md);">
+              <div>
+                <p class="font-semibold">Mathematics</p>
+                <p class="text-sm text-muted">12 skills tracked</p>
+              </div>
+              <div class="flex items-center gap-4">
+                <div style="width: 100px;">
+                  <div class="progress">
+                    <div class="progress-bar" style="width: 78%"></div>
+                  </div>
+                </div>
+                <span class="font-semibold" data-field="math_mastery">78%</span>
+              </div>
+            </div>
+            <!-- Reading Domain -->
+            <div class="flex items-center justify-between" style="padding: 1rem; background: var(--border-light); border-radius: var(--radius-md);">
+              <div>
+                <p class="font-semibold">Reading</p>
+                <p class="text-sm text-muted">8 skills tracked</p>
+              </div>
+              <div class="flex items-center gap-4">
+                <div style="width: 100px;">
+                  <div class="progress">
+                    <div class="progress-bar" style="width: 65%"></div>
+                  </div>
+                </div>
+                <span class="font-semibold" data-field="reading_mastery">65%</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Two Column Grid -->
+      <div class="grid-2">
+        <!-- Subject Time Glance -->
+        <div class="card">
+          <div class="card-header">
+            <div class="flex items-center justify-between">
+              <h3 class="card-title">Time by Subject</h3>
+              <a href="/parent/subjects" class="btn btn-ghost btn-sm" data-cta-id="view-all-subjects">View all →</a>
+            </div>
+          </div>
+          <div class="card-content">
+            <div class="space-y-4" data-list="subjects">
+              <div class="flex items-center justify-between">
+                <span>Math</span>
+                <div class="flex items-center gap-2">
+                  <div style="width: 80px;">
+                    <div class="progress">
+                      <div class="progress-bar" style="width: 60%"></div>
+                    </div>
+                  </div>
+                  <span class="text-sm text-muted" data-field="math_minutes">45 min</span>
+                </div>
+              </div>
+              <div class="flex items-center justify-between">
+                <span>Reading</span>
+                <div class="flex items-center gap-2">
+                  <div style="width: 80px;">
+                    <div class="progress">
+                      <div class="progress-bar" style="width: 40%"></div>
+                    </div>
+                  </div>
+                  <span class="text-sm text-muted" data-field="reading_minutes">30 min</span>
+                </div>
+              </div>
+              <div class="flex items-center justify-between">
+                <span>Science</span>
+                <div class="flex items-center gap-2">
+                  <div style="width: 80px;">
+                    <div class="progress">
+                      <div class="progress-bar" style="width: 20%"></div>
+                    </div>
+                  </div>
+                  <span class="text-sm text-muted" data-field="science_minutes">15 min</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Goals Glance -->
+        <div class="card">
+          <div class="card-header">
+            <div class="flex items-center justify-between">
+              <h3 class="card-title">Weekly Goals</h3>
+              <a href="/parent/goals" class="btn btn-ghost btn-sm" data-cta-id="view-goals-alerts">View goals & alerts →</a>
+            </div>
+          </div>
+          <div class="card-content">
+            <div class="space-y-4">
+              <div>
+                <div class="flex items-center justify-between mb-2">
+                  <span class="text-sm">Time Goal</span>
+                  <span class="text-sm font-medium" data-field="time_goal_progress">45 / 60 min</span>
+                </div>
+                <div class="progress">
+                  <div class="progress-bar success" style="width: 75%"></div>
+                </div>
+              </div>
+              <div>
+                <div class="flex items-center justify-between mb-2">
+                  <span class="text-sm">Items Goal</span>
+                  <span class="text-sm font-medium" data-field="items_goal_progress">12 / 20 items</span>
+                </div>
+                <div class="progress">
+                  <div class="progress-bar" style="width: 60%"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid-2 mt-6">
+        <!-- Topics Glance -->
+        <div class="card">
+          <div class="card-header">
+            <div class="flex items-center justify-between">
+              <h3 class="card-title">Recent Topics</h3>
+              <a href="/parent/topics" class="btn btn-ghost btn-sm" data-cta-id="view-all-topics">View all topics →</a>
+            </div>
+          </div>
+          <div class="card-content">
+            <div class="space-y-4" data-list="topics">
+              <div class="flex items-center justify-between">
+                <div>
+                  <p class="font-medium">Multiplication</p>
+                  <p class="text-xs text-muted">Math • 3 items</p>
+                </div>
+                <span class="badge badge-success">92%</span>
+              </div>
+              <div class="flex items-center justify-between">
+                <div>
+                  <p class="font-medium">Fractions</p>
+                  <p class="text-xs text-muted">Math • 5 items</p>
+                </div>
+                <span class="badge badge-warning">68%</span>
+              </div>
+              <div class="flex items-center justify-between">
+                <div>
+                  <p class="font-medium">Reading Comprehension</p>
+                  <p class="text-xs text-muted">Reading • 2 items</p>
+                </div>
+                <span class="badge badge-success">85%</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Activity Glance -->
+        <div class="card">
+          <div class="card-header">
+            <div class="flex items-center justify-between">
+              <h3 class="card-title">Recent Activity</h3>
+              <a href="/parent/timeline" class="btn btn-ghost btn-sm" data-cta-id="view-timeline">View timeline →</a>
+            </div>
+          </div>
+          <div class="card-content">
+            <div class="space-y-4" data-list="activities">
+              <div class="flex items-center gap-4">
+                <div style="width: 8px; height: 8px; border-radius: 50%; background: var(--success);"></div>
+                <div class="flex-1">
+                  <p class="font-medium">Completed Multiplication Quiz</p>
+                  <p class="text-xs text-muted">Today at 3:30 PM • 15 min</p>
+                </div>
+                <span class="badge badge-success">92%</span>
+              </div>
+              <div class="flex items-center gap-4">
+                <div style="width: 8px; height: 8px; border-radius: 50%; background: var(--primary);"></div>
+                <div class="flex-1">
+                  <p class="font-medium">Started Reading Practice</p>
+                  <p class="text-xs text-muted">Yesterday at 4:15 PM • 10 min</p>
+                </div>
+                <span class="badge badge-outline">In Progress</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <div class="footer-grid">
+        <div class="footer-section">
+          <h3>Portal</h3>
+          <ul class="footer-links">
+            <li><a href="/student/dashboard">Kid</a></li>
+            <li><a href="/parent/dashboard">Parent</a></li>
+            <li><a href="/teacher/dashboard">School</a></li>
+          </ul>
+        </div>
+        <div class="footer-section">
+          <h3>Resources</h3>
+          <ul class="footer-links">
+            <li><a href="/courses">Courses</a></li>
+            <li><a href="/help">Help</a></li>
+            <li><a href="/about">About</a></li>
+          </ul>
+        </div>
+        <div class="footer-section">
+          <h3>Legal</h3>
+          <ul class="footer-links">
+            <li><a href="/privacy">Privacy</a></li>
+            <li><a href="/terms">Terms</a></li>
+          </ul>
+        </div>
+      </div>
+    </footer>
   </main>
 </body>
 </html>
-
-
-

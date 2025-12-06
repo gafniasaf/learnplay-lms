@@ -3,68 +3,95 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>LearnPlay - Adaptive Learning Platform</title>
-  <link rel="stylesheet" href="_base.css">
-  <style>
-    .hero {
-      min-height: 80vh;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      text-align: center;
-      background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 50%, #8b5cf6 100%);
-      color: white;
-      padding: 2rem;
-    }
-    .hero-logo { font-size: 4rem; margin-bottom: 1rem; }
-    .hero h1 { font-size: 3rem; margin-bottom: 0.5rem; }
-    .hero-tagline { font-size: 1.25rem; opacity: 0.9; margin-bottom: 2rem; }
-    .hero-actions { display: flex; gap: 1rem; flex-wrap: wrap; justify-content: center; }
-    .btn-hero { padding: 1rem 2rem; font-size: 1.125rem; border-radius: 999px; }
-    .btn-hero-primary { background: white; color: #1e3a8a; border: none; }
-    .btn-hero-secondary { background: transparent; color: white; border: 2px solid white; }
-    .features { padding: 4rem 2rem; max-width: 1000px; margin: 0 auto; }
-    .features h2 { text-align: center; margin-bottom: 2rem; }
-    .feature-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 2rem; }
-    .feature-card { background: var(--color-surface); padding: 2rem; border-radius: var(--radius); box-shadow: var(--shadow); }
-    .feature-icon { font-size: 2rem; margin-bottom: 1rem; }
-    .feature-title { font-weight: 600; margin-bottom: 0.5rem; }
-  </style>
+  <title>LearnPlay LMS</title>
+  <link rel="stylesheet" href="_dawn.css">
 </head>
-<body data-route="/">
-  <div class="hero">
-    <div class="hero-logo">🎓</div>
-    <h1>LearnPlay</h1>
-    <p class="hero-tagline">Adaptive learning with multi-role insights</p>
-    <div class="hero-actions">
-      <button class="btn-hero btn-hero-primary" data-cta-id="get-started" data-action="navigate" data-target="/auth">Get Started</button>
-      <button class="btn-hero btn-hero-secondary" data-cta-id="learn-more" data-action="navigate" data-target="/about">Learn More</button>
+<body data-route="/" data-entity="Landing">
+  <!-- Header -->
+  <header class="header">
+    <a href="/" class="header-brand">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/>
+      </svg>
+      LearnPlay
+    </a>
+    <div class="header-actions">
+      <span class="mock-badge">Mock</span>
+      <button class="menu-btn" data-cta-id="nav-menu" data-action="toggle-menu">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="3" y1="12" x2="21" y2="12"/>
+          <line x1="3" y1="6" x2="21" y2="6"/>
+          <line x1="3" y1="18" x2="21" y2="18"/>
+        </svg>
+      </button>
     </div>
-  </div>
-  
-  <div class="features">
-    <h2>Why LearnPlay?</h2>
-    <div class="feature-grid">
-      <div class="feature-card">
-        <div class="feature-icon">🎯</div>
-        <div class="feature-title">Adaptive Learning</div>
-        <p>Questions adjust to each student's level with smart variant rotation.</p>
-      </div>
-      <div class="feature-card">
-        <div class="feature-icon">📊</div>
-        <div class="feature-title">Multi-Role Dashboards</div>
-        <p>Students, teachers, and parents each get tailored insights.</p>
-      </div>
-      <div class="feature-card">
-        <div class="feature-icon">🤖</div>
-        <div class="feature-title">AI-Powered Content</div>
-        <p>Generate courses and assignments with intelligent assistance.</p>
+  </header>
+
+  <!-- Main Content -->
+  <main class="page-container">
+    <div class="main-content">
+      <!-- Hero Section -->
+      <section class="hero">
+        <h1 class="hero-title">Welcome to LearnPlay</h1>
+        <p class="hero-subtitle">Choose your portal to get started</p>
+      </section>
+
+      <!-- Portal Cards -->
+      <div class="portal-grid">
+        <a href="/student/dashboard" class="portal-card" data-cta-id="portal-kid" data-action="navigate" data-target="/student/dashboard">
+          <div class="portal-card-icon">🎮</div>
+          <h2 class="portal-card-title">Kid</h2>
+          <p class="portal-card-desc">Fun games and interactive learning</p>
+        </a>
+
+        <a href="/parent/dashboard" class="portal-card" data-cta-id="portal-parent" data-action="navigate" data-target="/parent/dashboard">
+          <div class="portal-card-icon">👪</div>
+          <h2 class="portal-card-title">Parent</h2>
+          <p class="portal-card-desc">Track progress and support learning</p>
+        </a>
+
+        <a href="/teacher/dashboard" class="portal-card" data-cta-id="portal-school" data-action="navigate" data-target="/teacher/dashboard">
+          <div class="portal-card-icon">🏫</div>
+          <h2 class="portal-card-title">School</h2>
+          <p class="portal-card-desc">Manage classes and curriculum</p>
+        </a>
+
+        <a href="/admin" class="portal-card" data-cta-id="portal-admin" data-action="navigate" data-target="/admin">
+          <div class="portal-card-icon">⚙️</div>
+          <h2 class="portal-card-title">Admin</h2>
+          <p class="portal-card-desc">System administration and settings</p>
+        </a>
       </div>
     </div>
-  </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <div class="footer-grid">
+        <div class="footer-section">
+          <h3>Portal</h3>
+          <ul class="footer-links">
+            <li><a href="/student/dashboard">Kid</a></li>
+            <li><a href="/parent/dashboard">Parent</a></li>
+            <li><a href="/teacher/dashboard">School</a></li>
+          </ul>
+        </div>
+        <div class="footer-section">
+          <h3>Resources</h3>
+          <ul class="footer-links">
+            <li><a href="/courses">Courses</a></li>
+            <li><a href="/help">Help</a></li>
+            <li><a href="/about">About</a></li>
+          </ul>
+        </div>
+        <div class="footer-section">
+          <h3>Legal</h3>
+          <ul class="footer-links">
+            <li><a href="/privacy">Privacy</a></li>
+            <li><a href="/terms">Terms</a></li>
+          </ul>
+        </div>
+      </div>
+    </footer>
+  </main>
 </body>
 </html>
-
-
-

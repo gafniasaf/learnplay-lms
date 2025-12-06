@@ -1,233 +1,5432 @@
 {
-  "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "description": "Golden Plan Mock Coverage Matrix - All routes and states that must be mocked before React compilation",
-  "version": "1.0.0",
   "routes": [
     {
-      "path": "/dashboard",
-      "name": "Dashboard",
-      "description": "Main landing page showing all plans",
-      "states": [
-        {
-          "id": "populated",
-          "file": "dashboard/populated.html",
-          "description": "Default view with existing plans",
-          "required": true
-        },
-        {
-          "id": "empty",
-          "file": "dashboard/empty.html",
-          "description": "No plans yet, onboarding state",
-          "required": true
-        },
-        {
-          "id": "loading",
-          "file": "dashboard/loading.html",
-          "description": "Fetching plans from backend",
-          "required": true
-        },
-        {
-          "id": "error",
-          "file": "dashboard/error.html",
-          "description": "Failed to fetch plans",
-          "required": true
-        },
-        {
-          "id": "unauthorized",
-          "file": "dashboard/unauthorized.html",
-          "description": "User not authenticated",
-          "required": true
-        }
-      ],
-      "requiredCTAs": [
-        { "id": "create-plan", "action": "save", "entity": "PlanBlueprint" },
-        { "id": "open-plan", "action": "navigate", "target": "/plans/editor" },
-        { "id": "menu-toggle", "action": "ui" }
-      ]
-    },
-    {
-      "path": "/plans/editor",
-      "name": "Plan Editor",
-      "description": "Main workspace for editing a plan with AI assistance",
+      "path": "/",
+      "name": "Home",
+      "description": "Home",
       "states": [
         {
           "id": "default",
-          "file": "editor/default.html",
-          "description": "Normal editing state with plan loaded",
-          "required": true
-        },
-        {
-          "id": "loading",
-          "file": "editor/loading.html",
-          "description": "Loading plan data",
-          "required": true
-        },
-        {
-          "id": "job-running",
-          "file": "editor/job-running.html",
-          "description": "AI job in progress (refine, guard, compile)",
-          "required": true
-        },
-        {
-          "id": "blocked",
-          "file": "editor/blocked.html",
-          "description": "Missing API key or configuration",
-          "required": true
-        },
-        {
-          "id": "unauthorized",
-          "file": "editor/unauthorized.html",
-          "description": "User not authenticated or session expired",
-          "required": true
-        },
-        {
-          "id": "not-found",
-          "file": "editor/not-found.html",
-          "description": "Plan ID does not exist",
-          "required": true
-        },
-        {
-          "id": "offline",
-          "file": "editor/offline.html",
-          "description": "Network connection lost",
+          "file": "landing/default.html",
+          "description": "Default state",
           "required": true
         }
       ],
       "requiredCTAs": [
-        { "id": "send-message", "action": "enqueueJob", "jobType": "refine_plan" },
-        { "id": "export-plan", "action": "save", "entity": "PlanBlueprint" },
-        { "id": "back-dashboard", "action": "navigate", "target": "/dashboard" },
-        { "id": "copy-code", "action": "ui" },
-        { "id": "refresh-preview", "action": "ui" }
+        {
+          "id": "cta-root-action-0"
+        },
+        {
+          "id": "cta-root-landing-1",
+          "target": "/"
+        },
+        {
+          "id": "cta-root-about-2",
+          "target": "/about"
+        },
+        {
+          "id": "cta-root-auth-3",
+          "target": "/auth"
+        },
+        {
+          "id": "cta-root-settings-4",
+          "target": "/settings"
+        },
+        {
+          "id": "cta-root-messages-5",
+          "target": "/messages"
+        },
+        {
+          "id": "cta-root-student-dashboard-6",
+          "target": "/student/dashboard"
+        },
+        {
+          "id": "cta-root-student-assignments-7",
+          "target": "/student/assignments"
+        },
+        {
+          "id": "cta-root-student-achievements-8",
+          "target": "/student/achievements"
+        },
+        {
+          "id": "cta-root-student-goals-9",
+          "target": "/student/goals"
+        },
+        {
+          "id": "cta-root-student-timeline-10",
+          "target": "/student/timeline"
+        },
+        {
+          "id": "cta-root-student-join-class-11",
+          "target": "/student/join-class"
+        },
+        {
+          "id": "cta-root-teacher-dashboard-12",
+          "target": "/teacher/dashboard"
+        },
+        {
+          "id": "cta-root-teacher-classes-13",
+          "target": "/teacher/classes"
+        },
+        {
+          "id": "cta-root-teacher-students-14",
+          "target": "/teacher/students"
+        },
+        {
+          "id": "cta-root-teacher-assignments-15",
+          "target": "/teacher/assignments"
+        },
+        {
+          "id": "cta-root-teacher-assignment-progress-16",
+          "target": "/teacher/assignment-progress"
+        },
+        {
+          "id": "cta-root-teacher-class-progress-17",
+          "target": "/teacher/class-progress"
+        },
+        {
+          "id": "cta-root-teacher-analytics-18",
+          "target": "/teacher/analytics"
+        },
+        {
+          "id": "cta-root-teacher-control-19",
+          "target": "/teacher/control"
+        },
+        {
+          "id": "cta-root-parent-dashboard-20",
+          "target": "/parent/dashboard"
+        },
+        {
+          "id": "cta-root-parent-subjects-21",
+          "target": "/parent/subjects"
+        },
+        {
+          "id": "cta-root-parent-goals-22",
+          "target": "/parent/goals"
+        },
+        {
+          "id": "cta-root-parent-timeline-23",
+          "target": "/parent/timeline"
+        },
+        {
+          "id": "cta-root-play-welcome-24",
+          "target": "/play/welcome"
+        },
+        {
+          "id": "cta-root-play-25",
+          "target": "/play"
+        },
+        {
+          "id": "cta-root-play-media-26",
+          "target": "/play/media"
+        },
+        {
+          "id": "cta-root-results-27",
+          "target": "/results"
+        },
+        {
+          "id": "cta-root-admin-console-28",
+          "target": "/admin/console"
+        },
+        {
+          "id": "cta-root-admin-jobs-29",
+          "target": "/admin/jobs"
+        },
+        {
+          "id": "cta-root-admin-system-health-30",
+          "target": "/admin/system-health"
+        },
+        {
+          "id": "cta-root-admin-ai-pipeline-31",
+          "target": "/admin/ai-pipeline"
+        },
+        {
+          "id": "cta-root-catalog-builder-32",
+          "target": "/catalog-builder"
+        },
+        {
+          "id": "cta-root-catalog-builder-media-33",
+          "target": "/catalog-builder/media"
+        },
+        {
+          "id": "cta-root-get-started-0"
+        },
+        {
+          "id": "cta-root-learn-more-1"
+        },
+        {
+          "id": "cta-root-studentslearn-through-play-with-adaptive-challenges-2"
+        },
+        {
+          "id": "cta-root-teacherscreate-courses-and-track-class-progress-3"
+        },
+        {
+          "id": "cta-root-parentsmonitor-progress-and-set-learning-goals-4"
+        }
       ]
     },
     {
-      "path": "/settings",
-      "name": "Settings",
-      "description": "Configuration for API keys, MCP proxy, preferences",
+      "path": "/auth",
+      "name": "Auth",
+      "description": "Auth",
       "states": [
         {
           "id": "default",
-          "file": "settings/default.html",
-          "description": "Normal settings view",
-          "required": true
-        },
-        {
-          "id": "saved",
-          "file": "settings/saved.html",
-          "description": "Settings saved successfully",
-          "required": true
-        },
-        {
-          "id": "validation-error",
-          "file": "settings/validation-error.html",
-          "description": "Invalid input in settings form",
-          "required": true
-        },
-        {
-          "id": "unauthorized",
-          "file": "settings/unauthorized.html",
-          "description": "User not authenticated",
+          "file": "auth/default.html",
+          "description": "Default state",
           "required": true
         }
       ],
       "requiredCTAs": [
-        { "id": "save-settings", "action": "save", "entity": "Settings" },
-        { "id": "test-connection", "action": "ui" },
-        { "id": "back-dashboard", "action": "navigate", "target": "/dashboard" }
+        {
+          "id": "cta-auth-action-0"
+        },
+        {
+          "id": "cta-auth-landing-1",
+          "target": "/"
+        },
+        {
+          "id": "cta-auth-about-2",
+          "target": "/about"
+        },
+        {
+          "id": "cta-auth-auth-3",
+          "target": "/auth"
+        },
+        {
+          "id": "cta-auth-settings-4",
+          "target": "/settings"
+        },
+        {
+          "id": "cta-auth-messages-5",
+          "target": "/messages"
+        },
+        {
+          "id": "cta-auth-student-dashboard-6",
+          "target": "/student/dashboard"
+        },
+        {
+          "id": "cta-auth-student-assignments-7",
+          "target": "/student/assignments"
+        },
+        {
+          "id": "cta-auth-student-achievements-8",
+          "target": "/student/achievements"
+        },
+        {
+          "id": "cta-auth-student-goals-9",
+          "target": "/student/goals"
+        },
+        {
+          "id": "cta-auth-student-timeline-10",
+          "target": "/student/timeline"
+        },
+        {
+          "id": "cta-auth-student-join-class-11",
+          "target": "/student/join-class"
+        },
+        {
+          "id": "cta-auth-teacher-dashboard-12",
+          "target": "/teacher/dashboard"
+        },
+        {
+          "id": "cta-auth-teacher-classes-13",
+          "target": "/teacher/classes"
+        },
+        {
+          "id": "cta-auth-teacher-students-14",
+          "target": "/teacher/students"
+        },
+        {
+          "id": "cta-auth-teacher-assignments-15",
+          "target": "/teacher/assignments"
+        },
+        {
+          "id": "cta-auth-teacher-assignment-progress-16",
+          "target": "/teacher/assignment-progress"
+        },
+        {
+          "id": "cta-auth-teacher-class-progress-17",
+          "target": "/teacher/class-progress"
+        },
+        {
+          "id": "cta-auth-teacher-analytics-18",
+          "target": "/teacher/analytics"
+        },
+        {
+          "id": "cta-auth-teacher-control-19",
+          "target": "/teacher/control"
+        },
+        {
+          "id": "cta-auth-parent-dashboard-20",
+          "target": "/parent/dashboard"
+        },
+        {
+          "id": "cta-auth-parent-subjects-21",
+          "target": "/parent/subjects"
+        },
+        {
+          "id": "cta-auth-parent-goals-22",
+          "target": "/parent/goals"
+        },
+        {
+          "id": "cta-auth-parent-timeline-23",
+          "target": "/parent/timeline"
+        },
+        {
+          "id": "cta-auth-play-welcome-24",
+          "target": "/play/welcome"
+        },
+        {
+          "id": "cta-auth-play-25",
+          "target": "/play"
+        },
+        {
+          "id": "cta-auth-play-media-26",
+          "target": "/play/media"
+        },
+        {
+          "id": "cta-auth-results-27",
+          "target": "/results"
+        },
+        {
+          "id": "cta-auth-admin-console-28",
+          "target": "/admin/console"
+        },
+        {
+          "id": "cta-auth-admin-jobs-29",
+          "target": "/admin/jobs"
+        },
+        {
+          "id": "cta-auth-admin-system-health-30",
+          "target": "/admin/system-health"
+        },
+        {
+          "id": "cta-auth-admin-ai-pipeline-31",
+          "target": "/admin/ai-pipeline"
+        },
+        {
+          "id": "cta-auth-catalog-builder-32",
+          "target": "/catalog-builder"
+        },
+        {
+          "id": "cta-auth-catalog-builder-media-33",
+          "target": "/catalog-builder/media"
+        },
+        {
+          "id": "cta-auth-login-0"
+        },
+        {
+          "id": "cta-auth-sign-up-1"
+        },
+        {
+          "id": "cta-auth-sign-in-2"
+        },
+        {
+          "id": "cta-auth-forgot-password-3"
+        },
+        {
+          "id": "cta-auth-continue-with-google-4"
+        },
+        {
+          "id": "cta-auth-continue-as-guest-5"
+        }
+      ]
+    },
+    {
+      "path": "/auth/reset-password",
+      "name": "Reset Password",
+      "description": "Reset Password",
+      "states": [
+        {
+          "id": "default",
+          "file": "auth/reset-password/default.html",
+          "description": "Default state",
+          "required": true
+        }
+      ],
+      "requiredCTAs": [
+        {
+          "id": "cta-auth-reset-password-action-0"
+        },
+        {
+          "id": "cta-auth-reset-password-landing-1",
+          "target": "/"
+        },
+        {
+          "id": "cta-auth-reset-password-about-2",
+          "target": "/about"
+        },
+        {
+          "id": "cta-auth-reset-password-auth-3",
+          "target": "/auth"
+        },
+        {
+          "id": "cta-auth-reset-password-settings-4",
+          "target": "/settings"
+        },
+        {
+          "id": "cta-auth-reset-password-messages-5",
+          "target": "/messages"
+        },
+        {
+          "id": "cta-auth-reset-password-student-dashboard-6",
+          "target": "/student/dashboard"
+        },
+        {
+          "id": "cta-auth-reset-password-student-assignments-7",
+          "target": "/student/assignments"
+        },
+        {
+          "id": "cta-auth-reset-password-student-achievements-8",
+          "target": "/student/achievements"
+        },
+        {
+          "id": "cta-auth-reset-password-student-goals-9",
+          "target": "/student/goals"
+        },
+        {
+          "id": "cta-auth-reset-password-student-timeline-10",
+          "target": "/student/timeline"
+        },
+        {
+          "id": "cta-auth-reset-password-student-join-class-11",
+          "target": "/student/join-class"
+        },
+        {
+          "id": "cta-auth-reset-password-teacher-dashboard-12",
+          "target": "/teacher/dashboard"
+        },
+        {
+          "id": "cta-auth-reset-password-teacher-classes-13",
+          "target": "/teacher/classes"
+        },
+        {
+          "id": "cta-auth-reset-password-teacher-students-14",
+          "target": "/teacher/students"
+        },
+        {
+          "id": "cta-auth-reset-password-teacher-assignments-15",
+          "target": "/teacher/assignments"
+        },
+        {
+          "id": "cta-auth-reset-password-teacher-assignment-progress-16",
+          "target": "/teacher/assignment-progress"
+        },
+        {
+          "id": "cta-auth-reset-password-teacher-class-progress-17",
+          "target": "/teacher/class-progress"
+        },
+        {
+          "id": "cta-auth-reset-password-teacher-analytics-18",
+          "target": "/teacher/analytics"
+        },
+        {
+          "id": "cta-auth-reset-password-teacher-control-19",
+          "target": "/teacher/control"
+        },
+        {
+          "id": "cta-auth-reset-password-parent-dashboard-20",
+          "target": "/parent/dashboard"
+        },
+        {
+          "id": "cta-auth-reset-password-parent-subjects-21",
+          "target": "/parent/subjects"
+        },
+        {
+          "id": "cta-auth-reset-password-parent-goals-22",
+          "target": "/parent/goals"
+        },
+        {
+          "id": "cta-auth-reset-password-parent-timeline-23",
+          "target": "/parent/timeline"
+        },
+        {
+          "id": "cta-auth-reset-password-play-welcome-24",
+          "target": "/play/welcome"
+        },
+        {
+          "id": "cta-auth-reset-password-play-25",
+          "target": "/play"
+        },
+        {
+          "id": "cta-auth-reset-password-play-media-26",
+          "target": "/play/media"
+        },
+        {
+          "id": "cta-auth-reset-password-results-27",
+          "target": "/results"
+        },
+        {
+          "id": "cta-auth-reset-password-admin-console-28",
+          "target": "/admin/console"
+        },
+        {
+          "id": "cta-auth-reset-password-admin-jobs-29",
+          "target": "/admin/jobs"
+        },
+        {
+          "id": "cta-auth-reset-password-admin-system-health-30",
+          "target": "/admin/system-health"
+        },
+        {
+          "id": "cta-auth-reset-password-admin-ai-pipeline-31",
+          "target": "/admin/ai-pipeline"
+        },
+        {
+          "id": "cta-auth-reset-password-catalog-builder-32",
+          "target": "/catalog-builder"
+        },
+        {
+          "id": "cta-auth-reset-password-catalog-builder-media-33",
+          "target": "/catalog-builder/media"
+        }
+      ]
+    },
+    {
+      "path": "/courses",
+      "name": "Courses",
+      "description": "Courses",
+      "states": [
+        {
+          "id": "default",
+          "file": "courses/default.html",
+          "description": "Default state",
+          "required": true
+        }
+      ],
+      "requiredCTAs": [
+        {
+          "id": "cta-courses-action-0"
+        },
+        {
+          "id": "cta-courses-landing-1",
+          "target": "/"
+        },
+        {
+          "id": "cta-courses-about-2",
+          "target": "/about"
+        },
+        {
+          "id": "cta-courses-auth-3",
+          "target": "/auth"
+        },
+        {
+          "id": "cta-courses-settings-4",
+          "target": "/settings"
+        },
+        {
+          "id": "cta-courses-messages-5",
+          "target": "/messages"
+        },
+        {
+          "id": "cta-courses-student-dashboard-6",
+          "target": "/student/dashboard"
+        },
+        {
+          "id": "cta-courses-student-assignments-7",
+          "target": "/student/assignments"
+        },
+        {
+          "id": "cta-courses-student-achievements-8",
+          "target": "/student/achievements"
+        },
+        {
+          "id": "cta-courses-student-goals-9",
+          "target": "/student/goals"
+        },
+        {
+          "id": "cta-courses-student-timeline-10",
+          "target": "/student/timeline"
+        },
+        {
+          "id": "cta-courses-student-join-class-11",
+          "target": "/student/join-class"
+        },
+        {
+          "id": "cta-courses-teacher-dashboard-12",
+          "target": "/teacher/dashboard"
+        },
+        {
+          "id": "cta-courses-teacher-classes-13",
+          "target": "/teacher/classes"
+        },
+        {
+          "id": "cta-courses-teacher-students-14",
+          "target": "/teacher/students"
+        },
+        {
+          "id": "cta-courses-teacher-assignments-15",
+          "target": "/teacher/assignments"
+        },
+        {
+          "id": "cta-courses-teacher-assignment-progress-16",
+          "target": "/teacher/assignment-progress"
+        },
+        {
+          "id": "cta-courses-teacher-class-progress-17",
+          "target": "/teacher/class-progress"
+        },
+        {
+          "id": "cta-courses-teacher-analytics-18",
+          "target": "/teacher/analytics"
+        },
+        {
+          "id": "cta-courses-teacher-control-19",
+          "target": "/teacher/control"
+        },
+        {
+          "id": "cta-courses-parent-dashboard-20",
+          "target": "/parent/dashboard"
+        },
+        {
+          "id": "cta-courses-parent-subjects-21",
+          "target": "/parent/subjects"
+        },
+        {
+          "id": "cta-courses-parent-goals-22",
+          "target": "/parent/goals"
+        },
+        {
+          "id": "cta-courses-parent-timeline-23",
+          "target": "/parent/timeline"
+        },
+        {
+          "id": "cta-courses-play-welcome-24",
+          "target": "/play/welcome"
+        },
+        {
+          "id": "cta-courses-play-25",
+          "target": "/play"
+        },
+        {
+          "id": "cta-courses-play-media-26",
+          "target": "/play/media"
+        },
+        {
+          "id": "cta-courses-results-27",
+          "target": "/results"
+        },
+        {
+          "id": "cta-courses-admin-console-28",
+          "target": "/admin/console"
+        },
+        {
+          "id": "cta-courses-admin-jobs-29",
+          "target": "/admin/jobs"
+        },
+        {
+          "id": "cta-courses-admin-system-health-30",
+          "target": "/admin/system-health"
+        },
+        {
+          "id": "cta-courses-admin-ai-pipeline-31",
+          "target": "/admin/ai-pipeline"
+        },
+        {
+          "id": "cta-courses-catalog-builder-32",
+          "target": "/catalog-builder"
+        },
+        {
+          "id": "cta-courses-catalog-builder-media-33",
+          "target": "/catalog-builder/media"
+        },
+        {
+          "id": "cta-courses-return-to-home-0",
+          "target": "/"
+        }
       ]
     },
     {
       "path": "/help",
-      "name": "Help & Documentation",
-      "description": "Help center and documentation links",
+      "name": "Help",
+      "description": "Help",
       "states": [
         {
           "id": "default",
           "file": "help/default.html",
-          "description": "Normal help view",
-          "required": true
-        },
-        {
-          "id": "mcp-offline",
-          "file": "help/mcp-offline.html",
-          "description": "MCP server not reachable",
+          "description": "Default state",
           "required": true
         }
       ],
       "requiredCTAs": [
-        { "id": "back-dashboard", "action": "navigate", "target": "/dashboard" },
-        { "id": "open-docs", "action": "external", "target": "https://docs.ignitezero.dev" }
+        {
+          "id": "cta-help-action-0"
+        },
+        {
+          "id": "cta-help-landing-1",
+          "target": "/"
+        },
+        {
+          "id": "cta-help-about-2",
+          "target": "/about"
+        },
+        {
+          "id": "cta-help-auth-3",
+          "target": "/auth"
+        },
+        {
+          "id": "cta-help-settings-4",
+          "target": "/settings"
+        },
+        {
+          "id": "cta-help-messages-5",
+          "target": "/messages"
+        },
+        {
+          "id": "cta-help-student-dashboard-6",
+          "target": "/student/dashboard"
+        },
+        {
+          "id": "cta-help-student-assignments-7",
+          "target": "/student/assignments"
+        },
+        {
+          "id": "cta-help-student-achievements-8",
+          "target": "/student/achievements"
+        },
+        {
+          "id": "cta-help-student-goals-9",
+          "target": "/student/goals"
+        },
+        {
+          "id": "cta-help-student-timeline-10",
+          "target": "/student/timeline"
+        },
+        {
+          "id": "cta-help-student-join-class-11",
+          "target": "/student/join-class"
+        },
+        {
+          "id": "cta-help-teacher-dashboard-12",
+          "target": "/teacher/dashboard"
+        },
+        {
+          "id": "cta-help-teacher-classes-13",
+          "target": "/teacher/classes"
+        },
+        {
+          "id": "cta-help-teacher-students-14",
+          "target": "/teacher/students"
+        },
+        {
+          "id": "cta-help-teacher-assignments-15",
+          "target": "/teacher/assignments"
+        },
+        {
+          "id": "cta-help-teacher-assignment-progress-16",
+          "target": "/teacher/assignment-progress"
+        },
+        {
+          "id": "cta-help-teacher-class-progress-17",
+          "target": "/teacher/class-progress"
+        },
+        {
+          "id": "cta-help-teacher-analytics-18",
+          "target": "/teacher/analytics"
+        },
+        {
+          "id": "cta-help-teacher-control-19",
+          "target": "/teacher/control"
+        },
+        {
+          "id": "cta-help-parent-dashboard-20",
+          "target": "/parent/dashboard"
+        },
+        {
+          "id": "cta-help-parent-subjects-21",
+          "target": "/parent/subjects"
+        },
+        {
+          "id": "cta-help-parent-goals-22",
+          "target": "/parent/goals"
+        },
+        {
+          "id": "cta-help-parent-timeline-23",
+          "target": "/parent/timeline"
+        },
+        {
+          "id": "cta-help-play-welcome-24",
+          "target": "/play/welcome"
+        },
+        {
+          "id": "cta-help-play-25",
+          "target": "/play"
+        },
+        {
+          "id": "cta-help-play-media-26",
+          "target": "/play/media"
+        },
+        {
+          "id": "cta-help-results-27",
+          "target": "/results"
+        },
+        {
+          "id": "cta-help-admin-console-28",
+          "target": "/admin/console"
+        },
+        {
+          "id": "cta-help-admin-jobs-29",
+          "target": "/admin/jobs"
+        },
+        {
+          "id": "cta-help-admin-system-health-30",
+          "target": "/admin/system-health"
+        },
+        {
+          "id": "cta-help-admin-ai-pipeline-31",
+          "target": "/admin/ai-pipeline"
+        },
+        {
+          "id": "cta-help-catalog-builder-32",
+          "target": "/catalog-builder"
+        },
+        {
+          "id": "cta-help-catalog-builder-media-33",
+          "target": "/catalog-builder/media"
+        },
+        {
+          "id": "cta-help-return-to-home-0",
+          "target": "/"
+        }
       ]
     },
     {
-      "path": "/jobs",
-      "name": "Job History",
-      "description": "View past AI jobs and their results",
+      "path": "/admin/ai-pipeline",
+      "name": "AI Pipeline",
+      "description": "AI Pipeline",
       "states": [
         {
-          "id": "populated",
-          "file": "jobs/populated.html",
-          "description": "List of past jobs",
-          "required": true
-        },
-        {
-          "id": "empty",
-          "file": "jobs/empty.html",
-          "description": "No jobs run yet",
-          "required": true
-        },
-        {
-          "id": "loading",
-          "file": "jobs/loading.html",
-          "description": "Fetching job history",
-          "required": true
-        },
-        {
-          "id": "error",
-          "file": "jobs/error.html",
-          "description": "Failed to fetch jobs",
+          "id": "default",
+          "file": "admin/ai-pipeline/default.html",
+          "description": "Default state",
           "required": true
         }
       ],
       "requiredCTAs": [
-        { "id": "view-job-details", "action": "ui" },
-        { "id": "retry-job", "action": "enqueueJob" },
-        { "id": "back-dashboard", "action": "navigate", "target": "/dashboard" }
+        {
+          "id": "cta-admin-ai-pipeline-action-0"
+        },
+        {
+          "id": "cta-admin-ai-pipeline-landing-1",
+          "target": "/"
+        },
+        {
+          "id": "cta-admin-ai-pipeline-about-2",
+          "target": "/about"
+        },
+        {
+          "id": "cta-admin-ai-pipeline-auth-3",
+          "target": "/auth"
+        },
+        {
+          "id": "cta-admin-ai-pipeline-settings-4",
+          "target": "/settings"
+        },
+        {
+          "id": "cta-admin-ai-pipeline-messages-5",
+          "target": "/messages"
+        },
+        {
+          "id": "cta-admin-ai-pipeline-student-dashboard-6",
+          "target": "/student/dashboard"
+        },
+        {
+          "id": "cta-admin-ai-pipeline-student-assignments-7",
+          "target": "/student/assignments"
+        },
+        {
+          "id": "cta-admin-ai-pipeline-student-achievements-8",
+          "target": "/student/achievements"
+        },
+        {
+          "id": "cta-admin-ai-pipeline-student-goals-9",
+          "target": "/student/goals"
+        },
+        {
+          "id": "cta-admin-ai-pipeline-student-timeline-10",
+          "target": "/student/timeline"
+        },
+        {
+          "id": "cta-admin-ai-pipeline-student-join-class-11",
+          "target": "/student/join-class"
+        },
+        {
+          "id": "cta-admin-ai-pipeline-teacher-dashboard-12",
+          "target": "/teacher/dashboard"
+        },
+        {
+          "id": "cta-admin-ai-pipeline-teacher-classes-13",
+          "target": "/teacher/classes"
+        },
+        {
+          "id": "cta-admin-ai-pipeline-teacher-students-14",
+          "target": "/teacher/students"
+        },
+        {
+          "id": "cta-admin-ai-pipeline-teacher-assignments-15",
+          "target": "/teacher/assignments"
+        },
+        {
+          "id": "cta-admin-ai-pipeline-teacher-assignment-progress-16",
+          "target": "/teacher/assignment-progress"
+        },
+        {
+          "id": "cta-admin-ai-pipeline-teacher-class-progress-17",
+          "target": "/teacher/class-progress"
+        },
+        {
+          "id": "cta-admin-ai-pipeline-teacher-analytics-18",
+          "target": "/teacher/analytics"
+        },
+        {
+          "id": "cta-admin-ai-pipeline-teacher-control-19",
+          "target": "/teacher/control"
+        },
+        {
+          "id": "cta-admin-ai-pipeline-parent-dashboard-20",
+          "target": "/parent/dashboard"
+        },
+        {
+          "id": "cta-admin-ai-pipeline-parent-subjects-21",
+          "target": "/parent/subjects"
+        },
+        {
+          "id": "cta-admin-ai-pipeline-parent-goals-22",
+          "target": "/parent/goals"
+        },
+        {
+          "id": "cta-admin-ai-pipeline-parent-timeline-23",
+          "target": "/parent/timeline"
+        },
+        {
+          "id": "cta-admin-ai-pipeline-play-welcome-24",
+          "target": "/play/welcome"
+        },
+        {
+          "id": "cta-admin-ai-pipeline-play-25",
+          "target": "/play"
+        },
+        {
+          "id": "cta-admin-ai-pipeline-play-media-26",
+          "target": "/play/media"
+        },
+        {
+          "id": "cta-admin-ai-pipeline-results-27",
+          "target": "/results"
+        },
+        {
+          "id": "cta-admin-ai-pipeline-admin-console-28",
+          "target": "/admin/console"
+        },
+        {
+          "id": "cta-admin-ai-pipeline-admin-jobs-29",
+          "target": "/admin/jobs"
+        },
+        {
+          "id": "cta-admin-ai-pipeline-admin-system-health-30",
+          "target": "/admin/system-health"
+        },
+        {
+          "id": "cta-admin-ai-pipeline-admin-ai-pipeline-31",
+          "target": "/admin/ai-pipeline"
+        },
+        {
+          "id": "cta-admin-ai-pipeline-catalog-builder-32",
+          "target": "/catalog-builder"
+        },
+        {
+          "id": "cta-admin-ai-pipeline-catalog-builder-media-33",
+          "target": "/catalog-builder/media"
+        },
+        {
+          "id": "back",
+          "action": "navigate",
+          "target": "/admin/console"
+        },
+        {
+          "id": "new-job",
+          "action": "navigate",
+          "target": "/admin/ai-pipeline/new"
+        },
+        {
+          "id": "cta-admin-ai-pipeline-overview-0"
+        },
+        {
+          "id": "cta-admin-ai-pipeline-prompts-1"
+        },
+        {
+          "id": "cta-admin-ai-pipeline-output-2"
+        },
+        {
+          "id": "cta-admin-ai-pipeline-logs-3"
+        },
+        {
+          "id": "cancel-job",
+          "action": "enqueueJob",
+          "jobType": "cancel_job"
+        },
+        {
+          "id": "view-output",
+          "action": "navigate",
+          "target": "/admin/ai-pipeline/output"
+        }
+      ]
+    },
+    {
+      "path": "/admin/courses/select",
+      "name": "Course Selector",
+      "description": "Course Selector",
+      "states": [
+        {
+          "id": "default",
+          "file": "admin/courses/select/default.html",
+          "description": "Default state",
+          "required": true
+        }
+      ],
+      "requiredCTAs": [
+        {
+          "id": "cta-admin-courses-select-action-0"
+        },
+        {
+          "id": "cta-admin-courses-select-landing-1",
+          "target": "/"
+        },
+        {
+          "id": "cta-admin-courses-select-about-2",
+          "target": "/about"
+        },
+        {
+          "id": "cta-admin-courses-select-auth-3",
+          "target": "/auth"
+        },
+        {
+          "id": "cta-admin-courses-select-settings-4",
+          "target": "/settings"
+        },
+        {
+          "id": "cta-admin-courses-select-messages-5",
+          "target": "/messages"
+        },
+        {
+          "id": "cta-admin-courses-select-student-dashboard-6",
+          "target": "/student/dashboard"
+        },
+        {
+          "id": "cta-admin-courses-select-student-assignments-7",
+          "target": "/student/assignments"
+        },
+        {
+          "id": "cta-admin-courses-select-student-achievements-8",
+          "target": "/student/achievements"
+        },
+        {
+          "id": "cta-admin-courses-select-student-goals-9",
+          "target": "/student/goals"
+        },
+        {
+          "id": "cta-admin-courses-select-student-timeline-10",
+          "target": "/student/timeline"
+        },
+        {
+          "id": "cta-admin-courses-select-student-join-class-11",
+          "target": "/student/join-class"
+        },
+        {
+          "id": "cta-admin-courses-select-teacher-dashboard-12",
+          "target": "/teacher/dashboard"
+        },
+        {
+          "id": "cta-admin-courses-select-teacher-classes-13",
+          "target": "/teacher/classes"
+        },
+        {
+          "id": "cta-admin-courses-select-teacher-students-14",
+          "target": "/teacher/students"
+        },
+        {
+          "id": "cta-admin-courses-select-teacher-assignments-15",
+          "target": "/teacher/assignments"
+        },
+        {
+          "id": "cta-admin-courses-select-teacher-assignment-progress-16",
+          "target": "/teacher/assignment-progress"
+        },
+        {
+          "id": "cta-admin-courses-select-teacher-class-progress-17",
+          "target": "/teacher/class-progress"
+        },
+        {
+          "id": "cta-admin-courses-select-teacher-analytics-18",
+          "target": "/teacher/analytics"
+        },
+        {
+          "id": "cta-admin-courses-select-teacher-control-19",
+          "target": "/teacher/control"
+        },
+        {
+          "id": "cta-admin-courses-select-parent-dashboard-20",
+          "target": "/parent/dashboard"
+        },
+        {
+          "id": "cta-admin-courses-select-parent-subjects-21",
+          "target": "/parent/subjects"
+        },
+        {
+          "id": "cta-admin-courses-select-parent-goals-22",
+          "target": "/parent/goals"
+        },
+        {
+          "id": "cta-admin-courses-select-parent-timeline-23",
+          "target": "/parent/timeline"
+        },
+        {
+          "id": "cta-admin-courses-select-play-welcome-24",
+          "target": "/play/welcome"
+        },
+        {
+          "id": "cta-admin-courses-select-play-25",
+          "target": "/play"
+        },
+        {
+          "id": "cta-admin-courses-select-play-media-26",
+          "target": "/play/media"
+        },
+        {
+          "id": "cta-admin-courses-select-results-27",
+          "target": "/results"
+        },
+        {
+          "id": "cta-admin-courses-select-admin-console-28",
+          "target": "/admin/console"
+        },
+        {
+          "id": "cta-admin-courses-select-admin-jobs-29",
+          "target": "/admin/jobs"
+        },
+        {
+          "id": "cta-admin-courses-select-admin-system-health-30",
+          "target": "/admin/system-health"
+        },
+        {
+          "id": "cta-admin-courses-select-admin-ai-pipeline-31",
+          "target": "/admin/ai-pipeline"
+        },
+        {
+          "id": "cta-admin-courses-select-catalog-builder-32",
+          "target": "/catalog-builder"
+        },
+        {
+          "id": "cta-admin-courses-select-catalog-builder-media-33",
+          "target": "/catalog-builder/media"
+        },
+        {
+          "id": "cta-admin-courses-select-return-to-home-0",
+          "target": "/"
+        }
+      ]
+    },
+    {
+      "path": "/admin/editor/demo-course",
+      "name": "Course Editor",
+      "description": "Course Editor",
+      "states": [
+        {
+          "id": "default",
+          "file": "admin/editor/demo-course/default.html",
+          "description": "Default state",
+          "required": true
+        }
+      ],
+      "requiredCTAs": [
+        {
+          "id": "cta-admin-editor-demo-course-action-0"
+        },
+        {
+          "id": "cta-admin-editor-demo-course-landing-1",
+          "target": "/"
+        },
+        {
+          "id": "cta-admin-editor-demo-course-about-2",
+          "target": "/about"
+        },
+        {
+          "id": "cta-admin-editor-demo-course-auth-3",
+          "target": "/auth"
+        },
+        {
+          "id": "cta-admin-editor-demo-course-settings-4",
+          "target": "/settings"
+        },
+        {
+          "id": "cta-admin-editor-demo-course-messages-5",
+          "target": "/messages"
+        },
+        {
+          "id": "cta-admin-editor-demo-course-student-dashboard-6",
+          "target": "/student/dashboard"
+        },
+        {
+          "id": "cta-admin-editor-demo-course-student-assignments-7",
+          "target": "/student/assignments"
+        },
+        {
+          "id": "cta-admin-editor-demo-course-student-achievements-8",
+          "target": "/student/achievements"
+        },
+        {
+          "id": "cta-admin-editor-demo-course-student-goals-9",
+          "target": "/student/goals"
+        },
+        {
+          "id": "cta-admin-editor-demo-course-student-timeline-10",
+          "target": "/student/timeline"
+        },
+        {
+          "id": "cta-admin-editor-demo-course-student-join-class-11",
+          "target": "/student/join-class"
+        },
+        {
+          "id": "cta-admin-editor-demo-course-teacher-dashboard-12",
+          "target": "/teacher/dashboard"
+        },
+        {
+          "id": "cta-admin-editor-demo-course-teacher-classes-13",
+          "target": "/teacher/classes"
+        },
+        {
+          "id": "cta-admin-editor-demo-course-teacher-students-14",
+          "target": "/teacher/students"
+        },
+        {
+          "id": "cta-admin-editor-demo-course-teacher-assignments-15",
+          "target": "/teacher/assignments"
+        },
+        {
+          "id": "cta-admin-editor-demo-course-teacher-assignment-progress-16",
+          "target": "/teacher/assignment-progress"
+        },
+        {
+          "id": "cta-admin-editor-demo-course-teacher-class-progress-17",
+          "target": "/teacher/class-progress"
+        },
+        {
+          "id": "cta-admin-editor-demo-course-teacher-analytics-18",
+          "target": "/teacher/analytics"
+        },
+        {
+          "id": "cta-admin-editor-demo-course-teacher-control-19",
+          "target": "/teacher/control"
+        },
+        {
+          "id": "cta-admin-editor-demo-course-parent-dashboard-20",
+          "target": "/parent/dashboard"
+        },
+        {
+          "id": "cta-admin-editor-demo-course-parent-subjects-21",
+          "target": "/parent/subjects"
+        },
+        {
+          "id": "cta-admin-editor-demo-course-parent-goals-22",
+          "target": "/parent/goals"
+        },
+        {
+          "id": "cta-admin-editor-demo-course-parent-timeline-23",
+          "target": "/parent/timeline"
+        },
+        {
+          "id": "cta-admin-editor-demo-course-play-welcome-24",
+          "target": "/play/welcome"
+        },
+        {
+          "id": "cta-admin-editor-demo-course-play-25",
+          "target": "/play"
+        },
+        {
+          "id": "cta-admin-editor-demo-course-play-media-26",
+          "target": "/play/media"
+        },
+        {
+          "id": "cta-admin-editor-demo-course-results-27",
+          "target": "/results"
+        },
+        {
+          "id": "cta-admin-editor-demo-course-admin-console-28",
+          "target": "/admin/console"
+        },
+        {
+          "id": "cta-admin-editor-demo-course-admin-jobs-29",
+          "target": "/admin/jobs"
+        },
+        {
+          "id": "cta-admin-editor-demo-course-admin-system-health-30",
+          "target": "/admin/system-health"
+        },
+        {
+          "id": "cta-admin-editor-demo-course-admin-ai-pipeline-31",
+          "target": "/admin/ai-pipeline"
+        },
+        {
+          "id": "cta-admin-editor-demo-course-catalog-builder-32",
+          "target": "/catalog-builder"
+        },
+        {
+          "id": "cta-admin-editor-demo-course-catalog-builder-media-33",
+          "target": "/catalog-builder/media"
+        },
+        {
+          "id": "cta-admin-editor-demo-course-return-to-home-0",
+          "target": "/"
+        }
+      ]
+    },
+    {
+      "path": "/admin/jobs",
+      "name": "Jobs Dashboard",
+      "description": "Jobs Dashboard",
+      "states": [
+        {
+          "id": "default",
+          "file": "admin/jobs/default.html",
+          "description": "Default state",
+          "required": true
+        }
+      ],
+      "requiredCTAs": [
+        {
+          "id": "cta-admin-jobs-action-0"
+        },
+        {
+          "id": "cta-admin-jobs-landing-1",
+          "target": "/"
+        },
+        {
+          "id": "cta-admin-jobs-about-2",
+          "target": "/about"
+        },
+        {
+          "id": "cta-admin-jobs-auth-3",
+          "target": "/auth"
+        },
+        {
+          "id": "cta-admin-jobs-settings-4",
+          "target": "/settings"
+        },
+        {
+          "id": "cta-admin-jobs-messages-5",
+          "target": "/messages"
+        },
+        {
+          "id": "cta-admin-jobs-student-dashboard-6",
+          "target": "/student/dashboard"
+        },
+        {
+          "id": "cta-admin-jobs-student-assignments-7",
+          "target": "/student/assignments"
+        },
+        {
+          "id": "cta-admin-jobs-student-achievements-8",
+          "target": "/student/achievements"
+        },
+        {
+          "id": "cta-admin-jobs-student-goals-9",
+          "target": "/student/goals"
+        },
+        {
+          "id": "cta-admin-jobs-student-timeline-10",
+          "target": "/student/timeline"
+        },
+        {
+          "id": "cta-admin-jobs-student-join-class-11",
+          "target": "/student/join-class"
+        },
+        {
+          "id": "cta-admin-jobs-teacher-dashboard-12",
+          "target": "/teacher/dashboard"
+        },
+        {
+          "id": "cta-admin-jobs-teacher-classes-13",
+          "target": "/teacher/classes"
+        },
+        {
+          "id": "cta-admin-jobs-teacher-students-14",
+          "target": "/teacher/students"
+        },
+        {
+          "id": "cta-admin-jobs-teacher-assignments-15",
+          "target": "/teacher/assignments"
+        },
+        {
+          "id": "cta-admin-jobs-teacher-assignment-progress-16",
+          "target": "/teacher/assignment-progress"
+        },
+        {
+          "id": "cta-admin-jobs-teacher-class-progress-17",
+          "target": "/teacher/class-progress"
+        },
+        {
+          "id": "cta-admin-jobs-teacher-analytics-18",
+          "target": "/teacher/analytics"
+        },
+        {
+          "id": "cta-admin-jobs-teacher-control-19",
+          "target": "/teacher/control"
+        },
+        {
+          "id": "cta-admin-jobs-parent-dashboard-20",
+          "target": "/parent/dashboard"
+        },
+        {
+          "id": "cta-admin-jobs-parent-subjects-21",
+          "target": "/parent/subjects"
+        },
+        {
+          "id": "cta-admin-jobs-parent-goals-22",
+          "target": "/parent/goals"
+        },
+        {
+          "id": "cta-admin-jobs-parent-timeline-23",
+          "target": "/parent/timeline"
+        },
+        {
+          "id": "cta-admin-jobs-play-welcome-24",
+          "target": "/play/welcome"
+        },
+        {
+          "id": "cta-admin-jobs-play-25",
+          "target": "/play"
+        },
+        {
+          "id": "cta-admin-jobs-play-media-26",
+          "target": "/play/media"
+        },
+        {
+          "id": "cta-admin-jobs-results-27",
+          "target": "/results"
+        },
+        {
+          "id": "cta-admin-jobs-admin-console-28",
+          "target": "/admin/console"
+        },
+        {
+          "id": "cta-admin-jobs-admin-jobs-29",
+          "target": "/admin/jobs"
+        },
+        {
+          "id": "cta-admin-jobs-admin-system-health-30",
+          "target": "/admin/system-health"
+        },
+        {
+          "id": "cta-admin-jobs-admin-ai-pipeline-31",
+          "target": "/admin/ai-pipeline"
+        },
+        {
+          "id": "cta-admin-jobs-catalog-builder-32",
+          "target": "/catalog-builder"
+        },
+        {
+          "id": "cta-admin-jobs-catalog-builder-media-33",
+          "target": "/catalog-builder/media"
+        },
+        {
+          "id": "back",
+          "action": "navigate",
+          "target": "/admin/console"
+        },
+        {
+          "id": "refresh",
+          "action": "ui"
+        },
+        {
+          "id": "view-job",
+          "action": "navigate",
+          "target": "/admin/ai-pipeline"
+        },
+        {
+          "id": "cta-admin-jobs-view-0"
+        },
+        {
+          "id": "cta-admin-jobs-view-1"
+        },
+        {
+          "id": "cta-admin-jobs-view-2"
+        },
+        {
+          "id": "cta-admin-jobs-view-3"
+        },
+        {
+          "id": "retry-job",
+          "action": "enqueueJob",
+          "jobType": "ai_course_generate"
+        },
+        {
+          "id": "cta-admin-jobs-action-4"
+        },
+        {
+          "id": "cta-admin-jobs-1-5"
+        },
+        {
+          "id": "cta-admin-jobs-2-6"
+        },
+        {
+          "id": "cta-admin-jobs-3-7"
+        },
+        {
+          "id": "cta-admin-jobs-action-8"
+        }
+      ]
+    },
+    {
+      "path": "/admin/system-health",
+      "name": "System Health",
+      "description": "System Health",
+      "states": [
+        {
+          "id": "default",
+          "file": "admin/system-health/default.html",
+          "description": "Default state",
+          "required": true
+        }
+      ],
+      "requiredCTAs": [
+        {
+          "id": "cta-admin-system-health-action-0"
+        },
+        {
+          "id": "cta-admin-system-health-landing-1",
+          "target": "/"
+        },
+        {
+          "id": "cta-admin-system-health-about-2",
+          "target": "/about"
+        },
+        {
+          "id": "cta-admin-system-health-auth-3",
+          "target": "/auth"
+        },
+        {
+          "id": "cta-admin-system-health-settings-4",
+          "target": "/settings"
+        },
+        {
+          "id": "cta-admin-system-health-messages-5",
+          "target": "/messages"
+        },
+        {
+          "id": "cta-admin-system-health-student-dashboard-6",
+          "target": "/student/dashboard"
+        },
+        {
+          "id": "cta-admin-system-health-student-assignments-7",
+          "target": "/student/assignments"
+        },
+        {
+          "id": "cta-admin-system-health-student-achievements-8",
+          "target": "/student/achievements"
+        },
+        {
+          "id": "cta-admin-system-health-student-goals-9",
+          "target": "/student/goals"
+        },
+        {
+          "id": "cta-admin-system-health-student-timeline-10",
+          "target": "/student/timeline"
+        },
+        {
+          "id": "cta-admin-system-health-student-join-class-11",
+          "target": "/student/join-class"
+        },
+        {
+          "id": "cta-admin-system-health-teacher-dashboard-12",
+          "target": "/teacher/dashboard"
+        },
+        {
+          "id": "cta-admin-system-health-teacher-classes-13",
+          "target": "/teacher/classes"
+        },
+        {
+          "id": "cta-admin-system-health-teacher-students-14",
+          "target": "/teacher/students"
+        },
+        {
+          "id": "cta-admin-system-health-teacher-assignments-15",
+          "target": "/teacher/assignments"
+        },
+        {
+          "id": "cta-admin-system-health-teacher-assignment-progress-16",
+          "target": "/teacher/assignment-progress"
+        },
+        {
+          "id": "cta-admin-system-health-teacher-class-progress-17",
+          "target": "/teacher/class-progress"
+        },
+        {
+          "id": "cta-admin-system-health-teacher-analytics-18",
+          "target": "/teacher/analytics"
+        },
+        {
+          "id": "cta-admin-system-health-teacher-control-19",
+          "target": "/teacher/control"
+        },
+        {
+          "id": "cta-admin-system-health-parent-dashboard-20",
+          "target": "/parent/dashboard"
+        },
+        {
+          "id": "cta-admin-system-health-parent-subjects-21",
+          "target": "/parent/subjects"
+        },
+        {
+          "id": "cta-admin-system-health-parent-goals-22",
+          "target": "/parent/goals"
+        },
+        {
+          "id": "cta-admin-system-health-parent-timeline-23",
+          "target": "/parent/timeline"
+        },
+        {
+          "id": "cta-admin-system-health-play-welcome-24",
+          "target": "/play/welcome"
+        },
+        {
+          "id": "cta-admin-system-health-play-25",
+          "target": "/play"
+        },
+        {
+          "id": "cta-admin-system-health-play-media-26",
+          "target": "/play/media"
+        },
+        {
+          "id": "cta-admin-system-health-results-27",
+          "target": "/results"
+        },
+        {
+          "id": "cta-admin-system-health-admin-console-28",
+          "target": "/admin/console"
+        },
+        {
+          "id": "cta-admin-system-health-admin-jobs-29",
+          "target": "/admin/jobs"
+        },
+        {
+          "id": "cta-admin-system-health-admin-system-health-30",
+          "target": "/admin/system-health"
+        },
+        {
+          "id": "cta-admin-system-health-admin-ai-pipeline-31",
+          "target": "/admin/ai-pipeline"
+        },
+        {
+          "id": "cta-admin-system-health-catalog-builder-32",
+          "target": "/catalog-builder"
+        },
+        {
+          "id": "cta-admin-system-health-catalog-builder-media-33",
+          "target": "/catalog-builder/media"
+        },
+        {
+          "id": "back",
+          "action": "navigate",
+          "target": "/admin/console"
+        },
+        {
+          "id": "refresh",
+          "action": "ui"
+        }
+      ]
+    },
+    {
+      "path": "/admin/courses/demo-course/versions",
+      "name": "Course Version History",
+      "description": "Course Version History",
+      "states": [
+        {
+          "id": "default",
+          "file": "admin/courses/demo-course/versions/default.html",
+          "description": "Default state",
+          "required": true
+        }
+      ],
+      "requiredCTAs": [
+        {
+          "id": "cta-admin-courses-demo-course-versions-action-0"
+        },
+        {
+          "id": "cta-admin-courses-demo-course-versions-landing-1",
+          "target": "/"
+        },
+        {
+          "id": "cta-admin-courses-demo-course-versions-about-2",
+          "target": "/about"
+        },
+        {
+          "id": "cta-admin-courses-demo-course-versions-auth-3",
+          "target": "/auth"
+        },
+        {
+          "id": "cta-admin-courses-demo-course-versions-settings-4",
+          "target": "/settings"
+        },
+        {
+          "id": "cta-admin-courses-demo-course-versions-messages-5",
+          "target": "/messages"
+        },
+        {
+          "id": "cta-admin-courses-demo-course-versions-student-dashboard-6",
+          "target": "/student/dashboard"
+        },
+        {
+          "id": "cta-admin-courses-demo-course-versions-student-assignments-7",
+          "target": "/student/assignments"
+        },
+        {
+          "id": "cta-admin-courses-demo-course-versions-student-achievements-8",
+          "target": "/student/achievements"
+        },
+        {
+          "id": "cta-admin-courses-demo-course-versions-student-goals-9",
+          "target": "/student/goals"
+        },
+        {
+          "id": "cta-admin-courses-demo-course-versions-student-timeline-10",
+          "target": "/student/timeline"
+        },
+        {
+          "id": "cta-admin-courses-demo-course-versions-student-join-class-11",
+          "target": "/student/join-class"
+        },
+        {
+          "id": "cta-admin-courses-demo-course-versions-teacher-dashboard-12",
+          "target": "/teacher/dashboard"
+        },
+        {
+          "id": "cta-admin-courses-demo-course-versions-teacher-classes-13",
+          "target": "/teacher/classes"
+        },
+        {
+          "id": "cta-admin-courses-demo-course-versions-teacher-students-14",
+          "target": "/teacher/students"
+        },
+        {
+          "id": "cta-admin-courses-demo-course-versions-teacher-assignments-15",
+          "target": "/teacher/assignments"
+        },
+        {
+          "id": "cta-admin-courses-demo-course-versions-teacher-assignment-progress-16",
+          "target": "/teacher/assignment-progress"
+        },
+        {
+          "id": "cta-admin-courses-demo-course-versions-teacher-class-progress-17",
+          "target": "/teacher/class-progress"
+        },
+        {
+          "id": "cta-admin-courses-demo-course-versions-teacher-analytics-18",
+          "target": "/teacher/analytics"
+        },
+        {
+          "id": "cta-admin-courses-demo-course-versions-teacher-control-19",
+          "target": "/teacher/control"
+        },
+        {
+          "id": "cta-admin-courses-demo-course-versions-parent-dashboard-20",
+          "target": "/parent/dashboard"
+        },
+        {
+          "id": "cta-admin-courses-demo-course-versions-parent-subjects-21",
+          "target": "/parent/subjects"
+        },
+        {
+          "id": "cta-admin-courses-demo-course-versions-parent-goals-22",
+          "target": "/parent/goals"
+        },
+        {
+          "id": "cta-admin-courses-demo-course-versions-parent-timeline-23",
+          "target": "/parent/timeline"
+        },
+        {
+          "id": "cta-admin-courses-demo-course-versions-play-welcome-24",
+          "target": "/play/welcome"
+        },
+        {
+          "id": "cta-admin-courses-demo-course-versions-play-25",
+          "target": "/play"
+        },
+        {
+          "id": "cta-admin-courses-demo-course-versions-play-media-26",
+          "target": "/play/media"
+        },
+        {
+          "id": "cta-admin-courses-demo-course-versions-results-27",
+          "target": "/results"
+        },
+        {
+          "id": "cta-admin-courses-demo-course-versions-admin-console-28",
+          "target": "/admin/console"
+        },
+        {
+          "id": "cta-admin-courses-demo-course-versions-admin-jobs-29",
+          "target": "/admin/jobs"
+        },
+        {
+          "id": "cta-admin-courses-demo-course-versions-admin-system-health-30",
+          "target": "/admin/system-health"
+        },
+        {
+          "id": "cta-admin-courses-demo-course-versions-admin-ai-pipeline-31",
+          "target": "/admin/ai-pipeline"
+        },
+        {
+          "id": "cta-admin-courses-demo-course-versions-catalog-builder-32",
+          "target": "/catalog-builder"
+        },
+        {
+          "id": "cta-admin-courses-demo-course-versions-catalog-builder-media-33",
+          "target": "/catalog-builder/media"
+        },
+        {
+          "id": "cta-admin-courses-demo-course-versions-return-to-home-0",
+          "target": "/"
+        }
+      ]
+    },
+    {
+      "path": "/teacher",
+      "name": "Teacher Dashboard",
+      "description": "Teacher Dashboard",
+      "states": [
+        {
+          "id": "default",
+          "file": "teacher/default.html",
+          "description": "Default state",
+          "required": true
+        }
+      ],
+      "requiredCTAs": [
+        {
+          "id": "cta-teacher-dashboard-action-0"
+        },
+        {
+          "id": "cta-teacher-dashboard-landing-1",
+          "target": "/"
+        },
+        {
+          "id": "cta-teacher-dashboard-about-2",
+          "target": "/about"
+        },
+        {
+          "id": "cta-teacher-dashboard-auth-3",
+          "target": "/auth"
+        },
+        {
+          "id": "cta-teacher-dashboard-settings-4",
+          "target": "/settings"
+        },
+        {
+          "id": "cta-teacher-dashboard-messages-5",
+          "target": "/messages"
+        },
+        {
+          "id": "cta-teacher-dashboard-student-dashboard-6",
+          "target": "/student/dashboard"
+        },
+        {
+          "id": "cta-teacher-dashboard-student-assignments-7",
+          "target": "/student/assignments"
+        },
+        {
+          "id": "cta-teacher-dashboard-student-achievements-8",
+          "target": "/student/achievements"
+        },
+        {
+          "id": "cta-teacher-dashboard-student-goals-9",
+          "target": "/student/goals"
+        },
+        {
+          "id": "cta-teacher-dashboard-student-timeline-10",
+          "target": "/student/timeline"
+        },
+        {
+          "id": "cta-teacher-dashboard-student-join-class-11",
+          "target": "/student/join-class"
+        },
+        {
+          "id": "cta-teacher-dashboard-teacher-dashboard-12",
+          "target": "/teacher/dashboard"
+        },
+        {
+          "id": "cta-teacher-dashboard-teacher-classes-13",
+          "target": "/teacher/classes"
+        },
+        {
+          "id": "cta-teacher-dashboard-teacher-students-14",
+          "target": "/teacher/students"
+        },
+        {
+          "id": "cta-teacher-dashboard-teacher-assignments-15",
+          "target": "/teacher/assignments"
+        },
+        {
+          "id": "cta-teacher-dashboard-teacher-assignment-progress-16",
+          "target": "/teacher/assignment-progress"
+        },
+        {
+          "id": "cta-teacher-dashboard-teacher-class-progress-17",
+          "target": "/teacher/class-progress"
+        },
+        {
+          "id": "cta-teacher-dashboard-teacher-analytics-18",
+          "target": "/teacher/analytics"
+        },
+        {
+          "id": "cta-teacher-dashboard-teacher-control-19",
+          "target": "/teacher/control"
+        },
+        {
+          "id": "cta-teacher-dashboard-parent-dashboard-20",
+          "target": "/parent/dashboard"
+        },
+        {
+          "id": "cta-teacher-dashboard-parent-subjects-21",
+          "target": "/parent/subjects"
+        },
+        {
+          "id": "cta-teacher-dashboard-parent-goals-22",
+          "target": "/parent/goals"
+        },
+        {
+          "id": "cta-teacher-dashboard-parent-timeline-23",
+          "target": "/parent/timeline"
+        },
+        {
+          "id": "cta-teacher-dashboard-play-welcome-24",
+          "target": "/play/welcome"
+        },
+        {
+          "id": "cta-teacher-dashboard-play-25",
+          "target": "/play"
+        },
+        {
+          "id": "cta-teacher-dashboard-play-media-26",
+          "target": "/play/media"
+        },
+        {
+          "id": "cta-teacher-dashboard-results-27",
+          "target": "/results"
+        },
+        {
+          "id": "cta-teacher-dashboard-admin-console-28",
+          "target": "/admin/console"
+        },
+        {
+          "id": "cta-teacher-dashboard-admin-jobs-29",
+          "target": "/admin/jobs"
+        },
+        {
+          "id": "cta-teacher-dashboard-admin-system-health-30",
+          "target": "/admin/system-health"
+        },
+        {
+          "id": "cta-teacher-dashboard-admin-ai-pipeline-31",
+          "target": "/admin/ai-pipeline"
+        },
+        {
+          "id": "cta-teacher-dashboard-catalog-builder-32",
+          "target": "/catalog-builder"
+        },
+        {
+          "id": "cta-teacher-dashboard-catalog-builder-media-33",
+          "target": "/catalog-builder/media"
+        },
+        {
+          "id": "settings",
+          "action": "navigate",
+          "target": "/settings"
+        },
+        {
+          "id": "view-classes",
+          "action": "navigate",
+          "target": "/teacher/classes"
+        },
+        {
+          "id": "create-assignment",
+          "action": "navigate",
+          "target": "/teacher/control"
+        },
+        {
+          "id": "view-analytics",
+          "action": "navigate",
+          "target": "/teacher/analytics"
+        },
+        {
+          "id": "view-gradebook",
+          "action": "navigate",
+          "target": "/gradebook"
+        }
+      ]
+    },
+    {
+      "path": "/teacher/assignments",
+      "name": "Teacher Assignments",
+      "description": "Teacher Assignments",
+      "states": [
+        {
+          "id": "default",
+          "file": "teacher/assignments/default.html",
+          "description": "Default state",
+          "required": true
+        }
+      ],
+      "requiredCTAs": [
+        {
+          "id": "cta-teacher-assignments-action-0"
+        },
+        {
+          "id": "cta-teacher-assignments-landing-1",
+          "target": "/"
+        },
+        {
+          "id": "cta-teacher-assignments-about-2",
+          "target": "/about"
+        },
+        {
+          "id": "cta-teacher-assignments-auth-3",
+          "target": "/auth"
+        },
+        {
+          "id": "cta-teacher-assignments-settings-4",
+          "target": "/settings"
+        },
+        {
+          "id": "cta-teacher-assignments-messages-5",
+          "target": "/messages"
+        },
+        {
+          "id": "cta-teacher-assignments-student-dashboard-6",
+          "target": "/student/dashboard"
+        },
+        {
+          "id": "cta-teacher-assignments-student-assignments-7",
+          "target": "/student/assignments"
+        },
+        {
+          "id": "cta-teacher-assignments-student-achievements-8",
+          "target": "/student/achievements"
+        },
+        {
+          "id": "cta-teacher-assignments-student-goals-9",
+          "target": "/student/goals"
+        },
+        {
+          "id": "cta-teacher-assignments-student-timeline-10",
+          "target": "/student/timeline"
+        },
+        {
+          "id": "cta-teacher-assignments-student-join-class-11",
+          "target": "/student/join-class"
+        },
+        {
+          "id": "cta-teacher-assignments-teacher-dashboard-12",
+          "target": "/teacher/dashboard"
+        },
+        {
+          "id": "cta-teacher-assignments-teacher-classes-13",
+          "target": "/teacher/classes"
+        },
+        {
+          "id": "cta-teacher-assignments-teacher-students-14",
+          "target": "/teacher/students"
+        },
+        {
+          "id": "cta-teacher-assignments-teacher-assignments-15",
+          "target": "/teacher/assignments"
+        },
+        {
+          "id": "cta-teacher-assignments-teacher-assignment-progress-16",
+          "target": "/teacher/assignment-progress"
+        },
+        {
+          "id": "cta-teacher-assignments-teacher-class-progress-17",
+          "target": "/teacher/class-progress"
+        },
+        {
+          "id": "cta-teacher-assignments-teacher-analytics-18",
+          "target": "/teacher/analytics"
+        },
+        {
+          "id": "cta-teacher-assignments-teacher-control-19",
+          "target": "/teacher/control"
+        },
+        {
+          "id": "cta-teacher-assignments-parent-dashboard-20",
+          "target": "/parent/dashboard"
+        },
+        {
+          "id": "cta-teacher-assignments-parent-subjects-21",
+          "target": "/parent/subjects"
+        },
+        {
+          "id": "cta-teacher-assignments-parent-goals-22",
+          "target": "/parent/goals"
+        },
+        {
+          "id": "cta-teacher-assignments-parent-timeline-23",
+          "target": "/parent/timeline"
+        },
+        {
+          "id": "cta-teacher-assignments-play-welcome-24",
+          "target": "/play/welcome"
+        },
+        {
+          "id": "cta-teacher-assignments-play-25",
+          "target": "/play"
+        },
+        {
+          "id": "cta-teacher-assignments-play-media-26",
+          "target": "/play/media"
+        },
+        {
+          "id": "cta-teacher-assignments-results-27",
+          "target": "/results"
+        },
+        {
+          "id": "cta-teacher-assignments-admin-console-28",
+          "target": "/admin/console"
+        },
+        {
+          "id": "cta-teacher-assignments-admin-jobs-29",
+          "target": "/admin/jobs"
+        },
+        {
+          "id": "cta-teacher-assignments-admin-system-health-30",
+          "target": "/admin/system-health"
+        },
+        {
+          "id": "cta-teacher-assignments-admin-ai-pipeline-31",
+          "target": "/admin/ai-pipeline"
+        },
+        {
+          "id": "cta-teacher-assignments-catalog-builder-32",
+          "target": "/catalog-builder"
+        },
+        {
+          "id": "cta-teacher-assignments-catalog-builder-media-33",
+          "target": "/catalog-builder/media"
+        },
+        {
+          "id": "back",
+          "action": "navigate",
+          "target": "/teacher/dashboard"
+        },
+        {
+          "id": "create",
+          "action": "navigate",
+          "target": "/teacher/control"
+        },
+        {
+          "id": "cta-teacher-assignments-all-12-0"
+        },
+        {
+          "id": "cta-teacher-assignments-active-5-1"
+        },
+        {
+          "id": "cta-teacher-assignments-scheduled-3-2"
+        },
+        {
+          "id": "cta-teacher-assignments-completed-4-3"
+        },
+        {
+          "id": "view-assignment",
+          "action": "navigate",
+          "target": "/teacher/assignment-progress"
+        },
+        {
+          "id": "cta-teacher-assignments-view-4"
+        },
+        {
+          "id": "cta-teacher-assignments-edit-5"
+        },
+        {
+          "id": "cta-teacher-assignments-archive-6"
+        }
+      ]
+    },
+    {
+      "path": "/teacher/assignments/demo-assignment/progress",
+      "name": "Assignment Progress",
+      "description": "Assignment Progress",
+      "states": [
+        {
+          "id": "default",
+          "file": "teacher/assignments/demo-assignment/progress/default.html",
+          "description": "Default state",
+          "required": true
+        }
+      ],
+      "requiredCTAs": [
+        {
+          "id": "cta-teacher-assignments-demo-assignment-progress-action-0"
+        },
+        {
+          "id": "cta-teacher-assignments-demo-assignment-progress-landing-1",
+          "target": "/"
+        },
+        {
+          "id": "cta-teacher-assignments-demo-assignment-progress-about-2",
+          "target": "/about"
+        },
+        {
+          "id": "cta-teacher-assignments-demo-assignment-progress-auth-3",
+          "target": "/auth"
+        },
+        {
+          "id": "cta-teacher-assignments-demo-assignment-progress-settings-4",
+          "target": "/settings"
+        },
+        {
+          "id": "cta-teacher-assignments-demo-assignment-progress-messages-5",
+          "target": "/messages"
+        },
+        {
+          "id": "cta-teacher-assignments-demo-assignment-progress-student-dashboard-6",
+          "target": "/student/dashboard"
+        },
+        {
+          "id": "cta-teacher-assignments-demo-assignment-progress-student-assignments-7",
+          "target": "/student/assignments"
+        },
+        {
+          "id": "cta-teacher-assignments-demo-assignment-progress-student-achievements-8",
+          "target": "/student/achievements"
+        },
+        {
+          "id": "cta-teacher-assignments-demo-assignment-progress-student-goals-9",
+          "target": "/student/goals"
+        },
+        {
+          "id": "cta-teacher-assignments-demo-assignment-progress-student-timeline-10",
+          "target": "/student/timeline"
+        },
+        {
+          "id": "cta-teacher-assignments-demo-assignment-progress-student-join-class-11",
+          "target": "/student/join-class"
+        },
+        {
+          "id": "cta-teacher-assignments-demo-assignment-progress-teacher-dashboard-12",
+          "target": "/teacher/dashboard"
+        },
+        {
+          "id": "cta-teacher-assignments-demo-assignment-progress-teacher-classes-13",
+          "target": "/teacher/classes"
+        },
+        {
+          "id": "cta-teacher-assignments-demo-assignment-progress-teacher-students-14",
+          "target": "/teacher/students"
+        },
+        {
+          "id": "cta-teacher-assignments-demo-assignment-progress-teacher-assignments-15",
+          "target": "/teacher/assignments"
+        },
+        {
+          "id": "cta-teacher-assignments-demo-assignment-progress-teacher-assignment-progress-16",
+          "target": "/teacher/assignment-progress"
+        },
+        {
+          "id": "cta-teacher-assignments-demo-assignment-progress-teacher-class-progress-17",
+          "target": "/teacher/class-progress"
+        },
+        {
+          "id": "cta-teacher-assignments-demo-assignment-progress-teacher-analytics-18",
+          "target": "/teacher/analytics"
+        },
+        {
+          "id": "cta-teacher-assignments-demo-assignment-progress-teacher-control-19",
+          "target": "/teacher/control"
+        },
+        {
+          "id": "cta-teacher-assignments-demo-assignment-progress-parent-dashboard-20",
+          "target": "/parent/dashboard"
+        },
+        {
+          "id": "cta-teacher-assignments-demo-assignment-progress-parent-subjects-21",
+          "target": "/parent/subjects"
+        },
+        {
+          "id": "cta-teacher-assignments-demo-assignment-progress-parent-goals-22",
+          "target": "/parent/goals"
+        },
+        {
+          "id": "cta-teacher-assignments-demo-assignment-progress-parent-timeline-23",
+          "target": "/parent/timeline"
+        },
+        {
+          "id": "cta-teacher-assignments-demo-assignment-progress-play-welcome-24",
+          "target": "/play/welcome"
+        },
+        {
+          "id": "cta-teacher-assignments-demo-assignment-progress-play-25",
+          "target": "/play"
+        },
+        {
+          "id": "cta-teacher-assignments-demo-assignment-progress-play-media-26",
+          "target": "/play/media"
+        },
+        {
+          "id": "cta-teacher-assignments-demo-assignment-progress-results-27",
+          "target": "/results"
+        },
+        {
+          "id": "cta-teacher-assignments-demo-assignment-progress-admin-console-28",
+          "target": "/admin/console"
+        },
+        {
+          "id": "cta-teacher-assignments-demo-assignment-progress-admin-jobs-29",
+          "target": "/admin/jobs"
+        },
+        {
+          "id": "cta-teacher-assignments-demo-assignment-progress-admin-system-health-30",
+          "target": "/admin/system-health"
+        },
+        {
+          "id": "cta-teacher-assignments-demo-assignment-progress-admin-ai-pipeline-31",
+          "target": "/admin/ai-pipeline"
+        },
+        {
+          "id": "cta-teacher-assignments-demo-assignment-progress-catalog-builder-32",
+          "target": "/catalog-builder"
+        },
+        {
+          "id": "cta-teacher-assignments-demo-assignment-progress-catalog-builder-media-33",
+          "target": "/catalog-builder/media"
+        },
+        {
+          "id": "cta-teacher-assignments-demo-assignment-progress-return-to-home-0",
+          "target": "/"
+        }
+      ]
+    },
+    {
+      "path": "/teacher/class-progress",
+      "name": "Class Progress",
+      "description": "Class Progress",
+      "states": [
+        {
+          "id": "default",
+          "file": "teacher/class-progress/default.html",
+          "description": "Default state",
+          "required": true
+        }
+      ],
+      "requiredCTAs": [
+        {
+          "id": "cta-teacher-class-progress-action-0"
+        },
+        {
+          "id": "cta-teacher-class-progress-landing-1",
+          "target": "/"
+        },
+        {
+          "id": "cta-teacher-class-progress-about-2",
+          "target": "/about"
+        },
+        {
+          "id": "cta-teacher-class-progress-auth-3",
+          "target": "/auth"
+        },
+        {
+          "id": "cta-teacher-class-progress-settings-4",
+          "target": "/settings"
+        },
+        {
+          "id": "cta-teacher-class-progress-messages-5",
+          "target": "/messages"
+        },
+        {
+          "id": "cta-teacher-class-progress-student-dashboard-6",
+          "target": "/student/dashboard"
+        },
+        {
+          "id": "cta-teacher-class-progress-student-assignments-7",
+          "target": "/student/assignments"
+        },
+        {
+          "id": "cta-teacher-class-progress-student-achievements-8",
+          "target": "/student/achievements"
+        },
+        {
+          "id": "cta-teacher-class-progress-student-goals-9",
+          "target": "/student/goals"
+        },
+        {
+          "id": "cta-teacher-class-progress-student-timeline-10",
+          "target": "/student/timeline"
+        },
+        {
+          "id": "cta-teacher-class-progress-student-join-class-11",
+          "target": "/student/join-class"
+        },
+        {
+          "id": "cta-teacher-class-progress-teacher-dashboard-12",
+          "target": "/teacher/dashboard"
+        },
+        {
+          "id": "cta-teacher-class-progress-teacher-classes-13",
+          "target": "/teacher/classes"
+        },
+        {
+          "id": "cta-teacher-class-progress-teacher-students-14",
+          "target": "/teacher/students"
+        },
+        {
+          "id": "cta-teacher-class-progress-teacher-assignments-15",
+          "target": "/teacher/assignments"
+        },
+        {
+          "id": "cta-teacher-class-progress-teacher-assignment-progress-16",
+          "target": "/teacher/assignment-progress"
+        },
+        {
+          "id": "cta-teacher-class-progress-teacher-class-progress-17",
+          "target": "/teacher/class-progress"
+        },
+        {
+          "id": "cta-teacher-class-progress-teacher-analytics-18",
+          "target": "/teacher/analytics"
+        },
+        {
+          "id": "cta-teacher-class-progress-teacher-control-19",
+          "target": "/teacher/control"
+        },
+        {
+          "id": "cta-teacher-class-progress-parent-dashboard-20",
+          "target": "/parent/dashboard"
+        },
+        {
+          "id": "cta-teacher-class-progress-parent-subjects-21",
+          "target": "/parent/subjects"
+        },
+        {
+          "id": "cta-teacher-class-progress-parent-goals-22",
+          "target": "/parent/goals"
+        },
+        {
+          "id": "cta-teacher-class-progress-parent-timeline-23",
+          "target": "/parent/timeline"
+        },
+        {
+          "id": "cta-teacher-class-progress-play-welcome-24",
+          "target": "/play/welcome"
+        },
+        {
+          "id": "cta-teacher-class-progress-play-25",
+          "target": "/play"
+        },
+        {
+          "id": "cta-teacher-class-progress-play-media-26",
+          "target": "/play/media"
+        },
+        {
+          "id": "cta-teacher-class-progress-results-27",
+          "target": "/results"
+        },
+        {
+          "id": "cta-teacher-class-progress-admin-console-28",
+          "target": "/admin/console"
+        },
+        {
+          "id": "cta-teacher-class-progress-admin-jobs-29",
+          "target": "/admin/jobs"
+        },
+        {
+          "id": "cta-teacher-class-progress-admin-system-health-30",
+          "target": "/admin/system-health"
+        },
+        {
+          "id": "cta-teacher-class-progress-admin-ai-pipeline-31",
+          "target": "/admin/ai-pipeline"
+        },
+        {
+          "id": "cta-teacher-class-progress-catalog-builder-32",
+          "target": "/catalog-builder"
+        },
+        {
+          "id": "cta-teacher-class-progress-catalog-builder-media-33",
+          "target": "/catalog-builder/media"
+        },
+        {
+          "id": "back",
+          "action": "navigate",
+          "target": "/teacher/dashboard"
+        },
+        {
+          "id": "message-student",
+          "action": "navigate",
+          "target": "/messages"
+        },
+        {
+          "id": "cta-teacher-class-progress-message-0"
+        },
+        {
+          "id": "cta-teacher-class-progress-message-1"
+        },
+        {
+          "id": "cta-teacher-class-progress-message-2"
+        }
+      ]
+    },
+    {
+      "path": "/teacher/analytics",
+      "name": "Analytics",
+      "description": "Analytics",
+      "states": [
+        {
+          "id": "default",
+          "file": "teacher/analytics/default.html",
+          "description": "Default state",
+          "required": true
+        }
+      ],
+      "requiredCTAs": [
+        {
+          "id": "cta-teacher-analytics-action-0"
+        },
+        {
+          "id": "cta-teacher-analytics-landing-1",
+          "target": "/"
+        },
+        {
+          "id": "cta-teacher-analytics-about-2",
+          "target": "/about"
+        },
+        {
+          "id": "cta-teacher-analytics-auth-3",
+          "target": "/auth"
+        },
+        {
+          "id": "cta-teacher-analytics-settings-4",
+          "target": "/settings"
+        },
+        {
+          "id": "cta-teacher-analytics-messages-5",
+          "target": "/messages"
+        },
+        {
+          "id": "cta-teacher-analytics-student-dashboard-6",
+          "target": "/student/dashboard"
+        },
+        {
+          "id": "cta-teacher-analytics-student-assignments-7",
+          "target": "/student/assignments"
+        },
+        {
+          "id": "cta-teacher-analytics-student-achievements-8",
+          "target": "/student/achievements"
+        },
+        {
+          "id": "cta-teacher-analytics-student-goals-9",
+          "target": "/student/goals"
+        },
+        {
+          "id": "cta-teacher-analytics-student-timeline-10",
+          "target": "/student/timeline"
+        },
+        {
+          "id": "cta-teacher-analytics-student-join-class-11",
+          "target": "/student/join-class"
+        },
+        {
+          "id": "cta-teacher-analytics-teacher-dashboard-12",
+          "target": "/teacher/dashboard"
+        },
+        {
+          "id": "cta-teacher-analytics-teacher-classes-13",
+          "target": "/teacher/classes"
+        },
+        {
+          "id": "cta-teacher-analytics-teacher-students-14",
+          "target": "/teacher/students"
+        },
+        {
+          "id": "cta-teacher-analytics-teacher-assignments-15",
+          "target": "/teacher/assignments"
+        },
+        {
+          "id": "cta-teacher-analytics-teacher-assignment-progress-16",
+          "target": "/teacher/assignment-progress"
+        },
+        {
+          "id": "cta-teacher-analytics-teacher-class-progress-17",
+          "target": "/teacher/class-progress"
+        },
+        {
+          "id": "cta-teacher-analytics-teacher-analytics-18",
+          "target": "/teacher/analytics"
+        },
+        {
+          "id": "cta-teacher-analytics-teacher-control-19",
+          "target": "/teacher/control"
+        },
+        {
+          "id": "cta-teacher-analytics-parent-dashboard-20",
+          "target": "/parent/dashboard"
+        },
+        {
+          "id": "cta-teacher-analytics-parent-subjects-21",
+          "target": "/parent/subjects"
+        },
+        {
+          "id": "cta-teacher-analytics-parent-goals-22",
+          "target": "/parent/goals"
+        },
+        {
+          "id": "cta-teacher-analytics-parent-timeline-23",
+          "target": "/parent/timeline"
+        },
+        {
+          "id": "cta-teacher-analytics-play-welcome-24",
+          "target": "/play/welcome"
+        },
+        {
+          "id": "cta-teacher-analytics-play-25",
+          "target": "/play"
+        },
+        {
+          "id": "cta-teacher-analytics-play-media-26",
+          "target": "/play/media"
+        },
+        {
+          "id": "cta-teacher-analytics-results-27",
+          "target": "/results"
+        },
+        {
+          "id": "cta-teacher-analytics-admin-console-28",
+          "target": "/admin/console"
+        },
+        {
+          "id": "cta-teacher-analytics-admin-jobs-29",
+          "target": "/admin/jobs"
+        },
+        {
+          "id": "cta-teacher-analytics-admin-system-health-30",
+          "target": "/admin/system-health"
+        },
+        {
+          "id": "cta-teacher-analytics-admin-ai-pipeline-31",
+          "target": "/admin/ai-pipeline"
+        },
+        {
+          "id": "cta-teacher-analytics-catalog-builder-32",
+          "target": "/catalog-builder"
+        },
+        {
+          "id": "cta-teacher-analytics-catalog-builder-media-33",
+          "target": "/catalog-builder/media"
+        },
+        {
+          "id": "back",
+          "action": "navigate",
+          "target": "/teacher/dashboard"
+        }
+      ]
+    },
+    {
+      "path": "/teacher/classes",
+      "name": "Classes",
+      "description": "Classes",
+      "states": [
+        {
+          "id": "default",
+          "file": "teacher/classes/default.html",
+          "description": "Default state",
+          "required": true
+        }
+      ],
+      "requiredCTAs": [
+        {
+          "id": "cta-teacher-classes-action-0"
+        },
+        {
+          "id": "cta-teacher-classes-landing-1",
+          "target": "/"
+        },
+        {
+          "id": "cta-teacher-classes-about-2",
+          "target": "/about"
+        },
+        {
+          "id": "cta-teacher-classes-auth-3",
+          "target": "/auth"
+        },
+        {
+          "id": "cta-teacher-classes-settings-4",
+          "target": "/settings"
+        },
+        {
+          "id": "cta-teacher-classes-messages-5",
+          "target": "/messages"
+        },
+        {
+          "id": "cta-teacher-classes-student-dashboard-6",
+          "target": "/student/dashboard"
+        },
+        {
+          "id": "cta-teacher-classes-student-assignments-7",
+          "target": "/student/assignments"
+        },
+        {
+          "id": "cta-teacher-classes-student-achievements-8",
+          "target": "/student/achievements"
+        },
+        {
+          "id": "cta-teacher-classes-student-goals-9",
+          "target": "/student/goals"
+        },
+        {
+          "id": "cta-teacher-classes-student-timeline-10",
+          "target": "/student/timeline"
+        },
+        {
+          "id": "cta-teacher-classes-student-join-class-11",
+          "target": "/student/join-class"
+        },
+        {
+          "id": "cta-teacher-classes-teacher-dashboard-12",
+          "target": "/teacher/dashboard"
+        },
+        {
+          "id": "cta-teacher-classes-teacher-classes-13",
+          "target": "/teacher/classes"
+        },
+        {
+          "id": "cta-teacher-classes-teacher-students-14",
+          "target": "/teacher/students"
+        },
+        {
+          "id": "cta-teacher-classes-teacher-assignments-15",
+          "target": "/teacher/assignments"
+        },
+        {
+          "id": "cta-teacher-classes-teacher-assignment-progress-16",
+          "target": "/teacher/assignment-progress"
+        },
+        {
+          "id": "cta-teacher-classes-teacher-class-progress-17",
+          "target": "/teacher/class-progress"
+        },
+        {
+          "id": "cta-teacher-classes-teacher-analytics-18",
+          "target": "/teacher/analytics"
+        },
+        {
+          "id": "cta-teacher-classes-teacher-control-19",
+          "target": "/teacher/control"
+        },
+        {
+          "id": "cta-teacher-classes-parent-dashboard-20",
+          "target": "/parent/dashboard"
+        },
+        {
+          "id": "cta-teacher-classes-parent-subjects-21",
+          "target": "/parent/subjects"
+        },
+        {
+          "id": "cta-teacher-classes-parent-goals-22",
+          "target": "/parent/goals"
+        },
+        {
+          "id": "cta-teacher-classes-parent-timeline-23",
+          "target": "/parent/timeline"
+        },
+        {
+          "id": "cta-teacher-classes-play-welcome-24",
+          "target": "/play/welcome"
+        },
+        {
+          "id": "cta-teacher-classes-play-25",
+          "target": "/play"
+        },
+        {
+          "id": "cta-teacher-classes-play-media-26",
+          "target": "/play/media"
+        },
+        {
+          "id": "cta-teacher-classes-results-27",
+          "target": "/results"
+        },
+        {
+          "id": "cta-teacher-classes-admin-console-28",
+          "target": "/admin/console"
+        },
+        {
+          "id": "cta-teacher-classes-admin-jobs-29",
+          "target": "/admin/jobs"
+        },
+        {
+          "id": "cta-teacher-classes-admin-system-health-30",
+          "target": "/admin/system-health"
+        },
+        {
+          "id": "cta-teacher-classes-admin-ai-pipeline-31",
+          "target": "/admin/ai-pipeline"
+        },
+        {
+          "id": "cta-teacher-classes-catalog-builder-32",
+          "target": "/catalog-builder"
+        },
+        {
+          "id": "cta-teacher-classes-catalog-builder-media-33",
+          "target": "/catalog-builder/media"
+        },
+        {
+          "id": "menu",
+          "action": "navigate",
+          "target": "/teacher/dashboard"
+        },
+        {
+          "id": "create-class",
+          "action": "navigate",
+          "target": "/teacher/classes/new"
+        },
+        {
+          "id": "view-students",
+          "action": "navigate",
+          "target": "/teacher/students"
+        },
+        {
+          "id": "view-progress",
+          "action": "navigate",
+          "target": "/teacher/class-progress"
+        },
+        {
+          "id": "cta-teacher-classes-students-0"
+        },
+        {
+          "id": "cta-teacher-classes-progress-1"
+        },
+        {
+          "id": "cta-teacher-classes-students-2"
+        },
+        {
+          "id": "cta-teacher-classes-progress-3"
+        }
+      ]
+    },
+    {
+      "path": "/teacher/students",
+      "name": "Students",
+      "description": "Students",
+      "states": [
+        {
+          "id": "default",
+          "file": "teacher/students/default.html",
+          "description": "Default state",
+          "required": true
+        }
+      ],
+      "requiredCTAs": [
+        {
+          "id": "cta-teacher-students-action-0"
+        },
+        {
+          "id": "cta-teacher-students-landing-1",
+          "target": "/"
+        },
+        {
+          "id": "cta-teacher-students-about-2",
+          "target": "/about"
+        },
+        {
+          "id": "cta-teacher-students-auth-3",
+          "target": "/auth"
+        },
+        {
+          "id": "cta-teacher-students-settings-4",
+          "target": "/settings"
+        },
+        {
+          "id": "cta-teacher-students-messages-5",
+          "target": "/messages"
+        },
+        {
+          "id": "cta-teacher-students-student-dashboard-6",
+          "target": "/student/dashboard"
+        },
+        {
+          "id": "cta-teacher-students-student-assignments-7",
+          "target": "/student/assignments"
+        },
+        {
+          "id": "cta-teacher-students-student-achievements-8",
+          "target": "/student/achievements"
+        },
+        {
+          "id": "cta-teacher-students-student-goals-9",
+          "target": "/student/goals"
+        },
+        {
+          "id": "cta-teacher-students-student-timeline-10",
+          "target": "/student/timeline"
+        },
+        {
+          "id": "cta-teacher-students-student-join-class-11",
+          "target": "/student/join-class"
+        },
+        {
+          "id": "cta-teacher-students-teacher-dashboard-12",
+          "target": "/teacher/dashboard"
+        },
+        {
+          "id": "cta-teacher-students-teacher-classes-13",
+          "target": "/teacher/classes"
+        },
+        {
+          "id": "cta-teacher-students-teacher-students-14",
+          "target": "/teacher/students"
+        },
+        {
+          "id": "cta-teacher-students-teacher-assignments-15",
+          "target": "/teacher/assignments"
+        },
+        {
+          "id": "cta-teacher-students-teacher-assignment-progress-16",
+          "target": "/teacher/assignment-progress"
+        },
+        {
+          "id": "cta-teacher-students-teacher-class-progress-17",
+          "target": "/teacher/class-progress"
+        },
+        {
+          "id": "cta-teacher-students-teacher-analytics-18",
+          "target": "/teacher/analytics"
+        },
+        {
+          "id": "cta-teacher-students-teacher-control-19",
+          "target": "/teacher/control"
+        },
+        {
+          "id": "cta-teacher-students-parent-dashboard-20",
+          "target": "/parent/dashboard"
+        },
+        {
+          "id": "cta-teacher-students-parent-subjects-21",
+          "target": "/parent/subjects"
+        },
+        {
+          "id": "cta-teacher-students-parent-goals-22",
+          "target": "/parent/goals"
+        },
+        {
+          "id": "cta-teacher-students-parent-timeline-23",
+          "target": "/parent/timeline"
+        },
+        {
+          "id": "cta-teacher-students-play-welcome-24",
+          "target": "/play/welcome"
+        },
+        {
+          "id": "cta-teacher-students-play-25",
+          "target": "/play"
+        },
+        {
+          "id": "cta-teacher-students-play-media-26",
+          "target": "/play/media"
+        },
+        {
+          "id": "cta-teacher-students-results-27",
+          "target": "/results"
+        },
+        {
+          "id": "cta-teacher-students-admin-console-28",
+          "target": "/admin/console"
+        },
+        {
+          "id": "cta-teacher-students-admin-jobs-29",
+          "target": "/admin/jobs"
+        },
+        {
+          "id": "cta-teacher-students-admin-system-health-30",
+          "target": "/admin/system-health"
+        },
+        {
+          "id": "cta-teacher-students-admin-ai-pipeline-31",
+          "target": "/admin/ai-pipeline"
+        },
+        {
+          "id": "cta-teacher-students-catalog-builder-32",
+          "target": "/catalog-builder"
+        },
+        {
+          "id": "cta-teacher-students-catalog-builder-media-33",
+          "target": "/catalog-builder/media"
+        },
+        {
+          "id": "back",
+          "action": "navigate",
+          "target": "/teacher/dashboard"
+        },
+        {
+          "id": "view-student",
+          "action": "navigate",
+          "target": "/teacher/student-detail"
+        },
+        {
+          "id": "cta-teacher-students-action-1"
+        },
+        {
+          "id": "cta-teacher-students-action-2"
+        }
+      ]
+    },
+    {
+      "path": "/student/dashboard",
+      "name": "Student Dashboard",
+      "description": "Student Dashboard",
+      "states": [
+        {
+          "id": "default",
+          "file": "student/dashboard/default.html",
+          "description": "Default state",
+          "required": true
+        }
+      ],
+      "requiredCTAs": [
+        {
+          "id": "cta-student-dashboard-action-0"
+        },
+        {
+          "id": "cta-student-dashboard-landing-1",
+          "target": "/"
+        },
+        {
+          "id": "cta-student-dashboard-about-2",
+          "target": "/about"
+        },
+        {
+          "id": "cta-student-dashboard-auth-3",
+          "target": "/auth"
+        },
+        {
+          "id": "cta-student-dashboard-settings-4",
+          "target": "/settings"
+        },
+        {
+          "id": "cta-student-dashboard-messages-5",
+          "target": "/messages"
+        },
+        {
+          "id": "cta-student-dashboard-student-dashboard-6",
+          "target": "/student/dashboard"
+        },
+        {
+          "id": "cta-student-dashboard-student-assignments-7",
+          "target": "/student/assignments"
+        },
+        {
+          "id": "cta-student-dashboard-student-achievements-8",
+          "target": "/student/achievements"
+        },
+        {
+          "id": "cta-student-dashboard-student-goals-9",
+          "target": "/student/goals"
+        },
+        {
+          "id": "cta-student-dashboard-student-timeline-10",
+          "target": "/student/timeline"
+        },
+        {
+          "id": "cta-student-dashboard-student-join-class-11",
+          "target": "/student/join-class"
+        },
+        {
+          "id": "cta-student-dashboard-teacher-dashboard-12",
+          "target": "/teacher/dashboard"
+        },
+        {
+          "id": "cta-student-dashboard-teacher-classes-13",
+          "target": "/teacher/classes"
+        },
+        {
+          "id": "cta-student-dashboard-teacher-students-14",
+          "target": "/teacher/students"
+        },
+        {
+          "id": "cta-student-dashboard-teacher-assignments-15",
+          "target": "/teacher/assignments"
+        },
+        {
+          "id": "cta-student-dashboard-teacher-assignment-progress-16",
+          "target": "/teacher/assignment-progress"
+        },
+        {
+          "id": "cta-student-dashboard-teacher-class-progress-17",
+          "target": "/teacher/class-progress"
+        },
+        {
+          "id": "cta-student-dashboard-teacher-analytics-18",
+          "target": "/teacher/analytics"
+        },
+        {
+          "id": "cta-student-dashboard-teacher-control-19",
+          "target": "/teacher/control"
+        },
+        {
+          "id": "cta-student-dashboard-parent-dashboard-20",
+          "target": "/parent/dashboard"
+        },
+        {
+          "id": "cta-student-dashboard-parent-subjects-21",
+          "target": "/parent/subjects"
+        },
+        {
+          "id": "cta-student-dashboard-parent-goals-22",
+          "target": "/parent/goals"
+        },
+        {
+          "id": "cta-student-dashboard-parent-timeline-23",
+          "target": "/parent/timeline"
+        },
+        {
+          "id": "cta-student-dashboard-play-welcome-24",
+          "target": "/play/welcome"
+        },
+        {
+          "id": "cta-student-dashboard-play-25",
+          "target": "/play"
+        },
+        {
+          "id": "cta-student-dashboard-play-media-26",
+          "target": "/play/media"
+        },
+        {
+          "id": "cta-student-dashboard-results-27",
+          "target": "/results"
+        },
+        {
+          "id": "cta-student-dashboard-admin-console-28",
+          "target": "/admin/console"
+        },
+        {
+          "id": "cta-student-dashboard-admin-jobs-29",
+          "target": "/admin/jobs"
+        },
+        {
+          "id": "cta-student-dashboard-admin-system-health-30",
+          "target": "/admin/system-health"
+        },
+        {
+          "id": "cta-student-dashboard-admin-ai-pipeline-31",
+          "target": "/admin/ai-pipeline"
+        },
+        {
+          "id": "cta-student-dashboard-catalog-builder-32",
+          "target": "/catalog-builder"
+        },
+        {
+          "id": "cta-student-dashboard-catalog-builder-media-33",
+          "target": "/catalog-builder/media"
+        },
+        {
+          "id": "settings",
+          "action": "navigate",
+          "target": "/settings"
+        },
+        {
+          "id": "view-goals",
+          "action": "navigate",
+          "target": "/student/goals"
+        },
+        {
+          "id": "continue-learning",
+          "action": "navigate",
+          "target": "/play/welcome"
+        },
+        {
+          "id": "nav-assignments",
+          "action": "navigate",
+          "target": "/student/assignments"
+        },
+        {
+          "id": "nav-achievements",
+          "action": "navigate",
+          "target": "/student/achievements"
+        },
+        {
+          "id": "nav-timeline",
+          "action": "navigate",
+          "target": "/student/timeline"
+        }
+      ]
+    },
+    {
+      "path": "/student/assignments",
+      "name": "Student Assignments",
+      "description": "Student Assignments",
+      "states": [
+        {
+          "id": "default",
+          "file": "student/assignments/default.html",
+          "description": "Default state",
+          "required": true
+        }
+      ],
+      "requiredCTAs": [
+        {
+          "id": "cta-student-assignments-action-0"
+        },
+        {
+          "id": "cta-student-assignments-landing-1",
+          "target": "/"
+        },
+        {
+          "id": "cta-student-assignments-about-2",
+          "target": "/about"
+        },
+        {
+          "id": "cta-student-assignments-auth-3",
+          "target": "/auth"
+        },
+        {
+          "id": "cta-student-assignments-settings-4",
+          "target": "/settings"
+        },
+        {
+          "id": "cta-student-assignments-messages-5",
+          "target": "/messages"
+        },
+        {
+          "id": "cta-student-assignments-student-dashboard-6",
+          "target": "/student/dashboard"
+        },
+        {
+          "id": "cta-student-assignments-student-assignments-7",
+          "target": "/student/assignments"
+        },
+        {
+          "id": "cta-student-assignments-student-achievements-8",
+          "target": "/student/achievements"
+        },
+        {
+          "id": "cta-student-assignments-student-goals-9",
+          "target": "/student/goals"
+        },
+        {
+          "id": "cta-student-assignments-student-timeline-10",
+          "target": "/student/timeline"
+        },
+        {
+          "id": "cta-student-assignments-student-join-class-11",
+          "target": "/student/join-class"
+        },
+        {
+          "id": "cta-student-assignments-teacher-dashboard-12",
+          "target": "/teacher/dashboard"
+        },
+        {
+          "id": "cta-student-assignments-teacher-classes-13",
+          "target": "/teacher/classes"
+        },
+        {
+          "id": "cta-student-assignments-teacher-students-14",
+          "target": "/teacher/students"
+        },
+        {
+          "id": "cta-student-assignments-teacher-assignments-15",
+          "target": "/teacher/assignments"
+        },
+        {
+          "id": "cta-student-assignments-teacher-assignment-progress-16",
+          "target": "/teacher/assignment-progress"
+        },
+        {
+          "id": "cta-student-assignments-teacher-class-progress-17",
+          "target": "/teacher/class-progress"
+        },
+        {
+          "id": "cta-student-assignments-teacher-analytics-18",
+          "target": "/teacher/analytics"
+        },
+        {
+          "id": "cta-student-assignments-teacher-control-19",
+          "target": "/teacher/control"
+        },
+        {
+          "id": "cta-student-assignments-parent-dashboard-20",
+          "target": "/parent/dashboard"
+        },
+        {
+          "id": "cta-student-assignments-parent-subjects-21",
+          "target": "/parent/subjects"
+        },
+        {
+          "id": "cta-student-assignments-parent-goals-22",
+          "target": "/parent/goals"
+        },
+        {
+          "id": "cta-student-assignments-parent-timeline-23",
+          "target": "/parent/timeline"
+        },
+        {
+          "id": "cta-student-assignments-play-welcome-24",
+          "target": "/play/welcome"
+        },
+        {
+          "id": "cta-student-assignments-play-25",
+          "target": "/play"
+        },
+        {
+          "id": "cta-student-assignments-play-media-26",
+          "target": "/play/media"
+        },
+        {
+          "id": "cta-student-assignments-results-27",
+          "target": "/results"
+        },
+        {
+          "id": "cta-student-assignments-admin-console-28",
+          "target": "/admin/console"
+        },
+        {
+          "id": "cta-student-assignments-admin-jobs-29",
+          "target": "/admin/jobs"
+        },
+        {
+          "id": "cta-student-assignments-admin-system-health-30",
+          "target": "/admin/system-health"
+        },
+        {
+          "id": "cta-student-assignments-admin-ai-pipeline-31",
+          "target": "/admin/ai-pipeline"
+        },
+        {
+          "id": "cta-student-assignments-catalog-builder-32",
+          "target": "/catalog-builder"
+        },
+        {
+          "id": "cta-student-assignments-catalog-builder-media-33",
+          "target": "/catalog-builder/media"
+        },
+        {
+          "id": "back",
+          "action": "navigate",
+          "target": "/student/dashboard"
+        },
+        {
+          "id": "cta-student-assignments-all-8-0"
+        },
+        {
+          "id": "cta-student-assignments-in-progress-3-1"
+        },
+        {
+          "id": "cta-student-assignments-not-started-2-2"
+        },
+        {
+          "id": "cta-student-assignments-completed-3-3"
+        },
+        {
+          "id": "continue-assignment",
+          "action": "navigate",
+          "target": "/play"
+        },
+        {
+          "id": "start-assignment",
+          "action": "navigate",
+          "target": "/play"
+        },
+        {
+          "id": "view-assignment",
+          "action": "navigate",
+          "target": "/play"
+        },
+        {
+          "id": "review-assignment",
+          "action": "navigate",
+          "target": "/results"
+        }
+      ]
+    },
+    {
+      "path": "/student/timeline",
+      "name": "Student Timeline",
+      "description": "Student Timeline",
+      "states": [
+        {
+          "id": "default",
+          "file": "student/timeline/default.html",
+          "description": "Default state",
+          "required": true
+        }
+      ],
+      "requiredCTAs": [
+        {
+          "id": "cta-student-timeline-action-0"
+        },
+        {
+          "id": "cta-student-timeline-landing-1",
+          "target": "/"
+        },
+        {
+          "id": "cta-student-timeline-about-2",
+          "target": "/about"
+        },
+        {
+          "id": "cta-student-timeline-auth-3",
+          "target": "/auth"
+        },
+        {
+          "id": "cta-student-timeline-settings-4",
+          "target": "/settings"
+        },
+        {
+          "id": "cta-student-timeline-messages-5",
+          "target": "/messages"
+        },
+        {
+          "id": "cta-student-timeline-student-dashboard-6",
+          "target": "/student/dashboard"
+        },
+        {
+          "id": "cta-student-timeline-student-assignments-7",
+          "target": "/student/assignments"
+        },
+        {
+          "id": "cta-student-timeline-student-achievements-8",
+          "target": "/student/achievements"
+        },
+        {
+          "id": "cta-student-timeline-student-goals-9",
+          "target": "/student/goals"
+        },
+        {
+          "id": "cta-student-timeline-student-timeline-10",
+          "target": "/student/timeline"
+        },
+        {
+          "id": "cta-student-timeline-student-join-class-11",
+          "target": "/student/join-class"
+        },
+        {
+          "id": "cta-student-timeline-teacher-dashboard-12",
+          "target": "/teacher/dashboard"
+        },
+        {
+          "id": "cta-student-timeline-teacher-classes-13",
+          "target": "/teacher/classes"
+        },
+        {
+          "id": "cta-student-timeline-teacher-students-14",
+          "target": "/teacher/students"
+        },
+        {
+          "id": "cta-student-timeline-teacher-assignments-15",
+          "target": "/teacher/assignments"
+        },
+        {
+          "id": "cta-student-timeline-teacher-assignment-progress-16",
+          "target": "/teacher/assignment-progress"
+        },
+        {
+          "id": "cta-student-timeline-teacher-class-progress-17",
+          "target": "/teacher/class-progress"
+        },
+        {
+          "id": "cta-student-timeline-teacher-analytics-18",
+          "target": "/teacher/analytics"
+        },
+        {
+          "id": "cta-student-timeline-teacher-control-19",
+          "target": "/teacher/control"
+        },
+        {
+          "id": "cta-student-timeline-parent-dashboard-20",
+          "target": "/parent/dashboard"
+        },
+        {
+          "id": "cta-student-timeline-parent-subjects-21",
+          "target": "/parent/subjects"
+        },
+        {
+          "id": "cta-student-timeline-parent-goals-22",
+          "target": "/parent/goals"
+        },
+        {
+          "id": "cta-student-timeline-parent-timeline-23",
+          "target": "/parent/timeline"
+        },
+        {
+          "id": "cta-student-timeline-play-welcome-24",
+          "target": "/play/welcome"
+        },
+        {
+          "id": "cta-student-timeline-play-25",
+          "target": "/play"
+        },
+        {
+          "id": "cta-student-timeline-play-media-26",
+          "target": "/play/media"
+        },
+        {
+          "id": "cta-student-timeline-results-27",
+          "target": "/results"
+        },
+        {
+          "id": "cta-student-timeline-admin-console-28",
+          "target": "/admin/console"
+        },
+        {
+          "id": "cta-student-timeline-admin-jobs-29",
+          "target": "/admin/jobs"
+        },
+        {
+          "id": "cta-student-timeline-admin-system-health-30",
+          "target": "/admin/system-health"
+        },
+        {
+          "id": "cta-student-timeline-admin-ai-pipeline-31",
+          "target": "/admin/ai-pipeline"
+        },
+        {
+          "id": "cta-student-timeline-catalog-builder-32",
+          "target": "/catalog-builder"
+        },
+        {
+          "id": "cta-student-timeline-catalog-builder-media-33",
+          "target": "/catalog-builder/media"
+        },
+        {
+          "id": "back",
+          "action": "navigate",
+          "target": "/student/dashboard"
+        }
+      ]
+    },
+    {
+      "path": "/student/achievements",
+      "name": "Student Achievements",
+      "description": "Student Achievements",
+      "states": [
+        {
+          "id": "default",
+          "file": "student/achievements/default.html",
+          "description": "Default state",
+          "required": true
+        }
+      ],
+      "requiredCTAs": [
+        {
+          "id": "cta-student-achievements-action-0"
+        },
+        {
+          "id": "cta-student-achievements-landing-1",
+          "target": "/"
+        },
+        {
+          "id": "cta-student-achievements-about-2",
+          "target": "/about"
+        },
+        {
+          "id": "cta-student-achievements-auth-3",
+          "target": "/auth"
+        },
+        {
+          "id": "cta-student-achievements-settings-4",
+          "target": "/settings"
+        },
+        {
+          "id": "cta-student-achievements-messages-5",
+          "target": "/messages"
+        },
+        {
+          "id": "cta-student-achievements-student-dashboard-6",
+          "target": "/student/dashboard"
+        },
+        {
+          "id": "cta-student-achievements-student-assignments-7",
+          "target": "/student/assignments"
+        },
+        {
+          "id": "cta-student-achievements-student-achievements-8",
+          "target": "/student/achievements"
+        },
+        {
+          "id": "cta-student-achievements-student-goals-9",
+          "target": "/student/goals"
+        },
+        {
+          "id": "cta-student-achievements-student-timeline-10",
+          "target": "/student/timeline"
+        },
+        {
+          "id": "cta-student-achievements-student-join-class-11",
+          "target": "/student/join-class"
+        },
+        {
+          "id": "cta-student-achievements-teacher-dashboard-12",
+          "target": "/teacher/dashboard"
+        },
+        {
+          "id": "cta-student-achievements-teacher-classes-13",
+          "target": "/teacher/classes"
+        },
+        {
+          "id": "cta-student-achievements-teacher-students-14",
+          "target": "/teacher/students"
+        },
+        {
+          "id": "cta-student-achievements-teacher-assignments-15",
+          "target": "/teacher/assignments"
+        },
+        {
+          "id": "cta-student-achievements-teacher-assignment-progress-16",
+          "target": "/teacher/assignment-progress"
+        },
+        {
+          "id": "cta-student-achievements-teacher-class-progress-17",
+          "target": "/teacher/class-progress"
+        },
+        {
+          "id": "cta-student-achievements-teacher-analytics-18",
+          "target": "/teacher/analytics"
+        },
+        {
+          "id": "cta-student-achievements-teacher-control-19",
+          "target": "/teacher/control"
+        },
+        {
+          "id": "cta-student-achievements-parent-dashboard-20",
+          "target": "/parent/dashboard"
+        },
+        {
+          "id": "cta-student-achievements-parent-subjects-21",
+          "target": "/parent/subjects"
+        },
+        {
+          "id": "cta-student-achievements-parent-goals-22",
+          "target": "/parent/goals"
+        },
+        {
+          "id": "cta-student-achievements-parent-timeline-23",
+          "target": "/parent/timeline"
+        },
+        {
+          "id": "cta-student-achievements-play-welcome-24",
+          "target": "/play/welcome"
+        },
+        {
+          "id": "cta-student-achievements-play-25",
+          "target": "/play"
+        },
+        {
+          "id": "cta-student-achievements-play-media-26",
+          "target": "/play/media"
+        },
+        {
+          "id": "cta-student-achievements-results-27",
+          "target": "/results"
+        },
+        {
+          "id": "cta-student-achievements-admin-console-28",
+          "target": "/admin/console"
+        },
+        {
+          "id": "cta-student-achievements-admin-jobs-29",
+          "target": "/admin/jobs"
+        },
+        {
+          "id": "cta-student-achievements-admin-system-health-30",
+          "target": "/admin/system-health"
+        },
+        {
+          "id": "cta-student-achievements-admin-ai-pipeline-31",
+          "target": "/admin/ai-pipeline"
+        },
+        {
+          "id": "cta-student-achievements-catalog-builder-32",
+          "target": "/catalog-builder"
+        },
+        {
+          "id": "cta-student-achievements-catalog-builder-media-33",
+          "target": "/catalog-builder/media"
+        },
+        {
+          "id": "back",
+          "action": "navigate",
+          "target": "/student/dashboard"
+        }
+      ]
+    },
+    {
+      "path": "/student/goals",
+      "name": "Student Goals",
+      "description": "Student Goals",
+      "states": [
+        {
+          "id": "default",
+          "file": "student/goals/default.html",
+          "description": "Default state",
+          "required": true
+        }
+      ],
+      "requiredCTAs": [
+        {
+          "id": "cta-student-goals-action-0"
+        },
+        {
+          "id": "cta-student-goals-landing-1",
+          "target": "/"
+        },
+        {
+          "id": "cta-student-goals-about-2",
+          "target": "/about"
+        },
+        {
+          "id": "cta-student-goals-auth-3",
+          "target": "/auth"
+        },
+        {
+          "id": "cta-student-goals-settings-4",
+          "target": "/settings"
+        },
+        {
+          "id": "cta-student-goals-messages-5",
+          "target": "/messages"
+        },
+        {
+          "id": "cta-student-goals-student-dashboard-6",
+          "target": "/student/dashboard"
+        },
+        {
+          "id": "cta-student-goals-student-assignments-7",
+          "target": "/student/assignments"
+        },
+        {
+          "id": "cta-student-goals-student-achievements-8",
+          "target": "/student/achievements"
+        },
+        {
+          "id": "cta-student-goals-student-goals-9",
+          "target": "/student/goals"
+        },
+        {
+          "id": "cta-student-goals-student-timeline-10",
+          "target": "/student/timeline"
+        },
+        {
+          "id": "cta-student-goals-student-join-class-11",
+          "target": "/student/join-class"
+        },
+        {
+          "id": "cta-student-goals-teacher-dashboard-12",
+          "target": "/teacher/dashboard"
+        },
+        {
+          "id": "cta-student-goals-teacher-classes-13",
+          "target": "/teacher/classes"
+        },
+        {
+          "id": "cta-student-goals-teacher-students-14",
+          "target": "/teacher/students"
+        },
+        {
+          "id": "cta-student-goals-teacher-assignments-15",
+          "target": "/teacher/assignments"
+        },
+        {
+          "id": "cta-student-goals-teacher-assignment-progress-16",
+          "target": "/teacher/assignment-progress"
+        },
+        {
+          "id": "cta-student-goals-teacher-class-progress-17",
+          "target": "/teacher/class-progress"
+        },
+        {
+          "id": "cta-student-goals-teacher-analytics-18",
+          "target": "/teacher/analytics"
+        },
+        {
+          "id": "cta-student-goals-teacher-control-19",
+          "target": "/teacher/control"
+        },
+        {
+          "id": "cta-student-goals-parent-dashboard-20",
+          "target": "/parent/dashboard"
+        },
+        {
+          "id": "cta-student-goals-parent-subjects-21",
+          "target": "/parent/subjects"
+        },
+        {
+          "id": "cta-student-goals-parent-goals-22",
+          "target": "/parent/goals"
+        },
+        {
+          "id": "cta-student-goals-parent-timeline-23",
+          "target": "/parent/timeline"
+        },
+        {
+          "id": "cta-student-goals-play-welcome-24",
+          "target": "/play/welcome"
+        },
+        {
+          "id": "cta-student-goals-play-25",
+          "target": "/play"
+        },
+        {
+          "id": "cta-student-goals-play-media-26",
+          "target": "/play/media"
+        },
+        {
+          "id": "cta-student-goals-results-27",
+          "target": "/results"
+        },
+        {
+          "id": "cta-student-goals-admin-console-28",
+          "target": "/admin/console"
+        },
+        {
+          "id": "cta-student-goals-admin-jobs-29",
+          "target": "/admin/jobs"
+        },
+        {
+          "id": "cta-student-goals-admin-system-health-30",
+          "target": "/admin/system-health"
+        },
+        {
+          "id": "cta-student-goals-admin-ai-pipeline-31",
+          "target": "/admin/ai-pipeline"
+        },
+        {
+          "id": "cta-student-goals-catalog-builder-32",
+          "target": "/catalog-builder"
+        },
+        {
+          "id": "cta-student-goals-catalog-builder-media-33",
+          "target": "/catalog-builder/media"
+        },
+        {
+          "id": "back",
+          "action": "navigate",
+          "target": "/student/dashboard"
+        },
+        {
+          "id": "edit-goal",
+          "action": "navigate",
+          "target": "/student/goals/edit"
+        },
+        {
+          "id": "practice-now",
+          "action": "navigate",
+          "target": "/play/welcome"
+        }
+      ]
+    },
+    {
+      "path": "/student/join-class",
+      "name": "Join Class",
+      "description": "Join Class",
+      "states": [
+        {
+          "id": "default",
+          "file": "student/join-class/default.html",
+          "description": "Default state",
+          "required": true
+        }
+      ],
+      "requiredCTAs": [
+        {
+          "id": "cta-student-join-class-action-0"
+        },
+        {
+          "id": "cta-student-join-class-landing-1",
+          "target": "/"
+        },
+        {
+          "id": "cta-student-join-class-about-2",
+          "target": "/about"
+        },
+        {
+          "id": "cta-student-join-class-auth-3",
+          "target": "/auth"
+        },
+        {
+          "id": "cta-student-join-class-settings-4",
+          "target": "/settings"
+        },
+        {
+          "id": "cta-student-join-class-messages-5",
+          "target": "/messages"
+        },
+        {
+          "id": "cta-student-join-class-student-dashboard-6",
+          "target": "/student/dashboard"
+        },
+        {
+          "id": "cta-student-join-class-student-assignments-7",
+          "target": "/student/assignments"
+        },
+        {
+          "id": "cta-student-join-class-student-achievements-8",
+          "target": "/student/achievements"
+        },
+        {
+          "id": "cta-student-join-class-student-goals-9",
+          "target": "/student/goals"
+        },
+        {
+          "id": "cta-student-join-class-student-timeline-10",
+          "target": "/student/timeline"
+        },
+        {
+          "id": "cta-student-join-class-student-join-class-11",
+          "target": "/student/join-class"
+        },
+        {
+          "id": "cta-student-join-class-teacher-dashboard-12",
+          "target": "/teacher/dashboard"
+        },
+        {
+          "id": "cta-student-join-class-teacher-classes-13",
+          "target": "/teacher/classes"
+        },
+        {
+          "id": "cta-student-join-class-teacher-students-14",
+          "target": "/teacher/students"
+        },
+        {
+          "id": "cta-student-join-class-teacher-assignments-15",
+          "target": "/teacher/assignments"
+        },
+        {
+          "id": "cta-student-join-class-teacher-assignment-progress-16",
+          "target": "/teacher/assignment-progress"
+        },
+        {
+          "id": "cta-student-join-class-teacher-class-progress-17",
+          "target": "/teacher/class-progress"
+        },
+        {
+          "id": "cta-student-join-class-teacher-analytics-18",
+          "target": "/teacher/analytics"
+        },
+        {
+          "id": "cta-student-join-class-teacher-control-19",
+          "target": "/teacher/control"
+        },
+        {
+          "id": "cta-student-join-class-parent-dashboard-20",
+          "target": "/parent/dashboard"
+        },
+        {
+          "id": "cta-student-join-class-parent-subjects-21",
+          "target": "/parent/subjects"
+        },
+        {
+          "id": "cta-student-join-class-parent-goals-22",
+          "target": "/parent/goals"
+        },
+        {
+          "id": "cta-student-join-class-parent-timeline-23",
+          "target": "/parent/timeline"
+        },
+        {
+          "id": "cta-student-join-class-play-welcome-24",
+          "target": "/play/welcome"
+        },
+        {
+          "id": "cta-student-join-class-play-25",
+          "target": "/play"
+        },
+        {
+          "id": "cta-student-join-class-play-media-26",
+          "target": "/play/media"
+        },
+        {
+          "id": "cta-student-join-class-results-27",
+          "target": "/results"
+        },
+        {
+          "id": "cta-student-join-class-admin-console-28",
+          "target": "/admin/console"
+        },
+        {
+          "id": "cta-student-join-class-admin-jobs-29",
+          "target": "/admin/jobs"
+        },
+        {
+          "id": "cta-student-join-class-admin-system-health-30",
+          "target": "/admin/system-health"
+        },
+        {
+          "id": "cta-student-join-class-admin-ai-pipeline-31",
+          "target": "/admin/ai-pipeline"
+        },
+        {
+          "id": "cta-student-join-class-catalog-builder-32",
+          "target": "/catalog-builder"
+        },
+        {
+          "id": "cta-student-join-class-catalog-builder-media-33",
+          "target": "/catalog-builder/media"
+        },
+        {
+          "id": "back",
+          "action": "navigate",
+          "target": "/student/dashboard"
+        },
+        {
+          "id": "join-class",
+          "action": "save"
+        },
+        {
+          "id": "cta-student-join-class-courses-0",
+          "target": "/courses"
+        }
+      ]
+    },
+    {
+      "path": "/parent/dashboard",
+      "name": "Parent Dashboard",
+      "description": "Parent Dashboard",
+      "states": [
+        {
+          "id": "default",
+          "file": "parent/dashboard/default.html",
+          "description": "Default state",
+          "required": true
+        }
+      ],
+      "requiredCTAs": [
+        {
+          "id": "cta-parent-dashboard-action-0"
+        },
+        {
+          "id": "cta-parent-dashboard-landing-1",
+          "target": "/"
+        },
+        {
+          "id": "cta-parent-dashboard-about-2",
+          "target": "/about"
+        },
+        {
+          "id": "cta-parent-dashboard-auth-3",
+          "target": "/auth"
+        },
+        {
+          "id": "cta-parent-dashboard-settings-4",
+          "target": "/settings"
+        },
+        {
+          "id": "cta-parent-dashboard-messages-5",
+          "target": "/messages"
+        },
+        {
+          "id": "cta-parent-dashboard-student-dashboard-6",
+          "target": "/student/dashboard"
+        },
+        {
+          "id": "cta-parent-dashboard-student-assignments-7",
+          "target": "/student/assignments"
+        },
+        {
+          "id": "cta-parent-dashboard-student-achievements-8",
+          "target": "/student/achievements"
+        },
+        {
+          "id": "cta-parent-dashboard-student-goals-9",
+          "target": "/student/goals"
+        },
+        {
+          "id": "cta-parent-dashboard-student-timeline-10",
+          "target": "/student/timeline"
+        },
+        {
+          "id": "cta-parent-dashboard-student-join-class-11",
+          "target": "/student/join-class"
+        },
+        {
+          "id": "cta-parent-dashboard-teacher-dashboard-12",
+          "target": "/teacher/dashboard"
+        },
+        {
+          "id": "cta-parent-dashboard-teacher-classes-13",
+          "target": "/teacher/classes"
+        },
+        {
+          "id": "cta-parent-dashboard-teacher-students-14",
+          "target": "/teacher/students"
+        },
+        {
+          "id": "cta-parent-dashboard-teacher-assignments-15",
+          "target": "/teacher/assignments"
+        },
+        {
+          "id": "cta-parent-dashboard-teacher-assignment-progress-16",
+          "target": "/teacher/assignment-progress"
+        },
+        {
+          "id": "cta-parent-dashboard-teacher-class-progress-17",
+          "target": "/teacher/class-progress"
+        },
+        {
+          "id": "cta-parent-dashboard-teacher-analytics-18",
+          "target": "/teacher/analytics"
+        },
+        {
+          "id": "cta-parent-dashboard-teacher-control-19",
+          "target": "/teacher/control"
+        },
+        {
+          "id": "cta-parent-dashboard-parent-dashboard-20",
+          "target": "/parent/dashboard"
+        },
+        {
+          "id": "cta-parent-dashboard-parent-subjects-21",
+          "target": "/parent/subjects"
+        },
+        {
+          "id": "cta-parent-dashboard-parent-goals-22",
+          "target": "/parent/goals"
+        },
+        {
+          "id": "cta-parent-dashboard-parent-timeline-23",
+          "target": "/parent/timeline"
+        },
+        {
+          "id": "cta-parent-dashboard-play-welcome-24",
+          "target": "/play/welcome"
+        },
+        {
+          "id": "cta-parent-dashboard-play-25",
+          "target": "/play"
+        },
+        {
+          "id": "cta-parent-dashboard-play-media-26",
+          "target": "/play/media"
+        },
+        {
+          "id": "cta-parent-dashboard-results-27",
+          "target": "/results"
+        },
+        {
+          "id": "cta-parent-dashboard-admin-console-28",
+          "target": "/admin/console"
+        },
+        {
+          "id": "cta-parent-dashboard-admin-jobs-29",
+          "target": "/admin/jobs"
+        },
+        {
+          "id": "cta-parent-dashboard-admin-system-health-30",
+          "target": "/admin/system-health"
+        },
+        {
+          "id": "cta-parent-dashboard-admin-ai-pipeline-31",
+          "target": "/admin/ai-pipeline"
+        },
+        {
+          "id": "cta-parent-dashboard-catalog-builder-32",
+          "target": "/catalog-builder"
+        },
+        {
+          "id": "cta-parent-dashboard-catalog-builder-media-33",
+          "target": "/catalog-builder/media"
+        },
+        {
+          "id": "settings",
+          "action": "navigate",
+          "target": "/settings"
+        },
+        {
+          "id": "view-goals",
+          "action": "navigate",
+          "target": "/parent/goals"
+        },
+        {
+          "id": "view-subjects",
+          "action": "navigate",
+          "target": "/parent/subjects"
+        },
+        {
+          "id": "view-timeline",
+          "action": "navigate",
+          "target": "/parent/timeline"
+        }
+      ]
+    },
+    {
+      "path": "/parent/subjects",
+      "name": "Parent Subjects",
+      "description": "Parent Subjects",
+      "states": [
+        {
+          "id": "default",
+          "file": "parent/subjects/default.html",
+          "description": "Default state",
+          "required": true
+        }
+      ],
+      "requiredCTAs": [
+        {
+          "id": "cta-parent-subjects-action-0"
+        },
+        {
+          "id": "cta-parent-subjects-landing-1",
+          "target": "/"
+        },
+        {
+          "id": "cta-parent-subjects-about-2",
+          "target": "/about"
+        },
+        {
+          "id": "cta-parent-subjects-auth-3",
+          "target": "/auth"
+        },
+        {
+          "id": "cta-parent-subjects-settings-4",
+          "target": "/settings"
+        },
+        {
+          "id": "cta-parent-subjects-messages-5",
+          "target": "/messages"
+        },
+        {
+          "id": "cta-parent-subjects-student-dashboard-6",
+          "target": "/student/dashboard"
+        },
+        {
+          "id": "cta-parent-subjects-student-assignments-7",
+          "target": "/student/assignments"
+        },
+        {
+          "id": "cta-parent-subjects-student-achievements-8",
+          "target": "/student/achievements"
+        },
+        {
+          "id": "cta-parent-subjects-student-goals-9",
+          "target": "/student/goals"
+        },
+        {
+          "id": "cta-parent-subjects-student-timeline-10",
+          "target": "/student/timeline"
+        },
+        {
+          "id": "cta-parent-subjects-student-join-class-11",
+          "target": "/student/join-class"
+        },
+        {
+          "id": "cta-parent-subjects-teacher-dashboard-12",
+          "target": "/teacher/dashboard"
+        },
+        {
+          "id": "cta-parent-subjects-teacher-classes-13",
+          "target": "/teacher/classes"
+        },
+        {
+          "id": "cta-parent-subjects-teacher-students-14",
+          "target": "/teacher/students"
+        },
+        {
+          "id": "cta-parent-subjects-teacher-assignments-15",
+          "target": "/teacher/assignments"
+        },
+        {
+          "id": "cta-parent-subjects-teacher-assignment-progress-16",
+          "target": "/teacher/assignment-progress"
+        },
+        {
+          "id": "cta-parent-subjects-teacher-class-progress-17",
+          "target": "/teacher/class-progress"
+        },
+        {
+          "id": "cta-parent-subjects-teacher-analytics-18",
+          "target": "/teacher/analytics"
+        },
+        {
+          "id": "cta-parent-subjects-teacher-control-19",
+          "target": "/teacher/control"
+        },
+        {
+          "id": "cta-parent-subjects-parent-dashboard-20",
+          "target": "/parent/dashboard"
+        },
+        {
+          "id": "cta-parent-subjects-parent-subjects-21",
+          "target": "/parent/subjects"
+        },
+        {
+          "id": "cta-parent-subjects-parent-goals-22",
+          "target": "/parent/goals"
+        },
+        {
+          "id": "cta-parent-subjects-parent-timeline-23",
+          "target": "/parent/timeline"
+        },
+        {
+          "id": "cta-parent-subjects-play-welcome-24",
+          "target": "/play/welcome"
+        },
+        {
+          "id": "cta-parent-subjects-play-25",
+          "target": "/play"
+        },
+        {
+          "id": "cta-parent-subjects-play-media-26",
+          "target": "/play/media"
+        },
+        {
+          "id": "cta-parent-subjects-results-27",
+          "target": "/results"
+        },
+        {
+          "id": "cta-parent-subjects-admin-console-28",
+          "target": "/admin/console"
+        },
+        {
+          "id": "cta-parent-subjects-admin-jobs-29",
+          "target": "/admin/jobs"
+        },
+        {
+          "id": "cta-parent-subjects-admin-system-health-30",
+          "target": "/admin/system-health"
+        },
+        {
+          "id": "cta-parent-subjects-admin-ai-pipeline-31",
+          "target": "/admin/ai-pipeline"
+        },
+        {
+          "id": "cta-parent-subjects-catalog-builder-32",
+          "target": "/catalog-builder"
+        },
+        {
+          "id": "cta-parent-subjects-catalog-builder-media-33",
+          "target": "/catalog-builder/media"
+        },
+        {
+          "id": "back",
+          "action": "navigate",
+          "target": "/parent/dashboard"
+        }
+      ]
+    },
+    {
+      "path": "/parent/topics",
+      "name": "Parent Topics",
+      "description": "Parent Topics",
+      "states": [
+        {
+          "id": "default",
+          "file": "parent/topics/default.html",
+          "description": "Default state",
+          "required": true
+        }
+      ],
+      "requiredCTAs": [
+        {
+          "id": "cta-parent-topics-action-0"
+        },
+        {
+          "id": "cta-parent-topics-landing-1",
+          "target": "/"
+        },
+        {
+          "id": "cta-parent-topics-about-2",
+          "target": "/about"
+        },
+        {
+          "id": "cta-parent-topics-auth-3",
+          "target": "/auth"
+        },
+        {
+          "id": "cta-parent-topics-settings-4",
+          "target": "/settings"
+        },
+        {
+          "id": "cta-parent-topics-messages-5",
+          "target": "/messages"
+        },
+        {
+          "id": "cta-parent-topics-student-dashboard-6",
+          "target": "/student/dashboard"
+        },
+        {
+          "id": "cta-parent-topics-student-assignments-7",
+          "target": "/student/assignments"
+        },
+        {
+          "id": "cta-parent-topics-student-achievements-8",
+          "target": "/student/achievements"
+        },
+        {
+          "id": "cta-parent-topics-student-goals-9",
+          "target": "/student/goals"
+        },
+        {
+          "id": "cta-parent-topics-student-timeline-10",
+          "target": "/student/timeline"
+        },
+        {
+          "id": "cta-parent-topics-student-join-class-11",
+          "target": "/student/join-class"
+        },
+        {
+          "id": "cta-parent-topics-teacher-dashboard-12",
+          "target": "/teacher/dashboard"
+        },
+        {
+          "id": "cta-parent-topics-teacher-classes-13",
+          "target": "/teacher/classes"
+        },
+        {
+          "id": "cta-parent-topics-teacher-students-14",
+          "target": "/teacher/students"
+        },
+        {
+          "id": "cta-parent-topics-teacher-assignments-15",
+          "target": "/teacher/assignments"
+        },
+        {
+          "id": "cta-parent-topics-teacher-assignment-progress-16",
+          "target": "/teacher/assignment-progress"
+        },
+        {
+          "id": "cta-parent-topics-teacher-class-progress-17",
+          "target": "/teacher/class-progress"
+        },
+        {
+          "id": "cta-parent-topics-teacher-analytics-18",
+          "target": "/teacher/analytics"
+        },
+        {
+          "id": "cta-parent-topics-teacher-control-19",
+          "target": "/teacher/control"
+        },
+        {
+          "id": "cta-parent-topics-parent-dashboard-20",
+          "target": "/parent/dashboard"
+        },
+        {
+          "id": "cta-parent-topics-parent-subjects-21",
+          "target": "/parent/subjects"
+        },
+        {
+          "id": "cta-parent-topics-parent-goals-22",
+          "target": "/parent/goals"
+        },
+        {
+          "id": "cta-parent-topics-parent-timeline-23",
+          "target": "/parent/timeline"
+        },
+        {
+          "id": "cta-parent-topics-play-welcome-24",
+          "target": "/play/welcome"
+        },
+        {
+          "id": "cta-parent-topics-play-25",
+          "target": "/play"
+        },
+        {
+          "id": "cta-parent-topics-play-media-26",
+          "target": "/play/media"
+        },
+        {
+          "id": "cta-parent-topics-results-27",
+          "target": "/results"
+        },
+        {
+          "id": "cta-parent-topics-admin-console-28",
+          "target": "/admin/console"
+        },
+        {
+          "id": "cta-parent-topics-admin-jobs-29",
+          "target": "/admin/jobs"
+        },
+        {
+          "id": "cta-parent-topics-admin-system-health-30",
+          "target": "/admin/system-health"
+        },
+        {
+          "id": "cta-parent-topics-admin-ai-pipeline-31",
+          "target": "/admin/ai-pipeline"
+        },
+        {
+          "id": "cta-parent-topics-catalog-builder-32",
+          "target": "/catalog-builder"
+        },
+        {
+          "id": "cta-parent-topics-catalog-builder-media-33",
+          "target": "/catalog-builder/media"
+        },
+        {
+          "id": "cta-parent-topics-return-to-home-0",
+          "target": "/"
+        }
+      ]
+    },
+    {
+      "path": "/parent/timeline",
+      "name": "Parent Timeline",
+      "description": "Parent Timeline",
+      "states": [
+        {
+          "id": "default",
+          "file": "parent/timeline/default.html",
+          "description": "Default state",
+          "required": true
+        }
+      ],
+      "requiredCTAs": [
+        {
+          "id": "cta-parent-timeline-action-0"
+        },
+        {
+          "id": "cta-parent-timeline-landing-1",
+          "target": "/"
+        },
+        {
+          "id": "cta-parent-timeline-about-2",
+          "target": "/about"
+        },
+        {
+          "id": "cta-parent-timeline-auth-3",
+          "target": "/auth"
+        },
+        {
+          "id": "cta-parent-timeline-settings-4",
+          "target": "/settings"
+        },
+        {
+          "id": "cta-parent-timeline-messages-5",
+          "target": "/messages"
+        },
+        {
+          "id": "cta-parent-timeline-student-dashboard-6",
+          "target": "/student/dashboard"
+        },
+        {
+          "id": "cta-parent-timeline-student-assignments-7",
+          "target": "/student/assignments"
+        },
+        {
+          "id": "cta-parent-timeline-student-achievements-8",
+          "target": "/student/achievements"
+        },
+        {
+          "id": "cta-parent-timeline-student-goals-9",
+          "target": "/student/goals"
+        },
+        {
+          "id": "cta-parent-timeline-student-timeline-10",
+          "target": "/student/timeline"
+        },
+        {
+          "id": "cta-parent-timeline-student-join-class-11",
+          "target": "/student/join-class"
+        },
+        {
+          "id": "cta-parent-timeline-teacher-dashboard-12",
+          "target": "/teacher/dashboard"
+        },
+        {
+          "id": "cta-parent-timeline-teacher-classes-13",
+          "target": "/teacher/classes"
+        },
+        {
+          "id": "cta-parent-timeline-teacher-students-14",
+          "target": "/teacher/students"
+        },
+        {
+          "id": "cta-parent-timeline-teacher-assignments-15",
+          "target": "/teacher/assignments"
+        },
+        {
+          "id": "cta-parent-timeline-teacher-assignment-progress-16",
+          "target": "/teacher/assignment-progress"
+        },
+        {
+          "id": "cta-parent-timeline-teacher-class-progress-17",
+          "target": "/teacher/class-progress"
+        },
+        {
+          "id": "cta-parent-timeline-teacher-analytics-18",
+          "target": "/teacher/analytics"
+        },
+        {
+          "id": "cta-parent-timeline-teacher-control-19",
+          "target": "/teacher/control"
+        },
+        {
+          "id": "cta-parent-timeline-parent-dashboard-20",
+          "target": "/parent/dashboard"
+        },
+        {
+          "id": "cta-parent-timeline-parent-subjects-21",
+          "target": "/parent/subjects"
+        },
+        {
+          "id": "cta-parent-timeline-parent-goals-22",
+          "target": "/parent/goals"
+        },
+        {
+          "id": "cta-parent-timeline-parent-timeline-23",
+          "target": "/parent/timeline"
+        },
+        {
+          "id": "cta-parent-timeline-play-welcome-24",
+          "target": "/play/welcome"
+        },
+        {
+          "id": "cta-parent-timeline-play-25",
+          "target": "/play"
+        },
+        {
+          "id": "cta-parent-timeline-play-media-26",
+          "target": "/play/media"
+        },
+        {
+          "id": "cta-parent-timeline-results-27",
+          "target": "/results"
+        },
+        {
+          "id": "cta-parent-timeline-admin-console-28",
+          "target": "/admin/console"
+        },
+        {
+          "id": "cta-parent-timeline-admin-jobs-29",
+          "target": "/admin/jobs"
+        },
+        {
+          "id": "cta-parent-timeline-admin-system-health-30",
+          "target": "/admin/system-health"
+        },
+        {
+          "id": "cta-parent-timeline-admin-ai-pipeline-31",
+          "target": "/admin/ai-pipeline"
+        },
+        {
+          "id": "cta-parent-timeline-catalog-builder-32",
+          "target": "/catalog-builder"
+        },
+        {
+          "id": "cta-parent-timeline-catalog-builder-media-33",
+          "target": "/catalog-builder/media"
+        },
+        {
+          "id": "back",
+          "action": "navigate",
+          "target": "/parent/dashboard"
+        },
+        {
+          "id": "cta-parent-timeline-all-activity-0"
+        },
+        {
+          "id": "cta-parent-timeline-sessions-1"
+        },
+        {
+          "id": "cta-parent-timeline-achievements-2"
+        },
+        {
+          "id": "cta-parent-timeline-goals-3"
+        },
+        {
+          "id": "cta-parent-timeline-assignments-4"
+        },
+        {
+          "id": "cta-parent-timeline-load-more-activity-5"
+        }
+      ]
+    },
+    {
+      "path": "/parent/goals",
+      "name": "Parent Goals",
+      "description": "Parent Goals",
+      "states": [
+        {
+          "id": "default",
+          "file": "parent/goals/default.html",
+          "description": "Default state",
+          "required": true
+        }
+      ],
+      "requiredCTAs": [
+        {
+          "id": "cta-parent-goals-action-0"
+        },
+        {
+          "id": "cta-parent-goals-landing-1",
+          "target": "/"
+        },
+        {
+          "id": "cta-parent-goals-about-2",
+          "target": "/about"
+        },
+        {
+          "id": "cta-parent-goals-auth-3",
+          "target": "/auth"
+        },
+        {
+          "id": "cta-parent-goals-settings-4",
+          "target": "/settings"
+        },
+        {
+          "id": "cta-parent-goals-messages-5",
+          "target": "/messages"
+        },
+        {
+          "id": "cta-parent-goals-student-dashboard-6",
+          "target": "/student/dashboard"
+        },
+        {
+          "id": "cta-parent-goals-student-assignments-7",
+          "target": "/student/assignments"
+        },
+        {
+          "id": "cta-parent-goals-student-achievements-8",
+          "target": "/student/achievements"
+        },
+        {
+          "id": "cta-parent-goals-student-goals-9",
+          "target": "/student/goals"
+        },
+        {
+          "id": "cta-parent-goals-student-timeline-10",
+          "target": "/student/timeline"
+        },
+        {
+          "id": "cta-parent-goals-student-join-class-11",
+          "target": "/student/join-class"
+        },
+        {
+          "id": "cta-parent-goals-teacher-dashboard-12",
+          "target": "/teacher/dashboard"
+        },
+        {
+          "id": "cta-parent-goals-teacher-classes-13",
+          "target": "/teacher/classes"
+        },
+        {
+          "id": "cta-parent-goals-teacher-students-14",
+          "target": "/teacher/students"
+        },
+        {
+          "id": "cta-parent-goals-teacher-assignments-15",
+          "target": "/teacher/assignments"
+        },
+        {
+          "id": "cta-parent-goals-teacher-assignment-progress-16",
+          "target": "/teacher/assignment-progress"
+        },
+        {
+          "id": "cta-parent-goals-teacher-class-progress-17",
+          "target": "/teacher/class-progress"
+        },
+        {
+          "id": "cta-parent-goals-teacher-analytics-18",
+          "target": "/teacher/analytics"
+        },
+        {
+          "id": "cta-parent-goals-teacher-control-19",
+          "target": "/teacher/control"
+        },
+        {
+          "id": "cta-parent-goals-parent-dashboard-20",
+          "target": "/parent/dashboard"
+        },
+        {
+          "id": "cta-parent-goals-parent-subjects-21",
+          "target": "/parent/subjects"
+        },
+        {
+          "id": "cta-parent-goals-parent-goals-22",
+          "target": "/parent/goals"
+        },
+        {
+          "id": "cta-parent-goals-parent-timeline-23",
+          "target": "/parent/timeline"
+        },
+        {
+          "id": "cta-parent-goals-play-welcome-24",
+          "target": "/play/welcome"
+        },
+        {
+          "id": "cta-parent-goals-play-25",
+          "target": "/play"
+        },
+        {
+          "id": "cta-parent-goals-play-media-26",
+          "target": "/play/media"
+        },
+        {
+          "id": "cta-parent-goals-results-27",
+          "target": "/results"
+        },
+        {
+          "id": "cta-parent-goals-admin-console-28",
+          "target": "/admin/console"
+        },
+        {
+          "id": "cta-parent-goals-admin-jobs-29",
+          "target": "/admin/jobs"
+        },
+        {
+          "id": "cta-parent-goals-admin-system-health-30",
+          "target": "/admin/system-health"
+        },
+        {
+          "id": "cta-parent-goals-admin-ai-pipeline-31",
+          "target": "/admin/ai-pipeline"
+        },
+        {
+          "id": "cta-parent-goals-catalog-builder-32",
+          "target": "/catalog-builder"
+        },
+        {
+          "id": "cta-parent-goals-catalog-builder-media-33",
+          "target": "/catalog-builder/media"
+        },
+        {
+          "id": "back",
+          "action": "navigate",
+          "target": "/parent/dashboard"
+        },
+        {
+          "id": "adjust-goal",
+          "action": "save"
+        },
+        {
+          "id": "send-encouragement",
+          "action": "navigate",
+          "target": "/messages"
+        }
+      ]
+    },
+    {
+      "path": "/parent/link-child",
+      "name": "Link Child",
+      "description": "Link Child",
+      "states": [
+        {
+          "id": "default",
+          "file": "parent/link-child/default.html",
+          "description": "Default state",
+          "required": true
+        }
+      ],
+      "requiredCTAs": [
+        {
+          "id": "cta-parent-link-child-action-0"
+        },
+        {
+          "id": "cta-parent-link-child-landing-1",
+          "target": "/"
+        },
+        {
+          "id": "cta-parent-link-child-about-2",
+          "target": "/about"
+        },
+        {
+          "id": "cta-parent-link-child-auth-3",
+          "target": "/auth"
+        },
+        {
+          "id": "cta-parent-link-child-settings-4",
+          "target": "/settings"
+        },
+        {
+          "id": "cta-parent-link-child-messages-5",
+          "target": "/messages"
+        },
+        {
+          "id": "cta-parent-link-child-student-dashboard-6",
+          "target": "/student/dashboard"
+        },
+        {
+          "id": "cta-parent-link-child-student-assignments-7",
+          "target": "/student/assignments"
+        },
+        {
+          "id": "cta-parent-link-child-student-achievements-8",
+          "target": "/student/achievements"
+        },
+        {
+          "id": "cta-parent-link-child-student-goals-9",
+          "target": "/student/goals"
+        },
+        {
+          "id": "cta-parent-link-child-student-timeline-10",
+          "target": "/student/timeline"
+        },
+        {
+          "id": "cta-parent-link-child-student-join-class-11",
+          "target": "/student/join-class"
+        },
+        {
+          "id": "cta-parent-link-child-teacher-dashboard-12",
+          "target": "/teacher/dashboard"
+        },
+        {
+          "id": "cta-parent-link-child-teacher-classes-13",
+          "target": "/teacher/classes"
+        },
+        {
+          "id": "cta-parent-link-child-teacher-students-14",
+          "target": "/teacher/students"
+        },
+        {
+          "id": "cta-parent-link-child-teacher-assignments-15",
+          "target": "/teacher/assignments"
+        },
+        {
+          "id": "cta-parent-link-child-teacher-assignment-progress-16",
+          "target": "/teacher/assignment-progress"
+        },
+        {
+          "id": "cta-parent-link-child-teacher-class-progress-17",
+          "target": "/teacher/class-progress"
+        },
+        {
+          "id": "cta-parent-link-child-teacher-analytics-18",
+          "target": "/teacher/analytics"
+        },
+        {
+          "id": "cta-parent-link-child-teacher-control-19",
+          "target": "/teacher/control"
+        },
+        {
+          "id": "cta-parent-link-child-parent-dashboard-20",
+          "target": "/parent/dashboard"
+        },
+        {
+          "id": "cta-parent-link-child-parent-subjects-21",
+          "target": "/parent/subjects"
+        },
+        {
+          "id": "cta-parent-link-child-parent-goals-22",
+          "target": "/parent/goals"
+        },
+        {
+          "id": "cta-parent-link-child-parent-timeline-23",
+          "target": "/parent/timeline"
+        },
+        {
+          "id": "cta-parent-link-child-play-welcome-24",
+          "target": "/play/welcome"
+        },
+        {
+          "id": "cta-parent-link-child-play-25",
+          "target": "/play"
+        },
+        {
+          "id": "cta-parent-link-child-play-media-26",
+          "target": "/play/media"
+        },
+        {
+          "id": "cta-parent-link-child-results-27",
+          "target": "/results"
+        },
+        {
+          "id": "cta-parent-link-child-admin-console-28",
+          "target": "/admin/console"
+        },
+        {
+          "id": "cta-parent-link-child-admin-jobs-29",
+          "target": "/admin/jobs"
+        },
+        {
+          "id": "cta-parent-link-child-admin-system-health-30",
+          "target": "/admin/system-health"
+        },
+        {
+          "id": "cta-parent-link-child-admin-ai-pipeline-31",
+          "target": "/admin/ai-pipeline"
+        },
+        {
+          "id": "cta-parent-link-child-catalog-builder-32",
+          "target": "/catalog-builder"
+        },
+        {
+          "id": "cta-parent-link-child-catalog-builder-media-33",
+          "target": "/catalog-builder/media"
+        },
+        {
+          "id": "cta-parent-link-child-return-to-home-0",
+          "target": "/"
+        }
+      ]
+    },
+    {
+      "path": "/play/demo-course/welcome",
+      "name": "Play Welcome",
+      "description": "Play Welcome",
+      "states": [
+        {
+          "id": "default",
+          "file": "play/demo-course/welcome/default.html",
+          "description": "Default state",
+          "required": true
+        }
+      ],
+      "requiredCTAs": [
+        {
+          "id": "cta-play-demo-course-welcome-action-0"
+        },
+        {
+          "id": "cta-play-demo-course-welcome-landing-1",
+          "target": "/"
+        },
+        {
+          "id": "cta-play-demo-course-welcome-about-2",
+          "target": "/about"
+        },
+        {
+          "id": "cta-play-demo-course-welcome-auth-3",
+          "target": "/auth"
+        },
+        {
+          "id": "cta-play-demo-course-welcome-settings-4",
+          "target": "/settings"
+        },
+        {
+          "id": "cta-play-demo-course-welcome-messages-5",
+          "target": "/messages"
+        },
+        {
+          "id": "cta-play-demo-course-welcome-student-dashboard-6",
+          "target": "/student/dashboard"
+        },
+        {
+          "id": "cta-play-demo-course-welcome-student-assignments-7",
+          "target": "/student/assignments"
+        },
+        {
+          "id": "cta-play-demo-course-welcome-student-achievements-8",
+          "target": "/student/achievements"
+        },
+        {
+          "id": "cta-play-demo-course-welcome-student-goals-9",
+          "target": "/student/goals"
+        },
+        {
+          "id": "cta-play-demo-course-welcome-student-timeline-10",
+          "target": "/student/timeline"
+        },
+        {
+          "id": "cta-play-demo-course-welcome-student-join-class-11",
+          "target": "/student/join-class"
+        },
+        {
+          "id": "cta-play-demo-course-welcome-teacher-dashboard-12",
+          "target": "/teacher/dashboard"
+        },
+        {
+          "id": "cta-play-demo-course-welcome-teacher-classes-13",
+          "target": "/teacher/classes"
+        },
+        {
+          "id": "cta-play-demo-course-welcome-teacher-students-14",
+          "target": "/teacher/students"
+        },
+        {
+          "id": "cta-play-demo-course-welcome-teacher-assignments-15",
+          "target": "/teacher/assignments"
+        },
+        {
+          "id": "cta-play-demo-course-welcome-teacher-assignment-progress-16",
+          "target": "/teacher/assignment-progress"
+        },
+        {
+          "id": "cta-play-demo-course-welcome-teacher-class-progress-17",
+          "target": "/teacher/class-progress"
+        },
+        {
+          "id": "cta-play-demo-course-welcome-teacher-analytics-18",
+          "target": "/teacher/analytics"
+        },
+        {
+          "id": "cta-play-demo-course-welcome-teacher-control-19",
+          "target": "/teacher/control"
+        },
+        {
+          "id": "cta-play-demo-course-welcome-parent-dashboard-20",
+          "target": "/parent/dashboard"
+        },
+        {
+          "id": "cta-play-demo-course-welcome-parent-subjects-21",
+          "target": "/parent/subjects"
+        },
+        {
+          "id": "cta-play-demo-course-welcome-parent-goals-22",
+          "target": "/parent/goals"
+        },
+        {
+          "id": "cta-play-demo-course-welcome-parent-timeline-23",
+          "target": "/parent/timeline"
+        },
+        {
+          "id": "cta-play-demo-course-welcome-play-welcome-24",
+          "target": "/play/welcome"
+        },
+        {
+          "id": "cta-play-demo-course-welcome-play-25",
+          "target": "/play"
+        },
+        {
+          "id": "cta-play-demo-course-welcome-play-media-26",
+          "target": "/play/media"
+        },
+        {
+          "id": "cta-play-demo-course-welcome-results-27",
+          "target": "/results"
+        },
+        {
+          "id": "cta-play-demo-course-welcome-admin-console-28",
+          "target": "/admin/console"
+        },
+        {
+          "id": "cta-play-demo-course-welcome-admin-jobs-29",
+          "target": "/admin/jobs"
+        },
+        {
+          "id": "cta-play-demo-course-welcome-admin-system-health-30",
+          "target": "/admin/system-health"
+        },
+        {
+          "id": "cta-play-demo-course-welcome-admin-ai-pipeline-31",
+          "target": "/admin/ai-pipeline"
+        },
+        {
+          "id": "cta-play-demo-course-welcome-catalog-builder-32",
+          "target": "/catalog-builder"
+        },
+        {
+          "id": "cta-play-demo-course-welcome-catalog-builder-media-33",
+          "target": "/catalog-builder/media"
+        },
+        {
+          "id": "cta-play-demo-course-welcome-return-to-home-0",
+          "target": "/"
+        }
+      ]
+    },
+    {
+      "path": "/play/demo-course",
+      "name": "Play Session",
+      "description": "Play Session",
+      "states": [
+        {
+          "id": "default",
+          "file": "play/demo-course/default.html",
+          "description": "Default state",
+          "required": true
+        }
+      ],
+      "requiredCTAs": [
+        {
+          "id": "cta-play-demo-course-action-0"
+        },
+        {
+          "id": "cta-play-demo-course-landing-1",
+          "target": "/"
+        },
+        {
+          "id": "cta-play-demo-course-about-2",
+          "target": "/about"
+        },
+        {
+          "id": "cta-play-demo-course-auth-3",
+          "target": "/auth"
+        },
+        {
+          "id": "cta-play-demo-course-settings-4",
+          "target": "/settings"
+        },
+        {
+          "id": "cta-play-demo-course-messages-5",
+          "target": "/messages"
+        },
+        {
+          "id": "cta-play-demo-course-student-dashboard-6",
+          "target": "/student/dashboard"
+        },
+        {
+          "id": "cta-play-demo-course-student-assignments-7",
+          "target": "/student/assignments"
+        },
+        {
+          "id": "cta-play-demo-course-student-achievements-8",
+          "target": "/student/achievements"
+        },
+        {
+          "id": "cta-play-demo-course-student-goals-9",
+          "target": "/student/goals"
+        },
+        {
+          "id": "cta-play-demo-course-student-timeline-10",
+          "target": "/student/timeline"
+        },
+        {
+          "id": "cta-play-demo-course-student-join-class-11",
+          "target": "/student/join-class"
+        },
+        {
+          "id": "cta-play-demo-course-teacher-dashboard-12",
+          "target": "/teacher/dashboard"
+        },
+        {
+          "id": "cta-play-demo-course-teacher-classes-13",
+          "target": "/teacher/classes"
+        },
+        {
+          "id": "cta-play-demo-course-teacher-students-14",
+          "target": "/teacher/students"
+        },
+        {
+          "id": "cta-play-demo-course-teacher-assignments-15",
+          "target": "/teacher/assignments"
+        },
+        {
+          "id": "cta-play-demo-course-teacher-assignment-progress-16",
+          "target": "/teacher/assignment-progress"
+        },
+        {
+          "id": "cta-play-demo-course-teacher-class-progress-17",
+          "target": "/teacher/class-progress"
+        },
+        {
+          "id": "cta-play-demo-course-teacher-analytics-18",
+          "target": "/teacher/analytics"
+        },
+        {
+          "id": "cta-play-demo-course-teacher-control-19",
+          "target": "/teacher/control"
+        },
+        {
+          "id": "cta-play-demo-course-parent-dashboard-20",
+          "target": "/parent/dashboard"
+        },
+        {
+          "id": "cta-play-demo-course-parent-subjects-21",
+          "target": "/parent/subjects"
+        },
+        {
+          "id": "cta-play-demo-course-parent-goals-22",
+          "target": "/parent/goals"
+        },
+        {
+          "id": "cta-play-demo-course-parent-timeline-23",
+          "target": "/parent/timeline"
+        },
+        {
+          "id": "cta-play-demo-course-play-welcome-24",
+          "target": "/play/welcome"
+        },
+        {
+          "id": "cta-play-demo-course-play-25",
+          "target": "/play"
+        },
+        {
+          "id": "cta-play-demo-course-play-media-26",
+          "target": "/play/media"
+        },
+        {
+          "id": "cta-play-demo-course-results-27",
+          "target": "/results"
+        },
+        {
+          "id": "cta-play-demo-course-admin-console-28",
+          "target": "/admin/console"
+        },
+        {
+          "id": "cta-play-demo-course-admin-jobs-29",
+          "target": "/admin/jobs"
+        },
+        {
+          "id": "cta-play-demo-course-admin-system-health-30",
+          "target": "/admin/system-health"
+        },
+        {
+          "id": "cta-play-demo-course-admin-ai-pipeline-31",
+          "target": "/admin/ai-pipeline"
+        },
+        {
+          "id": "cta-play-demo-course-catalog-builder-32",
+          "target": "/catalog-builder"
+        },
+        {
+          "id": "cta-play-demo-course-catalog-builder-media-33",
+          "target": "/catalog-builder/media"
+        },
+        {
+          "id": "cta-play-demo-course-return-to-home-0",
+          "target": "/"
+        }
+      ]
+    },
+    {
+      "path": "/results",
+      "name": "Results",
+      "description": "Results",
+      "states": [
+        {
+          "id": "default",
+          "file": "results/default.html",
+          "description": "Default state",
+          "required": true
+        }
+      ],
+      "requiredCTAs": [
+        {
+          "id": "cta-results-action-0"
+        },
+        {
+          "id": "cta-results-landing-1",
+          "target": "/"
+        },
+        {
+          "id": "cta-results-about-2",
+          "target": "/about"
+        },
+        {
+          "id": "cta-results-auth-3",
+          "target": "/auth"
+        },
+        {
+          "id": "cta-results-settings-4",
+          "target": "/settings"
+        },
+        {
+          "id": "cta-results-messages-5",
+          "target": "/messages"
+        },
+        {
+          "id": "cta-results-student-dashboard-6",
+          "target": "/student/dashboard"
+        },
+        {
+          "id": "cta-results-student-assignments-7",
+          "target": "/student/assignments"
+        },
+        {
+          "id": "cta-results-student-achievements-8",
+          "target": "/student/achievements"
+        },
+        {
+          "id": "cta-results-student-goals-9",
+          "target": "/student/goals"
+        },
+        {
+          "id": "cta-results-student-timeline-10",
+          "target": "/student/timeline"
+        },
+        {
+          "id": "cta-results-student-join-class-11",
+          "target": "/student/join-class"
+        },
+        {
+          "id": "cta-results-teacher-dashboard-12",
+          "target": "/teacher/dashboard"
+        },
+        {
+          "id": "cta-results-teacher-classes-13",
+          "target": "/teacher/classes"
+        },
+        {
+          "id": "cta-results-teacher-students-14",
+          "target": "/teacher/students"
+        },
+        {
+          "id": "cta-results-teacher-assignments-15",
+          "target": "/teacher/assignments"
+        },
+        {
+          "id": "cta-results-teacher-assignment-progress-16",
+          "target": "/teacher/assignment-progress"
+        },
+        {
+          "id": "cta-results-teacher-class-progress-17",
+          "target": "/teacher/class-progress"
+        },
+        {
+          "id": "cta-results-teacher-analytics-18",
+          "target": "/teacher/analytics"
+        },
+        {
+          "id": "cta-results-teacher-control-19",
+          "target": "/teacher/control"
+        },
+        {
+          "id": "cta-results-parent-dashboard-20",
+          "target": "/parent/dashboard"
+        },
+        {
+          "id": "cta-results-parent-subjects-21",
+          "target": "/parent/subjects"
+        },
+        {
+          "id": "cta-results-parent-goals-22",
+          "target": "/parent/goals"
+        },
+        {
+          "id": "cta-results-parent-timeline-23",
+          "target": "/parent/timeline"
+        },
+        {
+          "id": "cta-results-play-welcome-24",
+          "target": "/play/welcome"
+        },
+        {
+          "id": "cta-results-play-25",
+          "target": "/play"
+        },
+        {
+          "id": "cta-results-play-media-26",
+          "target": "/play/media"
+        },
+        {
+          "id": "cta-results-results-27",
+          "target": "/results"
+        },
+        {
+          "id": "cta-results-admin-console-28",
+          "target": "/admin/console"
+        },
+        {
+          "id": "cta-results-admin-jobs-29",
+          "target": "/admin/jobs"
+        },
+        {
+          "id": "cta-results-admin-system-health-30",
+          "target": "/admin/system-health"
+        },
+        {
+          "id": "cta-results-admin-ai-pipeline-31",
+          "target": "/admin/ai-pipeline"
+        },
+        {
+          "id": "cta-results-catalog-builder-32",
+          "target": "/catalog-builder"
+        },
+        {
+          "id": "cta-results-catalog-builder-media-33",
+          "target": "/catalog-builder/media"
+        },
+        {
+          "id": "play-again",
+          "action": "navigate",
+          "target": "/play/welcome"
+        },
+        {
+          "id": "back-dashboard",
+          "action": "navigate",
+          "target": "/student/dashboard"
+        }
       ]
     }
   ],
-  "sharedComponents": [
-    {
-      "id": "hamburger-menu",
-      "description": "Navigation drawer with all routes",
-      "requiredLinks": ["/dashboard", "/plans/editor", "/settings", "/help", "/jobs"]
-    },
-    {
-      "id": "toast-system",
-      "description": "Toast notifications for success, error, warning, info",
-      "variants": ["success", "error", "warning", "info"]
-    },
-    {
-      "id": "export-modal",
-      "description": "Export options modal with format selection",
-      "requiredOptions": ["html", "react", "tailwind"]
-    },
-    {
-      "id": "loading-spinner",
-      "description": "Consistent loading indicator"
-    },
-    {
-      "id": "error-banner",
-      "description": "Inline error display with retry action"
-    }
-  ],
+  "sharedComponents": [],
   "validationRules": {
     "everyRouteMustHaveDefaultState": true,
     "everyStateMustHaveFile": true,
     "everyFileMustHaveDataRoute": true,
     "everyRequiredCTAMustExist": true,
-    "sharedComponentsMustBeConsistent": true
+    "sharedComponentsMustBeConsistent": false
   }
 }
-

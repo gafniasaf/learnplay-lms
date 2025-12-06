@@ -151,9 +151,36 @@ npx tsx scripts/verify-live-deployment.ts  # ALWAYS verify after deploy
     npx supabase functions deploy ...
     ```
 
+## 📦 Lovable MVP Handoff
+
+**When receiving a Lovable MVP export for reconstruction:**
+
+### Automated (Preferred)
+```bash
+npx tsx scripts/ingest-lovable.ts <path-to-lovable-export>
+npm run verify
+```
+
+### Manual Steps (if script fails)
+1. **READ** `HANDOFF_SPEC.md` from the handoff package first
+2. **READ** this file (`docs/AI_CONTEXT.md`) for architecture rules
+3. **UPDATE** `system-manifest.json` with entities from HANDOFF_SPEC
+4. **RUN** `npx tsx scripts/scaffold-manifest.ts` to generate contracts
+5. **COPY** Lovable's React components to `src/`
+6. **FIX** TypeScript errors to match Ignite Zero contracts
+7. **EXPORT** mock HTMLs: `npx tsx scripts/export-mocks.ts`
+8. **UPDATE** `coverage.json` with CTAs from HANDOFF_SPEC
+9. **RUN** `npm run verify` until all checks pass
+10. **WIRE** MCP hooks where needed (replace direct Supabase calls)
+
+**DO NOT ask the user questions unless blocked.** See `docs/AGENT_LOVABLE_INGESTION.md` for detailed agent instructions.
+
+See `docs/LOVABLE_TO_IGNITEZERO_GUIDE.md` for the complete workflow.
+See `docs/templates/` for handoff templates.
+
 ## ✅ Golden Plan Verification Checklist
 
-Run this sequence before calling a build “done.” The exact prompts/scripts live in `docs/QA/llm-regression.md`; link or copy them into any Golden Plan you author so future agents have clear marching orders.
+Run this sequence before calling a build "done." The exact prompts/scripts live in `docs/QA/llm-regression.md`; link or copy them into any Golden Plan you author so future agents have clear marching orders.
 
 1. `npm run diag:lms` – capture MCP/job health before touching code.
 2. `npm run typecheck`

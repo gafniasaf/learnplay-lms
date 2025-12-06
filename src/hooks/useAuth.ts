@@ -1,20 +1,21 @@
 import { useState, useEffect } from "react";
 import type { User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
+import { getRole, type Role } from "@/lib/roles";
 
 interface AuthState {
   user: User | null;
   loading: boolean;
+  role: Role;
 }
 
 /**
- * Minimal authentication hook used by ProtectedRoute and Sentry sync.
- * We only need to know if a Supabase session exists—roles and dashboards
- * were part of the legacy LMS surface and have been removed.
+ * Authentication hook with role support
  */
 export function useAuth(): AuthState {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const role = getRole();
 
   useEffect(() => {
     let isMounted = true;
@@ -49,5 +50,5 @@ export function useAuth(): AuthState {
     };
   }, []);
 
-  return { user, loading };
+  return { user, loading, role };
 }

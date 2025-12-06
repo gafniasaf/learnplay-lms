@@ -8,6 +8,17 @@ import "./styles/generated.css";
 import "./styles/learnplay.css";
 import { initAuth } from "./lib/supabase";
 import { validateEnv, isLiveMode } from "./lib/env";
+import { assignAutoCTAs } from "./lib/ui/ctaAutoId";
+
+// Force live mode when VITE_USE_MOCK='false' is set (clear stale localStorage)
+if (import.meta.env.VITE_USE_MOCK === 'false') {
+  try {
+    localStorage.setItem('useMock', 'false');
+    console.log('[Main] Forced live mode via VITE_USE_MOCK=false');
+  } catch (e) {
+    console.warn('[Main] Failed to set localStorage:', e);
+  }
+}
 
 declare global {
   interface Window {
@@ -224,3 +235,7 @@ if (shouldInitAuth) {
   console.log("[Auth] Mock mode detected, skipping auth initialization");
   renderApp();
 }
+
+// Auto-tag CTAs (buttons/links) with deterministic data-cta-id when missing.
+// This ensures CTA enforcement and mock exports capture every visible CTA.
+assignAutoCTAs();

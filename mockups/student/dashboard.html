@@ -2,78 +2,362 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Student Dashboard - LearnPlay</title>
-  <link rel="stylesheet" href="../_base.css">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Student Dashboard - LearnPlay LMS</title>
+  <link rel="stylesheet" href="../_dawn.css">
+  <style>
+    .time-toggle {
+      display: flex;
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      border: 1px solid var(--border);
+    }
+    .time-toggle button {
+      padding: 0.5rem 1rem;
+      border: none;
+      background: var(--surface);
+      cursor: pointer;
+      font-size: 0.875rem;
+      font-weight: 500;
+    }
+    .time-toggle button.active {
+      background: var(--primary);
+      color: white;
+    }
+    .keep-going-btn {
+      background: var(--primary);
+      color: white;
+      padding: 0.5rem 1.25rem;
+      border-radius: var(--radius-md);
+      border: none;
+      font-weight: 500;
+      cursor: pointer;
+    }
+    .streak-card {
+      background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+      border: none;
+    }
+    .xp-card {
+      background: linear-gradient(135deg, #ede9fe 0%, #ddd6fe 100%);
+      border: none;
+    }
+  </style>
 </head>
-<body data-route="/student/dashboard" data-entity="LearnerProfile">
+<body data-route="/student/dashboard" data-entity="StudentDashboard">
+  <!-- Header -->
   <header class="header">
-    <h1>🎓 Welcome back!</h1>
-    <div class="user-info">
-      <span data-field="full_name">Student</span>
-      <button data-cta-id="settings" data-action="navigate" data-target="/settings">⚙️</button>
+    <a href="/" class="header-brand">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/>
+      </svg>
+      LearnPlay
+    </a>
+    <div class="header-actions">
+      <span class="mock-badge">Mock</span>
+      <button class="menu-btn" data-cta-id="nav-menu">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="3" y1="12" x2="21" y2="12"/>
+          <line x1="3" y1="6" x2="21" y2="6"/>
+          <line x1="3" y1="18" x2="21" y2="18"/>
+        </svg>
+      </button>
     </div>
   </header>
 
-  <main class="container">
-    <!-- Goal Progress Card -->
-    <section class="card goal-card">
-      <h2>📊 Weekly Goal</h2>
-      <div class="goal-progress">
-        <div class="progress-bar">
-          <div class="progress-fill" style="width: 65%"></div>
+  <main class="page-container">
+    <div class="main-content">
+      <!-- Breadcrumb -->
+      <nav class="breadcrumb">
+        <a href="/">Home</a>
+        <span class="breadcrumb-separator">›</span>
+        <a href="/student">Student</a>
+        <span class="breadcrumb-separator">›</span>
+        <span>Overview</span>
+      </nav>
+
+      <!-- Tab Navigation -->
+      <nav class="tab-nav">
+        <a href="/student/dashboard" class="tab-item active" data-cta-id="tab-overview">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
+            <rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/>
+          </svg>
+          Overview
+        </a>
+        <a href="/student/assignments" class="tab-item" data-cta-id="tab-assignments">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/>
+            <line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/>
+            <line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/>
+          </svg>
+          Assignments
+        </a>
+        <a href="/student/timeline" class="tab-item" data-cta-id="tab-timeline">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+          </svg>
+          Timeline
+        </a>
+        <a href="/student/achievements" class="tab-item" data-cta-id="tab-achievements">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/>
+          </svg>
+          Achievements
+        </a>
+        <a href="/student/goals" class="tab-item" data-cta-id="tab-goals">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/>
+          </svg>
+          Goals
+        </a>
+      </nav>
+
+      <!-- Page Header -->
+      <div class="page-header">
+        <div>
+          <h1 class="page-title">My Learning</h1>
+          <p class="page-subtitle">Track your progress and keep learning!</p>
         </div>
-        <p><span data-field="current_minutes">45</span> / <span data-field="weekly_goal_minutes">60</span> minutes</p>
+        <div class="page-actions flex items-center gap-4">
+          <div class="time-toggle">
+            <button data-cta-id="time-day">Day</button>
+            <button class="active" data-cta-id="time-week">Week</button>
+            <button data-cta-id="time-month">Month</button>
+          </div>
+          <button class="keep-going-btn" data-cta-id="keep-going" data-action="navigate" data-target="/play">
+            Keep Going
+          </button>
+        </div>
       </div>
-      <span class="badge" data-field="goal_status">On Track</span>
-      <button data-cta-id="view-goals" data-action="navigate" data-target="/student/goals" class="btn-secondary">
-        View Goals
-      </button>
-    </section>
 
-    <!-- Current Assignment -->
-    <section class="card assignment-card">
-      <h2>📚 Continue Learning</h2>
-      <div class="assignment-info">
-        <h3 data-field="assignment_title">Math Practice</h3>
-        <p data-field="assignment_subject">Mathematics</p>
-        <span class="badge badge-info" data-field="assignment_status">In Progress</span>
-      </div>
-      <button data-cta-id="continue-learning" data-action="navigate" data-target="/play" class="btn-primary btn-large">
-        ▶️ Continue
-      </button>
-    </section>
+      <!-- Summary Cards -->
+      <div class="summary-grid" data-list="summary">
+        <div class="summary-card streak-card">
+          <div class="summary-card-header">
+            <span class="summary-card-label">Current Streak</span>
+            <div class="summary-card-icon" style="background: rgba(245,158,11,0.2); color: #f59e0b;">
+              🔥
+            </div>
+          </div>
+          <p class="summary-card-value" data-field="streak_days">7</p>
+          <p class="text-xs text-muted">Days in a row</p>
+        </div>
 
-    <!-- Quick Stats -->
-    <section class="stats-row">
-      <div class="stat-card">
-        <span class="stat-value" data-field="sessions_today">3</span>
-        <span class="stat-label">Sessions Today</span>
-      </div>
-      <div class="stat-card">
-        <span class="stat-value" data-field="streak_days">7</span>
-        <span class="stat-label">Day Streak 🔥</span>
-      </div>
-      <div class="stat-card">
-        <span class="stat-value" data-field="accuracy_percent">85%</span>
-        <span class="stat-label">Accuracy</span>
-      </div>
-    </section>
+        <div class="summary-card xp-card">
+          <div class="summary-card-header">
+            <span class="summary-card-label">Total XP</span>
+            <div class="summary-card-icon" style="background: rgba(124,58,237,0.2); color: #7c3aed;">
+              ⭐
+            </div>
+          </div>
+          <p class="summary-card-value" data-field="total_xp">2,450</p>
+          <p class="text-xs text-muted">Experience points</p>
+        </div>
 
-    <!-- Navigation -->
-    <nav class="nav-grid">
-      <a href="/student/assignments" data-cta-id="nav-assignments" data-action="navigate" data-target="/student/assignments" class="nav-card">
-        📋 Assignments
-      </a>
-      <a href="/student/achievements" data-cta-id="nav-achievements" data-action="navigate" data-target="/student/achievements" class="nav-card">
-        🏆 Achievements
-      </a>
-      <a href="/student/timeline" data-cta-id="nav-timeline" data-action="navigate" data-target="/student/timeline" class="nav-card">
-        📅 Timeline
-      </a>
-    </nav>
+        <div class="summary-card">
+          <div class="summary-card-header">
+            <span class="summary-card-label">Items Completed</span>
+            <div class="summary-card-icon green">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                <polyline points="22 4 12 14.01 9 11.01"/>
+              </svg>
+            </div>
+          </div>
+          <p class="summary-card-value" data-field="items_completed">48</p>
+          <p class="text-xs text-muted">This week</p>
+        </div>
+
+        <div class="summary-card">
+          <div class="summary-card-header">
+            <span class="summary-card-label">Time Practiced</span>
+            <div class="summary-card-icon purple">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+              </svg>
+            </div>
+          </div>
+          <p class="summary-card-value" data-field="time_practiced">2h 15m</p>
+          <p class="text-xs text-muted">This week</p>
+        </div>
+      </div>
+
+      <!-- Active Assignments -->
+      <div class="card mb-6">
+        <div class="card-header">
+          <div class="flex items-center justify-between">
+            <div>
+              <h3 class="card-title">Active Assignments</h3>
+              <p class="card-subtitle">Tasks from your teachers and parents</p>
+            </div>
+            <a href="/student/assignments" class="btn btn-ghost btn-sm" data-cta-id="view-all-assignments">
+              View all →
+            </a>
+          </div>
+        </div>
+        <div class="card-content">
+          <div class="space-y-4" data-list="assignments">
+            <div class="flex items-center justify-between" style="padding: 1rem; background: var(--border-light); border-radius: var(--radius-md);">
+              <div class="flex items-center gap-4">
+                <div style="width: 40px; height: 40px; border-radius: var(--radius-md); background: var(--primary-light); display: flex; align-items: center; justify-content: center;">
+                  📐
+                </div>
+                <div>
+                  <p class="font-semibold" data-field="assignment_title">Multiplication Practice</p>
+                  <p class="text-xs text-muted">Due in 3 days • From Teacher</p>
+                </div>
+              </div>
+              <div class="flex items-center gap-4">
+                <div style="width: 80px;">
+                  <div class="progress">
+                    <div class="progress-bar" style="width: 65%"></div>
+                  </div>
+                </div>
+                <span class="badge badge-default" data-field="assignment_progress">65%</span>
+                <button class="btn btn-primary btn-sm" data-cta-id="continue-assignment" data-action="navigate" data-target="/play?assignment=1">
+                  Continue
+                </button>
+              </div>
+            </div>
+
+            <div class="flex items-center justify-between" style="padding: 1rem; background: var(--border-light); border-radius: var(--radius-md);">
+              <div class="flex items-center gap-4">
+                <div style="width: 40px; height: 40px; border-radius: var(--radius-md); background: var(--success-light); display: flex; align-items: center; justify-content: center;">
+                  📚
+                </div>
+                <div>
+                  <p class="font-semibold">Reading Comprehension</p>
+                  <p class="text-xs text-muted">Due tomorrow • From Parent</p>
+                </div>
+              </div>
+              <div class="flex items-center gap-4">
+                <div style="width: 80px;">
+                  <div class="progress">
+                    <div class="progress-bar" style="width: 30%"></div>
+                  </div>
+                </div>
+                <span class="badge badge-warning">30%</span>
+                <button class="btn btn-primary btn-sm" data-cta-id="continue-assignment-2">
+                  Continue
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Two Column Grid -->
+      <div class="grid-2">
+        <!-- Recent Activity -->
+        <div class="card">
+          <div class="card-header">
+            <div class="flex items-center justify-between">
+              <h3 class="card-title">Recent Activity</h3>
+              <a href="/student/timeline" class="btn btn-ghost btn-sm" data-cta-id="view-timeline">View all →</a>
+            </div>
+          </div>
+          <div class="card-content">
+            <div class="space-y-4" data-list="activities">
+              <div class="flex items-center gap-4">
+                <div style="width: 8px; height: 8px; border-radius: 50%; background: var(--success);"></div>
+                <div class="flex-1">
+                  <p class="font-medium">Completed Fractions Quiz</p>
+                  <p class="text-xs text-muted">Today at 4:30 PM</p>
+                </div>
+                <span class="badge badge-success">+50 XP</span>
+              </div>
+              <div class="flex items-center gap-4">
+                <div style="width: 8px; height: 8px; border-radius: 50%; background: var(--primary);"></div>
+                <div class="flex-1">
+                  <p class="font-medium">Started Division Practice</p>
+                  <p class="text-xs text-muted">Today at 3:15 PM</p>
+                </div>
+                <span class="badge badge-outline">In Progress</span>
+              </div>
+              <div class="flex items-center gap-4">
+                <div style="width: 8px; height: 8px; border-radius: 50%; background: var(--success);"></div>
+                <div class="flex-1">
+                  <p class="font-medium">Earned "Math Whiz" Badge</p>
+                  <p class="text-xs text-muted">Yesterday at 5:00 PM</p>
+                </div>
+                <span class="badge badge-default">🏆 Badge</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Recommended Courses -->
+        <div class="card">
+          <div class="card-header">
+            <div class="flex items-center justify-between">
+              <h3 class="card-title">Recommended for You</h3>
+              <a href="/courses" class="btn btn-ghost btn-sm" data-cta-id="browse-courses">Browse all →</a>
+            </div>
+          </div>
+          <div class="card-content">
+            <div class="space-y-4" data-list="recommendations">
+              <div class="flex items-center justify-between" style="padding: 0.75rem; border: 1px solid var(--border); border-radius: var(--radius-md);">
+                <div class="flex items-center gap-3">
+                  <div style="width: 36px; height: 36px; border-radius: var(--radius-sm); background: var(--primary-light); display: flex; align-items: center; justify-content: center;">
+                    🔢
+                  </div>
+                  <div>
+                    <p class="font-medium text-sm">Advanced Multiplication</p>
+                    <p class="text-xs text-muted">15 items • Math</p>
+                  </div>
+                </div>
+                <button class="btn btn-outline btn-sm" data-cta-id="start-course-1" data-action="navigate" data-target="/play?course=adv-mult">
+                  Start
+                </button>
+              </div>
+              <div class="flex items-center justify-between" style="padding: 0.75rem; border: 1px solid var(--border); border-radius: var(--radius-md);">
+                <div class="flex items-center gap-3">
+                  <div style="width: 36px; height: 36px; border-radius: var(--radius-sm); background: var(--success-light); display: flex; align-items: center; justify-content: center;">
+                    📖
+                  </div>
+                  <div>
+                    <p class="font-medium text-sm">Story Time: Adventures</p>
+                    <p class="text-xs text-muted">10 items • Reading</p>
+                  </div>
+                </div>
+                <button class="btn btn-outline btn-sm" data-cta-id="start-course-2">
+                  Start
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <div class="footer-grid">
+        <div class="footer-section">
+          <h3>Portal</h3>
+          <ul class="footer-links">
+            <li><a href="/student/dashboard">Kid</a></li>
+            <li><a href="/parent/dashboard">Parent</a></li>
+            <li><a href="/teacher/dashboard">School</a></li>
+          </ul>
+        </div>
+        <div class="footer-section">
+          <h3>Resources</h3>
+          <ul class="footer-links">
+            <li><a href="/courses">Courses</a></li>
+            <li><a href="/help">Help</a></li>
+            <li><a href="/about">About</a></li>
+          </ul>
+        </div>
+        <div class="footer-section">
+          <h3>Legal</h3>
+          <ul class="footer-links">
+            <li><a href="/privacy">Privacy</a></li>
+            <li><a href="/terms">Terms</a></li>
+          </ul>
+        </div>
+      </div>
+    </footer>
   </main>
 </body>
 </html>
-
-
-

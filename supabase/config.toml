@@ -191,3 +191,29 @@ verify_jwt = false
 
 [functions.generate-localize]
 verify_jwt = false
+
+[functions.parent-dashboard]
+verify_jwt = false
+[functions.parent-subjects]
+verify_jwt = false
+[functions.parent-topics]
+verify_jwt = false
+[functions.parent-timeline]
+verify_jwt = false
+[functions.parent-goals]
+verify_jwt = false
+[functions.parent-children]
+verify_jwt = false
+
+[functions.student-dashboard]
+verify_jwt = false
+[functions.student-achievements]
+verify_jwt = false
+[functions.student-goals]
+verify_jwt = false
+[functions.student-timeline]
+verify_jwt = false
+[functions.get-student-skills]
+verify_jwt = false
+[functions.get-student-assignments]
+verify_jwt = false

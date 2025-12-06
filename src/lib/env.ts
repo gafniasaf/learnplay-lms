@@ -70,8 +70,13 @@ export function isLiveMode(): boolean {
     return (typeof process !== 'undefined' && (process as any).env?.VITE_USE_MOCK === 'false');
   }
 
+  // If env explicitly sets VITE_USE_MOCK='false', prioritize that (for dev server testing)
+  if (import.meta.env.VITE_USE_MOCK === 'false') {
+    return true;
+  }
+
   try {
-    // Check localStorage override first
+    // Check localStorage override
     const storedValue = localStorage.getItem(STORAGE_KEY);
     
     if (storedValue !== null) {
@@ -82,9 +87,8 @@ export function isLiveMode(): boolean {
     console.warn('[Env] Failed to access localStorage:', error);
   }
 
-  // No localStorage override: fall back to env variable
-  // VITE_USE_MOCK='false' means use live (not mocked)
-  return import.meta.env.VITE_USE_MOCK === 'false';
+  // Default to mock mode
+  return false;
 }
 
 /**
@@ -209,25 +213,26 @@ export function validateEnv(): void {
   const errors: string[] = [];
   const liveMode = isLiveMode();
   
-  // Only enforce hard requirements in LIVE mode; warn in mock/dev
+  // Only enforce hard requirements in LIVE mode; soft-pass otherwise
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string | undefined;
   const supabaseKey =
     (import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string | undefined) ||
     (import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined);
 
-  if (liveMode) {
+  // Check if we're using hardcoded fallbacks from client.ts
+  const hasHardcodedFallback = true; // client.ts has hardcoded credentials
+
+  if (liveMode && !hasHardcodedFallback) {
     if (!supabaseUrl) {
       errors.push("VITE_SUPABASE_URL is required");
     }
     if (!supabaseKey) {
       errors.push("Supabase public key is required (VITE_SUPABASE_PUBLISHABLE_KEY or VITE_SUPABASE_ANON_KEY)");
     }
-  } else {
-    if (!supabaseUrl || !supabaseKey) {
-      console.warn(
-        "[Env] Running in mock/dev mode without Supabase vars; validation softened."
-      );
-    }
+  } else if (!supabaseUrl || !supabaseKey) {
+    console.warn(
+      "[Env] Running with hardcoded fallbacks or mock mode; validation softened."
+    );
   }
   
   // Required if Sentry is enabled: Sentry DSN

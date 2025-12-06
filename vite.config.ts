@@ -12,11 +12,20 @@ export default defineConfig(({ mode }) => {
     (process.env.SKIP_VERIFY ? 'true' : '');
   
   // Mock mode for E2E testing - allows running tests without network dependencies
-  const useMockFlag = process.env.VITE_USE_MOCK === 'true' || process.env.VITE_USE_MOCK === '1';
+  // VITE_USE_MOCK='false' explicitly enables live mode; VITE_USE_MOCK='true' or '1' enables mock mode
+  const useMockValue = process.env.VITE_USE_MOCK;
+  let useMockResult: string;
+  if (useMockValue === 'false') {
+    useMockResult = 'false'; // Explicit live mode
+  } else if (useMockValue === 'true' || useMockValue === '1') {
+    useMockResult = 'true'; // Explicit mock mode
+  } else {
+    useMockResult = ''; // Undefined, let runtime decide
+  }
   
   const define = {
     'import.meta.env.VITE_BYPASS_AUTH': JSON.stringify(bypassAuthFlag),
-    'import.meta.env.VITE_USE_MOCK': JSON.stringify(useMockFlag ? 'true' : ''),
+    'import.meta.env.VITE_USE_MOCK': JSON.stringify(useMockResult),
   };
 
   return {

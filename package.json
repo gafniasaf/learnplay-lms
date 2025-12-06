@@ -11,6 +11,7 @@
     "build": "vite build",
     "prebuild": "npm run codegen && npm run verify",
     "codegen": "npx tsx scripts/scaffold-manifest.ts",
+    "ingest": "npx tsx scripts/ingest-lovable.ts",
     "build:dev": "vite build --mode development",
     "start": "node server.mjs",
     "prepare": "husky install",
