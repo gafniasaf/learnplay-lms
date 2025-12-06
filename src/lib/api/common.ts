@@ -316,6 +316,21 @@ export async function callEdgeFunctionGet<TResponse>(
       errorData = { message: errorText };
     }
 
+    // Improve error messages for authentication issues
+    if (res.status === 401) {
+      const isLovablePreview = typeof window !== 'undefined' && window.location.hostname.includes('lovable.app');
+      const message = isLovablePreview
+        ? 'Authentication required. Please log in to use this feature.'
+        : errorData.message || 'Authentication required. Please log in.';
+      throw new ApiError(
+        message,
+        "UNAUTHORIZED",
+        401,
+        errorData,
+        requestId
+      );
+    }
+
     throw new ApiError(
       errorData.message || `Edge function ${functionName} failed`,
       errorData.error?.code || "API_ERROR",

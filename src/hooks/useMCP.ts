@@ -76,24 +76,11 @@ interface MCPResponse<T = unknown> {
 export function useMCP() {
   const [loading, setLoading] = useState(false);
 
-  // Call Supabase Edge Function via the official client (for production/Lovable)
+  // Call Supabase Edge Function via common helper (uses improved error handling)
   const callEdgeFunction = async <T = unknown>(functionName: string, body: Record<string, unknown>): Promise<T> => {
-    try {
-      const { data, error } = await supabase.functions.invoke(functionName, {
-        body,
-      });
-
-      if (error) {
-        console.error(`[MCP] Edge Function error (${functionName}):`, error);
-        throw new Error(error.message || `Edge Function ${functionName} failed`);
-      }
-
-      return data as T;
-    } catch (err) {
-      // Log but don't crash - preview environment may have different CORS/security restrictions
-      console.warn(`[MCP] Edge Function call failed (${functionName}):`, err);
-      throw err;
-    }
+    // Use the common helper which has improved error handling, CORS detection, and auth retry logic
+    const { callEdgeFunction: callEdgeFn } = await import('@/lib/api/common');
+    return callEdgeFn<T, T>(functionName, body);
   };
 
   // Call MCP proxy (for local development only)
