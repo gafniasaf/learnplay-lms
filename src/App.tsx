@@ -7,7 +7,7 @@ import { lazy, Suspense } from "react";
 import { generatedRouteElements, GeneratedFallback } from "./routes.generated";
 import { useSentryUser } from "./hooks/useSentryUser";
 import { DawnDataProvider } from "./contexts/DawnDataContext";
-import { HamburgerMenu } from "./components/HamburgerMenu";
+import { HamburgerMenu } from "./components/layout/HamburgerMenu";
 
 const Auth = lazy(() => import("./pages/Auth"));
 const ResetPassword = lazy(() => import("./pages/auth/ResetPassword"));
