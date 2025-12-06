@@ -49,7 +49,13 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
   },
 });
 
-const DEFAULT_ORG_ID = process.env.ORGANIZATION_ID || '4d7b0a5c-3cf1-49e5-9ad7-bf6c1f8a2f58';
+// Per IgniteZero rules: No fallbacks - fail loudly if ORGANIZATION_ID is not set
+const DEFAULT_ORG_ID = process.env.ORGANIZATION_ID;
+if (!DEFAULT_ORG_ID) {
+  console.error('❌ ORGANIZATION_ID environment variable is REQUIRED');
+  console.error('   Set ORGANIZATION_ID before running this script.');
+  process.exit(1);
+}
 
 async function verifyAdminAuth(email: string) {
   console.log(`\n🔍 Verifying admin authorization for: ${email}\n`);
