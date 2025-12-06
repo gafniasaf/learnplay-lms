@@ -11,8 +11,7 @@ export class GeneratedGuardCourse implements JobExecutor {
     // Basic interpolation
     if (payload) {
         Object.keys(payload).forEach(key => {
-        const val = typeof payload[key] === 'object' ? JSON.stringify(payload[key]) : payload[key];
-        prompt = prompt.replace(new RegExp('{{' + key + '}}', 'g'), val || '');
+        const val = typeof payload[key] === 'object' ? JSON.stringify(payload[key]) : String(payload[key] ?? '');
         });
     }
 
@@ -48,9 +47,9 @@ export class GeneratedGuardCourse implements JobExecutor {
         } catch (e) {
             return { raw: data.choices[0].message.content };
         }
-    } catch (err) {
+    } catch (err: unknown) {
         console.error(err);
-        return { error: err.message };
+        return { error: err instanceof Error ? err.message : String(err) };
     }
   }
 }
