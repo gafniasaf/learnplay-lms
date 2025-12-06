@@ -7,6 +7,23 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+// Helper to read OpenAI key from learnplay.env
+function getOpenAIKey(): string {
+  const envFile = path.resolve(__dirname, 'learnplay.env');
+  try {
+    const envContent = readFileSync(envFile, 'utf-8');
+    const lines = envContent.split('\n');
+    for (let i = 0; i < lines.length; i++) {
+      if (lines[i].includes('openai key') && i + 1 < lines.length) {
+        return lines[i + 1].trim();
+      }
+    }
+  } catch (error) {
+    // Ignore
+  }
+  return process.env.VITE_OPENAI_API_KEY || process.env.OPENAI_API_KEY || '';
+}
+
 // Read environment variables from learnplay.env
 const envFile = path.resolve(__dirname, 'learnplay.env');
 let supabaseUrl = process.env.VITE_SUPABASE_URL;
@@ -53,6 +70,7 @@ const PORT = process.env.PORT ? Number(process.env.PORT) : 8082;
 const config: PlaywrightTestConfig = {
   testDir: 'tests/e2e',
   testMatch: ['**/*live*.spec.ts', '**/live-*.spec.ts'],
+  timeout: 600_000, // 10 minutes for AI pipeline tests
   timeout: 180_000, // 3 minutes for tests with real LLM calls
   retries: process.env.CI ? 1 : 0,
   reporter: [
@@ -79,8 +97,9 @@ const config: PlaywrightTestConfig = {
       VITE_SUPABASE_URL: supabaseUrl,
       VITE_SUPABASE_ANON_KEY: supabaseKey,
       // Use real LLM APIs (no mocking)
-      VITE_OPENAI_API_KEY: process.env.VITE_OPENAI_API_KEY || '',
+      VITE_OPENAI_API_KEY: process.env.VITE_OPENAI_API_KEY || getOpenAIKey(),
       VITE_ANTHROPIC_API_KEY: process.env.VITE_ANTHROPIC_API_KEY || '',
+      OPENAI_API_KEY: process.env.OPENAI_API_KEY || getOpenAIKey(),
     },
   },
   projects: [
