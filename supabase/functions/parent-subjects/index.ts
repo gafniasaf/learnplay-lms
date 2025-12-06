@@ -20,7 +20,9 @@ serve(async (req: Request): Promise<Response> => {
 
   try {
     const url = new URL(req.url);
-    const childId = url.searchParams.get("childId") || undefined;
+    const allowAnon = Deno.env.get("ALLOW_ANON") === "true";
+    const devChildId = Deno.env.get("DEV_CHILD_ID") || "b2ed7195-4202-405b-85e4-608944a27837";
+    const childId = url.searchParams.get("childId") || (allowAnon ? devChildId : undefined);
     if (!childId) {
       return new Response(JSON.stringify({ error: "childId is required" }), {
         status: 400,

@@ -62,7 +62,7 @@ function isValidRole(value: string): value is Role {
  * @returns Current user role
  */
 export function getRole(): Role {
-  // 1. Dev mode: check localStorage for dev override
+  // 1) Dev mode: prefer localStorage override; if none, default to admin for frictionless navigation
   if (isDevEnabled()) {
     if (typeof window !== 'undefined') {
       const stored = localStorage.getItem(STORAGE_KEY);
@@ -70,14 +70,15 @@ export function getRole(): Role {
         return stored as Role;
       }
     }
+    return 'admin';
   }
 
-  // 2. Live mode: prefer cached live role from backend
+  // 2) Live mode: prefer cached live role from backend
   if (isLiveMode() && liveRoleCache) {
     return liveRoleCache;
   }
 
-  // 3. Default to student
+  // 3) Default to student
   return 'student';
 }
 

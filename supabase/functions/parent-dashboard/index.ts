@@ -28,7 +28,11 @@ serve(async (req: Request): Promise<Response> => {
 
   try {
     const url = new URL(req.url);
-    const parentId = url.searchParams.get("parentId") || undefined;
+    const allowAnon = Deno.env.get("ALLOW_ANON") === "true";
+    const devParentId = Deno.env.get("DEV_PARENT_ID") || "613d43cb-0922-4fad-b528-dbed8d2a5c79";
+    const parentId =
+      url.searchParams.get("parentId") ||
+      (allowAnon ? devParentId : undefined);
 
     // Fetch children via view (added by migrations)
     const query = supabase.from("parent_child_details").select("*");

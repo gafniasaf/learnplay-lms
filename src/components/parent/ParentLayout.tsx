@@ -18,7 +18,6 @@ import {
 } from "@/components/ui/breadcrumb";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
-import { HamburgerMenu } from "@/components/layout/HamburgerMenu";
 
 interface ParentLayoutProps {
   children: React.ReactNode;
@@ -64,7 +63,6 @@ export const ParentLayout = ({ children }: ParentLayoutProps) => {
         </BreadcrumbList>
       </Breadcrumb>
       
-      <HamburgerMenu />
       </div>
 
       {/* Sub-navigation Tabs */}

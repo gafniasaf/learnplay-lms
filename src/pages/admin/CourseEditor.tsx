@@ -22,7 +22,6 @@ import { ExercisesTab } from '@/components/admin/editor/ExercisesTab';
 import { MediaLibraryPanel } from '@/components/admin/editor/MediaLibraryPanel';
 import { ComparePanel } from '@/components/admin/editor/ComparePanel';
 import { AIRewriteChatPanel } from '@/components/admin/editor/AIRewriteChatPanel';
-import { HamburgerMenu } from '@/components/layout/HamburgerMenu';
 import { Link } from 'react-router-dom';
 import { JobProgress } from '@/components/shared/JobProgress';
 import { ItemPreview } from '@/components/admin/ItemPreview';
@@ -1449,7 +1448,6 @@ const result = await rewriteText({
           >
             🌐 Localize
           </Button>
-          <HamburgerMenu />
           {coPilotJobId && (
             <div className="flex items-center gap-2">
               <JobProgress jobId={coPilotJobId} onDone={(final) => {
