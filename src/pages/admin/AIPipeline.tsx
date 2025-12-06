@@ -91,83 +91,34 @@ export default function AIPipeline() {
   };
 
   return (
-    <PageContainer>
-      <div className="max-w-7xl mx-auto mb-6">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {[
-            { key: 'pending', label: 'Queued', status: 'pending' },
-            { key: 'processing', label: 'Running', status: 'processing' },
-            { key: 'done', label: 'Completed', status: 'done' },
-            { key: 'failed', label: 'Failed', status: 'failed' },
-          ].map((t) => (
-            <Card key={t.key}>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm">{t.label}</CardTitle>
-              </CardHeader>
-              <CardContent className="flex items-center justify-between">
-                <div className="text-2xl font-bold">{loading ? '—' : (counts as any)[t.key]}</div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => navigate(`/admin/jobs?status=${t.status}`)}
-                  data-cta-id={`view-${t.status}-jobs`}
-                >
-                  View
-                </Button>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      </div>
-
-      {/* Phase 4: Marketing CTA */}
-      <div className="max-w-5xl mx-auto mb-8">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm">Marketing Generator</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-              <input
-                className="px-2 py-1 border rounded bg-background"
-                placeholder="Subject"
-                value={mkSubject}
-                onChange={(e) => setMkSubject(e.target.value)}
-              />
-              <select className="px-2 py-1 border rounded bg-background" value={mkTarget} onChange={(e) => setMkTarget(e.target.value)}>
-                <option value="teachers">Teachers</option>
-                <option value="parents">Parents</option>
-                <option value="admins">Admins</option>
-                <option value="students">Students</option>
-              </select>
-              <select className="px-2 py-1 border rounded bg-background" value={mkTone} onChange={(e) => setMkTone(e.target.value)}>
-                <option value="friendly">Friendly</option>
-                <option value="inspiring">Inspiring</option>
-                <option value="formal">Formal</option>
-              </select>
-              <select className="px-2 py-1 border rounded bg-background" value={mkChannel} onChange={(e) => setMkChannel(e.target.value)}>
-                <option value="email">Email</option>
-                <option value="social">Social</option>
-                <option value="landing">Landing</option>
-              </select>
+    <PageContainer className="p-0 h-screen flex flex-col">
+      {/* Top Bar with Filters and Actions */}
+      <div className="bg-background border-b">
+        <div className="px-6 py-4">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h1 className="text-2xl font-bold">AI Pipeline</h1>
+              <p className="text-sm text-muted-foreground mt-1">
+                Create courses with AI and monitor generation progress
+              </p>
             </div>
-            <div className="flex justify-end">
+            <div className="flex items-center gap-2">
               <Button
                 variant="outline"
                 size="sm"
-                disabled={mkSubmitting}
-                data-testid="btn-generate-marketing"
-                data-cta-id="generate-marketing"
-                onClick={handleGenerateMarketing}
+                onClick={() => navigate('/admin/jobs')}
               >
-                {mkSubmitting ? 'Submitting…' : 'Generate Marketing'}
+                View All Jobs
               </Button>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </div>
 
-      <PipelineLayout />
+      {/* Main Pipeline Layout */}
+      <div className="flex-1 overflow-hidden">
+        <PipelineLayout />
+      </div>
     </PageContainer>
   );
 }
