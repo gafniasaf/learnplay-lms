@@ -82,10 +82,8 @@ serve(async (req: Request): Promise<Response> => {
         id,
         organization_id: organizationId,
         storage_path: path,
-        title: (payload.title as string) || "Plan Blueprint",
-        status: (payload.status as string) || "draft",
         updated_at: now,
-      }, { onConflict: "id" });
+      } as any, { onConflict: "id" });
 
     if (upsertError) {
       console.error("save-plan metadata failed:", upsertError);

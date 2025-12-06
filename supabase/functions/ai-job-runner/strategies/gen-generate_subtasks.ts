@@ -8,13 +8,14 @@ export class GeneratedGenerateSubtasks implements JobExecutor {
     
     // 1. Interpolate Prompt
     let prompt = `Break down '{{title}}' into 3 actionable subtasks.`;
-    Object.keys(payload).forEach(key => {
-      const val = typeof payload[key] === 'object' ? JSON.stringify(payload[key]) : payload[key];
-      prompt = prompt.replace(new RegExp('{{' + key + '}}', 'g'), val || '');
-    });
+    if (payload) {
+      Object.keys(payload).forEach(key => {
+        const val = typeof payload[key] === 'object' ? JSON.stringify(payload[key]) : String(payload[key] || '');
+        prompt = prompt.replace(new RegExp('{{' + key + '}}', 'g'), val);
+      });
+    }
 
     // 2. Call LLM (Simplified for seed)
-    // Assuming OpenAI is configured in the runner environment
     const apiKey = Deno.env.get('OPENAI_API_KEY');
     if (!apiKey) {
        throw new Error("Missing OPENAI_API_KEY");
@@ -27,9 +28,9 @@ export class GeneratedGenerateSubtasks implements JobExecutor {
         'Authorization': `Bearer ${apiKey}`
       },
       body: JSON.stringify({
-        model: 'gpt-5',
+        model: 'gpt-4o',
         messages: [{ role: 'system', content: prompt }],
-        response_format: { type: "json_object" } // Force JSON for the app
+        response_format: { type: "json_object" }
       })
     });
 
@@ -41,7 +42,7 @@ export class GeneratedGenerateSubtasks implements JobExecutor {
     const data = await response.json();
     try {
        return JSON.parse(data.choices[0].message.content);
-    } catch (e) {
+    } catch (_e) {
        return { raw: data.choices[0].message.content };
     }
   }

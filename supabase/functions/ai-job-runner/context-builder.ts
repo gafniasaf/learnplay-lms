@@ -33,7 +33,7 @@ interface MockupVersion {
   version: number;
   timestamp: string;
   html: string;
-  summary: string;  // What changed
+  summary: string;
   score?: number;
 }
 
@@ -45,18 +45,21 @@ interface PlanData {
   status?: string;
   ai_score?: number;
   current_mockup_html?: string;
-  reference_html?: string; // NEW: Store user-provided HTML
+  reference_html?: string;
   current_version?: number;
   design_system?: Record<string, unknown>;
   concept_name?: string;
   concept_summary?: string;
   concept_approved?: boolean;
   chat_history?: Array<{ role: string; content: string; timestamp?: string }>;
-  mockup_versions?: MockupVersion[];  // Full version history
+  mockup_versions?: MockupVersion[];
   iteration_notes?: Array<{ summary: string; timestamp: string }>;
+  ai_status_report?: string;
+  ai_next_step?: string;
+  [key: string]: unknown;
 }
 
-export { PlanData, MockupVersion };
+export type { PlanData, MockupVersion };
 
 import { computeGoldenPlanStatus } from './golden-plan-checklist.ts';
 
