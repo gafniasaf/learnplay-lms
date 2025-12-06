@@ -12,6 +12,9 @@ import { HamburgerMenu } from "./components/HamburgerMenu";
 const Auth = lazy(() => import("./pages/Auth"));
 const ResetPassword = lazy(() => import("./pages/auth/ResetPassword"));
 const NotFound = lazy(() => import("./pages/NotFound"));
+const Kids = lazy(() => import("./pages/Kids"));
+const Schools = lazy(() => import("./pages/Schools"));
+const Parents = lazy(() => import("./pages/Parents"));
 const CrmDashboard = lazy(() => import("./pages/crm-demo/dashboard/Dashboard"));
 const CrmContacts = lazy(() => import("./pages/crm-demo/contacts/ContactList"));
 const GenericList = lazy(() => import("./pages/generic/GenericList"));
@@ -40,6 +43,9 @@ const App = () => {
                   <Route path="/admin" element={<Navigate to="/admin/ai-pipeline" replace />} />
                   <Route path="/auth" element={<Auth />} />
                   <Route path="/auth/reset-password" element={<ResetPassword />} />
+                  <Route path="/kids" element={<Kids />} />
+                  <Route path="/schools" element={<Schools />} />
+                  <Route path="/parents" element={<Parents />} />
                   <Route path="/crm/dashboard" element={<CrmDashboard />} />
                   <Route path="/teacher" element={<Navigate to="/teacher/dashboard" replace />} />
                   <Route path="/crm/contacts" element={<CrmContacts />} />
