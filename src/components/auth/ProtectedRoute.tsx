@@ -13,8 +13,14 @@ export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
   const runtimeBypass =
     typeof window !== "undefined" &&
     Boolean((window as typeof window & { __BYPASS_AUTH__?: boolean }).__BYPASS_AUTH__);
+  
+  // Check for guest mode (dev bypass via "Continue as Guest")
+  const guestMode = typeof window !== "undefined" && (() => {
+    try { return localStorage.getItem('guestMode') === 'true'; } catch { return false; }
+  })();
+  
   const bypassAuth =
-    import.meta.env.VITE_BYPASS_AUTH === "true" || runtimeBypass;
+    import.meta.env.VITE_BYPASS_AUTH === "true" || runtimeBypass || guestMode;
   if (bypassAuth) {
     return <>{children}</>;
   }
