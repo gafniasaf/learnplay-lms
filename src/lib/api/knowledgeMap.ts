@@ -42,7 +42,7 @@ import {
   checkAssignmentCompletion as mockCheckCompletion,
   MOCK_KNOWLEDGE_OBJECTIVES,
 } from "@/lib/mocks/knowledgeMockData";
-import { supabase } from "@/integrations/supabase/client";
+import { callEdgeFunction } from "@/lib/api/common";
 
 // =====================================================
 // CONFIGURATION
@@ -83,12 +83,7 @@ export async function getStudentSkills(
     return getStudentSkillsMock(params);
   }
 
-  const { data, error } = await supabase.functions.invoke('get-student-skills', {
-    body: params,
-  });
-
-  if (error) throw error;
-  return data;
+  return await callEdgeFunction<GetStudentSkillsParams, GetStudentSkillsResult>('get-student-skills', params);
 }
 
 function getStudentSkillsMock(params: GetStudentSkillsParams): GetStudentSkillsResult {
@@ -139,12 +134,7 @@ export async function getDomainGrowth(
     return getDomainGrowthMock(params);
   }
 
-  const { data, error } = await supabase.functions.invoke('get-domain-growth', {
-    body: params,
-  });
-
-  if (error) throw error;
-  return data;
+  return await callEdgeFunction<GetDomainGrowthParams, DomainGrowthSummary[]>('get-domain-growth', params);
 }
 
 function getDomainGrowthMock(params: GetDomainGrowthParams): DomainGrowthSummary[] {
@@ -207,12 +197,7 @@ export async function getClassKOSummary(
     return getClassKOSummaryMock(params);
   }
 
-  const { data, error } = await supabase.functions.invoke('get-class-ko-summary', {
-    body: params,
-  });
-
-  if (error) throw error;
-  return data;
+  return await callEdgeFunction<GetClassKOSummaryParams, ClassKOSummary[]>('get-class-ko-summary', params);
 }
 
 function getClassKOSummaryMock(params: GetClassKOSummaryParams): ClassKOSummary[] {
@@ -291,12 +276,7 @@ export async function getRecommendedCourses(
     return getRecommendedCoursesMock(params);
   }
 
-  const { data, error } = await supabase.functions.invoke('get-recommended-courses', {
-    body: params,
-  });
-
-  if (error) throw error;
-  return data;
+  return await callEdgeFunction<GetRecommendedCoursesParams, RecommendedCourse[]>('get-recommended-courses', params);
 }
 
 function getRecommendedCoursesMock(params: GetRecommendedCoursesParams): RecommendedCourse[] {
@@ -321,12 +301,7 @@ export async function getStudentAssignments(
     return getStudentAssignmentsMock(params);
   }
 
-  const { data, error } = await supabase.functions.invoke('get-student-assignments', {
-    body: params,
-  });
-
-  if (error) throw error;
-  return data;
+  return await callEdgeFunction<GetStudentAssignmentsParams, AssignmentWithDetails[]>('get-student-assignments', params);
 }
 
 function getStudentAssignmentsMock(params: GetStudentAssignmentsParams): AssignmentWithDetails[] {
@@ -368,12 +343,7 @@ export async function createAssignment(
     return createAssignmentMock(params);
   }
 
-  const { data, error } = await supabase.functions.invoke('create-assignment', {
-    body: params,
-  });
-
-  if (error) throw error;
-  return data;
+  return await callEdgeFunction<CreateAssignmentParams, CreateAssignmentResult>('create-assignment', params);
 }
 
 function createAssignmentMock(params: CreateAssignmentParams): CreateAssignmentResult {
@@ -414,12 +384,7 @@ export async function updateMastery(
     return updateMasteryMock(params);
   }
 
-  const { data, error } = await supabase.functions.invoke('update-mastery', {
-    body: params,
-  });
-
-  if (error) throw error;
-  return data;
+  return await callEdgeFunction<UpdateMasteryParams, UpdateMasteryResult>('update-mastery', params);
 }
 
 function updateMasteryMock(params: UpdateMasteryParams): UpdateMasteryResult {
@@ -470,12 +435,7 @@ export async function checkCompletion(
     return checkCompletionMock(params);
   }
 
-  const { data, error } = await supabase.functions.invoke('check-assignment-completion', {
-    body: params,
-  });
-
-  if (error) throw error;
-  return data;
+  return await callEdgeFunction<CheckCompletionParams, CheckCompletionResult>('check-assignment-completion', params);
 }
 
 function checkCompletionMock(params: CheckCompletionParams): CheckCompletionResult {
@@ -519,12 +479,7 @@ export async function getAutoAssignSettings(
     return getAutoAssignSettingsMock(params);
   }
 
-  const { data, error } = await supabase.functions.invoke('get-auto-assign-settings', {
-    body: params,
-  });
-
-  if (error) throw error;
-  return data;
+  return await callEdgeFunction<GetAutoAssignSettingsParams, AutoAssignSettings | null>('get-auto-assign-settings', params);
 }
 
 function getAutoAssignSettingsMock(params: GetAutoAssignSettingsParams): AutoAssignSettings | null {
@@ -560,12 +515,7 @@ export async function updateAutoAssignSettings(
     return updateAutoAssignSettingsMock(params);
   }
 
-  const { data, error } = await supabase.functions.invoke('update-auto-assign-settings', {
-    body: params,
-  });
-
-  if (error) throw error;
-  return data;
+  return await callEdgeFunction<UpdateAutoAssignSettingsParams, AutoAssignSettings>('update-auto-assign-settings', params);
 }
 
 function updateAutoAssignSettingsMock(params: UpdateAutoAssignSettingsParams): AutoAssignSettings {
@@ -600,11 +550,11 @@ export async function getKnowledgeObjective(koId: string): Promise<KnowledgeObje
     const ko = MOCK_KNOWLEDGE_OBJECTIVES.find((k) => k.id === koId);
     return ko || null;
   }
-  const { data, error } = await supabase.functions.invoke('get-ko', {
-    body: { koId },
-  });
-  if (error) return null;
-  return data as KnowledgeObjective;
+  try {
+    return await callEdgeFunction<{ koId: string }, KnowledgeObjective>('get-ko', { koId });
+  } catch {
+    return null;
+  }
 }
 
 export async function getAIRecommendation(
@@ -614,12 +564,7 @@ export async function getAIRecommendation(
     return getAIRecommendationMock(params);
   }
 
-  const { data, error } = await supabase.functions.invoke('ai-recommend-assignment', {
-    body: params,
-  });
-
-  if (error) throw error;
-  return data;
+  return await callEdgeFunction<GetAIRecommendationParams, AIRecommendationResult>('ai-recommend-assignment', params);
 }
 
 function getAIRecommendationMock(params: GetAIRecommendationParams): AIRecommendationResult {
