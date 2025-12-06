@@ -11,13 +11,12 @@ export class GeneratedPlanMatrixRun implements JobExecutor {
     // Basic interpolation
     if (payload) {
         Object.keys(payload).forEach(key => {
-        const val = typeof payload[key] === 'object' ? JSON.stringify(payload[key]) : payload[key];
-        prompt = prompt.replace(new RegExp('{{' + key + '}}', 'g'), val || '');
+        const val = typeof payload[key] === 'object' ? JSON.stringify(payload[key]) : String(payload[key] || '');
+        prompt = prompt.replace(new RegExp('{{' + key + '}}', 'g'), val);
         });
     }
 
-    // 2. Call LLM (Simplified for seed)
-    // Assuming OpenAI is configured in the runner environment
+    // 2. Call LLM
     const apiKey = Deno.env.get('OPENAI_API_KEY');
     if (!apiKey) {
        throw new Error("Blocked: OpenAI key missing. Please set OPENAI_API_KEY in your Edge Function secrets.");
@@ -31,7 +30,7 @@ export class GeneratedPlanMatrixRun implements JobExecutor {
             'Authorization': `Bearer ${apiKey}`
         },
         body: JSON.stringify({
-      model: 'gpt-5',
+      model: 'gpt-4o',
             messages: [{ role: 'system', content: prompt }],
             response_format: { type: "json_object" } 
         })
@@ -45,12 +44,12 @@ export class GeneratedPlanMatrixRun implements JobExecutor {
         const data = await response.json();
         try {
             return JSON.parse(data.choices[0].message.content);
-        } catch (e) {
+        } catch (_e) {
             return { raw: data.choices[0].message.content };
         }
-    } catch (err) {
+    } catch (err: unknown) {
         console.error(err);
-        return { error: err.message };
+        return { error: err instanceof Error ? err.message : String(err) };
     }
   }
 }

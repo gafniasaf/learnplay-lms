@@ -6,8 +6,8 @@ import { computeGoldenPlanStatus } from '../golden-plan-checklist.ts';
 export class RefinePlan implements JobExecutor {
   async execute(context: JobContext): Promise<any> {
     const { payload } = context;
-    const planId = payload.planBlueprintId;
-    const userMessage = payload.ai_request || "What should we work on?";
+    const planId = String(payload.planBlueprintId || '');
+    const userMessage: string = String(payload.ai_request || "What should we work on?");
     const approvalRegex = /(build( it)?|ship( it)?|send it|go ahead|do it|make it|get it done|proceed|start building|start the mockup|stop talking|get to work|looks good|sounds good|love it|awesome, do it)/i;
 
     if (!planId) throw new Error("Missing planBlueprintId");

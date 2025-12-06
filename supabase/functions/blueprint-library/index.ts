@@ -108,11 +108,11 @@ serve(async (req: Request): Promise<Response> => {
       );
     }
 
-    const { data: publicUrlData, error: publicUrlError } = supabase.storage
+    const publicUrlData = supabase.storage
       .from(MOCKUP_BUCKET)
       .getPublicUrl(storagePath);
 
-    if (publicUrlError || !publicUrlData?.publicUrl) {
+    if (!publicUrlData?.data?.publicUrl) {
       return new Response(
         JSON.stringify({ error: "Failed to generate public URL" }),
         {
@@ -124,7 +124,7 @@ serve(async (req: Request): Promise<Response> => {
 
     uploads.push({
       laneId: laneSlug,
-      url: publicUrlData.publicUrl,
+      url: publicUrlData.data.publicUrl,
     });
   }
 
