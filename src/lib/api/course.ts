@@ -73,8 +73,8 @@ export async function getCourse(
 // Legacy authorCourse API has been removed in favor of the new agent pipeline.
 
 /**
- * Save course content directly to Supabase Storage
- * Requires authenticated admin user
+ * Save course content via edge function
+ * IgniteZero compliant - no direct storage calls
  */
 export async function saveCourseToStorage(
   course: Course
@@ -84,56 +84,49 @@ export async function saveCourseToStorage(
     courseId: course.id,
   });
 
-  const { supabase } = await import("@/integrations/supabase/client");
+  const supabaseUrl = getSupabaseUrl();
+  const anonKey = getSupabaseAnonKey();
 
-  // Update contentVersion to current timestamp
-  const updatedCourse = {
-    ...course,
-    contentVersion: new Date().toISOString(),
+  const url = `${supabaseUrl}/functions/v1/save-course-json`;
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+    Authorization: `Bearer ${anonKey}`,
   };
 
-  const path = `${course.id}/course.json`;
-  const metaAny = course as any;
-  const envelope = {
-    courseId: updatedCourse.id,
-    format: metaAny?._metadata?.format ?? "practice",
-    version: metaAny?._metadata?.envelope?.version ?? "1.0.0",
-    content: updatedCourse,
-  };
-  const courseJson = JSON.stringify(envelope, null, 2);
-  const blob = new Blob([courseJson], { type: "application/json" });
+  const res = await fetchWithTimeout(url, {
+    method: "POST",
+    headers,
+    body: JSON.stringify({
+      courseId: course.id,
+      content: course,
+    }),
+  });
 
-  const { error: uploadError } = await supabase.storage
-    .from("courses")
-    .upload(path, blob, {
-      upsert: true,
-      contentType: "application/json",
-      cacheControl: "public, max-age=60",
+  if (!res.ok) {
+    const errorText = await res.text();
+    log.error("Save error", new Error(errorText), {
+      action: "saveCourseToStorage",
+      courseId: course.id,
+      status: res.status,
     });
-
-  if (uploadError) {
-    log.error(
-      "Save error",
-      uploadError instanceof Error
-        ? uploadError
-        : new Error(uploadError?.message || "Upload failed"),
-      {
-        action: "saveCourseToStorage",
-        courseId: course.id,
-      }
-    );
     throw new ApiError(
-      uploadError.message || "Save failed",
+      `Save failed: ${errorText}`,
       "SAVE_FAILED"
     );
+  }
+
+  const result = await res.json();
+  
+  if (!result.ok) {
+    throw new ApiError(result.error || "Save failed", "SAVE_FAILED");
   }
 
   log.info("Course saved successfully", {
     action: "saveCourseToStorage",
     courseId: course.id,
-    path,
+    path: result.path,
   });
-  return { ok: true, path };
+  return { ok: true, path: result.path };
 }
 
 function unwrapCoursePayload(payload: any): { course: any; format: string; envelope?: any } {

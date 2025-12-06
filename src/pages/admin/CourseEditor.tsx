@@ -10,6 +10,7 @@ import { rewriteText } from '@/lib/api/aiRewrites';
 import { invalidateCourseCache } from '@/lib/utils/cacheInvalidation';
 import { editorTelemetry } from '@/lib/utils/telemetry';
 import { supabase } from '@/integrations/supabase/client';
+import { uploadMediaFile } from '@/lib/api/media';
 import { useAuth } from '@/hooks/useAuth';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { Loader2 } from 'lucide-react';
@@ -566,17 +567,11 @@ const result = await rewriteText({
       try {
         toast.info('Uploading media...');
         
-        // Upload to Supabase storage
-        const { data, error } = await supabase.storage
-          .from('courses')
-          .upload(`temp/${Date.now()}-${file.name}`, file);
+        // Upload via edge function (IgniteZero compliant)
+        const path = `temp/${Date.now()}-${file.name}`;
+        const result = await uploadMediaFile(path, file, 'courses');
 
-        if (error) throw error;
-
-        // Get public URL
-        const { data: urlData } = supabase.storage
-          .from('courses')
-          .getPublicUrl(data.path);
+        if (!result.ok) throw new Error('Upload failed');
 
         // Add to item media
         const currentItem = getCurrentItem();
@@ -586,7 +581,7 @@ const result = await rewriteText({
           id: `media-${Date.now()}`,
           type: file.type.startsWith('image/') ? 'image' :
                 file.type.startsWith('audio/') ? 'audio' : 'video',
-          url: urlData.publicUrl,
+          url: result.url,
           alt: file.name,
         };
 
@@ -664,15 +659,10 @@ const result = await rewriteText({
       try {
         toast.info('Uploading replacement media...');
         
-        const { data, error } = await supabase.storage
-          .from('courses')
-          .upload(`temp/${Date.now()}-${file.name}`, file);
+        const path = `temp/${Date.now()}-${file.name}`;
+        const result = await uploadMediaFile(path, file, 'courses');
 
-        if (error) throw error;
-
-        const { data: urlData } = supabase.storage
-          .from('courses')
-          .getPublicUrl(data.path);
+        if (!result.ok) throw new Error('Upload failed');
 
         const currentItem = getCurrentItem();
         if (!currentItem) return;
@@ -682,7 +672,7 @@ const result = await rewriteText({
           m.id === mediaId 
             ? { 
                 ...m, 
-                url: urlData.publicUrl,
+                url: result.url,
                 alt: file.name,
                 type: file.type.startsWith('image/') ? 'image' :
                       file.type.startsWith('audio/') ? 'audio' : 'video',
@@ -820,15 +810,10 @@ const result = await rewriteText({
       try {
         toast.info(`Uploading media for option ${index + 1}...`);
         
-        const { data, error } = await supabase.storage
-          .from('courses')
-          .upload(`temp/${Date.now()}-${file.name}`, file);
+        const path = `temp/${Date.now()}-${file.name}`;
+        const uploadResult = await uploadMediaFile(path, file, 'courses');
 
-        if (error) throw error;
-
-        const { data: urlData } = supabase.storage
-          .from('courses')
-          .getPublicUrl(data.path);
+        if (!uploadResult.ok) throw new Error('Upload failed');
 
         const currentItem = getCurrentItem();
         if (!currentItem) return;
@@ -836,7 +821,7 @@ const result = await rewriteText({
         const newMedia = {
           type: file.type.startsWith('image/') ? 'image' :
                 file.type.startsWith('audio/') ? 'audio' : 'video',
-          url: urlData.publicUrl,
+          url: uploadResult.url,
           alt: file.name,
         };
 

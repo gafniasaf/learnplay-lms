@@ -1,23 +1,34 @@
 import { isLiveMode } from "../env";
 
-// Hardcoded fallback for Lovable/production builds without env vars
-const FALLBACK_SUPABASE_URL = 'https://eidcegehaswbtzrwzvfa.supabase.co';
-const FALLBACK_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVpZGNlZ2VoYXN3YnR6cnd6dmZhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ4NDYzNTAsImV4cCI6MjA4MDQyMjM1MH0.DpXOHjccnVEewnPF5gA6tw27TcRXkkAfgrJkn0NvT_Q';
+// IgniteZero: NO hardcoded fallbacks - environment variables are REQUIRED
+// Configure in .env:
+//   VITE_SUPABASE_URL=https://your-project.supabase.co
+//   VITE_SUPABASE_ANON_KEY=your-anon-key
 
 /**
- * Get Supabase URL with fallback for production
+ * Get Supabase URL (required in live mode, empty string allowed in mock mode)
+ * Per IgniteZero rules: no hardcoded fallbacks
  */
 export function getSupabaseUrl(): string {
-  return import.meta.env.VITE_SUPABASE_URL || FALLBACK_SUPABASE_URL;
+  const url = import.meta.env.VITE_SUPABASE_URL || '';
+  if (!url && isLiveMode()) {
+    console.error('❌ BLOCKED: VITE_SUPABASE_URL is required in live mode');
+  }
+  return url;
 }
 
 /**
- * Get Supabase anon key with fallback for production
+ * Get Supabase anon key (required in live mode)
+ * Per IgniteZero rules: no hardcoded fallbacks
  */
 export function getSupabaseAnonKey(): string {
-  return import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || 
-         import.meta.env.VITE_SUPABASE_ANON_KEY || 
-         FALLBACK_ANON_KEY;
+  const key = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || 
+              import.meta.env.VITE_SUPABASE_ANON_KEY || 
+              '';
+  if (!key && isLiveMode()) {
+    console.error('❌ BLOCKED: Supabase anon key is required in live mode');
+  }
+  return key;
 }
 
 /**

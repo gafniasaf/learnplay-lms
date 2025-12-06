@@ -11,6 +11,7 @@ import { StudyText } from "@/lib/types/course";
 import { parseStudyText } from "@/lib/types/studyText";
 import { generateMedia } from "@/lib/api/aiRewrites";
 import { supabase } from "@/integrations/supabase/client";
+import { resolvePublicMediaUrl } from "@/lib/media/resolvePublicMediaUrl";
 import { toast } from "sonner";
 
 interface StudyTextsEditorProps {
@@ -303,10 +304,8 @@ export const StudyTextsEditor = ({ courseId, studyTexts, onChange }: StudyTextsE
                           <p key={j}>{p}</p>
                         ))}
                         {section.images.map((img, k) => {
-                          // Build full public URL for images
-                          const imageUrl = img.startsWith('http') 
-                            ? img 
-                            : `${supabase.storage.from('courses').getPublicUrl('').data.publicUrl}${img}`;
+                          // Build full public URL for images (IgniteZero compliant)
+                          const imageUrl = resolvePublicMediaUrl(img);
                           
                           return (
                             <div key={k} className="my-3">

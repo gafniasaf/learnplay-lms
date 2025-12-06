@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { isLiveMode } from '@/lib/env';
 
 interface JobQuota {
   jobs_last_hour: number;
@@ -8,7 +9,7 @@ interface JobQuota {
   daily_limit: number;
 }
 
-// Default quota for guest/unauthenticated users
+// Default quota for guest/unauthenticated users and mock mode
 const DEFAULT_QUOTA: JobQuota = {
   jobs_last_hour: 0,
   hourly_limit: 10,
@@ -33,8 +34,8 @@ export function useJobQuota() {
     let isMounted = true;
 
     const fetchQuota = async () => {
-      // In guest mode, return default quota without hitting the database
-      if (isGuestMode()) {
+      // In guest mode or mock mode, return default quota without hitting the database
+      if (isGuestMode() || !isLiveMode()) {
         if (isMounted) {
           setQuota(DEFAULT_QUOTA);
           setLoading(false);
@@ -56,10 +57,13 @@ export function useJobQuota() {
         }
       } catch (err) {
         if (isMounted) {
-          // On error, use default quota instead of failing
-          console.warn('[useJobQuota] Using default quota due to error:', err);
+          // IgniteZero "No Silent Mocks" policy: FAIL LOUDLY in live mode
+          // Surface the error to the user instead of silently falling back
+          const errorObj = err instanceof Error ? err : new Error('Failed to fetch job quota');
+          console.error('[useJobQuota] Error fetching quota:', errorObj);
+          setError(errorObj);
+          // Still provide default quota so UI doesn't break, but error is visible
           setQuota(DEFAULT_QUOTA);
-          setError(null); // Don't show error to user
         }
       } finally {
         if (isMounted) {
@@ -70,8 +74,9 @@ export function useJobQuota() {
 
     fetchQuota();
 
-    // Refresh quota every minute (skip in guest mode)
-    const interval = isGuestMode() ? null : setInterval(fetchQuota, 60000);
+    // Refresh quota every minute (skip in guest mode or mock mode)
+    const shouldPoll = !isGuestMode() && isLiveMode();
+    const interval = shouldPoll ? setInterval(fetchQuota, 60000) : null;
 
     return () => {
       isMounted = false;

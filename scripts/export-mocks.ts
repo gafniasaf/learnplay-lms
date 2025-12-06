@@ -83,10 +83,10 @@ async function exportRoute(page, route: RouteConfig) {
   await page.goto(url, { waitUntil: "networkidle" });
   await page.waitForTimeout(500);
 
-  // Stamp data-route for validation
-  await page.evaluate(() => {
-    document.body.setAttribute("data-route", window.location.pathname);
-  });
+  // Stamp data-route for validation (use route.path directly since SPA routing may not update window.location)
+  await page.evaluate((routePath) => {
+    document.body.setAttribute("data-route", routePath);
+  }, route.path);
 
   // Collect CTAs
   const ctas: CTA[] = await page.evaluate(() =>

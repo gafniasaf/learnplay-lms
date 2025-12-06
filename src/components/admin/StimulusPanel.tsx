@@ -9,6 +9,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import { supabase } from "@/integrations/supabase/client";
+import { uploadMediaFile } from "@/lib/api/media";
 import { toast } from "sonner";
 import { Stem } from "@/components/game/Stem";
 
@@ -112,30 +113,19 @@ export const StimulusPanel = ({
       
       // Construct storage path
       const folder = type === 'image' ? 'images' : type === 'audio' ? 'audio' : 'video';
-      const path = `${courseId}/assets/${folder}/${filename}`;
+      const storagePath = `${courseId}/assets/${folder}/${filename}`;
 
-      // Upload to Supabase Storage
-      const { data, error: uploadError } = await supabase.storage
-        .from('courses')
-        .upload(path, file, {
-          upsert: true,
-          contentType: file.type,
-          cacheControl: 'public, max-age=31536000',
-        });
+      // Upload via edge function (IgniteZero compliant)
+      const result = await uploadMediaFile(storagePath, file, 'courses');
 
-      if (uploadError) {
-        throw uploadError;
+      if (!result.ok) {
+        throw new Error('Upload failed');
       }
 
       setUploadProgress(100);
 
-      // Get public URL
-      const { data: { publicUrl } } = supabase.storage
-        .from('courses')
-        .getPublicUrl(path);
-
-      setUploadedUrl(publicUrl);
-      setManualUrl(publicUrl);
+      setUploadedUrl(result.url);
+      setManualUrl(result.url);
       
       toast.success(`${type.charAt(0).toUpperCase() + type.slice(1)} uploaded successfully`);
     } catch (err) {

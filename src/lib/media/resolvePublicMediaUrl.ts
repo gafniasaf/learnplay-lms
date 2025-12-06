@@ -1,4 +1,9 @@
-import { supabase } from '@/integrations/supabase/client';
+/**
+ * Media URL resolution - IgniteZero compliant
+ * Constructs public URLs without direct Supabase storage calls
+ */
+
+import { getSupabaseUrl } from '@/lib/api/common';
 
 /**
  * Append a cache-busting version param to a URL
@@ -17,7 +22,7 @@ export function appendVersion(u: string, v?: string) {
 /**
  * Resolve a possibly storage-relative media URL to a public, absolute URL.
  * - Accepts absolute (http/https/data) and relative storage paths (e.g. courses/abc/img.png)
- * - Uses Supabase Storage public URL helper for the 'courses' bucket by default
+ * - Constructs public URL for 'courses' bucket without API calls
  */
 export function resolvePublicMediaUrl(url?: string, cacheKey?: string): string {
   if (!url) return '';
@@ -25,10 +30,10 @@ export function resolvePublicMediaUrl(url?: string, cacheKey?: string): string {
 
   const clean = String(url).replace(/^\/+/, '');
   const path = clean.startsWith('courses/') ? clean.replace(/^courses\//, '') : clean;
-  try {
-    const { data } = supabase.storage.from('courses').getPublicUrl(path);
-    return appendVersion(data.publicUrl, cacheKey);
-  } catch {
-    return appendVersion(url, cacheKey);
-  }
+  
+  // Construct public URL directly without Supabase client
+  const supabaseUrl = getSupabaseUrl();
+  const publicUrl = `${supabaseUrl}/storage/v1/object/public/courses/${path}`;
+  
+  return appendVersion(publicUrl, cacheKey);
 }

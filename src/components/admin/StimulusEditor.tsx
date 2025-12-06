@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { uploadMediaFile } from "@/lib/api/media";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -54,25 +55,16 @@ export const StimulusEditor = ({
       const ext = file.name.split('.').pop() || 'bin';
       const uuid = crypto.randomUUID();
       const folder = type === 'image' ? 'images' : type === 'audio' ? 'audio' : 'video';
-      const path = `${courseId}/assets/${folder}/${uuid}.${ext}`;
+      const storagePath = `${courseId}/assets/${folder}/${uuid}.${ext}`;
 
-      const { error: uploadError } = await supabase.storage
-        .from('courses')
-        .upload(path, file, {
-          upsert: true,
-          contentType: file.type,
-          cacheControl: 'public, max-age=31536000',
-        });
+      // Upload via edge function (IgniteZero compliant)
+      const result = await uploadMediaFile(storagePath, file, 'courses');
 
-      if (uploadError) throw uploadError;
+      if (!result.ok) throw new Error('Upload failed');
 
-      const { data: { publicUrl } } = supabase.storage
-        .from('courses')
-        .getPublicUrl(path);
-
-      if (type === 'image') setImageUrl(publicUrl);
-      else if (type === 'audio') setAudioUrl(publicUrl);
-      else if (type === 'video') setVideoUrl(publicUrl);
+      if (type === 'image') setImageUrl(result.url);
+      else if (type === 'audio') setAudioUrl(result.url);
+      else if (type === 'video') setVideoUrl(result.url);
 
       toast.success(`Uploaded successfully`);
     } catch (err) {

@@ -233,3 +233,7 @@ verify_jwt = false
 verify_jwt = false
 [functions.manage-media]
 verify_jwt = false
+[functions.adopt-media]
+verify_jwt = false
+[functions.save-course-json]
+verify_jwt = false

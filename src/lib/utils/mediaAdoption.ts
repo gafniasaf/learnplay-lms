@@ -1,9 +1,9 @@
 /**
- * Media Adoption Utility
- * Moves temporary media assets to canonical paths in Supabase storage
+ * Media Adoption Utility - IgniteZero compliant
+ * Moves temporary media assets to canonical paths via edge function
  */
 
-import { supabase } from '@/integrations/supabase/client';
+import { callEdgeFunction } from '@/lib/api/common';
 
 export interface MediaAdoptionRequest {
   assetId: string;
@@ -24,42 +24,12 @@ export interface MediaAdoptionResult {
 export async function adoptMedia(
   request: MediaAdoptionRequest
 ): Promise<MediaAdoptionResult> {
-  const { assetId, tempPath, canonicalPath, bucket } = request;
-
   try {
-    // Move file in storage from temp → canonical
-    const { error: moveError } = await supabase.storage
-      .from(bucket)
-      .move(tempPath, canonicalPath);
-
-    if (moveError) {
-      return {
-        success: false,
-        error: `Failed to move media: ${moveError.message}`,
-      };
-    }
-
-    // Update media_assets table with new path
-    const { error: updateError } = await supabase
-      .from('media_assets')
-      .update({ storage_path: canonicalPath })
-      .eq('id', assetId);
-
-    if (updateError) {
-      console.warn('[mediaAdoption] Failed to update media_assets table:', updateError);
-      // Non-fatal - file is moved, just metadata update failed
-    }
-
-    // Get public URL for the canonical path
-    const { data: publicUrlData } = supabase.storage
-      .from(bucket)
-      .getPublicUrl(canonicalPath);
-
-    return {
-      success: true,
-      canonicalUrl: publicUrlData.publicUrl,
-    };
-
+    const result = await callEdgeFunction<MediaAdoptionRequest, MediaAdoptionResult>(
+      'adopt-media',
+      request
+    );
+    return result;
   } catch (error) {
     return {
       success: false,
@@ -76,4 +46,3 @@ export async function adoptMediaBatch(
 ): Promise<MediaAdoptionResult[]> {
   return Promise.all(requests.map(req => adoptMedia(req)));
 }
-
