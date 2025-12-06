@@ -9,32 +9,32 @@ All colors MUST be HSL.
 @layer base {
   :root {
     --background: 0 0% 100%;
-    --foreground: 220 20% 10%;
+    --foreground: 0 0% 0%; /* Black text */
 
     --card: 0 0% 100%;
-    --card-foreground: 220 20% 10%;
+    --card-foreground: 0 0% 0%; /* Black text */
 
     --popover: 0 0% 100%;
-    --popover-foreground: 220 20% 10%;
+    --popover-foreground: 0 0% 0%; /* Black text */
 
     --primary: 262 70% 50%;
     --primary-foreground: 0 0% 100%;
 
     --secondary: 220 15% 96%;
-    --secondary-foreground: 220 20% 10%;
+    --secondary-foreground: 0 0% 0%; /* Black text */
 
     --muted: 220 15% 96%;
-    --muted-foreground: 220 10% 46%;
+    --muted-foreground: 0 0% 30%; /* Dark gray instead of light gray */
 
     --accent: 340 80% 55%;
     --accent-foreground: 0 0% 100%;
 
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 100%;
-    
+
     --success: 142 76% 36%;
     --success-foreground: 0 0% 100%;
-    
+
     --warning: 38 92% 50%;
     --warning-foreground: 0 0% 100%;
 
@@ -43,69 +43,73 @@ All colors MUST be HSL.
     --ring: 262 70% 50%;
 
     --radius: 0.5rem;
-    
+
     --role-kids: 280 80% 60%;
     --role-parents: 200 70% 50%;
     --role-schools: 160 60% 45%;
     --role-admin: 340 70% 50%;
 
     --sidebar-background: 0 0% 98%;
-    --sidebar-foreground: 240 5.3% 26.1%;
+    --sidebar-foreground: 0 0% 0%; /* Black text */
     --sidebar-primary: 240 5.9% 10%;
     --sidebar-primary-foreground: 0 0% 98%;
     --sidebar-accent: 240 4.8% 95.9%;
-    --sidebar-accent-foreground: 240 5.9% 10%;
+    --sidebar-accent-foreground: 0 0% 0%; /* Black text */
     --sidebar-border: 220 13% 91%;
     --sidebar-ring: 217.2 91.2% 59.8%;
   }
 
-  .dark {
-    --background: 220 25% 8%;
-    --foreground: 220 15% 95%;
+  /* Force light mode - override dark mode with black text */
+  .dark,
+  :root.dark,
+  html.dark,
+  body.dark {
+    --background: 0 0% 100%; /* White background */
+    --foreground: 0 0% 0%; /* Black text */
 
-    --card: 220 20% 12%;
-    --card-foreground: 220 15% 95%;
+    --card: 0 0% 100%; /* White cards */
+    --card-foreground: 0 0% 0%; /* Black text */
 
-    --popover: 220 20% 12%;
-    --popover-foreground: 220 15% 95%;
+    --popover: 0 0% 100%; /* White popovers */
+    --popover-foreground: 0 0% 0%; /* Black text */
 
-    --primary: 262 70% 55%;
+    --primary: 262 70% 50%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 220 20% 18%;
-    --secondary-foreground: 220 15% 95%;
+    --secondary: 220 15% 96%;
+    --secondary-foreground: 0 0% 0%; /* Black text */
 
-    --muted: 220 20% 18%;
-    --muted-foreground: 220 15% 65%;
+    --muted: 220 15% 96%;
+    --muted-foreground: 0 0% 30%; /* Dark gray */
 
-    --accent: 340 75% 55%;
+    --accent: 340 80% 55%;
     --accent-foreground: 0 0% 100%;
 
-    --destructive: 0 62.8% 50%;
+    --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 100%;
-    
-    --success: 142 70% 45%;
+
+    --success: 142 76% 36%;
     --success-foreground: 0 0% 100%;
-    
-    --warning: 38 90% 55%;
+
+    --warning: 38 92% 50%;
     --warning-foreground: 0 0% 100%;
 
-    --border: 220 20% 18%;
-    --input: 220 20% 18%;
-    --ring: 262 70% 55%;
-    
-    --role-kids: 280 75% 65%;
-    --role-parents: 200 70% 55%;
-    --role-schools: 160 60% 50%;
-    --role-admin: 340 70% 55%;
-    
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
+    --border: 220 15% 90%;
+    --input: 220 15% 90%;
+    --ring: 262 70% 50%;
+
+    --role-kids: 280 80% 60%;
+    --role-parents: 200 70% 50%;
+    --role-schools: 160 60% 45%;
+    --role-admin: 340 70% 50%;
+
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 0 0% 0%; /* Black text */
+    --sidebar-primary: 240 5.9% 10%;
+    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-accent: 240 4.8% 95.9%;
+    --sidebar-accent-foreground: 0 0% 0%; /* Black text */
+    --sidebar-border: 220 13% 91%;
     --sidebar-ring: 217.2 91.2% 59.8%;
   }
 }
@@ -117,6 +121,59 @@ All colors MUST be HSL.
 
   body {
     @apply bg-background text-foreground;
+    color: hsl(0 0% 0%) !important; /* Force black text */
+  }
+
+  /* Force black text on all text elements */
+  h1, h2, h3, h4, h5, h6,
+  p, span, div, label, li, td, th,
+  a, button, input, textarea, select {
+    color: inherit;
+  }
+
+  /* Override any white/light text classes - force black */
+  .text-white,
+  .text-gray-100,
+  .text-gray-200,
+  .text-gray-300,
+  .text-gray-400,
+  .text-slate-100,
+  .text-slate-200,
+  .text-slate-300,
+  .text-slate-400 {
+    color: hsl(0 0% 0%) !important;
+  }
+
+  /* Keep muted text dark gray instead of light */
+  .text-muted-foreground {
+    color: hsl(0 0% 30%) !important;
+  }
+
+  /* Ensure menu items use black text */
+  [role="menuitem"],
+  [role="menuitemcheckbox"],
+  [role="menuitemradio"],
+  [data-radix-menu-item],
+  [data-radix-dropdown-menu-item] {
+    color: hsl(0 0% 0%) !important;
+  }
+
+  /* Sheet/Dialog content should have black text */
+  [data-radix-sheet-content],
+  [data-radix-dialog-content] {
+    color: hsl(0 0% 0%) !important;
+  }
+
+  /* Accordion triggers and content */
+  [data-radix-accordion-trigger],
+  [data-radix-accordion-content] {
+    color: hsl(0 0% 0%) !important;
+  }
+
+  /* Select content */
+  [data-radix-select-content],
+  [data-radix-select-item] {
+    color: hsl(0 0% 0%) !important;
   }
 
   /* Screen reader only utility */

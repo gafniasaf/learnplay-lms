@@ -20,7 +20,7 @@ export const RoleNav = () => {
             cn(
               "flex items-center gap-2 px-4 py-2 rounded-2xl text-sm font-medium transition-all",
               isActive
-                ? `bg-${color} text-white shadow-md`
+                ? `bg-${color} text-black shadow-md`
                 : "text-foreground/70 hover:text-foreground hover:bg-secondary"
             )
           }

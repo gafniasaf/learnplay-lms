@@ -143,7 +143,18 @@ export function useMCP() {
       return await callEdgeFunction<EnqueueJobResult>('enqueue-job', { jobType, payload });
     } catch (error: any) {
       // Improve error messages for authentication issues
-      if (error?.status === 401 || error?.code === 'UNAUTHORIZED' || (error?.message || '').includes('401')) {
+      if (error?.status === 401 || error?.code === 'UNAUTHORIZED' || (error?.message || '').includes('401') || (error?.message || '').includes('Unauthorized')) {
+        const errorMessage = error?.message || error?.details?.message || '';
+        
+        // Check for organization_id missing error
+        if (errorMessage.includes('missing organization_id') || errorMessage.includes('not configured')) {
+          throw new Error(
+            'Your account is missing organization configuration. ' +
+            'Please log out and log back in, or contact support. ' +
+            'If you are an admin, run: npx tsx scripts/fix-admin-org.ts <your-email>'
+          );
+        }
+        
         // Check if in guest mode
         const isGuestMode = typeof window !== 'undefined' && (() => {
           const urlParams = new URLSearchParams(window.location.search);
@@ -162,6 +173,9 @@ export function useMCP() {
           message = 'Job creation requires a full account. Please sign up or log in to create jobs.';
         } else if (isLovablePreview) {
           message = 'Authentication required. Please log in to use this feature in preview environments.';
+        } else if (errorMessage) {
+          // Use the specific error message from the API if available
+          message = errorMessage;
         }
         
         throw new Error(message);

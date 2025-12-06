@@ -46,7 +46,11 @@ export async function authenticateRequest(req: Request): Promise<AuthContext> {
 
       if (!organizationId) {
         console.error("[Auth] User authenticated but missing organization_id in metadata");
-        throw new Error("User account not configured: missing organization_id");
+        console.error("[Auth] User ID:", data.user.id);
+        console.error("[Auth] User email:", data.user.email);
+        console.error("[Auth] app_metadata:", JSON.stringify(data.user.app_metadata));
+        console.error("[Auth] user_metadata:", JSON.stringify(data.user.user_metadata));
+        throw new Error("User account not configured: missing organization_id. Please contact support or run: npx tsx scripts/fix-admin-org.ts <your-email>");
       }
 
       return { type: "user", organizationId, userId: data.user.id };
