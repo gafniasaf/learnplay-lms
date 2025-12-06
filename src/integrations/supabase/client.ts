@@ -18,11 +18,12 @@ const USE_MOCK = String((import.meta as any).env?.VITE_USE_MOCK) === 'true';
 
 // Per IgniteZero "No Silent Mocks" policy: FAIL LOUDLY if credentials missing in live mode
 if (!USE_MOCK && (!SUPABASE_URL || !SUPABASE_KEY)) {
-  console.error(
+  const errorMsg = 
     '❌ BLOCKED: Missing Supabase credentials.\n' +
     '   Configure VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in your .env file.\n' +
-    '   Or set VITE_USE_MOCK=true for development without a backend.'
-  );
+    '   Or set VITE_USE_MOCK=true for development without a backend.';
+  console.error(errorMsg);
+  throw new Error(errorMsg);
 }
 
 // In mock mode, short-circuit all Supabase calls to avoid network dependency during E2E.
