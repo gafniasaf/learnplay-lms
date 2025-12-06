@@ -12,15 +12,15 @@ export default defineConfig(({ mode }) => {
     (process.env.SKIP_VERIFY ? 'true' : '');
   
   // Mock mode for E2E testing - allows running tests without network dependencies
-  // VITE_USE_MOCK='false' explicitly enables live mode; any other value defaults to mock mode
-  // Default to 'true' in preview/production to avoid network dependencies
+  // VITE_USE_MOCK='true' explicitly enables mock mode; otherwise defaults to live mode
+  // Default to LIVE mode for production (Lovable builds) so app uses real Supabase
   const useMockValue = process.env.VITE_USE_MOCK;
   let useMockResult: string;
-  if (useMockValue === 'false') {
-    useMockResult = 'false'; // Explicit live mode
+  if (useMockValue === 'true' || useMockValue === '1') {
+    useMockResult = 'true'; // Explicit mock mode
   } else {
-    // Default to mock mode unless explicitly set to 'false'
-    useMockResult = 'true';
+    // Default to live mode for production
+    useMockResult = 'false';
   }
   
   const define = {

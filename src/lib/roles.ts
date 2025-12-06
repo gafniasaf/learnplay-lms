@@ -18,6 +18,19 @@ const ROLE_CHANGED_EVENT = 'role:changed';
 // Session memory for role from live backend (not persisted)
 let liveRoleCache: Role | null = null;
 
+// Safe localStorage wrapper for iframe environments
+const safeStorage = {
+  getItem: (key: string): string | null => {
+    try { return localStorage.getItem(key); } catch { return null; }
+  },
+  setItem: (key: string, value: string): void => {
+    try { localStorage.setItem(key, value); } catch { /* ignore in iframe */ }
+  },
+  removeItem: (key: string): void => {
+    try { localStorage.removeItem(key); } catch { /* ignore in iframe */ }
+  }
+};
+
 /**
  * Check URL parameters once on module load for role override (dev mode only)
  * Persists to localStorage if found
@@ -33,7 +46,7 @@ function checkUrlRoleOnBoot(): void {
 
   if (roleParam && isValidRole(roleParam)) {
     const role = roleParam as Role;
-    localStorage.setItem(STORAGE_KEY, role);
+    safeStorage.setItem(STORAGE_KEY, role);
     console.info(`[Roles] Dev override: role=${role} (from URL at boot)`);
     
     // Dispatch event to notify listeners
@@ -65,7 +78,7 @@ export function getRole(): Role {
   // 1) Dev mode: prefer localStorage override; if none, default to admin for frictionless navigation
   if (isDevEnabled()) {
     if (typeof window !== 'undefined') {
-      const stored = localStorage.getItem(STORAGE_KEY);
+      const stored = safeStorage.getItem(STORAGE_KEY);
       if (stored && isValidRole(stored)) {
         return stored as Role;
       }
@@ -90,7 +103,7 @@ export function getRole(): Role {
 export function setRole(role: Role): void {
   if (typeof window === 'undefined') return;
 
-  localStorage.setItem(STORAGE_KEY, role);
+  safeStorage.setItem(STORAGE_KEY, role);
   
   // Dispatch custom event for listeners
   window.dispatchEvent(new CustomEvent(ROLE_CHANGED_EVENT, { detail: role }));
@@ -162,7 +175,7 @@ export function onRoleChange(fn: (role: Role) => void): () => void {
 export function clearRoleOverride(): void {
   if (typeof window === 'undefined') return;
   
-  localStorage.removeItem(STORAGE_KEY);
+  safeStorage.removeItem(STORAGE_KEY);
   clearLiveRole();
   
   window.dispatchEvent(new CustomEvent(ROLE_CHANGED_EVENT, { detail: getRole() }));
