@@ -208,22 +208,22 @@ export default function Auth() {
         <CardHeader className="space-y-1 text-center">
           <div className="flex items-center justify-center gap-2 mb-2">
             <Sparkles className="h-8 w-8 text-primary" />
-            <h1 className="text-2xl font-bold">EduPlay</h1>
+            <h1 className="text-2xl font-bold text-black">LearnPlay</h1>
           </div>
-          <CardTitle className="text-2xl">Welcome</CardTitle>
-          <CardDescription>Sign in to access admin features or continue as guest</CardDescription>
+          <CardTitle className="text-2xl text-black">Welcome</CardTitle>
+          <CardDescription className="text-black/70">Sign in to access admin features or continue as guest</CardDescription>
         </CardHeader>
         <CardContent>
           <Tabs defaultValue="login" className="w-full">
             <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="login">Login</TabsTrigger>
-              <TabsTrigger value="signup">Sign Up</TabsTrigger>
+              <TabsTrigger value="login" className="text-black data-[state=active]:text-black">Login</TabsTrigger>
+              <TabsTrigger value="signup" className="text-black data-[state=active]:text-black">Sign Up</TabsTrigger>
             </TabsList>
 
             <TabsContent value="login">
               <form onSubmit={handleLogin} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="login-email">Email</Label>
+                  <Label htmlFor="login-email" className="text-black">Email</Label>
                   <Input
                     id="login-email"
                     type="email"
@@ -232,10 +232,11 @@ export default function Auth() {
                     onChange={(e) => setEmail(e.target.value)}
                     required
                     autoComplete="email"
+                    className="text-black"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="login-password">Password</Label>
+                  <Label htmlFor="login-password" className="text-black">Password</Label>
                   <Input
                     id="login-password"
                     type="password"
@@ -243,11 +244,12 @@ export default function Auth() {
                     onChange={(e) => setPassword(e.target.value)}
                     required
                     autoComplete="current-password"
+                    className="text-black"
                   />
                 </div>
                 {error && (
                   <Alert variant="destructive">
-                    <AlertDescription>{error}</AlertDescription>
+                    <AlertDescription className="text-black">{error}</AlertDescription>
                   </Alert>
                 )}
                 <Button type="submit" className="w-full" disabled={loading}>
@@ -259,7 +261,7 @@ export default function Auth() {
                 <Button 
                   variant="link" 
                   onClick={() => setShowForgotPassword(true)}
-                  className="text-sm"
+                  className="text-sm text-black"
                   type="button"
                 >
                   Forgot password?
@@ -270,7 +272,7 @@ export default function Auth() {
             <TabsContent value="signup">
               <form onSubmit={handleSignup} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="signup-email">Email</Label>
+                  <Label htmlFor="signup-email" className="text-black">Email</Label>
                   <Input
                     id="signup-email"
                     type="email"
@@ -279,10 +281,11 @@ export default function Auth() {
                     onChange={(e) => setEmail(e.target.value)}
                     required
                     autoComplete="email"
+                    className="text-black"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="signup-password">Password</Label>
+                  <Label htmlFor="signup-password" className="text-black">Password</Label>
                   <Input
                     id="signup-password"
                     type="password"
@@ -292,13 +295,14 @@ export default function Auth() {
                     required
                     autoComplete="new-password"
                     minLength={6}
+                    className="text-black"
                   />
                   
                   {/* Password Strength Indicator */}
                   {passwordStrength && (
                     <div className="space-y-2 pt-1">
                       <div className="flex items-center justify-between text-xs">
-                        <span className="text-muted-foreground">Password strength:</span>
+                        <span className="text-black/70">Password strength:</span>
                         <span className={`font-medium ${
                           passwordStrength.strength === 'weak' ? 'text-destructive' :
                           passwordStrength.strength === 'fair' ? 'text-orange-600' :
@@ -318,7 +322,7 @@ export default function Auth() {
                         }`}
                       />
                       {passwordStrength.feedback.length > 0 && (
-                        <div className="flex items-start gap-1.5 text-xs text-muted-foreground">
+                        <div className="flex items-start gap-1.5 text-xs text-black/70">
                           {passwordStrength.strength === 'strong' ? (
                             <CheckCircle className="h-3.5 w-3.5 text-green-600 flex-shrink-0 mt-0.5" />
                           ) : (
@@ -332,7 +336,7 @@ export default function Auth() {
                 </div>
                 {error && (
                   <Alert variant="destructive">
-                    <AlertDescription>{error}</AlertDescription>
+                    <AlertDescription className="text-black">{error}</AlertDescription>
                   </Alert>
                 )}
                 <Button type="submit" className="w-full" disabled={loading}>
@@ -347,14 +351,14 @@ export default function Auth() {
               <span className="w-full border-t" />
             </div>
             <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-card px-2 text-muted-foreground">Or continue with</span>
+              <span className="bg-card px-2 text-black/70">Or continue with</span>
             </div>
           </div>
 
           <div className="grid gap-2">
             <Button
               variant="outline"
-              className="w-full"
+              className="w-full text-black"
               onClick={handleGoogleLogin}
               disabled={loading}
             >
@@ -381,7 +385,7 @@ export default function Auth() {
 
             <Button
               variant="outline"
-              className="w-full"
+              className="w-full text-black"
               onClick={handleAnonymous}
               disabled={loading}
             >
@@ -395,8 +399,8 @@ export default function Auth() {
       <Dialog open={showForgotPassword} onOpenChange={setShowForgotPassword}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Reset Password</DialogTitle>
-            <DialogDescription>
+            <DialogTitle className="text-black">Reset Password</DialogTitle>
+            <DialogDescription className="text-black/70">
               Enter your email address and we'll send you a link to reset your password.
             </DialogDescription>
           </DialogHeader>
@@ -404,7 +408,7 @@ export default function Auth() {
           {!resetSent ? (
             <form onSubmit={handleForgotPassword} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="reset-email">Email</Label>
+                <Label htmlFor="reset-email" className="text-black">Email</Label>
                 <Input
                   id="reset-email"
                   type="email"
@@ -413,12 +417,13 @@ export default function Auth() {
                   onChange={(e) => setResetEmail(e.target.value)}
                   required
                   autoFocus
+                  className="text-black"
                 />
               </div>
               
               {error && (
                 <Alert variant="destructive">
-                  <AlertDescription>{error}</AlertDescription>
+                  <AlertDescription className="text-black">{error}</AlertDescription>
                 </Alert>
               )}
               
@@ -455,7 +460,7 @@ export default function Auth() {
                 </div>
               </div>
               
-              <p className="text-sm text-muted-foreground text-center">
+              <p className="text-sm text-black/70 text-center">
                 Didn't receive it? Check your spam folder or try again.
               </p>
               

@@ -319,14 +319,12 @@ export const HamburgerMenu = () => {
                 onClick={async () => {
                   try {
                     await supabase.auth.signOut();
-                    toast({
-                      title: "Logged out",
-                      description: "You have been logged out successfully",
-                    });
-                    handleOpenChange(false);
-                    navigate("/auth");
+                    // Force a page reload to ensure auth state is cleared everywhere
+                    window.location.href = '/auth';
                   } catch (error) {
                     console.error("Logout error:", error);
+                    // Even if signOut fails, navigate to auth page
+                    window.location.href = '/auth';
                   }
                 }}
                 className="shrink-0 h-9 w-9"
