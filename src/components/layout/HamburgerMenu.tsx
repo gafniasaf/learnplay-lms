@@ -45,13 +45,10 @@ export const HamburgerMenu = () => {
   const { user, loading } = useAuth();
   const [devEnabled, setDevEnabledState] = useState(isDevEnabled());
   const isLive = isLiveMode();
-  // Get current role from centralized system
   const [currentRole, setCurrentRole] = useState<Role>(getRole());
 
-  // Accordion state - persist open sections in localStorage
   const getInitialOpenSections = (): string[] => {
     if (typeof window === 'undefined') return ['learn'];
-    
     try {
       const stored = localStorage.getItem('menuOpen');
       return stored ? JSON.parse(stored) : ['learn'];
@@ -60,10 +57,7 @@ export const HamburgerMenu = () => {
     }
   };
 
-  const [openSections, setOpenSections] = useState<string[]>(getInitialOpenSections());
-  
-  // Hide menu in course fullscreen mode (MUST be after ALL hooks)
-  if (isCourseFullscreen()) return null;
+  const [openSections, setOpenSections] = useState<string[]>(getInitialOpenSections);
 
   // Handle accordion changes with announcements
   const handleAccordionChange = (newSections: string[]) => {
@@ -211,6 +205,9 @@ export const HamburgerMenu = () => {
   }, [open]);
 
   const isActive = (path: string) => location.pathname === path;
+
+  // Hide menu in course fullscreen mode (MUST be after ALL hooks)
+  if (isCourseFullscreen()) return null;
 
   return (
     <>
