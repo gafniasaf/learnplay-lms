@@ -201,7 +201,11 @@ export async function callEdgeFunction<TRequest, TResponse>(
 
     // Improve error messages for authentication issues
     if (res.status === 401) {
-      const isLovablePreview = typeof window !== 'undefined' && window.location.hostname.includes('lovable.app');
+      const isLovablePreview = typeof window !== 'undefined' && (
+        window.location.hostname.includes('lovable.app') || 
+        window.location.hostname.includes('lovableproject.com') ||
+        window.location.hostname.includes('lovable')
+      );
       const message = isLovablePreview
         ? 'Authentication required. Please log in to use this feature.'
         : errorData.message || 'Authentication required. Please log in.';
@@ -318,7 +322,11 @@ export async function callEdgeFunctionGet<TResponse>(
 
     // Improve error messages for authentication issues
     if (res.status === 401) {
-      const isLovablePreview = typeof window !== 'undefined' && window.location.hostname.includes('lovable.app');
+      const isLovablePreview = typeof window !== 'undefined' && (
+        window.location.hostname.includes('lovable.app') || 
+        window.location.hostname.includes('lovableproject.com') ||
+        window.location.hostname.includes('lovable')
+      );
       const message = isLovablePreview
         ? 'Authentication required. Please log in to use this feature.'
         : errorData.message || 'Authentication required. Please log in.';

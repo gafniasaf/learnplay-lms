@@ -9,7 +9,8 @@ type Summary = { ok: boolean; summary: Record<string, { count: number; errorRate
  */
 function isLovablePreview(): boolean {
   if (typeof window === 'undefined') return false;
-  return window.location.hostname.includes('lovable.app');
+  const hostname = window.location.hostname;
+  return hostname.includes('lovable.app') || hostname.includes('lovableproject.com') || hostname.includes('lovable');
 }
 
 export default function Metrics() {
