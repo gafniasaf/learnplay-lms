@@ -154,6 +154,16 @@ export function useMCP() {
 
       // Default: Async queue (Factory Pipeline)
       return await callEdgeFunction<EnqueueJobResult>('enqueue-job', { jobType, payload });
+    } catch (error: any) {
+      // Improve error messages for authentication issues
+      if (error?.status === 401 || error?.code === 'UNAUTHORIZED' || (error?.message || '').includes('401')) {
+        const isLovablePreview = typeof window !== 'undefined' && window.location.hostname.includes('lovable.app');
+        const message = isLovablePreview
+          ? 'Authentication required. Please log in to use this feature in preview environments.'
+          : 'Authentication required. Please log in to enqueue jobs.';
+        throw new Error(message);
+      }
+      throw error;
     } finally {
       setLoading(false);
     }
