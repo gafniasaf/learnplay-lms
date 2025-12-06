@@ -1,0 +1,11 @@
+NOTE: This test file has Jest configuration issues with import.meta.env parsing.
+The tests are conceptually correct but need Jest/SWC configuration updates to handle
+import.meta syntax in the module under test.
+
+For now, error handling is tested via:
+- Integration tests (see tests/integration/)
+- E2E tests (see tests/e2e/)
+- Manual testing in preview environments
+
+TODO: Fix Jest configuration to support import.meta.env in test imports.
+

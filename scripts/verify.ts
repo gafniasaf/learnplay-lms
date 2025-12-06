@@ -21,7 +21,18 @@ async function main() {
   }
   console.log("✅ Contracts Present");
 
-  // 2. Fallback Pattern Detection (NO-FALLBACK POLICY)
+  // 2. ESLint Rule Enforcement (ARCHITECTURAL COMPLIANCE)
+  console.log("🔍 Running ESLint with architectural rules...");
+  try {
+    execSync('npm run lint', { stdio: 'inherit' });
+    console.log("✅ ESLint passed (no architectural violations)");
+  } catch (error) {
+    console.error("❌ ESLint failed - architectural violations detected");
+    console.error("Fix violations before proceeding. Run 'npm run lint:fix' for auto-fixes.");
+    throw error;
+  }
+
+  // 3. Fallback Pattern Detection (NO-FALLBACK POLICY)
   console.log("🛡️ Checking for forbidden fallback patterns...");
   const checkFile = (filePath: string): string[] => {
     const violations: string[] = [];
