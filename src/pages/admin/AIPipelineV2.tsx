@@ -17,6 +17,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useMCP } from '@/hooks/useMCP';
 import { useJobContext } from '@/hooks/useJobContext';
 import { useJobsList } from '@/hooks/useJobsList';
+import { useAuth } from '@/hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { 
@@ -51,10 +52,12 @@ export default function AIPipelineV2() {
   const [specialRequests, setSpecialRequests] = useState('');
   const [creating, setCreating] = useState(false);
   const [showRecent, setShowRecent] = useState(false);
+  const [authError, setAuthError] = useState<string | null>(null);
   
   const { enqueueJob } = useMCP();
   const { job, events, loading: jobLoading } = useJobContext(currentJobId);
   const { jobs: recentJobs } = useJobsList({ limit: 5, status: 'done' });
+  const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
 
   // Auto-detect state from job status
@@ -83,6 +86,20 @@ export default function AIPipelineV2() {
       return;
     }
 
+    // Check authentication before attempting to create
+    if (!user && !authLoading) {
+      setAuthError('Please log in to create courses');
+      toast.error('Authentication required', {
+        description: 'Please log in to create courses',
+        action: {
+          label: 'Log In',
+          onClick: () => navigate('/auth'),
+        },
+      });
+      return;
+    }
+
+    setAuthError(null);
     setCreating(true);
     try {
       const courseId = `${subject.toLowerCase().replace(/\s+/g, '-')}-${Date.now()}`;
@@ -108,7 +125,21 @@ export default function AIPipelineV2() {
       }
     } catch (err) {
       console.error('[AIPipelineV2] Creation failed:', err);
-      toast.error(err instanceof Error ? err.message : 'Failed to create course');
+      const errorMessage = err instanceof Error ? err.message : 'Failed to create course';
+      
+      // Check if it's an authentication error
+      if (errorMessage.includes('Authentication') || errorMessage.includes('log in') || errorMessage.includes('401')) {
+        setAuthError(errorMessage);
+        toast.error('Authentication required', {
+          description: errorMessage,
+          action: {
+            label: 'Log In',
+            onClick: () => navigate('/auth'),
+          },
+        });
+      } else {
+        toast.error(errorMessage);
+      }
     } finally {
       setCreating(false);
     }
@@ -173,6 +204,39 @@ export default function AIPipelineV2() {
       {/* State: Idle - Creation Form */}
       {state === 'idle' && (
         <div className="space-y-6">
+          {/* Authentication Warning */}
+          {!user && !authLoading && (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription className="flex items-center justify-between">
+                <span>Please log in to create courses</span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => navigate('/auth')}
+                >
+                  Log In
+                </Button>
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {authError && (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription className="flex items-center justify-between">
+                <span>{authError}</span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => navigate('/auth')}
+                >
+                  Log In
+                </Button>
+              </AlertDescription>
+            </Alert>
+          )}
+
           <Card className="border-2 border-primary/20">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -250,7 +314,7 @@ export default function AIPipelineV2() {
 
               <Button
                 onClick={handleCreate}
-                disabled={creating || !subject.trim()}
+                disabled={creating || !subject.trim() || (!user && !authLoading)}
                 size="lg"
                 className="w-full"
               >
@@ -258,6 +322,11 @@ export default function AIPipelineV2() {
                   <>
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                     Creating...
+                  </>
+                ) : !user && !authLoading ? (
+                  <>
+                    <AlertCircle className="h-4 w-4 mr-2" />
+                    Log In Required
                   </>
                 ) : (
                   <>
