@@ -120,7 +120,10 @@ export default function Auth() {
           description: "Continuing as guest (dev mode)",
         });
 
-        navigate(redirectTo);
+        // Use URL parameter as fallback for iframe environments where localStorage is blocked
+        const targetUrl = new URL(redirectTo || '/', window.location.origin);
+        targetUrl.searchParams.set('guest', '1');
+        window.location.href = targetUrl.toString();
         return;
       }
 
@@ -145,7 +148,10 @@ export default function Auth() {
         description: "Continuing as guest",
       });
       
-      navigate(redirectTo);
+      // Use URL parameter as fallback for iframe environments
+      const targetUrl = new URL(redirectTo || '/', window.location.origin);
+      targetUrl.searchParams.set('guest', '1');
+      window.location.href = targetUrl.toString();
     } finally {
       setLoading(false);
     }
