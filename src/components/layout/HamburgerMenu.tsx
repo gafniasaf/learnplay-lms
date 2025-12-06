@@ -32,9 +32,6 @@ import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
 export const HamburgerMenu = () => {
-  // Hide menu in course fullscreen mode
-  if (isCourseFullscreen()) return null;
-  
   const [open, setOpen] = useState(false);
   const [announcement, setAnnouncement] = useState("");
   const [roleAnnouncement, setRoleAnnouncement] = useState("");
@@ -49,6 +46,8 @@ export const HamburgerMenu = () => {
   const [devEnabled, setDevEnabledState] = useState(isDevEnabled());
   const isLive = isLiveMode();
   
+  // Hide menu in course fullscreen mode (moved after all hooks)
+  if (isCourseFullscreen()) return null;
   // Get current role from centralized system
   const [currentRole, setCurrentRole] = useState<Role>(getRole());
 
