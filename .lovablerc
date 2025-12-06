@@ -1,0 +1,22 @@
+{
+  "$schema": "https://lovable.dev/schemas/lovablerc.json",
+  "name": "LearnPlay LMS",
+  "buildCommand": "npm run build",
+  "devCommand": "npm run dev",
+  "installCommand": "npm install",
+  "framework": "vite",
+  "outputDirectory": "dist",
+  "nodeVersion": "20",
+  "env": {
+    "VITE_USE_MOCK": "true"
+  },
+  "rules": [
+    "DO NOT remove CSS imports from main.tsx",
+    "DO NOT modify supabase/functions/_shared/cors.ts",
+    "DO NOT modify supabase/functions/_shared/auth.ts without checking ALLOW_ANON logic",
+    "Always use npm run build (not vite build directly) - prebuild runs typecheck and verify",
+    "When adding routes, also update src/config/nav.ts for menu visibility",
+    "All buttons and links should have data-cta-id attributes for tracking"
+  ]
+}
+

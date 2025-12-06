@@ -9,7 +9,7 @@
     "preflight": "npx tsx scripts/preflight-env.ts",
     "dev:up": "npm run preflight && npm run mcp:ensure && npm run dev",
     "build": "vite build",
-    "prebuild": "npm run codegen && npm run verify",
+    "prebuild": "npm run typecheck && npm run codegen && npm run verify",
     "codegen": "npx tsx scripts/scaffold-manifest.ts",
     "ingest": "npx tsx scripts/ingest-lovable.ts",
     "build:dev": "vite build --mode development",
