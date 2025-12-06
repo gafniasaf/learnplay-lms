@@ -107,12 +107,15 @@ export async function callEdgeFunction<TRequest, TResponse>(
 ): Promise<TResponse> {
   const { getAccessToken, ensureSession } = await import("../supabase");
   const supabaseUrl = getSupabaseUrl();
+  const anonKey = getSupabaseAnonKey();
   const { maxRetries = 1, timeoutMs = 30000 } = options;
+  const guestMode = isGuestMode();
 
   // Get auth token from cached session
   let token = await getAccessToken();
 
-  if (!token) {
+  // Allow anonymous calls in guest mode
+  if (!token && !guestMode) {
     throw new ApiError(
       "User not authenticated",
       "UNAUTHORIZED",
@@ -122,14 +125,16 @@ export async function callEdgeFunction<TRequest, TResponse>(
 
   const url = `${supabaseUrl}/functions/v1/${functionName}`;
 
-  const makeRequest = async (authToken: string) => {
+  const makeRequest = async (authToken: string | null) => {
+    const authHeader = authToken ? `Bearer ${authToken}` : `Bearer ${anonKey}`;
     return fetchWithTimeout(
       url,
       {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${authToken}`,
+          Authorization: authHeader,
+          apikey: anonKey,
         },
         body: JSON.stringify(payload),
       },
@@ -191,6 +196,26 @@ export async function callEdgeFunction<TRequest, TResponse>(
 }
 
 /**
+ * Check if running in guest/dev bypass mode (no auth required)
+ */
+function isGuestMode(): boolean {
+  if (typeof window === 'undefined') return false;
+  
+  // Check URL param
+  const urlParams = new URLSearchParams(window.location.search);
+  if (urlParams.get('guest') === '1') return true;
+  
+  // Check localStorage
+  try {
+    if (localStorage.getItem('guestMode') === 'true') return true;
+  } catch {
+    // localStorage blocked
+  }
+  
+  return false;
+}
+
+/**
  * Call an edge function with GET method
  */
 export async function callEdgeFunctionGet<TResponse>(
@@ -200,11 +225,14 @@ export async function callEdgeFunctionGet<TResponse>(
 ): Promise<TResponse> {
   const { getAccessToken } = await import("../supabase");
   const supabaseUrl = getSupabaseUrl();
+  const anonKey = getSupabaseAnonKey();
   const { timeoutMs = 30000 } = options;
 
   const token = await getAccessToken();
+  const guestMode = isGuestMode();
 
-  if (!token) {
+  // Allow anonymous calls in guest mode
+  if (!token && !guestMode) {
     throw new ApiError(
       "User not authenticated",
       "UNAUTHORIZED",
@@ -217,12 +245,16 @@ export async function callEdgeFunctionGet<TResponse>(
     : "";
   const url = `${supabaseUrl}/functions/v1/${functionName}${queryString}`;
 
+  // Use token if available, otherwise use anon key for guest mode
+  const authHeader = token ? `Bearer ${token}` : `Bearer ${anonKey}`;
+
   const res = await fetchWithTimeout(
     url,
     {
       method: "GET",
       headers: {
-        Authorization: `Bearer ${token}`,
+        Authorization: authHeader,
+        apikey: anonKey,
       },
     },
     timeoutMs
