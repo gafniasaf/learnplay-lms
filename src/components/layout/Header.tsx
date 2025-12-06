@@ -20,13 +20,14 @@ import {
 import { cn } from "@/lib/utils";
 
 export const Header = () => {
-  // Hide header in course fullscreen mode
-  if (isCourseFullscreen()) return null;
   const isLive = isLiveMode();
   const devEnabled = isDevEnabled();
   const navigate = useNavigate();
   const { user } = useAuth();
   const currentRole = getRole();
+  
+  // Hide header in course fullscreen mode (after all hooks)
+  if (isCourseFullscreen()) return null;
   
   // Filter nav based on current role and dev settings
   const sections = filterNav({ role: currentRole, devEnabled });
