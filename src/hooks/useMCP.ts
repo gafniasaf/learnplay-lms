@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { JOB_MODES } from '@/lib/contracts';
+import { callEdgeFunctionGet } from '@/lib/api/common';
 
 // MCP Proxy settings (for local development only)
 const MCP_BASE_URL = import.meta.env.VITE_MCP_BASE_URL || 'http://127.0.0.1:4000';
@@ -228,6 +229,88 @@ export function useMCP() {
     }
   };
 
+  // List course jobs (IgniteZero compliant)
+  const listCourseJobs = async (params: { status?: string; sinceHours?: number; limit?: number; search?: string } = {}) => {
+    setLoading(true);
+    try {
+      if (useMockMode) {
+        console.log('[MCP Mock] listCourseJobs:', params);
+        return { ok: true, jobs: [], total: 0 };
+      }
+      const queryParams = new URLSearchParams();
+      if (params.status) queryParams.set('status', params.status);
+      if (params.sinceHours) queryParams.set('sinceHours', String(params.sinceHours));
+      if (params.limit) queryParams.set('limit', String(params.limit));
+      if (params.search) queryParams.set('search', params.search);
+      
+      return await callEdgeFunctionGet<{ ok: boolean; jobs: unknown[]; total: number }>(
+        `list-course-jobs?${queryParams.toString()}`
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Get single course job
+  const getCourseJob = async (jobId: string, includeEvents = false) => {
+    setLoading(true);
+    try {
+      if (useMockMode) {
+        console.log('[MCP Mock] getCourseJob:', jobId);
+        return { ok: true, job: null, events: [] };
+      }
+      return await callEdgeFunctionGet<{ ok: boolean; job: unknown; events: unknown[] }>(
+        `get-course-job?id=${jobId}&includeEvents=${includeEvents}`
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Requeue a job
+  const requeueJob = async (jobId: string, jobTable: 'ai_course_jobs' | 'ai_media_jobs' = 'ai_course_jobs') => {
+    setLoading(true);
+    try {
+      if (useMockMode) {
+        console.log('[MCP Mock] requeueJob:', jobId, jobTable);
+        return { ok: true, message: 'Job requeued (mock)' };
+      }
+      return await callEdgeFunction<{ ok: boolean; message: string }>('requeue-job', { jobId, jobTable });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Delete a job
+  const deleteJob = async (jobId: string, jobTable: 'ai_course_jobs' | 'ai_media_jobs' = 'ai_course_jobs') => {
+    setLoading(true);
+    try {
+      if (useMockMode) {
+        console.log('[MCP Mock] deleteJob:', jobId, jobTable);
+        return { ok: true, message: 'Job deleted (mock)' };
+      }
+      return await callEdgeFunction<{ ok: boolean; message: string }>('delete-job', { jobId, jobTable });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Get job metrics
+  const getJobMetrics = async (sinceHours = 24) => {
+    setLoading(true);
+    try {
+      if (useMockMode) {
+        console.log('[MCP Mock] getJobMetrics:', sinceHours);
+        return { ok: true, courseJobs: { total: 0, byStatus: {} }, mediaJobs: { total: 0, byStatus: {} } };
+      }
+      return await callEdgeFunctionGet<{ ok: boolean; courseJobs: unknown; mediaJobs: unknown }>(
+        `get-job-metrics?sinceHours=${sinceHours}`
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Generic call method
   const call = async <T = unknown>(method: string, params: Record<string, unknown> = {}): Promise<T> => {
     setLoading(true);
@@ -253,6 +336,11 @@ export function useMCP() {
         'lms.listRecords': 'list-records',
         'lms.listJobs': 'list-jobs',
         'lms.getJob': 'get-job',
+        'lms.listCourseJobs': 'list-course-jobs',
+        'lms.getCourseJob': 'get-course-job',
+        'lms.requeueJob': 'requeue-job',
+        'lms.deleteJob': 'delete-job',
+        'lms.getJobMetrics': 'get-job-metrics',
       };
       const functionName = methodMap[method] || method.replace('lms.', '').replace(/([A-Z])/g, '-$1').toLowerCase();
       return await callEdgeFunction<T>(functionName, params);
@@ -261,5 +349,19 @@ export function useMCP() {
     }
   };
 
-  return { call, enqueueJob, saveRecord, getRecord, listJobs, listRecords, loading };
+  return { 
+    call, 
+    enqueueJob, 
+    saveRecord, 
+    getRecord, 
+    listJobs, 
+    listRecords, 
+    // New job methods (IgniteZero)
+    listCourseJobs,
+    getCourseJob,
+    requeueJob,
+    deleteJob,
+    getJobMetrics,
+    loading 
+  };
 }

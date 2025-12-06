@@ -217,3 +217,15 @@ verify_jwt = false
 verify_jwt = false
 [functions.get-student-assignments]
 verify_jwt = false
+
+# Job management (IgniteZero migration)
+[functions.list-course-jobs]
+verify_jwt = false
+[functions.get-course-job]
+verify_jwt = false
+[functions.requeue-job]
+verify_jwt = false
+[functions.delete-job]
+verify_jwt = false
+[functions.get-job-metrics]
+verify_jwt = false
