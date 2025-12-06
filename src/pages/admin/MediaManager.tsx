@@ -1,3 +1,7 @@
+/**
+ * MediaManager - IgniteZero compliant
+ * Uses edge functions for storage operations
+ */
 import { useState, useEffect } from "react";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { FolderOpen, Upload, Trash2, Copy, RefreshCw, Image as ImageIcon, Music, Video, File, CheckCircle2, AlertCircle, LogIn, Filter } from "lucide-react";
@@ -11,15 +15,22 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { 
+  listMediaFolders, 
+  listMediaFiles, 
+  deleteMediaFile, 
+  uploadMediaFile,
+  MediaFile 
+} from "@/lib/api/media";
+import { getRole } from "@/lib/roles";
 
 interface FileItem {
   name: string;
   path: string;
   size: number;
   created_at: string;
-  updated_at: string;
+  updated_at?: string;
   type: 'image' | 'audio' | 'video' | 'other';
   publicUrl: string;
 }
@@ -33,16 +44,15 @@ const getFileType = (filename: string): 'image' | 'audio' | 'video' | 'other' =>
 };
 
 const formatFileSize = (bytes: number): string => {
+  if (!bytes) return '0 B';
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 };
 
 export const MediaManager = () => {
-  // Auth state
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [authLoading, setAuthLoading] = useState(true);
+  // Auth state - use role system
+  const isAdmin = getRole() === 'admin';
 
   // Courses state
   const [availableCourses, setAvailableCourses] = useState<Array<{ id: string; title: string }>>([]);
@@ -61,23 +71,12 @@ export const MediaManager = () => {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [fileToDelete, setFileToDelete] = useState<FileItem | null>(null);
 
-  // Check auth on mount
+  // Load courses on mount
   useEffect(() => {
-    checkAuth();
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(() => {
-      checkAuth();
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
-
-  // Load courses when authenticated
-  useEffect(() => {
-    if (isAuthenticated && isAdmin) {
+    if (isAdmin) {
       loadCourses();
     }
-  }, [isAuthenticated, isAdmin]);
+  }, [isAdmin]);
 
   // Load files when course is selected
   useEffect(() => {
@@ -86,62 +85,17 @@ export const MediaManager = () => {
     }
   }, [selectedCourseId]);
 
-  const checkAuth = async () => {
-    setAuthLoading(true);
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-
-      if (!session) {
-        setIsAuthenticated(false);
-        setIsAdmin(false);
-        setAuthLoading(false);
-        return;
-      }
-
-      setIsAuthenticated(true);
-
-      const { data: profile, error } = await supabase
-        .from("profiles")
-        .select("role")
-        .eq("id", session.user.id)
-        .single();
-
-      if (error) {
-        console.error("Error checking admin role:", error);
-        setIsAdmin(false);
-      } else {
-        setIsAdmin(profile?.role === "admin");
-      }
-    } catch (err) {
-      console.error("Auth check error:", err);
-      setIsAuthenticated(false);
-      setIsAdmin(false);
-    } finally {
-      setAuthLoading(false);
-    }
-  };
-
   const loadCourses = async () => {
     try {
-      // List all folders in courses bucket
-      const { data, error } = await supabase.storage
-        .from('courses')
-        .list('', {
-          limit: 100,
-          offset: 0,
-        });
-
-      if (error) throw error;
-
-      // Filter for directories (course folders)
-      const courseFolders = data
-        .filter(item => item.id === null) // Folders have null id
-        .map(folder => ({
-          id: folder.name,
-          title: folder.name,
-        }));
-
-      setAvailableCourses(courseFolders);
+      const response = await listMediaFolders("courses");
+      if (response.ok) {
+        setAvailableCourses(
+          response.folders.map(folder => ({
+            id: folder,
+            title: folder,
+          }))
+        );
+      }
     } catch (err) {
       console.error("Failed to load courses:", err);
       toast.error("Failed to load courses");
@@ -159,42 +113,26 @@ export const MediaManager = () => {
       for (const folder of folders) {
         const path = `${selectedCourseId}/assets/${folder}`;
         
-        const { data, error } = await supabase.storage
-          .from('courses')
-          .list(path, {
-            limit: 100,
-            offset: 0,
-            sortBy: { column: 'created_at', order: 'desc' },
-          });
-
-        if (error && error.message.includes('not found')) {
-          // Folder doesn't exist yet, skip
-          continue;
-        }
-
-        if (error) throw error;
-
-        // Get public URLs and add to list
-        const filesWithUrls = data
-          .filter(file => file.id !== null) // Only files, not folders
-          .map(file => {
-            const fullPath = `${path}/${file.name}`;
-            const { data: urlData } = supabase.storage
-              .from('courses')
-              .getPublicUrl(fullPath);
-
-            return {
+        try {
+          const response = await listMediaFiles(path, "courses");
+          
+          if (response.ok && response.files) {
+            const filesWithTypes = response.files.map(file => ({
               name: file.name,
-              path: fullPath,
-              size: file.metadata?.size || 0,
-              created_at: file.created_at,
-              updated_at: file.updated_at,
+              path: file.path,
+              size: file.size || 0,
+              created_at: file.created_at || '',
+              updated_at: file.created_at || '',
               type: getFileType(file.name),
-              publicUrl: urlData.publicUrl,
-            };
-          });
+              publicUrl: file.public_url || '',
+            }));
 
-        allFiles.push(...filesWithUrls);
+            allFiles.push(...filesWithTypes);
+          }
+        } catch (err) {
+          // Folder might not exist, skip
+          console.warn(`Folder ${path} not found:`, err);
+        }
       }
 
       setFiles(allFiles);
@@ -220,18 +158,14 @@ export const MediaManager = () => {
       const folder = uploadType === 'image' ? 'images' : uploadType === 'audio' ? 'audio' : 'video';
       const path = `${selectedCourseId}/assets/${folder}/${filename}`;
 
-      const { error } = await supabase.storage
-        .from('courses')
-        .upload(path, file, {
-          upsert: true,
-          contentType: file.type,
-          cacheControl: 'public, max-age=31536000',
-        });
+      const result = await uploadMediaFile(path, file, "courses");
 
-      if (error) throw error;
-
-      toast.success("File uploaded successfully");
-      loadFiles(); // Reload file list
+      if (result.ok) {
+        toast.success("File uploaded successfully");
+        loadFiles(); // Reload file list
+      } else {
+        throw new Error("Upload failed");
+      }
     } catch (err) {
       console.error("Upload error:", err);
       toast.error(`Upload failed: ${err instanceof Error ? err.message : 'Unknown error'}`);
@@ -256,14 +190,14 @@ export const MediaManager = () => {
     if (!fileToDelete) return;
 
     try {
-      const { error } = await supabase.storage
-        .from('courses')
-        .remove([fileToDelete.path]);
+      const result = await deleteMediaFile(fileToDelete.path, "courses");
 
-      if (error) throw error;
-
-      toast.success("File deleted successfully");
-      loadFiles(); // Reload file list
+      if (result.ok) {
+        toast.success("File deleted successfully");
+        loadFiles(); // Reload file list
+      } else {
+        throw new Error("Delete failed");
+      }
     } catch (err) {
       console.error("Delete error:", err);
       toast.error(`Delete failed: ${err instanceof Error ? err.message : 'Unknown error'}`);
@@ -286,19 +220,7 @@ export const MediaManager = () => {
     ? files 
     : files.filter(f => f.type === filterType);
 
-  if (authLoading) {
-    return (
-      <PageContainer>
-        <Card>
-          <CardContent className="py-12 text-center">
-            <p className="text-muted-foreground">Loading authentication...</p>
-          </CardContent>
-        </Card>
-      </PageContainer>
-    );
-  }
-
-  if (!isAuthenticated || !isAdmin) {
+  if (!isAdmin) {
     return (
       <PageContainer>
         <Card>
@@ -316,7 +238,7 @@ export const MediaManager = () => {
             <p className="text-muted-foreground mb-4">
               Please sign in with an admin account to continue.
             </p>
-            <Button onClick={() => window.location.href = "/admin"}>
+            <Button onClick={() => window.location.href = "/admin"} data-cta-id="go-to-admin">
               Go to Admin Dashboard
             </Button>
           </CardContent>
@@ -365,7 +287,7 @@ export const MediaManager = () => {
 
               {selectedCourseId && (
                 <div className="flex items-end gap-2">
-                  <Button onClick={loadFiles} disabled={loading} variant="outline">
+                  <Button onClick={loadFiles} disabled={loading} variant="outline" data-cta-id="refresh-files">
                     <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
                     Refresh
                   </Button>
@@ -517,7 +439,7 @@ export const MediaManager = () => {
                               </Badge>
                             </div>
                             <p className="text-xs text-muted-foreground">
-                              {formatFileSize(file.size)} • {new Date(file.created_at).toLocaleDateString()}
+                              {formatFileSize(file.size)} • {file.created_at ? new Date(file.created_at).toLocaleDateString() : 'N/A'}
                             </p>
                           </div>
 
@@ -526,6 +448,7 @@ export const MediaManager = () => {
                               size="sm"
                               variant="outline"
                               onClick={() => handleCopyUrl(file.publicUrl)}
+                              data-cta-id="copy-url"
                             >
                               <Copy className="h-3 w-3 mr-1" />
                               Copy URL
@@ -537,6 +460,7 @@ export const MediaManager = () => {
                                 setFileToDelete(file);
                                 setDeleteDialogOpen(true);
                               }}
+                              data-cta-id="delete-file"
                             >
                               <Trash2 className="h-3 w-3" />
                             </Button>
@@ -572,7 +496,7 @@ export const MediaManager = () => {
               <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>
                 Cancel
               </Button>
-              <Button variant="destructive" onClick={handleDeleteFile}>
+              <Button variant="destructive" onClick={handleDeleteFile} data-cta-id="confirm-delete">
                 <Trash2 className="h-4 w-4 mr-2" />
                 Delete
               </Button>

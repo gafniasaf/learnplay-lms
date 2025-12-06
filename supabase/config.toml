@@ -231,3 +231,5 @@ verify_jwt = false
 verify_jwt = false
 [functions.list-media-jobs]
 verify_jwt = false
+[functions.manage-media]
+verify_jwt = false

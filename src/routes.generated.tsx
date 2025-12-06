@@ -2,9 +2,20 @@
 /**
  * Routes configuration - uses dawn-react-starter pages for UI parity.
  * All menu items from nav.ts are mapped to their corresponding pages.
+ * 
+ * Workspace routes follow IgniteZero Manifest-First pattern:
+ * - /workspace/[entity-slug]/:id for entity editors
+ * - Entity names derived from system-manifest.json
  */
 import React from "react";
 import { Route } from "react-router-dom";
+
+// Workspace Entity Editors (Manifest-First pattern)
+const LearnerProfileEditor = React.lazy(() => import("./pages/workspace/LearnerProfileEditor"));
+const AssignmentEditor = React.lazy(() => import("./pages/workspace/AssignmentEditor"));
+const CourseBlueprintEditor = React.lazy(() => import("./pages/workspace/CourseBlueprintEditor"));
+const MessageThreadEditor = React.lazy(() => import("./pages/workspace/MessageThreadEditor"));
+const JobTicketEditor = React.lazy(() => import("./pages/workspace/JobTicketEditor"));
 
 // Landing page (custom with dawn design + CTAs)
 const Landing = React.lazy(() => import("./pages/generated/pages/landing"));
@@ -141,6 +152,14 @@ export const generatedRouteElements = [
   // Catalog Builder
   <Route key="gen-catalog" path="/catalog-builder" element={<CatalogBuilder />} />,
   <Route key="gen-catalog-media" path="/catalog-builder/media" element={<CatalogBuilderMedia />} />,
+  
+  // Workspace Entity Editors (Manifest-First pattern)
+  // Routes follow pattern: /workspace/[entity-slug]/:id
+  <Route key="ws-learner-profile" path="/workspace/learner-profile/:id" element={<LearnerProfileEditor />} />,
+  <Route key="ws-assignment" path="/workspace/assignment/:id" element={<AssignmentEditor />} />,
+  <Route key="ws-course-blueprint" path="/workspace/course-blueprint/:id" element={<CourseBlueprintEditor />} />,
+  <Route key="ws-message-thread" path="/workspace/message-thread/:id" element={<MessageThreadEditor />} />,
+  <Route key="ws-job-ticket" path="/workspace/job-ticket/:id" element={<JobTicketEditor />} />,
 ];
 
 export const GeneratedRoutes = () => {
