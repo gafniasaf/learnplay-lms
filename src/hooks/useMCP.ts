@@ -144,14 +144,26 @@ export function useMCP() {
     } catch (error: any) {
       // Improve error messages for authentication issues
       if (error?.status === 401 || error?.code === 'UNAUTHORIZED' || (error?.message || '').includes('401')) {
+        // Check if in guest mode
+        const isGuestMode = typeof window !== 'undefined' && (() => {
+          const urlParams = new URLSearchParams(window.location.search);
+          if (urlParams.get('guest') === '1') return true;
+          try { return localStorage.getItem('guestMode') === 'true'; } catch { return false; }
+        })();
+        
         const isLovablePreview = typeof window !== 'undefined' && (
           window.location.hostname.includes('lovable.app') || 
           window.location.hostname.includes('lovableproject.com') ||
           window.location.hostname.includes('lovable')
         );
-        const message = isLovablePreview
-          ? 'Authentication required. Please log in to use this feature in preview environments.'
-          : 'Authentication required. Please log in to enqueue jobs.';
+        
+        let message = 'Authentication required. Please log in to enqueue jobs.';
+        if (isGuestMode) {
+          message = 'Job creation requires a full account. Please sign up or log in to create jobs.';
+        } else if (isLovablePreview) {
+          message = 'Authentication required. Please log in to use this feature in preview environments.';
+        }
+        
         throw new Error(message);
       }
       throw error;
