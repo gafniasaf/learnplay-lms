@@ -31,52 +31,91 @@ async function createAdmin(email: string, password: string, fullName?: string) {
   console.log(`\n🔧 Creating admin account for: ${email}`);
 
   try {
-    // Step 1: Create auth user
-    console.log('📝 Creating auth user...');
-    const { data: authData, error: authError } = await supabase.auth.admin.createUser({
-      email,
-      password,
-      email_confirm: true, // Auto-confirm email
-      user_metadata: {
-        full_name: fullName || 'Admin User',
-      },
-    });
+    // Step 1: Check if user exists, create or get user
+    console.log('📝 Checking for existing user...');
+    const { data: existingUsers } = await supabase.auth.admin.listUsers();
+    const existingUser = existingUsers?.users.find(u => u.email === email);
+    
+    let userId: string;
+    let isNewUser = false;
 
-    if (authError) {
-      // Check if user already exists
-      if (authError.message.includes('already registered') || authError.message.includes('already exists')) {
-        console.log('⚠️  User already exists. Updating to admin role...');
-        
-        // Get existing user by email
-        const { data: existingUsers } = await supabase.auth.admin.listUsers();
-        const existingUser = existingUsers?.users.find(u => u.email === email);
-        
-        if (!existingUser) {
-          throw new Error(`User with email ${email} not found`);
+    if (existingUser) {
+      console.log(`✅ User already exists: ${existingUser.id}`);
+      userId = existingUser.id;
+      
+      // Update password if provided
+      if (password) {
+        console.log('🔑 Updating password...');
+        const { error: updateError } = await supabase.auth.admin.updateUserById(userId, {
+          password: password,
+        });
+        if (updateError) {
+          console.warn('⚠️  Could not update password:', updateError.message);
+        } else {
+          console.log('✅ Password updated');
         }
+      }
+    } else {
+      // Create new user
+      console.log('📝 Creating new auth user...');
+      const { data: authData, error: authError } = await supabase.auth.admin.createUser({
+        email,
+        password,
+        email_confirm: true, // Auto-confirm email
+        user_metadata: {
+          full_name: fullName || 'Admin User',
+        },
+      });
 
-        // Make existing user admin
-        const { error: adminError } = await supabase.rpc('make_user_admin', {
-          user_email: email,
+      if (authError) {
+        throw authError;
+      }
+
+      if (!authData.user) {
+        throw new Error('Failed to create user - no user data returned');
+      }
+
+      userId = authData.user.id;
+      isNewUser = true;
+      console.log(`✅ Auth user created: ${userId}`);
+    }
+
+    // Step 2: Get or create default organization
+    const defaultOrgId = process.env.ORGANIZATION_ID || '4d7b0a5c-3cf1-49e5-9ad7-bf6c1f8a2f58';
+    console.log(`🏢 Checking organization: ${defaultOrgId}...`);
+    
+    // Check if organization exists
+    const { data: orgData, error: orgError } = await supabase
+      .from('organizations')
+      .select('id')
+      .eq('id', defaultOrgId)
+      .single();
+
+    if (orgError && orgError.code !== 'PGRST116') { // PGRST116 = not found
+      console.log('⚠️  Could not check organization, will try to create...');
+    }
+
+    if (!orgData) {
+      // Create default organization if it doesn't exist
+      console.log('📝 Creating default organization...');
+      const { error: createOrgError } = await supabase
+        .from('organizations')
+        .insert({
+          id: defaultOrgId,
+          name: 'Default Organization',
         });
 
-        if (adminError) {
-          throw adminError;
-        }
-
-        console.log(`✅ User ${email} is now an admin!`);
-        return;
+      if (createOrgError) {
+        console.warn('⚠️  Could not create organization:', createOrgError.message);
+        console.warn('   Continuing anyway - you may need to create it manually');
+      } else {
+        console.log('✅ Default organization created');
       }
-      throw authError;
+    } else {
+      console.log('✅ Organization exists');
     }
 
-    if (!authData.user) {
-      throw new Error('Failed to create user - no user data returned');
-    }
-
-    console.log(`✅ Auth user created: ${authData.user.id}`);
-
-    // Step 2: Make user admin
+    // Step 3: Make user admin
     console.log('👑 Setting admin role...');
     const { error: adminError } = await supabase.rpc('make_user_admin', {
       user_email: email,
@@ -103,10 +142,52 @@ async function createAdmin(email: string, password: string, fullName?: string) {
       console.log('✅ Admin role set via RPC');
     }
 
-    console.log(`\n🎉 Admin account created successfully!`);
+    // Step 4: Set organization_id in user metadata
+    console.log('🔗 Linking user to organization...');
+    const { error: metadataError } = await supabase.auth.admin.updateUserById(
+      userId,
+      {
+        app_metadata: {
+          organization_id: defaultOrgId,
+        },
+        user_metadata: {
+          organization_id: defaultOrgId,
+          full_name: fullName || existingUser?.user_metadata?.full_name || 'Admin User',
+        },
+      }
+    );
+
+    if (metadataError) {
+      console.warn('⚠️  Could not set organization_id in metadata:', metadataError.message);
+      console.warn('   You may need to set this manually in Supabase dashboard');
+    } else {
+      console.log('✅ Organization ID set in user metadata');
+    }
+
+    // Step 5: Add user to organization_users table (if it exists)
+    console.log('👥 Adding user to organization_users...');
+    const { error: orgUserError } = await supabase
+      .from('organization_users')
+      .upsert({
+        org_id: defaultOrgId,
+        user_id: userId,
+        org_role: 'school_admin', // Admin role within org
+      }, {
+        onConflict: 'org_id,user_id',
+      });
+
+    if (orgUserError) {
+      console.warn('⚠️  Could not add to organization_users:', orgUserError.message);
+      console.warn('   This table may not exist or have different schema');
+    } else {
+      console.log('✅ User added to organization_users');
+    }
+
+    console.log(`\n🎉 Admin account ${isNewUser ? 'created' : 'updated'} successfully!`);
     console.log(`   Email: ${email}`);
-    console.log(`   User ID: ${authData.user.id}`);
+    console.log(`   User ID: ${userId}`);
     console.log(`   Role: admin`);
+    console.log(`   Organization ID: ${defaultOrgId}`);
     console.log(`\n📝 You can now log in with these credentials.`);
 
   } catch (error) {
