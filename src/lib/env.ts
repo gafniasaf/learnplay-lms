@@ -19,8 +19,21 @@ const DEV_CHANGED_EVENT = 'dev:changed';
 /**
  * Check URL parameters once on boot and update localStorage if override is present
  */
+// Safe localStorage wrapper to handle restricted iframe environments
+const safeStorage = (() => {
+  if (typeof window === 'undefined') return null;
+  try {
+    const testKey = '__env_test__';
+    localStorage.setItem(testKey, 'test');
+    localStorage.removeItem(testKey);
+    return localStorage;
+  } catch {
+    return null;
+  }
+})();
+
 function checkUrlOverride(): void {
-  if (typeof window === 'undefined') return;
+  if (typeof window === 'undefined' || !safeStorage) return;
 
   try {
     const params = new URLSearchParams(window.location.search);
@@ -28,22 +41,20 @@ function checkUrlOverride(): void {
     // Check live mode override
     const liveParam = params.get('live');
     if (liveParam === '1') {
-      // ?live=1 means enable live mode (useMock = false)
-      localStorage.setItem(STORAGE_KEY, 'false');
+      safeStorage.setItem(STORAGE_KEY, 'false');
       console.info('[Env] Runtime override: LIVE mode enabled via URL (?live=1)');
     } else if (liveParam === '0') {
-      // ?live=0 means enable mock mode (useMock = true)
-      localStorage.setItem(STORAGE_KEY, 'true');
+      safeStorage.setItem(STORAGE_KEY, 'true');
       console.info('[Env] Runtime override: MOCK mode enabled via URL (?live=0)');
     }
     
     // Check dev mode override
     const devParam = params.get('dev');
     if (devParam === '1') {
-      localStorage.setItem(DEV_STORAGE_KEY, '1');
+      safeStorage.setItem(DEV_STORAGE_KEY, '1');
       console.info('[Env] Runtime override: DEV mode enabled via URL (?dev=1)');
     } else if (devParam === '0') {
-      localStorage.setItem(DEV_STORAGE_KEY, '0');
+      safeStorage.setItem(DEV_STORAGE_KEY, '0');
       console.info('[Env] Runtime override: DEV mode disabled via URL (?dev=0)');
     }
   } catch (error) {
@@ -75,16 +86,14 @@ export function isLiveMode(): boolean {
     return true;
   }
 
-  try {
-    // Check localStorage override
-    const storedValue = localStorage.getItem(STORAGE_KEY);
+  // Check localStorage override (using safe wrapper)
+  if (safeStorage) {
+    const storedValue = safeStorage.getItem(STORAGE_KEY);
     
     if (storedValue !== null) {
       // localStorage is set: 'false' means live mode ON, 'true' means mock mode ON
       return storedValue === 'false';
     }
-  } catch (error) {
-    console.warn('[Env] Failed to access localStorage:', error);
   }
 
   // Default to mock mode
@@ -112,8 +121,8 @@ export function forceSameOriginPreview(): boolean {
  * Clear any runtime overrides (reset to env default)
  */
 export function clearModeOverride(): void {
-  if (typeof window === 'undefined') return;
-  localStorage.removeItem(STORAGE_KEY);
+  if (typeof window === 'undefined' || !safeStorage) return;
+  safeStorage.removeItem(STORAGE_KEY);
   console.info('[Env] Runtime override cleared, using .env default');
 }
 
@@ -134,12 +143,14 @@ export function isDevEnabled(): boolean {
     return (typeof process !== 'undefined' && (process as any).env?.VITE_ENABLE_DEV === 'true');
   }
 
-  // Check localStorage first
-  const storedValue = localStorage.getItem(DEV_STORAGE_KEY);
-  
-  if (storedValue !== null) {
-    // localStorage is set: "1" means dev enabled, "0" means disabled
-    return storedValue === '1';
+  // Check localStorage first (using safe wrapper)
+  if (safeStorage) {
+    const storedValue = safeStorage.getItem(DEV_STORAGE_KEY);
+    
+    if (storedValue !== null) {
+      // localStorage is set: "1" means dev enabled, "0" means disabled
+      return storedValue === '1';
+    }
   }
 
   // No localStorage override: fall back to env variable
@@ -152,9 +163,9 @@ export function isDevEnabled(): boolean {
  * @param enabled - true to enable dev mode, false to disable
  */
 export function setDevEnabled(enabled: boolean): void {
-  if (typeof window === 'undefined') return;
+  if (typeof window === 'undefined' || !safeStorage) return;
 
-  localStorage.setItem(DEV_STORAGE_KEY, enabled ? '1' : '0');
+  safeStorage.setItem(DEV_STORAGE_KEY, enabled ? '1' : '0');
   
   // Dispatch custom event for listeners
   window.dispatchEvent(new CustomEvent(DEV_CHANGED_EVENT, { detail: enabled }));
@@ -200,7 +211,7 @@ export function onDevChange(fn: (enabled: boolean) => void): () => void {
  */
 export function getEmbedAllowedOrigins(): string[] {
   const envVal = import.meta.env.VITE_EMBED_ALLOWED_ORIGINS as string | undefined;
-  const lsVal = (typeof window !== 'undefined' ? localStorage.getItem("app.embedAllowed") : null) || '';
+  const lsVal = safeStorage?.getItem("app.embedAllowed") || '';
   const raw = envVal || lsVal || '';
   return raw.split(",").map(s => s.trim()).filter(Boolean);
 }
