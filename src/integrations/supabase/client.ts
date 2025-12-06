@@ -13,7 +13,8 @@ const SUPABASE_KEY: string =
   (import.meta as any).env?.VITE_SUPABASE_PUBLISHABLE_KEY ||
   (import.meta as any).env?.VITE_SUPABASE_ANON_KEY ||
   HARDCODED_ANON_KEY;
-const USE_MOCK = String((import.meta as any).env?.VITE_USE_MOCK) === 'true';
+// Default to mock mode unless explicitly set to 'false' to avoid iframe/localStorage issues
+const USE_MOCK = String((import.meta as any).env?.VITE_USE_MOCK) !== 'false';
 
 // In mock mode, short-circuit all Supabase calls to avoid network dependency during E2E.
 const mockSupabase = {
@@ -47,6 +48,25 @@ const mockSupabase = {
   },
 } as any;
 
+// Safe localStorage wrapper to handle restricted iframe environments
+const safeStorage = (() => {
+  try {
+    // Test localStorage access
+    const testKey = '__supabase_test__';
+    localStorage.setItem(testKey, 'test');
+    localStorage.removeItem(testKey);
+    return localStorage;
+  } catch {
+    // Return in-memory fallback if localStorage is blocked
+    const memoryStore: Record<string, string> = {};
+    return {
+      getItem: (key: string) => memoryStore[key] || null,
+      setItem: (key: string, value: string) => { memoryStore[key] = value; },
+      removeItem: (key: string) => { delete memoryStore[key]; },
+    };
+  }
+})();
+
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
 export const supabase = USE_MOCK
@@ -56,7 +76,7 @@ export const supabase = USE_MOCK
       SUPABASE_KEY,
       {
         auth: {
-          storage: localStorage,
+          storage: safeStorage,
           persistSession: true,
           autoRefreshToken: true,
         }
