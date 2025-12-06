@@ -12,15 +12,15 @@ export default defineConfig(({ mode }) => {
     (process.env.SKIP_VERIFY ? 'true' : '');
   
   // Mock mode for E2E testing - allows running tests without network dependencies
-  // VITE_USE_MOCK='false' explicitly enables live mode; VITE_USE_MOCK='true' or '1' enables mock mode
+  // VITE_USE_MOCK='false' explicitly enables live mode; any other value defaults to mock mode
+  // Default to 'true' in preview/production to avoid network dependencies
   const useMockValue = process.env.VITE_USE_MOCK;
   let useMockResult: string;
   if (useMockValue === 'false') {
     useMockResult = 'false'; // Explicit live mode
-  } else if (useMockValue === 'true' || useMockValue === '1') {
-    useMockResult = 'true'; // Explicit mock mode
   } else {
-    useMockResult = ''; // Undefined, let runtime decide
+    // Default to mock mode unless explicitly set to 'false'
+    useMockResult = 'true';
   }
   
   const define = {
