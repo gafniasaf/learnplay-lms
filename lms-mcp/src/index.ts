@@ -1,9 +1,9 @@
 import http from "node:http";
 import { URL, pathToFileURL } from "node:url";
 import path from "node:path";
-import { config } from "./config.js";
-import { callJson } from "./http.js";
-import "./polyfill.js"; // Polyfill Deno for local strategies
+import { config } from "./config.ts";
+import { callJson } from "./http.ts";
+import "./polyfill.ts"; // Polyfill Deno for local strategies
 
 const METHODS = ["lms.health", "lms.enqueueJob", "lms.listJobs", "lms.getJob", "lms.saveRecord", "lms.getRecord", "lms.listRecords"] as const;
 
@@ -128,6 +128,7 @@ async function listJobs(params: any) {
   try {
     return await supabaseFetch(`list-jobs?limit=${limit}`, { 
       method: "GET",
+      headers: { "X-Agent-Token": config.agentToken },
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
@@ -144,7 +145,10 @@ async function getJob(params: any) {
   if (!id || typeof id !== "string") {
     throw new Error("id is required");
   }
-  return supabaseFetch(`get-job?id=${encodeURIComponent(id)}`, { method: "GET" });
+  return supabaseFetch(`get-job?id=${encodeURIComponent(id)}`, { 
+    method: "GET",
+    headers: { "X-Agent-Token": config.agentToken },
+  });
 }
 
 async function saveRecord(params: any) {
@@ -168,7 +172,10 @@ async function getRecord(params: any) {
   const id = params?.id;
   if (!entity || typeof entity !== "string") throw new Error("entity is required");
   if (!id || typeof id !== "string") throw new Error("id is required");
-  return supabaseFetch(`get-record?entity=${entity}&id=${id}`, { method: "GET" });
+  return supabaseFetch(`get-record?entity=${entity}&id=${id}`, { 
+    method: "GET",
+    headers: { "X-Agent-Token": config.agentToken },
+  });
 }
 
 async function listRecords(params: any) {
@@ -189,6 +196,7 @@ function supabaseFetch(path: string, opts: { method?: "GET" | "POST"; headers?: 
   const url = `${config.supabaseUrl}/functions/v1/${normalizedPath}`;
   const headers = {
     apikey: config.supabaseAnonKey,
+    Authorization: `Bearer ${config.supabaseAnonKey}`,
     ...(config.organizationId ? { "X-Organization-Id": config.organizationId } : {}),
     ...(opts.headers || {}),
   };

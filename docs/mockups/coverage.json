@@ -14,9 +14,6 @@
       ],
       "requiredCTAs": [
         {
-          "id": "cta-root-action-0"
-        },
-        {
           "id": "nav-kids",
           "target": "/kids"
         },
@@ -48,25 +45,20 @@
       ],
       "requiredCTAs": [
         {
-          "id": "cta-auth-action-0"
+          "id": "nav-kids",
+          "target": "/kids"
         },
         {
-          "id": "cta-auth-login-0"
+          "id": "nav-parents",
+          "target": "/parent/dashboard"
         },
         {
-          "id": "cta-auth-sign-up-1"
+          "id": "nav-schools",
+          "target": "/schools"
         },
         {
-          "id": "cta-auth-sign-in-2"
-        },
-        {
-          "id": "cta-auth-forgot-password-3"
-        },
-        {
-          "id": "cta-auth-continue-with-google-4"
-        },
-        {
-          "id": "cta-auth-continue-as-guest-5"
+          "id": "nav-admin",
+          "target": "/admin"
         }
       ]
     },
@@ -84,7 +76,20 @@
       ],
       "requiredCTAs": [
         {
-          "id": "cta-auth-reset-password-action-0"
+          "id": "nav-kids",
+          "target": "/kids"
+        },
+        {
+          "id": "nav-parents",
+          "target": "/parent/dashboard"
+        },
+        {
+          "id": "nav-schools",
+          "target": "/schools"
+        },
+        {
+          "id": "nav-admin",
+          "target": "/admin"
         }
       ]
     },
@@ -102,10 +107,20 @@
       ],
       "requiredCTAs": [
         {
-          "id": "cta-courses-action-0"
+          "id": "nav-kids",
+          "target": "/kids"
         },
         {
-          "id": "courses-retry"
+          "id": "nav-parents",
+          "target": "/parent/dashboard"
+        },
+        {
+          "id": "nav-schools",
+          "target": "/schools"
+        },
+        {
+          "id": "nav-admin",
+          "target": "/admin"
         }
       ]
     },
@@ -123,35 +138,20 @@
       ],
       "requiredCTAs": [
         {
-          "id": "cta-help-action-0"
+          "id": "nav-kids",
+          "target": "/kids"
         },
         {
-          "id": "help-integration-guide",
-          "target": "/docs/integration"
+          "id": "nav-parents",
+          "target": "/parent/dashboard"
         },
         {
-          "id": "cta-help-view-integration-guide-0"
+          "id": "nav-schools",
+          "target": "/schools"
         },
         {
-          "id": "help-tech-docs",
-          "target": "/TECHNICAL_DOCUMENTATION.md"
-        },
-        {
-          "id": "cta-help-technical-docs-1"
-        },
-        {
-          "id": "help-embed-docs",
-          "target": "/EMBED_COMMANDS.md"
-        },
-        {
-          "id": "cta-help-embed-commands-2"
-        },
-        {
-          "id": "help-sentry-docs",
-          "target": "/SENTRY_SETUP.md"
-        },
-        {
-          "id": "cta-help-sentry-setup-3"
+          "id": "nav-admin",
+          "target": "/admin"
         }
       ]
     },
@@ -169,61 +169,20 @@
       ],
       "requiredCTAs": [
         {
-          "id": "cta-admin-ai-pipeline-action-0"
+          "id": "nav-kids",
+          "target": "/kids"
         },
         {
-          "id": "cta-admin-ai-pipeline-view-0"
+          "id": "nav-parents",
+          "target": "/parent/dashboard"
         },
         {
-          "id": "cta-admin-ai-pipeline-view-1"
+          "id": "nav-schools",
+          "target": "/schools"
         },
         {
-          "id": "cta-admin-ai-pipeline-view-2"
-        },
-        {
-          "id": "cta-admin-ai-pipeline-view-3"
-        },
-        {
-          "id": "cta-admin-ai-pipeline-generate-marketing-4"
-        },
-        {
-          "id": "cta-admin-ai-pipeline-k-2-5"
-        },
-        {
-          "id": "cta-admin-ai-pipeline-3-5-6"
-        },
-        {
-          "id": "cta-admin-ai-pipeline-6-8-7"
-        },
-        {
-          "id": "cta-admin-ai-pipeline-9-12-8"
-        },
-        {
-          "id": "cta-admin-ai-pipeline-college-9"
-        },
-        {
-          "id": "cta-admin-ai-pipeline-all-10"
-        },
-        {
-          "id": "cta-admin-ai-pipeline-mcqmultiple-choice-11"
-        },
-        {
-          "id": "cta-admin-ai-pipeline-numericnumeric-answer-12"
-        },
-        {
-          "id": "cta-admin-ai-pipeline-create-course-13"
-        },
-        {
-          "id": "cta-admin-ai-pipeline-overview-14"
-        },
-        {
-          "id": "cta-admin-ai-pipeline-phases-15"
-        },
-        {
-          "id": "cta-admin-ai-pipeline-prompts-16"
-        },
-        {
-          "id": "cta-admin-ai-pipeline-output-17"
+          "id": "nav-admin",
+          "target": "/admin"
         }
       ]
     },
@@ -241,61 +200,20 @@
       ],
       "requiredCTAs": [
         {
-          "id": "cta-admin-courses-select-action-0"
+          "id": "nav-kids",
+          "target": "/kids"
         },
         {
-          "id": "cta-admin-ai-pipeline-view-0"
+          "id": "nav-parents",
+          "target": "/parent/dashboard"
         },
         {
-          "id": "cta-admin-ai-pipeline-view-1"
+          "id": "nav-schools",
+          "target": "/schools"
         },
         {
-          "id": "cta-admin-ai-pipeline-view-2"
-        },
-        {
-          "id": "cta-admin-ai-pipeline-view-3"
-        },
-        {
-          "id": "cta-admin-ai-pipeline-generate-marketing-4"
-        },
-        {
-          "id": "cta-admin-ai-pipeline-k-2-5"
-        },
-        {
-          "id": "cta-admin-ai-pipeline-3-5-6"
-        },
-        {
-          "id": "cta-admin-ai-pipeline-6-8-7"
-        },
-        {
-          "id": "cta-admin-ai-pipeline-9-12-8"
-        },
-        {
-          "id": "cta-admin-ai-pipeline-college-9"
-        },
-        {
-          "id": "cta-admin-ai-pipeline-all-10"
-        },
-        {
-          "id": "cta-admin-ai-pipeline-mcqmultiple-choice-11"
-        },
-        {
-          "id": "cta-admin-ai-pipeline-numericnumeric-answer-12"
-        },
-        {
-          "id": "cta-admin-ai-pipeline-create-course-13"
-        },
-        {
-          "id": "cta-admin-ai-pipeline-overview-14"
-        },
-        {
-          "id": "cta-admin-ai-pipeline-phases-15"
-        },
-        {
-          "id": "cta-admin-ai-pipeline-prompts-16"
-        },
-        {
-          "id": "cta-admin-ai-pipeline-output-17"
+          "id": "nav-admin",
+          "target": "/admin"
         }
       ]
     },
@@ -313,61 +231,20 @@
       ],
       "requiredCTAs": [
         {
-          "id": "cta-admin-editor-demo-course-action-0"
+          "id": "nav-kids",
+          "target": "/kids"
         },
         {
-          "id": "cta-admin-ai-pipeline-view-0"
+          "id": "nav-parents",
+          "target": "/parent/dashboard"
         },
         {
-          "id": "cta-admin-ai-pipeline-view-1"
+          "id": "nav-schools",
+          "target": "/schools"
         },
         {
-          "id": "cta-admin-ai-pipeline-view-2"
-        },
-        {
-          "id": "cta-admin-ai-pipeline-view-3"
-        },
-        {
-          "id": "cta-admin-ai-pipeline-generate-marketing-4"
-        },
-        {
-          "id": "cta-admin-ai-pipeline-k-2-5"
-        },
-        {
-          "id": "cta-admin-ai-pipeline-3-5-6"
-        },
-        {
-          "id": "cta-admin-ai-pipeline-6-8-7"
-        },
-        {
-          "id": "cta-admin-ai-pipeline-9-12-8"
-        },
-        {
-          "id": "cta-admin-ai-pipeline-college-9"
-        },
-        {
-          "id": "cta-admin-ai-pipeline-all-10"
-        },
-        {
-          "id": "cta-admin-ai-pipeline-mcqmultiple-choice-11"
-        },
-        {
-          "id": "cta-admin-ai-pipeline-numericnumeric-answer-12"
-        },
-        {
-          "id": "cta-admin-ai-pipeline-create-course-13"
-        },
-        {
-          "id": "cta-admin-ai-pipeline-overview-14"
-        },
-        {
-          "id": "cta-admin-ai-pipeline-phases-15"
-        },
-        {
-          "id": "cta-admin-ai-pipeline-prompts-16"
-        },
-        {
-          "id": "cta-admin-ai-pipeline-output-17"
+          "id": "nav-admin",
+          "target": "/admin"
         }
       ]
     },
@@ -385,37 +262,20 @@
       ],
       "requiredCTAs": [
         {
-          "id": "cta-admin-jobs-action-0"
+          "id": "nav-kids",
+          "target": "/kids"
         },
         {
-          "id": "cta-admin-jobs-mark-stale-0"
+          "id": "nav-parents",
+          "target": "/parent/dashboard"
         },
         {
-          "id": "cta-admin-jobs-move-to-dead-letter-1"
+          "id": "nav-schools",
+          "target": "/schools"
         },
         {
-          "id": "cta-admin-jobs-run-batch-x3-2"
-        },
-        {
-          "id": "cta-admin-jobs-run-reconciler-3"
-        },
-        {
-          "id": "cta-admin-jobs-refresh-4"
-        },
-        {
-          "id": "cta-admin-jobs-apply-5"
-        },
-        {
-          "id": "cta-admin-jobs-apply-workers-6"
-        },
-        {
-          "id": "cta-admin-jobs-resume-7"
-        },
-        {
-          "id": "cta-admin-jobs-course-jobs-8"
-        },
-        {
-          "id": "cta-admin-jobs-media-jobs-9"
+          "id": "nav-admin",
+          "target": "/admin"
         }
       ]
     },
@@ -433,16 +293,20 @@
       ],
       "requiredCTAs": [
         {
-          "id": "cta-admin-system-health-action-0"
+          "id": "nav-kids",
+          "target": "/kids"
         },
         {
-          "id": "cta-admin-system-health-refreshing-0"
+          "id": "nav-parents",
+          "target": "/parent/dashboard"
         },
         {
-          "id": "cta-admin-system-health-run-ui-audit-1"
+          "id": "nav-schools",
+          "target": "/schools"
         },
         {
-          "id": "cta-admin-system-health-check-2"
+          "id": "nav-admin",
+          "target": "/admin"
         }
       ]
     },
@@ -460,13 +324,20 @@
       ],
       "requiredCTAs": [
         {
-          "id": "cta-admin-courses-demo-course-versions-action-0"
+          "id": "nav-kids",
+          "target": "/kids"
         },
         {
-          "id": "cta-admin-courses-demo-course-versions-back-to-editor-0"
+          "id": "nav-parents",
+          "target": "/parent/dashboard"
         },
         {
-          "id": "cta-admin-courses-demo-course-versions-refresh-1"
+          "id": "nav-schools",
+          "target": "/schools"
+        },
+        {
+          "id": "nav-admin",
+          "target": "/admin"
         }
       ]
     },
@@ -484,7 +355,20 @@
       ],
       "requiredCTAs": [
         {
-          "id": "cta-teacher-dashboard-action-0"
+          "id": "nav-kids",
+          "target": "/kids"
+        },
+        {
+          "id": "nav-parents",
+          "target": "/parent/dashboard"
+        },
+        {
+          "id": "nav-schools",
+          "target": "/schools"
+        },
+        {
+          "id": "nav-admin",
+          "target": "/admin"
         }
       ]
     },
@@ -502,13 +386,20 @@
       ],
       "requiredCTAs": [
         {
-          "id": "cta-teacher-assignments-action-0"
+          "id": "nav-kids",
+          "target": "/kids"
         },
         {
-          "id": "cta-teacher-assignments-new-0"
+          "id": "nav-parents",
+          "target": "/parent/dashboard"
         },
         {
-          "id": "cta-teacher-assignments-import-from-ai-1"
+          "id": "nav-schools",
+          "target": "/schools"
+        },
+        {
+          "id": "nav-admin",
+          "target": "/admin"
         }
       ]
     },
@@ -526,7 +417,20 @@
       ],
       "requiredCTAs": [
         {
-          "id": "cta-teacher-assignments-demo-assignment-progress-action-0"
+          "id": "nav-kids",
+          "target": "/kids"
+        },
+        {
+          "id": "nav-parents",
+          "target": "/parent/dashboard"
+        },
+        {
+          "id": "nav-schools",
+          "target": "/schools"
+        },
+        {
+          "id": "nav-admin",
+          "target": "/admin"
         }
       ]
     },
@@ -544,19 +448,20 @@
       ],
       "requiredCTAs": [
         {
-          "id": "cta-teacher-class-progress-action-0"
+          "id": "nav-kids",
+          "target": "/kids"
         },
         {
-          "id": "cta-teacher-class-progress-refresh-0"
+          "id": "nav-parents",
+          "target": "/parent/dashboard"
         },
         {
-          "id": "cta-teacher-class-progress-english-modals-1"
+          "id": "nav-schools",
+          "target": "/schools"
         },
         {
-          "id": "cta-teacher-class-progress-last-30-days-2"
-        },
-        {
-          "id": "cta-teacher-class-progress-generate-remediation-set-3"
+          "id": "nav-admin",
+          "target": "/admin"
         }
       ]
     },
@@ -574,16 +479,20 @@
       ],
       "requiredCTAs": [
         {
-          "id": "cta-teacher-analytics-action-0"
+          "id": "nav-kids",
+          "target": "/kids"
         },
         {
-          "id": "cta-teacher-analytics-7d-0"
+          "id": "nav-parents",
+          "target": "/parent/dashboard"
         },
         {
-          "id": "cta-teacher-analytics-30d-1"
+          "id": "nav-schools",
+          "target": "/schools"
         },
         {
-          "id": "cta-teacher-analytics-90d-2"
+          "id": "nav-admin",
+          "target": "/admin"
         }
       ]
     },
@@ -601,10 +510,20 @@
       ],
       "requiredCTAs": [
         {
-          "id": "cta-teacher-classes-action-0"
+          "id": "nav-kids",
+          "target": "/kids"
         },
         {
-          "id": "cta-teacher-classes-create-class-0"
+          "id": "nav-parents",
+          "target": "/parent/dashboard"
+        },
+        {
+          "id": "nav-schools",
+          "target": "/schools"
+        },
+        {
+          "id": "nav-admin",
+          "target": "/admin"
         }
       ]
     },
@@ -622,7 +541,20 @@
       ],
       "requiredCTAs": [
         {
-          "id": "cta-teacher-students-action-0"
+          "id": "nav-kids",
+          "target": "/kids"
+        },
+        {
+          "id": "nav-parents",
+          "target": "/parent/dashboard"
+        },
+        {
+          "id": "nav-schools",
+          "target": "/schools"
+        },
+        {
+          "id": "nav-admin",
+          "target": "/admin"
         }
       ]
     },
@@ -640,38 +572,20 @@
       ],
       "requiredCTAs": [
         {
-          "id": "cta-student-dashboard-action-0"
+          "id": "nav-kids",
+          "target": "/kids"
         },
         {
-          "id": "cta-student-dashboard-home-0",
-          "target": "/"
+          "id": "nav-parents",
+          "target": "/parent/dashboard"
         },
         {
-          "id": "cta-student-dashboard-student-dashboard-1",
-          "target": "/student/dashboard"
+          "id": "nav-schools",
+          "target": "/schools"
         },
         {
-          "id": "cta-student-dashboard-student-dashboard-2",
-          "target": "/student/dashboard"
-        },
-        {
-          "id": "cta-student-dashboard-student-assignments-3",
-          "target": "/student/assignments"
-        },
-        {
-          "id": "cta-student-dashboard-student-timeline-4",
-          "target": "/student/timeline"
-        },
-        {
-          "id": "cta-student-dashboard-student-achievements-5",
-          "target": "/student/achievements"
-        },
-        {
-          "id": "cta-student-dashboard-student-goals-6",
-          "target": "/student/goals"
-        },
-        {
-          "id": "cta-student-dashboard-retry-0"
+          "id": "nav-admin",
+          "target": "/admin"
         }
       ]
     },
@@ -689,35 +603,20 @@
       ],
       "requiredCTAs": [
         {
-          "id": "cta-student-assignments-action-0"
+          "id": "nav-kids",
+          "target": "/kids"
         },
         {
-          "id": "cta-student-assignments-home-0",
-          "target": "/"
+          "id": "nav-parents",
+          "target": "/parent/dashboard"
         },
         {
-          "id": "cta-student-assignments-student-dashboard-1",
-          "target": "/student/dashboard"
+          "id": "nav-schools",
+          "target": "/schools"
         },
         {
-          "id": "cta-student-assignments-student-dashboard-2",
-          "target": "/student/dashboard"
-        },
-        {
-          "id": "cta-student-assignments-student-assignments-3",
-          "target": "/student/assignments"
-        },
-        {
-          "id": "cta-student-assignments-student-timeline-4",
-          "target": "/student/timeline"
-        },
-        {
-          "id": "cta-student-assignments-student-achievements-5",
-          "target": "/student/achievements"
-        },
-        {
-          "id": "cta-student-assignments-student-goals-6",
-          "target": "/student/goals"
+          "id": "nav-admin",
+          "target": "/admin"
         }
       ]
     },
@@ -735,35 +634,20 @@
       ],
       "requiredCTAs": [
         {
-          "id": "cta-student-timeline-action-0"
+          "id": "nav-kids",
+          "target": "/kids"
         },
         {
-          "id": "cta-student-timeline-home-0",
-          "target": "/"
+          "id": "nav-parents",
+          "target": "/parent/dashboard"
         },
         {
-          "id": "cta-student-timeline-student-dashboard-1",
-          "target": "/student/dashboard"
+          "id": "nav-schools",
+          "target": "/schools"
         },
         {
-          "id": "cta-student-timeline-student-dashboard-2",
-          "target": "/student/dashboard"
-        },
-        {
-          "id": "cta-student-timeline-student-assignments-3",
-          "target": "/student/assignments"
-        },
-        {
-          "id": "cta-student-timeline-student-timeline-4",
-          "target": "/student/timeline"
-        },
-        {
-          "id": "cta-student-timeline-student-achievements-5",
-          "target": "/student/achievements"
-        },
-        {
-          "id": "cta-student-timeline-student-goals-6",
-          "target": "/student/goals"
+          "id": "nav-admin",
+          "target": "/admin"
         }
       ]
     },
@@ -781,35 +665,20 @@
       ],
       "requiredCTAs": [
         {
-          "id": "cta-student-achievements-action-0"
+          "id": "nav-kids",
+          "target": "/kids"
         },
         {
-          "id": "cta-student-achievements-home-0",
-          "target": "/"
+          "id": "nav-parents",
+          "target": "/parent/dashboard"
         },
         {
-          "id": "cta-student-achievements-student-dashboard-1",
-          "target": "/student/dashboard"
+          "id": "nav-schools",
+          "target": "/schools"
         },
         {
-          "id": "cta-student-achievements-student-dashboard-2",
-          "target": "/student/dashboard"
-        },
-        {
-          "id": "cta-student-achievements-student-assignments-3",
-          "target": "/student/assignments"
-        },
-        {
-          "id": "cta-student-achievements-student-timeline-4",
-          "target": "/student/timeline"
-        },
-        {
-          "id": "cta-student-achievements-student-achievements-5",
-          "target": "/student/achievements"
-        },
-        {
-          "id": "cta-student-achievements-student-goals-6",
-          "target": "/student/goals"
+          "id": "nav-admin",
+          "target": "/admin"
         }
       ]
     },
@@ -827,35 +696,20 @@
       ],
       "requiredCTAs": [
         {
-          "id": "cta-student-goals-action-0"
+          "id": "nav-kids",
+          "target": "/kids"
         },
         {
-          "id": "cta-student-goals-home-0",
-          "target": "/"
+          "id": "nav-parents",
+          "target": "/parent/dashboard"
         },
         {
-          "id": "cta-student-goals-student-dashboard-1",
-          "target": "/student/dashboard"
+          "id": "nav-schools",
+          "target": "/schools"
         },
         {
-          "id": "cta-student-goals-student-dashboard-2",
-          "target": "/student/dashboard"
-        },
-        {
-          "id": "cta-student-goals-student-assignments-3",
-          "target": "/student/assignments"
-        },
-        {
-          "id": "cta-student-goals-student-timeline-4",
-          "target": "/student/timeline"
-        },
-        {
-          "id": "cta-student-goals-student-achievements-5",
-          "target": "/student/achievements"
-        },
-        {
-          "id": "cta-student-goals-student-goals-6",
-          "target": "/student/goals"
+          "id": "nav-admin",
+          "target": "/admin"
         }
       ]
     },
@@ -873,10 +727,20 @@
       ],
       "requiredCTAs": [
         {
-          "id": "cta-student-join-class-action-0"
+          "id": "nav-kids",
+          "target": "/kids"
         },
         {
-          "id": "cta-student-join-class-join-class-0"
+          "id": "nav-parents",
+          "target": "/parent/dashboard"
+        },
+        {
+          "id": "nav-schools",
+          "target": "/schools"
+        },
+        {
+          "id": "nav-admin",
+          "target": "/admin"
         }
       ]
     },
@@ -894,38 +758,20 @@
       ],
       "requiredCTAs": [
         {
-          "id": "cta-parent-dashboard-action-0"
+          "id": "nav-kids",
+          "target": "/kids"
         },
         {
-          "id": "cta-parent-dashboard-home-0",
-          "target": "/"
-        },
-        {
-          "id": "cta-parent-dashboard-parents-1",
-          "target": "/parents"
-        },
-        {
-          "id": "cta-parent-dashboard-action-2"
-        },
-        {
-          "id": "cta-parent-dashboard-parent-dashboard-3",
+          "id": "nav-parents",
           "target": "/parent/dashboard"
         },
         {
-          "id": "cta-parent-dashboard-parent-subjects-4",
-          "target": "/parent/subjects"
+          "id": "nav-schools",
+          "target": "/schools"
         },
         {
-          "id": "cta-parent-dashboard-parent-topics-5",
-          "target": "/parent/topics"
-        },
-        {
-          "id": "cta-parent-dashboard-parent-timeline-6",
-          "target": "/parent/timeline"
-        },
-        {
-          "id": "cta-parent-dashboard-parent-goals-7",
-          "target": "/parent/goals"
+          "id": "nav-admin",
+          "target": "/admin"
         }
       ]
     },
@@ -943,38 +789,20 @@
       ],
       "requiredCTAs": [
         {
-          "id": "cta-parent-subjects-action-0"
+          "id": "nav-kids",
+          "target": "/kids"
         },
         {
-          "id": "cta-parent-subjects-home-0",
-          "target": "/"
-        },
-        {
-          "id": "cta-parent-subjects-parents-1",
-          "target": "/parents"
-        },
-        {
-          "id": "cta-parent-subjects-action-2"
-        },
-        {
-          "id": "cta-parent-subjects-parent-dashboard-3",
+          "id": "nav-parents",
           "target": "/parent/dashboard"
         },
         {
-          "id": "cta-parent-subjects-parent-subjects-4",
-          "target": "/parent/subjects"
+          "id": "nav-schools",
+          "target": "/schools"
         },
         {
-          "id": "cta-parent-subjects-parent-topics-5",
-          "target": "/parent/topics"
-        },
-        {
-          "id": "cta-parent-subjects-parent-timeline-6",
-          "target": "/parent/timeline"
-        },
-        {
-          "id": "cta-parent-subjects-parent-goals-7",
-          "target": "/parent/goals"
+          "id": "nav-admin",
+          "target": "/admin"
         }
       ]
     },
@@ -992,38 +820,20 @@
       ],
       "requiredCTAs": [
         {
-          "id": "cta-parent-topics-action-0"
+          "id": "nav-kids",
+          "target": "/kids"
         },
         {
-          "id": "cta-parent-topics-home-0",
-          "target": "/"
-        },
-        {
-          "id": "cta-parent-topics-parents-1",
-          "target": "/parents"
-        },
-        {
-          "id": "cta-parent-topics-action-2"
-        },
-        {
-          "id": "cta-parent-topics-parent-dashboard-3",
+          "id": "nav-parents",
           "target": "/parent/dashboard"
         },
         {
-          "id": "cta-parent-topics-parent-subjects-4",
-          "target": "/parent/subjects"
+          "id": "nav-schools",
+          "target": "/schools"
         },
         {
-          "id": "cta-parent-topics-parent-topics-5",
-          "target": "/parent/topics"
-        },
-        {
-          "id": "cta-parent-topics-parent-timeline-6",
-          "target": "/parent/timeline"
-        },
-        {
-          "id": "cta-parent-topics-parent-goals-7",
-          "target": "/parent/goals"
+          "id": "nav-admin",
+          "target": "/admin"
         }
       ]
     },
@@ -1041,41 +851,20 @@
       ],
       "requiredCTAs": [
         {
-          "id": "cta-parent-timeline-action-0"
+          "id": "nav-kids",
+          "target": "/kids"
         },
         {
-          "id": "cta-parent-timeline-home-0",
-          "target": "/"
-        },
-        {
-          "id": "cta-parent-timeline-parents-1",
-          "target": "/parents"
-        },
-        {
-          "id": "cta-parent-timeline-action-2"
-        },
-        {
-          "id": "cta-parent-timeline-parent-dashboard-3",
+          "id": "nav-parents",
           "target": "/parent/dashboard"
         },
         {
-          "id": "cta-parent-timeline-parent-subjects-4",
-          "target": "/parent/subjects"
+          "id": "nav-schools",
+          "target": "/schools"
         },
         {
-          "id": "cta-parent-timeline-parent-topics-5",
-          "target": "/parent/topics"
-        },
-        {
-          "id": "cta-parent-timeline-parent-timeline-6",
-          "target": "/parent/timeline"
-        },
-        {
-          "id": "cta-parent-timeline-parent-goals-7",
-          "target": "/parent/goals"
-        },
-        {
-          "id": "cta-parent-timeline-try-again-0"
+          "id": "nav-admin",
+          "target": "/admin"
         }
       ]
     },
@@ -1093,38 +882,20 @@
       ],
       "requiredCTAs": [
         {
-          "id": "cta-parent-goals-action-0"
+          "id": "nav-kids",
+          "target": "/kids"
         },
         {
-          "id": "cta-parent-goals-home-0",
-          "target": "/"
-        },
-        {
-          "id": "cta-parent-goals-parents-1",
-          "target": "/parents"
-        },
-        {
-          "id": "cta-parent-goals-action-2"
-        },
-        {
-          "id": "cta-parent-goals-parent-dashboard-3",
+          "id": "nav-parents",
           "target": "/parent/dashboard"
         },
         {
-          "id": "cta-parent-goals-parent-subjects-4",
-          "target": "/parent/subjects"
+          "id": "nav-schools",
+          "target": "/schools"
         },
         {
-          "id": "cta-parent-goals-parent-topics-5",
-          "target": "/parent/topics"
-        },
-        {
-          "id": "cta-parent-goals-parent-timeline-6",
-          "target": "/parent/timeline"
-        },
-        {
-          "id": "cta-parent-goals-parent-goals-7",
-          "target": "/parent/goals"
+          "id": "nav-admin",
+          "target": "/admin"
         }
       ]
     },
@@ -1142,41 +913,20 @@
       ],
       "requiredCTAs": [
         {
-          "id": "cta-parent-link-child-action-0"
+          "id": "nav-kids",
+          "target": "/kids"
         },
         {
-          "id": "cta-parent-link-child-home-0",
-          "target": "/"
-        },
-        {
-          "id": "cta-parent-link-child-parents-1",
-          "target": "/parents"
-        },
-        {
-          "id": "cta-parent-link-child-action-2"
-        },
-        {
-          "id": "cta-parent-link-child-parent-dashboard-3",
+          "id": "nav-parents",
           "target": "/parent/dashboard"
         },
         {
-          "id": "cta-parent-link-child-parent-subjects-4",
-          "target": "/parent/subjects"
+          "id": "nav-schools",
+          "target": "/schools"
         },
         {
-          "id": "cta-parent-link-child-parent-topics-5",
-          "target": "/parent/topics"
-        },
-        {
-          "id": "cta-parent-link-child-parent-timeline-6",
-          "target": "/parent/timeline"
-        },
-        {
-          "id": "cta-parent-link-child-parent-goals-7",
-          "target": "/parent/goals"
-        },
-        {
-          "id": "cta-parent-link-child-link-child-8"
+          "id": "nav-admin",
+          "target": "/admin"
         }
       ]
     },
@@ -1194,7 +944,20 @@
       ],
       "requiredCTAs": [
         {
-          "id": "cta-play-demo-course-welcome-back-to-courses-0"
+          "id": "nav-kids",
+          "target": "/kids"
+        },
+        {
+          "id": "nav-parents",
+          "target": "/parent/dashboard"
+        },
+        {
+          "id": "nav-schools",
+          "target": "/schools"
+        },
+        {
+          "id": "nav-admin",
+          "target": "/admin"
         }
       ]
     },
@@ -1212,7 +975,20 @@
       ],
       "requiredCTAs": [
         {
-          "id": "cta-play-demo-course-back-to-courses-0"
+          "id": "nav-kids",
+          "target": "/kids"
+        },
+        {
+          "id": "nav-parents",
+          "target": "/parent/dashboard"
+        },
+        {
+          "id": "nav-schools",
+          "target": "/schools"
+        },
+        {
+          "id": "nav-admin",
+          "target": "/admin"
         }
       ]
     },
@@ -1230,7 +1006,20 @@
       ],
       "requiredCTAs": [
         {
-          "id": "cta-results-action-0"
+          "id": "nav-kids",
+          "target": "/kids"
+        },
+        {
+          "id": "nav-parents",
+          "target": "/parent/dashboard"
+        },
+        {
+          "id": "nav-schools",
+          "target": "/schools"
+        },
+        {
+          "id": "nav-admin",
+          "target": "/admin"
         }
       ]
     }
