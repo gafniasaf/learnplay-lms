@@ -286,11 +286,11 @@ export default function ParentDashboard() {
               </p>
             </div>
             <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm" onClick={() => navigate("/parent/children")}>
+              <Button variant="outline" size="sm" onClick={() => navigate("/parent/children")} data-cta-id="parent-link-child">
                 <UserPlus className="h-4 w-4 mr-2" />
                 Link Child
               </Button>
-              <Button variant="default" size="sm" onClick={() => navigate("/parent/messages")}>
+              <Button variant="default" size="sm" onClick={() => navigate("/parent/messages")} data-cta-id="parent-messages">
                 <Mail className="h-4 w-4 mr-2" />
                 Messages
               </Button>

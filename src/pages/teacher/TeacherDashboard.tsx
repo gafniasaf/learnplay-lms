@@ -186,23 +186,23 @@ const TeacherDashboard = () => {
             </div>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" onClick={() => navigate("/teacher/students")} size="lg">
+            <Button variant="outline" onClick={() => navigate("/teacher/students")} size="lg" data-cta-id="teacher-students">
               <UserCheck className="h-5 w-5 mr-2" />
               Students
             </Button>
-            <Button variant="outline" onClick={() => navigate("/teacher/classes")} size="lg">
+            <Button variant="outline" onClick={() => navigate("/teacher/classes")} size="lg" data-cta-id="teacher-classes">
               <Users className="h-5 w-5 mr-2" />
               Classes
             </Button>
-            <Button variant="outline" onClick={() => navigate("/teacher/analytics")} size="lg">
+            <Button variant="outline" onClick={() => navigate("/teacher/analytics")} size="lg" data-cta-id="teacher-analytics">
               <BarChart3 className="h-5 w-5 mr-2" />
               Analytics
             </Button>
-            <Button variant="outline" onClick={() => navigate("/messages")} size="lg">
+            <Button variant="outline" onClick={() => navigate("/messages")} size="lg" data-cta-id="teacher-messages">
               <Mail className="h-5 w-5 mr-2" />
               Messages
             </Button>
-            <Button variant="outline" onClick={() => navigate("/teacher/assignments")} size="lg">
+            <Button variant="outline" onClick={() => navigate("/teacher/assignments")} size="lg" data-cta-id="teacher-assignments">
               <List className="h-5 w-5 mr-2" />
               All Assignments
             </Button>

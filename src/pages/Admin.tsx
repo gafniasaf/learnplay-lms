@@ -171,13 +171,13 @@ const Admin = () => {
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-2xl font-bold">Course Catalog</h2>
             <div className="flex gap-2">
-              <Link to="/admin/courses/author">
+              <Link to="/admin/courses/author" data-cta-id="admin-ai-author">
                 <Button variant="outline">
                   <Wand2 className="h-4 w-4 mr-2" />
                   AI Course Author
                 </Button>
               </Link>
-              <Button onClick={() => setShowAddModal(true)}>
+              <Button onClick={() => setShowAddModal(true)} data-cta-id="admin-add-course">
                 <Plus className="h-4 w-4 mr-2" />
                 Add Course
               </Button>
@@ -219,7 +219,7 @@ const Admin = () => {
                 </div>
 
                 <div className="flex items-center gap-2">
-                  <Link to={`/admin/courses/ai?edit=${course.id}`} aria-label={`Edit Course ${course.title}`}>
+                  <Link to={`/admin/courses/ai?edit=${course.id}`} aria-label={`Edit Course ${course.title}`} data-cta-id="admin-edit-course">
                     <Button variant="ghost" size="sm" title="Edit Course">
                       <Pencil className="h-4 w-4" />
                     </Button>
@@ -228,6 +228,7 @@ const Admin = () => {
                     variant="ghost"
                     size="sm"
                     onClick={() => handleDeleteCourse(course.id)}
+                    data-cta-id="admin-delete-course"
                   >
                     <Trash2 className="h-4 w-4 text-destructive" />
                   </Button>
