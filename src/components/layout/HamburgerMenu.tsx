@@ -57,7 +57,7 @@ export const HamburgerMenu = () => {
     }
   };
 
-  const [openSections, setOpenSections] = useState<string[]>(getInitialOpenSections);
+  const [openSections, setOpenSections] = useState<string[]>(getInitialOpenSections());
 
   // Handle accordion changes with announcements
   const handleAccordionChange = (newSections: string[]) => {
