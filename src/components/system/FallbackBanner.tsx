@@ -1,10 +1,24 @@
 import { useEffect, useState } from "react";
 import { callEdgeFunctionGet } from "@/lib/api/common";
 
+/**
+ * Check if running in Lovable preview environment
+ */
+function isLovablePreview(): boolean {
+  if (typeof window === 'undefined') return false;
+  return window.location.hostname.includes('lovable.app');
+}
+
 export function FallbackBanner() {
   const [unavailable, setUnavailable] = useState(false);
 
   useEffect(() => {
+    // Skip MCP proxy check in Lovable preview environments (CORS issues)
+    if (isLovablePreview()) {
+      setUnavailable(true);
+      return;
+    }
+
     let cancelled = false;
     (async () => {
       try {

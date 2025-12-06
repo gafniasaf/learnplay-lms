@@ -4,12 +4,26 @@ import { useMCP } from '@/hooks/useMCP';
 
 type Summary = { ok: boolean; summary: Record<string, { count: number; errorRate: number; p50: number; p95: number; p99: number }> };
 
+/**
+ * Check if running in Lovable preview environment
+ */
+function isLovablePreview(): boolean {
+  if (typeof window === 'undefined') return false;
+  return window.location.hostname.includes('lovable.app');
+}
+
 export default function Metrics() {
   const [data, setData] = useState<Summary | null>(null);
   const [error, setError] = useState<string | null>(null);
   const mcp = useMCP();
 
   useEffect(() => {
+    // Skip metrics call in Lovable preview (mcp-metrics-proxy not deployed/CORS issues)
+    if (isLovablePreview()) {
+      setError('Metrics service unavailable in preview environments. Use production deployment for full metrics.');
+      return;
+    }
+
     (async () => {
       try {
         const json = await mcp.callGet<Summary>('lms.mcpMetricsProxy', { type: 'summary' });
