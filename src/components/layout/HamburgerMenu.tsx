@@ -121,7 +121,13 @@ export const HamburgerMenu = () => {
   // Handle mode toggle (LIVE/MOCK)
   const handleModeToggle = () => {
     const newMode = isLive ? 'MOCK' : 'LIVE';
-    localStorage.setItem('useMock', isLive ? 'true' : 'false');
+    const newLiveParam = isLive ? '0' : '1';
+    
+    try {
+      localStorage.setItem('useMock', isLive ? 'true' : 'false');
+    } catch {
+      // localStorage blocked (iframe) - will use URL param below
+    }
     
     setModeAnnouncement(`Mode changed to ${newMode}`);
     
@@ -131,8 +137,10 @@ export const HamburgerMenu = () => {
       duration: 2000,
     });
     
-    // Reload to apply mode change
-    setTimeout(() => window.location.reload(), 500);
+    // Reload with URL param to ensure mode is applied (works in iframe too)
+    const url = new URL(window.location.href);
+    url.searchParams.set('live', newLiveParam);
+    setTimeout(() => { window.location.href = url.toString(); }, 500);
   };
 
   // Handle role change from dropdown

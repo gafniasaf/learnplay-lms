@@ -14,8 +14,8 @@ const SUPABASE_KEY: string =
   (import.meta as any).env?.VITE_SUPABASE_PUBLISHABLE_KEY ||
   (import.meta as any).env?.VITE_SUPABASE_ANON_KEY ||
   HARDCODED_ANON_KEY;
-// Default to mock mode unless explicitly set to 'false' to avoid iframe/localStorage issues
-const USE_MOCK = String((import.meta as any).env?.VITE_USE_MOCK) !== 'false';
+// Default to LIVE mode for production (Lovable). Only use mock when explicitly set to 'true'
+const USE_MOCK = String((import.meta as any).env?.VITE_USE_MOCK) === 'true';
 
 // In mock mode, short-circuit all Supabase calls to avoid network dependency during E2E.
 const mockSupabase = {
