@@ -207,7 +207,7 @@ const Help = () => {
                 <p className="text-muted-foreground mb-3">
                   Complete documentation for integrating with the platform, including authentication, roles, embed API, edge endpoints, and caching strategies.
                 </p>
-                <Link to="/docs/integration">
+                <Link to="/docs/integration" data-cta-id="help-integration-guide">
                   <Button variant="outline" size="sm">
                     <FileText className="h-4 w-4 mr-2" />
                     View Integration Guide
@@ -223,19 +223,19 @@ const Help = () => {
                   Detailed technical specifications, database schema, API contracts, and development guidelines.
                 </p>
                 <div className="flex flex-wrap gap-2">
-                  <a href="/TECHNICAL_DOCUMENTATION.md" target="_blank" rel="noopener noreferrer">
+                  <a href="/TECHNICAL_DOCUMENTATION.md" target="_blank" rel="noopener noreferrer" data-cta-id="help-tech-docs">
                     <Button variant="outline" size="sm">
                       <FileText className="h-4 w-4 mr-2" />
                       Technical Docs
                     </Button>
                   </a>
-                  <a href="/EMBED_COMMANDS.md" target="_blank" rel="noopener noreferrer">
+                  <a href="/EMBED_COMMANDS.md" target="_blank" rel="noopener noreferrer" data-cta-id="help-embed-docs">
                     <Button variant="outline" size="sm">
                       <FileText className="h-4 w-4 mr-2" />
                       Embed Commands
                     </Button>
                   </a>
-                  <a href="/SENTRY_SETUP.md" target="_blank" rel="noopener noreferrer">
+                  <a href="/SENTRY_SETUP.md" target="_blank" rel="noopener noreferrer" data-cta-id="help-sentry-docs">
                     <Button variant="outline" size="sm">
                       <FileText className="h-4 w-4 mr-2" />
                       Sentry Setup

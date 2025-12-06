@@ -277,7 +277,7 @@ const Courses = () => {
         <div className="text-center py-12">
           <h2 className="text-2xl font-bold mb-2">Error Loading Courses</h2>
           <p className="text-muted-foreground mb-6">{error}</p>
-          <Button onClick={loadCatalog}>
+          <Button onClick={loadCatalog} data-cta-id="courses-retry">
             <RefreshCw className="h-4 w-4 mr-2" />
             Try Again
           </Button>
@@ -307,6 +307,7 @@ const Courses = () => {
                   onClick={() => {
                     setSearchParams({});
                   }}
+                  data-cta-id="courses-clear-filter"
                 >
                   <X className="h-4 w-4 mr-1" />
                   Clear Filter
@@ -351,6 +352,7 @@ const Courses = () => {
               className="shrink-0"
               title="Refresh catalog - Check for newly uploaded courses"
               aria-label="Refresh catalog to check for newly uploaded courses"
+              data-cta-id="courses-refresh"
             >
               <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
             </Button>
