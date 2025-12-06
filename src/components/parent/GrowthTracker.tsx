@@ -16,6 +16,9 @@ import { useState } from "react";
 import type { DomainGrowthSummary } from "@/lib/types/knowledgeMap";
 import { BrowseAllSkills } from "@/components/student/BrowseAllSkills";
 
+// Mock mode controlled by env var per IgniteZero rules
+const ENV_USE_MOCK = (import.meta as any).env?.VITE_USE_MOCK === 'true';
+
 interface GrowthTrackerProps {
   studentId: string;
   /**
@@ -28,7 +31,7 @@ interface GrowthTrackerProps {
   hasTeacher?: boolean;
   teacherName?: string;
   /**
-   * Mock data mode
+   * Mock data mode - defaults to env var VITE_USE_MOCK
    */
   useMockData?: boolean;
 }
@@ -54,7 +57,7 @@ export function GrowthTracker({
   onAssignPractice,
   hasTeacher = false,
   teacherName,
-  useMockData = true,
+  useMockData = ENV_USE_MOCK,
 }: GrowthTrackerProps) {
   const [showBrowseAll, setShowBrowseAll] = useState(false);
 

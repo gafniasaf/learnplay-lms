@@ -230,19 +230,17 @@ export function validateEnv(): void {
     (import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string | undefined) ||
     (import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined);
 
-  // Check if we're using hardcoded fallbacks from client.ts
-  const hasHardcodedFallback = true; // client.ts has hardcoded credentials
-
-  if (liveMode && !hasHardcodedFallback) {
+  // Per IgniteZero rules: No hardcoded credentials - env vars are REQUIRED in live mode
+  if (liveMode) {
     if (!supabaseUrl) {
-      errors.push("VITE_SUPABASE_URL is required");
+      errors.push("VITE_SUPABASE_URL is required (no hardcoded fallback per IgniteZero rules)");
     }
     if (!supabaseKey) {
       errors.push("Supabase public key is required (VITE_SUPABASE_PUBLISHABLE_KEY or VITE_SUPABASE_ANON_KEY)");
     }
   } else if (!supabaseUrl || !supabaseKey) {
     console.warn(
-      "[Env] Running with hardcoded fallbacks or mock mode; validation softened."
+      "[Env] Running in mock mode (VITE_USE_MOCK=true); Supabase credentials not required."
     );
   }
   

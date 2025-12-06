@@ -33,6 +33,9 @@ import {
 import { useState } from "react";
 import type { AutoAssignSettings, AutoAssignFrequency, AssignmentWithDetails } from "@/lib/types/knowledgeMap";
 
+// Mock mode controlled by env var per IgniteZero rules
+const ENV_USE_MOCK = (import.meta as any).env?.VITE_USE_MOCK === 'true';
+
 interface AutoAssignSettingsProps {
   studentId: string;
   /**
@@ -52,7 +55,7 @@ interface AutoAssignSettingsProps {
    */
   onSave?: (settings: AutoAssignSettings) => void;
   /**
-   * Mock data mode
+   * Mock data mode - defaults to env var VITE_USE_MOCK
    */
   useMockData?: boolean;
 }
@@ -79,7 +82,7 @@ export function AutoAssignSettings({
   isOpen,
   onClose,
   onSave,
-  useMockData = true,
+  useMockData = ENV_USE_MOCK,
 }: AutoAssignSettingsProps) {
   // TODO: Replace with API call when service layer is ready
   const currentSettings = useMockData ? getMockSettings(studentId) : getDefaultSettings(studentId);

@@ -7,13 +7,16 @@ import { Link } from "react-router-dom";
 import type { KnowledgeObjective, RecommendedCourse } from "@/lib/types/knowledgeMap";
 import { getRecommendedCoursesForKO, MOCK_KNOWLEDGE_OBJECTIVES } from "@/lib/mocks/knowledgeMockData";
 
+// Mock mode controlled by env var per IgniteZero rules
+const ENV_USE_MOCK = (import.meta as any).env?.VITE_USE_MOCK === 'true';
+
 interface RecommendedCoursesModalProps {
   isOpen: boolean;
   onClose: () => void;
   koId: string;
   studentId: string;
   /**
-   * Mock data mode
+   * Mock data mode - defaults to env var VITE_USE_MOCK
    */
   useMockData?: boolean;
 }
@@ -40,7 +43,7 @@ export function RecommendedCoursesModal({
   onClose,
   koId,
   studentId,
-  useMockData = true,
+  useMockData = ENV_USE_MOCK,
 }: RecommendedCoursesModalProps) {
   // TODO: Replace with API call when service layer is ready (Task 13)
   const { ko, courses } = useMockData

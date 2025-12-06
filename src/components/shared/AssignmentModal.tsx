@@ -30,6 +30,9 @@ import type {
 } from "@/lib/types/knowledgeMap";
 import { MOCK_KNOWLEDGE_OBJECTIVES } from "@/lib/mocks/knowledgeMockData";
 
+// Mock mode controlled by env var per IgniteZero rules
+const ENV_USE_MOCK = (import.meta as any).env?.VITE_USE_MOCK === 'true';
+
 interface AssignmentModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -48,7 +51,7 @@ interface AssignmentModalProps {
    */
   onCreateAssignment?: (data: AssignmentCreationData) => void;
   /**
-   * Mock data mode
+   * Mock data mode - defaults to env var VITE_USE_MOCK
    */
   useMockData?: boolean;
 }
@@ -89,7 +92,7 @@ export function AssignmentModal({
   assignerRole,
   contextId,
   onCreateAssignment,
-  useMockData = true,
+  useMockData = ENV_USE_MOCK,
 }: AssignmentModalProps) {
   // Mode selection
   const [mode, setMode] = useState<AssignmentMode>("manual");

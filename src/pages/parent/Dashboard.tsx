@@ -311,7 +311,6 @@ export default function ParentDashboard() {
               onAssignPractice={handleAssignPractice}
               hasTeacher={hasTeacher}
               teacherName={hasTeacher ? teacherName : undefined}
-              useMockData={true}
             />
           )}
 
@@ -475,7 +474,6 @@ export default function ParentDashboard() {
             assignerRole="parent"
             contextId={primaryStudentId}
             onCreateAssignment={handleKOAssignmentCreated}
-            useMockData={true}
           />
         )}
       </ParentLayout>

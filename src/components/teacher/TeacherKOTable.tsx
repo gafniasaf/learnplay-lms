@@ -17,6 +17,9 @@ import {
 } from "lucide-react";
 import type { ClassKOSummary } from "@/lib/types/knowledgeMap";
 
+// Mock mode controlled by env var per IgniteZero rules
+const ENV_USE_MOCK = (import.meta as any).env?.VITE_USE_MOCK === 'true';
+
 interface TeacherKOTableProps {
   isOpen: boolean;
   onClose: () => void;
@@ -26,7 +29,7 @@ interface TeacherKOTableProps {
    */
   onAssignKO?: (koId: string) => void;
   /**
-   * Mock data mode
+   * Mock data mode - defaults to env var VITE_USE_MOCK
    */
   useMockData?: boolean;
 }
@@ -51,7 +54,7 @@ export function TeacherKOTable({
   onClose,
   classId,
   onAssignKO,
-  useMockData = true,
+  useMockData = ENV_USE_MOCK,
 }: TeacherKOTableProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [sortField, setSortField] = useState<SortField>("struggling");

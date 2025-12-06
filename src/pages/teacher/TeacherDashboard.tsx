@@ -253,7 +253,6 @@ const TeacherDashboard = () => {
             classId="class-1"
             onCreateAssignment={handleAssignKO}
             onViewAll={() => setShowKOTableModal(true)}
-            useMockData={true}
           />
 
           {/* Remediation CTA */}
@@ -402,7 +401,6 @@ const TeacherDashboard = () => {
           onClose={() => setShowKOTableModal(false)}
           classId="class-1"
           onAssignKO={handleAssignKO}
-          useMockData={true}
         />
 
         {showKOAssignmentModal && selectedKOId && (
@@ -417,7 +415,6 @@ const TeacherDashboard = () => {
             assignerRole="teacher"
             contextId="class-1"
             onCreateAssignment={handleKOAssignmentCreated}
-            useMockData={true}
           />
         )}
       </div>

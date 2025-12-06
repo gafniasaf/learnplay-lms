@@ -6,6 +6,9 @@ import { Users, AlertTriangle, Target, TrendingUp, Plus, List } from "lucide-rea
 import type { ClassKOSummary } from "@/lib/types/knowledgeMap";
 import { useState } from "react";
 
+// Mock mode controlled by env var per IgniteZero rules
+const ENV_USE_MOCK = (import.meta as any).env?.VITE_USE_MOCK === 'true';
+
 interface ClassFocusWidgetProps {
   classId: string;
   /**
@@ -17,7 +20,7 @@ interface ClassFocusWidgetProps {
    */
   onViewAll?: () => void;
   /**
-   * Mock data mode
+   * Mock data mode - defaults to env var VITE_USE_MOCK
    */
   useMockData?: boolean;
 }
@@ -43,7 +46,7 @@ export function ClassFocusWidget({
   classId,
   onCreateAssignment,
   onViewAll,
-  useMockData = true,
+  useMockData = ENV_USE_MOCK,
 }: ClassFocusWidgetProps) {
   // TODO: Replace with useClassKOSummary hook when created (Task 14)
   const summary = useMockData ? getMockClassKOSummary(classId) : null;

@@ -228,12 +228,12 @@ export default function StudentDashboard() {
           </div>
 
           {/* Row 3: Knowledge Map Assignments (if any) */}
-          <StudentAssignments studentId={studentId} useMockData={true} />
+          <StudentAssignments studentId={studentId} />
 
           {/* Row 4: Continue + Skills Focus */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <ContinueCard continuePoint={continuePoint} />
-            <SkillCards studentId={studentId} useMockData={true} />
+            <SkillCards studentId={studentId} />
           </div>
 
           {/* Row 5: Recent Sessions + Achievements */}
