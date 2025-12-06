@@ -3,7 +3,8 @@ import {
   Mail, Shield, Wrench, BarChart, ClipboardList, UserPlus, Link2,
   Award, Activity, FlaskConical, Sparkles, FileText, CheckCircle,
   Stethoscope, Cpu, Database, Workflow, FolderOpen, Edit, MessageSquare,
-  ListChecks, LayoutDashboard, Clock, Target, LucideIcon
+  ListChecks, LayoutDashboard, Clock, Target, LucideIcon,
+  ScrollText, Tags, CheckSquare
 } from "lucide-react";
 
 const iconMap: Record<string, LucideIcon> = {
@@ -38,6 +39,9 @@ const iconMap: Record<string, LucideIcon> = {
   LayoutDashboard,
   Clock,
   Target,
+  ScrollText,
+  Tags,
+  CheckSquare,
 };
 
 export function getIcon(iconName?: string): LucideIcon | null {

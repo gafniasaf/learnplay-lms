@@ -25,7 +25,8 @@
   --gen-radius: 0.5rem;
 }
 
-body {
+/* Golden Plan Generator page styles - scoped to .gpg-layout */
+.gpg-layout {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   background: var(--gen-background);
   color: var(--gen-foreground);
@@ -56,8 +57,8 @@ body {
   background: #3f3f46;
 }
 
-/* Override default wrapper */
-.p-6 {
+/* Override default wrapper - scoped to gpg pages */
+.gpg-layout .p-6 {
   padding: 0 !important;
   max-width: none !important;
   height: 100vh;
