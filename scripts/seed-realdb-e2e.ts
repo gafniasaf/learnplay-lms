@@ -19,8 +19,15 @@ function envOrThrow(name: string, alt?: string) {
 
 async function run() {
   const url = envOrThrow('SUPABASE_URL', 'VITE_SUPABASE_URL');
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY ?? process.env.SUPABASE_ANON_KEY ?? process.env.VITE_SUPABASE_PUBLISHABLE_KEY;
-  if (!key) throw new Error('Missing env: SUPABASE_SERVICE_ROLE_KEY (preferred). Fallback anon/publishable key may fail due to RLS.');
+  // Per NO-FALLBACK POLICY: Try alternatives but fail explicitly if none found
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const anonKey = process.env.SUPABASE_ANON_KEY;
+  const publishableKey = process.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+  
+  const key = serviceKey || anonKey || publishableKey;
+  if (!key) {
+    throw new Error('❌ Missing env: SUPABASE_SERVICE_ROLE_KEY (preferred), SUPABASE_ANON_KEY, or VITE_SUPABASE_PUBLISHABLE_KEY. At least one is required.');
+  }
 
   const supabase = createClient(url, key);
 

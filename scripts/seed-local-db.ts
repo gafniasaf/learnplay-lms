@@ -14,9 +14,18 @@ if (fs.existsSync(envPath)) {
   }
 }
 
-const SUPABASE_URL = process.env.SUPABASE_URL || 'http://127.0.0.1:54321';
-// Try the default local secret first
-const JWT_SECRET = process.env.SUPABASE_JWT_SECRET || 'super-secret-jwt-token-with-at-least-32-characters-long'; 
+const SUPABASE_URL = process.env.SUPABASE_URL;
+if (!SUPABASE_URL) {
+  console.error('❌ SUPABASE_URL is REQUIRED - set env var before running');
+  process.exit(1);
+}
+
+const JWT_SECRET = process.env.SUPABASE_JWT_SECRET;
+if (!JWT_SECRET) {
+  console.error('❌ SUPABASE_JWT_SECRET is REQUIRED - set env var before running');
+  console.error('   For local dev, use the JWT secret from your Supabase local setup');
+  process.exit(1);
+} 
 
 // Helper to sign JWT (HS256) without extra deps
 function signJwt(payload: any, secret: string) {

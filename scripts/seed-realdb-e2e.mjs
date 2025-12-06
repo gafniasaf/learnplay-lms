@@ -21,7 +21,12 @@ async function run() {
   const supabase = createClient(url, key);
 
   // Resolve a test user to assign as created_by for RLS visibility
-  const ownerEmail = process.env.E2E_EMAIL || 'admin@demo.academy';
+  const ownerEmail = process.env.E2E_EMAIL;
+  if (!ownerEmail) {
+    console.error('❌ E2E_EMAIL is REQUIRED - set env var before running');
+    console.error('   Example: E2E_EMAIL=admin@demo.academy');
+    process.exit(1);
+  }
   let ownerId = null;
   try {
     const { data: users, error: listErr } = await supabase.auth.admin.listUsers({ page: 1, perPage: 1000 });

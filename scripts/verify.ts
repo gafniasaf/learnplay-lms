@@ -1,83 +1,10 @@
 import { execSync } from 'child_process';
 import fs from 'fs';
+import { glob } from 'glob';
 
 if (process.env.SKIP_VERIFY === '1') {
   console.log("⚠️  SKIP_VERIFY=1 — skipping verify script (used for local e2e builds).");
   process.exit(0);
-}
-
-// Hardcoded Supabase edge URL + anon key (same project as frontend)
-const SUPABASE_URL =
-  process.env.SUPABASE_URL ||
-  'https://xlslksprdjsxawvcikfk.supabase.co';
-const SUPABASE_ANON_KEY =
-  process.env.SUPABASE_ANON_KEY ||
-  process.env.VITE_SUPABASE_PUBLISHABLE_KEY ||
-  process.env.VITE_SUPABASE_ANON_KEY ||
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inhsc2xrc3ByZGpzeGF3dmNpa2ZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM3MTMxMzEsImV4cCI6MjA3OTI4OTEzMX0.1Jo8F2o42z_K7PXeHrEp28AwbomBkrrOJh1_t3vU0iM';
-
-async function verifyArchitectAdvisorDecodeJson() {
-  const url = `${SUPABASE_URL}/functions/v1/architect-advisor`;
-
-  console.log("🧪 Verifying architect-advisor decode JSON contract...");
-
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      apikey: SUPABASE_ANON_KEY,
-      Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
-    } as any,
-    body: JSON.stringify({
-      mode: 'decode',
-      prompt: 'Test blueprint: minimal smoke check to ensure strict JSON output.',
-      manifest: {},
-    }),
-  });
-
-  const data: any = await response.json();
-
-  if (!response.ok) {
-    throw new Error(
-      `architect-advisor HTTP ${response.status}: ${JSON.stringify(data)}`,
-    );
-  }
-
-  if (data?.error) {
-    throw new Error(`architect-advisor error: ${data.error}`);
-  }
-
-  const raw = data?.result;
-  if (typeof raw !== 'string') {
-    throw new Error(
-      `architect-advisor decode result is not a string. Received: ${typeof raw}`,
-    );
-  }
-
-  try {
-    const parsed = JSON.parse(raw);
-
-    if (typeof parsed !== 'object' || parsed === null) {
-      throw new Error(
-        'architect-advisor decode JSON is not an object. Likely malformed shape.',
-      );
-    }
-
-    // Best-effort shape sanity checks (non-fatal if missing)
-    if (!('project_name' in parsed) || !('steps' in parsed)) {
-      console.warn(
-        '⚠️ architect-advisor decode JSON parsed, but missing expected keys (project_name/steps).',
-      );
-    }
-  } catch (err: any) {
-    const preview =
-      raw.length > 120 ? `${raw.substring(0, 120)}…` : raw;
-    throw new Error(
-      `Regression Detected: architect-advisor decode output is not valid JSON. Likely returned Markdown.\nReceived: ${preview}\nInner error: ${err?.message || String(err)}`,
-    );
-  }
-
-  console.log("✅ architect-advisor decode JSON contract verified");
 }
 
 async function main() {
@@ -94,35 +21,88 @@ async function main() {
   }
   console.log("✅ Contracts Present");
 
-  // 2. Type Safety Check (The Iron Gate)
+  // 2. Fallback Pattern Detection (NO-FALLBACK POLICY)
+  console.log("🛡️ Checking for forbidden fallback patterns...");
+  const checkFile = (filePath: string): string[] => {
+    const violations: string[] = [];
+    const content = fs.readFileSync(filePath, 'utf-8');
+    const lines = content.split('\n');
+    
+    // Check for multi-line alternative env var patterns (VAR1 ||\n  VAR2)
+    const fullContent = content.replace(/\r/g, '');
+    const multiLineAltPattern = /process\.env\.\w+\s*\|\|\s*\n\s*process\.env\.\w+/;
+    const hasMultiLineAlt = multiLineAltPattern.test(fullContent);
+    
+    lines.forEach((line: string, index: number) => {
+      // Per ABSOLUTE NO-FALLBACK POLICY: Only documented feature flags are exceptions
+      // Check for process.env.* || or process.env.* ??
+      const fallbackMatch = line.match(/process\.env\.\w+\s*(?:\|\||\?\?)/);
+      if (fallbackMatch) {
+        // Skip comments
+        const codePart = line.split('//')[0].split('*')[0].trim();
+        if (codePart.includes('process.env')) {
+          // Check if this is a documented feature flag (explicit check with logging)
+          const isFeatureFlag = line.includes('VITE_USE_MOCK') || 
+                               line.includes('VITE_ALLOW_MOCK_FALLBACK') ||
+                               (line.includes('console.warn') && line.includes('MOCK'));
+          
+          // Allow alternative env var checks (VAR1 || VAR2) - these try multiple env vars
+          // but should still fail if none are set (checked elsewhere in code)
+          const isAlternativeEnvVar = /process\.env\.\w+\s*\|\|\s*process\.env\.\w+/.test(codePart);
+          
+          // Check if this line is part of a multi-line alternative pattern
+          const isPartOfMultiLineAlt = hasMultiLineAlt && 
+            (line.includes('process.env') && line.includes('||')) &&
+            (index > 0 && lines[index - 1]?.includes('process.env')) ||
+            (index < lines.length - 1 && lines[index + 1]?.includes('process.env'));
+          
+          if (!isFeatureFlag && !isAlternativeEnvVar && !isPartOfMultiLineAlt) {
+            violations.push(`${filePath}:${index + 1}: ${line.trim()}`);
+          }
+        }
+      }
+    });
+    
+    return violations;
+  };
+  
+  const violations: string[] = [];
+  const files = [
+    ...glob.sync('src/**/*.{ts,tsx}', { ignore: ['**/*.test.ts', '**/*.spec.ts', '**/node_modules/**'] }),
+    ...glob.sync('scripts/**/*.{ts,js,mjs}', { ignore: ['**/*.test.*', '**/*.spec.*', '**/node_modules/**'] }),
+    ...glob.sync('supabase/functions/**/*.ts', { ignore: ['**/*.test.ts', '**/*.spec.ts', '**/node_modules/**'] }),
+  ];
+  
+  files.forEach((file: string) => {
+    if (file.includes('jest.setup.ts')) return;
+    violations.push(...checkFile(file));
+  });
+  
+  if (violations.length > 0) {
+    console.error("❌ FORBIDDEN FALLBACK PATTERNS DETECTED:");
+    violations.forEach(v => console.error(`   ${v}`));
+    throw new Error("Found forbidden fallback patterns. See ABSOLUTE NO-FALLBACK POLICY in docs/AI_CONTEXT.md");
+  }
+  console.log("✅ NO FORBIDDEN FALLBACKS DETECTED");
+
+  // 3. Type Safety Check (The Iron Gate)
   console.log("🛠️ Running Typecheck...");
   execSync('npm run typecheck', { stdio: 'inherit' });
   console.log("✅ TYPECHECK PASSED");
 
-  // 3. Unit Tests
+  // 4. Unit Tests
   console.log("🧪 Running Unit Tests...");
   execSync('npm run test', { stdio: 'inherit' });
   console.log("✅ UNIT TESTS PASSED");
 
-  // 4. Architect Advisor – Decode Mode strict JSON contract (Archived in _FACTORY)
-  // await verifyArchitectAdvisorDecodeJson();
-
-  // 5. Architect API contract tests (multi-mode) (Archived in _FACTORY)
-  console.log("🧪 [Archived] Skipping Architect Advisor API contracts...");
-  // execSync('npx tsx tests/integration/architect-contract.spec.ts', { stdio: 'inherit' });
-
-  // 6. Mockup auto-tune suite (Archived in _FACTORY)
-  console.log("🧪 [Archived] Skipping Mockup Auto-Tune suite...");
-  // execSync('npm run tune:auto', { stdio: 'inherit' });
-
-  // 7. Universal E2E Check (file presence)
+  // 5. Universal E2E Check (file presence)
   if (fs.existsSync('tests/e2e/universal-smoke.spec.ts')) {
      console.log("✅ Universal E2E Test Present");
   } else {
      console.warn("⚠️ Universal E2E Test MISSING");
   }
 
-  // 7b. ALL CTAs E2E Test Check (MANDATORY)
+  // 6. ALL CTAs E2E Test Check (MANDATORY)
   if (fs.existsSync('tests/e2e/all-ctas.spec.ts')) {
      console.log("✅ All CTAs E2E Test Present");
      
@@ -139,7 +119,7 @@ async function main() {
      throw new Error("❌ ALL CTAs E2E Test MISSING (tests/e2e/all-ctas.spec.ts). Golden Plan requires 100% CTA coverage.");
   }
 
-  // 7c. Mock Coverage Validation
+  // 7. Mock Coverage Validation
   if (fs.existsSync('scripts/validate-mockups.ts')) {
      console.log("🧪 Running Mock Coverage Validation...");
      try {

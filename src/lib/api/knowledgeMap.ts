@@ -83,7 +83,6 @@ export async function getStudentSkills(
     return getStudentSkillsMock(params);
   }
 
-  // TODO: Call edge function
   const { data, error } = await supabase.functions.invoke('get-student-skills', {
     body: params,
   });
@@ -140,7 +139,6 @@ export async function getDomainGrowth(
     return getDomainGrowthMock(params);
   }
 
-  // TODO: Call edge function
   const { data, error } = await supabase.functions.invoke('get-domain-growth', {
     body: params,
   });
@@ -209,7 +207,6 @@ export async function getClassKOSummary(
     return getClassKOSummaryMock(params);
   }
 
-  // TODO: Call edge function
   const { data, error } = await supabase.functions.invoke('get-class-ko-summary', {
     body: params,
   });
@@ -257,7 +254,7 @@ function getClassKOSummaryMock(params: GetClassKOSummaryParams): ClassKOSummary[
     });
   });
 
-  let summaries = Array.from(koMap.values());
+  const summaries = Array.from(koMap.values());
 
   // Sort
   summaries.sort((a, b) => {
@@ -294,7 +291,6 @@ export async function getRecommendedCourses(
     return getRecommendedCoursesMock(params);
   }
 
-  // TODO: Call edge function
   const { data, error } = await supabase.functions.invoke('get-recommended-courses', {
     body: params,
   });
@@ -325,7 +321,6 @@ export async function getStudentAssignments(
     return getStudentAssignmentsMock(params);
   }
 
-  // TODO: Call edge function
   const { data, error } = await supabase.functions.invoke('get-student-assignments', {
     body: params,
   });
@@ -373,7 +368,6 @@ export async function createAssignment(
     return createAssignmentMock(params);
   }
 
-  // TODO: Call edge function
   const { data, error } = await supabase.functions.invoke('create-assignment', {
     body: params,
   });
@@ -420,7 +414,6 @@ export async function updateMastery(
     return updateMasteryMock(params);
   }
 
-  // TODO: Call edge function
   const { data, error } = await supabase.functions.invoke('update-mastery', {
     body: params,
   });
@@ -477,7 +470,6 @@ export async function checkCompletion(
     return checkCompletionMock(params);
   }
 
-  // TODO: Call edge function
   const { data, error } = await supabase.functions.invoke('check-assignment-completion', {
     body: params,
   });
@@ -527,7 +519,6 @@ export async function getAutoAssignSettings(
     return getAutoAssignSettingsMock(params);
   }
 
-  // TODO: Call edge function
   const { data, error } = await supabase.functions.invoke('get-auto-assign-settings', {
     body: params,
   });
@@ -569,7 +560,6 @@ export async function updateAutoAssignSettings(
     return updateAutoAssignSettingsMock(params);
   }
 
-  // TODO: Call edge function
   const { data, error } = await supabase.functions.invoke('update-auto-assign-settings', {
     body: params,
   });
@@ -624,7 +614,6 @@ export async function getAIRecommendation(
     return getAIRecommendationMock(params);
   }
 
-  // TODO: Call edge function
   const { data, error } = await supabase.functions.invoke('ai-recommend-assignment', {
     body: params,
   });

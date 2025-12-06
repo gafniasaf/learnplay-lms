@@ -22,8 +22,8 @@ This script will:
 **Once setup is complete:**
 
 1. **Ignite:** Run `npm run dev:up` to start the full stack.
-2. **Build:** Open `http://localhost:5173/architect`.
-3. **Describe:** Define your system in the Architect Console.
+2. **Build:** Open `http://localhost:5173/`.
+3. **Describe:** Use the workspace UI to define your system.
 
 ## 🧠 Local Dev Workflow
 
@@ -165,11 +165,7 @@ ALLOWED_ORIGINS=https://yourapp.lovable.app  # CORS
   supabase secrets set SERVICE_ROLE_KEY=your_service_role_key
   ```
   (Use `SUPABASE_SERVICE_ROLE_KEY` if running locally; the preflight script checks both env names.)
-- Architect LLM model: by default we call `gpt-4o`. Override via `ARCHITECT_LLM_MODEL` (or `OPENAI_MODEL`) if you have access to a newer tier (e.g., `gpt-5.1-high-fast`):
-  ```bash
-  supabase secrets set ARCHITECT_LLM_MODEL=gpt-5.1-high-fast
-  ```
-- Crucible artifacts: `npm run test:architect` writes failing cases to `artifacts/architect-crucible/<id>.json`. Clean the folder between runs if desired.
+- (Architect legacy removed: no architect-specific models or artifacts required.)
 - PLAN.md cloud copy: the download button also uploads the plan to Supabase Storage. Configure bucket (default `plans`) by ensuring it exists + public, or override via `VITE_PLAN_BUCKET`. Share the generated link with Cursor so it can fetch PLAN.md directly.
 - If the bucket is missing, run `npm run storage:setup` (wraps `supabase storage create-bucket plans --public --if-not-exists`). You can copy/paste this command into Cursor’s shell if you prefer.
 - Cursor handoff helper: On the Execution step, use “Copy Cursor Instructions” to grab a ready-to-paste message (includes the public PLAN.md link when available). Share that text in Cursor so it immediately downloads the right plan file.
@@ -177,7 +173,7 @@ ALLOWED_ORIGINS=https://yourapp.lovable.app  # CORS
 - PowerShell installer: Fetch `/install-factory.ps1` after logging in, then run it with the signed link that `/setup` shows you:  
   `.\install-factory.ps1 -ReleaseUrl "<signed-url>"`. The script still installs Git, Node, Docker Desktop, Supabase CLI, etc.
 - Publish a fresh ZIP at any time with `npm run release:publish`. The script `git archive`s the repo, uploads it to the `releases` bucket via the Supabase CLI, cleans up the local ZIP, updates `.env.local`, and rewrites `/install-factory.ps1` with the latest download link. Make sure `supabase login` / `supabase link` are configured first.
-- Access control: `/architect`, `/setup`, and `/my-app` are now protected routes. Users must sign in via Supabase Auth before accessing the Architect console, secure download links, or stored plans/logs.
+- Access control: `/setup` and `/my-app` are protected routes. Users must sign in via Supabase Auth before accessing secure download links or stored plans/logs.
 
 For more help, see [Troubleshooting Guide](https://docs.lovable.dev/tips-tricks/troubleshooting).
 

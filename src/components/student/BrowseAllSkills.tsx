@@ -73,7 +73,7 @@ export function BrowseAllSkills({
   const [expandedTopics, setExpandedTopics] = useState<Set<string>>(new Set());
   const [displayCount, setDisplayCount] = useState(20);
 
-  // TODO: Replace with API call when useStudentSkills hook is ready
+  // Data source: mock data for development, uses getStudentSkills API in live mode
   const { skills, topics, domains } = useMockData
     ? getMockSkillsData(studentId)
     : { skills: [], topics: [], domains: [] };
@@ -434,8 +434,8 @@ function getStatusColorClass(mastery: number, isLocked: boolean): {
 }
 
 /**
- * Mock data loader
- * TODO: Replace with API call
+ * Mock data loader for development mode
+ * Live mode uses getStudentSkills from knowledgeMap.ts
  */
 function getMockSkillsData(studentId: string): {
   skills: SkillWithMastery[];

@@ -1,18 +1,28 @@
 import "dotenv/config";
 import { createClient } from "@supabase/supabase-js";
 
-const SUPABASE_URL =
-  process.env.VITE_SUPABASE_URL || "https://xlslksprdjsxawvcikfk.supabase.co";
-const SUPABASE_ANON_KEY = process.env.VITE_SUPABASE_ANON_KEY;
-const AGENT_TOKEN = process.env.AGENT_TOKEN || "";
-const ORGANIZATION_ID = process.env.ORGANIZATION_ID || "";
-
-if (!SUPABASE_ANON_KEY) {
-  console.error("VITE_SUPABASE_ANON_KEY env var required");
+// Per NO-FALLBACK POLICY: Fail if required env vars are missing
+const SUPABASE_URL = process.env.VITE_SUPABASE_URL;
+if (!SUPABASE_URL) {
+  console.error("❌ VITE_SUPABASE_URL is REQUIRED");
   process.exit(1);
 }
-if (!AGENT_TOKEN || !ORGANIZATION_ID) {
-  console.error("AGENT_TOKEN and ORGANIZATION_ID env vars are required");
+
+const SUPABASE_ANON_KEY = process.env.VITE_SUPABASE_ANON_KEY;
+if (!SUPABASE_ANON_KEY) {
+  console.error("❌ VITE_SUPABASE_ANON_KEY is REQUIRED");
+  process.exit(1);
+}
+
+const AGENT_TOKEN = process.env.AGENT_TOKEN;
+if (!AGENT_TOKEN) {
+  console.error("❌ AGENT_TOKEN is REQUIRED");
+  process.exit(1);
+}
+
+const ORGANIZATION_ID = process.env.ORGANIZATION_ID;
+if (!ORGANIZATION_ID) {
+  console.error("❌ ORGANIZATION_ID is REQUIRED");
   process.exit(1);
 }
 

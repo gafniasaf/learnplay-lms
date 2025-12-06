@@ -24,7 +24,12 @@ create policy "Service can insert updates"
   with check (true);
 
 -- Enable realtime
-alter publication supabase_realtime add table public.catalog_updates;
+do $$
+begin
+  if not exists (select 1 from pg_publication_tables where pubname = 'supabase_realtime' and tablename = 'catalog_updates') then
+    alter publication supabase_realtime add table public.catalog_updates;
+  end if;
+end $$;
 
 -- Create catalog version sequence
 create sequence if not exists public.catalog_version_seq start with 1;

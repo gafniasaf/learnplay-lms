@@ -1,7 +1,19 @@
 // supabase/functions/_shared/cors.ts
 // Centralized CORS handling with automatic header injection
 
-import { newReqId } from "./obs.ts";
+/**
+ * Generate a unique request ID
+ */
+export function newReqId(): string {
+  return crypto.randomUUID?.() || `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
+
+/**
+ * Extract request ID from headers or generate new one
+ */
+export function getRequestId(req: Request): string {
+  return req.headers.get("x-request-id") || newReqId();
+}
 
 // Safe debug flag that works in Deno (Edge) and in Node/Jest without Deno global
 const CORS_DEBUG: boolean = (() => {

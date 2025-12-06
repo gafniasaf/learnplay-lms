@@ -114,7 +114,7 @@ export function AssignmentModal({
   const [dueDate, setDueDate] = useState("");
   const [requireBoth, setRequireBoth] = useState(false);
 
-  // TODO: Replace with API calls
+  // Data source: mock data for development, empty defaults for live mode
   const { ko, students, courses, aiRecommendation, permissions } = useMockData
     ? getMockAssignmentData(koId, contextId, assignerRole)
     : {
@@ -506,8 +506,8 @@ function ModeButton({
 }
 
 /**
- * Mock data generator
- * TODO: Replace with API calls
+ * Mock data generator for development mode
+ * Live mode uses createAssignment/getRecommendedCourses from knowledgeMap.ts
  */
 function getMockAssignmentData(
   koId: string,

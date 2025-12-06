@@ -15,7 +15,12 @@ type CTA = {
   jobType?: string;
 };
 
-const BASE_URL = process.env.MOCK_BASE_URL || "http://localhost:8081";
+const BASE_URL = process.env.MOCK_BASE_URL;
+if (!BASE_URL) {
+  console.error('❌ MOCK_BASE_URL is REQUIRED - set env var before running');
+  console.error('   Example: MOCK_BASE_URL=http://localhost:8081');
+  process.exit(1);
+}
 const OUTPUT_DIR = path.join(process.cwd(), "docs", "mockups");
 
 // Inventory of all app routes (expanded for dynamic params)

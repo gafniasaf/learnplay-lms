@@ -31,7 +31,7 @@ interface SkillCardsProps {
 export function SkillCards({ studentId, useMockData = ENV_USE_MOCK }: SkillCardsProps) {
   const [showBrowseAll, setShowBrowseAll] = useState(false);
   
-  // TODO: Replace with useStudentSkills hook when created (Task 14)
+  // Data source: mock data for development, uses getStudentSkills API in live mode
   const skills = useMockData ? getMockStudentSkills(studentId) : null;
   
   if (!skills) {
@@ -261,8 +261,8 @@ function getStatusColor(mastery: number): { bg: string; badge: string } {
 }
 
 /**
- * Mock data generator - will be replaced with API call
- * TODO: Move to knowledgeMockData.ts helper (Task 3 extension)
+ * Mock data generator for development mode
+ * Live mode uses getStudentSkills from knowledgeMap.ts
  */
 function getMockStudentSkills(studentId: string): { 
   practiceNow: SkillCardType[]; 

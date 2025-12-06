@@ -4,8 +4,9 @@ import { JOB_MODES } from '@/lib/contracts';
 import { callEdgeFunctionGet } from '@/lib/api/common';
 
 // MCP Proxy settings (for local development only)
+// Per IgniteZero rules: No fallback tokens - require explicit configuration
 const MCP_BASE_URL = import.meta.env.VITE_MCP_BASE_URL || 'http://127.0.0.1:4000';
-const MCP_TOKEN = import.meta.env.VITE_MCP_AUTH_TOKEN || 'dev-local-secret';
+const MCP_TOKEN = import.meta.env.VITE_MCP_AUTH_TOKEN; // REQUIRED - no fallback
 
 // Mock mode for E2E testing - returns demo data without network calls
 const useMockMode = import.meta.env.VITE_USE_MOCK === 'true' || import.meta.env.VITE_USE_MOCK === '1';
@@ -317,7 +318,29 @@ export function useMCP() {
     }
   };
 
-  // Generic call method
+  // Generic call method (GET)
+  const callGet = async <T = unknown>(method: string, params: Record<string, string> = {}): Promise<T> => {
+    setLoading(true);
+    try {
+      if (useMockMode) {
+        console.log('[MCP Mock] callGet:', method, params);
+        return { ok: true } as T;
+      }
+      
+      if (isLocalDev) {
+        // MCP protocol doesn't strictly distinguish GET/POST at transport, 
+        // but we map it to our internal proxy helper
+        return await callMCP<T>(method, params);
+      }
+
+      const functionName = method.replace('lms.', '').replace(/([A-Z])/g, '-$1').toLowerCase();
+      return await callEdgeFunctionGet<T>(functionName, params);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Generic call method (POST)
   const call = async <T = unknown>(method: string, params: Record<string, unknown> = {}): Promise<T> => {
     setLoading(true);
     try {
@@ -356,7 +379,8 @@ export function useMCP() {
   };
 
   return { 
-    call, 
+    call,
+    callGet, 
     enqueueJob, 
     saveRecord, 
     getRecord, 

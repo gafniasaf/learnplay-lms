@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { useMCP } from '@/hooks/useMCP';
 import { isLiveMode } from '@/lib/env';
 
 interface JobQuota {
@@ -26,6 +26,7 @@ function isGuestMode(): boolean {
 }
 
 export function useJobQuota() {
+  const mcp = useMCP();
   const [quota, setQuota] = useState<JobQuota | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
@@ -44,15 +45,16 @@ export function useJobQuota() {
       }
 
       try {
-        const { data, error } = await supabase
-          .from('user_job_quota')
-          .select('*')
-          .single();
+        // Use MCP to fetch job quota (routes through Edge Function)
+        const response = await mcp.getRecord('UserJobQuota', 'current') as unknown as { record?: JobQuota };
+        const data = response?.record;
 
-        if (error) throw error;
+        if (!data) {
+          throw new Error('Job quota record not found');
+        }
 
         if (isMounted) {
-          setQuota(data as JobQuota);
+          setQuota(data);
           setError(null);
         }
       } catch (err) {

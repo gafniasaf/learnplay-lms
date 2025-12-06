@@ -7,7 +7,12 @@ const run = (command: string, args: string[]) =>
   });
 
 async function main() {
-  const bucket = process.env.VITE_PLAN_BUCKET || 'plans';
+  const bucket = process.env.VITE_PLAN_BUCKET;
+  if (!bucket) {
+    console.error('❌ VITE_PLAN_BUCKET is REQUIRED - set env var before running');
+    console.error('   Example: VITE_PLAN_BUCKET=plans');
+    process.exit(1);
+  }
   console.log(`Ensuring Supabase bucket "${bucket}" exists and is public...`);
 
   try {

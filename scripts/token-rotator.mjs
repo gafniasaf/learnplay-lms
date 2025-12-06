@@ -1,10 +1,11 @@
 import fs from 'node:fs';
 
 // Diagnostic-only: print guidance to rotate tokens across environments.
+// Per NO-FALLBACK POLICY: Check for tokens but don't fail if missing (diagnostic tool)
 const envs = {
-  github: process.env.MCP_AUTH_TOKEN_GITHUB || '',
-  supabase: process.env.MCP_AUTH_TOKEN_SUPABASE || '',
-  local: process.env.MCP_AUTH_TOKEN_LOCAL || '',
+  github: process.env.MCP_AUTH_TOKEN_GITHUB,
+  supabase: process.env.MCP_AUTH_TOKEN_SUPABASE,
+  local: process.env.MCP_AUTH_TOKEN_LOCAL,
 };
 
 const suggestions = [];

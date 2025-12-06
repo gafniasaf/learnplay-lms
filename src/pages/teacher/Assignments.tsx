@@ -10,7 +10,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { AssignStudentsModal } from "@/components/teacher/AssignStudentsModal";
 import { Users, BarChart3 } from "lucide-react";
-import { getCourseJob, listCourseJobs } from "@/lib/api/jobs";
+import { useMCP } from "@/hooks/useMCP";
 
 export default function TeacherAssignments() {
   const qc = useQueryClient();
@@ -19,6 +19,7 @@ export default function TeacherAssignments() {
   const location = useLocation();
   const params = new URLSearchParams(location.search);
   const attachJobId = params.get("attachJobId") || "";
+  const mcp = useMCP();
   const { data, isLoading } = useQuery({ 
     queryKey: ["teacher-assignments"], 
     queryFn: listAssignmentsForTeacher 
@@ -54,9 +55,9 @@ export default function TeacherAssignments() {
     const loadJob = async () => {
       if (!attachJobId) return;
       try {
-        const response = await getCourseJob(attachJobId);
+        const response = await mcp.getCourseJob(attachJobId);
         if (response.ok && response.job) {
-          const job = response.job;
+          const job: any = response.job;
           if ((job as any).course_id) {
             setCourseId((job as any).course_id);
             setTitle(job.subject ? `AI: ${job.subject}` : '');
@@ -71,7 +72,7 @@ export default function TeacherAssignments() {
       }
     };
     loadJob();
-  }, [attachJobId, toast]);
+  }, [attachJobId, toast, mcp]);
 
   const assignments = data?.assignments ?? [];
 
@@ -82,9 +83,9 @@ export default function TeacherAssignments() {
 
   const handleImportFromAI = async () => {
     try {
-      const response = await listCourseJobs({ status: 'done', limit: 1 });
+      const response = await mcp.listCourseJobs({ status: 'done', limit: 1 });
       if (response.ok && response.jobs.length > 0) {
-        const job = response.jobs[0];
+        const job: any = response.jobs[0];
         if ((job as any).course_id) {
           setCourseId((job as any).course_id);
           setTitle(job.subject ? `AI: ${job.subject}` : '');
@@ -212,8 +213,9 @@ export default function TeacherAssignments() {
                     toast({ title: 'Course ID required', variant: 'destructive' });
                     return;
                   }
+                  // Per IgniteZero rules: No hardcoded fallbacks
+                  // orgId will be derived from user's auth context by the edge function
                   m.mutate({
-                    orgId: 'default', // Will be resolved by edge function
                     courseId: courseId,
                     title: title || courseId,
                     dueAt: due || undefined,

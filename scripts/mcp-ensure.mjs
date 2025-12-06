@@ -2,8 +2,18 @@
 import fs from 'node:fs';
 import { spawnSync } from 'node:child_process';
 
-const BASE_URL = process.env.MCP_BASE_URL || 'http://127.0.0.1:4000';
-let token = process.env.MCP_AUTH_TOKEN || 'dev-local-secret';
+const BASE_URL = process.env.MCP_BASE_URL;
+if (!BASE_URL) {
+  console.error('[MCP] ❌ MCP_BASE_URL is REQUIRED - set env var before running');
+  console.error('   Example: MCP_BASE_URL=http://127.0.0.1:4000');
+  process.exit(1);
+}
+
+let token = process.env.MCP_AUTH_TOKEN;
+if (!token) {
+  console.error('[MCP] ❌ MCP_AUTH_TOKEN is REQUIRED');
+  process.exit(1);
+}
 
 // Try read token from lms-mcp/.env.local if present
 try {

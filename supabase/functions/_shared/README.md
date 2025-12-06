@@ -1,10 +1,63 @@
 # Edge Function Shared Utilities
 
-This directory contains shared utilities for consistent error handling, observability, and validation across all edge functions.
+This directory contains shared utilities for consistent error handling, CORS, and validation across all edge functions.
+
+## CORS Handling (`cors.ts`)
+
+All CORS, headers, and request tracking utilities are centralized in `cors.ts`.
+
+### Quick Start (Recommended Pattern)
+
+```typescript
+import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
+import { withCors, newReqId } from "../_shared/cors.ts";
+import { Errors } from "../_shared/error.ts";
+
+serve(withCors(async (req) => {
+  const reqId = req.headers.get("x-request-id") || newReqId();
+
+  // Return plain objects - withCors handles Response wrapping and CORS
+  if (!isValid) {
+    return Errors.invalidRequest("Invalid input format", reqId);
+  }
+
+  // Success - return plain object
+  return { ok: true, data: result };
+}));
+```
+
+### Available Exports from `cors.ts`
+
+| Export | Description |
+|--------|-------------|
+| `withCors(handler)` | Wraps handler with automatic CORS headers |
+| `stdHeaders(req, extra)` | Generate CORS + security headers |
+| `handleOptions(req, reqId)` | Handle OPTIONS preflight |
+| `newReqId()` | Generate unique request ID |
+| `getRequestId(req)` | Extract or generate request ID |
+
+### Manual CORS (if needed)
+
+```typescript
+import { stdHeaders, handleOptions, newReqId } from "../_shared/cors.ts";
+
+serve(async (req) => {
+  const reqId = newReqId();
+
+  if (req.method === "OPTIONS") {
+    return handleOptions(req, reqId);
+  }
+
+  return new Response(JSON.stringify({ ok: true }), {
+    status: 200,
+    headers: stdHeaders(req, { "Content-Type": "application/json" })
+  });
+});
+```
 
 ## Error Handling (`error.ts`)
 
-Centralized error responses with consistent structure across all functions.
+Centralized error helpers that work seamlessly with `withCors`.
 
 ### Standard Error Shape
 
@@ -20,110 +73,49 @@ All errors return this structure:
 }
 ```
 
-### Usage
+### Usage with withCors (Recommended)
 
 ```typescript
-import { handleOptions, Errors } from "../_shared/error.ts";
+import { withCors, newReqId } from "../_shared/cors.ts";
+import { Errors } from "../_shared/error.ts";
 
-serve(async (req) => {
-  // Handle OPTIONS for CORS
-  if (req.method === "OPTIONS") return handleOptions();
+serve(withCors(async (req) => {
+  const reqId = req.headers.get("x-request-id") || newReqId();
 
-  try {
-    // Validation error (400)
-    if (!isValid) {
-      return Errors.invalidRequest("Invalid input format");
-    }
-
-    // Missing auth (401)
-    if (!authHeader) {
-      return Errors.noAuth();
-    }
-
-    // Invalid token (401)
-    if (!user) {
-      return Errors.invalidAuth();
-    }
-
-    // Permission denied (403)
-    if (!hasPermission) {
-      return Errors.forbidden("User lacks required permissions");
-    }
-
-    // Not found (404)
-    if (!resource) {
-      return Errors.notFound("Course");
-    }
-
-    // Success response
-    return new Response(JSON.stringify({ data }), {
-      headers: { "Content-Type": "application/json" },
-      status: 200,
-    });
-
-  } catch (err) {
-    // Internal error (500)
-    const message = err instanceof Error ? err.message : "Internal error";
-    return Errors.internal(message);
+  // Validation error (400)
+  if (!isValid) {
+    return Errors.invalidRequest("Invalid input format", reqId);
   }
-});
+
+  // Missing auth (401)
+  if (!authHeader) {
+    return Errors.noAuth(reqId);
+  }
+
+  // Not found (404)
+  if (!resource) {
+    return Errors.notFound("Course", reqId);
+  }
+
+  // Success - return plain object
+  return { ok: true, data };
+}));
 ```
 
 ### Available Error Helpers
 
 | Helper | Status | Use Case |
 |--------|--------|----------|
-| `Errors.invalidRequest(msg)` | 400 | Invalid request payload or parameters |
-| `Errors.missingFields(fields)` | 400 | Missing required fields |
-| `Errors.noAuth()` | 401 | No authorization header |
-| `Errors.invalidAuth()` | 401 | Invalid or expired token |
-| `Errors.forbidden(msg)` | 403 | User lacks permissions |
-| `Errors.forbiddenOrigin()` | 403 | Origin not allowed |
-| `Errors.notFound(resource)` | 404 | Resource not found |
-| `Errors.methodNotAllowed(method)` | 405 | HTTP method not allowed |
-| `Errors.conflict(msg)` | 409 | Resource conflict |
-| `Errors.internal(msg)` | 500 | Internal server error |
-
-### Custom Errors
-
-For custom error responses:
-```typescript
-import { jsonError } from "../_shared/error.ts";
-
-return jsonError(
-  "custom_code",
-  "Custom error message",
-  418, // Custom status code
-  reqId // Optional request ID
-);
-```
-
-## Observability (`obs.ts`)
-
-Standard headers and request tracking.
-
-### Usage
-
-```typescript
-import { stdHeaders, newReqId } from "../_shared/obs.ts";
-
-// Standard CORS + request ID headers
-const headers = stdHeaders({ 
-  "Content-Type": "application/json",
-  "Cache-Control": "public, max-age=300"
-});
-
-// Generate unique request ID
-const reqId = newReqId();
-```
-
-### `stdHeaders()`
-
-Returns headers with:
-- `Access-Control-Allow-Origin: *`
-- `Access-Control-Allow-Headers: authorization, x-client-info, apikey, content-type`
-- `X-Request-Id: <unique-id>`
-- Any additional headers passed as argument
+| `Errors.invalidRequest(msg, reqId)` | 400 | Invalid request payload or parameters |
+| `Errors.missingFields(fields, reqId)` | 400 | Missing required fields |
+| `Errors.noAuth(reqId)` | 401 | No authorization header |
+| `Errors.invalidAuth(reqId)` | 401 | Invalid or expired token |
+| `Errors.forbidden(msg, reqId)` | 403 | User lacks permissions |
+| `Errors.forbiddenOrigin(reqId)` | 403 | Origin not allowed |
+| `Errors.notFound(resource, reqId)` | 404 | Resource not found |
+| `Errors.methodNotAllowed(method, reqId)` | 405 | HTTP method not allowed |
+| `Errors.conflict(msg, reqId)` | 409 | Resource conflict |
+| `Errors.internal(msg, reqId)` | 500 | Internal server error |
 
 ## Origin Checking (`origins.ts`)
 
@@ -134,15 +126,13 @@ Validates request origins against allowlist.
 ```typescript
 import { checkOrigin } from "../_shared/origins.ts";
 
-serve(async (req) => {
-  if (req.method === "OPTIONS") return handleOptions();
-
-  // Check origin (returns error Response if forbidden)
+serve(withCors(async (req) => {
+  // Check origin (returns error object if forbidden)
   const originCheck = checkOrigin(req);
   if (originCheck) return originCheck;
 
   // ... rest of handler
-});
+}));
 ```
 
 ## Validation (`validation.ts`)
@@ -159,75 +149,62 @@ const json = await req.json();
 const parsed = StartRoundSchema.safeParse(json);
 
 if (!parsed.success) {
-  return Errors.invalidRequest(formatValidationError(parsed.error));
+  return Errors.invalidRequest(formatValidationError(parsed.error), reqId);
 }
 
 const { courseId, level } = parsed.data;
 ```
 
+## Deprecated: `obs.ts`
+
+⚠️ **Deprecated** - All utilities have been moved to `cors.ts`.
+
+For backward compatibility, `obs.ts` re-exports from `cors.ts`:
+```typescript
+// Old (still works but deprecated)
+import { stdHeaders, newReqId } from "../_shared/obs.ts";
+
+// New (preferred)
+import { stdHeaders, newReqId } from "../_shared/cors.ts";
+```
+
 ## Migration Guide
 
-To update existing functions:
+### From corsHeaders pattern:
 
-1. **Replace CORS headers:**
-   ```typescript
-   // Before
-   const corsHeaders = {
-     "Access-Control-Allow-Origin": "*",
-     "Access-Control-Allow-Headers": "...",
-   };
+```typescript
+// ❌ OLD - Don't use
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "...",
+};
+return new Response(data, { headers: corsHeaders });
 
-   // After
-   import { handleOptions, Errors } from "../_shared/error.ts";
-   
-   if (req.method === "OPTIONS") return handleOptions();
-   ```
+// ✅ NEW - Use withCors wrapper
+import { withCors } from "../_shared/cors.ts";
 
-2. **Replace error responses:**
-   ```typescript
-   // Before
-   return new Response(
-     JSON.stringify({ error: "unauthorized" }),
-     { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-   );
+serve(withCors(async (req) => {
+  return { ok: true, data };  // CORS headers added automatically
+}));
+```
 
-   // After
-   return Errors.invalidAuth();
-   ```
+### From manual error responses:
 
-3. **Update validation errors:**
-   ```typescript
-   // Before
-   return new Response(
-     JSON.stringify({ error: "invalid_request", message: errorMsg }),
-     { status: 400, headers: corsHeaders }
-   );
+```typescript
+// ❌ OLD
+return new Response(
+  JSON.stringify({ error: "unauthorized" }),
+  { status: 401, headers: corsHeaders }
+);
 
-   // After
-   return Errors.invalidRequest(errorMsg);
-   ```
-
-4. **Update catch blocks:**
-   ```typescript
-   // Before
-   catch (err) {
-     return new Response(
-       JSON.stringify({ error: "internal_error" }),
-       { status: 500, headers: corsHeaders }
-     );
-   }
-
-   // After
-   catch (err) {
-     const message = err instanceof Error ? err.message : "Internal error";
-     return Errors.internal(message);
-   }
-   ```
+// ✅ NEW
+return Errors.invalidAuth(reqId);
+```
 
 ## Benefits
 
 - **Consistency:** All errors follow the same structure
+- **Automatic CORS:** `withCors` handles all CORS complexity
 - **Traceability:** Every response includes a unique request ID
-- **Debugging:** Timestamp on all errors aids in log correlation
-- **DX:** Simpler, cleaner error handling code
-- **Standards:** Single source of truth for CORS headers
+- **Security:** CSP and security headers included automatically
+- **DX:** Return plain objects instead of Response construction

@@ -45,3 +45,6 @@ projects/*
 # Setup flags
 .setup_complete
 cursor-playground/workspaces/
+
+# Archived legacy code
+_archive/

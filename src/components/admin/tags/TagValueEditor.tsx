@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
+import { useMCP } from '@/hooks/useMCP';
 
 interface TagValue {
   id: string;
@@ -31,6 +31,7 @@ interface TagValueEditorProps {
 
 export function TagValueEditor({ tagType, onUpdate }: TagValueEditorProps) {
   const { toast } = useToast();
+  const mcp = useMCP();
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editValue, setEditValue] = useState('');
   const [isAdding, setIsAdding] = useState(false);
@@ -45,12 +46,12 @@ export function TagValueEditor({ tagType, onUpdate }: TagValueEditorProps) {
     try {
       const slug = editValue.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
       
-      const { error } = await supabase
-        .from('tags')
-        .update({ value: editValue, slug })
-        .eq('id', tagId);
-
-      if (error) throw error;
+      // Update via MCP
+      await mcp.saveRecord('Tag', {
+        id: tagId,
+        value: editValue,
+        slug,
+      });
 
       toast({
         title: 'Tag updated',
@@ -79,12 +80,11 @@ export function TagValueEditor({ tagType, onUpdate }: TagValueEditorProps) {
     }
 
     try {
-      const { error } = await supabase
-        .from('tags')
-        .update({ is_active: false })
-        .eq('id', tagId);
-
-      if (error) throw error;
+      // Deactivate via MCP
+      await mcp.saveRecord('Tag', {
+        id: tagId,
+        is_active: false,
+      });
 
       toast({
         title: 'Tag deactivated',
@@ -109,17 +109,13 @@ export function TagValueEditor({ tagType, onUpdate }: TagValueEditorProps) {
     try {
       const slug = newValue.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
       
-      // Insert new tag with type_key (not tag_type_id per schema)
-      const { error } = await supabase
-        .from('tags')
-        .insert({
-          type_key: tagType.key,
-          value: newValue.trim(),
-          slug,
-          is_active: true,
-        });
-
-      if (error) throw error;
+      // Insert new tag via MCP
+      await mcp.saveRecord('Tag', {
+        type_key: tagType.key,
+        value: newValue.trim(),
+        slug,
+        is_active: true,
+      });
 
       toast({
         title: 'Tag added',

@@ -300,8 +300,8 @@ function getAssignerInfo(
 }
 
 /**
- * Mock data generator
- * TODO: Replace with API call
+ * Mock data generator for development mode
+ * Live mode uses getStudentAssignments from knowledgeMap.ts
  */
 function getMockAssignments(studentId: string): AssignmentWithDetails[] {
   // Mock: Student has 2 active assignments (1 from teacher, 1 overdue)

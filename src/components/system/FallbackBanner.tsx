@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { callEdgeFunctionGet } from "@/lib/api/common";
 
 export function FallbackBanner() {
   const [unavailable, setUnavailable] = useState(false);
@@ -7,15 +8,19 @@ export function FallbackBanner() {
     let cancelled = false;
     (async () => {
       try {
-        const res = await fetch('/functions/v1/mcp-metrics-proxy?type=summary', { method: 'GET' });
-        if (!cancelled && res.status === 502) {
+        // Use MCP proxy via Edge Function helper (infrastructure-level call)
+        const response = await callEdgeFunctionGet<{ error?: string }>('mcp-metrics-proxy', { type: 'summary' });
+        if (!cancelled && response?.error === 'mcp_unavailable') {
           setUnavailable(true);
-          return;
         }
-        const j = await res.json().catch(() => ({}));
-        if (!cancelled && j?.error === 'mcp_unavailable') setUnavailable(true);
-      } catch {
-        if (!cancelled) setUnavailable(true);
+      } catch (err) {
+        // If 502 or network error, mark as unavailable
+        if (!cancelled) {
+          const is502 = err instanceof Error && err.message.includes('502');
+          if (is502 || err instanceof TypeError) {
+            setUnavailable(true);
+          }
+        }
       }
     })();
     return () => { cancelled = true; };

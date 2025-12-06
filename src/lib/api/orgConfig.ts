@@ -1,8 +1,10 @@
 /**
  * Client-side wrapper for org-config Edge Function
+ * Uses MCP proxy to route through Edge Functions
  */
 
 import { supabase } from '@/integrations/supabase/client';
+import { callEdgeFunctionGet } from '@/lib/api/common';
 
 export interface OrgConfig {
   organization: {
@@ -48,20 +50,17 @@ export async function getOrgConfig(options?: {
     throw new Error('NOT_AUTHENTICATED');
   }
 
-  const payload: Record<string, string | undefined> = {
-    organizationId: options?.organizationId,
-    slug: options?.slug,
-  };
+  const params: Record<string, string> = {};
+  if (options?.organizationId) params.organizationId = options.organizationId;
+  if (options?.slug) params.slug = options.slug;
 
-  // Use POST so the client automatically attaches the user's JWT
-  const { data, error } = await supabase.functions.invoke('org-config', {
-    body: payload,
-  });
-
-  if (error) {
-    throw new Error(`Failed to fetch org config: ${error.message}`);
+  // Use MCP proxy (routes through Edge Function with auth)
+  const data = await callEdgeFunctionGet<OrgConfig>('org-config', params);
+  
+  if (!data) {
+    throw new Error('Failed to fetch org config: No data returned');
   }
 
-  return data as OrgConfig;
+  return data;
 }
 

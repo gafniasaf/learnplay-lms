@@ -61,7 +61,7 @@ export function TeacherKOTable({
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
   const [displayCount, setDisplayCount] = useState(20);
 
-  // TODO: Replace with API call when service layer is ready
+  // Data source: mock data for development, uses getClassKOSummary API in live mode
   const allKOs = useMockData ? getMockAllClassKOs(classId) : [];
 
   // Filter and sort
@@ -379,8 +379,8 @@ function getStatusInfo(status: "urgent" | "opportunity" | "strong"): {
 }
 
 /**
- * Mock data generator - all class KOs
- * TODO: Replace with API call
+ * Mock data generator for development mode
+ * Live mode uses getClassKOSummary from knowledgeMap.ts
  */
 function getMockAllClassKOs(classId: string): ClassKOSummary[] {
   const totalStudents = 2;

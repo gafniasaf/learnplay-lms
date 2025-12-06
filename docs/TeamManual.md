@@ -3,7 +3,7 @@
 ## 0 · Preface – The system we’re stewarding
 Ignite Zero is more than an AI playground. It’s a full-stack Factory built to shepherd ideas from spark → blueprint → working software without losing our soul along the way. Three promises drive everything inside:
 
-1. **Architected Ambition** – The Architect Console turns vague missions into crystal-clear PLAN.md blueprints, complete with strategy, tradeoffs, and rituals for Cursor.
+1. **Aligned Ambition** – Clear PLAN.md blueprints, tradeoffs, and rituals for Cursor.
 2. **Secure Delivery** – Every release zip travels through a gated pipeline (edge function + signed URLs + PowerShell bootstrap) so we never worry about stale builds or mystery binaries.
 3. **Continuous Execution** – Cursor, MCP jobs, and the Watchtower are wired together so background strategies, PLAN.md tasks, and real-time logs stay in sync.
 
@@ -14,14 +14,12 @@ This playbook walks through the entire system like a story: why each piece exist
 ## 1 · Ignite Zero at a glance
 | Component | Purpose | Problems it solves |
 | --- | --- | --- |
-| **Architect Console** (`/architect`) | AI-led product room for genesis, evolution, and monitoring. | Prevents half-baked roadmaps, documents every plan, forces high-quality specs. |
+| **Workspace Console** | Product room for planning, evolution, and monitoring. | Prevents half-baked roadmaps, documents every plan, forces high-quality specs. |
 | **Secure Release Service** (`/setup` + edge function) | Serves private release zips via signed URLs and powers the PowerShell bootstrap. | Keeps builds consistent, avoids “which zip?” confusion, blocks unauthorized downloads. |
 | **PLAN.md Pipeline** | PLAN.md download/upload workflow plus Cursor instructions. | Guarantees that human intent travels intact into automated execution. |
 | **Watchtower** | Live MCP job feed from Supabase realtime. | Gives visibility into background strategies so we debug proactively. |
 | **Lovable Frontend Mirror** | Always-on hosted preview that syncs with `main`. | Everyone sees the same UI, Lovable captures build errors, and every push to `main` automatically redeploys. |
 | **Cursor + MCP strategies** | The actual builders. They consume PLAN.md, run long jobs, stream results. | Keeps humans freed up for product thinking instead of mechanical tasks. |
-
-> **Architect Edge Contracts:** Whenever you add or adjust an `architect-advisor` mode (`genesis`, `evolution`, `consult`, `decode`, `mockup`, `mockup-lane`, etc.), update `tests/integration/architect-contract.spec.ts` before UI work. `scripts/verify.ts` runs this suite every time, so skipping it will break the pipeline.
 
 When you’re walking through the Factory in later sections, just remember: each ritual (login, download, consult, plan, run) is tied back to one of these pillars.
 
@@ -36,9 +34,9 @@ When you’re walking through the Factory in later sections, just remember: each
 ---
 
 ## 2 · How the story flows (idea → launch)
-1. **Describe the mission** – In `/architect` “Create New,” we write the plain-English goal. The AI Architect reframes it, lists tradeoffs, and produces a PLAN.md.
-2. **Consult & refine** – If the plan needs sharper edges, we hop into the chat sidecar. The consultant asks clarifying questions, adds discovery notes, and regenerates the plan with context.
-3. **Preview & approve the HTML mockup** – Before PLAN.md unlocks, the Architect renders a lightweight HTML mock that mirrors the proposed UI. Review it right inside `/architect`; if you need tweaks, add notes and click “Regenerate.” Hit “Approve Mockup” so Cursor has a visual reference later.
+1. **Describe the mission** – Use the planning flow to write the plain-English goal. The AI reframes it, lists tradeoffs, and produces a PLAN.md.
+2. **Consult & refine** – If the plan needs sharper edges, use the chat sidecar. The consultant asks clarifying questions, adds discovery notes, and regenerates the plan with context.
+3. **Preview & approve the HTML mockup** – Before PLAN.md unlocks, review the lightweight HTML mock that mirrors the proposed UI. Approve it so Cursor has a visual reference later.
 4. **Hand off to Cursor** – Downloading PLAN.md also uploads it to Supabase Storage. We copy the “Cursor Instructions” so the AI agent knows where the plan lives.
 5. **Build & observe** – Cursor runs through PLAN.md tasks, while MCP strategies execute longer jobs (auto-splitting tasks, generating subtasks, etc.). Watchtower shows their progress in real time.
 6. **Release to humans** – When it’s time to share a build, `/setup` gives us a fresh zip via the secure edge function. The PowerShell script pulls from the same signed URL to keep new teammates in sync.
@@ -50,12 +48,9 @@ That’s the loop. Everything else in this playbook zooms into the individual be
 
 ## 3 · Getting access (the literal keys)
 - **Login URL:** `https://<your-domain>/auth`
-- **Team account:**  
-  Email: `founder@ignitezero.dev`  
-  Password: `Ignite!2025#Architect`
 - Use “Forgot password” to set your own credentials. Need additional users? Add them via Supabase Auth and they’ll get the same gated experience.
 
-After logging in, you’re cleared for `/architect`, `/setup`, and `/my-app`. Anonymous sessions are bounced back to `/auth`, so share credentials responsibly.
+After logging in, you’re cleared for `/setup` and `/my-app`. Anonymous sessions are bounced back to `/auth`, so share credentials responsibly.
 
 ---
 
@@ -90,8 +85,8 @@ npm install                  # dependencies + lint hooks
 cd lms-mcp && npm run dev    # optional: local MCP server (Model Context Protocol jobs)
 cd .. && npm run factory     # menu-driven launcher + verifier
 ```
-- Option `1` in `npm run factory` opens Vite on `http://localhost:5173/architect`.
-- `npm run verify` = typecheck + unit tests + architect decode contract + Crucible.
+- Option `1` in `npm run factory` opens Vite on `http://localhost:5173/`.
+- `npm run verify` = typecheck + unit tests + CTA/coverage checks.
 
 Hot tip: keep the MCP server running in another terminal so background strategies can execute as soon as you enqueue jobs from the UI.
 
@@ -100,10 +95,8 @@ Hot tip: keep the MCP server running in another terminal so background strategie
 1. **Contract presence** – `src/lib/contracts.ts` exists and isn’t empty.
 2. **Type safety** – `npm run typecheck`.
 3. **Unit tests** – `npm run test`.
-4. **Architect decode contract** – Ensures decode mode still returns strict JSON.
-5. **Architect API contracts** – `tests/integration/architect-contract.spec.ts` hits every advisor mode (genesis, evolution, consult, decode, mockup-lane).
-6. **Mockup auto-tune suite** – `npm run tune:auto` runs the Golden Dataset through mockup generation + Product Critic + auto-tune passes and fails if any scenario can’t reach “approved.”
-7. **Universal E2E presence** – Confirms the manifest-aware Playwright spec is still in the tree.
+4. **CTA coverage checks** – `tests/e2e/all-ctas.spec.ts` presence + mock coverage validation.
+5. **Universal E2E presence** – Confirms the manifest-aware Playwright spec is still in the tree.
 
 If you break any of those, fix it locally before you push—Lovable, Cursor, and the MCP loop all depend on this script staying green.
 
@@ -129,55 +122,6 @@ If you break any of those, fix it locally before you push—Lovable, Cursor, and
 
 ---
 
-## 6 · Deep dive into `/architect`
-| Tab | What you’ll see | Why it exists |
-| --- | --- | --- |
-| **✨ Create New** | Hero text (“What are we building today?”), educational tiles, prompt box, decode output pane, PLAN.md workflow. | Converts raw ideas into high-fidelity plans with strategy, pros/cons, refinement history. |
-| **🗺️ Blueprint** | Live Mermaid diagram based on `system-manifest.json` (entities + jobs). | Gives instant topology awareness so Modify tab prompts stay aligned with the manifest. |
-| **🔧 Modify Existing** | Prompt area, resume session button, markdown output, consult log integration. | Lets us iterate on the same system, referencing previous plans + consult chats. |
-| **👀 Monitor** | `ai_agent_jobs` stream via Supabase realtime. | Debug async strategies and confirm MCP is alive. |
-
-### Consultant superpower
-1. On Step 1, hit **“💬 Consult / Refine.”**
-2. The AI co-founder asks pointed questions about value, constraints, and biases.
-3. Discovery notes are saved, and the next regen uses a composite prompt (original goal + refinements + current plan) so we never lose context.
-
-### Decode mode (what the Architect now returns)
-- Every plan starts by classifying the request as either a **Processor** (heavy async jobs / outreach) or a **Platform** (CRUD-heavy workspace). That archetype dictates whether we bias toward micro-batch strategies or hybrid storage.
-- The Decoder copies terminology, formulas, and visual specs straight from your prompt. If you write “Score = (Sharpe Ratio + Win Rate) / Drawdown” or “Glassmorphism dashboard”, expect that exact string inside the Strategy/UI cursor prompts.
-- Output is split into 6‑10 atomic steps: Core (manifest + sidecar migrations), Logic (one strategy per capability, no hidden helpers), and UI (Shell → Components → Views, each one referencing `<AgentActions />` so Cursor wires actions correctly).
-
-### Mockup standard (the visual contract)
-Every blueprint now includes a lightweight HTML mockup before PLAN.md unlocks. Whether it’s AI‑generated, co-created through the Consultant, or uploaded manually, it must obey the same spec so Cursor has a consistent visual reference.
-
-**Ignite Mockup Spec**
-1. Sections: Hero, Pillars/Features, Credibility strip (metrics/testimonials), CTA footer.
-2. Typography: Heavy display heading (Inter/Space Grotesk), mono sublabels, body text ≤ 600px width.
-3. Color system: slate‑950 canvas, one primary gradient (emerald→cyan by default), optional accent (amber/purple) for warnings or stats.
-4. Copy discipline: Use manifest entity names (e.g., `Campaign`, `Brief`, `Cadet`) and avoid lorem ipsum.
-5. Layout rules: Keep gutters ≥ 32px, cards with `border-slate-800`, hover states that scale ≤ 1.01, CTA buttons ≥ 56px tall.
-
-**How to use it**
-- Click **“Copy Mockup Spec”** in `/architect` to paste the checklist into your own prompts or designer briefs.
-- Hit **“🎨 Co-create with Consultant”** so the AI asks palette/mood/density questions before drafting HTML. The resulting art direction feeds the mockup prompt automatically.
-- If your brief already contains ` ```html ... ``` ` blocks under the lane headings (e.g. `## Admin Course Editor`), the Blueprint Mockup Orchestrator will import them verbatim—no AI regeneration—so multiple pages stay pixel-perfect.
-- Prefer the **dual previewer**: the *Preview* tab exposes viewport toggles (375 · 768 · 1280 · Fill) while the *HTML* tab shows the raw markup with one-click **Copy** / **Download**.
-- Links inside the preview are now wired—click “Dashboard” or “Settings” and the orchestrator jumps to that lane, making the mock behave like a lightweight prototype.
-- Once every lane renders, the **Product Critic** runs a second-pass LLM review (missing screens, redundant flows, journey gaps). Treat its ⚠️ warnings as blockers before approving PLAN.md.
-- Flip on **Auto-Tune Until Approved** if you want the Factory to keep regenerating the failing lanes until the Product Critic verdict is `approved`. Each pass appends the critic’s feedback as an `AUTO_TUNE_DIRECTIVE`, re-runs the generated lanes only, and logs the result so you can inspect what changed.
-- When the verdict is `approved`, the Orchestrator now snapshots each lane’s HTML to the Supabase `mockups` bucket. If later auto-tune passes fail, the UI automatically reverts to the last approved snapshot so engineers never ship a degraded mock.
-- Manual uploads are supported via the Upload/Paste modal. Anything approved is versioned in the `mockups/` Supabase bucket and surfaced in the history list with source tags (`AI`, `UPLOAD`, `PASTE`).
-- PLAN.md now includes a **Visual Reference** section pointing to the signed mockup URL plus the art-direction bullet points, so Cursor always opens the exact HTML before touching UI code.
-- Skip is allowed, but the wizard raises a warning and PLAN.md records “⚠️ Mockup skipped. Generate before UI work begins.”
-
-Treat the mock as the single source of truth for spacing, typography, and CTA hierarchy. When you iterate mid-build, generate a new mockup, approve it, and let the Factory archive both versions so Cursor knows which changes to apply.
-
-### PLAN.md ritual
-1. Step 2 → **Download PLAN.md** (saves locally, uploads to storage, and—if mockups were approved—persists their HTML via the Blueprint Library edge function so URLs are baked into the Visual Reference section). Uploads are automatically namespaced by your Supabase user ID and a per-session slug, so teammates can run their own drafts—or even share the same login—without overwriting each other’s artifacts.
-2. Step 3 → **Copy Cursor Instructions** to paste into Cursor chat.
-3. Cursor executes Phase 1 exactly, checking off items in the markdown. We approve before moving to the next phase.
-
----
 
 ## 7 · Release safety net (because ops matters)
 1. `/setup` download button → `download-release` function → signed URL → private zip.

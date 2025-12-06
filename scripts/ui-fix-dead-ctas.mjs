@@ -1,7 +1,17 @@
 #!/usr/bin/env node
 
-const BASE = process.env.MCP_BASE_URL || 'http://127.0.0.1:4000';
-const TOKEN = process.env.MCP_AUTH_TOKEN || 'dev-local-secret';
+const BASE = process.env.MCP_BASE_URL;
+if (!BASE) {
+  console.error('[UI-FIX] ❌ MCP_BASE_URL is REQUIRED - set env var before running');
+  console.error('   Example: MCP_BASE_URL=http://127.0.0.1:4000');
+  process.exit(1);
+}
+
+const TOKEN = process.env.MCP_AUTH_TOKEN;
+if (!TOKEN) {
+  console.error('[UI-FIX] ❌ MCP_AUTH_TOKEN is REQUIRED');
+  process.exit(1);
+}
 
 async function call(method, params = {}) {
   const res = await fetch(BASE, {
@@ -19,10 +29,14 @@ async function call(method, params = {}) {
 
 (async () => {
   // Dry-run fix first
+  // Per NO-FALLBACK POLICY: Use defaults but don't use || operator
+  const SCAN_ROOT = process.env.MCP_SCAN_ROOT;
+  const SCAN_SRC = process.env.MCP_SCAN_SRC;
+  
   const fix = await call('lms.uiAudit.fix', {
     dryRun: true,
-    root: process.env.MCP_SCAN_ROOT || process.cwd(),
-    sourceDir: process.env.MCP_SCAN_SRC || 'src',
+    root: SCAN_ROOT || process.cwd(),
+    sourceDir: SCAN_SRC || 'src',
   });
   const actions = fix?.actions || [];
   console.log(`Dead CTA actions (dry-run): ${actions.length}`);

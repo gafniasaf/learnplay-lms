@@ -20,11 +20,10 @@ serve(async (req: Request): Promise<Response> => {
 
   try {
     const url = new URL(req.url);
-    const allowAnon = Deno.env.get("ALLOW_ANON") === "true";
-    const devChildId = Deno.env.get("DEV_CHILD_ID") || "b2ed7195-4202-405b-85e4-608944a27837";
-    const childId = url.searchParams.get("childId") || (allowAnon ? devChildId : undefined);
+    // Per IgniteZero rules: No ALLOW_ANON bypass, no dev fallbacks
+    const childId = url.searchParams.get("childId");
     if (!childId) {
-      return new Response(JSON.stringify({ error: "childId is required" }), {
+      return new Response(JSON.stringify({ error: "childId is required - no anonymous access" }), {
         status: 400,
         headers: stdHeaders(req, { "Content-Type": "application/json" }),
       });

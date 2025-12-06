@@ -27,12 +27,14 @@ create table if not exists public.study_text_generation_jobs (
 
 alter table public.study_text_generation_jobs enable row level security;
 
--- RLS policies
+-- RLS policies (drop first for idempotency)
+drop policy if exists study_text_jobs_select_own on public.study_text_generation_jobs;
 create policy study_text_jobs_select_own
   on public.study_text_generation_jobs
   for select
   using (created_by = auth.uid());
 
+drop policy if exists study_text_jobs_insert_self on public.study_text_generation_jobs;
 create policy study_text_jobs_insert_self
   on public.study_text_generation_jobs
   for insert
@@ -41,10 +43,10 @@ create policy study_text_jobs_insert_self
     and public.check_ai_job_rate_limit(auth.uid())
   );
 
--- Indexes
-create index study_text_jobs_status_idx on public.study_text_generation_jobs(status);
-create index study_text_jobs_course_id_idx on public.study_text_generation_jobs(course_id);
-create unique index study_text_jobs_idempotency_key_idx
+-- Indexes (if not exists for idempotency)
+create index if not exists study_text_jobs_status_idx on public.study_text_generation_jobs(status);
+create index if not exists study_text_jobs_course_id_idx on public.study_text_generation_jobs(course_id);
+create unique index if not exists study_text_jobs_idempotency_key_idx
   on public.study_text_generation_jobs(idempotency_key)
   where idempotency_key is not null;
 
@@ -55,7 +57,12 @@ before update on public.study_text_generation_jobs
 for each row execute function public.set_updated_at();
 
 -- Enable realtime
-alter publication supabase_realtime add table public.study_text_generation_jobs;
+do $$
+begin
+  if not exists (select 1 from pg_publication_tables where pubname = 'supabase_realtime' and tablename = 'study_text_generation_jobs') then
+    alter publication supabase_realtime add table public.study_text_generation_jobs;
+  end if;
+end $$;
 
 comment on table public.study_text_generation_jobs is 
   'Queue for AI-generated study texts (reference materials) for courses';

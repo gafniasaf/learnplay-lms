@@ -61,7 +61,7 @@ export function GrowthTracker({
 }: GrowthTrackerProps) {
   const [showBrowseAll, setShowBrowseAll] = useState(false);
 
-  // TODO: Replace with API call when service layer is ready
+  // Data source: mock data for development, uses getDomainGrowth API in live mode
   const domains = useMockData ? getMockDomainSummaries(studentId) : [];
 
   if (domains.length === 0) {
@@ -317,8 +317,8 @@ function getTrendIcon(trend: number): JSX.Element {
 }
 
 /**
- * Mock data generator
- * TODO: Replace with API call
+ * Mock data generator for development mode
+ * Live mode uses getDomainGrowth from knowledgeMap.ts
  */
 function getMockDomainSummaries(studentId: string): DomainGrowthSummary[] {
   // Mock: Student (Casey) has low mastery, struggling

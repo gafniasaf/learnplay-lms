@@ -1,24 +1,25 @@
 import { useEffect, useState } from 'react';
 import { PageContainer } from '@/components/layout/PageContainer';
+import { useMCP } from '@/hooks/useMCP';
 
 type Summary = { ok: boolean; summary: Record<string, { count: number; errorRate: number; p50: number; p95: number; p99: number }> };
 
 export default function Metrics() {
   const [data, setData] = useState<Summary | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const mcp = useMCP();
 
   useEffect(() => {
     (async () => {
       try {
-        const res = await fetch('/functions/v1/mcp-metrics-proxy?type=summary');
-        const json = await res.json();
-        if (!res.ok || json?.ok !== true) throw new Error('Failed to load metrics');
+        const json = await mcp.callGet<Summary>('lms.mcpMetricsProxy', { type: 'summary' });
+        if (json?.ok !== true) throw new Error('Failed to load metrics');
         setData(json);
       } catch (e) {
         setError(e instanceof Error ? e.message : 'Failed to load metrics');
       }
     })();
-  }, []);
+  }, [mcp]);
 
   return (
     <PageContainer>
@@ -44,5 +45,3 @@ export default function Metrics() {
     </PageContainer>
   );
 }
-
-

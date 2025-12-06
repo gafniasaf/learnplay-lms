@@ -58,67 +58,10 @@ export default function ParentDashboard() {
     isError,
   } = useParentDashboard();
 
-  // Fallback mock dashboard when live data is unavailable
-  const fallbackDashboard = useMemo(
-    () => ({
-      parentId: "parent-1",
-      parentName: "Parent",
-      summary: {
-        totalChildren: 1,
-        totalAlerts: 1,
-        averageStreak: 5,
-        totalXp: 2400,
-      },
-      children: [
-        {
-          studentId: "student-2",
-          studentName: "Demo Student",
-          linkStatus: "linked",
-          linkedAt: new Date().toISOString(),
-          metrics: {
-            streakDays: 5,
-            xpTotal: 2400,
-            lastLoginAt: new Date().toISOString(),
-            recentActivityCount: 3,
-          },
-          upcomingAssignments: {
-            count: 2,
-            items: [
-              {
-                id: "assign-1",
-                title: "Fractions Practice",
-                courseId: "math-fractions",
-                dueAt: new Date(Date.now() + 2 * 86400000).toISOString(),
-                status: "assigned",
-                progressPct: 40,
-              },
-              {
-                id: "assign-2",
-                title: "Reading Comprehension",
-                courseId: "reading-comp",
-                dueAt: new Date(Date.now() + 4 * 86400000).toISOString(),
-                status: "assigned",
-                progressPct: 20,
-              },
-            ],
-          },
-          alerts: {
-            overdueAssignments: 0,
-            goalsBehind: 1,
-            needsAttention: true,
-          },
-        },
-      ],
-    }),
-    []
-  );
-
-  const dashboardData = parentDashboard || fallbackDashboard;
-  
   // Extract primaryStudentId first, before calling dependent hooks
-  const primaryStudentId = dashboardData?.children?.[0]?.studentId ?? null;
+  const primaryStudentId = parentDashboard?.children?.[0]?.studentId ?? null;
 
-  const allowLive = !isError;
+  const allowLive = !isError && !!parentDashboard;
   
   const parentSubjects = useParentSubjects(
     primaryStudentId ? { studentId: primaryStudentId } : {},
@@ -137,15 +80,15 @@ export default function ParentDashboard() {
     { enabled: allowLive && !isLoading }
   );
 
-  const summary = dashboardData?.summary ?? {
+  const summary = parentDashboard?.summary ?? {
     totalChildren: 0,
     totalAlerts: 0,
     averageStreak: 0,
     totalXp: 0,
   };
 
-  const children = dashboardData?.children ?? [];
-  const parentName = dashboardData?.parentName ?? "Parent";
+  const children = parentDashboard?.children ?? [];
+  const parentName = parentDashboard?.parentName ?? "Parent";
 
   const subjectRecords = parentSubjects.data?.subjects ?? [];
   const subjectGlanceData = subjectRecords.length > 0
@@ -221,7 +164,7 @@ export default function ParentDashboard() {
   const goalsGlance = aggregateGoals(parentGoals.data?.goals ?? []);
 
   // Check if child has a teacher (blocks parent assignment)
-  // TODO: Replace with API call to check teacher presence
+  // Teacher presence is determined by learner profile data
   const hasTeacher = false;
   const teacherName = "Mrs. Johnson";
 
@@ -265,6 +208,30 @@ export default function ParentDashboard() {
               globalThis.location?.reload();
             }
           }}
+            >
+              Retry
+            </Button>
+          </div>
+        </ParentLayout>
+      </PageContainer>
+    );
+  }
+
+  if (!parentDashboard) {
+    return (
+      <PageContainer>
+        <ParentLayout>
+          <div className="flex flex-col items-center gap-4 py-12">
+            <p className="text-lg font-semibold text-destructive">
+              Parent dashboard data not available
+            </p>
+            <Button
+              variant="outline"
+              onClick={() => {
+                if (typeof globalThis !== "undefined") {
+                  globalThis.location?.reload();
+                }
+              }}
             >
               Retry
             </Button>

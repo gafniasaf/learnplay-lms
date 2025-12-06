@@ -61,31 +61,50 @@ serve(withCors(async (req) => {
 
     const { studentId, status } = parsed.data;
 
-    // Check for Authorization header
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
-      return Errors.noAuth(requestId, req);
-    }
-
-    // Create Supabase client with auth
-    const supabase = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_ANON_KEY")!,
-      {
-        global: {
-          headers: { Authorization: authHeader },
-        },
-      }
-    );
-
-    const { data: authData, error: authError } = await supabase.auth.getUser();
+    // Check for agent token first (backend/automation calls)
+    const agentToken = req.headers.get("x-agent-token") ?? req.headers.get("X-Agent-Token");
+    const expectedAgentToken = Deno.env.get("AGENT_TOKEN");
+    const isAgentAuth = expectedAgentToken && agentToken === expectedAgentToken;
     
-    if (authError || !authData?.user) {
-      console.error("[student-achievements] Auth error:", authError);
-      return Errors.invalidAuth(requestId, req);
-    }
+    let userId: string;
+    let supabase;
+    
+    if (isAgentAuth) {
+      // Agent auth - use service role for data access
+      supabase = createClient(
+        Deno.env.get("SUPABASE_URL")!,
+        Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+      );
+      // For agent calls, studentId is required
+      if (!studentId) {
+        return Errors.invalidRequest("studentId required for agent auth", requestId, req);
+      }
+      userId = studentId;
+    } else {
+      // User auth - require Authorization header
+      const authHeader = req.headers.get("Authorization");
+      if (!authHeader) {
+        return Errors.noAuth(requestId, req);
+      }
 
-    const userId = authData.user.id;
+      supabase = createClient(
+        Deno.env.get("SUPABASE_URL")!,
+        Deno.env.get("SUPABASE_ANON_KEY")!,
+        {
+          global: {
+            headers: { Authorization: authHeader },
+          },
+        }
+      );
+
+      const { data: authData, error: authError } = await supabase.auth.getUser();
+      
+      if (authError || !authData?.user) {
+        console.error("[student-achievements] Auth error:", authError);
+        return Errors.invalidAuth(requestId, req);
+      }
+      userId = authData.user.id;
+    }
     
     // Determine target student: if studentId provided, use it (RLS will enforce access)
     // Otherwise, default to the authenticated user's own achievements

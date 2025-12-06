@@ -4,9 +4,20 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
-const BASE_URL = process.env.MCP_BASE_URL || 'http://127.0.0.1:4000';
-const TOKEN = process.env.MCP_AUTH_TOKEN || 'dev-local-secret';
-const PROJECT_ID = process.env.PROJECT_ID || process.env.COURSE_ID || '';
+const BASE_URL = process.env.MCP_BASE_URL;
+if (!BASE_URL) {
+  console.error('[PIPELINE] ❌ MCP_BASE_URL is REQUIRED - set env var before running');
+  console.error('   Example: MCP_BASE_URL=http://127.0.0.1:4000');
+  process.exit(1);
+}
+
+const TOKEN = process.env.MCP_AUTH_TOKEN;
+if (!TOKEN) {
+  console.error('[PIPELINE] ❌ MCP_AUTH_TOKEN is REQUIRED');
+  process.exit(1);
+}
+
+const PROJECT_ID = process.env.PROJECT_ID || process.env.COURSE_ID; // Optional - can be undefined
 
 function ensureDir(dir) {
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });

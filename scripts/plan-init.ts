@@ -103,7 +103,7 @@ async function main() {
     '[EntityName]': entityName,
     '[entity-slug]': entitySlug,
     '[DATE]': new Date().toISOString().split('T')[0],
-    '[NAME]': process.env.USER || 'Author',
+    '[NAME]': process.env.USER || process.env.USERNAME || 'Author', // Template placeholder - system username or default
     '[job_id]': `analyze_${entitySlug.replace(/-/g, '_')}`,
     '[ChildEntity]': `${entityName}Item`,
     '[child-slug]': `${entitySlug}-item`,

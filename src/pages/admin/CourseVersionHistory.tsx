@@ -19,7 +19,7 @@ import {
 } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { restoreCourseVersion } from '@/lib/api/restoreCourse';
-import { supabase } from '@/integrations/supabase/client';
+import { useMCP } from '@/hooks/useMCP';
 
 interface CourseVersion {
   id: string;
@@ -34,6 +34,7 @@ export default function CourseVersionHistory() {
   const { courseId } = useParams<{ courseId: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const mcp = useMCP();
 
   const [loading, setLoading] = useState(true);
   const [versions, setVersions] = useState<CourseVersion[]>([]);
@@ -53,24 +54,9 @@ export default function CourseVersionHistory() {
     try {
       setLoading(true);
 
-      // Query course_versions table directly since RPC may not exist
-      const { data, error } = await supabase
-        .from('course_versions')
-        .select('id, version, published_at, published_by, change_summary, metadata_snapshot')
-        .eq('course_id', courseId)
-        .order('version', { ascending: false });
-
-      if (error) {
-        console.error('Error loading versions:', error);
-        toast({
-          title: 'Error',
-          description: 'Failed to load version history',
-          variant: 'destructive',
-        });
-        return;
-      }
-
-      setVersions((data || []) as CourseVersion[]);
+      const response = await mcp.callGet<any>('lms.listCourseVersions', { courseId });
+      const items = (response?.versions || response?.items || []) as CourseVersion[];
+      setVersions(items);
     } catch (error: any) {
       console.error('Error:', error);
       toast({
@@ -87,25 +73,9 @@ export default function CourseVersionHistory() {
     if (!courseId) return;
 
     try {
-      // Query version directly from course_versions table
-      const { data, error } = await supabase
-        .from('course_versions')
-        .select('metadata_snapshot')
-        .eq('course_id', courseId)
-        .eq('version', version)
-        .single();
-
-      if (error) {
-        console.error('Error loading snapshot:', error);
-        toast({
-          title: 'Error',
-          description: 'Failed to load version snapshot',
-          variant: 'destructive',
-        });
-        return;
-      }
-
-      setSelectedSnapshot(data?.metadata_snapshot);
+      const response = await mcp.callGet<any>('lms.getCourseVersionSnapshot', { courseId, version: String(version) });
+      const snapshot = response?.metadata_snapshot ?? response?.snapshot ?? response;
+      setSelectedSnapshot(snapshot);
       setShowSnapshotDialog(true);
     } catch (error: any) {
       console.error('Error:', error);

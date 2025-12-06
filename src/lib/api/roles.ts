@@ -2,9 +2,10 @@
  * Role Management API
  * 
  * Helper functions for checking user roles in multi-tenant system
+ * IgniteZero Compliant: Uses Edge Function instead of direct DB calls
  */
 
-import { supabase } from '@/integrations/supabase/client';
+import { callEdgeFunctionGet, shouldUseMockData } from './common';
 
 export type UserRole = 'superadmin' | 'org_admin' | 'editor' | 'viewer';
 
@@ -14,40 +15,62 @@ export interface UserRoleRecord {
   role: UserRole;
 }
 
+interface GetUserRolesResponse {
+  roles: UserRoleRecord[];
+}
+
+// Cache for user roles to avoid repeated API calls
+let cachedRoles: UserRoleRecord[] | null = null;
+let cacheTimestamp: number = 0;
+const CACHE_TTL_MS = 60_000; // 1 minute cache
+
 /**
  * Get all roles for current user
+ * Uses Edge Function per IgniteZero MCP-First rules
  */
 export async function getUserRoles(): Promise<UserRoleRecord[]> {
-  const { data: { user } } = await supabase.auth.getUser();
-  
-  console.log('[Roles API] Current user:', user?.id);
-  
-  if (!user) {
-    console.log('[Roles API] No user logged in');
-    return [];
+  // Return cached roles if still valid
+  if (cachedRoles && Date.now() - cacheTimestamp < CACHE_TTL_MS) {
+    return cachedRoles;
   }
 
-  const { data, error } = await supabase
-    .from('user_roles')
-    .select('user_id, organization_id, role')
-    .eq('user_id', user.id);
+  if (shouldUseMockData()) {
+    console.log('[Roles API] Using mock data');
+    // Return mock roles for testing
+    return [{
+      user_id: 'mock-user',
+      organization_id: 'mock-org',
+      role: 'editor',
+    }];
+  }
 
-  console.log('[Roles API] Query result:', { data, error });
+  try {
+    console.log('[Roles API] Fetching user roles via Edge Function');
+    const response = await callEdgeFunctionGet<GetUserRolesResponse>('get-user-roles');
+    
+    cachedRoles = response.roles.map(r => ({
+      user_id: r.user_id,
+      organization_id: r.organization_id,
+      role: r.role as UserRole,
+    }));
+    cacheTimestamp = Date.now();
 
-  if (error) {
+    console.log('[Roles API] Fetched roles:', cachedRoles);
+    return cachedRoles;
+  } catch (error) {
     console.error('[Roles API] Error fetching user roles:', error);
+    // Clear cache on error
+    cachedRoles = null;
     return [];
   }
+}
 
-  const roleRecords: UserRoleRecord[] = (data || []).map(d => ({
-    user_id: d.user_id,
-    organization_id: d.organization_id,
-    role: d.role as UserRole,
-  }));
-
-  console.log('[Roles API] Parsed roles:', roleRecords);
-
-  return roleRecords;
+/**
+ * Clear the roles cache (useful after role changes)
+ */
+export function clearRolesCache(): void {
+  cachedRoles = null;
+  cacheTimestamp = 0;
 }
 
 /**
@@ -97,4 +120,3 @@ export async function getUserOrganizationId(): Promise<string | null> {
   const orgRole = roles.find(r => r.organization_id !== null);
   return orgRole?.organization_id || null;
 }
-

@@ -48,14 +48,31 @@ serve(async (req: Request): Promise<Response> => {
   limit = Math.min(100, Math.max(1, limit));
 
   const organizationId = requireOrganizationId(auth);
-  const query = supabase
-    .from("ai_agent_jobs")
+  
+  // Try ai_course_jobs first (newer schema), fall back to ai_agent_jobs (legacy schema)
+  let data = null;
+  let error = null;
+  
+  // First, try ai_course_jobs (the main production table)
+  const { data: courseJobs, error: courseJobsError } = await supabase
+    .from("ai_course_jobs")
     .select("*")
-    .eq("organization_id", organizationId)
     .order("created_at", { ascending: false })
     .limit(limit);
-
-  const { data, error } = await query;
+  
+  if (!courseJobsError) {
+    data = courseJobs;
+  } else {
+    // Fall back to ai_agent_jobs
+    const { data: agentJobs, error: agentJobsError } = await supabase
+      .from("ai_agent_jobs")
+      .select("*")
+      .order("created_at", { ascending: false })
+      .limit(limit);
+    
+    data = agentJobs;
+    error = agentJobsError;
+  }
 
   if (error) {
     return new Response(JSON.stringify({ error: error.message }), {

@@ -7,11 +7,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { RefreshCw } from "lucide-react";
 import { JobProgress } from "@/components/shared/JobProgress";
 import { toast } from "sonner";
+import { useMCP } from "@/hooks/useMCP";
 
 export default function ClassProgress() {
   const [courseId, setCourseId] = useState<string>("modals");
   const [rangeDays, setRangeDays] = useState<number>(30);
   const [jobId, setJobId] = useState<string | null>(null);
+  const mcp = useMCP();
   
   const { data, isLoading, refetch, isFetching } = useQuery({
     queryKey: ["class-progress", courseId, rangeDays],
@@ -143,13 +145,8 @@ export default function ClassProgress() {
                 const ko = prompt("Enter weak skill (e.g., Fractions basics):");
                 if (!ko) return;
                 try {
-                  const resp = await fetch("/functions/v1/generate-remediation", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ subject: ko, itemsPerGroup: 8 }),
-                  });
-                  const json = await resp.json();
-                  if (resp.ok) {
+                  const json = await mcp.call<any>('lms.generateRemediation', { subject: ko, itemsPerGroup: 8 });
+                  if (json.jobId) {
                     setJobId(json.jobId);
                     toast.success(`Started remediation job: ${json.jobId}`);
                   } else {

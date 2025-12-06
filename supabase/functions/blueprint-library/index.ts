@@ -3,12 +3,11 @@ import { stdHeaders, handleOptions } from "../_shared/cors.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
-const SERVICE_ROLE_KEY =
-  Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? Deno.env.get("SERVICE_ROLE_KEY");
-const MOCKUP_BUCKET = Deno.env.get("MOCKUP_BUCKET") ?? "mockups";
+const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+const MOCKUP_BUCKET = Deno.env.get("MOCKUP_BUCKET");
 
-if (!SUPABASE_URL || !SERVICE_ROLE_KEY) {
-  throw new Error("SUPABASE_URL and SERVICE_ROLE_KEY are required");
+if (!SUPABASE_URL || !SERVICE_ROLE_KEY || !MOCKUP_BUCKET) {
+  throw new Error("SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, and MOCKUP_BUCKET are required");
 }
 
 const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
@@ -70,6 +69,25 @@ serve(async (req: Request): Promise<Response> => {
         status: 400,
         headers: stdHeaders(req, { "Content-Type": "application/json" }),
       },
+    );
+  }
+
+  // Check if mockups bucket exists
+  const { data: buckets, error: bucketsError } = await supabase.storage.listBuckets();
+  if (bucketsError) {
+    return new Response(
+      JSON.stringify({ error: `Storage error: ${bucketsError.message}` }),
+      { status: 500, headers: stdHeaders(req, { "Content-Type": "application/json" }) }
+    );
+  }
+  const bucketExists = buckets?.some(b => b.name === MOCKUP_BUCKET);
+  if (!bucketExists) {
+    return new Response(
+      JSON.stringify({ 
+        error: `Storage bucket '${MOCKUP_BUCKET}' not found`,
+        hint: `Create a public storage bucket named '${MOCKUP_BUCKET}' in Supabase Dashboard`
+      }),
+      { status: 404, headers: stdHeaders(req, { "Content-Type": "application/json" }) }
     );
   }
 

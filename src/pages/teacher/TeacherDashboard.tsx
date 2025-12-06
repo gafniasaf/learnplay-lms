@@ -17,6 +17,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { toast } from "sonner";
 import { JobProgress } from "@/components/shared/JobProgress";
 import { format } from "date-fns";
+import { useMCP } from "@/hooks/useMCP";
 
 interface AssignmentWithProgress extends Assignment {
   progress?: number;
@@ -71,6 +72,7 @@ const TeacherDashboard = () => {
   const [selectedKOId, setSelectedKOId] = useState<string | null>(null);
   const [activeJobId, setActiveJobId] = useState<string | null>(null);
   const mockMode = useMockData();
+  const mcp = useMCP();
 
   const {
     data,
@@ -213,13 +215,8 @@ const TeacherDashboard = () => {
                 const topic = prompt("Generate assignment for topic:");
                 if (!topic) return;
                 try {
-                  const resp = await fetch("/functions/v1/generate-assignment", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ topic }),
-                  });
-                  const json = await resp.json();
-                  if (resp.ok) {
+                  const json = await mcp.call<any>('lms.generateAssignment', { topic });
+                  if (json.jobId) {
                     toast.success(`Generating assignment… Job: ${json.jobId}`);
                     setActiveJobId(json.jobId);
                   } else {
@@ -269,13 +266,8 @@ const TeacherDashboard = () => {
                 try {
                   const ko = prompt("Enter skill/KO id or subject");
                   if (!ko) return;
-                  const resp = await fetch("/functions/v1/generate-remediation", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ subject: ko, itemsPerGroup: 8 }),
-                  });
-                  const json = await resp.json();
-                  if (resp.ok) {
+                  const json = await mcp.call<any>('lms.generateRemediation', { subject: ko, itemsPerGroup: 8 });
+                  if (json.jobId) {
                     toast.success(`Generating remediation set… Job: ${json.jobId}`);
                     setActiveJobId(json.jobId);
                   } else {

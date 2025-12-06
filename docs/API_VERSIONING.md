@@ -72,13 +72,15 @@ export async function getCourseCatalog(): Promise<CourseCatalogEntry[]> {
 
 ```typescript
 // supabase/functions/list-courses/index.ts
+import { stdHeaders } from "../_shared/cors.ts";
+
 return new Response(JSON.stringify(data), {
-  headers: {
-    ...corsHeaders,
+  headers: stdHeaders(req, {
+    'Content-Type': 'application/json',
     'X-API-Deprecated': 'true',
     'X-API-Sunset': '2025-12-31',
     'Link': '</functions/v2/list-courses>; rel="successor-version"',
-  },
+  }),
 });
 ```
 

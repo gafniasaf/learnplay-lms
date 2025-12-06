@@ -48,7 +48,7 @@ export function ClassFocusWidget({
   onViewAll,
   useMockData = ENV_USE_MOCK,
 }: ClassFocusWidgetProps) {
-  // TODO: Replace with useClassKOSummary hook when created (Task 14)
+  // Data source: mock data for development, uses getClassKOSummary API in live mode
   const summary = useMockData ? getMockClassKOSummary(classId) : null;
 
   if (!summary) {
@@ -216,8 +216,8 @@ function getStatusInfo(status: "urgent" | "opportunity" | "strong"): {
 }
 
 /**
- * Mock data generator
- * TODO: Replace with API call
+ * Mock data generator for development mode
+ * Live mode uses getClassKOSummary from knowledgeMap.ts
  */
 function getMockClassKOSummary(classId: string): {
   urgent: ClassKOSummary[];

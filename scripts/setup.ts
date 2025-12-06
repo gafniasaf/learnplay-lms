@@ -156,19 +156,21 @@ async function setupMCP() {
   if (fs.existsSync(envLocalPath) || fs.existsSync(envPath)) {
     success("MCP environment config found.");
   } else {
-    warn("MCP environment config missing. Creating default...");
-    const defaultEnv = `MCP_AUTH_TOKEN=dev-local-secret
-AGENT_TOKEN=dev-local-secret
+    warn("MCP environment config missing. Creating template...");
+    // Per IgniteZero rules: No working defaults - require explicit configuration
+    const templateEnv = `# ⚠️ REQUIRED: Set real values before running - no defaults work
+MCP_AUTH_TOKEN=CHANGE_ME_REQUIRED
+AGENT_TOKEN=CHANGE_ME_REQUIRED
 SUPABASE_URL=http://127.0.0.1:54321
-SUPABASE_ACCESS_TOKEN=dev-local-token
+SUPABASE_ACCESS_TOKEN=CHANGE_ME_REQUIRED
 HOST=127.0.0.1
 PORT=4000
 ALLOW_SERVICE_ROLE=false
 MCP_TRACE=0
 TRACE_DIR=traces
 `;
-    fs.writeFileSync(envLocalPath, defaultEnv);
-    success(`Created ${envLocalPath} with default local values.`);
+    fs.writeFileSync(envLocalPath, templateEnv);
+    warn(`Created ${envLocalPath} - YOU MUST SET REAL VALUES before running!`);
   }
 
   log("Installing MCP dependencies...", CYAN);

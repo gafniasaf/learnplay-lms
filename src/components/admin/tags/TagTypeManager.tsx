@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
+import { useMCP } from '@/hooks/useMCP';
 
 interface TagType {
   key: string;
@@ -27,6 +27,7 @@ interface TagTypeManagerProps {
 
 export function TagTypeManager({ tagTypes, onUpdate }: TagTypeManagerProps) {
   const { toast } = useToast();
+  const mcp = useMCP();
   const [editingKey, setEditingKey] = useState<string | null>(null);
   const [editLabel, setEditLabel] = useState('');
 
@@ -34,22 +35,19 @@ export function TagTypeManager({ tagTypes, onUpdate }: TagTypeManagerProps) {
 
   const handleToggleEnabled = async (typeKey: string) => {
     try {
-      // Get current state
-      const { data: current, error: fetchError } = await supabase
-        .from('tag_types')
-        .select('is_enabled')
-        .eq('key', typeKey)
-        .single();
+      // Get current state via MCP
+      const currentResponse = await mcp.getRecord('TagType', typeKey) as unknown as { record?: { is_enabled?: boolean } };
+      const current = currentResponse?.record;
 
-      if (fetchError) throw fetchError;
+      if (!current) {
+        throw new Error('Tag type not found');
+      }
 
-      // Toggle
-      const { error: updateError } = await supabase
-        .from('tag_types')
-        .update({ is_enabled: !current.is_enabled })
-        .eq('key', typeKey);
-
-      if (updateError) throw updateError;
+      // Toggle via MCP
+      await mcp.saveRecord('TagType', {
+        key: typeKey,
+        is_enabled: !current.is_enabled,
+      });
 
       toast({
         title: 'Tag type updated',
@@ -73,12 +71,11 @@ export function TagTypeManager({ tagTypes, onUpdate }: TagTypeManagerProps) {
 
   const handleSaveEdit = async (typeKey: string) => {
     try {
-      const { error } = await supabase
-        .from('tag_types')
-        .update({ label: editLabel.trim() })
-        .eq('key', typeKey);
-
-      if (error) throw error;
+      // Update via MCP
+      await mcp.saveRecord('TagType', {
+        key: typeKey,
+        label: editLabel.trim(),
+      });
 
       toast({
         title: 'Label updated',

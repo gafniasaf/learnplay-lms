@@ -14,7 +14,9 @@ export function PipelineLayout() {
       if (jobId) {
         window.localStorage.setItem('selectedJobId', jobId);
       }
-    } catch {}
+    } catch {
+      // Ignore localStorage errors (e.g., in private browsing mode)
+    }
   }, [jobId]);
 
   const handleJobSelect = (newJobId: string) => {

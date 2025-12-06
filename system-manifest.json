@@ -142,6 +142,18 @@
       "execution_mode": "async",
       "prompt_template": "Execute the LearnPlay regression checklist (CTA clicks, guard job, accessibility). Return JSON {\"total_tests\": number, \"passed\": number, \"failed\": number, \"details\": [{\"name\": string, \"status\": string, \"notes\": string}]}."
     }
+  ],
+  "edge_functions": [
+    { "id": "validate-course-structure", "input": { "courseId": "string" }, "output": { "ok": "boolean" } },
+    { "id": "generate-variants-audit", "input": { "courseId": "string" }, "output": { "ok": "boolean", "coverage": "number" } },
+    { "id": "editor-repair-course", "input": { "courseId": "string", "apply": "boolean" }, "output": { "ok": "boolean", "preview": "json" } },
+    { "id": "editor-variants-missing", "input": { "courseId": "string", "apply": "boolean" }, "output": { "ok": "boolean", "preview": "json" } },
+    { "id": "editor-auto-fix", "input": { "courseId": "string", "apply": "boolean" }, "output": { "ok": "boolean" } },
+    { "id": "editor-co-pilot", "input": { "action": "string", "subject": "string", "format": "string", "courseId": "string", "locale": "string" }, "output": { "jobId": "string" } },
+    { "id": "generate-hint", "input": { "courseId": "string", "itemId": "string" }, "output": { "hint": "string" } },
+    { "id": "generate-assignment", "input": { "topic": "string" }, "output": { "jobId": "string" } },
+    { "id": "generate-remediation", "input": { "subject": "string", "itemsPerGroup": "number" }, "output": { "jobId": "string" } },
+    { "id": "mcp-metrics-proxy", "input": { "type": "string" }, "output": { "ok": "boolean" } }
   ]
 }
 

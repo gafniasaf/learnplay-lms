@@ -32,10 +32,11 @@ import { SkipLink } from "@/components/game/SkipLink";
 import { Button } from "@/components/ui/button";
 import type { Course } from "@/lib/types/course";
 import { isEmbed, postToHost, listenHost } from "@/lib/embed";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase as supabaseClient } from "@/integrations/supabase/client";
 import { PlayErrorBoundary } from "@/components/game/PlayErrorBoundary";
 import { useCoursePreloader } from "@/hooks/useCoursePreloader";
 import { updateMastery as kmUpdateMastery, getKnowledgeObjective } from "@/lib/api/knowledgeMap";
+import { useMCP } from "@/hooks/useMCP";
 
 type Phase = 'idle' | 'committing' | 'feedback-correct' | 'feedback-wrong' | 'advancing';
 
@@ -58,7 +59,9 @@ const Play = () => {
         const u = new URL(document.referrer);
         refParam = u.searchParams.get('admin') === '1';
       }
-    } catch {}
+    } catch {
+      // Ignore URL parsing errors (invalid referrer)
+    }
     return urlParam || envParam || lsParam || refParam;
   })();
   
@@ -70,6 +73,7 @@ const Play = () => {
   const [showVersionBanner, setShowVersionBanner] = useState(false);
   const itemStartTime = useRef<number>(Date.now());
   const [koLabel, setKoLabel] = useState<string | null>(null);
+  const mcp = useMCP();
   
   // Parse level from URL, default to 1
   const getLevelFromUrl = (course: Course | null): number => {
@@ -198,7 +202,7 @@ const Play = () => {
         try {
           const { access_token, refresh_token } = e.data.payload;
           if (access_token && refresh_token) {
-            await supabase.auth.setSession({
+            await supabaseClient.auth.setSession({
               access_token,
               refresh_token,
             });
@@ -285,7 +289,7 @@ const Play = () => {
   // Subscribe to catalog_updates for this course and show refresh banner
   useEffect(() => {
     if (!courseId) return;
-    const channel = supabase
+    const channel = supabaseClient
       .channel('catalog-updates-play')
       .on(
         'postgres_changes',
@@ -297,7 +301,7 @@ const Play = () => {
         }
       )
       .subscribe();
-    return () => { supabase.removeChannel(channel); };
+    return () => { supabaseClient.removeChannel(channel); };
   }, [courseId]);
 
   // Load course data and start session
@@ -544,7 +548,7 @@ const Play = () => {
         // If correct and we have a skill focus + user, update mastery (fire-and-forget)
         if (isCorrect && skillFocus) {
           try {
-            const { data } = await supabase.auth.getUser();
+            const { data } = await supabaseClient.auth.getUser();
             const studentId = data.user?.id;
             if (studentId) {
               await kmUpdateMastery({
@@ -924,43 +928,23 @@ const Play = () => {
                       setShowHint(true);
                       return;
                     }
-                      // Try MCP proxy first (observability), then fallback to direct Edge
-                      let hintText: string | undefined;
-                      try {
-                        const invoke = await import("@/integrations/supabase/client");
-                        const { data, error } = await invoke.supabase.functions.invoke('mcp-metrics-proxy', {
-                          body: { method: 'lms.generateHint', params: { courseId, itemId: frozenItem.id } },
-                        });
-                        if (!error && (data?.ok ?? true)) {
-                          hintText = String(data?.data?.hint ?? data?.hint ?? '');
-                        } else {
-                          throw new Error('mcp-proxy-failed');
-                        }
-                      } catch {
-                        // @ui-audit-ignore: courseId and itemId are runtime-available from closure
-                        const resp = await fetch('/functions/v1/generate-hint', {
-                          method: 'POST',
-                          headers: { 'Content-Type': 'application/json' },
-                          body: JSON.stringify({ courseId, itemId: frozenItem.id }),
-                        });
-                        const json = await resp.json();
-                        if (!resp.ok) throw new Error('edge-failed');
-                        hintText = String(json?.hint || '');
+                    const json = await mcp.call<any>('lms.generateHint', { courseId, itemId: frozenItem.id });
+                    const hintText = String(json?.hint || '');
+                    setCurrentHint(hintText);
+                    setShowHint(true);
+                    console.info('[Play] Hint generated');
+                    // Best-effort cache invalidation; log instead of silent swallow
+                    try {
+                      if (courseId) {
+                        const mod = await import("@/lib/utils/cacheInvalidation");
+                        await mod.invalidateCourseCache(courseId);
                       }
-                      console.info('[Play] Hint generated');
-                      // Invalidate CDN cache and reload current course item to reflect hint
-                      try {
-                        if (courseId) {
-                          const mod = await import("@/lib/utils/cacheInvalidation");
-                          await mod.invalidateCourseCache(courseId);
-                        }
-                      } catch {}
-                      // Reload to get updated hint
-                      window.location.reload();
+                    } catch (cacheError) {
+                      console.warn('[Play] Cache invalidation skipped', cacheError);
+                    }
                     } catch (e) {
                       console.warn('[Play] Hint error', e);
-                      // @ts-ignore
-                      window?.__toast?.error?.('Hint error');
+                    (window as any)?.__toast?.error?.('Hint error');
                     }
                   }}
                 >

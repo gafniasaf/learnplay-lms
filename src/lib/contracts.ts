@@ -400,3 +400,109 @@ export const JOB_MODES = {
   "compile_mockups": "async",
   "plan_matrix_run": "async"
 } as const;
+
+// --- Edge Function Schemas (for MCP typing) ---
+export const EDGE_FUNCTION_SCHEMAS = [
+  {
+    "id": "validate-course-structure",
+    "input": {
+      "courseId": "string"
+    },
+    "output": {
+      "ok": "boolean"
+    }
+  },
+  {
+    "id": "generate-variants-audit",
+    "input": {
+      "courseId": "string"
+    },
+    "output": {
+      "ok": "boolean",
+      "coverage": "number"
+    }
+  },
+  {
+    "id": "editor-repair-course",
+    "input": {
+      "courseId": "string",
+      "apply": "boolean"
+    },
+    "output": {
+      "ok": "boolean",
+      "preview": "json"
+    }
+  },
+  {
+    "id": "editor-variants-missing",
+    "input": {
+      "courseId": "string",
+      "apply": "boolean"
+    },
+    "output": {
+      "ok": "boolean",
+      "preview": "json"
+    }
+  },
+  {
+    "id": "editor-auto-fix",
+    "input": {
+      "courseId": "string",
+      "apply": "boolean"
+    },
+    "output": {
+      "ok": "boolean"
+    }
+  },
+  {
+    "id": "editor-co-pilot",
+    "input": {
+      "action": "string",
+      "subject": "string",
+      "format": "string",
+      "courseId": "string",
+      "locale": "string"
+    },
+    "output": {
+      "jobId": "string"
+    }
+  },
+  {
+    "id": "generate-hint",
+    "input": {
+      "courseId": "string",
+      "itemId": "string"
+    },
+    "output": {
+      "hint": "string"
+    }
+  },
+  {
+    "id": "generate-assignment",
+    "input": {
+      "topic": "string"
+    },
+    "output": {
+      "jobId": "string"
+    }
+  },
+  {
+    "id": "generate-remediation",
+    "input": {
+      "subject": "string",
+      "itemsPerGroup": "number"
+    },
+    "output": {
+      "jobId": "string"
+    }
+  },
+  {
+    "id": "mcp-metrics-proxy",
+    "input": {
+      "type": "string"
+    },
+    "output": {
+      "ok": "boolean"
+    }
+  }
+] as const;

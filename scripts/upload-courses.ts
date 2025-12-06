@@ -32,11 +32,17 @@ async function login(): Promise<string> {
   console.log('🔐 Authenticating...');
   
   const authUrl = `${SUPABASE_URL}/auth/v1/token?grant_type=password`;
+  const PUBLISHABLE_KEY = process.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+  if (!PUBLISHABLE_KEY) {
+    console.error('❌ VITE_SUPABASE_PUBLISHABLE_KEY is REQUIRED - set env var before running');
+    process.exit(1);
+  }
+
   const authRes = await fetch(authUrl, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-'apikey': process.env.VITE_SUPABASE_PUBLISHABLE_KEY || '',
+      'apikey': PUBLISHABLE_KEY,
     },
     body: JSON.stringify({
       email: ADMIN_EMAIL,

@@ -81,9 +81,10 @@ jest.mock('../src/http', () => ({
 describe('${slug} handler', () => {
   let handler: any;
   beforeAll(async () => {
-    process.env.SUPABASE_URL = 'https://example.supabase.co';
-    process.env.AGENT_TOKEN = 'agent';
-    process.env.MCP_AUTH_TOKEN = 'dev-local-secret';
+    // Test-only mock values (not used in production)
+    process.env.SUPABASE_URL = 'https://test.supabase.co';
+    process.env.AGENT_TOKEN = 'test-agent-token';
+    process.env.MCP_AUTH_TOKEN = 'test-mcp-token';
     jest.resetModules();
     handler = (await import('../src/handlers/${slug}')).${pascal};
   });

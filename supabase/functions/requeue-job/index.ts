@@ -62,13 +62,22 @@ serve(async (req: Request): Promise<Response> => {
       .single();
 
     if (error) {
+      console.error(`[requeue-job] DB error:`, error);
       if (error.code === "PGRST116") {
         return new Response(JSON.stringify({ error: "Job not found" }), {
           status: 404,
           headers: stdHeaders(req, { "Content-Type": "application/json" }),
         });
       }
-      throw error;
+      // Return proper error response instead of throwing
+      return new Response(
+        JSON.stringify({ 
+          error: error.message || "Database error",
+          code: error.code,
+          details: error.details
+        }),
+        { status: 500, headers: stdHeaders(req, { "Content-Type": "application/json" }) }
+      );
     }
 
     console.log(`[requeue-job] Requeued job ${jobId} in ${jobTable}`);

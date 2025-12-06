@@ -1,5 +1,6 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
+import { useMCP } from '@/hooks/useMCP';
 
 export type ImageGenerateButtonProps = {
   courseId: string;
@@ -12,28 +13,20 @@ export type ImageGenerateButtonProps = {
 
 export function ImageGenerateButton(props: ImageGenerateButtonProps) {
   const { onStarted, onDone, disabled } = props;
+  const mcp = useMCP();
 
   const handleClick = async () => {
     if (onStarted) onStarted();
     try {
-      const res = await fetch('/functions/v1/enqueue-course-media', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          courseId: props.courseId,
-          itemId: Number(props.itemId),
-          prompt: props.defaultPrompt,
-        }),
+      const result = await mcp.call<{ ok: boolean; mediaJobId?: string }>('enqueue-course-media', {
+        courseId: props.courseId,
+        itemId: Number(props.itemId),
+        prompt: props.defaultPrompt,
       });
-      if (!res.ok) {
-        const txt = await res.text();
-        onDone?.({ ok: false, status: 'error', error: txt });
-        return;
-      }
-      const j = await res.json();
-      onDone?.({ ok: true, jobId: j?.mediaJobId, status: 'pending' });
-    } catch (e: any) {
-      onDone?.({ ok: false, status: 'error', error: e?.message || String(e) });
+      onDone?.({ ok: result.ok, jobId: result.mediaJobId, status: 'pending' });
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : String(e);
+      onDone?.({ ok: false, status: 'error', error: message });
     }
   };
 

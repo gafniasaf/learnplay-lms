@@ -17,8 +17,18 @@ async function runDirect() {
 }
 
 async function runViaMcp() {
-  const BASE = process.env.MCP_BASE_URL || 'http://127.0.0.1:4000';
-  const TOKEN = process.env.MCP_AUTH_TOKEN || 'dev-local-secret';
+  const BASE = process.env.MCP_BASE_URL;
+  if (!BASE) {
+    console.error('[UI-CTA-CI] ❌ MCP_BASE_URL is REQUIRED - set env var before running');
+    console.error('   Example: MCP_BASE_URL=http://127.0.0.1:4000');
+    throw new Error('MCP_BASE_URL not set');
+  }
+  
+  const TOKEN = process.env.MCP_AUTH_TOKEN;
+  if (!TOKEN) {
+    console.error('[UI-CTA-CI] ❌ MCP_AUTH_TOKEN is REQUIRED');
+    throw new Error('MCP_AUTH_TOKEN not set');
+  }
   const body = { method: 'lms.uiAudit.fix', params: { dryRun: true, root: process.cwd(), sourceDir: 'src' } };
   const res = await fetch(BASE, {
     method: 'POST',

@@ -1,5 +1,15 @@
-const BASE_URL = process.env.MCP_BASE_URL || 'http://127.0.0.1:4000';
-const TOKEN = process.env.MCP_AUTH_TOKEN || 'dev-local-secret';
+const BASE_URL = process.env.MCP_BASE_URL;
+if (!BASE_URL) {
+  console.error('[MCP] ❌ MCP_BASE_URL is REQUIRED - set env var before running');
+  console.error('   Example: MCP_BASE_URL=http://127.0.0.1:4000');
+  process.exit(1);
+}
+
+const TOKEN = process.env.MCP_AUTH_TOKEN;
+if (!TOKEN) {
+  console.error('[MCP] ❌ MCP_AUTH_TOKEN is REQUIRED');
+  process.exit(1);
+}
 
 async function call(method, params = {}) {
   const res = await fetch(BASE_URL, {
@@ -13,7 +23,7 @@ async function call(method, params = {}) {
 }
 
 async function run() {
-  const courseId = process.env.E2E_DEMO_COURSE_ID || undefined;
+  const courseId = process.env.E2E_DEMO_COURSE_ID; // Optional - can be undefined
   const results = [];
 
   // Publish (if courseId provided)

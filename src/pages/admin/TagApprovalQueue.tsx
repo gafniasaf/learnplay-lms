@@ -25,7 +25,7 @@ import { useToast } from '@/hooks/use-toast';
 import { getOrgConfig } from '@/lib/api/orgConfig';
 import type { OrgConfig } from '@/lib/api/orgConfig';
 import { TagApprovalCard } from '@/components/admin/tags/TagApprovalCard';
-import { supabase } from '@/integrations/supabase/client';
+import { useMCP } from '@/hooks/useMCP';
 import { useNavigate } from 'react-router-dom';
 
 interface TagSuggestion {
@@ -48,6 +48,7 @@ export default function TagApprovalQueue() {
   const [rejectingId, setRejectingId] = useState<string | null>(null);
   const [bulkApproving, setBulkApproving] = useState(false);
   const [authRequired, setAuthRequired] = useState(false);
+  const mcp = useMCP();
 
   useEffect(() => {
     loadData();
@@ -61,29 +62,17 @@ export default function TagApprovalQueue() {
       const config = await getOrgConfig();
       setOrgConfig(config);
 
-      // Load AI tag suggestions from database  
-      const { data: suggestionsData, error: suggestionsError } = await (supabase as any)
-        .from('ai_tag_suggestions')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (suggestionsError) {
-        console.warn('AI tag suggestions table may not exist:', suggestionsError);
-        // Fall back to empty array if table doesn't exist yet
-        setSuggestions([]);
-      } else {
-        // Transform database format to component format
-        const transformed: TagSuggestion[] = (suggestionsData || []).map((row: any) => ({
-          id: row.id,
-          courseId: row.course_id,
-          courseTitle: row.course_title || row.course_id,
-          suggestedTags: row.suggested_tags || {},
-          status: row.status || 'pending',
-          createdAt: row.created_at,
-        }));
-        
-        setSuggestions(transformed);
-      }
+      const response = await mcp.callGet<any>('lms.listTagSuggestions', { status: filterStatus === 'all' ? undefined : filterStatus });
+      const transformed: TagSuggestion[] = (response?.suggestions || []).map((row: any) => ({
+        id: row.id,
+        courseId: row.courseId || row.course_id,
+        courseTitle: row.courseTitle || row.course_id,
+        suggestedTags: row.suggestedTags || row.suggested_tags || {},
+        status: row.status || 'pending',
+        createdAt: row.createdAt || row.created_at,
+      }));
+      
+      setSuggestions(transformed);
     } catch (error: any) {
       if (typeof error?.message === 'string' && error.message.includes('NOT_AUTHENTICATED')) {
         setAuthRequired(true);
@@ -106,47 +95,10 @@ export default function TagApprovalQueue() {
   });
 
   const handleApprove = async (suggestionId: string, mappedTags: Record<string, string[]>) => {
+    const suggestion = suggestions.find((s) => s.id === suggestionId);
     setApprovingId(suggestionId);
     try {
-      // Update suggestion status to approved
-      const { error: updateError } = await (supabase as any)
-        .from('ai_tag_suggestions')
-        .update({ 
-          status: 'approved',
-          mapped_tags: mappedTags,
-          reviewed_at: new Date().toISOString(),
-        })
-        .eq('id', suggestionId);
-
-      if (updateError) throw updateError;
-
-      // Apply tags to course_metadata
-      const suggestion = suggestions.find(s => s.id === suggestionId);
-      if (suggestion) {
-        // Get tag IDs from slugs
-        const tagSlugs = Object.values(mappedTags).flat();
-        const { data: tagIds, error: tagError } = await supabase
-          .from('tags')
-          .select('id')
-          .in('slug', tagSlugs);
-
-        if (!tagError && tagIds) {
-          const courseTagIds = tagIds.map(t => t.id);
-          
-          // Update course_metadata tags only (don't upsert new metadata)
-          const { error: metadataError } = await supabase
-            .from('course_metadata')
-            .update({
-              tag_ids: courseTagIds,
-              updated_at: new Date().toISOString(),
-            })
-            .eq('id', suggestion.courseId);
-
-          if (metadataError) {
-            console.warn('Failed to update course_metadata:', metadataError);
-          }
-        }
-      }
+      await mcp.call('lms.approveTagSuggestion', { suggestionId, mappedTags });
 
       toast({
         title: 'Tags approved',
@@ -168,15 +120,7 @@ export default function TagApprovalQueue() {
   const handleReject = async (suggestionId: string) => {
     setRejectingId(suggestionId);
     try {
-      const { error } = await (supabase as any)
-        .from('ai_tag_suggestions')
-        .update({ 
-          status: 'rejected',
-          reviewed_at: new Date().toISOString(),
-        })
-        .eq('id', suggestionId);
-
-      if (error) throw error;
+      await mcp.call('lms.rejectTagSuggestion', { suggestionId });
 
       toast({
         title: 'Tags rejected',

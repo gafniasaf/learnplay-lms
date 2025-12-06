@@ -35,6 +35,12 @@ interface Manifest {
   branding?: { name: string; tagline: string };
   data_model: EntityDef[] | { root_entities: EntityDef[], child_entities: EntityDef[] };
   agent_jobs: AgentJobDef[];
+  edge_functions?: Array<{
+    id: string;
+    input?: Record<string, any>;
+    output?: Record<string, any>;
+    description?: string;
+  }>;
 }
 
 // --- Generator Logic ---
@@ -281,6 +287,11 @@ function generateJobModes(manifest: Manifest): string {
   return `export const JOB_MODES = ${JSON.stringify(modes, null, 2)} as const;`;
 }
 
+function generateEdgeFunctions(manifest: Manifest): string {
+  const edges = manifest.edge_functions || [];
+  return `export const EDGE_FUNCTION_SCHEMAS = ${JSON.stringify(edges, null, 2)} as const;`;
+}
+
 async function main() {
   if (!fs.existsSync(MANIFEST_PATH)) {
     console.error(`❌ Manifest not found at ${MANIFEST_PATH}`);
@@ -333,6 +344,9 @@ ${generateFieldDefinitions(entities)}
 
 // --- Job Execution Modes ---
 ${generateJobModes(manifest)}
+
+// --- Edge Function Schemas (for MCP typing) ---
+${generateEdgeFunctions(manifest)}
 `;
 
   fs.writeFileSync(OUTPUT_PATH, content, 'utf-8');

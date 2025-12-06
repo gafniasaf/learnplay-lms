@@ -1,11 +1,20 @@
 import { createClient } from '@supabase/supabase-js';
 
-const SUPABASE_URL = process.env.SUPABASE_URL || 'https://xlslksprdjsxawvcikfk.supabase.co';
-const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SERVICE_ROLE_KEY;
-const MOCKUP_BUCKET = process.env.MOCKUP_BUCKET || 'mockups';
+const SUPABASE_URL = process.env.SUPABASE_URL;
+if (!SUPABASE_URL) {
+  console.error('❌ SUPABASE_URL is REQUIRED - set env var before running');
+  process.exit(1);
+}
 
+const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SERVICE_ROLE_KEY;
 if (!SERVICE_ROLE_KEY) {
-  console.error('Missing SERVICE_ROLE_KEY or SUPABASE_SERVICE_ROLE_KEY');
+  console.error('❌ SUPABASE_SERVICE_ROLE_KEY or SERVICE_ROLE_KEY is REQUIRED - set env var before running');
+  process.exit(1);
+}
+
+const MOCKUP_BUCKET = process.env.MOCKUP_BUCKET;
+if (!MOCKUP_BUCKET) {
+  console.error('❌ MOCKUP_BUCKET is REQUIRED - set env var before running');
   process.exit(1);
 }
 

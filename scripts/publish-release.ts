@@ -2,8 +2,19 @@ import { spawnSync } from "node:child_process";
 import { existsSync, rmSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
-const ZIP_NAME = process.env.RELEASE_ZIP_NAME || "ignite-zero-release.zip";
-const BUCKET = process.env.RELEASE_BUCKET || "releases";
+const ZIP_NAME = process.env.RELEASE_ZIP_NAME;
+if (!ZIP_NAME) {
+  console.error('❌ RELEASE_ZIP_NAME is REQUIRED - set env var before running');
+  console.error('   Example: RELEASE_ZIP_NAME=ignite-zero-release.zip');
+  process.exit(1);
+}
+
+const BUCKET = process.env.RELEASE_BUCKET;
+if (!BUCKET) {
+  console.error('❌ RELEASE_BUCKET is REQUIRED - set env var before running');
+  console.error('   Example: RELEASE_BUCKET=releases');
+  process.exit(1);
+}
 const DEST_OBJECT = `${BUCKET}/${ZIP_NAME}`;
 const ROOT = process.cwd();
 const ZIP_PATH = ZIP_NAME;
@@ -22,14 +33,33 @@ function readEnvFileValue(file: string, key: string) {
   }
 }
 
-const rawSupabaseUrl =
-  process.env.VITE_SUPABASE_URL ||
-  process.env.SUPABASE_URL ||
-  readEnvFileValue(path.join(ROOT, ".env.local"), "VITE_SUPABASE_URL") ||
-  readEnvFileValue(path.join(ROOT, ".env.local"), "SUPABASE_URL") ||
-  readEnvFileValue(path.join(ROOT, ".env"), "VITE_SUPABASE_URL") ||
-  readEnvFileValue(path.join(ROOT, ".env"), "SUPABASE_URL") ||
-  "";
+// Per NO-FALLBACK POLICY: Check multiple sources but fail loudly if none found
+let rawSupabaseUrl: string | null = null;
+
+// Check env vars first
+if (process.env.VITE_SUPABASE_URL) {
+  rawSupabaseUrl = process.env.VITE_SUPABASE_URL;
+} else if (process.env.SUPABASE_URL) {
+  rawSupabaseUrl = process.env.SUPABASE_URL;
+} else {
+  // Check env files
+  rawSupabaseUrl = readEnvFileValue(path.join(ROOT, ".env.local"), "VITE_SUPABASE_URL");
+  if (!rawSupabaseUrl) {
+    rawSupabaseUrl = readEnvFileValue(path.join(ROOT, ".env.local"), "SUPABASE_URL");
+  }
+  if (!rawSupabaseUrl) {
+    rawSupabaseUrl = readEnvFileValue(path.join(ROOT, ".env"), "VITE_SUPABASE_URL");
+  }
+  if (!rawSupabaseUrl) {
+    rawSupabaseUrl = readEnvFileValue(path.join(ROOT, ".env"), "SUPABASE_URL");
+  }
+}
+
+if (!rawSupabaseUrl) {
+  console.error('❌ VITE_SUPABASE_URL or SUPABASE_URL is REQUIRED');
+  console.error('   Set env var or add to .env.local or .env file');
+  process.exit(1);
+}
 
 const SUPABASE_URL = rawSupabaseUrl.replace(/\/$/, "");
 

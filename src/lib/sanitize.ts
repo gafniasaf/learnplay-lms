@@ -12,6 +12,7 @@
 export function sanitizeText(input: unknown, max = 2000): string {
   let s = (typeof input === "string" ? input : "").slice(0, max);
   // Strip control chars (0x00-0x1F, 0x7F) and angle brackets
+  // eslint-disable-next-line no-control-regex
   s = s.replace(/[<>\u0000-\u001F\u007F]/g, "");
   return s;
 }

@@ -55,6 +55,38 @@ If something doesn't work locally:
 2. Tell the user to configure it
 3. DON'T hardcode a bypass
 
+## 🚨 ABSOLUTE NO-FALLBACK POLICY (PRIORITY ZERO)
+
+**This is a BLOCKING rule. Violations will cause system failures.**
+
+### NEVER write fallback patterns:
+```typescript
+// ❌ INSTANT REJECTION - These patterns are FORBIDDEN:
+const TOKEN = process.env.TOKEN || 'dev-local-secret';
+const TOKEN = process.env.TOKEN || 'placeholder-token';
+const orgId = user.org_id ?? 'default';
+if (process.env.ALLOW_ANON === 'true') { /* skip auth */ }
+if (!data) return mockData; // silent fallback
+```
+
+### ALWAYS fail explicitly:
+```typescript
+// ✅ REQUIRED PATTERN:
+const TOKEN = process.env.TOKEN;
+if (!TOKEN) {
+  console.error("❌ TOKEN is REQUIRED - set env var before running");
+  process.exit(1);
+}
+```
+
+### Why:
+- Fallbacks hide bugs and cause debugging nightmares
+- Default tokens/orgs are security vulnerabilities
+- Tests pass but production fails
+- Multi-tenant data can get mixed
+
+**When you see a fallback pattern in existing code: REMOVE IT.**
+
 ---
 
 ## 🚀 Edge Function Deployment (MANDATORY READING)

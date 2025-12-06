@@ -236,69 +236,51 @@ All edge functions follow this pattern:
 ```typescript
 // supabase/functions/my-function/index.ts
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { corsHeaders, handleCors } from "../_shared/cors.ts";
+import { createClient } from "npm:@supabase/supabase-js@2";
+import { withCors, newReqId } from "../_shared/cors.ts";
+import { Errors } from "../_shared/error.ts";
 
-serve(async (req) => {
-  // Handle CORS preflight
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+serve(withCors(async (req) => {
+  const reqId = req.headers.get("x-request-id") || newReqId();
+
+  // Initialize Supabase client
+  const supabase = createClient(
+    Deno.env.get("SUPABASE_URL")!,
+    Deno.env.get("SUPABASE_ANON_KEY")!,
+    {
+      global: {
+        headers: { Authorization: req.headers.get("Authorization")! },
+      },
+    }
+  );
+
+  // Get authenticated user
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  if (authError) {
+    return Errors.invalidAuth(reqId);
   }
 
-  try {
-    // Initialize Supabase client
-    const supabase = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_ANON_KEY")!,
-      {
-        global: {
-          headers: { Authorization: req.headers.get("Authorization")! },
-        },
-      }
-    );
+  // Parse request body
+  const body = await req.json();
 
-    // Get authenticated user
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (authError) throw authError;
+  // Business logic here...
 
-    // Parse request body
-    const body = await req.json();
-
-    // Business logic here...
-
-    // Return response
-    return new Response(
-      JSON.stringify({ data: result }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
-
-  } catch (error) {
-    console.error("Error:", error);
-    return new Response(
-      JSON.stringify({
-        error: {
-          code: "server_error",
-          message: error.message,
-        },
-      }),
-      { 
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" }
-      }
-    );
-  }
-});
+  // Return response (withCors handles CORS headers automatically)
+  return { ok: true, data: result };
+}));
 ```
 
 #### CORS Configuration
 
-All functions use a centralized CORS handler (`supabase/functions/_shared/cors.ts`):
+All functions use the centralized CORS wrapper (`supabase/functions/_shared/cors.ts`):
 
 ```typescript
-export const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+// withCors automatically handles:
+// - OPTIONS preflight requests
+// - Access-Control-Allow-Origin (echoes request origin or *)
+// - Access-Control-Allow-Headers
+// - Access-Control-Allow-Credentials
+// - Security headers (CSP, X-Content-Type-Options, etc.)
 ```
 
 **Important**: All functions have `verify_jwt = false` in `config.toml` because they handle authentication manually via the Authorization header.

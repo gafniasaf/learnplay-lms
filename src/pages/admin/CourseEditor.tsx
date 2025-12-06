@@ -12,6 +12,7 @@ import { editorTelemetry } from '@/lib/utils/telemetry';
 import { supabase } from '@/integrations/supabase/client';
 import { uploadMediaFile } from '@/lib/api/media';
 import { useAuth } from '@/hooks/useAuth';
+import { useMCP } from '@/hooks/useMCP';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -29,11 +30,18 @@ import { ItemPreview } from '@/components/admin/ItemPreview';
 import type { Course, CourseItem } from '@/lib/types/course';
 import { DiffViewer } from '@/components/admin/DiffViewer';
 import { logger } from '@/lib/logging';
+import { useCoursePublishing } from './editor/hooks/useCoursePublishing';
+import { useCourseVariants } from './editor/hooks/useCourseVariants';
+import { useCourseCoPilot } from './editor/hooks/useCourseCoPilot';
 
 const CourseEditor = () => {
   const { courseId } = useParams<{ courseId: string }>();
   const navigate = useNavigate();
   const { user, role } = useAuth();
+  const mcp = useMCP();
+  const publishing = useCoursePublishing();
+  const variants = useCourseVariants();
+  const copilot = useCourseCoPilot();
   
   const [course, setCourse] = useState<Course | null>(null);
   const [loading, setLoading] = useState(true);
@@ -101,12 +109,13 @@ const CourseEditor = () => {
     // Load org thresholds (best-effort)
     (async () => {
       try {
-        const res = await fetch('/functions/v1/get-org-settings');
-        const json = await res.json();
-        if (res.ok && json?.ok) {
+        const json = await mcp.callGet<any>('lms.getOrgSettings');
+        if (json?.ok) {
           setOrgThresholds({ variantsCoverageMin: Number(json?.thresholds?.variantsCoverageMin ?? 0.9) });
         }
-      } catch {}
+      } catch (err) {
+        logger.warn('[CourseEditor] org settings fetch skipped', err);
+      }
     })();
   }, [courseId, isAdmin, navigate]);
 
@@ -139,26 +148,8 @@ const CourseEditor = () => {
       
       setCourse(transformedCourse as Course);
       setUnsavedItems(new Set());
-      // Try to fetch archived status (best-effort)
-      try {
-        const { data: meta } = await supabase
-          .from('course_metadata')
-          .select('archived_at, archived_by')
-          .eq('id', courseId)
-          .maybeSingle?.() ?? await supabase
-            .from('course_metadata')
-            .select('archived_at, archived_by')
-            .eq('id', courseId)
-            .single();
-        const m: any = meta as any;
-        if (m?.archived_at) {
-          setArchivedBanner({ at: m.archived_at as string, by: (m.archived_by as string | undefined) || undefined });
-        } else {
-          setArchivedBanner(null);
-        }
-      } catch (_ignored) {
-        // ignore RLS-restricted or missing metadata
-      }
+      // Archived metadata fetch removed to avoid direct Supabase access in UI.
+      setArchivedBanner(null);
     } catch (err) {
       logger.error('[CourseEditor] Failed to load course:', err);
       setError(err instanceof Error ? err.message : 'Failed to load course');
@@ -300,54 +291,8 @@ const CourseEditor = () => {
     try {
       setSaving(true);
       toast.info('Publishing course...');
-
-      // Preflight validation
-      try {
-        const vres = await fetch('/functions/v1/validate-course-structure', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ courseId }),
-        });
-        const vjson = await vres.json();
-        if (!vres.ok || vjson?.ok === false) {
-          const issues = Array.isArray(vjson?.issues) ? vjson.issues.slice(0, 5).join(', ') : 'unknown issues';
-          toast.error(`Validation failed: ${issues}`);
-          setSaving(false);
-          return;
-        }
-        // Coverage audit gating (variants/options completeness)
-        const ares = await fetch('/functions/v1/generate-variants-audit', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ courseId }),
-        });
-        const ajson = await ares.json();
-        if (!ares.ok || ajson?.ok === false) {
-          toast.error('Variants audit failed');
-          setSaving(false);
-          return;
-        }
-        const coverage = Number(ajson?.report?.coverage ?? 1);
-        const threshold = Number(orgThresholds.variantsCoverageMin ?? 0.9);
-        if (coverage < threshold) {
-          const pct = Math.round(coverage * 100);
-          toast.error(`Coverage ${pct}% below threshold ${threshold * 100}% — run Auto‑Fix or Generate Missing Variants`);
-          setSaving(false);
-          return;
-        }
-      } catch (e) {
-        console.warn('[CourseEditor] Validation preflight failed, aborting publish', e);
-        toast.error('Validation preflight failed');
-        setSaving(false);
-        return;
-      }
-
-      // Call publish-course edge function
-      const result = await publishCourse(courseId, changelog);
-
-      // Invalidate CDN cache
-      await invalidateCourseCache(courseId);
-
+      const threshold = Number(orgThresholds.variantsCoverageMin ?? 0.9);
+      const result = await publishing.publishWithPreflight(courseId, changelog, threshold);
       toast.success(`Course published as version ${result.version}`);
       navigate('/admin/courses/select');
     } catch (err) {
@@ -362,16 +307,7 @@ const CourseEditor = () => {
     if (!courseId) return;
     const reason = prompt('Reason for archiving (optional):') || undefined;
     try {
-      const res = await fetch('/functions/v1/archive-course', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ courseId, reason }),
-      });
-      const json = await res.json();
-      if (!res.ok) {
-        throw new Error(json?.error || 'Archive failed');
-      }
-      await invalidateCourseCache(courseId);
+      await publishing.archiveCourse(courseId, reason);
       setArchivedBanner({ at: new Date().toISOString() });
       toast.success('Course archived');
       navigate('/admin/courses/select');
@@ -390,16 +326,7 @@ const CourseEditor = () => {
       return;
     }
     try {
-      const res = await fetch('/functions/v1/delete-course', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ courseId, confirm: confirmText.trim() }),
-      });
-      const json = await res.json();
-      if (!res.ok) {
-        throw new Error(json?.error || 'Delete failed');
-      }
-      await invalidateCourseCache(courseId);
+      await publishing.deleteCourse(courseId, confirmText.trim());
       toast.success('Course deleted');
       navigate('/admin/ai-pipeline');
     } catch (e) {
@@ -924,11 +851,8 @@ const result = await rewriteText({
     if (!courseId) return;
     try {
       // Fetch job details to extract mergePlan/attachments
-      const resJob = await fetch(`/functions/v1/get-job?id=${encodeURIComponent(jobId)}`);
-      const jobJson = await resJob.json();
-      if (!resJob.ok) {
-        throw new Error(jobJson?.error || 'Failed to fetch job');
-      }
+      const jobJson = await mcp.callGet<any>('lms.getJob', { id: jobId });
+      
       const mergePlan = jobJson?.result?.mergePlan || jobJson?.payload?.mergePlan || undefined;
       const attachments = jobJson?.result?.attachments || jobJson?.payload?.attachments || undefined;
       if (!mergePlan && !attachments) {
@@ -936,19 +860,15 @@ const result = await rewriteText({
         return;
       }
       // Ask server to compute preview (no persistence)
-      const resApply = await fetch('/functions/v1/apply-job-result', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          jobId,
-          courseId,
-          mergePlan,
-          attachments,
-          dryRun: true,
-        }),
+      const applyJson = await mcp.call<any>('lms.applyJobResult', {
+        jobId,
+        courseId,
+        mergePlan,
+        attachments,
+        dryRun: true,
       });
-      const applyJson = await resApply.json();
-      if (!resApply.ok || !applyJson?.ok) {
+      
+      if (!applyJson?.ok) {
         throw new Error(applyJson?.error || 'Preview failed');
       }
       const diff = Array.isArray(applyJson?.preview?.diff) ? applyJson.preview.diff : (mergePlan?.patch || []);
@@ -969,62 +889,41 @@ const result = await rewriteText({
     try {
       setApproving(true);
       if (coPilotJobId === '__editor_repair__') {
-        const res = await fetch('/functions/v1/editor-repair-course', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ courseId, apply: true }),
-        });
-        const json = await res.json();
-        if (!res.ok || !json?.ok) throw new Error(json?.error || 'Apply failed');
+        const json = await mcp.call<any>('lms.editorRepairCourse', { courseId, apply: true });
+        if (!json?.ok) throw new Error(json?.error || 'Apply failed');
       } else if (coPilotJobId === '__editor_variants_audit__') {
-        const res = await fetch('/functions/v1/editor-variants-audit', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ courseId, apply: true }),
-        });
-        const json = await res.json();
-        if (!res.ok || !json?.ok) throw new Error(json?.error || 'Apply failed');
+        const json = await mcp.call<any>('lms.editorVariantsAudit', { courseId, apply: true });
+        if (!json?.ok) throw new Error(json?.error || 'Apply failed');
       } else if (coPilotJobId === '__editor_variants_missing__') {
-        const res = await fetch('/functions/v1/editor-variants-missing', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ courseId, apply: true }),
-        });
-        const json = await res.json();
-        if (!res.ok || !json?.ok) throw new Error(json?.error || 'Apply failed');
+        const json = await mcp.call<any>('lms.editorVariantsMissing', { courseId, apply: true });
+        if (!json?.ok) throw new Error(json?.error || 'Apply failed');
       } else if (coPilotJobId === '__editor_autofix__') {
-        const res = await fetch('/functions/v1/editor-auto-fix', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ courseId, apply: true }),
-        });
-        if (res.status === 403) {
-          toast.info('Enable Option B to apply Auto‑Fix');
-          setShowDiffViewer(false);
-          setDiffOps([]);
-          return;
+        try {
+          await variants.autoFix(courseId);
+        } catch (e: any) {
+          if (e.message === '403') {
+            toast.info('Enable Option B to apply Auto‑Fix');
+            setShowDiffViewer(false);
+            setDiffOps([]);
+            return;
+          }
+          throw e;
         }
-        const json = await res.json();
-        if (!res.ok || !json?.ok) throw new Error(json?.error || 'Apply failed');
       } else {
         // Re-fetch job to ensure latest mergePlan/attachments
-        const resJob = await fetch(`/functions/v1/get-job?id=${encodeURIComponent(coPilotJobId)}`);
-        const jobJson = await resJob.json();
+        const jobJson = await mcp.callGet<any>('lms.getJob', { id: coPilotJobId });
         const mergePlan = jobJson?.result?.mergePlan || jobJson?.payload?.mergePlan || undefined;
         const attachments = jobJson?.result?.attachments || jobJson?.payload?.attachments || undefined;
-        const resApply = await fetch('/functions/v1/apply-job-result', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            jobId: coPilotJobId,
-            courseId,
-            mergePlan,
-            attachments,
-            description: 'Applied AI result from Co‑Pilot',
-          }),
+        
+        const applyJson = await mcp.call<any>('lms.applyJobResult', {
+          jobId: coPilotJobId,
+          courseId,
+          mergePlan,
+          attachments,
+          description: 'Applied AI result from Co‑Pilot',
         });
-        const applyJson = await resApply.json();
-        if (!resApply.ok || !applyJson?.ok) {
+        
+        if (!applyJson?.ok) {
           throw new Error(applyJson?.error || 'Apply failed');
         }
       }
@@ -1213,14 +1112,7 @@ const result = await rewriteText({
             onClick={async () => {
               if (!courseId) return;
               try {
-                const res = await fetch('/functions/v1/editor-repair-course', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ courseId, apply: false }),
-                });
-                const json = await res.json();
-                if (!res.ok) throw new Error(json?.error || 'Repair failed');
-                const diff = json?.preview?.diff || [];
+                const diff = await variants.repairPreview(courseId);
                 if (!Array.isArray(diff) || diff.length === 0) {
                   toast.info('Repair found nothing to change');
                   return;
@@ -1242,28 +1134,12 @@ const result = await rewriteText({
             onClick={async () => {
               if (!courseId) return;
               try {
-                // Try MCP proxy first
-                const { data, error } = await supabase.functions.invoke('mcp-metrics-proxy', {
-                  body: { method: 'lms.variantsAudit', params: { courseId } },
-                });
-                let json: any;
-                if (!error && data) {
-                  json = data?.data || data;
-                } else {
-                  const res = await fetch('/functions/v1/editor-variants-audit', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ courseId, apply: false }),
-                  });
-                  json = await res.json();
-                  if (!res.ok) throw new Error(json?.error || 'Variants audit failed');
-                }
-                const diff = json?.preview?.diff || (json?.mergePlan?.patch || []);
-                setDiffOps(Array.isArray(diff) ? diff : []);
-                setAuditInfo(json?.report || null);
+                const result = await variants.variantsAudit(courseId);
+                setDiffOps(result.diff);
+                setAuditInfo(result.report || null);
                 setShowDiffViewer(true);
                 setCoPilotJobId('__editor_variants_audit__');
-                if (json?.report) console.log('[Variants Audit] report:', json.report);
+                if (result.report) console.log('[Variants Audit] report:', result.report);
               } catch (e) {
                 toast.error(e instanceof Error ? e.message : 'Variants audit failed');
               }
@@ -1277,27 +1153,11 @@ const result = await rewriteText({
             onClick={async () => {
               if (!courseId) return;
               try {
-                // Try MCP proxy first
-                const { data, error } = await supabase.functions.invoke('mcp-metrics-proxy', {
-                  body: { method: 'lms.variantsGenerateMissing', params: { courseId, axes: undefined, dryRun: true } },
-                });
-                let json: any;
-                if (!error && data) {
-                  json = data?.data || data;
-                } else {
-                  const res = await fetch('/functions/v1/editor-variants-missing', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ courseId, apply: false }),
-                  });
-                  json = await res.json();
-                  if (!res.ok) throw new Error(json?.error || 'Generate missing variants failed');
-                }
-                const diff = json?.preview?.diff || (json?.mergePlan?.patch || []);
+                const diff = await variants.variantsMissing(courseId);
                 if (!Array.isArray(diff) || diff.length === 0) {
                   toast.info('No missing variants were generated in this pass');
                 }
-                setDiffOps(Array.isArray(diff) ? diff : []);
+                setDiffOps(diff);
                 setAuditInfo(null);
                 setShowDiffViewer(true);
                 setCoPilotJobId('__editor_variants_missing__');
@@ -1324,32 +1184,9 @@ const result = await rewriteText({
             onClick={async () => {
               try {
                 const subject = (course as any).subject || course.title || (courseId ?? 'Untitled');
-                // Proxy-first via MCP, fallback to Edge editor-co-pilot
-                try {
-                  const { data, error } = await supabase.functions.invoke('mcp-metrics-proxy', {
-                    body: { method: 'lms.enqueueAndTrack', params: { type: 'variants', subject, courseId, timeoutSec: 60 } },
-                  });
-                  if (!error && data?.ok !== false) {
-                    const jid = (data?.data || data)?.jobId;
-                    if (jid) setCoPilotJobId(jid);
-                    toast.success(`Co‑Pilot started (variants).`);
-                  } else {
-                    throw new Error(error?.message || 'proxy_failed');
-                  }
-                } catch {
-                  const res = await fetch('/functions/v1/editor-co-pilot', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ action: 'variants', subject, format: 'practice', courseId }),
-                  });
-                  const json = await res.json();
-                  if (res.ok) {
-                    toast.success(`Co‑Pilot started (variants). Job: ${json.jobId}`);
-                    setCoPilotJobId(json.jobId);
-                  } else {
-                    toast.error(json?.error?.message || 'Co‑Pilot failed to start');
-                  }
-                }
+                const jobId = await copilot.startVariants(courseId || '', subject);
+                toast.success(`Co‑Pilot started (variants). Job: ${jobId}`);
+                setCoPilotJobId(jobId);
               } catch (e) {
                 toast.error(e instanceof Error ? e.message : 'Co‑Pilot failed');
               }
@@ -1363,31 +1200,9 @@ const result = await rewriteText({
             onClick={async () => {
               try {
                 const subject = (course as any).subject || course.title || (courseId ?? 'Untitled');
-                try {
-                  const { data, error } = await supabase.functions.invoke('mcp-metrics-proxy', {
-                    body: { method: 'lms.enqueueAndTrack', params: { type: 'enrich', subject, courseId, timeoutSec: 60 } },
-                  });
-                  if (!error && data?.ok !== false) {
-                    const jid = (data?.data || data)?.jobId;
-                    if (jid) setCoPilotJobId(jid);
-                    toast.success(`Co‑Pilot started (enrich).`);
-                  } else {
-                    throw new Error(error?.message || 'proxy_failed');
-                  }
-                } catch {
-                  const res = await fetch('/functions/v1/editor-co-pilot', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ action: 'enrich', subject, format: 'explainer', courseId }),
-                  });
-                  const json = await res.json();
-                  if (res.ok) {
-                    toast.success(`Co‑Pilot started (enrich). Job: ${json.jobId}`);
-                    setCoPilotJobId(json.jobId);
-                  } else {
-                    toast.error(json?.error?.message || 'Co‑Pilot failed to start');
-                  }
-                }
+                const jobId = await copilot.startEnrich(courseId || '', subject);
+                toast.success(`Co‑Pilot started (enrich). Job: ${jobId}`);
+                setCoPilotJobId(jobId);
               } catch (e) {
                 toast.error(e instanceof Error ? e.message : 'Co‑Pilot failed');
               }
@@ -1402,30 +1217,9 @@ const result = await rewriteText({
               try {
                 const subject = (course as any).subject || course.title || (courseId ?? 'Untitled');
                 const locale = prompt('Target locale (e.g., es-419, fr-FR)?') || 'es-419';
-                // Try MCP proxy first
-                try {
-                  const { data, error } = await supabase.functions.invoke('mcp-metrics-proxy', {
-                    body: { method: 'lms.localize', params: { courseId, target_lang: locale } },
-                  });
-                  if (!error && data?.ok !== false) {
-                    toast.success(`Localization queued (${locale}).`);
-                    return;
-                  }
-                  throw new Error(error?.message || 'proxy_failed');
-                } catch {
-                  const res = await fetch('/functions/v1/editor-co-pilot', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ action: 'localize', subject, format: 'explainer', courseId, locale }),
-                  });
-                  const json = await res.json();
-                  if (res.ok) {
-                    toast.success(`Co‑Pilot started (localize ${locale}). Job: ${json.jobId}`);
-                    setCoPilotJobId(json.jobId);
-                  } else {
-                    toast.error(json?.error?.message || 'Co‑Pilot failed to start');
-                  }
-                }
+                const jobId = await copilot.startLocalize(courseId || '', subject, locale);
+                toast.success(`Co‑Pilot started (localize ${locale}). Job: ${jobId}`);
+                setCoPilotJobId(jobId);
               } catch (e) {
                 toast.error(e instanceof Error ? e.message : 'Co‑Pilot failed');
               }
@@ -1563,34 +1357,16 @@ const result = await rewriteText({
                         try {
                           const stemText = item?.stem?.text || item?.text || '';
                           const prompt = stemText ? `Generate an illustrative image: ${stemText}` : `Generate an illustrative image for item ${item.id}`;
-                          // Proxy-first MCP call, fallback to Edge
-                          let jid: string | undefined;
-                          try {
-                            const { data, error } = await supabase.functions.invoke('mcp-metrics-proxy', {
-                              body: { method: 'lms.enqueueMedia', params: { courseId, itemId: item.id, prompt, style: 'clean-diagram' } },
-                            });
-                            if (!error && data) {
-                              jid = String((data?.data || data)?.jobId || (data?.data || data)?.id || '');
-                            } else {
-                              throw new Error(error?.message || 'proxy_failed');
-                            }
-                          } catch {
-                            const res = await fetch('/functions/v1/enqueue-course-media', {
-                              method: 'POST',
-                              headers: { 'Content-Type': 'application/json' },
-                              body: JSON.stringify({
-                                courseId,
-                                itemId: item.id,
-                                prompt,
-                                style: 'clean-diagram',
-                              }),
-                            });
-                            const json = await res.json();
-                            if (!res.ok) {
-                              throw new Error(json?.error || 'Failed to enqueue image job');
-                            }
-                            jid = json?.jobId || json?.mediaJobId || json?.id;
-                          }
+                          
+                          const json = await mcp.call<any>('lms.enqueueCourseMedia', {
+                            courseId,
+                            itemId: item.id,
+                            prompt,
+                            style: 'clean-diagram',
+                          });
+                          
+                          const jid = String(json?.jobId || json?.mediaJobId || json?.id || '');
+                          
                           if (jid) {
                             setCoPilotJobId(jid);
                             toast.success(`Image generation started. Job ${jid}`);
@@ -1611,26 +1387,8 @@ const result = await rewriteText({
                       onClick={async () => {
                         if (!courseId) return;
                         try {
-                          let n = 0;
-                          try {
-                            const { data, error } = await supabase.functions.invoke('mcp-metrics-proxy', {
-                              body: { method: 'lms.enqueueCourseMediaMissing', params: { courseId, limit: 25 } },
-                            });
-                            if (!error && data) {
-                              n = Number((data?.data || data)?.enqueued ?? (data?.data || data)?.count ?? 0);
-                            } else {
-                              throw new Error(error?.message || 'proxy_failed');
-                            }
-                          } catch {
-                            const res = await fetch('/functions/v1/enqueue-course-missing-images', {
-                              method: 'POST',
-                              headers: { 'Content-Type': 'application/json' },
-                              body: JSON.stringify({ courseId, limit: 25 }),
-                            });
-                            const json = await res.json();
-                            if (!res.ok) throw new Error(json?.error || 'Failed to enqueue missing images');
-                            n = Number(json?.count ?? 0);
-                          }
+                          const json = await mcp.call<any>('lms.enqueueCourseMissingImages', { courseId, limit: 25 });
+                          const n = Number(json?.enqueued ?? json?.count ?? 0);
                           toast.success(`Enqueued ${n} image job(s) for missing items`);
                         } catch (e) {
                           toast.error(e instanceof Error ? e.message : 'Failed to enqueue missing images');
@@ -1910,20 +1668,14 @@ const result = await rewriteText({
             onClick={async () => {
               if (!courseId) return;
               try {
-                const res = await fetch('/functions/v1/editor-auto-fix', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ courseId, apply: true }),
-                });
-                if (res.status === 403) {
+                await variants.autoFix(courseId);
+              } catch (e: any) {
+                if (e.message === '403') {
                   toast.info('Enable Option B to apply Auto‑Fix');
                   setShowDiffViewer(false);
                   setDiffOps([]);
                   return;
                 }
-                const json = await res.json();
-                if (!res.ok || !json?.ok) throw new Error(json?.error || 'Apply failed');
-              } catch (e) {
                 toast.error(e instanceof Error ? e.message : 'Auto-Fix failed');
               }
             }}

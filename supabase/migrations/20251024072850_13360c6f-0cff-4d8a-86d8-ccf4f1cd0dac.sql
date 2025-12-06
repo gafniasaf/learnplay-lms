@@ -86,12 +86,14 @@ create table if not exists public.ai_media_jobs (
 
 alter table public.ai_media_jobs enable row level security;
 
--- RLS policies for ai_media_jobs
+-- RLS policies for ai_media_jobs (drop first if exists to handle re-runs)
+drop policy if exists ai_media_jobs_select_own on public.ai_media_jobs;
 create policy ai_media_jobs_select_own
   on public.ai_media_jobs
   for select
   using (created_by = auth.uid());
 
+drop policy if exists ai_media_jobs_insert_self on public.ai_media_jobs;
 create policy ai_media_jobs_insert_self
   on public.ai_media_jobs
   for insert
@@ -100,6 +102,7 @@ create policy ai_media_jobs_insert_self
     and public.check_ai_job_rate_limit(auth.uid())
   );
 
+drop policy if exists ai_media_jobs_update_self on public.ai_media_jobs;
 create policy ai_media_jobs_update_self
   on public.ai_media_jobs
   for update
@@ -135,7 +138,17 @@ for each row execute function public.set_updated_at();
 -- 5. Enable Realtime for ai_media_jobs
 -- ========================================
 
-alter publication supabase_realtime add table public.ai_media_jobs;
+-- Only add if not already a member (idempotent)
+do $$
+begin
+  if not exists (
+    select 1 from pg_publication_tables 
+    where pubname = 'supabase_realtime' 
+    and tablename = 'ai_media_jobs'
+  ) then
+    alter publication supabase_realtime add table public.ai_media_jobs;
+  end if;
+end $$;
 
 comment on table public.ai_media_jobs is 'Queue for AI-generated media (images, audio, video) attached to course items';
 comment on column public.ai_media_jobs.idempotency_key is 'Client-generated unique key to prevent duplicate submissions';

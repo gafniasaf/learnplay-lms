@@ -1,22 +1,43 @@
 import fs from "node:fs";
 import path from "node:path";
 
-const BASE_URL = process.env.MCP_BASE_URL || "http://127.0.0.1:4000";
-let TOKEN = process.env.MCP_AUTH_TOKEN || "dev-local-secret";
-const JOB_LIMIT = Number(process.env.DIAG_JOB_LIMIT || 10);
+const BASE_URL = process.env.MCP_BASE_URL;
+if (!BASE_URL) {
+  console.error('❌ MCP_BASE_URL is REQUIRED - set env var before running');
+  console.error('   Example: MCP_BASE_URL=http://127.0.0.1:4000');
+  process.exit(1);
+}
 
-// Allow local contributors to drop the token inside lms-mcp/.env.local
-try {
-  const envPath = path.join("lms-mcp", ".env.local");
-  if (fs.existsSync(envPath)) {
-    const env = fs.readFileSync(envPath, "utf-8");
-    const match = env.match(/^MCP_AUTH_TOKEN=(.+)$/m);
-    if (match?.[1]) {
-      TOKEN = match[1].trim();
+let TOKEN = process.env.MCP_AUTH_TOKEN;
+const JOB_LIMIT = Number(process.env.DIAG_JOB_LIMIT);
+if (!JOB_LIMIT || isNaN(JOB_LIMIT)) {
+  console.error('❌ DIAG_JOB_LIMIT is REQUIRED - set env var before running');
+  console.error('   Example: DIAG_JOB_LIMIT=10');
+  process.exit(1);
+}
+
+// Try to load from lms-mcp/.env.local if not set
+if (!TOKEN) {
+  try {
+    const envPath = path.join("lms-mcp", ".env.local");
+    if (fs.existsSync(envPath)) {
+      const env = fs.readFileSync(envPath, "utf-8");
+      const match = env.match(/^MCP_AUTH_TOKEN=(.+)$/m);
+      if (match?.[1]) {
+        TOKEN = match[1].trim();
+      }
     }
+  } catch {
+    // File not found - will fail below
   }
-} catch {
-  // noop – best effort
+}
+
+// Per IgniteZero rules: No fallbacks - require real token
+if (!TOKEN) {
+  console.error("❌ MCP_AUTH_TOKEN is REQUIRED");
+  console.error("   Set: $env:MCP_AUTH_TOKEN = 'your-token'");
+  console.error("   Or create lms-mcp/.env.local with MCP_AUTH_TOKEN=...");
+  process.exit(1);
 }
 
 type MCPResponse<T> = { ok: boolean; result?: T; error?: string } | T;

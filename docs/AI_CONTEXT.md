@@ -70,11 +70,6 @@ We distinguish between two types of work. Use the correct pipeline:
     * If **FAIL**: Read the error log. Fix the specific components causing the error (rename files, map props). **Repeat.**
     * If **PASS**: Stop. The refactor is complete. Ask for human review.
 
-## 🧪 Architect Edge Contracts
-
-- When editing `supabase/functions/architect-advisor` or introducing a new architect mode, update `tests/integration/architect-contract.spec.ts` **before** wiring UI changes.
-- `scripts/verify.ts` runs this suite automatically; do not skip it. If you add/remove modes, extend both the contract test and the verify script so every mode has coverage.
-
 ## 🚫 CONFIGURATION ANTI-PATTERNS (NEVER DO THIS)
 
 **NEVER hardcode environment-specific values to "make it work".**
@@ -108,6 +103,61 @@ If a backend service (OpenAI, Database, etc.) is unavailable or missing credenti
 1. **FAIL LOUDLY.** Throw a clear error (e.g., "BLOCKED: OPENAI_API_KEY missing").
 2. **DO NOT MOCK SUCCESS.** Never return fake data that looks like a success.
 3. **UI MUST REFLECT FAILURE.** The user must see the error message.
+
+## 🚫 ABSOLUTE NO-FALLBACK POLICY (CRITICAL)
+
+**NEVER write code that silently degrades or uses fallback values.**
+
+### Forbidden Patterns:
+```typescript
+// ❌ FORBIDDEN - Default fallback tokens
+const TOKEN = process.env.TOKEN || 'dev-local-secret';
+const TOKEN = process.env.TOKEN || 'placeholder-token';
+const TOKEN = process.env.TOKEN ?? 'test-token';
+
+// ❌ FORBIDDEN - ALLOW_ANON bypass
+if (process.env.ALLOW_ANON === 'true') { /* skip auth */ }
+
+// ❌ FORBIDDEN - Default organization fallback  
+const orgId = user.organization_id ?? 'default';
+
+// ❌ FORBIDDEN - Silent mock data
+if (!realData) return mockData;
+```
+
+### Required Patterns:
+```typescript
+// ✅ REQUIRED - Fail if not configured
+const TOKEN = process.env.TOKEN;
+if (!TOKEN) {
+  console.error("❌ TOKEN is REQUIRED");
+  process.exit(1);
+}
+
+// ✅ REQUIRED - Explicit error for missing config
+if (!user.organization_id) {
+  throw new Error("User account not configured: missing organization_id");
+}
+
+// ✅ REQUIRED - Clear auth failure
+throw new Error("Unauthorized: Valid Agent Token or User Session required");
+```
+
+### Why This Matters:
+1. **Debugging Hell:** Fallbacks hide the real problem, causing hours of debugging
+2. **Security Risk:** Default tokens/orgs can leak into production
+3. **False Confidence:** Tests pass but system doesn't actually work
+4. **Data Corruption:** Wrong org IDs can mix tenant data
+
+### The Only Exception:
+Feature flags that are EXPLICITLY documented and VISIBLE in logs:
+```typescript
+// ✅ OK - Explicit, logged, documented
+const USE_MOCK = import.meta.env.VITE_USE_MOCK === 'true';
+if (USE_MOCK) {
+  console.warn("[MOCK MODE] Using mock data - NOT FOR PRODUCTION");
+}
+```
 
 ## 🛡️ Test Integrity
 

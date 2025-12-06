@@ -42,26 +42,24 @@ export async function authenticateRequest(req: Request): Promise<AuthContext> {
     if (!error && data.user) {
       const organizationId =
         (data.user.app_metadata?.organization_id as string | undefined) ??
-        (data.user.user_metadata?.organization_id as string | undefined) ??
-        "default"; // Fallback to default org for demo purposes
+        (data.user.user_metadata?.organization_id as string | undefined);
+
+      if (!organizationId) {
+        console.error("[Auth] User authenticated but missing organization_id in metadata");
+        throw new Error("User account not configured: missing organization_id");
+      }
 
       return { type: "user", organizationId, userId: data.user.id };
     }
   }
 
-  // Only allow unauthenticated requests in development mode (when ALLOW_ANON is set)
-  const allowAnon = Deno.env.get("ALLOW_ANON") === "true";
-  if (allowAnon) {
-    console.log("[Auth] Anonymous request allowed (ALLOW_ANON=true)");
-    // Use the seeded default org UUID
-    return { type: "agent", organizationId: "4d7b0a5c-3cf1-49e5-9ad7-bf6c1f8a2f58" };
-  }
-
-  throw new Error("Unauthorized");
+  // No fallbacks - authentication is REQUIRED
+  // Per IgniteZero rules: Fail loudly, never mock success
+  throw new Error("Unauthorized: Valid Agent Token or User Session required");
 }
 
-export function requireOrganizationId(context: AuthContext, fallback?: string): string {
-  const organizationId = context.organizationId ?? fallback;
+export function requireOrganizationId(context: AuthContext): string {
+  const organizationId = context.organizationId;
   if (!organizationId) {
     throw new Error("Missing organization_id");
   }

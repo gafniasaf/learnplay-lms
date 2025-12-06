@@ -55,7 +55,12 @@ before update on public.study_text_generation_jobs
 for each row execute function public.set_updated_at();
 
 -- Enable realtime
-alter publication supabase_realtime add table public.study_text_generation_jobs;
+do $$
+begin
+  if not exists (select 1 from pg_publication_tables where pubname = 'supabase_realtime' and tablename = 'study_text_generation_jobs') then
+    alter publication supabase_realtime add table public.study_text_generation_jobs;
+  end if;
+end $$;
 
 comment on table public.study_text_generation_jobs is 
   'Queue for AI-generated study texts (reference materials) for courses';

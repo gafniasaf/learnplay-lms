@@ -1,8 +1,19 @@
 // CI health check for MCP server
 // Calls lms.health via MCP HTTP and asserts ok === true
 
-const BASE_URL = process.env.MCP_BASE_URL || 'http://127.0.0.1:4000';
-const TOKEN = process.env.MCP_AUTH_TOKEN || 'dev-local-secret';
+const BASE_URL = process.env.MCP_BASE_URL;
+if (!BASE_URL) {
+  console.error('[MCP HEALTH] ❌ MCP_BASE_URL is REQUIRED - set env var before running');
+  console.error('   Example: MCP_BASE_URL=http://127.0.0.1:4000');
+  process.exit(1);
+}
+
+const TOKEN = process.env.MCP_AUTH_TOKEN;
+if (!TOKEN) {
+  console.error('[MCP HEALTH] ❌ MCP_AUTH_TOKEN is REQUIRED');
+  console.error('   Set: $env:MCP_AUTH_TOKEN = "your-token"');
+  process.exit(1);
+}
 
 async function call(method, params = {}) {
   const res = await fetch(BASE_URL, {

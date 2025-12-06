@@ -7,7 +7,13 @@ import { parse, HTMLElement } from 'node-html-parser';
 dotenv.config();
 dotenv.config({ path: '.env.local' });
 
-const SUPABASE_URL = process.env.SUPABASE_URL || 'http://127.0.0.1:54321';
+const SUPABASE_URL = process.env.SUPABASE_URL;
+if (!SUPABASE_URL) {
+  console.error('❌ SUPABASE_URL is REQUIRED - set env var before running');
+  console.error('   Example: SUPABASE_URL=http://127.0.0.1:54321');
+  process.exit(1);
+}
+
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY;
 
 const REQUIRED_FILES = [

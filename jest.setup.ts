@@ -13,11 +13,10 @@ if (typeof (global as any).import === 'undefined') {
 (global as any).import.meta.env = {
   VITE_USE_MOCK: process.env.VITE_USE_MOCK || 'true',
   VITE_FORCE_SAME_ORIGIN_PREVIEW: process.env.VITE_FORCE_SAME_ORIGIN_PREVIEW || 'false',
-  VITE_USE_STORAGE_READS: process.env.VITE_USE_STORAGE_READS || 'false',
   VITE_ENABLE_DEV: process.env.VITE_ENABLE_DEV || 'false',
   VITE_EMBED_ALLOWED_ORIGINS: process.env.VITE_EMBED_ALLOWED_ORIGINS || '',
-  VITE_SUPABASE_URL: process.env.VITE_SUPABASE_URL || 'https://test.supabase.co',
-  VITE_SUPABASE_PUBLISHABLE_KEY: process.env.VITE_SUPABASE_PUBLISHABLE_KEY || 'test-key',
+  VITE_SUPABASE_URL: process.env.VITE_SUPABASE_URL || '',
+  VITE_SUPABASE_PUBLISHABLE_KEY: process.env.VITE_SUPABASE_PUBLISHABLE_KEY || '',
   VITE_SENTRY_DSN: process.env.VITE_SENTRY_DSN || '',
 };
 

@@ -5,9 +5,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { supabase } from '@/integrations/supabase/client';
+import { useMCP } from '@/hooks/useMCP';
 import { toast } from 'sonner';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 import { 
   AlertCircle, 
   Info, 
@@ -45,16 +45,12 @@ const KNOWN_FUNCTIONS = [
 ];
 
 const Logs = () => {
-  const navigate = useNavigate();
   const location = useLocation();
   const params = new URLSearchParams(location.search);
   const initRequestId = params.get('requestId') || '';
   const initJobId = params.get('jobId') || '';
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [loading, setLoading] = useState(true);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [authLoading, setAuthLoading] = useState(true);
-  
   // Filters
   const [levelFilter, setLevelFilter] = useState<string>('all');
   const [functionFilter, setFunctionFilter] = useState<string>('all');
@@ -62,68 +58,23 @@ const Logs = () => {
   const [requestIdFilter, setRequestIdFilter] = useState(initRequestId);
   const [jobIdFilter, setJobIdFilter] = useState(initJobId);
   const [expandedLogs, setExpandedLogs] = useState<Set<string>>(new Set());
+  const mcp = useMCP();
   
   // Available functions
   const [functions, setFunctions] = useState<string[]>([]);
 
-  // Check auth
-  useEffect(() => {
-    checkAuth();
-  }, []);
-
-  const checkAuth = async () => {
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      setIsAuthenticated(!!session);
-      setAuthLoading(false);
-    } catch (error) {
-      console.error('Auth check failed:', error);
-      setAuthLoading(false);
-    }
-  };
-
   // Load logs
   useEffect(() => {
-    if (isAuthenticated) {
-      loadLogs();
-      
-      // Subscribe to real-time updates
-      const channel = supabase
-        .channel('logs-realtime')
-        .on(
-          'postgres_changes',
-          {
-            event: 'INSERT',
-            schema: 'public',
-            table: 'edge_function_logs'
-          },
-          (payload) => {
-            setLogs(prev => [payload.new as LogEntry, ...prev]);
-          }
-        )
-        .subscribe();
-
-      return () => {
-        channel.unsubscribe();
-      };
-    }
-  }, [isAuthenticated]);
+    loadLogs();
+  }, []);
 
   const loadLogs = async () => {
     setLoading(true);
     try {
-      const { data, error } = await (supabase as any)
-        .from('edge_function_logs')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(100);
-
-      if (error) throw error;
-
-      setLogs(((data as any) as LogEntry[]) || []);
-      
-      // Extract unique function names and merge with known
-      const fromLogs = ((data as any[]) || []).map((log: any) => log.function_name) || [];
+      const response = await mcp.callGet<any>('lms.listEdgeLogs', { limit: "100" });
+      const records = (response?.logs || response?.records || []) as LogEntry[];
+      setLogs(records);
+      const fromLogs = records.map((log) => (log as any)?.function_name).filter(Boolean) as string[];
       const merged = Array.from(new Set([...KNOWN_FUNCTIONS, ...fromLogs]));
       setFunctions(merged);
     } catch (error) {
@@ -179,34 +130,6 @@ const Logs = () => {
       default: return 'bg-blue-100 text-blue-800 border-blue-200';
     }
   };
-
-  if (authLoading) {
-    return (
-      <PageContainer>
-        <div className="flex items-center justify-center h-[calc(100vh-200px)]">
-          <RefreshCw className="h-8 w-8 animate-spin text-primary" />
-        </div>
-      </PageContainer>
-    );
-  }
-
-  if (!isAuthenticated) {
-    return (
-      <PageContainer>
-        <Card className="max-w-md mx-auto mt-20">
-          <CardHeader>
-            <CardTitle>Authentication Required</CardTitle>
-            <CardDescription>Please sign in to view logs</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Button onClick={() => navigate('/auth')} className="w-full">
-              Sign In
-            </Button>
-          </CardContent>
-        </Card>
-      </PageContainer>
-    );
-  }
 
   return (
     <PageContainer>

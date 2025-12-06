@@ -1,10 +1,20 @@
 import { createClient } from "@supabase/supabase-js";
 
+// Per NO-FALLBACK POLICY: Try alternatives but fail explicitly if none found
 const SUPABASE_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
-const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
-const planId = process.argv[2];
+if (!SUPABASE_URL) {
+  console.error("❌ SUPABASE_URL or VITE_SUPABASE_URL is REQUIRED");
+  process.exit(1);
+}
 
-if (!SUPABASE_URL || !SERVICE_KEY || !planId) {
+const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+if (!SERVICE_KEY) {
+  console.error("❌ SUPABASE_SERVICE_ROLE_KEY is REQUIRED");
+  process.exit(1);
+}
+
+const planId = process.argv[2];
+if (!planId) {
   console.error("Usage: node scripts/check-plan.js <planId>");
   process.exit(1);
 }

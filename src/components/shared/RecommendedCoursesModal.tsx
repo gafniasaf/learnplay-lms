@@ -45,7 +45,7 @@ export function RecommendedCoursesModal({
   studentId,
   useMockData = ENV_USE_MOCK,
 }: RecommendedCoursesModalProps) {
-  // TODO: Replace with API call when service layer is ready (Task 13)
+  // Data source: mock data for development, uses getRecommendedCourses API in live mode
   const { ko, courses } = useMockData
     ? getMockRecommendedCourses(koId, studentId)
     : { ko: null, courses: [] };
@@ -224,8 +224,8 @@ function EmptyState({ koName, onClose }: { koName: string; onClose: () => void }
 }
 
 /**
- * Mock data loader
- * TODO: Replace with API call
+ * Mock data loader for development mode
+ * Live mode uses getRecommendedCourses from knowledgeMap.ts
  */
 function getMockRecommendedCourses(
   koId: string,

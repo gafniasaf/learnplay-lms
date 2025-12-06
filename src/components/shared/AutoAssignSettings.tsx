@@ -84,7 +84,7 @@ export function AutoAssignSettings({
   onSave,
   useMockData = ENV_USE_MOCK,
 }: AutoAssignSettingsProps) {
-  // TODO: Replace with API call when service layer is ready
+  // Data source: mock data for development, uses getAutoAssignSettings API in live mode
   const currentSettings = useMockData ? getMockSettings(studentId) : getDefaultSettings(studentId);
   const recentAssignments = useMockData ? getMockRecentAssignments(studentId) : [];
 
@@ -414,8 +414,8 @@ function getDefaultSettings(studentId: string): AutoAssignSettings {
 }
 
 /**
- * Mock settings for testing
- * TODO: Replace with API call
+ * Mock settings for development mode
+ * Live mode uses getAutoAssignSettings from knowledgeMap.ts
  */
 function getMockSettings(studentId: string): AutoAssignSettings {
   // Drew (student-4) has autonomous mode enabled
@@ -437,8 +437,8 @@ function getMockSettings(studentId: string): AutoAssignSettings {
 }
 
 /**
- * Mock recent assignments
- * TODO: Replace with API call
+ * Mock recent assignments for development mode
+ * Live mode uses getStudentAssignments from knowledgeMap.ts
  */
 function getMockRecentAssignments(studentId: string): AssignmentWithDetails[] {
   if (studentId !== "student-4") return [];

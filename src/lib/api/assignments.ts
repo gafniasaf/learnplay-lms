@@ -13,7 +13,7 @@ export function clearMockAssignments(): void {
 }
 
 export interface CreateAssignmentRequest {
-  orgId: string;
+  orgId?: string; // Optional - derived from user's auth context by edge function
   courseId: string;
   title?: string;
   dueAt?: string;

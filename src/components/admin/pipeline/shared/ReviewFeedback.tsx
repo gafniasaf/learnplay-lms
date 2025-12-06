@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { supabase } from '@/integrations/supabase/client';
+import { useMCP } from '@/hooks/useMCP';
 import { AlertTriangle, CheckCircle2, Info } from 'lucide-react';
 
 interface ReviewData {
@@ -18,19 +18,18 @@ interface ReviewFeedbackProps {
 }
 
 export function ReviewFeedback({ jobId }: ReviewFeedbackProps) {
+  const mcp = useMCP();
   const [review, setReview] = useState<ReviewData | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchReview = async () => {
       try {
-        const { data, error } = await supabase
-          .from('ai_course_reviews')
-          .select('overall, clarity, age_fit, correctness, notes')
-          .eq('job_id', jobId)
-          .single();
+        // Use MCP to fetch review via getRecord
+        const response = await mcp.getRecord('AiCourseReview', jobId) as unknown as { record?: ReviewData };
+        const data = response?.record;
 
-        if (!error && data) {
+        if (data) {
           setReview(data);
         }
       } catch (err) {
@@ -41,7 +40,7 @@ export function ReviewFeedback({ jobId }: ReviewFeedbackProps) {
     };
 
     fetchReview();
-  }, [jobId]);
+  }, [jobId, mcp]);
 
   if (loading || !review) {
     return null;

@@ -1,5 +1,5 @@
-// Lightweight parent dashboard implementation without auth for dev live data.
-// Uses service role (verify_jwt=false) and returns basic metrics from new tables/views.
+// Parent dashboard implementation - requires authentication
+// Uses service role for data fetching, requires parentId parameter
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { stdHeaders, handleOptions } from "../_shared/cors.ts";
@@ -28,15 +28,18 @@ serve(async (req: Request): Promise<Response> => {
 
   try {
     const url = new URL(req.url);
-    const allowAnon = Deno.env.get("ALLOW_ANON") === "true";
-    const devParentId = Deno.env.get("DEV_PARENT_ID") || "613d43cb-0922-4fad-b528-dbed8d2a5c79";
-    const parentId =
-      url.searchParams.get("parentId") ||
-      (allowAnon ? devParentId : undefined);
+    // Per IgniteZero rules: No ALLOW_ANON bypass, no dev fallbacks
+    const parentId = url.searchParams.get("parentId");
+    
+    if (!parentId) {
+      return new Response(JSON.stringify({ error: "parentId is required - no anonymous access" }), {
+        status: 400,
+        headers: stdHeaders(req, { "Content-Type": "application/json" }),
+      });
+    }
 
     // Fetch children via view (added by migrations)
-    const query = supabase.from("parent_child_details").select("*");
-    if (parentId) query.eq("parent_id", parentId);
+    const query = supabase.from("parent_child_details").select("*").eq("parent_id", parentId);
     const { data: childDetails, error } = await query;
     if (error) throw error;
 
@@ -96,7 +99,7 @@ serve(async (req: Request): Promise<Response> => {
 
     return new Response(
       JSON.stringify({
-        parentId: parentId || (childDetails?.[0]?.parent_id ?? "unknown"),
+        parentId,  // Always defined at this point (checked above)
         children,
         summary: {
           totalChildren: children.length,

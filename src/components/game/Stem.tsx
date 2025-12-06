@@ -51,7 +51,9 @@ export const Stem = ({ text, className = "", stimulus, stemMedia, courseTitle, i
         const u = new URL(document.referrer);
         refAdmin = u.searchParams.get('admin') === '1';
       }
-    } catch {}
+    } catch {
+      // Ignore URL parsing errors (invalid referrer)
+    }
 
     const urlAdmin = searchParams.get('admin');
     const localAdmin = typeof localStorage !== 'undefined' ? localStorage.getItem('force_admin') : null;

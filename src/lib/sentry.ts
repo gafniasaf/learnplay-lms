@@ -3,7 +3,7 @@
  */
 
 import * as Sentry from "@sentry/react";
-import { supabase } from "@/integrations/supabase/client";
+import { callEdgeFunctionGet } from "@/lib/api/common";
 
 /**
  * Set user context in Sentry with role information
@@ -16,12 +16,12 @@ export async function setSentryUser(userId: string | null) {
   }
 
   try {
-    // Fetch user profile with role
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("role, full_name")
-      .eq("id", userId)
-      .single();
+    // Fetch user profile with role via Edge Function (infrastructure-level call)
+    const response = await callEdgeFunctionGet<{ record?: { role?: string; full_name?: string } }>(
+      'get-record',
+      { entity: 'Profile', id: userId }
+    );
+    const profile = response?.record;
 
     if (profile) {
       Sentry.setUser({
@@ -30,7 +30,9 @@ export async function setSentryUser(userId: string | null) {
       });
 
       // Set role as tag for filtering
-      Sentry.setTag("user_role", profile.role);
+      if (profile.role) {
+        Sentry.setTag("user_role", profile.role);
+      }
     } else {
       Sentry.setUser({ id: userId });
     }

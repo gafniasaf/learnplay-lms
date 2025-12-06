@@ -122,7 +122,12 @@ for each row execute function public.set_updated_at();
 -- 4. Enable Realtime for ai_media_jobs
 -- ========================================
 
-alter publication supabase_realtime add table public.ai_media_jobs;
+do $$
+begin
+  if not exists (select 1 from pg_publication_tables where pubname = 'supabase_realtime' and tablename = 'ai_media_jobs') then
+    alter publication supabase_realtime add table public.ai_media_jobs;
+  end if;
+end $$;
 
 comment on table public.ai_media_jobs is 'Queue for AI-generated media (images, audio, video) attached to course items';
 comment on column public.ai_media_jobs.idempotency_key is 'Client-generated unique key to prevent duplicate submissions';

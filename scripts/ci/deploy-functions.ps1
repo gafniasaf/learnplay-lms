@@ -29,15 +29,9 @@ if (!(Test-Path $funcRoot)) {
   exit 1
 }
 
-$blocklist = @(
-  "admin-create-tag",
-  "assignment-metadata",
-  "parent-goals",
-  "parent-subjects",
-  "parent-timeline",
-  "parent-topics",
-  "play-session"
-)
+# Per IgniteZero rules: Deploy ALL functions, no blocklist
+# Previously blocked functions are now fixed and ready for deployment
+$blocklist = @()
 
 $funcDirs = Get-ChildItem -Path $funcRoot -Directory | Where-Object {
   $_.Name -ne "_shared" -and -not ($blocklist -contains $_.Name) -and (Test-Path (Join-Path $_.FullName "index.ts"))
