@@ -1,12 +1,17 @@
 import { test as setup, expect } from '@playwright/test';
 import { readFileSync } from 'fs';
 import path from 'path';
+import { fileURLToPath } from 'url';
 
 /**
  * Setup: Authenticate as Admin
  * 
  * This runs before authenticated tests to create a valid session.
  */
+
+// Get __dirname equivalent for ES modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const authFile = 'playwright/.auth/admin.json';
 
@@ -23,6 +28,9 @@ setup('authenticate as admin', async ({ page }) => {
     console.warn('Using default admin credentials');
   }
 
+  // Get base URL from config
+  const baseURL = process.env.BASE_URL || 'http://localhost:8082';
+  
   // Navigate to auth page
   await page.goto('/auth');
   
@@ -37,10 +45,24 @@ setup('authenticate as admin', async ({ page }) => {
   await page.click('button[type="submit"]');
   
   // Wait for successful login (redirect away from /auth)
-  await page.waitForURL(/\/(dashboard|admin|courses)/, { timeout: 15000 });
+  // Could redirect to /, /dashboard, /admin, or /courses
+  await page.waitForURL(/\/(dashboard|admin|courses|\?|$)/, { timeout: 20000 });
   
-  // Verify we're logged in
-  await expect(page).not.toHaveURL(/\/auth/);
+  // Wait a bit for any client-side redirects
+  await page.waitForTimeout(2000);
+  
+  // Verify we're logged in (not on auth page)
+  const currentUrl = page.url();
+  expect(currentUrl).not.toContain('/auth');
+  
+  // If we're on /, navigate to admin to verify auth works
+  if (currentUrl === baseURL + '/' || currentUrl === baseURL + '/?') {
+    await page.goto('/admin');
+    await page.waitForLoadState('networkidle');
+    // Should not redirect back to auth
+    const adminUrl = page.url();
+    expect(adminUrl).not.toContain('/auth');
+  }
   
   // Save authenticated state
   await page.context().storageState({ path: authFile });

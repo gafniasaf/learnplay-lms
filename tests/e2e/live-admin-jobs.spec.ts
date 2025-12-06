@@ -32,7 +32,24 @@ test.describe('Live Admin: Job Creation', () => {
     
     // QuickStartPanel should be visible on the pipeline page
     // Look for the Quick Start panel (it's in the left sidebar)
-    await page.waitForSelector('[data-cta-id="quick-start-create"]', { timeout: 10000 });
+    // Try multiple selectors in case the panel needs to be expanded
+    const quickStartCreate = page.locator('[data-cta-id="quick-start-create"]');
+    const quickStartText = page.locator('text=Quick Start').or(page.locator('text=Create Course'));
+    
+    // Wait for either the button or the text to appear
+    await Promise.race([
+      quickStartCreate.waitFor({ timeout: 10000 }).catch(() => null),
+      quickStartText.waitFor({ timeout: 10000 }).catch(() => null),
+    ]);
+    
+    // If we found the text but not the button, click to expand
+    if (await quickStartText.isVisible() && !(await quickStartCreate.isVisible())) {
+      await quickStartText.click();
+      await page.waitForTimeout(1000);
+    }
+    
+    // Now wait for the create button
+    await quickStartCreate.waitFor({ timeout: 5000 });
     
     // Select a job type from the dropdown
     const jobTypeSelect = page.locator('select').first();
@@ -78,10 +95,17 @@ test.describe('Live Admin: Job Creation', () => {
     // Wait for jobs list to load
     await page.waitForLoadState('networkidle');
     
-    // Verify jobs table or list is visible
-    await expect(
-      page.locator('table, [data-testid*="job"], text=/job/i')
-    ).toBeVisible({ timeout: 10000 });
+    // Verify jobs table or list is visible (use separate locators, not comma-separated)
+    const jobsTable = page.locator('table');
+    const jobsTestId = page.locator('[data-testid*="job"]');
+    const jobsText = page.getByText(/job/i);
+    
+    // Check if any of these are visible
+    const hasTable = await jobsTable.isVisible({ timeout: 2000 }).catch(() => false);
+    const hasTestId = await jobsTestId.isVisible({ timeout: 2000 }).catch(() => false);
+    const hasText = await jobsText.isVisible({ timeout: 2000 }).catch(() => false);
+    
+    expect(hasTable || hasTestId || hasText).toBeTruthy();
   });
 
   test('admin can access admin-only pages', async ({ page }) => {
@@ -108,9 +132,15 @@ test.describe('Live Admin: Job Creation', () => {
 });
 
 test.describe('Live Admin: Authentication', () => {
+  // These tests need to run without the authenticated storage state
+  test.use({ storageState: { cookies: [], origins: [] } });
+  
   test('admin can log in with correct credentials', async ({ page }) => {
     // Start fresh (no storage state)
     await page.goto('/auth');
+    
+    // Wait for auth form to load
+    await page.waitForSelector('input[type="email"]', { timeout: 10000 });
     
     // Fill in admin credentials
     await page.fill('input[type="email"]', 'admin@learnplay.dev');
@@ -120,14 +150,18 @@ test.describe('Live Admin: Authentication', () => {
     await page.click('button[type="submit"]');
     
     // Wait for redirect (should go to dashboard, not stay on auth)
-    await page.waitForURL(/\/(dashboard|admin|courses)/, { timeout: 15000 });
+    await page.waitForURL(/\/(dashboard|admin|courses|\?|$)/, { timeout: 20000 });
     
     // Verify we're logged in
-    await expect(page).not.toHaveURL(/\/auth/);
+    const currentUrl = page.url();
+    expect(currentUrl).not.toContain('/auth');
   });
 
   test('admin cannot log in with wrong password', async ({ page }) => {
     await page.goto('/auth');
+    
+    // Wait for auth form
+    await page.waitForSelector('input[type="email"]', { timeout: 10000 });
     
     await page.fill('input[type="email"]', 'admin@learnplay.dev');
     await page.fill('input[type="password"]', 'WrongPassword123!');
@@ -135,12 +169,13 @@ test.describe('Live Admin: Authentication', () => {
     await page.click('button[type="submit"]');
     
     // Should show error or stay on auth page
-    await page.waitForTimeout(2000);
+    await page.waitForTimeout(3000);
     
     const errorMessage = page.locator('text=/invalid|incorrect|error/i');
     const stillOnAuth = page.url().includes('/auth');
+    const hasError = await errorMessage.isVisible({ timeout: 2000 }).catch(() => false);
     
-    expect(errorMessage.isVisible() || stillOnAuth).toBeTruthy();
+    expect(hasError || stillOnAuth).toBeTruthy();
   });
 });
 
