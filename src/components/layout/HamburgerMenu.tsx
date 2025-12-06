@@ -45,9 +45,6 @@ export const HamburgerMenu = () => {
   const { user, loading } = useAuth();
   const [devEnabled, setDevEnabledState] = useState(isDevEnabled());
   const isLive = isLiveMode();
-  
-  // Hide menu in course fullscreen mode (moved after all hooks)
-  if (isCourseFullscreen()) return null;
   // Get current role from centralized system
   const [currentRole, setCurrentRole] = useState<Role>(getRole());
 
@@ -64,6 +61,9 @@ export const HamburgerMenu = () => {
   };
 
   const [openSections, setOpenSections] = useState<string[]>(getInitialOpenSections());
+  
+  // Hide menu in course fullscreen mode (MUST be after ALL hooks)
+  if (isCourseFullscreen()) return null;
 
   // Handle accordion changes with announcements
   const handleAccordionChange = (newSections: string[]) => {
