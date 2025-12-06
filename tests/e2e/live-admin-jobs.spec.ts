@@ -7,13 +7,20 @@ import { test, expect } from '@playwright/test';
  * 
  * Prerequisites:
  *   - Admin account must exist (run scripts/create-admin.ts)
- *   - Supabase credentials must be configured
+ *   - Supabase credentials must be configured (in learnplay.env or env vars)
  *   - LLM API keys must be configured (for job creation)
  * 
  * Run with: npm run e2e:live
+ * 
+ * These tests use REAL services - they will:
+ *   - Make actual API calls to Supabase
+ *   - Create real jobs in the database
+ *   - Call real LLM APIs (OpenAI/Anthropic)
+ *   - Test actual user workflows
  */
 
 test.describe('Live Admin: Job Creation', () => {
+  // Use authenticated state from setup project
   test.use({ storageState: 'playwright/.auth/admin.json' });
 
   test('admin can create a job via Quick Start panel', async ({ page }) => {

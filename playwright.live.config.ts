@@ -78,8 +78,6 @@ const config: PlaywrightTestConfig = {
       VITE_ANTHROPIC_API_KEY: process.env.VITE_ANTHROPIC_API_KEY || '',
     },
   },
-  // Global setup for authentication
-  globalSetup: require.resolve('./tests/e2e/global-setup.ts'),
   projects: [
     {
       name: 'setup',

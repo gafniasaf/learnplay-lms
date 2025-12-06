@@ -33,6 +33,7 @@ playwright-report/
 junit.xml
 # Jest/Playwright outputs
 test-results/
+playwright/.auth/
 ignite-zero-release.zip
 public/ignite-zero-release.zip
 
