@@ -14,10 +14,13 @@ export function FallbackBanner() {
           setUnavailable(true);
         }
       } catch (err) {
-        // If 502 or network error, mark as unavailable
+        // If 502, network error, or CORS error, mark as unavailable
         if (!cancelled) {
-          const is502 = err instanceof Error && err.message.includes('502');
-          if (is502 || err instanceof TypeError) {
+          const errMsg = err instanceof Error ? err.message.toLowerCase() : String(err).toLowerCase();
+          const is502 = errMsg.includes('502');
+          const isCors = errMsg.includes('cors') || errMsg.includes('blocked') || errMsg.includes('preflight');
+          const isNetwork = err instanceof TypeError || errMsg.includes('failed to fetch');
+          if (is502 || isCors || isNetwork) {
             setUnavailable(true);
           }
         }

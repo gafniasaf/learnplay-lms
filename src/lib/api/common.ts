@@ -263,17 +263,32 @@ export async function callEdgeFunctionGet<TResponse>(
   // Use token if available, otherwise use anon key for guest mode
   const authHeader = token ? `Bearer ${token}` : `Bearer ${anonKey}`;
 
-  const res = await fetchWithTimeout(
-    url,
-    {
-      method: "GET",
-      headers: {
-        Authorization: authHeader,
-        apikey: anonKey,
+  let res: Response;
+  try {
+    res = await fetchWithTimeout(
+      url,
+      {
+        method: "GET",
+        headers: {
+          Authorization: authHeader,
+          apikey: anonKey,
+        },
       },
-    },
-    timeoutMs
-  );
+      timeoutMs
+    );
+  } catch (fetchError) {
+    // Handle CORS and network errors gracefully
+    const errMsg = fetchError instanceof Error ? fetchError.message.toLowerCase() : String(fetchError).toLowerCase();
+    if (errMsg.includes('cors') || errMsg.includes('blocked') || errMsg.includes('failed to fetch')) {
+      throw new ApiError(
+        `CORS error: Edge function ${functionName} is not accessible from this origin. This may be expected in preview environments.`,
+        "CORS_ERROR",
+        0, // No HTTP status for CORS errors
+        { functionName, url }
+      );
+    }
+    throw fetchError;
+  }
 
   // Extract requestId from response headers for error tracking
   const requestId = res.headers.get("x-request-id") || undefined;

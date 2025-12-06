@@ -16,7 +16,13 @@ export default function Metrics() {
         if (json?.ok !== true) throw new Error('Failed to load metrics');
         setData(json);
       } catch (e) {
-        setError(e instanceof Error ? e.message : 'Failed to load metrics');
+        const errMsg = e instanceof Error ? e.message : 'Failed to load metrics';
+        // Handle CORS errors gracefully
+        if (errMsg.toLowerCase().includes('cors') || errMsg.toLowerCase().includes('blocked')) {
+          setError('Metrics service unavailable (CORS blocked). This is expected in preview environments.');
+        } else {
+          setError(errMsg);
+        }
       }
     })();
   }, [mcp]);
