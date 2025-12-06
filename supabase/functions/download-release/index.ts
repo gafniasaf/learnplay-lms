@@ -1,15 +1,13 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.4";
+import { createClient } from "npm:@supabase/supabase-js@2";
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
-};
+import { stdHeaders, handleOptions } from "../_shared/cors.ts";
+import { newReqId } from "../_shared/obs.ts";
 
 serve(async (req) => {
+  const reqId = req.headers.get("x-request-id") || newReqId();
+
   if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders });
+    return handleOptions(req, reqId);
   }
 
   const supabaseUrl = Deno.env.get("SUPABASE_URL");
@@ -19,15 +17,21 @@ serve(async (req) => {
     Deno.env.get("SERVICE_ROLE_KEY");
 
   if (!supabaseUrl || !anonKey || !serviceRoleKey) {
-    return new Response("Missing Supabase env config", {
-      status: 500,
-      headers: corsHeaders,
-    });
+    return new Response(
+      JSON.stringify({ error: "Missing Supabase env config" }),
+      {
+        status: 500,
+        headers: stdHeaders(req, { "Content-Type": "application/json", "X-Request-Id": reqId }),
+      }
+    );
   }
 
   const authHeader = req.headers.get("Authorization");
   if (!authHeader) {
-    return new Response("Unauthorized", { status: 401, headers: corsHeaders });
+    return new Response(
+      JSON.stringify({ error: "Unauthorized" }),
+      { status: 401, headers: stdHeaders(req, { "Content-Type": "application/json", "X-Request-Id": reqId }) }
+    );
   }
 
   const userClient = createClient(supabaseUrl, anonKey, {
@@ -42,7 +46,10 @@ serve(async (req) => {
   } = await userClient.auth.getUser();
 
   if (authError || !user) {
-    return new Response("Unauthorized", { status: 401, headers: corsHeaders });
+    return new Response(
+      JSON.stringify({ error: "Unauthorized" }),
+      { status: 401, headers: stdHeaders(req, { "Content-Type": "application/json", "X-Request-Id": reqId }) }
+    );
   }
 
   const adminClient = createClient(supabaseUrl, serviceRoleKey);
@@ -56,17 +63,12 @@ serve(async (req) => {
 
   if (error || !data?.signedUrl) {
     return new Response(
-      `Failed to generate download link: ${error?.message ?? "unknown error"}`,
-      { status: 500, headers: corsHeaders },
+      JSON.stringify({ error: `Failed to generate download link: ${error?.message ?? "unknown error"}` }),
+      { status: 500, headers: stdHeaders(req, { "Content-Type": "application/json", "X-Request-Id": reqId }) }
     );
   }
 
   return new Response(JSON.stringify({ url: data.signedUrl }), {
-    headers: {
-      ...corsHeaders,
-      "Content-Type": "application/json",
-    },
+    headers: stdHeaders(req, { "Content-Type": "application/json", "X-Request-Id": reqId }),
   });
 });
-
-

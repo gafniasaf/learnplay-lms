@@ -1,7 +1,7 @@
 // supabase/functions/_shared/log.ts
 // Centralized logging and error tracking for edge functions
 
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.7.1";
+import { createClient } from "npm:@supabase/supabase-js@2";
 
 interface LogContext {
   functionName?: string;

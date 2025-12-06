@@ -49,10 +49,11 @@ import { supabase } from "@/integrations/supabase/client";
 // =====================================================
 
 /**
- * Check if using mock data (default: true for MVP)
- * TODO: Change to false when edge functions are ready
+ * Check if using mock data - controlled by environment variable
+ * Set VITE_USE_MOCK=true for mock mode, otherwise uses live backend
+ * Per IgniteZero rules: No silent mocks - fail loudly if backend unavailable
  */
-const USE_MOCK_DATA = true;
+const USE_MOCK_DATA = (import.meta as any).env?.VITE_USE_MOCK === 'true';
 
 // =====================================================
 // STUDENT SKILLS

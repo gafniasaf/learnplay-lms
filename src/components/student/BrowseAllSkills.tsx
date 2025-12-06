@@ -20,6 +20,9 @@ import { Link } from "react-router-dom";
 import type { KnowledgeObjective, MasteryState, Topic, KOStatus } from "@/lib/types/knowledgeMap";
 import { MOCK_KNOWLEDGE_OBJECTIVES, MOCK_TOPICS, MOCK_MASTERY_STATES } from "@/lib/mocks/knowledgeMockData";
 
+// Mock mode controlled by env var per IgniteZero rules
+const ENV_USE_MOCK = (import.meta as any).env?.VITE_USE_MOCK === 'true';
+
 interface BrowseAllSkillsProps {
   isOpen: boolean;
   onClose: () => void;
@@ -29,7 +32,7 @@ interface BrowseAllSkillsProps {
    */
   readOnly?: boolean;
   /**
-   * Mock data mode
+   * Mock data mode - defaults to env var VITE_USE_MOCK
    */
   useMockData?: boolean;
 }
@@ -62,7 +65,7 @@ export function BrowseAllSkills({
   onClose,
   studentId,
   readOnly = false,
-  useMockData = true,
+  useMockData = ENV_USE_MOCK,
 }: BrowseAllSkillsProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");

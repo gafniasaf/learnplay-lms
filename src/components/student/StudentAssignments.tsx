@@ -8,10 +8,13 @@ import type { AssignmentWithDetails } from "@/lib/types/knowledgeMap";
 import { useStudentAssignments } from "@/hooks/useStudentAssignments";
 import { Skeleton } from "@/components/ui/skeleton";
 
+// Mock mode controlled by env var per IgniteZero rules
+const ENV_USE_MOCK = (import.meta as any).env?.VITE_USE_MOCK === 'true';
+
 interface StudentAssignmentsProps {
   studentId: string;
   /**
-   * Mock data mode
+   * Mock data mode - defaults to env var VITE_USE_MOCK
    */
   useMockData?: boolean;
 }
@@ -28,7 +31,7 @@ interface StudentAssignmentsProps {
  * 
  * Positioned above "My Focus" cards in student dashboard
  */
-export function StudentAssignments({ studentId, useMockData = true }: StudentAssignmentsProps) {
+export function StudentAssignments({ studentId, useMockData = ENV_USE_MOCK }: StudentAssignmentsProps) {
   // When mock mode is enabled (storybook/e2e), continue to show local mock data.
   // In live mode, use the real assignments hook wired to Edge functions.
   const { data, isLoading, isError } = useStudentAssignments({ enabled: !useMockData });

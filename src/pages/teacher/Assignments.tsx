@@ -1,12 +1,16 @@
+/**
+ * TeacherAssignments - IgniteZero compliant
+ * Uses edge functions via API layer instead of direct Supabase calls
+ */
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { listAssignmentsForTeacher, createAssignment, type CreateAssignmentRequest } from "@/lib/api";
-import { useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { AssignStudentsModal } from "@/components/teacher/AssignStudentsModal";
 import { Users, BarChart3 } from "lucide-react";
+import { getCourseJob, listCourseJobs } from "@/lib/api/jobs";
 
 export default function TeacherAssignments() {
   const qc = useQueryClient();
@@ -45,45 +49,56 @@ export default function TeacherAssignments() {
   const [due, setDue] = useState("");
   const [classId, setClassId] = useState("");
 
-  // Load user org on mount
-  useState(() => {
-    (async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        const { data: orgUser } = await supabase
-          .from("organization_users")
-          .select("org_id")
-          .eq("user_id", user.id)
-          .maybeSingle();
-        if (orgUser) setOrgId(orgUser.org_id);
-      }
-    })();
-  });
-
   // If attachJobId present, prefill modal with job's course_id and title
-  useState(() => {
-    (async () => {
+  useEffect(() => {
+    const loadJob = async () => {
       if (!attachJobId) return;
-      const { data: job } = await supabase
-        .from('ai_course_jobs')
-        .select('course_id, subject, status, created_by')
-        .eq('id', attachJobId)
-        .maybeSingle();
-      if (job?.course_id) {
-        setCourseId(job.course_id);
-        setTitle(job.subject ? `AI: ${job.subject}` : '');
-        setOpen(true);
-      } else {
-        toast({ title: 'Unable to import job', description: 'Course not available yet', variant: 'destructive' });
+      try {
+        const response = await getCourseJob(attachJobId);
+        if (response.ok && response.job) {
+          const job = response.job;
+          if ((job as any).course_id) {
+            setCourseId((job as any).course_id);
+            setTitle(job.subject ? `AI: ${job.subject}` : '');
+            setOpen(true);
+          } else {
+            toast({ title: 'Unable to import job', description: 'Course not available yet', variant: 'destructive' });
+          }
+        }
+      } catch (error) {
+        console.warn('[Assignments] Failed to load job:', error);
+        toast({ title: 'Unable to import job', description: 'Job not found', variant: 'destructive' });
       }
-    })();
-  });
+    };
+    loadJob();
+  }, [attachJobId, toast]);
 
   const assignments = data?.assignments ?? [];
 
   const handleOpenAssignModal = (assignmentId: string, assignmentCourseId: string) => {
     setSelectedAssignment({ id: assignmentId, courseId: assignmentCourseId });
     setAssignModalOpen(true);
+  };
+
+  const handleImportFromAI = async () => {
+    try {
+      const response = await listCourseJobs({ status: 'done', limit: 1 });
+      if (response.ok && response.jobs.length > 0) {
+        const job = response.jobs[0];
+        if ((job as any).course_id) {
+          setCourseId((job as any).course_id);
+          setTitle(job.subject ? `AI: ${job.subject}` : '');
+          setOpen(true);
+        } else {
+          toast({ title: 'No recent AI course', description: 'Course ID not available' });
+        }
+      } else {
+        toast({ title: 'No recent AI course', description: 'Run a generation job first' });
+      }
+    } catch (error) {
+      console.warn('[Assignments] Failed to load AI jobs:', error);
+      toast({ title: 'Error', description: 'Failed to load AI jobs', variant: 'destructive' });
+    }
   };
 
   return (
@@ -94,28 +109,15 @@ export default function TeacherAssignments() {
           <button 
             className="px-3 py-2 bg-primary text-primary-foreground rounded hover:bg-primary/90" 
             onClick={() => setOpen(true)}
+            data-cta-id="new-assignment"
           >
             New
           </button>
           <button
             className="px-3 py-2 border rounded hover:bg-muted"
-            onClick={async () => {
-              const { data: jobs } = await supabase
-                .from('ai_course_jobs')
-                .select('id, course_id, subject, status, created_at')
-                .eq('status', 'done')
-                .order('created_at', { ascending: false })
-                .limit(1);
-              const j = jobs?.[0];
-              if (j?.course_id) {
-                setCourseId(j.course_id);
-                setTitle(j.subject ? `AI: ${j.subject}` : '');
-                setOpen(true);
-              } else {
-                toast({ title: 'No recent AI course', description: 'Run a generation job first' });
-              }
-            }}
+            onClick={handleImportFromAI}
             title="Import from latest AI job"
+            data-cta-id="import-from-ai"
           >
             Import from AI
           </button>
@@ -123,147 +125,122 @@ export default function TeacherAssignments() {
       </div>
 
       {isLoading ? (
-        <div className="flex items-center justify-center py-12">
-          <div className="text-center text-muted-foreground">
-            Loading assignments...
-          </div>
+        <p className="text-muted-foreground">Loading assignments...</p>
+      ) : assignments.length === 0 ? (
+        <div className="text-center py-12">
+          <p className="text-muted-foreground mb-4">No assignments yet</p>
+          <Button onClick={() => setOpen(true)} data-cta-id="create-first-assignment">
+            Create your first assignment
+          </Button>
         </div>
       ) : (
-        <table className="w-full text-sm border-collapse">
-          <thead>
-            <tr className="border-b">
-              <th className="text-left p-2">Title</th>
-              <th className="text-left p-2">Course</th>
-              <th className="text-left p-2">Due</th>
-              <th className="text-center p-2">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {assignments.map((a) => (
-              <tr key={a.id} className="border-b hover:bg-muted/50">
-                <td className="p-2">{a.title || "Untitled"}</td>
-                <td className="p-2">{a.course_id}</td>
-                <td className="p-2">{a.due_at ? new Date(a.due_at).toLocaleDateString() : "—"}</td>
-                <td className="p-2">
-                  <div className="flex items-center justify-center gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleOpenAssignModal(a.id, a.course_id)}
-                      title="Assign students"
-                    >
-                      <Users className="h-4 w-4 mr-1" />
-                      Assign
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => navigate(`/teacher/assignments/${a.id}/progress`)}
-                      title="View progress"
-                    >
-                      <BarChart3 className="h-4 w-4 mr-1" />
-                      Progress
-                    </Button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-            {assignments.length === 0 && (
-              <tr>
-                <td colSpan={4} className="p-4 text-center text-muted-foreground">
-                  No assignments yet
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+        <div className="space-y-3">
+          {assignments.map((a: any) => (
+            <div key={a.id} className="p-4 border rounded-lg flex items-center justify-between hover:bg-muted/50">
+              <div>
+                <div className="font-medium">{a.title || a.course_id}</div>
+                <div className="text-sm text-muted-foreground">
+                  {a.due_at ? `Due: ${new Date(a.due_at).toLocaleDateString()}` : 'No due date'}
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleOpenAssignModal(a.id, a.course_id)}
+                  data-cta-id="assign-students"
+                >
+                  <Users className="h-4 w-4 mr-1" />
+                  Assign
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => navigate(`/teacher/analytics?assignmentId=${a.id}`)}
+                  data-cta-id="view-analytics"
+                >
+                  <BarChart3 className="h-4 w-4 mr-1" />
+                  Analytics
+                </Button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Create Assignment Modal */}
+      {open && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-background p-6 rounded-lg shadow-xl max-w-md w-full space-y-4">
+            <h2 className="text-lg font-semibold">Create Assignment</h2>
+            <div className="space-y-3">
+              <div>
+                <label className="text-sm text-muted-foreground">Course ID</label>
+                <input
+                  value={courseId}
+                  onChange={(e) => setCourseId(e.target.value)}
+                  className="w-full px-3 py-2 border rounded"
+                  placeholder="e.g., algebra-basics"
+                />
+              </div>
+              <div>
+                <label className="text-sm text-muted-foreground">Title</label>
+                <input
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  className="w-full px-3 py-2 border rounded"
+                  placeholder="Assignment title"
+                />
+              </div>
+              <div>
+                <label className="text-sm text-muted-foreground">Due Date</label>
+                <input
+                  type="date"
+                  value={due}
+                  onChange={(e) => setDue(e.target.value)}
+                  className="w-full px-3 py-2 border rounded"
+                />
+              </div>
+            </div>
+            <div className="flex gap-2 justify-end">
+              <Button variant="outline" onClick={() => setOpen(false)}>
+                Cancel
+              </Button>
+              <Button
+                onClick={() => {
+                  if (!courseId) {
+                    toast({ title: 'Course ID required', variant: 'destructive' });
+                    return;
+                  }
+                  m.mutate({
+                    orgId: 'default', // Will be resolved by edge function
+                    courseId: courseId,
+                    title: title || courseId,
+                    dueAt: due || undefined,
+                    assignees: [], // Empty initially, assign via modal
+                  });
+                }}
+                disabled={m.isPending}
+                data-cta-id="confirm-create-assignment"
+              >
+                {m.isPending ? 'Creating...' : 'Create'}
+              </Button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Assign Students Modal */}
       {selectedAssignment && (
         <AssignStudentsModal
           open={assignModalOpen}
-          onOpenChange={setAssignModalOpen}
+          onOpenChange={(open) => {
+            setAssignModalOpen(open);
+            if (!open) setSelectedAssignment(null);
+          }}
           assignmentId={selectedAssignment.id}
           courseId={selectedAssignment.courseId}
         />
-      )}
-
-      {open && (
-        <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center">
-          <div className="absolute inset-0 bg-black/40" onClick={() => setOpen(false)} />
-          <div className="relative bg-background rounded-lg p-4 w-[420px] shadow-lg border">
-            <h2 className="text-lg font-semibold mb-3">New Assignment</h2>
-            
-            <label className="block text-sm mb-2">
-              Course ID
-              <input 
-                className="w-full border rounded p-2 mt-1 bg-background" 
-                value={courseId} 
-                onChange={e => setCourseId(e.target.value)} 
-                placeholder="e.g. modals" 
-              />
-            </label>
-            
-            <label className="block text-sm mb-2">
-              Class ID
-              <input 
-                className="w-full border rounded p-2 mt-1 bg-background" 
-                value={classId} 
-                onChange={e => setClassId(e.target.value)} 
-                placeholder="UUID of class" 
-              />
-            </label>
-            
-            <label className="block text-sm mb-2">
-              Title (optional)
-              <input 
-                className="w-full border rounded p-2 mt-1 bg-background" 
-                value={title} 
-                onChange={e => setTitle(e.target.value)} 
-                placeholder="Assignment title"
-              />
-            </label>
-            
-            <label className="block text-sm mb-3">
-              Due date (optional)
-              <input 
-                className="w-full border rounded p-2 mt-1 bg-background" 
-                type="datetime-local" 
-                onChange={e => setDue(e.target.value ? new Date(e.target.value).toISOString() : "")} 
-              />
-            </label>
-            
-            <div className="flex justify-end gap-2">
-              <button 
-                className="px-3 py-2 hover:bg-muted rounded" 
-                onClick={() => setOpen(false)}
-              >
-                Cancel
-              </button>
-              <button
-                className="px-3 py-2 bg-primary text-primary-foreground rounded hover:bg-primary/90 disabled:opacity-50"
-                onClick={() => {
-                  if (!orgId || !courseId || !classId) {
-                    toast({ title: "Missing required fields", variant: "destructive" });
-                    return;
-                  }
-                  const req: CreateAssignmentRequest = {
-                    orgId,
-                    courseId,
-                    title: title || undefined,
-                    dueAt: due || undefined,
-                    assignees: [{ type: "class", classId }]
-                  };
-                  m.mutate(req);
-                }}
-                disabled={m.isPending}
-              >
-                {m.isPending ? "Creating..." : "Create"}
-              </button>
-            </div>
-          </div>
-        </div>
       )}
     </div>
   );

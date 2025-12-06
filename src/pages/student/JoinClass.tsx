@@ -1,3 +1,7 @@
+/**
+ * JoinClass - IgniteZero compliant
+ * Uses edge functions via API layer
+ */
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { joinClass } from "@/lib/api";
@@ -8,7 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Users, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
+import { callEdgeFunctionGet } from "@/lib/api/common";
 
 interface ClassData {
   id: string;
@@ -16,25 +20,24 @@ interface ClassData {
   created_at: string;
 }
 
-interface ClassMemberRow {
-  classes: ClassData;
-}
-
 export default function JoinClass() {
   const queryClient = useQueryClient();
   const [code, setCode] = useState("");
 
-  // Get current classes
+  // Get current classes via edge function
   const { data: classesData } = useQuery({
     queryKey: ["student-classes"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("class_members")
-        .select("classes(id, name, created_at)")
-        .eq("user_id", (await supabase.auth.getUser()).data.user?.id);
-      
-      if (error) throw error;
-      return data?.map((item: ClassMemberRow) => item.classes) ?? [];
+      try {
+        const response = await callEdgeFunctionGet<{ ok: boolean; classes: ClassData[] }>(
+          "list-classes",
+          { role: "student" }
+        );
+        return response.classes ?? [];
+      } catch (error) {
+        console.warn('[JoinClass] Failed to load classes:', error);
+        return [];
+      }
     },
   });
 
@@ -99,6 +102,7 @@ export default function JoinClass() {
                 type="submit"
                 className="w-full"
                 disabled={joinMutation.isPending || code.trim().length !== 6}
+                data-cta-id="join-class"
               >
                 {joinMutation.isPending ? "Joining..." : "Join Class"}
               </Button>

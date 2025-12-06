@@ -169,8 +169,8 @@ export async function fillSkeleton(
   if (typeof Deno !== "undefined") {
     (async () => {
       try {
-        // @ts-ignore - remote URL import in Deno runtime
-        const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2');
+        // @ts-ignore - npm: import in Deno runtime (IgniteZero compliant)
+        const { createClient } = await import('npm:@supabase/supabase-js@2');
         const supabase = createClient(
           Deno.env.get('SUPABASE_URL') ?? '',
           Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''

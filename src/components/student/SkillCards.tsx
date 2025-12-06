@@ -8,10 +8,13 @@ import { useState } from "react";
 import type { SkillCard as SkillCardType } from "@/lib/types/knowledgeMap";
 import { BrowseAllSkills } from "./BrowseAllSkills";
 
+// Mock mode controlled by env var per IgniteZero rules
+const ENV_USE_MOCK = (import.meta as any).env?.VITE_USE_MOCK === 'true';
+
 interface SkillCardsProps {
   studentId: string;
   /**
-   * Mock data mode - will be replaced with API calls later
+   * Mock data mode - defaults to env var VITE_USE_MOCK
    */
   useMockData?: boolean;
 }
@@ -25,7 +28,7 @@ interface SkillCardsProps {
  * 
  * Replaces/augments the RecommendationsCard with KO-based guidance
  */
-export function SkillCards({ studentId, useMockData = true }: SkillCardsProps) {
+export function SkillCards({ studentId, useMockData = ENV_USE_MOCK }: SkillCardsProps) {
   const [showBrowseAll, setShowBrowseAll] = useState(false);
   
   // TODO: Replace with useStudentSkills hook when created (Task 14)
