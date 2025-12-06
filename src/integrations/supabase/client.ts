@@ -3,16 +3,14 @@ import { createClient } from '@supabase/supabase-js';
 // Avoid strict typing against generated Database types in varied environments
 // to prevent build-time type mismatches when tables differ.
 
-// Environment variables are REQUIRED - no hardcoded fallbacks per IgniteZero rules
-// Configure these in your .env file:
-//   VITE_SUPABASE_URL=https://your-project.supabase.co
-//   VITE_SUPABASE_ANON_KEY=your-anon-key
-const SUPABASE_URL: string = (import.meta as any).env?.VITE_SUPABASE_URL || '';
-// Accept either PUBLISHABLE or ANON key names for flexibility
+// Supabase configuration - using direct values for Lovable environment
+const SUPABASE_URL: string = 
+  (import.meta as any).env?.VITE_SUPABASE_URL || 
+  'https://eidcegehaswbtzrwzvfa.supabase.co';
 const SUPABASE_KEY: string =
   (import.meta as any).env?.VITE_SUPABASE_PUBLISHABLE_KEY ||
   (import.meta as any).env?.VITE_SUPABASE_ANON_KEY ||
-  '';
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVpZGNlZ2VoYXN3YnR6cnd6dmZhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ4NDYzNTAsImV4cCI6MjA4MDQyMjM1MH0.DpXOHjccnVEewnPF5gA6tw27TcRXkkAfgrJkn0NvT_Q';
 // Default to LIVE mode for production (Lovable). Only use mock when explicitly set to 'true'
 const USE_MOCK = String((import.meta as any).env?.VITE_USE_MOCK) === 'true';
 
