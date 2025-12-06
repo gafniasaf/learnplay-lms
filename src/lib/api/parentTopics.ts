@@ -34,11 +34,15 @@ export interface ParentTopicsResponse {
   message?: string | null;
 }
 
+// Dev bypass child ID (seeded in database)
+const DEV_CHILD_ID = "b2ed7195-4202-405b-85e4-608944a27837";
+
 export async function getParentTopics(
   params: ParentTopicsParams
 ): Promise<ParentTopicsResponse> {
+  const studentId = params.studentId || DEV_CHILD_ID;
   const queryParams: Record<string, string> = {
-    studentId: params.studentId,
+    childId: studentId,
   };
 
   if (params.subject) {

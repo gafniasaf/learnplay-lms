@@ -1,4 +1,4 @@
-import { callEdgeFunctionGet, ApiError } from "./common";
+import { callEdgeFunctionGet, ApiError, getSupabaseUrl } from "./common";
 
 export interface Class {
   id: string;
@@ -79,14 +79,7 @@ export async function createClass(input: {
 }> {
   console.info("[createClass]", input);
 
-  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-
-  if (!supabaseUrl) {
-    throw new ApiError(
-      "VITE_SUPABASE_URL is not configured",
-      "CONFIG_ERROR"
-    );
-  }
+  const supabaseUrl = getSupabaseUrl();
 
   const { getAccessToken } = await import("../supabase");
   const token = await getAccessToken();
@@ -134,14 +127,7 @@ export async function addClassMember(input: {
 }): Promise<{ ok: boolean }> {
   console.info("[addClassMember]", input);
 
-  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-
-  if (!supabaseUrl) {
-    throw new ApiError(
-      "VITE_SUPABASE_URL is not configured",
-      "CONFIG_ERROR"
-    );
-  }
+  const supabaseUrl = getSupabaseUrl();
 
   const { getAccessToken } = await import("../supabase");
   const token = await getAccessToken();
@@ -208,14 +194,7 @@ export async function removeClassMember(input: {
 }): Promise<{ ok: boolean }> {
   console.info("[removeClassMember]", input);
 
-  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-
-  if (!supabaseUrl) {
-    throw new ApiError(
-      "VITE_SUPABASE_URL is not configured",
-      "CONFIG_ERROR"
-    );
-  }
+  const supabaseUrl = getSupabaseUrl();
 
   const { getAccessToken } = await import("../supabase");
   const token = await getAccessToken();
@@ -269,14 +248,7 @@ export async function inviteStudent(
 }> {
   console.info("[inviteStudent]", { orgId, classId, email });
 
-  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-
-  if (!supabaseUrl) {
-    throw new ApiError(
-      "VITE_SUPABASE_URL is not configured",
-      "CONFIG_ERROR"
-    );
-  }
+  const supabaseUrl = getSupabaseUrl();
 
   const { getAccessToken } = await import("../supabase");
   const token = await getAccessToken();
@@ -363,14 +335,7 @@ export async function generateClassCode(
 ): Promise<{ code: string; expiresAt: string; isNew: boolean }> {
   console.info("[generateClassCode]", { classId, refreshCode });
 
-  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-
-  if (!supabaseUrl) {
-    throw new ApiError(
-      "VITE_SUPABASE_URL is not configured",
-      "CONFIG_ERROR"
-    );
-  }
+  const supabaseUrl = getSupabaseUrl();
 
   const { getAccessToken } = await import("../supabase");
   const token = await getAccessToken();
@@ -420,14 +385,7 @@ export async function joinClass(code: string): Promise<{
 }> {
   console.info("[joinClass]", { code: code.substring(0, 2) + "****" });
 
-  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-
-  if (!supabaseUrl) {
-    throw new ApiError(
-      "VITE_SUPABASE_URL is not configured",
-      "CONFIG_ERROR"
-    );
-  }
+  const supabaseUrl = getSupabaseUrl();
 
   const { getAccessToken } = await import("../supabase");
   const token = await getAccessToken();
@@ -477,14 +435,7 @@ export async function createChildCode(studentId: string): Promise<{
 }> {
   console.info("[createChildCode]", { studentId });
 
-  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-
-  if (!supabaseUrl) {
-    throw new ApiError(
-      "VITE_SUPABASE_URL is not configured",
-      "CONFIG_ERROR"
-    );
-  }
+  const supabaseUrl = getSupabaseUrl();
 
   const { getAccessToken } = await import("../supabase");
   const token = await getAccessToken();
@@ -534,14 +485,7 @@ export async function linkChild(code: string): Promise<{
 }> {
   console.info("[linkChild]", { code });
 
-  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-
-  if (!supabaseUrl) {
-    throw new ApiError(
-      "VITE_SUPABASE_URL is not configured",
-      "CONFIG_ERROR"
-    );
-  }
+  const supabaseUrl = getSupabaseUrl();
 
   const { getAccessToken } = await import("../supabase");
   const token = await getAccessToken();

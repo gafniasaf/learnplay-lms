@@ -1,5 +1,25 @@
 import { isLiveMode } from "../env";
 
+// Hardcoded fallback for Lovable/production builds without env vars
+const FALLBACK_SUPABASE_URL = 'https://eidcegehaswbtzrwzvfa.supabase.co';
+const FALLBACK_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVpZGNlZ2VoYXN3YnR6cnd6dmZhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ4NDYzNTAsImV4cCI6MjA4MDQyMjM1MH0.DpXOHjccnVEewnPF5gA6tw27TcRXkkAfgrJkn0NvT_Q';
+
+/**
+ * Get Supabase URL with fallback for production
+ */
+export function getSupabaseUrl(): string {
+  return import.meta.env.VITE_SUPABASE_URL || FALLBACK_SUPABASE_URL;
+}
+
+/**
+ * Get Supabase anon key with fallback for production
+ */
+export function getSupabaseAnonKey(): string {
+  return import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || 
+         import.meta.env.VITE_SUPABASE_ANON_KEY || 
+         FALLBACK_ANON_KEY;
+}
+
 /**
  * Custom API error class with structured error information
  */
@@ -86,15 +106,8 @@ export async function callEdgeFunction<TRequest, TResponse>(
   options: { maxRetries?: number; timeoutMs?: number } = {}
 ): Promise<TResponse> {
   const { getAccessToken, ensureSession } = await import("../supabase");
-  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+  const supabaseUrl = getSupabaseUrl();
   const { maxRetries = 1, timeoutMs = 30000 } = options;
-
-  if (!supabaseUrl) {
-    throw new ApiError(
-      "VITE_SUPABASE_URL is not configured",
-      "CONFIG_ERROR"
-    );
-  }
 
   // Get auth token from cached session
   let token = await getAccessToken();
@@ -186,15 +199,8 @@ export async function callEdgeFunctionGet<TResponse>(
   options: { timeoutMs?: number } = {}
 ): Promise<TResponse> {
   const { getAccessToken } = await import("../supabase");
-  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+  const supabaseUrl = getSupabaseUrl();
   const { timeoutMs = 30000 } = options;
-
-  if (!supabaseUrl) {
-    throw new ApiError(
-      "VITE_SUPABASE_URL is not configured",
-      "CONFIG_ERROR"
-    );
-  }
 
   const token = await getAccessToken();
 

@@ -49,17 +49,20 @@ export interface ParentDashboardResponse {
   children: ParentDashboardChild[];
 }
 
+// Dev bypass parent ID (seeded in database)
+const DEV_PARENT_ID = "613d43cb-0922-4fad-b528-dbed8d2a5c79";
+
 export async function getParentDashboard(
   params: ParentDashboardParams = {}
 ): Promise<ParentDashboardResponse> {
   const queryParams: Record<string, string> = {};
 
-  if (params.parentId) {
-    queryParams.parentId = params.parentId;
-  }
+  // In dev mode without explicit parentId, use the seeded dev parent
+  const parentId = params.parentId || DEV_PARENT_ID;
+  queryParams.parentId = parentId;
 
   return callEdgeFunctionGet<ParentDashboardResponse>(
     "parent-dashboard",
-    Object.keys(queryParams).length > 0 ? queryParams : undefined
+    queryParams
   );
 }

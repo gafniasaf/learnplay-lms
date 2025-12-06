@@ -1,6 +1,6 @@
 import { isLiveMode } from "../env";
 import type { CourseCatalog } from "../types/courseCatalog";
-import { shouldUseMockData, fetchWithTimeout, ApiError } from "./common";
+import { shouldUseMockData, fetchWithTimeout, ApiError, getSupabaseUrl, getSupabaseAnonKey } from "./common";
 import { createLogger } from "../logger";
 
 // Conditional import for mocks (tree-shaken in production)
@@ -41,14 +41,7 @@ export async function getCourseCatalog(): Promise<
     source: "live",
   });
   const allowMockFallback = (import.meta as any).env?.VITE_ALLOW_MOCK_FALLBACK === 'true';
-  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-
-  if (!supabaseUrl) {
-    throw new ApiError(
-      "VITE_SUPABASE_URL is not configured",
-      "CONFIG_ERROR"
-    );
-  }
+  const supabaseUrl = getSupabaseUrl();
 
   // Check for hard-bust flags
   const params = new URLSearchParams(window.location.search);
@@ -503,10 +496,7 @@ export async function searchCourses({
   pageSize: number;
   totalPages: number;
 }> {
-  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-  if (!supabaseUrl) {
-    throw new ApiError('VITE_SUPABASE_URL is not configured', 'CONFIG_ERROR');
-  }
+  const supabaseUrl = getSupabaseUrl();
 
   const params = new URLSearchParams();
   if (search) params.append('search', search);

@@ -53,7 +53,8 @@ export async function authenticateRequest(req: Request): Promise<AuthContext> {
   const allowAnon = Deno.env.get("ALLOW_ANON") === "true";
   if (allowAnon) {
     console.log("[Auth] Anonymous request allowed (ALLOW_ANON=true)");
-    return { type: "agent", organizationId: "default" };
+    // Use the seeded default org UUID
+    return { type: "agent", organizationId: "4d7b0a5c-3cf1-49e5-9ad7-bf6c1f8a2f58" };
   }
 
   throw new Error("Unauthorized");

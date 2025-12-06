@@ -1,4 +1,4 @@
-import { callEdgeFunctionGet, shouldUseMockData, ApiError } from "./common";
+import { callEdgeFunctionGet, shouldUseMockData, ApiError, getSupabaseUrl, getSupabaseAnonKey } from "./common";
 
 // Mock assignment store (in-memory for testing)
 const mockAssignmentStore: Assignment[] = [];
@@ -89,14 +89,7 @@ export async function createAssignment(
 
   console.info("[createAssignment]", request);
 
-  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-
-  if (!supabaseUrl) {
-    throw new ApiError(
-      "VITE_SUPABASE_URL is not configured",
-      "CONFIG_ERROR"
-    );
-  }
+  const supabaseUrl = getSupabaseUrl();
 
   const { getAccessToken } = await import("../supabase");
   const token = await getAccessToken();
@@ -254,14 +247,7 @@ export async function assignAssignees(
 export async function exportGradebook(assignmentId: string): Promise<Blob> {
   console.info("[exportGradebook]", { assignmentId });
 
-  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-
-  if (!supabaseUrl) {
-    throw new ApiError(
-      "VITE_SUPABASE_URL is not configured",
-      "CONFIG_ERROR"
-    );
-  }
+  const supabaseUrl = getSupabaseUrl();
 
   const { getAccessToken } = await import("../supabase");
   const token = await getAccessToken();

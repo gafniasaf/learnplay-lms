@@ -4,8 +4,9 @@ import { createClient } from '@supabase/supabase-js';
 // to prevent build-time type mismatches when tables differ.
 
 // Hardcoded credentials (works everywhere without env vars)
-const HARDCODED_URL = 'https://xlslksprdjsxawvcikfk.supabase.co';
-const HARDCODED_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inhsc2xrc3ByZGpzeGF3dmNpa2ZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM3MTMxMzEsImV4cCI6MjA3OTI4OTEzMX0.1Jo8F2o42z_K7PXeHrEp28AwbomBkrrOJh1_t3vU0iM';
+// LearnPlay LMS Supabase project
+const HARDCODED_URL = 'https://eidcegehaswbtzrwzvfa.supabase.co';
+const HARDCODED_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVpZGNlZ2VoYXN3YnR6cnd6dmZhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ4NDYzNTAsImV4cCI6MjA4MDQyMjM1MH0.DpXOHjccnVEewnPF5gA6tw27TcRXkkAfgrJkn0NvT_Q';
 
 const SUPABASE_URL: string = (import.meta as any).env?.VITE_SUPABASE_URL || HARDCODED_URL;
 // Accept either PUBLISHABLE or ANON key names for flexibility

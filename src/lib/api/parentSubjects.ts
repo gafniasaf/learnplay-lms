@@ -36,18 +36,21 @@ export interface ParentSubjectsResponse {
   message?: string;
 }
 
+// Dev bypass child ID (seeded in database)
+const DEV_CHILD_ID = "b2ed7195-4202-405b-85e4-608944a27837";
+
 export async function getParentSubjects(
   params: ParentSubjectsParams = {}
 ): Promise<ParentSubjectsResponse> {
   const queryParams: Record<string, string> = {};
 
-  if (params.studentId) {
-    queryParams.studentId = params.studentId;
-  }
+  // In dev mode without explicit studentId, use the seeded dev child
+  const studentId = params.studentId || DEV_CHILD_ID;
+  queryParams.childId = studentId;
 
   return callEdgeFunctionGet<ParentSubjectsResponse>(
     "parent-subjects",
-    Object.keys(queryParams).length > 0 ? queryParams : undefined
+    queryParams
   );
 }
 

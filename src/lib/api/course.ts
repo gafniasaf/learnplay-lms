@@ -1,6 +1,6 @@
 import { isLiveMode } from "../env";
 import type { Course } from "../types/course";
-import { shouldUseMockData, fetchWithTimeout, ApiError } from "./common";
+import { shouldUseMockData, fetchWithTimeout, ApiError, getSupabaseUrl, getSupabaseAnonKey } from "./common";
 import { createLogger } from "../logger";
 
 // Conditional import for mocks (tree-shaken in production)
@@ -30,14 +30,8 @@ export async function getCourse(
     return { ...mockCourse, _metadata: { dataSource: "mock" } };
   }
 
-  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-  const anonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
-  if (!supabaseUrl || !anonKey) {
-    throw new ApiError(
-      "VITE_SUPABASE_URL or VITE_SUPABASE_PUBLISHABLE_KEY is not configured",
-      "CONFIG_ERROR"
-    );
-  }
+  const supabaseUrl = getSupabaseUrl();
+  const anonKey = getSupabaseAnonKey();
 
   const url = `${supabaseUrl}/functions/v1/get-course?courseId=${encodeURIComponent(courseId)}`;
   const headers: Record<string, string> = {
