@@ -159,8 +159,13 @@ test.describe('Live AI Pipeline: Course Creation', () => {
     
     // Step 7: Verify course was created and stored
     if (courseId) {
-      await page.goto(`/admin/courses/${courseId}`);
+      // Use CORRECT route: /admin/editor/:courseId (not /admin/courses/:courseId)
+      await page.goto(`/admin/editor/${courseId}`);
       await page.waitForLoadState('networkidle');
+      
+      // Verify NOT 404 (would catch route bug)
+      const is404 = await page.locator('text=/404|not found/i').isVisible({ timeout: 2000 }).catch(() => false);
+      expect(is404).toBeFalsy();
       
       // Verify course editor loaded
       const hasEditor = await page.getByText(/edit|course|item/i).isVisible({ timeout: 10000 }).catch(() => false);
