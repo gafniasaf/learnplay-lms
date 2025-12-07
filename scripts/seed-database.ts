@@ -2,10 +2,10 @@
  * Database Seeding Script
  * 
  * Seeds the database with:
- * - Courses (with items, groups, levels)
- * - Students (with profiles, metrics)
- * - Teachers (with profiles)
- * - Parents (with profiles, linked to students)
+ * - Courses (course_metadata entries + JSON files in storage)
+ * - Students (with profiles, organization_users, metrics)
+ * - Teachers (with profiles, organization_users)
+ * - Parents (with profiles, organization_users, linked to students via org)
  * - Assignments (for students)
  * - Student assignments (linking students to assignments)
  * 
@@ -45,8 +45,7 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
 // Default organization ID (from learnplay.env or use default)
 const DEFAULT_ORG_ID = process.env.ORGANIZATION_ID || '4d7b0a5c-3cf1-49e5-9ad7-bf6c1f8a2f58';
 
-interface CourseData {
-  id: string;
+interface CourseJSON {
   title: string;
   description: string;
   grade_band: string;
@@ -69,6 +68,7 @@ async function seedDatabase() {
 
   // 1. Ensure organization exists
   console.log('📝 Ensuring organization exists...');
+  // Check if organizations table has slug column
   const { error: orgError } = await supabase
     .from('organizations')
     .upsert({
@@ -83,83 +83,99 @@ async function seedDatabase() {
   }
   console.log('✅ Organization ready\n');
 
-  // 2. Create courses
+  // 2. Create courses (course_metadata + JSON in storage)
   console.log('📚 Creating courses...');
-  const courses: CourseData[] = [
+  const courses: Array<{ id: string; json: CourseJSON }> = [
     {
       id: 'math-basics-001',
-      title: 'Math Basics',
-      description: 'Introduction to basic math concepts',
-      grade_band: '3-5',
-      levels: [
-        {
-          level: 1,
-          groups: [
-            {
-              group: 1,
-              items: [
-                {
-                  stem: 'What is 2 + 2?',
-                  options: ['3', '4', '5', '6'],
-                  correct_answer: '4',
-                  explanation: '2 + 2 equals 4',
-                },
-                {
-                  stem: 'What is 5 - 3?',
-                  options: ['1', '2', '3', '4'],
-                  correct_answer: '2',
-                  explanation: '5 - 3 equals 2',
-                },
-              ],
-            },
-          ],
-        },
-      ],
+      json: {
+        title: 'Math Basics',
+        description: 'Introduction to basic math concepts',
+        grade_band: '3-5',
+        levels: [
+          {
+            level: 1,
+            groups: [
+              {
+                group: 1,
+                items: [
+                  {
+                    stem: 'What is 2 + 2?',
+                    options: ['3', '4', '5', '6'],
+                    correct_answer: '4',
+                    explanation: '2 + 2 equals 4',
+                  },
+                  {
+                    stem: 'What is 5 - 3?',
+                    options: ['1', '2', '3', '4'],
+                    correct_answer: '2',
+                    explanation: '5 - 3 equals 2',
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      },
     },
     {
       id: 'science-basics-001',
-      title: 'Science Basics',
-      description: 'Introduction to basic science concepts',
-      grade_band: '3-5',
-      levels: [
-        {
-          level: 1,
-          groups: [
-            {
-              group: 1,
-              items: [
-                {
-                  stem: 'What is the process by which plants make food?',
-                  options: ['Respiration', 'Photosynthesis', 'Digestion', 'Circulation'],
-                  correct_answer: 'Photosynthesis',
-                  explanation: 'Plants use photosynthesis to convert sunlight into food',
-                },
-              ],
-            },
-          ],
-        },
-      ],
+      json: {
+        title: 'Science Basics',
+        description: 'Introduction to basic science concepts',
+        grade_band: '3-5',
+        levels: [
+          {
+            level: 1,
+            groups: [
+              {
+                group: 1,
+                items: [
+                  {
+                    stem: 'What is the process by which plants make food?',
+                    options: ['Respiration', 'Photosynthesis', 'Digestion', 'Circulation'],
+                    correct_answer: 'Photosynthesis',
+                    explanation: 'Plants use photosynthesis to convert sunlight into food',
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      },
     },
   ];
 
   for (const course of courses) {
-    // Store course JSON in storage (if using JSON storage pattern)
-    // For now, store in course_metadata table
+    // Create course_metadata entry
     const { error: courseError } = await supabase
       .from('course_metadata')
       .upsert({
         id: course.id,
-        title: course.title,
-        description: course.description,
-        grade_band: course.grade_band,
         organization_id: DEFAULT_ORG_ID,
-        created_at: new Date().toISOString(),
+        visibility: 'org',
+        tag_ids: [],
+        content_version: 1,
+        etag: 1,
       }, { onConflict: 'id' });
 
     if (courseError) {
-      console.error(`❌ Error creating course ${course.id}:`, courseError.message);
+      console.error(`❌ Error creating course metadata ${course.id}:`, courseError.message);
     } else {
-      console.log(`✅ Created course: ${course.title}`);
+      // Upload course JSON to storage (courses bucket)
+      const { error: storageError } = await supabase.storage
+        .from('courses')
+        .upload(`${course.id}.json`, JSON.stringify(course.json), {
+          contentType: 'application/json',
+          upsert: true,
+        });
+
+      if (storageError) {
+        console.error(`⚠️  Could not upload course JSON for ${course.id}:`, storageError.message);
+        console.log(`✅ Created course metadata: ${course.json.title} (${course.id})`);
+      } else {
+        console.log(`✅ Created course: ${course.json.title} (${course.id})`);
+      }
     }
   }
   console.log('');
@@ -195,8 +211,7 @@ async function seedDatabase() {
       password: 'DemoPass123!',
       email_confirm: true,
       user_metadata: {
-        name: user.name,
-        organization_id: DEFAULT_ORG_ID,
+        full_name: user.name,
       },
       app_metadata: {
         organization_id: DEFAULT_ORG_ID,
@@ -224,24 +239,37 @@ async function seedDatabase() {
 
     userIds[user.email] = userId;
 
-    // Create profile
+    // Create profile (no organization_id column)
     const { error: profileError } = await supabase
       .from('profiles')
       .upsert({
         id: userId,
+        full_name: user.name,
         role: user.role,
-        organization_id: DEFAULT_ORG_ID,
       }, { onConflict: 'id' });
 
     if (profileError) {
       console.error(`❌ Error creating profile for ${user.email}:`, profileError.message);
     } else {
-      console.log(`✅ Created ${user.role}: ${user.name} (${user.email})`);
+      // Add to organization_users (this links user to org)
+      const { error: orgUserError } = await supabase
+        .from('organization_users')
+        .upsert({
+          org_id: DEFAULT_ORG_ID,
+          user_id: userId,
+          org_role: user.role === 'student' ? 'student' : user.role === 'teacher' ? 'teacher' : 'parent',
+        }, { onConflict: 'org_id,user_id' });
+
+      if (orgUserError) {
+        console.error(`❌ Error adding ${user.email} to organization:`, orgUserError.message);
+      } else {
+        console.log(`✅ Created ${user.role}: ${user.name} (${user.email})`);
+      }
     }
   }
   console.log('');
 
-  // 4. Create student metrics
+  // 4. Create student metrics (no organization_id column)
   console.log('📊 Creating student metrics...');
   for (const student of students) {
     const studentId = userIds[student.email];
@@ -253,7 +281,6 @@ async function seedDatabase() {
         student_id: studentId,
         xp_total: Math.floor(Math.random() * 1000),
         streak_days: Math.floor(Math.random() * 30),
-        organization_id: DEFAULT_ORG_ID,
       }, { onConflict: 'student_id' });
 
     if (metricsError) {
@@ -264,19 +291,18 @@ async function seedDatabase() {
   }
   console.log('');
 
-  // 5. Create assignments
+  // 5. Create assignments (using org_id, not organization_id)
   console.log('📋 Creating assignments...');
   const teacherId = userIds[teachers[0].email];
   if (teacherId) {
     const { data: assignmentData, error: assignmentError } = await supabase
       .from('assignments')
       .insert({
-        title: 'Math Homework Week 1',
-        description: 'Complete exercises 1-10',
+        org_id: DEFAULT_ORG_ID,
         course_id: courses[0].id,
-        teacher_id: teacherId,
+        title: 'Math Homework Week 1',
         due_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 days from now
-        organization_id: DEFAULT_ORG_ID,
+        created_by: teacherId,
       })
       .select('id')
       .single();
@@ -286,51 +312,48 @@ async function seedDatabase() {
     } else {
       console.log('✅ Created assignment: Math Homework Week 1');
 
-      // Link assignments to students
+      // Link assignments to students via assignment_assignees
       for (const student of students) {
         const studentId = userIds[student.email];
         if (!studentId) continue;
 
-        const { error: linkError } = await supabase
-          .from('student_assignments')
+        const { error: assigneeError } = await supabase
+          .from('assignment_assignees')
           .insert({
-            student_id: studentId,
             assignment_id: assignmentData.id,
-            status: 'pending',
-            organization_id: DEFAULT_ORG_ID,
+            assignee_type: 'student',
+            user_id: studentId,
           });
 
-        if (linkError) {
-          console.error(`❌ Error linking assignment to ${student.email}:`, linkError.message);
+        if (assigneeError) {
+          console.error(`❌ Error linking assignment to ${student.email}:`, assigneeError.message);
         } else {
-          console.log(`✅ Linked assignment to ${student.name}`);
+          // Also create student_assignments entry
+          const { error: studentAssignError } = await supabase
+            .from('student_assignments')
+            .insert({
+              student_id: studentId,
+              course_id: courses[0].id,
+              title: 'Math Homework Week 1',
+              due_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+              status: 'not_started',
+              progress_pct: 0,
+              assignment_id: assignmentData.id,
+            });
+
+          if (studentAssignError) {
+            console.error(`⚠️  Could not create student_assignment for ${student.email}:`, studentAssignError.message);
+          } else {
+            console.log(`✅ Linked assignment to ${student.name}`);
+          }
         }
       }
     }
   }
   console.log('');
 
-  // 6. Link parents to students
-  console.log('👨‍👩‍👧 Linking parents to students...');
-  for (let i = 0; i < parents.length && i < students.length; i++) {
-    const parentId = userIds[parents[i].email];
-    const studentId = userIds[students[i].email];
-    if (!parentId || !studentId) continue;
-
-    const { error: linkError } = await supabase
-      .from('parent_student_links')
-      .upsert({
-        parent_id: parentId,
-        student_id: studentId,
-        organization_id: DEFAULT_ORG_ID,
-      }, { onConflict: 'parent_id,student_id' });
-
-    if (linkError) {
-      console.error(`❌ Error linking parent to student:`, linkError.message);
-    } else {
-      console.log(`✅ Linked ${parents[i].name} to ${students[i].name}`);
-    }
-  }
+  // 6. Parents are already linked to students via organization_users (same org)
+  console.log('👨‍👩‍👧 Parents and students are linked via organization (same org_id)');
   console.log('');
 
   console.log('🎉 Database seeding complete!');
@@ -340,10 +363,10 @@ async function seedDatabase() {
   console.log(`   - Teachers: ${teachers.length}`);
   console.log(`   - Parents: ${parents.length}`);
   console.log('\n🔑 Default password for all users: DemoPass123!');
+  console.log(`\n🌐 Organization ID: ${DEFAULT_ORG_ID}`);
 }
 
 seedDatabase().catch((error) => {
   console.error('❌ Seeding failed:', error);
   process.exit(1);
 });
-
