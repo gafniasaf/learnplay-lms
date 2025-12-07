@@ -12,10 +12,12 @@
 import { describe, it, expect, beforeAll } from 'vitest';
 import { callEdgeFunction } from '@/lib/api/common';
 
-describe('CourseId Storage Integration', () => {
+const hasEnv = !!process.env.VITE_SUPABASE_URL && !!process.env.VITE_SUPABASE_ANON_KEY;
+const maybe = hasEnv ? describe : describe.skip;
+
+maybe('CourseId Storage Integration', () => {
   beforeAll(() => {
-    // Skip if not in integration test environment
-    if (!process.env.VITE_SUPABASE_URL || !process.env.VITE_SUPABASE_ANON_KEY) {
+    if (!hasEnv) {
       console.warn('⚠️  Skipping courseId storage tests - Supabase env vars not set');
     }
   });
