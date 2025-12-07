@@ -341,6 +341,55 @@ describe('useGameStateStore', () => {
       // Level guard should prevent initialization
     });
 
+    it('logs error when all items fail level guard during initialization', () => {
+      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
+      
+      // Create a course with items that have groupIds outside the allowed range
+      const courseWithInvalidGroups: Course = {
+        id: 'test-course',
+        title: 'Test Course',
+        levels: [
+          {
+            id: 1,
+            name: 'Level 1',
+            groups: [{ id: 1, name: 'Group 1' }],
+          },
+        ],
+        groups: [{ id: 1, name: 'Group 1' }],
+        items: [
+          {
+            id: 1,
+            groupId: 99, // Outside allowed range (only group 1 is allowed)
+            text: 'Question 1',
+            explain: 'Explanation',
+            options: ['A', 'B', 'C', 'D'],
+            correctIndex: 0,
+          },
+          {
+            id: 2,
+            groupId: 99, // Outside allowed range
+            text: 'Question 2',
+            explain: 'Explanation',
+            options: ['A', 'B', 'C', 'D'],
+            correctIndex: 0,
+          },
+        ],
+      };
+
+      const { initialize } = useGameStateStore.getState();
+      initialize(courseWithInvalidGroups, 1);
+
+      // Should log error about all items failing level guard
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        expect.stringContaining('All')
+      );
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        expect.stringContaining('items failed level guard')
+      );
+
+      consoleErrorSpy.mockRestore();
+    });
+
     it('handles course with no levels array', () => {
       const noLevelsCourse: Course = {
         id: 'no-levels',

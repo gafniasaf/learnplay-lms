@@ -20,11 +20,27 @@ export async function getDashboard(role: DashboardRole): Promise<Dashboard> {
 
   // Use student-dashboard edge function for student role
   if (role === "student") {
+    // Get studentId from authenticated user
+    const { getAccessToken, supabase: supabaseClient } = await import("../supabase");
+    const token = await getAccessToken();
+    
+    if (!token) {
+      throw new Error("User not authenticated");
+    }
+    
+    // Get user ID from Supabase auth (more reliable than JWT parsing)
+    const { data: { user } } = await supabaseClient.auth.getUser(token);
+    if (!user) {
+      throw new Error("User not found");
+    }
+    
+    const studentId = user.id;
+    
     const response = await callEdgeFunctionGet<{
       assignments: any[];
       performance: { recentScore: number; streakDays: number; xp: number };
       recommendedCourses: any[];
-    }>("student-dashboard");
+    }>("student-dashboard", { studentId });
 
     console.info("[getDashboard][student-dashboard][ok]", response);
 

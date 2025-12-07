@@ -45,6 +45,31 @@ describe('calculatePasswordStrength', () => {
       expect(medium.score).toBeLessThan(long.score);
     });
 
+    it('scores 10 points for 6-7 character passwords', () => {
+      const sixChars = calculatePasswordStrength('abc123');
+      const sevenChars = calculatePasswordStrength('abc1234');
+      
+      // Should have base score of 10 for length
+      expect(sixChars.score).toBeGreaterThanOrEqual(10);
+      expect(sevenChars.score).toBeGreaterThanOrEqual(10);
+      expect(sixChars.feedback.some(f => f.includes('8 characters'))).toBe(true);
+    });
+
+    it('scores 10 points for exactly 7 characters', () => {
+      const result = calculatePasswordStrength('abc1234');
+      // Length scoring: 7 chars gets 10 points
+      expect(result.score).toBeGreaterThanOrEqual(10);
+    });
+
+    it('scores 25 points for 8-11 character passwords', () => {
+      const eightChars = calculatePasswordStrength('abc12345');
+      const elevenChars = calculatePasswordStrength('abc12345678');
+      
+      // Should have base score of 25 for length (8-11 chars)
+      expect(eightChars.score).toBeGreaterThanOrEqual(25);
+      expect(elevenChars.score).toBeGreaterThanOrEqual(25);
+    });
+
     it('scores higher for more character variety', () => {
       const lowercase = calculatePasswordStrength('abcdefghijkl');
       const mixed = calculatePasswordStrength('abcABC123!@#');

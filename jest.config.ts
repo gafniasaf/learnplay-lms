@@ -53,7 +53,11 @@ const config: Config = {
     'src/lib/computed/**/*.ts',
     'src/lib/validation/**/*.ts',
     'src/lib/utils/**/*.ts',
+    'src/lib/constants.ts',
+    'src/lib/enums.ts',
+    'src/lib/pipeline/**/*.ts',
     'src/store/**/*.ts',
+    '!src/lib/env.ts', // Exclude env.ts - uses import.meta.env which Jest doesn't support
     '!src/**/*.d.ts',
     '!src/**/*.test.ts',
     '!src/**/*.spec.ts',
@@ -62,10 +66,10 @@ const config: Config = {
   coverageReporters: ['text', 'lcov', 'html'],
   coverageThreshold: {
     global: {
-      branches: 88,
-      functions: 90,
-      lines: 90,
-      statements: 90,
+      branches: 94,
+      functions: 94,
+      lines: 94,
+      statements: 94,
     },
   },
 };

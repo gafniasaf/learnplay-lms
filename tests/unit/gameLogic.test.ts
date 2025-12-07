@@ -157,6 +157,44 @@ describe('resolveOnWrong', () => {
     expect(result.itemToEnqueue.clusterId).toBe('cluster-2');
     expect(result.itemToEnqueue.variant).toBe('2');
   });
+
+  it('should default to variant 1 when variant is not a valid number', () => {
+    const invalidVariantItem: CourseItem = {
+      ...baseItem,
+      variant: 'invalid', // Not a valid number
+    };
+    const catalogWithInvalidVariant: Course = {
+      ...mockCatalog,
+      items: [invalidVariantItem, variant2Item],
+    };
+    const pool = [invalidVariantItem];
+    const variantMap = new Map<string, number>();
+
+    const result = resolveOnWrong(invalidVariantItem, pool, catalogWithInvalidVariant, variantMap);
+
+    // Should default to variant 1 and find variant 2
+    expect(result.itemToEnqueue.variant).toBe('2');
+    expect(result.nextVariantNum).toBe(2);
+  });
+
+  it('should handle variant as empty string by defaulting to 1', () => {
+    const emptyVariantItem: CourseItem = {
+      ...baseItem,
+      variant: '', // Empty string
+    };
+    const catalogWithEmptyVariant: Course = {
+      ...mockCatalog,
+      items: [emptyVariantItem, variant2Item],
+    };
+    const pool = [emptyVariantItem];
+    const variantMap = new Map<string, number>();
+
+    const result = resolveOnWrong(emptyVariantItem, pool, catalogWithEmptyVariant, variantMap);
+
+    // Should default to variant 1 and find variant 2
+    expect(result.itemToEnqueue.variant).toBe('2');
+    expect(result.nextVariantNum).toBe(2);
+  });
 });
 
 

@@ -96,6 +96,72 @@ describe('assignmentSchema', () => {
     const result = assignmentSchema.parse(minimal);
     expect(result.status).toBe('draft');
   });
+
+  describe('due_date validation', () => {
+    it('accepts null due_date', () => {
+      const assignment = {
+        title: 'Test',
+        subject: 'Math',
+        learner_id: '550e8400-e29b-41d4-a716-446655440000',
+        due_date: null,
+      };
+      const result = assignmentSchema.safeParse(assignment);
+      expect(result.success).toBe(true);
+    });
+
+    it('accepts undefined due_date', () => {
+      const assignment = {
+        title: 'Test',
+        subject: 'Math',
+        learner_id: '550e8400-e29b-41d4-a716-446655440000',
+      };
+      const result = assignmentSchema.safeParse(assignment);
+      expect(result.success).toBe(true);
+    });
+
+    it('accepts due_date for today', () => {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const assignment = {
+        title: 'Test',
+        subject: 'Math',
+        learner_id: '550e8400-e29b-41d4-a716-446655440000',
+        due_date: today.toISOString(),
+      };
+      const result = assignmentSchema.safeParse(assignment);
+      expect(result.success).toBe(true);
+    });
+
+    it('accepts due_date in the future', () => {
+      const future = new Date();
+      future.setDate(future.getDate() + 7);
+      const assignment = {
+        title: 'Test',
+        subject: 'Math',
+        learner_id: '550e8400-e29b-41d4-a716-446655440000',
+        due_date: future.toISOString(),
+      };
+      const result = assignmentSchema.safeParse(assignment);
+      expect(result.success).toBe(true);
+    });
+
+    it('rejects due_date in the past', () => {
+      const past = new Date();
+      past.setDate(past.getDate() - 1);
+      past.setHours(23, 59, 59, 999);
+      const assignment = {
+        title: 'Test',
+        subject: 'Math',
+        learner_id: '550e8400-e29b-41d4-a716-446655440000',
+        due_date: past.toISOString(),
+      };
+      const result = assignmentSchema.safeParse(assignment);
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error.errors[0].message).toContain('Due date must be today or in the future');
+      }
+    });
+  });
 });
 
 describe('courseBlueprintSchema', () => {
