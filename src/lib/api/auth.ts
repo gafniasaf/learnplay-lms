@@ -21,7 +21,8 @@ export async function getDashboard(role: DashboardRole): Promise<Dashboard> {
   // Use student-dashboard edge function for student role
   if (role === "student") {
     // Get studentId from authenticated user
-    const { getAccessToken, supabase: supabaseClient } = await import("../supabase");
+    const { getAccessToken } = await import("../supabase");
+    const { supabase: supabaseClient } = await import("@/integrations/supabase/client");
     const token = await getAccessToken();
     
     if (!token) {
