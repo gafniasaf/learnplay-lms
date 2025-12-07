@@ -22,8 +22,8 @@ test.describe('Live Course Navigation: Full Flow', () => {
     await page.goto('/admin/ai-pipeline');
     await page.waitForLoadState('networkidle');
     
-    // Step 2: Fill course creation form
-    const subjectInput = page.locator('input[placeholder*="subject"], input#subject').first();
+    // Step 2: Fill course creation form (AIPipelineV2 uses input#subject)
+    const subjectInput = page.locator('input#subject');
     await subjectInput.waitFor({ timeout: 15000 });
     await subjectInput.fill(testSubject);
     
@@ -33,8 +33,9 @@ test.describe('Live Course Navigation: Full Flow', () => {
       await itemsInput.fill('4'); // Very small for speed
     }
     
-    // Step 3: Create course
-    const createButton = page.locator('button:has-text("Generate"), button:has-text("Create")').first();
+    // Step 3: Create course (AIPipelineV2 uses "Generate Course" button)
+    const createButton = page.locator('button:has-text("Generate"), button:has-text("Generate Course"), button:has-text("Create Course")').first();
+    await createButton.waitFor({ timeout: 5000 });
     await createButton.click();
     
     // Step 4: Wait for job to be created
@@ -142,12 +143,13 @@ test.describe('Live Course Navigation: Full Flow', () => {
     await page.goto('/admin/ai-pipeline');
     await page.waitForLoadState('networkidle');
     
-    // Create a course
-    const subjectInput = page.locator('input[placeholder*="subject"], input#subject').first();
+    // Create a course (AIPipelineV2 uses input#subject)
+    const subjectInput = page.locator('input#subject');
     await subjectInput.waitFor({ timeout: 15000 });
     await subjectInput.fill(testSubject);
     
-    const createButton = page.locator('button:has-text("Generate"), button:has-text("Create")').first();
+    const createButton = page.locator('button:has-text("Generate"), button:has-text("Generate Course")').first();
+    await createButton.waitFor({ timeout: 5000 });
     await createButton.click();
     
     // Wait for job creation

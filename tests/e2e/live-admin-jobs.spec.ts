@@ -24,33 +24,14 @@ test.describe('Live Admin: Job Creation', () => {
   test.use({ storageState: 'playwright/.auth/admin.json' });
 
   test('admin can create a job via Quick Start panel', async ({ page }) => {
-    // Navigate to admin pipeline page (where QuickStartPanel is located)
-    await page.goto('/admin/pipeline');
+    // Navigate to admin AI pipeline page (AIPipelineV2)
+    await page.goto('/admin/ai-pipeline');
     
     // Wait for page to load
     await page.waitForLoadState('networkidle');
     
-    // QuickStartPanel should be visible on the pipeline page
-    // Look for the subject input field (required field)
-    // Try multiple selectors
-    let subjectInput = page.locator('input#subject').first();
-    let found = await subjectInput.isVisible({ timeout: 2000 }).catch(() => false);
-    
-    if (!found) {
-      subjectInput = page.locator('input[placeholder*="Photosynthesis"]').first();
-      found = await subjectInput.isVisible({ timeout: 2000 }).catch(() => false);
-    }
-    
-    if (!found) {
-      subjectInput = page.locator('input[placeholder*="subject"]').first();
-      found = await subjectInput.isVisible({ timeout: 2000 }).catch(() => false);
-    }
-    
-    if (!found) {
-      // Last resort: any text input
-      subjectInput = page.locator('input[type="text"]').first();
-    }
-    
+    // Look for the subject input field (has id="subject" in AIPipelineV2)
+    const subjectInput = page.locator('input#subject');
     await subjectInput.waitFor({ timeout: 15000 });
     
     // Fill in subject (required field)
@@ -62,8 +43,8 @@ test.describe('Live Admin: Job Creation', () => {
       await gradeSelect.selectOption({ index: 1 }); // Select second option (3-5)
     }
     
-    // Click create button
-    const createButton = page.locator('[data-cta-id="quick-start-create"]');
+    // Click create/generate button (AIPipelineV2 uses "Generate Course" button)
+    const createButton = page.locator('button:has-text("Generate"), button:has-text("Create Course"), button:has-text("Create")').first();
     await createButton.waitFor({ timeout: 5000 });
     await createButton.click();
     
