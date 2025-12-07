@@ -1,6 +1,7 @@
 # 🧠 SYSTEM CONTEXT (PRIORITY ZERO)
 
 **CRITICAL:** Before writing ANY code, YOU MUST READ:
+
 1. `docs/AI_CONTEXT.md` (this file) - Architectural invariants
 2. `docs/AGENT_BUILD_PROTOCOL.md` - **MANDATORY** build sequence
 3. `PLAN.md` - Complete system specification
@@ -67,8 +68,34 @@ We distinguish between two types of work. Use the correct pipeline:
 3.  **The Repair Loop:**
 
     * Run `npm run verify`.
-    * If **FAIL**: Read the error log. Fix the specific components causing the error (rename files, map props). **Repeat.**
-    * If **PASS**: Stop. The refactor is complete. Ask for human review.
+    * If **FAIL**: Read the error log. Fix the specific components causing the error (rename files, map props).
+    * **MAX ATTEMPTS:** 3. If the same error persists after 3 attempts, **HALT** and ask for human review.
+    * If **PASS**: Stop. The refactor is complete.
+
+## 🛑 LOOP TERMINATION POLICY
+
+**All repair/retry loops MUST have explicit exit conditions.**
+
+```typescript
+// ❌ FORBIDDEN - Infinite retry
+while (error) {
+  fix();
+  retry();
+}
+
+// ✅ REQUIRED - Bounded retry with escalation
+const MAX_ATTEMPTS = 3;
+let attempts = 0;
+while (error && attempts < MAX_ATTEMPTS) {
+  fix();
+  retry();
+  attempts++;
+}
+if (error) {
+  console.error("❌ HALTING: Same error after 3 attempts. Human intervention required.");
+  process.exit(1);
+}
+```
 
 ## 🚫 CONFIGURATION ANTI-PATTERNS (NEVER DO THIS)
 
@@ -186,20 +213,16 @@ $env:SUPABASE_ACCESS_TOKEN = "sbp_..."; .\scripts\ci\deploy-functions.ps1 -EnvPa
 npx tsx scripts/verify-live-deployment.ts  # ALWAYS verify after deploy
 ```
 
-## 🆘 DEPLOYMENT EMERGENCY PROTOCOL
+## 🔐 CREDENTIAL HYGIENE (STRICT)
 
-**If `supabase functions deploy` fails with `401 Unauthorized`:**
+**If `supabase functions deploy` fails with `401 Unauthorized` or ANY credential is missing:**
 
-1.  **DO NOT GIVE UP.** The token might be in the terminal history.
-2.  **SEARCH HISTORY:** Run this command to find valid `sbp_` tokens used by previous agents:
-    ```powershell
-    findstr /s "sbp_" ".cursor/projects/*/terminals/*"
-    ```
-3.  **RECOVER & RETRY:** If you find a token (e.g., `sbp_...`), set it and try again:
-    ```powershell
-    $env:SUPABASE_ACCESS_TOKEN = "sbp_FOUND_TOKEN"
-    npx supabase functions deploy ...
-    ```
+1.  **HALT.** Do NOT search for credentials in logs, history, or files.
+2.  **REPORT.** Tell the user exactly which credential is missing.
+3.  **WAIT.** Do not proceed until user provides the credential via secure method.
+
+**Anti-Pattern:** `findstr "sbp_"` or any grep for secrets. This is a security violation.
+**Anti-Pattern:** Committing `.env` files or secrets to markdown/code.
 
 ## 📦 Lovable MVP Handoff
 
@@ -236,8 +259,65 @@ Run this sequence before calling a build "done." The exact prompts/scripts live 
 2. `npm run typecheck`
 3. `npm run test`
 4. `npm run mock:validate`
-5. `npm run test:chat`
-6. `npm run test:chat:quality`
-7. `npm run verify:live`
+5. `npm run verify:cta` – 100% CTA coverage check
+6. `npm run test:chat`
+7. `npm run test:chat:quality`
+8. `npm run verify:live`
 
-If any command fails, fix the code. Never skip or comment out tests to “make it pass.”
+If any command fails, fix the code. Never skip or comment out tests to "make it pass."
+
+## 🎯 100% CTA Tracking (AI-Managed Systems)
+
+**This system is 100% AI-managed. Every interactive element must be tracked.**
+
+### The Rule
+Every `<Button>`, `<button>`, `<Link>`, `<a>`, or `role="button"` MUST have a `data-cta-id` attribute.
+
+```typescript
+// ❌ FORBIDDEN
+<Button onClick={save}>Save</Button>
+
+// ✅ REQUIRED
+<Button data-cta-id="cta-editor-save" data-action="action" onClick={save}>Save</Button>
+```
+
+### Verification Commands
+```bash
+npm run verify:cta              # Report mode (shows untracked)
+npm run verify:cta:strict       # Strict mode (fails if not 100%)
+```
+
+### Why 100%?
+- AI agents need guardrails to prevent silent UI breakage
+- Complete audit trail for every interactive element
+- Automated regression detection catches AI mistakes
+- No "invisible" buttons that slip through testing
+
+See `.cursorrules` section "100% CTA TRACKING MANDATE" for full details.
+
+---
+
+## 📋 Deployment Configuration
+
+**Project Reference:** `eidcegehaswbtzrwzvfa`  
+**Supabase URL:** `https://eidcegehaswbtzrwzvfa.supabase.co`  
+**Organization ID:** `4d7b0a5c-3cf1-49e5-9ad7-bf6c1f8a2f58`
+
+**Deployment Status:** ✅ Complete
+- 70+ Edge Functions deployed and verified
+- 30/30 tested functions working (100% success rate)
+- All secrets configured (AGENT_TOKEN, OPENAI_API_KEY, ANTHROPIC_API_KEY, MOCKUP_BUCKET, RELEASE_BUCKET, RELEASE_OBJECT)
+- Storage buckets created (mockups, releases)
+
+**Known Configuration:**
+- Test users need to be created manually in Supabase Dashboard > Authentication
+- Release file needs to be uploaded to `releases` bucket for `download-release` function
+- See `docs/DEPLOYMENT_LOG.md` for complete deployment record
+
+**E2E Testing:**
+- Use `scripts/create-test-users.ps1` to create test users
+- Configure `.env.e2e` with test credentials
+- Run `scripts/run-e2e-tests.ps1` to execute E2E tests
+
+**Smoke Testing:**
+- See `docs/SMOKE_TEST_CHECKLIST.md` for manual verification steps
