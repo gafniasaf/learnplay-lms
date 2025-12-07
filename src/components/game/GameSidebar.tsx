@@ -1,4 +1,4 @@
-import { Home, Volume2, VolumeX, Grid3x3, BookOpen } from "lucide-react";
+import { Home, Volume2, VolumeX, Grid3x3 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {

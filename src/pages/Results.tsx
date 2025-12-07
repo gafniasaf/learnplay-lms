@@ -3,7 +3,7 @@ import { Trophy, Home, RotateCcw, Target, TrendingUp, Clock, ArrowRight } from "
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { getCourse } from "@/lib/api";
+import { useMCP } from "@/hooks/useMCP";
 import { getNextLevelId } from "@/lib/levels";
 import type { Course } from "@/lib/types/course";
 
@@ -21,6 +21,7 @@ interface ResultsState {
 const Results = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const mcp = useMCP();
   const state = location.state as ResultsState | null;
   const [course, setCourse] = useState<Course | null>(null);
 
@@ -31,7 +32,7 @@ const Results = () => {
     
     const loadCourse = async () => {
       try {
-        const data = await getCourse(state.courseId);
+        const data = await mcp.getCourse(state.courseId) as Course;
         setCourse(data);
       } catch (err) {
         console.error("[Results] Failed to load course:", err);

@@ -1,5 +1,5 @@
 
-import React, { useState, useCallback, useEffect } from "react";
+import React, { useState, useCallback } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import { useMCP } from "@/hooks/useMCP";
@@ -7,7 +7,7 @@ import { useMCP } from "@/hooks/useMCP";
 export default function Settings() {
   const nav = useNavigate();
   const [searchParams] = useSearchParams();
-  const id = searchParams.get("id");
+  const _id = searchParams.get("id");
   const mcp = useMCP();
   
   const [displayName, setDisplayName] = useState("Demo User");
@@ -40,7 +40,7 @@ export default function Settings() {
     } finally {
       setLoading(false);
     }
-  }, [displayName, email, darkMode, soundEffects, animations, emailNotifications, pushNotifications]);
+  }, [mcp, displayName, email, darkMode, soundEffects, animations, emailNotifications, pushNotifications]);
 
   const Toggle = ({ value, onChange }: { value: boolean; onChange: (v: boolean) => void }) => (
     <div 

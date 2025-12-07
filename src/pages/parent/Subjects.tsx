@@ -19,15 +19,13 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useParentSubjects } from "@/hooks/useParentSubjects";
-import { useMockData } from "@/lib/api";
+// useMockData removed - useParentSubjects handles mock mode internally
 import type {
   ParentSubjectRecord,
   ParentSubjectsResponse,
   ParentSubjectsSummary,
 } from "@/lib/api/parentSubjects";
-import { useParentDashboard } from "@/hooks/useParentDashboard";
 import { normalizeSubject, mapParentSubject, type MappedParentSubject } from "@/lib/parent/subjectsMappers";
-import { Skeleton } from "@/components/ui/skeleton";
 
 interface DisplaySubject {
   id: string;

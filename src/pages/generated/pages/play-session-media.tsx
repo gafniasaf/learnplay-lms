@@ -7,15 +7,15 @@ import { useMCP } from "@/hooks/useMCP";
 export default function PlaySessionMedia() {
   const nav = useNavigate();
   const [searchParams] = useSearchParams();
-  const id = searchParams.get("id");
-  const mcp = useMCP();
-  const [progress, setProgress] = React.useState("");
-  const [score, setScore] = React.useState("");
-  const [mediaPanel, setMediaPanel] = React.useState("");
-  const [questionText, setQuestionText] = React.useState("");
-  const [hint, setHint] = React.useState("");
-  const [feedback, setFeedback] = React.useState("");
-  const [feedbackText, setFeedbackText] = React.useState("");
+  const _id = searchParams.get("id");
+  const _mcp = useMCP();
+  const [progress, _setProgress] = React.useState("");
+  const [score, _setScore] = React.useState("");
+  const [mediaPanel, _setMediaPanel] = React.useState("");
+  const [questionText, _setQuestionText] = React.useState("");
+  const [hint, _setHint] = React.useState("");
+  const [feedback, _setFeedback] = React.useState("");
+  const [feedbackText, _setFeedbackText] = React.useState("");
 
   return (
     <div className="p-6">

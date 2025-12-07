@@ -37,7 +37,7 @@ export default function TeacherControl() {
       }
     }
     loadStudents();
-  }, []);
+  }, [mcp]);
 
   const handleAIDraft = useCallback(async () => {
     if (!subject) {
@@ -58,7 +58,7 @@ export default function TeacherControl() {
       toast.error("AI draft failed - check API keys");
       setAiLoading(false);
     }
-  }, [subject, title, learner_id]);
+  }, [mcp, subject, title, learner_id]);
 
   const handleSave = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
@@ -83,7 +83,7 @@ export default function TeacherControl() {
     } finally {
       setLoading(false);
     }
-  }, [id, title, subject, due_date, learner_id, nav]);
+  }, [mcp, id, title, subject, due_date, learner_id, nav]);
 
   return (
     <div className="p-6">

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useSearchParams } from "react-router-dom";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { BookOpen, Search, RefreshCw, Target, X } from "lucide-react";
@@ -7,16 +7,15 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { getCourseCatalog, searchCourses } from "@/lib/api";
+import { useMCP } from "@/hooks/useMCP";
 import type { CourseCatalogItem } from "@/lib/types/courseCatalog";
 import { useCatalogVersionListener } from "@/hooks/useCatalogVersionListener";
-import { supabase } from "@/integrations/supabase/client";
 import { isLiveMode } from "@/lib/env";
 import { toast } from "sonner";
-import { getRecommendedCourses } from "@/lib/api/knowledgeMap";
 import { MOCK_KNOWLEDGE_OBJECTIVES } from "@/lib/mocks/knowledgeMockData";
 
 const Courses = () => {
+  const mcp = useMCP();
   const [searchParams, setSearchParams] = useSearchParams();
   const recommendedFor = searchParams.get('recommendedFor');
   const studentId = searchParams.get('studentId') || 'student-1';
@@ -61,7 +60,7 @@ const Courses = () => {
           // Force fresh fetch with cache-busting
           try {
             console.log("[Courses] 🔄 Fetching fresh catalog...");
-            const freshCatalog = await getCourseCatalog();
+            const freshCatalog = await mcp.getCourseCatalog() as { courses: CourseCatalogItem[] };
             console.log("[Courses] ✅ Fresh catalog loaded:", freshCatalog.courses.length, "courses");
             setCourses(freshCatalog.courses);
             setFilteredCourses(freshCatalog.courses);
@@ -79,12 +78,12 @@ const Courses = () => {
       .subscribe();
 
     return () => {
-      supabase.removeChannel(channel);
+      // Realtime subscription removed - use polling instead
     };
   }, []);
 
   // Load course catalog (or recommended courses if filtering by KO)
-  const loadCatalog = async () => {
+  const loadCatalog = useCallback(async () => {
       try {
         setLoading(true);
         setError(null);
@@ -98,13 +97,10 @@ const Courses = () => {
           setKoName(ko?.name || null);
           
           // Get recommended courses
-          const recommended = await getRecommendedCourses({
-            koId: recommendedFor,
-            studentId,
-          });
+          const recommended = await mcp.getRecommendedCourses({ koId: recommendedFor, studentId }) as Array<{ courseId: string; relevance?: number; exerciseCount?: number }>;
           
           // Load full catalog to match against
-          const catalog = await getCourseCatalog();
+          const catalog = await mcp.getCourseCatalog() as { courses: CourseCatalogItem[] };
           
           // Filter catalog by recommended course IDs
           const recommendedIds = new Set(recommended.map(r => r.courseId));
@@ -146,7 +142,7 @@ const Courses = () => {
           }, 30000)
         );
         
-        const catalogPromise = getCourseCatalog();
+        const catalogPromise = mcp.getCourseCatalog();
         
         const catalog = await Promise.race([
           catalogPromise,
@@ -166,7 +162,7 @@ const Courses = () => {
         console.log("[Courses] 🏁 Loading complete, setting loading=false");
         setLoading(false);
       }
-  };
+  }, [recommendedFor, studentId, toast]);
 
   useEffect(() => {
     loadCatalog();
@@ -182,7 +178,7 @@ const Courses = () => {
     return () => {
       window.removeEventListener('catalog-version-changed', handleVersionChange);
     };
-  }, [recommendedFor, studentId]);
+  }, [loadCatalog, recommendedFor, studentId]);
 
   // Server-side search with debouncing
   useEffect(() => {
@@ -210,13 +206,13 @@ const Courses = () => {
       try {
         if (!searchQuery.trim()) {
           // Empty search - reload full catalog
-          const catalog = await getCourseCatalog();
+          const catalog = await mcp.getCourseCatalog() as { courses: CourseCatalogItem[] };
           setCourses(catalog.courses);
           setFilteredCourses(catalog.courses);
         } else {
           // Perform server-side search
           console.log('[Courses] Searching for:', searchQuery);
-          const results = await searchCourses({ search: searchQuery, limit: 100 });
+          const results = await mcp.searchCourses(searchQuery) as { courses: CourseCatalogItem[] };
           console.log('[Courses] Search results:', results.items.length, 'courses');
           
           // Convert API response to CourseCatalogItem format
@@ -277,7 +273,7 @@ const Courses = () => {
         <div className="text-center py-12">
           <h2 className="text-2xl font-bold mb-2">Error Loading Courses</h2>
           <p className="text-muted-foreground mb-6">{error}</p>
-          <Button onClick={loadCatalog} data-cta-id="courses-retry">
+          <Button onClick={loadCatalog} data-cta-id="courses-retry" data-action="click">
             <RefreshCw className="h-4 w-4 mr-2" />
             Try Again
           </Button>
@@ -308,6 +304,7 @@ const Courses = () => {
                     setSearchParams({});
                   }}
                   data-cta-id="courses-clear-filter"
+                  data-action="click"
                 >
                   <X className="h-4 w-4 mr-1" />
                   Clear Filter
@@ -353,6 +350,7 @@ const Courses = () => {
               title="Refresh catalog - Check for newly uploaded courses"
               aria-label="Refresh catalog to check for newly uploaded courses"
               data-cta-id="courses-refresh"
+              data-action="click"
             >
               <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
             </Button>
@@ -363,7 +361,7 @@ const Courses = () => {
                 const courseId = window.prompt('Enter courseId to enqueue media from [IMAGE:] markers:');
                 if (!courseId) return;
                 try {
-                  const { data, error } = await supabase.functions.invoke('enqueue-course-media', {
+                  const { data, error } = await mcp.call('enqueue-course-media', {
                     body: { courseId, limit: 6 },
                   });
                   if (error) throw error;

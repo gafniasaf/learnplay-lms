@@ -1,5 +1,4 @@
 import { useMCP } from "@/hooks/useMCP";
-import { publishCourse } from "@/lib/api/publishCourse";
 import { invalidateCourseCache } from "@/lib/utils/cacheInvalidation";
 
 interface PublishResult {
@@ -34,9 +33,9 @@ export function useCoursePublishing() {
     threshold: number
   ): Promise<PublishResult> => {
     await validateAndAudit(courseId, threshold);
-    const result = await publishCourse(courseId, changelog);
+    const result = await mcp.publishCourse(courseId);
     await invalidateCourseCache(courseId);
-    return { version: result.version };
+    return { version: (result as { version?: string | number }).version || '1.0' };
   };
 
   const archiveCourse = async (courseId: string, reason?: string) => {

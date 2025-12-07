@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { listClasses, createClass, addClassMember, removeClassMember, generateClassCode, getClassRoster } from "@/lib/api";
+import { useClassManagement } from "@/hooks/useClassManagement";
+import { useMCP } from "@/hooks/useMCP";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -15,6 +16,8 @@ import { toast } from "sonner";
 
 export default function Classes() {
   const queryClient = useQueryClient();
+  const classMgmt = useClassManagement();
+  const mcp = useMCP();
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [showRosterSheet, setShowRosterSheet] = useState(false);
   const [showCodeDialog, setShowCodeDialog] = useState(false);
@@ -24,56 +27,31 @@ export default function Classes() {
   const [newClassDescription, setNewClassDescription] = useState("");
   const [memberEmail, setMemberEmail] = useState("");
 
-  const { data: classesData, isLoading, refetch: refetchClasses } = useQuery({
-    queryKey: ["classes"],
-    queryFn: listClasses,
-  });
+  const { data: classesData, isLoading, refetch: refetchClasses } = classMgmt.classes;
 
   const { data: joinCodeData, isLoading: codeLoading, refetch: refetchCode } = useQuery({
     queryKey: ["class-code", selectedClassId],
-    queryFn: () => generateClassCode(selectedClassId!, false),
+    queryFn: () => classMgmt.generateCode.mutateAsync({ classId: selectedClassId!, refreshCode: false }),
     enabled: !!selectedClassId && showCodeDialog,
   });
 
-  const createMutation = useMutation({
-    mutationFn: createClass,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["classes"] });
-      setShowCreateDialog(false);
-      setNewClassName("");
-      setNewClassDescription("");
-      toast.success("Class created successfully");
-    },
-    onError: (error) => {
-      toast.error(`Failed to create class: ${error.message}`);
-    },
-  });
+  const createMutation = classMgmt.createClass;
+  
+  const handleCreateSuccess = () => {
+    queryClient.invalidateQueries({ queryKey: ["classes"] });
+    setShowCreateDialog(false);
+    setNewClassName("");
+    setNewClassDescription("");
+    toast.success("Class created successfully");
+  };
+  
+  const handleCreateError = (error: Error) => {
+    toast.error(`Failed to create class: ${error.message}`);
+  };
 
-  const addMemberMutation = useMutation({
-    mutationFn: addClassMember,
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ["classes"] });
-      await queryClient.invalidateQueries({ queryKey: ["class-roster", selectedClassId] });
-      await refetchClasses();
-      setMemberEmail("");
-      toast.success("Student added to class");
-    },
-    onError: (error: any) => {
-      toast.error(error.message);
-    },
-  });
+  const addMemberMutation = classMgmt.addMember;
 
-  const removeMemberMutation = useMutation({
-    mutationFn: removeClassMember,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["classes"] });
-      queryClient.invalidateQueries({ queryKey: ["class-roster", selectedClassId] });
-      toast.success("Student removed from class");
-    },
-    onError: (error: any) => {
-      toast.error(`Failed to remove student: ${error.message}`);
-    },
-  });
+  const removeMemberMutation = classMgmt.removeMember;
 
   const handleCreateClass = (e: React.FormEvent) => {
     e.preventDefault();
@@ -81,6 +59,9 @@ export default function Classes() {
       createMutation.mutate({
         name: newClassName.trim(),
         description: newClassDescription.trim() || undefined,
+      }, {
+        onSuccess: handleCreateSuccess,
+        onError: handleCreateError,
       });
     }
   };
@@ -92,6 +73,7 @@ export default function Classes() {
         classId: selectedClassId,
         studentEmail: memberEmail.trim(),
       });
+      setMemberEmail("");
     }
   };
 
@@ -118,10 +100,10 @@ export default function Classes() {
     if (!selectedClassId) return;
     
     try {
-      await generateClassCode(selectedClassId, true);
+      await classMgmt.generateCode.mutateAsync({ classId: selectedClassId, refreshCode: true });
       await refetchCode();
       toast.success("New code generated");
-    } catch (error) {
+    } catch (_error) {
       toast.error("Failed to refresh code");
     }
   };
@@ -138,7 +120,7 @@ export default function Classes() {
 
   const { data: rosterData, isLoading: rosterLoading, isFetching: rosterFetching } = useQuery({
     queryKey: ["class-roster", selectedClassId, showRosterSheet],
-    queryFn: () => getClassRoster(selectedClassId!),
+    queryFn: () => mcp.getClassRoster(selectedClassId!),
     enabled: !!selectedClassId && showRosterSheet,
   });
 

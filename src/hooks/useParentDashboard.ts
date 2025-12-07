@@ -1,11 +1,7 @@
 import { useMemo } from "react";
 import { useQuery, type UseQueryResult } from "@tanstack/react-query";
-import {
-  getParentDashboard,
-  type ParentDashboardParams,
-  type ParentDashboardResponse,
-} from "@/lib/api/parentDashboard";
-import { useMockData } from "@/lib/api";
+import { useMCP } from "./useMCP";
+import type { ParentDashboardParams, ParentDashboardResponse } from "@/lib/api/parentDashboard";
 
 export interface UseParentDashboardOptions {
   enabled?: boolean;
@@ -15,18 +11,16 @@ export function useParentDashboard(
   params: ParentDashboardParams = {},
   options: UseParentDashboardOptions = {}
 ): UseQueryResult<ParentDashboardResponse> {
-  const mockMode = useMockData();
+  const mcp = useMCP();
   const serializedParams = useMemo(
     () => JSON.stringify(params ?? {}),
     [params]
   );
 
-  const queryEnabled = options.enabled ?? !mockMode;
-
   return useQuery({
     queryKey: ["parent-dashboard", serializedParams],
-    queryFn: () => getParentDashboard(params),
-    enabled: queryEnabled,
+    queryFn: () => mcp.getParentDashboard(params.parentId),
+    enabled: options.enabled !== false,
     staleTime: 60_000,
     refetchOnWindowFocus: false,
   });

@@ -52,8 +52,8 @@ export const Navigator = ({
   const [collapsed, setCollapsed] = React.useState<CollapsedState>({});
 
   // DnD state
-  const [dragGroupFrom, setDragGroupFrom] = React.useState<number | null>(null);
-  const [dragItemFrom, setDragItemFrom] = React.useState<{ g: number; i: number } | null>(null);
+  const [_dragGroupFrom, setDragGroupFrom] = React.useState<number | null>(null);
+  const [_dragItemFrom, setDragItemFrom] = React.useState<{ g: number; i: number } | null>(null);
   const [dragOverGroup, setDragOverGroup] = React.useState<number | null>(null);
   const [dragOverItem, setDragOverItem] = React.useState<string | null>(null);
 

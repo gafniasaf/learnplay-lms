@@ -5,7 +5,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { BookOpen, Clock, ChevronRight } from "lucide-react";
-import { StudyText, StudyTextSection, parseStudyText, estimateReadingTime } from "@/lib/types/studyText";
+import { StudyText, parseStudyText, estimateReadingTime } from "@/lib/types/studyText";
 import { AspectRatio } from "@/components/ui/aspect-ratio";
 
 interface StudyTextsDrawerProps {

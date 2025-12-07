@@ -9,7 +9,15 @@ import { createClient } from '@supabase/supabase-js';
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
-const ORG_ID = process.env.ORGANIZATION_ID || process.argv[3] || '4d7b0a5c-3cf1-49e5-9ad7-bf6c1f8a2f58';
+let ORG_ID = process.env.ORGANIZATION_ID;
+if (!ORG_ID && process.argv[3]) {
+  ORG_ID = process.argv[3];
+}
+
+if (!ORG_ID) {
+  console.error('❌ ORGANIZATION_ID is REQUIRED - set env var or provide as argument');
+  process.exit(1);
+}
 
 if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
   console.error('❌ Missing required environment variables:');

@@ -10,13 +10,16 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
-import { sendMessage, listMessages, listConversations, listOrgStudents } from "@/lib/api";
+import { useMessaging } from "@/hooks/useMessaging";
+import { useMCP } from "@/hooks/useMCP";
 import { Send, Mail, User, Plus, Search, RefreshCw } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { supabase } from "@/integrations/supabase/client";
 import { getRole } from "@/lib/roles";
+import { createLogger } from "@/lib/logger";
+
+const logger = createLogger('Inbox');
 
 interface Message {
   id: string;
@@ -49,84 +52,58 @@ interface Conversation {
 export default function Inbox() {
   const { user } = useAuth();
   const { toast } = useToast();
-  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const messaging = useMessaging();
+  const mcp = useMCP();
   const [selectedConversation, setSelectedConversation] = useState<string | null>(null);
-  const [messages, setMessages] = useState<Message[]>([]);
   const [messageContent, setMessageContent] = useState("");
-  const [loading, setLoading] = useState(true);
-  const [sending, setSending] = useState(false);
   const [showNewMessageDialog, setShowNewMessageDialog] = useState(false);
   const [availableUsers, setAvailableUsers] = useState<Array<{id: string; name: string; role: string}>>([]);
   const [searchTerm, setSearchTerm] = useState("");
-  const [messageOffset, setMessageOffset] = useState(0);
-  const [hasMoreMessages, setHasMoreMessages] = useState(false);
 
   // Use local role system instead of direct DB query
   const userRole = getRole();
 
-  const loadConversationMessages = useCallback(async (conversationId: string, offset = 0) => {
+  // Get conversations from hook
+  const conversationsData = messaging.conversations;
+  const conversations = (conversationsData.data as { conversations?: Conversation[] })?.conversations ?? [];
+
+  // Get messages for selected conversation
+  const messagesQuery = selectedConversation ? messaging.getMessages(selectedConversation) : null;
+  const messages = (messagesQuery?.data as { messages?: Message[] })?.messages ?? [];
+
+  const loadConversationMessages = useCallback(async (conversationId: string) => {
     if (!user?.id) return;
     
     try {
-      const data = await listMessages(conversationId, { limit: 20, offset });
+      const data = await mcp.listMessages(conversationId, 20);
       
-      if (offset === 0) {
-        setMessages(data.messages || []);
-      } else {
-        setMessages(prev => [...prev, ...(data.messages || [])]);
-      }
-      setHasMoreMessages((data.messages?.length || 0) === 20);
+      // Messages are loaded via hook query
     } catch (error) {
-      console.error("Error loading messages:", error);
+      logger.error('Error loading messages', error instanceof Error ? error : new Error(String(error)), { action: 'loadMessages' });
       toast({ title: "Error", description: "Failed to load messages", variant: "destructive" });
     }
-  }, [user?.id, toast]);
+  }, [user?.id, toast, mcp]);
 
+  // Poll for conversation updates (replaces realtime)
   useEffect(() => {
     if (!user?.id) return;
     
-    loadConversations();
+    const interval = setInterval(() => {
+      messaging.conversations.refetch();
+      if (selectedConversation) {
+        messagesQuery?.refetch();
+      }
+    }, 5000); // Poll every 5 seconds
 
-    // Setup realtime subscription for new messages
-    // Note: Realtime requires direct Supabase connection - this is acceptable
-    const channel = supabase
-      .channel('messages-inbox')
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'messages',
-          filter: `recipient_id=eq.${user.id}`,
-        },
-        (payload) => {
-          console.log('New message received:', payload);
-          loadConversations();
-          if (selectedConversation) {
-            loadConversationMessages(selectedConversation);
-          }
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [user?.id, selectedConversation, loadConversationMessages]);
-
-  useEffect(() => {
-    if (selectedConversation) {
-      setMessageOffset(0);
-      loadConversationMessages(selectedConversation, 0);
-    }
-  }, [selectedConversation, loadConversationMessages]);
+    return () => clearInterval(interval);
+  }, [user?.id, selectedConversation, messaging, messagesQuery]);
 
   const loadAvailableUsers = async () => {
     try {
       if (userRole === "teacher" || userRole === "school" || userRole === "admin") {
-        // Use API layer for student list
-        const data = await listOrgStudents();
-        setAvailableUsers(data.students.map(s => ({ id: s.id, name: s.name, role: "student" })));
+        // Use MCP for student list
+        const data = await mcp.listOrgStudents();
+        setAvailableUsers((data as { students: Array<{ id: string; name: string }> }).students.map(s => ({ id: s.id, name: s.name, role: "student" })));
       } else if (userRole === "student") {
         // For students, show empty list - they can only reply to messages
         // Full teacher list would require additional edge function
@@ -138,7 +115,7 @@ export default function Inbox() {
         });
       }
     } catch (error) {
-      console.error("Error loading available users:", error);
+      logger.error('Error loading available users', error instanceof Error ? error : new Error(String(error)), { action: 'loadUsers' });
     }
   };
 
@@ -151,21 +128,6 @@ export default function Inbox() {
     setSelectedConversation(userId);
     setShowNewMessageDialog(false);
     setSearchTerm("");
-  };
-
-  const loadConversations = async () => {
-    try {
-      setLoading(true);
-      if (!user?.id) return;
-      
-      const data = await listConversations();
-      setConversations(data.conversations || []);
-    } catch (error) {
-      console.error("Error loading conversations:", error);
-      toast({ title: "Error", description: "Failed to load conversations", variant: "destructive" });
-    } finally {
-      setLoading(false);
-    }
   };
 
   const handleLoadMore = () => {
@@ -188,7 +150,7 @@ export default function Inbox() {
       loadConversations(); // Update conversation list
       toast({ title: "Sent", description: "Message sent successfully" });
     } catch (error) {
-      console.error("Error sending message:", error);
+      logger.error('Error sending message', error instanceof Error ? error : new Error(String(error)), { action: 'sendMessage' });
       toast({ title: "Error", description: "Failed to send message", variant: "destructive" });
     } finally {
       setSending(false);
@@ -220,10 +182,10 @@ export default function Inbox() {
           Inbox
         </h1>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={loadConversations} data-cta-id="refresh-inbox">
+          <Button variant="outline" size="sm" onClick={() => messaging.conversations.refetch()} data-cta-id="refresh-inbox" data-action="click">
             <RefreshCw className="h-4 w-4" />
           </Button>
-          <Button onClick={handleOpenNewMessage} data-cta-id="new-message">
+          <Button onClick={handleOpenNewMessage} data-cta-id="new-message" data-action="click">
             <Plus className="h-4 w-4 mr-2" />
             New Message
           </Button>
@@ -237,7 +199,7 @@ export default function Inbox() {
             <h2 className="font-semibold">Conversations</h2>
           </div>
           <ScrollArea className="h-[calc(100%-3rem)]">
-            {loading ? (
+            {conversationsData.isLoading ? (
               <div className="p-4 text-center text-muted-foreground">Loading...</div>
             ) : conversations.length === 0 ? (
               <div className="p-4 text-center text-muted-foreground">
@@ -351,6 +313,7 @@ export default function Inbox() {
                     onClick={handleSendMessage}
                     disabled={!messageContent.trim() || sending}
                     data-cta-id="send-message"
+                    data-action="click"
                   >
                     <Send className="h-4 w-4" />
                   </Button>

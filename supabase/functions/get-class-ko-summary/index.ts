@@ -5,7 +5,10 @@ Deno.serve(withCors(async (req: Request) => {
   try {
     const text = await req.text();
     payload = text ? JSON.parse(text) : null;
-  } catch {}
+  } catch (error) {
+    // Request body parsing failed - treat as null (endpoint accepts optional payload)
+    console.debug("[get-class-ko-summary] Request body parse failed (expected for GET requests):", error instanceof Error ? error.message : String(error));
+  }
 
   return {
     ok: true,

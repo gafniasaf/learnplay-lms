@@ -50,7 +50,7 @@ export default function ParentDashboard() {
   const navigate = useNavigate();
   const { window: rangeWindow } = useParentRange();
   const [showKOAssignmentModal, setShowKOAssignmentModal] = useState(false);
-  const [selectedDomain, setSelectedDomain] = useState<string | undefined>();
+  const [_selectedDomain, setSelectedDomain] = useState<string | undefined>();
 
   const {
     data: parentDashboard,
@@ -253,11 +253,11 @@ export default function ParentDashboard() {
               </p>
             </div>
             <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm" onClick={() => navigate("/parent/children")} data-cta-id="parent-link-child">
+              <Button variant="outline" size="sm" onClick={() => navigate("/parent/children")} data-cta-id="parent-link-child" data-action="navigate" data-target="/parent/children">
                 <UserPlus className="h-4 w-4 mr-2" />
                 Link Child
               </Button>
-              <Button variant="default" size="sm" onClick={() => navigate("/parent/messages")} data-cta-id="parent-messages">
+              <Button variant="default" size="sm" onClick={() => navigate("/parent/messages")} data-cta-id="parent-messages" data-action="navigate" data-target="/parent/messages">
                 <Mail className="h-4 w-4 mr-2" />
                 Messages
               </Button>

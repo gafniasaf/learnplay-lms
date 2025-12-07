@@ -10,7 +10,7 @@
     "dev:up": "npm run preflight && npm run mcp:ensure && npm run dev",
     "build": "vite build",
     "prebuild": "npm run typecheck && npm run codegen && npm run verify",
-    "codegen": "npx tsx scripts/scaffold-manifest.ts",
+    "codegen": "npx tsx scripts/scaffold-manifest.ts && npx tsx scripts/scaffold-ctas.ts",
     "ingest": "npx tsx scripts/ingest-lovable.ts",
     "build:dev": "vite build --mode development",
     "start": "node server.mjs",

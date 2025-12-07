@@ -22,7 +22,6 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { getOrgConfig } from '@/lib/api/orgConfig';
 import type { OrgConfig } from '@/lib/api/orgConfig';
 import { TagApprovalCard } from '@/components/admin/tags/TagApprovalCard';
 import { useMCP } from '@/hooks/useMCP';
@@ -59,7 +58,7 @@ export default function TagApprovalQueue() {
       setLoading(true);
       
       // Load org config for tag types
-      const config = await getOrgConfig();
+      const config = await mcp.getOrgConfig() as OrgConfig;
       setOrgConfig(config);
 
       const response = await mcp.callGet<any>('lms.listTagSuggestions', { status: filterStatus === 'all' ? undefined : filterStatus });

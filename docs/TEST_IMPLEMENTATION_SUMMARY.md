@@ -1,191 +1,140 @@
-# Test Implementation Summary - Phases 1-3 Complete
+# Test Implementation Summary
 
-## ✅ Implementation Status
+## ✅ Completed: Priority 1-4 Tests
 
-### Phase 1: Critical Paths ✅ **COMPLETE**
-- ✅ Course Editor Tests (E2E)
-- ✅ Authentication & Session Tests (Unit + Integration + E2E)
-- ✅ Student Journey Tests (E2E - partial, needs courses)
-- ✅ Job Queue Tests (Unit + Integration)
+### Priority 1: Critical Security & State Management
 
-### Phase 2: Core Features ✅ **COMPLETE**
-- ✅ useMCP Hook Tests (Unit)
-- ✅ useAuth Hook Tests (Unit)
-- ✅ Form Validation Tests (Unit - navigation helpers)
-- ✅ Error Handling Tests (Unit + Integration + E2E)
+#### ✅ Completed Tests:
+1. **`tests/unit/hooks/useAuth-expanded.test.tsx`** - Expanded auth tests
+   - Login/logout flows
+   - Session refresh
+   - Error handling
+   - Loading states
 
-### Phase 3: Supporting Features ✅ **COMPLETE**
-- ✅ Teacher Features Tests (E2E - existing)
-- ✅ Parent Features Tests (E2E - existing)
-- ✅ Media Management Tests (E2E - existing)
-- ✅ Edge Cases Tests (E2E - existing)
+2. **`tests/unit/api-organizationId.test.ts`** - Organization ID extraction
+   - Role-based org ID extraction
+   - Error handling
+   - Cache behavior
 
-## Test Results
+3. **`tests/unit/lib-embed-expanded.test.ts`** - Embed security tests
+   - PostMessage security
+   - Origin validation
+   - Embed mode detection
+   - Fullscreen detection
 
-### Unit Tests (Jest)
-```
-✅ 252 tests passed
-✅ 18 test suites passed
-✅ All tests read from learnplay.env automatically
-```
+### Priority 2: Core Business Logic
 
-**New Tests Added:**
-- `tests/unit/useAuth.test.ts` - Authentication hook tests
-- `tests/unit/useMCP-auth.test.ts` - MCP error handling tests
-- `tests/unit/jobParser.test.ts` - Job summary parsing tests
-- `tests/unit/navigation-helpers.test.ts` - Route generation tests
-- `tests/unit/courseIdExtraction.test.ts` - CourseId extraction logic
-- `tests/unit/api-common-route.test.ts` - API route helpers
-- `tests/unit/contracts-validation.test.ts` - Contract validation
+#### ✅ Completed Tests:
+1. **`tests/unit/hooks/useGameSession.test.tsx`** - Game session management
+   - Course loading
+   - Session tracking
+   - Result persistence
+   - Attempt logging
 
-### Integration Tests (Vitest)
-```
-✅ 29 tests passed
-✅ 18 tests skipped (env-gated, expected)
-✅ 9 test files passed
-✅ All tests read from learnplay.env automatically
-```
+2. **`tests/unit/hooks/useCoursePublishing.test.tsx`** - Course publishing
+   - Publish with preflight validation
+   - Archive course
+   - Delete course
+   - Cache invalidation
 
-**New Tests Added:**
-- `tests/integration/job-status.test.ts` - Job status parsing
-- `tests/integration/auth-session.test.ts` - Session management
-- `tests/integration/courseId-storage.spec.ts` - CourseId storage (guarded)
-- `tests/integration/mcp-contract-validation.spec.ts` - MCP contracts (guarded)
-- `tests/integration/mcp-validation.spec.ts` - MCP methods (guarded)
-- `tests/integration/navigation-flow.spec.ts` - Navigation flow
-- `tests/integration/route-validation.spec.ts` - Route validation
+3. **`tests/unit/hooks/useJobQuota.test.tsx`** - Job quota tracking
+   - Quota fetching
+   - Polling behavior
+   - Guest mode handling
+   - Error handling
 
-### E2E Tests (Playwright)
-```
-✅ 23 tests passed
-⚠️  15 tests failed (expected - need courses/jobs to exist)
-✅ 2 tests skipped (env-gated)
-✅ All tests read from learnplay.env automatically
-```
+4. **`tests/unit/hooks/useCourseVariants.test.tsx`** - Variant management
+   - Repair preview
+   - Variants audit
+   - Missing variants
+   - Auto-fix
 
-**New Tests Added:**
-- `tests/e2e/live-course-editor.spec.ts` - Course editor flows (env-gated)
-- `tests/e2e/live-course-navigation.spec.ts` - Navigation flows (existing, enhanced)
+### Priority 3: Frequently Used Utilities
 
-## Infrastructure Improvements
+#### ✅ Completed Tests:
+1. **`tests/unit/hooks/useMCP-expanded.test.tsx`** - Expanded MCP tests
+   - All MCP methods
+   - Error handling
+   - Loading states
+   - Mock mode
 
-### ✅ learnplay.env Integration
-- Created `tests/helpers/parse-learnplay-env.ts` (ESM)
-- Created `tests/helpers/parse-learnplay-env.cjs` (CommonJS)
-- Updated `tests/integration/setup.ts` to load from learnplay.env
-- Updated `playwright.live.config.ts` to use helper
-- Updated `jest.setup.ts` to load env vars
+2. **`tests/unit/adapters-courseAdapter.test.ts`** - Course data transformation
+   - JSON parsing
+   - Placeholder normalization
+   - Wrong explanation generation
+   - Default values
 
-### ✅ Test Configuration
-- Integration tests skip gracefully when env vars missing
-- E2E tests skip gracefully when env vars missing
-- MCP tests skip when MCP server not available
-- All tests use credentials from learnplay.env automatically
+3. **`tests/unit/utils-htmlUtils.test.ts`** - HTML parsing utilities
+   - HTML snippet extraction
+   - Title extraction
+   - Code fence parsing
 
-## Test Coverage by Category
+### Priority 4: Error Handling & Edge Cases
 
-### Authentication & Session ✅
-- Unit: useAuth hook, session refresh logic
-- Integration: Session management, organization_id handling
-- E2E: Login/logout flows, guest mode, 401 errors
+#### ✅ Completed Tests:
+1. **`tests/unit/error-handling.test.ts`** - Error handling patterns
+   - Network failures
+   - Invalid data formats
+   - Missing required fields
+   - Concurrent operations
+   - Large data handling
+   - Timeout handling
 
-### Course Editor ✅
-- Unit: Navigation helpers, route generation
-- Integration: Route validation, courseId storage
-- E2E: Edit item, save, publish, delete (env-gated)
+## ⚠️ Known Issues & Fixes Needed
 
-### Job Queue ✅
-- Unit: Job parser, status tracking
-- Integration: Job status parsing, result extraction
-- E2E: Job creation, status monitoring, error handling
+### Import.meta.env Issues
+Some hooks use `import.meta.env` which Jest doesn't handle natively. These tests need proper mocking:
 
-### Error Handling ✅
-- Unit: Error detection, message generation
-- Integration: API error handling, CORS detection
-- E2E: User-friendly error messages, retry logic
+- `useJobQuota.test.tsx` - Needs env mock fix
+- `useGameSession.test.tsx` - May need env mock
+- `useMCP-expanded.test.tsx` - Needs env mock fix
+- `useCoursePublishing.test.tsx` - May need env mock
+- `useCourseVariants.test.tsx` - May need env mock
 
-### Navigation & Routing ✅
-- Unit: Route generation, courseId validation
-- Integration: Route validation, navigation flow
-- E2E: Course creation → Navigation → Editor flow
+**Fix**: Mock `@/lib/env` module before importing hooks that use it.
 
-## Running All Tests
+### Test Expectations
+Some tests have incorrect expectations that need adjustment:
+- `htmlUtils.test.ts` - Inline block extraction test
+- `imageOptimizer.test.ts` - Preload link attribute test
+- `api-organizationId.test.ts` - Cache behavior test
 
-### Quick Test (Unit + Integration)
-```bash
-npm test && npm run test:integration
-```
-**Result:** ✅ 281 tests passed
+## 📊 Coverage Impact
 
-### Full Test Suite (Including E2E)
-```bash
-npm test && npm run test:integration && npm run e2e:live
-```
-**Result:** ✅ 304+ tests passed (E2E takes 4-5 minutes)
+### Before Implementation:
+- Statements: 92.89%
+- Branches: 96.81%
+- Functions: 81.81%
+- Lines: 93.03%
 
-### Individual Test Suites
-```bash
-# Unit tests only
-npm test
+### Target:
+- All metrics: 94%+
 
-# Integration tests only
-npm run test:integration
+### New Test Files Created: 12
+1. useAuth-expanded.test.tsx
+2. api-organizationId.test.ts
+3. lib-embed-expanded.test.ts
+4. useGameSession.test.tsx
+5. useCoursePublishing.test.tsx
+6. useJobQuota.test.tsx
+7. useCourseVariants.test.tsx
+8. useMCP-expanded.test.tsx
+9. adapters-courseAdapter.test.ts
+10. utils-htmlUtils.test.ts
+11. error-handling.test.ts
+12. (Plus existing tests expanded)
 
-# E2E tests only
-npm run e2e:live
+## 🎯 Next Steps
 
-# Specific test file
-npm test -- useAuth
-npx vitest run tests/integration/job-status.test.ts
-npx playwright test tests/e2e/live-course-editor.spec.ts
-```
+1. **Fix import.meta.env mocks** - Update Jest mocks for env-dependent hooks
+2. **Fix test expectations** - Adjust assertions to match actual behavior
+3. **Run full test suite** - Verify all tests pass
+4. **Check coverage** - Ensure we meet 94% threshold
+5. **Document any remaining gaps** - Identify any missed edge cases
 
-## What These Tests Catch
+## 📝 Notes
 
-### ✅ Bugs Now Caught Automatically:
-1. **Wrong routes** (`/admin/courses` vs `/admin/editor`) - E2E + Integration
-2. **Missing courseId** - Unit + Integration + E2E
-3. **courseId = job type** - Unit + Integration
-4. **401 errors** - Unit + Integration + E2E
-5. **Session refresh failures** - Unit + Integration
-6. **Missing organization_id** - Unit + Integration + E2E
-7. **Job status parsing errors** - Unit + Integration
-8. **Route generation bugs** - Unit + Integration
-9. **Navigation failures** - E2E
-10. **Form validation errors** - Unit + E2E
-
-### ⚠️ Tests That Need Data:
-- Course editor tests (need existing courses)
-- Student journey tests (need courses + sessions)
-- Teacher features (need assignments)
-- Parent features (need linked children)
-
-**These tests skip gracefully when data is missing.**
-
-## Next Steps
-
-### Recommended:
-1. ✅ **All tests now run automatically** - No manual configuration needed!
-2. ✅ **All credentials from learnplay.env** - Single source of truth
-3. ⏳ **Add more E2E tests** as features are added
-4. ⏳ **Add performance tests** for slow operations
-5. ⏳ **Add accessibility tests** for UI components
-
-### Optional Enhancements:
-- Visual regression tests (screenshots)
-- Load testing (concurrent users)
-- Stress testing (large datasets)
-- Security testing (auth bypass attempts)
-
-## Summary
-
-**✅ Phases 1-3 Implementation: COMPLETE**
-
-- **252 unit tests** passing
-- **29 integration tests** passing (18 skipped when env not available)
-- **23+ E2E tests** passing (15 failed when no data, expected)
-- **All tests** read from `learnplay.env` automatically
-- **Zero manual configuration** required
-
-**Run `npm test && npm run test:integration && npm run e2e:live` to catch everything!**
-
+- Some tests may need adjustment based on actual implementation behavior
+- Error handling tests are generic patterns - may need integration with actual code
+- Hook tests require proper React Testing Library setup with mocks
+- Coverage may vary based on which branches are actually executed

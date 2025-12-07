@@ -1,6 +1,11 @@
 import { test, expect } from '@playwright/test';
 
-const BASE_URL = process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:8080';
+// REQUIRED env var per NO-FALLBACK policy
+// Note: Could use Playwright's baseURL config and relative URLs instead
+const BASE_URL = process.env.PLAYWRIGHT_BASE_URL;
+if (!BASE_URL) {
+  throw new Error('❌ PLAYWRIGHT_BASE_URL is REQUIRED - set env var before running tests');
+}
 
 test.describe('Bug Tracker Demo', () => {
   test.beforeEach(async ({ page }) => {

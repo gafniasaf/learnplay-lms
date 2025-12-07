@@ -55,6 +55,8 @@ export default function Landing() {
             key={path}
             to={path}
             data-cta-id={ctaId}
+            data-action="navigate"
+            data-target={path}
             className="group relative overflow-hidden rounded-2xl border bg-card p-8 transition-all hover:shadow-lg hover:scale-[1.02]"
             style={{
               borderColor: `hsl(var(--${color}) / 0.3)`,

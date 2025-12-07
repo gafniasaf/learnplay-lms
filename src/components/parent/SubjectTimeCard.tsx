@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { TrendingUp, TrendingDown } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { PieChart, Pie, Cell, ResponsiveContainer } from "recharts";
-import { cn } from "@/lib/utils";
+// cn import removed - not used
 
 interface SubjectData {
   subject: string;

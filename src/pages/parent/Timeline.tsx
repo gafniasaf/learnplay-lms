@@ -24,7 +24,7 @@ import { CalendarIcon, ExternalLink, AlertCircle } from "lucide-react";
 import { format, parseISO, isSameDay } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useParentTimeline } from "@/hooks/useParentTimeline";
-import { useMockData } from "@/lib/api";
+// useMockData removed - useParentTimeline handles mock mode internally
 import { mapTimelineEventToSession } from "@/lib/parent/timelineMappers";
 
 type FilterType = "all" | "mistakes" | "mastered";

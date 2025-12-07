@@ -14,7 +14,6 @@ import { NextUpCard } from "@/components/student/NextUpCard";
 import { ContinueCard } from "@/components/student/ContinueCard";
 import { RecentSessionsStudent } from "@/components/student/RecentSessionsStudent";
 import { AchievementsGlance } from "@/components/student/AchievementsGlance";
-import { RecommendationsCard } from "@/components/student/RecommendationsCard";
 import { SkillCards } from "@/components/student/SkillCards";
 import { StudentAssignments } from "@/components/student/StudentAssignments";
 import {
@@ -140,7 +139,7 @@ export default function StudentDashboard() {
     itemsDeltaVsLastWeek: kpiData.deltaVsLastWeek - 3,
   };
 
-  const recommendations = [
+  const _recommendations = [
     { id: 'r1', title: 'Practice multiplication tables for 10 minutes', courseId: 'math-multiplication', level: 2 },
     { id: 'r2', title: 'Review fractions concepts', courseId: 'math-fractions', level: 1 },
   ];

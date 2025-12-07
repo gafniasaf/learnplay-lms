@@ -1,23 +1,21 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { getClassProgress } from "@/lib/api";
+import { useMCP } from "@/hooks/useMCP";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { RefreshCw } from "lucide-react";
 import { JobProgress } from "@/components/shared/JobProgress";
 import { toast } from "sonner";
-import { useMCP } from "@/hooks/useMCP";
 
 export default function ClassProgress() {
-  const [courseId, setCourseId] = useState<string>("modals");
-  const [rangeDays, setRangeDays] = useState<number>(30);
-  const [jobId, setJobId] = useState<string | null>(null);
+  const [classId, setClassId] = useState<string>("");
   const mcp = useMCP();
   
   const { data, isLoading, refetch, isFetching } = useQuery({
-    queryKey: ["class-progress", courseId, rangeDays],
-    queryFn: () => getClassProgress(courseId, rangeDays),
+    queryKey: ["class-progress", classId],
+    queryFn: () => classId ? mcp.getClassProgress(classId) : Promise.resolve(null),
+    enabled: !!classId,
   });
 
   return (

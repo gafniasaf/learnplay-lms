@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Upload, X, Link as LinkIcon, Image as ImageIcon, Music, Video, Loader2, Sparkles, Info } from "lucide-react";
+import { X, Link as LinkIcon, Image as ImageIcon, Music, Video, Loader2, Sparkles, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -9,7 +9,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import { supabase } from "@/integrations/supabase/client";
-import { uploadMediaFile } from "@/lib/api/media";
+import { useMCP } from "@/hooks/useMCP";
 import { toast } from "sonner";
 import { Stem } from "@/components/game/Stem";
 
@@ -66,6 +66,7 @@ export const StimulusPanel = ({
   itemText,
   courseTitle,
 }: StimulusPanelProps) => {
+  const mcp = useMCP();
   const [activeTab, setActiveTab] = useState<'image' | 'audio' | 'video'>(
     currentStimulus?.type || 'image'
   );
@@ -79,7 +80,7 @@ export const StimulusPanel = ({
   // Upload state
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
-  const [uploadedUrl, setUploadedUrl] = useState<string | null>(null);
+  const [_uploadedUrl, setUploadedUrl] = useState<string | null>(null);
 
   // AI Generation state
   const [aiPrompt, setAiPrompt] = useState("");
@@ -116,7 +117,7 @@ export const StimulusPanel = ({
       const storagePath = `${courseId}/assets/${folder}/${filename}`;
 
       // Upload via edge function (IgniteZero compliant)
-      const result = await uploadMediaFile(storagePath, file, 'courses');
+      const result = await mcp.uploadMediaFile(file, storagePath);
 
       if (!result.ok) {
         throw new Error('Upload failed');
@@ -214,7 +215,7 @@ export const StimulusPanel = ({
 
         if (updatedJob.status === 'done') {
           setManualUrl(updatedJob.result_url);
-          setUploadedUrl(updatedJob.result_url);
+          // setUploadedUrl(updatedJob.result_url); // Unused - removed
           
           if (activeTab === 'image' && updatedJob.metadata?.revised_prompt) {
             setImageAlt(updatedJob.metadata.revised_prompt);

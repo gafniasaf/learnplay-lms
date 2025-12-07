@@ -5,8 +5,9 @@ import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { AddCourseModal, type NewCourse } from "@/components/admin/AddCourseModal";
 import { toast } from "sonner";
-import { getApiMode } from "@/lib/api";
+// getApiMode is a utility function, can stay
 import { useDashboard } from "@/hooks/useDashboard";
+import { getApiMode } from "@/lib/api";
 
 interface Course {
   id: string;

@@ -111,6 +111,85 @@ describe('extractPhaseDetails', () => {
     expect(phases[1].summary).toContain('2 validation errors');
     expect(phases[1].details.errors).toEqual(['Error 1', 'Error 2']);
   });
+
+  it('handles summary without timeline', () => {
+    const summary: JobSummary = {
+      phases: {
+        generation: {
+          itemsProcessed: 5,
+          duration: 1000,
+          aiCalls: 1,
+        },
+      },
+      // No timeline property
+    } as any;
+
+    const phases = extractPhaseDetails('done', 'done', summary);
+
+    expect(phases[0].details.logs).toEqual([]);
+    expect(phases[1].details.logs).toEqual([]);
+  });
+
+  it('filters timeline logs by phase', () => {
+    const summary: JobSummary = {
+      phases: {},
+      timeline: [
+        { phase: 'generation', timestamp: '10:00:00', message: 'Gen log', type: 'info' },
+        { phase: 'validation', timestamp: '10:01:00', message: 'Val log', type: 'info' },
+        { phase: 'repair', timestamp: '10:02:00', message: 'Repair log', type: 'info' },
+        { phase: 'review', timestamp: '10:03:00', message: 'Review log', type: 'info' },
+        { phase: 'images', timestamp: '10:04:00', message: 'Image log', type: 'info' },
+        { phase: 'enrichment', timestamp: '10:05:00', message: 'Enrich log', type: 'info' },
+      ],
+    };
+
+    const phases = extractPhaseDetails('done', 'done', summary);
+
+    expect(phases[0].details.logs).toHaveLength(1);
+    expect(phases[0].details.logs?.[0].message).toBe('Gen log');
+    expect(phases[1].details.logs).toHaveLength(1);
+    expect(phases[1].details.logs?.[0].message).toBe('Val log');
+    expect(phases[2].details.logs).toHaveLength(1);
+    expect(phases[2].details.logs?.[0].message).toBe('Repair log');
+    expect(phases[3].details.logs).toHaveLength(1);
+    expect(phases[3].details.logs?.[0].message).toBe('Review log');
+    expect(phases[4].details.logs).toHaveLength(1);
+    expect(phases[4].details.logs?.[0].message).toBe('Image log');
+    expect(phases[5].details.logs).toHaveLength(1);
+    expect(phases[5].details.logs?.[0].message).toBe('Enrich log');
+  });
+
+  it('handles images phase with pending count', () => {
+    const summary: JobSummary = {
+      phases: {
+        images: {
+          pending: 3,
+          duration: 1000,
+        },
+      },
+      timeline: [],
+    };
+
+    const phases = extractPhaseDetails('done', 'done', summary);
+
+    expect(phases[4].summary).toContain('3 images pending');
+  });
+
+  it('handles enrichment phase with guardrails', () => {
+    const summary: JobSummary = {
+      phases: {
+        enrichment: {
+          guardrailsApplied: 7,
+          duration: 2000,
+        },
+      },
+      timeline: [],
+    };
+
+    const phases = extractPhaseDetails('done', 'done', summary);
+
+    expect(phases[5].summary).toContain('Applied 7 guardrails');
+  });
 });
 
 describe('getCurrentPhaseIndex', () => {
@@ -130,6 +209,44 @@ describe('getCurrentPhaseIndex', () => {
 
   it('returns -1 for unknown step', () => {
     expect(getCurrentPhaseIndex('unknown')).toBe(-1);
+  });
+});
+
+describe('determinePhaseStatus (via extractPhaseDetails)', () => {
+  it('marks failed phase correctly', () => {
+    const phases = extractPhaseDetails('failed', 'validating', null);
+    expect(phases[1].status).toBe('failed'); // Validation phase failed
+    expect(phases[0].status).toBe('complete'); // Generation complete before failure
+    expect(phases[2].status).toBe('pending'); // Repair pending
+  });
+
+  it('marks phases before failed phase as complete', () => {
+    const phases = extractPhaseDetails('failed', 'repairing', null);
+    expect(phases[0].status).toBe('complete'); // Generation complete
+    expect(phases[1].status).toBe('complete'); // Validation complete
+    expect(phases[2].status).toBe('failed'); // Repair failed
+    expect(phases[3].status).toBe('pending'); // Review pending
+  });
+
+  it('marks all phases as complete when job is done', () => {
+    const phases = extractPhaseDetails('done', 'done', null);
+    phases.forEach(phase => {
+      expect(phase.status).toBe('complete');
+    });
+  });
+
+  it('marks active phase correctly', () => {
+    const phases = extractPhaseDetails('processing', 'generating', null);
+    expect(phases[0].status).toBe('active'); // Generation active
+    expect(phases[1].status).toBe('pending'); // Validation pending
+  });
+
+  it('marks phases before active as complete', () => {
+    const phases = extractPhaseDetails('processing', 'repairing', null);
+    expect(phases[0].status).toBe('complete'); // Generation complete
+    expect(phases[1].status).toBe('complete'); // Validation complete
+    expect(phases[2].status).toBe('active'); // Repair active
+    expect(phases[3].status).toBe('pending'); // Review pending
   });
 });
 

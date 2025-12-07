@@ -1,4 +1,4 @@
-import { callEdgeFunctionGet, shouldUseMockData, ApiError, getSupabaseUrl, getSupabaseAnonKey } from "./common";
+import { callEdgeFunctionGet, shouldUseMockData, ApiError, getSupabaseUrl } from "./common";
 
 // Mock assignment store (in-memory for testing)
 const mockAssignmentStore: Assignment[] = [];

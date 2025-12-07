@@ -4,13 +4,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Plus, Trash2, MoveUp, MoveDown, Sparkles } from "lucide-react";
 import { StudyText } from "@/lib/types/course";
 import { parseStudyText } from "@/lib/types/studyText";
-import { generateMedia } from "@/lib/api/aiRewrites";
-import { supabase } from "@/integrations/supabase/client";
+import { useMCP } from "@/hooks/useMCP";
+// supabase import removed - using useMCP
 import { resolvePublicMediaUrl } from "@/lib/media/resolvePublicMediaUrl";
 import { toast } from "sonner";
 
@@ -21,6 +20,7 @@ interface StudyTextsEditorProps {
 }
 
 export const StudyTextsEditor = ({ courseId, studyTexts, onChange }: StudyTextsEditorProps) => {
+  const mcp = useMCP();
   const [editingId, setEditingId] = useState<string | null>(null);
 
   const addStudyText = () => {
@@ -251,14 +251,8 @@ export const StudyTextsEditor = ({ courseId, studyTexts, onChange }: StudyTextsE
                         try {
                           toast.info('Enriching study text…');
                           const index = Math.max(0, (editing?.order ? editing.order - 1 : studyTexts.findIndex(st => st.id === editing?.id)));
-                          const { data, error } = await supabase.functions.invoke('mcp-metrics-proxy', {
-                            body: {
-                              method: 'lms.studytextRewrite',
-                              params: { courseId, index },
-                            },
-                          });
-                          if (error) throw error;
-                          const enriched = data?.studyText || data;
+                          const data = await mcp.call('lms.studytextRewrite', { courseId, index }) as { studyText?: unknown; content?: string; title?: string; learningObjectives?: string[] };
+                          const enriched = (data?.studyText || data) as { content?: string; title?: string; learningObjectives?: string[] };
                           if (!enriched?.content) throw new Error('No enriched content');
                           updateStudyText(editing.id, { content: enriched.content, title: enriched.title || editing.title, learningObjectives: enriched.learningObjectives || editing.learningObjectives });
                           toast.success('Study text enriched');

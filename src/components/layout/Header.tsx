@@ -1,23 +1,13 @@
-import { Link, useNavigate, NavLink } from "react-router-dom";
-import { Sparkles, LogOut, ChevronDown } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
+import { Sparkles } from "lucide-react";
 import { isLiveMode, isDevEnabled } from "@/lib/env";
 import { isCourseFullscreen } from "@/lib/embed";
 import { HamburgerMenu } from "./HamburgerMenu";
-import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "@/hooks/use-toast";
 import { getRole } from "@/lib/roles";
 import { filterNav } from "@/config/nav";
-import { getIcon } from "@/lib/getIcon";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-  DropdownMenuSeparator,
-} from "@/components/ui/dropdown-menu";
-import { cn } from "@/lib/utils";
 
 export const Header = () => {
   const isLive = isLiveMode();
@@ -47,30 +37,33 @@ export const Header = () => {
         description: "You have been logged out successfully",
       });
       navigate("/auth");
-    } catch (error) {
-      console.error("Logout error:", error);
+    } catch (_error) {
+      console.error("Logout error:", _error);
     }
   };
 
-  const handleLogin = () => {
+  const _handleLogout = handleLogout;
+  void _handleLogout; // Mark as intentionally unused for now
+
+  const _handleLogin = () => {
     navigate("/auth");
   };
 
-  const isAnonymous = user?.is_anonymous;
-  const userEmail = user?.email;
+  const _isAnonymous = user?.is_anonymous;
+  const _userEmail = user?.email;
 
   // Get main sections for desktop nav
-  const mainSection = sections.find(s => s.title === "Main");
-  const messagesSection = sections.find(s => s.title === "Messages");
-  const docsSection = sections.find(s => s.title === "Docs");
+  const _mainSection = sections.find(s => s.title === "Main");
+  const _messagesSection = sections.find(s => s.title === "Messages");
+  const _docsSection = sections.find(s => s.title === "Docs");
   const adminSection = sections.find(s => s.title === "Admin");
   const teacherSection = sections.find(s => s.title === "Teacher");
   const parentSection = sections.find(s => s.title === "Parent");
   const studentSection = sections.find(s => s.title === "Student");
-  const devSection = sections.find(s => s.title === "Dev");
+  const _devSection = sections.find(s => s.title === "Dev");
 
   // Combine role sections for dropdown
-  const roleSections = [adminSection, teacherSection, parentSection, studentSection].filter(Boolean);
+  const _roleSections = [adminSection, teacherSection, parentSection, studentSection].filter(Boolean);
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">

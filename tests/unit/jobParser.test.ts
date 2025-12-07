@@ -10,15 +10,25 @@ describe('parseJobSummary', () => {
   });
 
   it('parses JSON string', () => {
-    const summary = '{"metrics":{"totalItems":1},"phases":{},"timeline":[]}';
+    const summary = '{"metrics":{"totalItems":1,"totalRepairs":0,"totalAICalls":0,"estimatedCost":0},"phases":{},"timeline":[]}';
     const parsed = parseJobSummary(summary);
     expect(parsed).not.toBeNull();
     expect(parsed?.metrics.totalItems).toBe(1);
   });
 
   it('returns object directly', () => {
-    const obj = { metrics: { totalItems: 2 }, phases: {}, timeline: [] };
+    const obj = { 
+      metrics: { 
+        totalItems: 2, 
+        totalRepairs: 0, 
+        totalAICalls: 0, 
+        estimatedCost: 0 
+      }, 
+      phases: {}, 
+      timeline: [] 
+    };
     const parsed = parseJobSummary(obj);
+    expect(parsed).not.toBeNull();
     expect(parsed?.metrics.totalItems).toBe(2);
   });
 

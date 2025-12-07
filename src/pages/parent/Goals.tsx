@@ -10,10 +10,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Info, AlertTriangle, BookOpenCheck, Target, CheckCircle2 } from "lucide-react";
+import { Info, BookOpenCheck, Target, CheckCircle2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useParentGoals } from "@/hooks/useParentGoals";
-import { useMockData } from "@/lib/api";
+// useMockData removed - useParentGoals handles mock mode internally
 import type {
   ParentGoalRecord,
   ParentGoalsResponse,

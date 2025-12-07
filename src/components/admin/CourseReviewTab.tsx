@@ -6,7 +6,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Separator } from "@/components/ui/separator";
 import { AlertCircle, CheckCircle2, Info, Loader2, Sparkles, AlertTriangle } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { useMCP } from "@/hooks/useMCP";
 import { CourseV2 } from "@/lib/schemas/courseV2";
 
 interface ValidationIssue {
@@ -29,6 +29,7 @@ interface CourseReviewTabProps {
 }
 
 export const CourseReviewTab = ({ course, onPatchApplied }: CourseReviewTabProps) => {
+  const mcp = useMCP();
   const [reviewing, setReviewing] = useState(false);
   const [reviewData, setReviewData] = useState<ReviewData | null>(null);
   const [applying, setApplying] = useState(false);
@@ -44,13 +45,7 @@ export const CourseReviewTab = ({ course, onPatchApplied }: CourseReviewTabProps
     setSuccess(null);
 
     try {
-      const { data, error: functionError } = await supabase.functions.invoke("review-course", {
-        body: { course }
-      });
-
-      if (functionError) {
-        throw functionError;
-      }
+      const data = await mcp.call("review-course", { course }) as { success?: boolean; error?: string; issues?: ValidationIssue[]; patch?: unknown[]; suggestions?: string[]; summary?: string };
 
       if (!data.success) {
         throw new Error(data.error || "Review failed");
@@ -78,17 +73,11 @@ export const CourseReviewTab = ({ course, onPatchApplied }: CourseReviewTabProps
     setSuccess(null);
 
     try {
-      const { data, error: functionError } = await supabase.functions.invoke("apply-course-patch", {
-        body: {
-          courseId: course.id,
-          patch: reviewData.patch,
-          description: "Applied AI review suggestions"
-        }
-      });
-
-      if (functionError) {
-        throw functionError;
-      }
+      const data = await mcp.call("apply-course-patch", {
+        courseId: course.id,
+        patch: reviewData.patch,
+        description: "Applied AI review suggestions"
+      }) as { success?: boolean; error?: string; course?: CourseV2 };
 
       if (!data.success) {
         throw new Error(data.error || "Patch application failed");

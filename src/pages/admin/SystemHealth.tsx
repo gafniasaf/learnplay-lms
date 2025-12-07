@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
+import { useMCP } from "@/hooks/useMCP";
 
 type HealthResponse = {
   ok?: boolean;
@@ -56,6 +56,7 @@ type UiAuditRun = {
 };
 
 export default function SystemHealthPage() {
+  const mcp = useMCP();
   const [loading, setLoading] = useState(false);
   const [health, setHealth] = useState<HealthResponse["data"] | null>(null);
   const [env, setEnv] = useState<EnvAuditResponse["data"] | null>(null);
@@ -66,11 +67,7 @@ export default function SystemHealthPage() {
   const [uiRun, setUiRun] = useState<UiAuditRun | null>(null);
 
   const callProxy = async (method: string, params: any = {}) => {
-    const { data, error } = await supabase.functions.invoke("mcp-metrics-proxy", {
-      body: { method, params },
-    });
-    if (error) throw error;
-    return data;
+    return await mcp.call(method, params);
   };
 
   const load = async () => {

@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { getCourseCatalog } from "@/lib/api";
+import { useMCP } from "@/hooks/useMCP";
 import { toast } from "sonner";
 
 interface CoursePickerProps {
@@ -13,6 +13,7 @@ interface CoursePickerProps {
 }
 
 export const CoursePicker = ({ onSelect }: CoursePickerProps) => {
+  const mcp = useMCP();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [courses, setCourses] = useState<Array<{ id: string; title: string }>>([]);
@@ -22,12 +23,12 @@ export const CoursePicker = ({ onSelect }: CoursePickerProps) => {
     if (open && courses.length === 0) {
       loadCourses();
     }
-  }, [open]);
+  }, [open, courses.length]);
 
   const loadCourses = async () => {
     setLoading(true);
     try {
-      const catalog = await getCourseCatalog();
+      const catalog = await mcp.getCourseCatalog() as { courses: Array<{ id: string; title: string }> };
       setCourses(catalog.courses.map(c => ({ id: c.id, title: c.title })));
     } catch (err) {
       console.error('Failed to load courses:', err);

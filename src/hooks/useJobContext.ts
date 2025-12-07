@@ -4,7 +4,7 @@
  * Polls for updates instead of realtime subscriptions
  */
 import { useEffect, useState, useMemo, useCallback } from 'react';
-import { getCourseJob, CourseJob, JobEvent as ApiJobEvent } from '@/lib/api/jobs';
+import { useMCP } from './useMCP';
 
 export interface Job {
   id: string;
@@ -53,6 +53,7 @@ export interface JobContext {
  * Single source of truth for all pipeline panels.
  */
 export function useJobContext(jobId: string | null, pollInterval = 2000): JobContext {
+  const mcp = useMCP();
   const [job, setJob] = useState<Job | null>(null);
   const [events, setEvents] = useState<JobEvent[]>([]);
   const [loading, setLoading] = useState(true);
@@ -68,11 +69,11 @@ export function useJobContext(jobId: string | null, pollInterval = 2000): JobCon
     }
 
     try {
-      const response = await getCourseJob(jobId, true);
+      const response = await mcp.getCourseJob(jobId, true);
 
-      if (response.ok) {
-        setJob(response.job as Job);
-        setEvents((response.events || []) as JobEvent[]);
+      if ((response as { ok: boolean }).ok) {
+        setJob((response as { job: Job }).job);
+        setEvents(((response as { events?: JobEvent[] }).events || []) as JobEvent[]);
         setError(null);
       } else {
         throw new Error('Failed to fetch job');
@@ -83,7 +84,7 @@ export function useJobContext(jobId: string | null, pollInterval = 2000): JobCon
     } finally {
       setLoading(false);
     }
-  }, [jobId]);
+  }, [jobId, mcp]);
 
   useEffect(() => {
     if (!jobId) {

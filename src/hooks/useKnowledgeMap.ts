@@ -21,25 +21,14 @@ import type {
   DomainGrowthSummary,
   RecommendedCourse,
 } from '@/lib/types/knowledgeMap';
-import {
-  getStudentSkills,
-  getClassKOSummary,
-  getStudentAssignments,
-  getAutoAssignSettings,
-  updateAutoAssignSettings,
-  getDomainGrowth,
-  getRecommendedCourses,
-  createAssignment,
-  updateMastery,
-  type GetStudentSkillsParams,
-  type GetClassKOSummaryParams,
-  type GetStudentAssignmentsParams,
-  type GetAutoAssignSettingsParams,
-  type GetDomainGrowthParams,
-  type GetRecommendedCoursesParams,
-  type CreateAssignmentParams,
-  type UpdateMasteryParams,
-  type UpdateAutoAssignSettingsParams,
+import { useMCP } from './useMCP';
+import type {
+  GetStudentSkillsParams,
+  GetClassKOSummaryParams,
+  GetStudentAssignmentsParams,
+  GetRecommendedCoursesParams,
+  CreateAssignmentParams,
+  UpdateMasteryParams,
 } from '@/lib/api/knowledgeMap';
 
 // =====================================================
@@ -82,9 +71,10 @@ export interface UseStudentSkillsResult {
  * const { skills, isLoading } = useStudentSkills({ studentId: 'student-1', domain: 'math' });
  */
 export function useStudentSkills(params: GetStudentSkillsParams): UseStudentSkillsResult {
+  const mcp = useMCP();
   const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: knowledgeMapKeys.studentSkills(params),
-    queryFn: () => getStudentSkills(params),
+    queryFn: () => mcp.getStudentSkills(params),
     staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 10 * 60 * 1000, // 10 minutes (formerly cacheTime)
   });
@@ -118,9 +108,10 @@ export interface UseDomainGrowthResult {
  * const { domains, isLoading } = useDomainGrowth('student-3');
  */
 export function useDomainGrowth(studentId: string): UseDomainGrowthResult {
+  const mcp = useMCP();
   const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: knowledgeMapKeys.domainGrowth(studentId),
-    queryFn: () => getDomainGrowth({ studentId }),
+    queryFn: () => mcp.getDomainGrowth(studentId),
     staleTime: 10 * 60 * 1000, // 10 minutes (less volatile)
     gcTime: 30 * 60 * 1000, // 30 minutes
   });
@@ -157,9 +148,10 @@ export interface UseClassKOSummaryResult {
  * });
  */
 export function useClassKOSummary(params: GetClassKOSummaryParams): UseClassKOSummaryResult {
+  const mcp = useMCP();
   const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: knowledgeMapKeys.classKOSummary(params),
-    queryFn: () => getClassKOSummary(params),
+    queryFn: () => mcp.getClassKOSummary(params),
     staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 15 * 60 * 1000, // 15 minutes
   });
@@ -197,9 +189,10 @@ export interface UseStudentAssignmentsResult {
 export function useStudentAssignments(
   params: GetStudentAssignmentsParams
 ): UseStudentAssignmentsResult {
+  const mcp = useMCP();
   const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: knowledgeMapKeys.studentAssignments(params),
-    queryFn: () => getStudentAssignments(params),
+    queryFn: () => mcp.getStudentAssignments(params),
     staleTime: 2 * 60 * 1000, // 2 minutes (more volatile)
     gcTime: 10 * 60 * 1000, // 10 minutes
   });
@@ -237,9 +230,10 @@ export interface UseRecommendedCoursesResult {
 export function useRecommendedCourses(
   params: GetRecommendedCoursesParams
 ): UseRecommendedCoursesResult {
+  const mcp = useMCP();
   const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: knowledgeMapKeys.recommendedCourses(params),
-    queryFn: () => getRecommendedCourses(params),
+    queryFn: () => mcp.getRecommendedCourses(params.koId, params.studentId, params.limit),
     staleTime: 10 * 60 * 1000, // 10 minutes (stable)
     gcTime: 30 * 60 * 1000, // 30 minutes
     enabled: !!params.koId, // Only run if koId is provided
@@ -278,18 +272,19 @@ export interface UseAutoAssignSettingsResult {
  * await updateSettings({ enabled: true, masteryThreshold: 0.6, ... });
  */
 export function useAutoAssignSettings(studentId: string): UseAutoAssignSettingsResult {
+  const mcp = useMCP();
   const queryClient = useQueryClient();
 
   const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: knowledgeMapKeys.autoAssignSettings(studentId),
-    queryFn: () => getAutoAssignSettings({ studentId }),
+    queryFn: () => mcp.getAutoAssignSettings(studentId),
     staleTime: 10 * 60 * 1000, // 10 minutes
     gcTime: 30 * 60 * 1000, // 30 minutes
   });
 
   const mutation = useMutation({
     mutationFn: (settings: Omit<AutoAssignSettings, 'studentId' | 'createdAt' | 'updatedAt'>) =>
-      updateAutoAssignSettings({ studentId, settings }),
+      mcp.updateAutoAssignSettings(studentId, settings as Record<string, unknown>),
     onSuccess: () => {
       // Invalidate and refetch
       queryClient.invalidateQueries({
@@ -338,10 +333,11 @@ export interface UseCreateAssignmentResult {
  * });
  */
 export function useCreateAssignment(): UseCreateAssignmentResult {
+  const mcp = useMCP();
   const queryClient = useQueryClient();
 
   const mutation = useMutation({
-    mutationFn: createAssignment,
+    mutationFn: (params: CreateAssignmentParams) => mcp.createAssignment(params),
     onSuccess: (_, variables) => {
       // Invalidate assignments for all affected students
       variables.studentIds.forEach((studentId) => {
@@ -392,10 +388,11 @@ export interface UseUpdateMasteryResult {
  * });
  */
 export function useUpdateMastery(): UseUpdateMasteryResult {
+  const mcp = useMCP();
   const queryClient = useQueryClient();
 
   const mutation = useMutation({
-    mutationFn: updateMastery,
+    mutationFn: (params: UpdateMasteryParams) => mcp.updateMastery(params),
     onSuccess: (_, variables) => {
       // Invalidate student skills
       queryClient.invalidateQueries({

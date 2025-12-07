@@ -4,7 +4,6 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Users, AlertTriangle, Target, TrendingUp, Plus, List } from "lucide-react";
 import type { ClassKOSummary } from "@/lib/types/knowledgeMap";
-import { useState } from "react";
 
 // Mock mode controlled by env var per IgniteZero rules
 const ENV_USE_MOCK = (import.meta as any).env?.VITE_USE_MOCK === 'true';

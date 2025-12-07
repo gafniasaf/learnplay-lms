@@ -17,7 +17,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
-import { getOrgConfig } from '@/lib/api/orgConfig';
+import { useMCP } from '@/hooks/useMCP';
 import type { OrgConfig } from '@/lib/api/orgConfig';
 import { TagTypeManager } from '@/components/admin/tags/TagTypeManager';
 import { TagValueEditor } from '@/components/admin/tags/TagValueEditor';
@@ -26,6 +26,7 @@ import { useNavigate } from 'react-router-dom';
 export default function TagManagement() {
   const { toast } = useToast();
   const navigate = useNavigate();
+  const mcp = useMCP();
   const [loading, setLoading] = useState(true);
   const [orgConfig, setOrgConfig] = useState<OrgConfig | null>(null);
   const [expandedTypes, setExpandedTypes] = useState<Set<string>>(new Set());
@@ -38,7 +39,7 @@ export default function TagManagement() {
   async function loadOrgConfig() {
     try {
       setLoading(true);
-      const config = await getOrgConfig();
+      const config = await mcp.getOrgConfig() as OrgConfig;
       setOrgConfig(config);
       setAuthRequired(false);
       

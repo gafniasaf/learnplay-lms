@@ -1,4 +1,3 @@
-import { useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
 import { TopicsHandled, type TopicRow } from "@/components/parent/TopicsHandled";
 import { PageContainer } from "@/components/layout/PageContainer";
@@ -15,7 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useMockData } from "@/lib/api";
+// useMockData removed - useParentTopics handles mock mode internally
 import { useParentDashboard } from "@/hooks/useParentDashboard";
 import { useParentTopics } from "@/hooks/useParentTopics";
 import { differenceInCalendarDays, parseISO, isValid } from "date-fns";

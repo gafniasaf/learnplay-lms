@@ -1,16 +1,18 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { fetchCatalog, fetchAnalytics } from '@/lib/api';
+import { useMCP } from '@/hooks/useMCP';
 import { LineChart, Line, CartesianGrid, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { PageContainer } from '@/components/layout/PageContainer';
 
 export default function TeacherAnalytics() {
+  const mcp = useMCP();
   const [range, setRange] = useState<'7d'|'30d'|'90d'>('7d');
-  const { data: catalog = [], isLoading: loadingCatalog } = useQuery({ 
+  const { data: catalogData, isLoading: loadingCatalog } = useQuery({ 
     queryKey: ['catalog'], 
-    queryFn: fetchCatalog, 
+    queryFn: () => mcp.getCourseCatalog(), 
     staleTime: 5 * 60_000 
   });
+  const catalog = (catalogData as { courses?: Array<{ id: string }> })?.courses ?? [];
   const [courseId, setCourseId] = useState<string>('');
   
   useEffect(() => { 
@@ -19,7 +21,7 @@ export default function TeacherAnalytics() {
 
   const { data, isLoading } = useQuery({
     queryKey: ['analytics', courseId, range],
-    queryFn: () => fetchAnalytics(courseId, range),
+    queryFn: () => courseId ? mcp.fetchAnalytics(courseId, range) : Promise.resolve(null),
     enabled: !!courseId
   });
 

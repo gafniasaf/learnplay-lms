@@ -2,11 +2,12 @@ import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useJobsList } from '@/hooks/useJobsList';
-import { supabase } from '@/integrations/supabase/client';
+import { useMCP } from '@/hooks/useMCP';
 import { toast } from 'sonner';
 import { Play, Loader2 } from 'lucide-react';
 
 export function SystemHealth() {
+  const mcp = useMCP();
   const { jobs } = useJobsList({ limit: 100 });
   const [triggering, setTriggering] = useState(false);
 
@@ -15,14 +16,9 @@ export function SystemHealth() {
   const triggerJobRunner = async () => {
     setTriggering(true);
     try {
-      const { data, error } = await supabase.functions.invoke('ai-job-batch-runner', {
-        body: { n: 3 }
-      });
-
-      if (error) throw error;
-
+      const result = await mcp.call('ai-job-batch-runner', { n: 3 });
       toast.success('Job runner triggered', {
-        description: `Processed: ${data?.processedInThisBatch || 0} jobs`
+        description: `Processed: ${(result as { processedInThisBatch?: number })?.processedInThisBatch || 0} jobs`
       });
     } catch (error) {
       console.error('Failed to trigger job runner:', error);

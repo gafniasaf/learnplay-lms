@@ -1,11 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
-import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Loader2, Bot, User, DollarSign, Clock, Sparkles, AlertCircle } from 'lucide-react';
+import { Loader2, Bot, DollarSign, Clock, AlertCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import type { ChatMessage, ChatAction } from '@/lib/types/chat';
+import type { ChatMessage } from '@/lib/types/chat';
 
 interface ChatPanelProps {
   messages: ChatMessage[];

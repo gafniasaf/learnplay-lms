@@ -45,7 +45,7 @@ test.describe('Student Play Session - Complete Flow', () => {
     } else {
       // Extract courseId from existing course link
       const href = await courseLink.getAttribute('href');
-      courseId = href?.match(/\/admin\/editor\/([^\/]+)/)?.[1] || 'test-course';
+      courseId = href?.match(/\/admin\/editor\/([^/]+)/)?.[1] || 'test-course';
     }
 
     // Step 2: Navigate to play page

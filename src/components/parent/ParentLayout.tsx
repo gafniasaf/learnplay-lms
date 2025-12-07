@@ -16,7 +16,7 @@ import {
   BreadcrumbPage, 
   BreadcrumbSeparator 
 } from "@/components/ui/breadcrumb";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+// Tabs imports removed - not used
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 
 interface ParentLayoutProps {

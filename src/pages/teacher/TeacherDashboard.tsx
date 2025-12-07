@@ -12,7 +12,6 @@ import { AssignmentModal } from "@/components/shared/AssignmentModal";
 import type { Assignment } from "@/lib/api/assignments";
 import type { Class, Student } from "@/lib/api/classes";
 import { useTeacherDashboard } from "@/hooks/useTeacherDashboard";
-import { useMockData } from "@/lib/api";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { toast } from "sonner";
 import { JobProgress } from "@/components/shared/JobProgress";
@@ -109,7 +108,7 @@ const TeacherDashboard = () => {
     (a) => !a.due_at || new Date(a.due_at) >= new Date()
   ).length;
   const totalClasses = classes.length;
-  const totalStudents = students.length;
+  const _totalStudents = students.length;
 
   const handleAssignmentCreated = () => {
     setShowAssignModal(false);
@@ -188,23 +187,23 @@ const TeacherDashboard = () => {
             </div>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" onClick={() => navigate("/teacher/students")} size="lg" data-cta-id="teacher-students">
+            <Button variant="outline" onClick={() => navigate("/teacher/students")} size="lg" data-cta-id="teacher-students" data-action="navigate" data-target="/teacher/students">
               <UserCheck className="h-5 w-5 mr-2" />
               Students
             </Button>
-            <Button variant="outline" onClick={() => navigate("/teacher/classes")} size="lg" data-cta-id="teacher-classes">
+            <Button variant="outline" onClick={() => navigate("/teacher/classes")} size="lg" data-cta-id="teacher-classes" data-action="navigate" data-target="/teacher/classes">
               <Users className="h-5 w-5 mr-2" />
               Classes
             </Button>
-            <Button variant="outline" onClick={() => navigate("/teacher/analytics")} size="lg" data-cta-id="teacher-analytics">
+            <Button variant="outline" onClick={() => navigate("/teacher/analytics")} size="lg" data-cta-id="teacher-analytics" data-action="navigate" data-target="/teacher/analytics">
               <BarChart3 className="h-5 w-5 mr-2" />
               Analytics
             </Button>
-            <Button variant="outline" onClick={() => navigate("/messages")} size="lg" data-cta-id="teacher-messages">
+            <Button variant="outline" onClick={() => navigate("/messages")} size="lg" data-cta-id="teacher-messages" data-action="navigate" data-target="/messages">
               <Mail className="h-5 w-5 mr-2" />
               Messages
             </Button>
-            <Button variant="outline" onClick={() => navigate("/teacher/assignments")} size="lg" data-cta-id="teacher-assignments">
+            <Button variant="outline" onClick={() => navigate("/teacher/assignments")} size="lg" data-cta-id="teacher-assignments" data-action="navigate" data-target="/teacher/assignments">
               <List className="h-5 w-5 mr-2" />
               All Assignments
             </Button>

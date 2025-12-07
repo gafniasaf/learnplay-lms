@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect } from 'react';
 import type { Course } from '@/lib/types/course';
 import { resolvePublicMediaUrl } from '@/lib/media/resolvePublicMediaUrl';
 import { getOptimizedImageUrl } from '@/lib/utils/imageOptimizer';

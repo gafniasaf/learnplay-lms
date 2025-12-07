@@ -51,7 +51,7 @@ export function extractPhaseDetails(
       : 'Generating course content',
     details: {
       itemsProcessed: summary?.phases?.generation?.itemsProcessed,
-      logs: summary?.timeline.filter(t => t.phase === 'generation') || []
+      logs: summary?.timeline?.filter(t => t.phase === 'generation') || []
     }
   });
   
@@ -67,7 +67,7 @@ export function extractPhaseDetails(
       : 'Schema validation complete',
     details: {
       errors: summary?.phases?.validation?.errors || [],
-      logs: summary?.timeline.filter(t => t.phase === 'validation') || []
+      logs: summary?.timeline?.filter(t => t.phase === 'validation') || []
     }
   });
   
@@ -83,7 +83,7 @@ export function extractPhaseDetails(
       : 'No repairs needed',
     details: {
       repairs: summary?.phases?.repair?.repairs || [],
-      logs: summary?.timeline.filter(t => t.phase === 'repair') || []
+      logs: summary?.timeline?.filter(t => t.phase === 'repair') || []
     }
   });
   
@@ -99,7 +99,7 @@ export function extractPhaseDetails(
       : 'Review complete',
     details: {
       issues: summary?.phases?.review?.issues || [],
-      logs: summary?.timeline.filter(t => t.phase === 'review') || []
+      logs: summary?.timeline?.filter(t => t.phase === 'review') || []
     }
   });
   
@@ -114,7 +114,7 @@ export function extractPhaseDetails(
       ? `${summary.phases.images.pending} images pending generation`
       : 'Image generation enqueued',
     details: {
-      logs: summary?.timeline.filter(t => t.phase === 'images') || []
+      logs: summary?.timeline?.filter(t => t.phase === 'images') || []
     }
   });
   
@@ -129,7 +129,7 @@ export function extractPhaseDetails(
       ? `Applied ${summary.phases.enrichment.guardrailsApplied} guardrails`
       : 'Enrichment complete',
     details: {
-      logs: summary?.timeline.filter(t => t.phase === 'enrichment') || []
+      logs: summary?.timeline?.filter(t => t.phase === 'enrichment') || []
     }
   });
   

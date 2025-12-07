@@ -1,12 +1,13 @@
 import { useState, useEffect } from "react";
-import { CalendarIcon, X } from "lucide-react";
+import { CalendarIcon } from "lucide-react";
 import { format } from "date-fns";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-import { getCourseCatalog, createAssignment, type CreateAssignmentRequest } from "@/lib/api";
+import { useMCP } from "@/hooks/useMCP";
+import type { CreateAssignmentRequest } from "@/lib/api/assignments";
 import type { CourseCatalog } from "@/lib/types/courseCatalog";
 import { sanitizeText } from "@/lib/sanitize";
 import { Button } from "@/components/ui/button";
@@ -82,6 +83,7 @@ export function AssignCourseModal({
   classes = [],
   students = [],
 }: AssignCourseModalProps) {
+  const mcp = useMCP();
   const [catalog, setCatalog] = useState<CourseCatalog | null>(null);
   const [loadingCatalog, setLoadingCatalog] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -102,7 +104,7 @@ export function AssignCourseModal({
       const loadCatalog = async () => {
         try {
           setLoadingCatalog(true);
-          const data = await getCourseCatalog();
+          const data = await mcp.getCourseCatalog() as CourseCatalog;
           setCatalog(data);
         } catch (err) {
           console.error("Failed to load catalog:", err);
@@ -143,7 +145,7 @@ export function AssignCourseModal({
         });
       }
 
-      await createAssignment({
+      await mcp.createAssignmentForCourse({
         orgId,
         courseId: values.courseId,
         title: sanitizedTitle,

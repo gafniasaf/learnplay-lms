@@ -45,7 +45,23 @@
           { "name": "multimedia_manifest", "type": "json" },
           { "name": "guard_status", "type": "enum", "options": ["pending", "passed", "failed"] },
           { "name": "published", "type": "boolean" },
-          { "name": "notes", "type": "string" }
+          { "name": "notes", "type": "string" },
+          { "name": "game_type", "type": "enum", "options": ["mcq", "audio_mcq", "visual_mcq", "drag_drop", "matching", "ordering", "timed_fluency", "numeric", "diagram"] }
+        ]
+      },
+      {
+        "name": "GameSession",
+        "slug": "game-session",
+        "fields": [
+          { "name": "assignment_id", "type": "string" },
+          { "name": "course_id", "type": "string" },
+          { "name": "level", "type": "number" },
+          { "name": "status", "type": "enum", "options": ["active", "completed", "abandoned"] },
+          { "name": "start_time", "type": "date" },
+          { "name": "end_time", "type": "date" },
+          { "name": "score", "type": "number" },
+          { "name": "accuracy", "type": "number" },
+          { "name": "content_version", "type": "string" }
         ]
       },
       {
@@ -68,6 +84,39 @@
           { "name": "payload", "type": "json" },
           { "name": "result", "type": "json" },
           { "name": "target_id", "type": "string" }
+        ]
+      },
+      {
+        "name": "MasteryState",
+        "slug": "mastery-state",
+        "fields": [
+          { "name": "student_id", "type": "string" },
+          { "name": "ko_id", "type": "string" },
+          { "name": "mastery", "type": "number" },
+          { "name": "status", "type": "enum", "options": ["locked", "in-progress", "mastered"] },
+          { "name": "evidence_count", "type": "number" },
+          { "name": "last_practiced", "type": "date" }
+        ]
+      },
+      {
+        "name": "StudentGoal",
+        "slug": "student-goal",
+        "fields": [
+          { "name": "student_id", "type": "string" },
+          { "name": "title", "type": "string" },
+          { "name": "target_minutes", "type": "number" },
+          { "name": "progress_minutes", "type": "number" },
+          { "name": "status", "type": "enum", "options": ["on_track", "behind", "completed"] },
+          { "name": "due_at", "type": "date" }
+        ]
+      },
+      {
+        "name": "ClassMembership",
+        "slug": "class-membership",
+        "fields": [
+          { "name": "class_id", "type": "string" },
+          { "name": "user_id", "type": "string" },
+          { "name": "role", "type": "enum", "options": ["student", "teacher"] }
         ]
       }
     ],
@@ -153,7 +202,25 @@
     { "id": "generate-hint", "input": { "courseId": "string", "itemId": "string" }, "output": { "hint": "string" } },
     { "id": "generate-assignment", "input": { "topic": "string" }, "output": { "jobId": "string" } },
     { "id": "generate-remediation", "input": { "subject": "string", "itemsPerGroup": "number" }, "output": { "jobId": "string" } },
-    { "id": "mcp-metrics-proxy", "input": { "type": "string" }, "output": { "ok": "boolean" } }
+    { "id": "mcp-metrics-proxy", "input": { "type": "string" }, "output": { "ok": "boolean" } },
+    { "id": "game-start-round", "input": { "courseId": "string", "level": "number", "assignmentId": "string" }, "output": { "sessionId": "string", "roundId": "string" } },
+    { "id": "game-log-attempt", "input": { "roundId": "string", "itemId": "number", "isCorrect": "boolean", "latencyMs": "number", "finalize": "boolean" }, "output": { "attemptId": "string" } },
+    { "id": "get-analytics", "input": { "courseId": "string", "range": "string" }, "output": { "dailyData": "json", "summary": "json" } },
+    { "id": "get-student-skills", "input": { "studentId": "string", "domain": "string", "status": "string" }, "output": { "skills": "json", "totalCount": "number" } },
+    { "id": "update-mastery", "input": { "studentId": "string", "koId": "string", "exerciseScore": "number" }, "output": { "oldMastery": "number", "newMastery": "number" } },
+    { "id": "get-domain-growth", "input": { "studentId": "string" }, "output": { "domains": "json" } },
+    { "id": "get-recommended-courses", "input": { "koId": "string", "studentId": "string" }, "output": { "courses": "json" } },
+    { "id": "create-class", "input": { "name": "string", "description": "string" }, "output": { "class": "json" } },
+    { "id": "add-class-member", "input": { "classId": "string", "studentEmail": "string" }, "output": { "ok": "boolean" } },
+    { "id": "remove-class-member", "input": { "classId": "string", "studentId": "string" }, "output": { "ok": "boolean" } },
+    { "id": "invite-student", "input": { "orgId": "string", "classId": "string", "email": "string" }, "output": { "inviteId": "string", "success": "boolean" } },
+    { "id": "generate-class-code", "input": { "classId": "string", "refreshCode": "boolean" }, "output": { "code": "string", "expiresAt": "string" } },
+    { "id": "join-class", "input": { "code": "string" }, "output": { "success": "boolean", "classId": "string" } },
+    { "id": "create-child-code", "input": { "studentId": "string" }, "output": { "code": "string", "expiresAt": "string" } },
+    { "id": "link-child", "input": { "code": "string" }, "output": { "success": "boolean", "childId": "string" } },
+    { "id": "send-message", "input": { "recipientId": "string", "content": "string" }, "output": { "messageId": "string", "success": "boolean" } },
+    { "id": "list-conversations", "input": {}, "output": { "conversations": "json" } },
+    { "id": "list-messages", "input": { "conversationWith": "string", "limit": "number" }, "output": { "messages": "json", "nextCursor": "string" } }
   ]
 }
 

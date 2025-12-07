@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { TrendingUp, TrendingDown, Minus } from "lucide-react";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from "recharts";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 
 interface WeeklyData {
   minutes: number;
@@ -41,7 +41,7 @@ export const WeeklyComparisonChart = ({ thisWeek, lastWeek }: WeeklyComparisonCh
     return Minus;
   };
 
-  const getTrendColor = (change: number) => {
+  const _getTrendColor = (change: number) => {
     if (change > 0) return 'text-success';
     if (change < 0) return 'text-destructive';
     return 'text-muted-foreground';

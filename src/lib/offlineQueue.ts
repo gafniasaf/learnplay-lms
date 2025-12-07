@@ -1,9 +1,8 @@
 /**
  * Offline Queue for Game Attempts
  * Stores attempts in localStorage when offline and flushes when back online
+ * Per IgniteZero: MCP-First, resilient queue with idempotency
  */
-
-import type { LogAttemptPayload } from "./api";
 
 const QUEUE_KEY = "offline-attempts-queue";
 export const MAX_RETRIES = 5;
@@ -11,7 +10,14 @@ export const BASE_DELAY = 1000; // 1 second
 
 interface QueuedAttempt {
   id: string;
-  payload: LogAttemptPayload;
+  roundId: string;
+  itemId: number;
+  isCorrect: boolean;
+  latencyMs: number;
+  finalize: boolean;
+  selectedIndex?: number;
+  itemKey?: string;
+  idempotencyKey: string;
   timestamp: number;
   retries: number;
 }
@@ -47,11 +53,28 @@ function saveQueue(queue: QueuedAttempt[]): void {
 /**
  * Add an attempt to the offline queue
  */
-export function enqueue(payload: LogAttemptPayload): void {
+export function enqueueAttempt(params: {
+  roundId: string;
+  itemId: number;
+  isCorrect: boolean;
+  latencyMs: number;
+  finalize?: boolean;
+  selectedIndex?: number;
+  itemKey?: string;
+}): void {
   const queue = getQueue();
+  const idempotencyKey = `${params.roundId}-${params.itemId}-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  
   const attempt: QueuedAttempt = {
     id: `attempt-${Date.now()}-${Math.random()}`,
-    payload,
+    roundId: params.roundId,
+    itemId: params.itemId,
+    isCorrect: params.isCorrect,
+    latencyMs: params.latencyMs,
+    finalize: params.finalize || false,
+    selectedIndex: params.selectedIndex,
+    itemKey: params.itemKey,
+    idempotencyKey,
     timestamp: Date.now(),
     retries: 0,
   };
@@ -89,8 +112,17 @@ export function getBackoffDelay(retries: number): number {
  * Flush queued attempts to the server
  * Uses exponential backoff for retries
  */
-export async function flush(
-  logAttemptFn: (payload: LogAttemptPayload) => Promise<any>
+export async function flushAttempts(
+  logGameAttemptFn: (
+    roundId: string,
+    itemId: number,
+    isCorrect: boolean,
+    latencyMs: number,
+    finalize?: boolean,
+    selectedIndex?: number,
+    itemKey?: string,
+    idempotencyKey?: string
+  ) => Promise<{ attemptId: string; roundId: string; final?: { finalScore: number; endedAt: string } }>
 ): Promise<void> {
   if (typeof window === "undefined") return;
   if (!navigator.onLine) {
@@ -126,7 +158,16 @@ export async function flush(
       }
 
       // Try to send the attempt
-      await logAttemptFn(attempt.payload);
+      await logGameAttemptFn(
+        attempt.roundId,
+        attempt.itemId,
+        attempt.isCorrect,
+        attempt.latencyMs,
+        attempt.finalize,
+        attempt.selectedIndex,
+        attempt.itemKey,
+        attempt.idempotencyKey
+      );
       successCount++;
       console.info(`[OfflineQueue] Successfully sent attempt ${attempt.id}`);
     } catch (err) {
@@ -152,13 +193,22 @@ export async function flush(
  * Set up online event listener to auto-flush
  */
 export function setupAutoFlush(
-  logAttemptFn: (payload: LogAttemptPayload) => Promise<any>
+  logGameAttemptFn: (
+    roundId: string,
+    itemId: number,
+    isCorrect: boolean,
+    latencyMs: number,
+    finalize?: boolean,
+    selectedIndex?: number,
+    itemKey?: string,
+    idempotencyKey?: string
+  ) => Promise<{ attemptId: string; roundId: string; final?: { finalScore: number; endedAt: string } }>
 ): () => void {
   if (typeof window === "undefined") return () => {};
 
   const handleOnline = () => {
     console.info("[OfflineQueue] Connection restored, flushing queue...");
-    flush(logAttemptFn);
+    flushAttempts(logGameAttemptFn);
   };
 
   window.addEventListener("online", handleOnline);

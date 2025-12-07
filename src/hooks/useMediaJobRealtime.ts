@@ -4,8 +4,20 @@
  * Polls for updates instead of realtime subscriptions
  */
 import { useEffect, useState, useCallback, useRef } from 'react';
-import { listMediaJobs, MediaJob } from '@/lib/api/jobs';
+import { useMCP } from './useMCP';
 import { useToast } from '@/hooks/use-toast';
+
+export interface MediaJob {
+  id: string;
+  course_id: string;
+  item_id: number;
+  media_type: 'image' | 'audio' | 'video';
+  prompt: string;
+  provider: string;
+  status: 'pending' | 'processing' | 'done' | 'failed';
+  error?: string;
+  created_at: string;
+}
 
 interface UseMediaJobRealtimeOptions {
   courseId?: string;
@@ -20,6 +32,7 @@ export function useMediaJobRealtime({
   onJobComplete,
   onJobFailed,
 }: UseMediaJobRealtimeOptions = {}) {
+  const mcp = useMCP();
   const [jobs, setJobs] = useState<MediaJob[]>([]);
   const [isSubscribed, setIsSubscribed] = useState(false);
   const { toast } = useToast();
@@ -30,13 +43,13 @@ export function useMediaJobRealtime({
     if (!courseId) return;
 
     try {
-      const response = await listMediaJobs({
+      const response = await mcp.listMediaJobsFiltered({
         courseId,
         limit: 20,
       });
 
-      if (response.ok) {
-        const newJobs = response.jobs;
+      if ((response as { ok: boolean }).ok) {
+        const newJobs = (response as { jobs: MediaJob[] }).jobs;
         
         // Check for status changes
         newJobs.forEach((job) => {
@@ -77,7 +90,7 @@ export function useMediaJobRealtime({
     } catch (error) {
       console.error('Error fetching media jobs:', error);
     }
-  }, [courseId, toast, onJobComplete, onJobFailed]);
+  }, [courseId, toast, onJobComplete, onJobFailed, mcp]);
 
   // Poll for updates
   useEffect(() => {

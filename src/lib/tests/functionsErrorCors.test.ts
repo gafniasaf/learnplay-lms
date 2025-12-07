@@ -108,7 +108,7 @@ export async function runFunctionsErrorCorsTest(): Promise<{ pass: boolean; deta
           functionResults.errorBody = errorBody;
           allPassed = false;
         }
-      } catch (parseError) {
+      } catch (_parseError) {
         functionResults.errorShape = "✗ failed (invalid JSON response)";
         allPassed = false;
       }

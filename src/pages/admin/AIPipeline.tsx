@@ -5,11 +5,9 @@
 import { useEffect, useState } from 'react';
 import { PageContainer } from '@/components/layout/PageContainer';
 import { PipelineLayout } from '@/components/admin/pipeline/PipelineLayout';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { listCourseJobs, getJobMetrics } from '@/lib/api/jobs';
-import { callEdgeFunction } from '@/lib/api/common';
+// API calls now via useMCP
 import { useMCP } from '@/hooks/useMCP';
 
 export default function AIPipeline() {
@@ -22,7 +20,7 @@ export default function AIPipeline() {
   const [mkSubject, setMkSubject] = useState('Course Marketing Assets');
   const [mkSubmitting, setMkSubmitting] = useState(false);
   const navigate = useNavigate();
-  const { enqueueJob } = useMCP();
+  const mcp = useMCP();
 
   // Enforce jobId routing: if absent, resolve to latest job and redirect
   useEffect(() => {
@@ -30,7 +28,7 @@ export default function AIPipeline() {
     if (!jobId && !loading) {
       const resolveJobId = async () => {
         try {
-          const response = await listCourseJobs({ limit: 1 });
+          const response = await mcp.listCourseJobs({ limit: 1 });
           if (response.ok && response.jobs.length > 0) {
             setSearchParams({ jobId: response.jobs[0].id }, { replace: true });
           }
@@ -46,7 +44,7 @@ export default function AIPipeline() {
     const load = async () => {
       setLoading(true);
       try {
-        const response = await getJobMetrics(24);
+        const response = await mcp.getJobMetrics(24);
         if (response.ok) {
           const byStatus = response.courseJobs.byStatus || {};
           setCounts({

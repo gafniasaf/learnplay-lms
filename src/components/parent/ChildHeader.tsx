@@ -1,5 +1,4 @@
-import { useState } from "react";
-import { ChevronDown } from "lucide-react";
+// useState and ChevronDown imports removed - not used
 import {
   Select,
   SelectContent,

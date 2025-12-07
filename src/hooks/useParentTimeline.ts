@@ -1,11 +1,7 @@
 import { useMemo } from "react";
 import { useQuery, type UseQueryResult } from "@tanstack/react-query";
-import {
-  getParentTimeline,
-  type ParentTimelineParams,
-  type ParentTimelineResponse,
-} from "@/lib/api/parentTimeline";
-import { useMockData } from "@/lib/api";
+import { useMCP } from "./useMCP";
+import type { ParentTimelineParams, ParentTimelineResponse } from "@/lib/api/parentTimeline";
 
 export interface UseParentTimelineOptions {
   enabled?: boolean;
@@ -15,18 +11,16 @@ export function useParentTimeline(
   params: ParentTimelineParams = {},
   options: UseParentTimelineOptions = {}
 ): UseQueryResult<ParentTimelineResponse> {
-  const mockMode = useMockData();
+  const mcp = useMCP();
   const serializedParams = useMemo(
     () => JSON.stringify(params ?? {}),
     [params]
   );
 
-  const queryEnabled = options.enabled ?? !mockMode;
-
   return useQuery({
     queryKey: ["parent-timeline", serializedParams],
-    queryFn: () => getParentTimeline(params),
-    enabled: queryEnabled,
+    queryFn: () => mcp.getParentTimeline(params.childId || '', params.limit),
+    enabled: (options.enabled !== false) && !!params.childId,
     staleTime: 60_000,
     refetchOnWindowFocus: false,
   });

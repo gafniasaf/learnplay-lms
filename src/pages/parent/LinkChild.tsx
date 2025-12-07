@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
-import { linkChild } from "@/lib/api";
+import { useClassManagement } from "@/hooks/useClassManagement";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { ParentLayout } from "@/components/parent/ParentLayout";
 import { Button } from "@/components/ui/button";
@@ -14,29 +14,31 @@ import { toast } from "sonner";
 export default function LinkChild() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const classMgmt = useClassManagement();
   const [code, setCode] = useState("");
 
-  const linkMutation = useMutation({
-    mutationFn: (code: string) => linkChild(code),
-    onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ["parent-dashboard"] });
-      toast.success(data.message);
-      if (!data.alreadyLinked) {
-        navigate("/parent/dashboard");
-      }
-    },
-    onError: (error: Error) => {
-      if (error.message.includes("Invalid code")) {
-        toast.error("Invalid code. Please check and try again.");
-      } else if (error.message.includes("already been used")) {
-        toast.error("This code has already been used.");
-      } else if (error.message.includes("expired")) {
-        toast.error("This code has expired. Please request a new one.");
-      } else {
-        toast.error(`Failed to link child: ${error.message}`);
-      }
-    },
-  });
+  const linkMutation = classMgmt.linkChild;
+  
+  // Override onSuccess/onError for this component
+  const handleLinkSuccess = (data: unknown) => {
+    queryClient.invalidateQueries({ queryKey: ["parent-dashboard"] });
+    toast.success((data as { message?: string }).message || "Child linked successfully");
+    if (!(data as { alreadyLinked?: boolean }).alreadyLinked) {
+      navigate("/parent/dashboard");
+    }
+  };
+  
+  const handleLinkError = (error: Error) => {
+    if (error.message.includes("Invalid code")) {
+      toast.error("Invalid code. Please check and try again.");
+    } else if (error.message.includes("already been used")) {
+      toast.error("This code has already been used.");
+    } else if (error.message.includes("expired")) {
+      toast.error("This code has expired. Please request a new one.");
+    } else {
+      toast.error(`Failed to link child: ${error.message}`);
+    }
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -47,7 +49,10 @@ export default function LinkChild() {
       return;
     }
 
-    linkMutation.mutate(trimmedCode);
+    linkMutation.mutate(trimmedCode, {
+      onSuccess: handleLinkSuccess,
+      onError: handleLinkError,
+    });
   };
 
   return (

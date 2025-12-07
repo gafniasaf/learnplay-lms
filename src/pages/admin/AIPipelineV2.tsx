@@ -18,6 +18,9 @@ import { useMCP } from '@/hooks/useMCP';
 import { useJobContext } from '@/hooks/useJobContext';
 import { useJobsList } from '@/hooks/useJobsList';
 import { useAuth } from '@/hooks/useAuth';
+import { createLogger } from '@/lib/logger';
+
+const logger = createLogger('AIPipelineV2');
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { 
@@ -149,7 +152,7 @@ export default function AIPipelineV2() {
         throw new Error(result.error || 'Failed to create job');
       }
     } catch (err) {
-      console.error('[AIPipelineV2] Creation failed:', err);
+      logger.error('Course creation failed', err instanceof Error ? err : new Error(String(err)), { action: 'createCourse' });
       const errorMessage = err instanceof Error ? err.message : 'Failed to create course';
       
       // Check if it's an authentication error
@@ -180,12 +183,20 @@ export default function AIPipelineV2() {
   };
 
   const handleViewCourse = () => {
-    // Try multiple sources for courseId: local state, job object, or job payload
-    const courseId = currentCourseId || 
-                     job?.course_id || 
-                     (job as any)?.payload?.course_id ||
-                     (job as any)?.result?.course_id ||
-                     (job as any)?.result_path?.match(/courses\/([^\/]+)/)?.[1];
+    // Try multiple sources for courseId: local state, job object, or job result
+    let courseId: string | undefined = currentCourseId || job?.course_id;
+    
+    // Check job result if available (result is Record<string, unknown>)
+    if (!courseId && job?.summary && typeof job.summary === 'object') {
+      const summary = job.summary as Record<string, unknown>;
+      courseId = summary.course_id as string | undefined;
+    }
+    
+    // Extract from result_path if it contains a course ID pattern
+    if (!courseId && job?.result_path) {
+      const match = job.result_path.match(/courses\/([^/]+)/);
+      courseId = match?.[1];
+    }
     
     if (courseId && courseId !== 'ai_course_generate') { // Guard against job type being used as courseId
       // Use the correct route: /admin/editor/:courseId

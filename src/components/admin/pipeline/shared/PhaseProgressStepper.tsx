@@ -21,7 +21,7 @@ export function PhaseProgressStepper({ phases }: PhaseProgressStepperProps) {
           {/* Connection line */}
           <div className="absolute top-5 left-10 right-10 h-0.5 bg-gray-200 z-0" />
 
-          {phases.map((phase, index) => (
+          {phases.map((phase, _index) => (
             <div
               key={phase.id}
               data-testid={`phase-${phase.label.toLowerCase().replace(/\s+/g, '-')}`}

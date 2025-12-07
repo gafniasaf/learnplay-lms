@@ -12,16 +12,8 @@ import { useToast } from "@/hooks/use-toast";
 import { RefreshCw, RotateCcw, Clock, AlertCircle, CheckCircle2, XCircle, Trash2 } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { invalidateCourseCache } from "@/lib/utils/cacheInvalidation";
-import { 
-  listCourseJobs, 
-  listMediaJobs, 
-  getJobMetrics,
-  requeueJob as apiRequeueJob, 
-  deleteJob as apiDeleteJob,
-  CourseJob,
-  MediaJob
-} from "@/lib/api/jobs";
-import { callEdgeFunction } from "@/lib/api/common";
+import { useMCP } from "@/hooks/useMCP";
+import type { CourseJob, MediaJob } from "@/lib/api/jobs";
 
 interface Job {
   id: string;
@@ -44,6 +36,7 @@ interface Job {
 export default function JobsDashboard() {
   const location = useLocation();
   const navigate = useNavigate();
+  const mcp = useMCP();
   const search = useMemo(() => new URLSearchParams(location.search), [location.search]);
   const urlJobId = search.get("jobId") || "";
   const urlStatus = search.get("status") || "";
@@ -70,19 +63,22 @@ export default function JobsDashboard() {
     try {
       // Fetch jobs via edge functions
       const [courseRes, mediaRes, metricsRes] = await Promise.all([
-        listCourseJobs({
+        mcp.listCourseJobs({
           status: filterStatus || undefined,
           sinceHours: sinceHours > 0 ? sinceHours : undefined,
           search: filterText || undefined,
           limit: 100,
         }),
-        listMediaJobs({ limit: 50 }),
-        getJobMetrics(sinceHours),
+        mcp.listMediaJobsFiltered({ limit: 50 }),
+        mcp.getJobMetrics(sinceHours),
       ]);
 
-      if (courseRes.ok) setCourseJobs(courseRes.jobs as Job[]);
-      if (mediaRes.ok) setMediaJobs(mediaRes.jobs as Job[]);
-      if (metricsRes.ok) setMetrics({ courseJobs: metricsRes.courseJobs, mediaJobs: metricsRes.mediaJobs });
+      if ((courseRes as { ok: boolean }).ok) setCourseJobs((courseRes as { jobs: Job[] }).jobs);
+      if ((mediaRes as { ok: boolean }).ok) setMediaJobs((mediaRes as { jobs: Job[] }).jobs);
+      if ((metricsRes as { ok: boolean }).ok) {
+        const m = metricsRes as { courseJobs: unknown; mediaJobs: unknown };
+        setMetrics({ courseJobs: m.courseJobs, mediaJobs: m.mediaJobs });
+      }
     } catch (error) {
       console.warn('[JobsDashboard] Error loading jobs:', error);
       toast({
@@ -97,7 +93,7 @@ export default function JobsDashboard() {
 
   const handleRequeueJob = async (jobId: string, jobTable: 'ai_course_jobs' | 'ai_media_jobs') => {
     try {
-      const result = await apiRequeueJob(jobId, jobTable);
+      const result = await mcp.requeueJob(jobId, jobTable);
       if (result.ok) {
         toast({
           title: "Job requeued",
@@ -118,7 +114,7 @@ export default function JobsDashboard() {
 
   const handleDeleteJob = async (jobId: string, jobTable: 'ai_course_jobs' | 'ai_media_jobs') => {
     try {
-      const result = await apiDeleteJob(jobId, jobTable);
+      const result = await mcp.deleteJob(jobId, jobTable);
       if (result.ok) {
         toast({
           title: "Job deleted",
@@ -139,7 +135,7 @@ export default function JobsDashboard() {
 
   const runBatchRunner = async () => {
     try {
-      await callEdgeFunction('ai-job-batch-runner', { n: 3 });
+      await mcp.call('ai-job-batch-runner', { n: 3 });
       toast({ title: 'Batch run triggered' });
       await loadJobs();
     } catch (error) {
@@ -149,7 +145,7 @@ export default function JobsDashboard() {
 
   const runReconciler = async () => {
     try {
-      await callEdgeFunction('jobs-reconciler', {});
+      await mcp.call('jobs-reconciler', {});
       toast({ title: 'Reconciler ran' });
       await loadJobs();
     } catch (error) {

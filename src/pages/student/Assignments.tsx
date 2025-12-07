@@ -6,7 +6,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Mail } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { shouldUseMockData } from "@/lib/api/common";
+// Mock data check removed - useStudentAssignments handles it
 import { getAssignmentsDue } from "@/lib/student/mockSelectors";
 import { mapStudentAssignment, type StudentAssignmentDisplay } from "@/lib/student/assignmentsMappers";
 

@@ -10,18 +10,21 @@ const getMocks = () => import("../mocks");
  * @returns Dashboard data with stats and activities
  */
 export async function getDashboard(role: DashboardRole): Promise<Dashboard> {
+  const logger = (await import('@/lib/logger')).createLogger('API');
+  
   if (shouldUseMockData()) {
-    console.log("[API] Using mock data for getDashboard");
+    logger.debug('Using mock data for getDashboard', { component: 'getDashboard' });
     const { fetchDashboard } = await getMocks();
     return fetchDashboard(role);
   }
 
-  console.info("[getDashboard]", { role });
+  logger.info('Getting dashboard', { component: 'getDashboard', role });
 
   // Use student-dashboard edge function for student role
   if (role === "student") {
     // Get studentId from authenticated user
-    const { getAccessToken, supabase: supabaseClient } = await import("../supabase");
+    const { getAccessToken } = await import("../supabase");
+    const { supabase: supabaseClient } = await import("@/integrations/supabase/client");
     const token = await getAccessToken();
     
     if (!token) {
@@ -42,7 +45,7 @@ export async function getDashboard(role: DashboardRole): Promise<Dashboard> {
       recommendedCourses: any[];
     }>("student-dashboard", { studentId });
 
-    console.info("[getDashboard][student-dashboard][ok]", response);
+    logger.debug('Student dashboard response received', { component: 'getDashboard', action: 'student-dashboard' });
 
     // Transform to Dashboard format
     return {
@@ -84,7 +87,7 @@ export async function getDashboard(role: DashboardRole): Promise<Dashboard> {
   // Use generic get-dashboard for other roles
   const data = await callEdgeFunctionGet<Dashboard>("get-dashboard", { role });
 
-  console.info("[getDashboard][ok]", data);
+  logger.debug('Dashboard data received', { component: 'getDashboard', role });
 
   return data;
 }

@@ -25,21 +25,35 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Read OpenAI key from learnplay.env
+// Read OpenAI key - REQUIRED for live AI pipeline tests per NO-FALLBACK policy
 function getOpenAIKey(): string {
+  // Try env vars first (preferred)
+  const key = process.env.VITE_OPENAI_API_KEY || process.env.OPENAI_API_KEY;
+  if (key) {
+    return key;
+  }
+  
+  // Fallback to reading from learnplay.env file
   const envFile = path.resolve(__dirname, '../../learnplay.env');
   try {
     const envContent = readFileSync(envFile, 'utf-8');
     const lines = envContent.split('\n');
     for (let i = 0; i < lines.length; i++) {
       if (lines[i].includes('openai key') && i + 1 < lines.length) {
-        return lines[i + 1].trim();
+        const fileKey = lines[i + 1].trim();
+        if (fileKey) {
+          return fileKey;
+        }
       }
     }
   } catch (error) {
-    console.warn('Could not read learnplay.env');
+    // File doesn't exist or can't be read - will fail below
   }
-  return process.env.VITE_OPENAI_API_KEY || process.env.OPENAI_API_KEY || '';
+  
+  // Fail explicitly per NO-FALLBACK policy
+  console.error('❌ OpenAI API key is REQUIRED for live AI pipeline tests');
+  console.error('   Set VITE_OPENAI_API_KEY or OPENAI_API_KEY env var, or add to learnplay.env');
+  throw new Error('OpenAI API key is required for live AI pipeline tests');
 }
 
 test.describe('Live AI Pipeline: Course Creation', () => {
