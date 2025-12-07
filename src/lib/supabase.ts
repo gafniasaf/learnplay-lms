@@ -24,14 +24,24 @@ export async function initAuth(): Promise<void> {
 
 /**
  * Ensure a valid session exists by checking current session
+ * Attempts to refresh the token if it exists but might be stale
  * @returns Access token or null if no valid session
  */
 export async function ensureSession(): Promise<string | null> {
   try {
     // Check for existing session
-    const { data: { session } } = await supabase.auth.getSession();
+    let { data: { session } } = await supabase.auth.getSession();
     
     if (session?.access_token) {
+      // Try to refresh the token to get updated metadata
+      // This will get a new token if the current one is close to expiring
+      const { data: refreshData } = await supabase.auth.refreshSession();
+      if (refreshData?.session?.access_token) {
+        console.log("[Auth] Session refreshed:", refreshData.session.user.id);
+        currentAccessToken = refreshData.session.access_token;
+        return refreshData.session.access_token;
+      }
+      
       console.log("[Auth] Valid session exists:", session.user.id);
       currentAccessToken = session.access_token;
       return session.access_token;

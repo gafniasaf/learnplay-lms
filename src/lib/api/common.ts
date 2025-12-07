@@ -166,13 +166,34 @@ export async function callEdgeFunction<TRequest, TResponse>(
       `[API] 401 on ${functionName}, attempting to refresh session...`
     );
 
+    // Try to refresh the session token to get updated metadata
     token = await ensureSession();
 
     if (!token) {
+      // Parse error to check if it's missing organization_id
+      const errorText = await res.clone().text();
+      let errorData;
+      try {
+        errorData = JSON.parse(errorText);
+      } catch {
+        errorData = { message: errorText };
+      }
+      
+      const errorMessage = errorData.message || errorData.error || '';
+      if (errorMessage.includes('missing organization_id') || errorMessage.includes('not configured')) {
+        throw new ApiError(
+          "Your session token doesn't include organization configuration. Please log out and log back in to refresh your session.",
+          "SESSION_STALE",
+          401,
+          errorData
+        );
+      }
+      
       throw new ApiError(
-        "Failed to refresh session after 401",
+        "Failed to refresh session after 401. Please log out and log back in.",
         "AUTH_REFRESH_FAILED",
-        401
+        401,
+        errorData
       );
     }
 
@@ -180,10 +201,30 @@ export async function callEdgeFunction<TRequest, TResponse>(
     res = await makeRequest(token);
 
     if (res.status === 401) {
+      // Parse the error to provide better guidance
+      const errorText = await res.text();
+      let errorData;
+      try {
+        errorData = JSON.parse(errorText);
+      } catch {
+        errorData = { message: errorText };
+      }
+      
+      const errorMessage = errorData.message || errorData.error || '';
+      if (errorMessage.includes('missing organization_id') || errorMessage.includes('not configured')) {
+        throw new ApiError(
+          "Your session token doesn't include organization configuration. Please log out completely and log back in to get a fresh token with updated metadata.",
+          "SESSION_STALE",
+          401,
+          errorData
+        );
+      }
+      
       throw new ApiError(
-        "Still unauthorized after session refresh",
+        "Still unauthorized after session refresh. Your session may be stale. Please log out and log back in.",
         "UNAUTHORIZED",
-        401
+        401,
+        errorData
       );
     }
 

@@ -143,15 +143,19 @@ export function useMCP() {
       return await callEdgeFunction<EnqueueJobResult>('enqueue-job', { jobType, payload });
     } catch (error: any) {
       // Improve error messages for authentication issues
-      if (error?.status === 401 || error?.code === 'UNAUTHORIZED' || (error?.message || '').includes('401') || (error?.message || '').includes('Unauthorized')) {
+      if (error?.status === 401 || error?.code === 'UNAUTHORIZED' || error?.code === 'SESSION_STALE' || (error?.message || '').includes('401') || (error?.message || '').includes('Unauthorized')) {
         const errorMessage = error?.message || error?.details?.message || '';
         
-        // Check for organization_id missing error
-        if (errorMessage.includes('missing organization_id') || errorMessage.includes('not configured')) {
+        // Check for stale session / missing organization_id error
+        if (errorMessage.includes('missing organization_id') || 
+            errorMessage.includes('not configured') || 
+            errorMessage.includes("doesn't include organization") ||
+            errorMessage.includes('SESSION_STALE') ||
+            error?.code === 'SESSION_STALE') {
           throw new Error(
-            'Your account is missing organization configuration. ' +
-            'Please log out and log back in, or contact support. ' +
-            'If you are an admin, run: npx tsx scripts/fix-admin-org.ts <your-email>'
+            'Your session token is stale and doesn\'t include your organization configuration. ' +
+            'Please log out completely and log back in to refresh your session token. ' +
+            'Your account is configured correctly, but you need a fresh login to activate it.'
           );
         }
         
