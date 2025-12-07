@@ -8,6 +8,10 @@ on:
 jobs:
   auth-and-smoke:
     runs-on: ubuntu-latest
+    # Skip scheduled runs if secrets are not configured (dev mode)
+    # Manual runs via workflow_dispatch will still work
+    # Note: This also runs on pull_request, which should continue
+    if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch' || secrets.MCP_AUTH_TOKEN != ''
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

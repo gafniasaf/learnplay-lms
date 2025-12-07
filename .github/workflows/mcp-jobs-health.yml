@@ -8,6 +8,9 @@ on:
 jobs:
   jobs-health:
     runs-on: ubuntu-latest
+    # Skip scheduled runs if secrets are not configured (dev mode)
+    # Manual runs via workflow_dispatch will still work
+    if: github.event_name == 'workflow_dispatch' || secrets.MCP_AUTH_TOKEN != ''
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

@@ -8,6 +8,9 @@ on:
 jobs:
   dead-cta-nightly:
     runs-on: ubuntu-latest
+    # Skip scheduled runs in dev mode (no secrets required, but can be disabled)
+    # Manual runs via workflow_dispatch will still work
+    if: github.event_name == 'workflow_dispatch' || true  # Can set to false to disable scheduled runs
     steps:
       - name: Checkout
         uses: actions/checkout@v4
