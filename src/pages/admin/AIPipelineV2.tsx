@@ -45,6 +45,7 @@ const MODE_OPTIONS = [
 export default function AIPipelineV2() {
   const [state, setState] = useState<GeneratorState>('idle');
   const [currentJobId, setCurrentJobId] = useState<string | null>(null);
+  const [currentCourseId, setCurrentCourseId] = useState<string | null>(null); // Store courseId locally
   const [subject, setSubject] = useState('');
   const [grade, setGrade] = useState('3-5');
   const [itemsPerGroup, setItemsPerGroup] = useState(12);
@@ -60,6 +61,18 @@ export default function AIPipelineV2() {
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
 
+  // Load stored jobId and courseId from localStorage on mount
+  useEffect(() => {
+    const storedJobId = localStorage.getItem('selectedJobId');
+    const storedCourseId = localStorage.getItem('selectedCourseId');
+    if (storedJobId) {
+      setCurrentJobId(storedJobId);
+    }
+    if (storedCourseId) {
+      setCurrentCourseId(storedCourseId);
+    }
+  }, []);
+
   // Auto-detect state from job status
   useEffect(() => {
     if (!currentJobId) {
@@ -68,6 +81,12 @@ export default function AIPipelineV2() {
     }
 
     if (job) {
+      // Update courseId from job if available
+      if (job.course_id && !currentCourseId) {
+        setCurrentCourseId(job.course_id);
+        localStorage.setItem('selectedCourseId', job.course_id);
+      }
+      
       if (job.status === 'done') {
         setState('complete');
       } else if (['pending', 'processing', 'running'].includes(job.status)) {
@@ -76,9 +95,12 @@ export default function AIPipelineV2() {
         setState('idle'); // Reset on failure
         toast.error('Course generation failed. Please try again.');
         setCurrentJobId(null);
+        setCurrentCourseId(null);
+        localStorage.removeItem('selectedJobId');
+        localStorage.removeItem('selectedCourseId');
       }
     }
-  }, [job, currentJobId]);
+  }, [job, currentJobId, currentCourseId]);
 
   const handleCreate = async () => {
     if (!subject.trim()) {
@@ -116,6 +138,9 @@ export default function AIPipelineV2() {
       if (result.ok) {
         const jobId = result.jobId as string;
         setCurrentJobId(jobId);
+        setCurrentCourseId(courseId); // Store courseId for later use
+        localStorage.setItem('selectedJobId', jobId);
+        localStorage.setItem('selectedCourseId', courseId);
         setState('creating');
         setSubject('');
         setSpecialRequests('');
@@ -155,17 +180,28 @@ export default function AIPipelineV2() {
   };
 
   const handleViewCourse = () => {
-    if (!job) return;
-    const courseId = (job as any)?.course_id || 
+    // Try multiple sources for courseId: local state, job object, or job payload
+    const courseId = currentCourseId || 
+                     job?.course_id || 
                      (job as any)?.payload?.course_id ||
-                     (job as any)?.result?.course_id;
-    if (courseId) {
-      navigate(`/admin/courses/${courseId}`);
+                     (job as any)?.result?.course_id ||
+                     (job as any)?.result_path?.match(/courses\/([^\/]+)/)?.[1];
+    
+    if (courseId && courseId !== 'ai_course_generate') { // Guard against job type being used as courseId
+      // Use the correct route: /admin/editor/:courseId
+      navigate(`/admin/editor/${courseId}`);
+    } else {
+      toast.error('Course ID not found', {
+        description: 'The course ID could not be extracted from the job. The course may still be generating. Please wait for completion.',
+      });
     }
   };
 
   const handleCreateAnother = () => {
     setCurrentJobId(null);
+    setCurrentCourseId(null);
+    localStorage.removeItem('selectedJobId');
+    localStorage.removeItem('selectedCourseId');
     setState('idle');
   };
 
