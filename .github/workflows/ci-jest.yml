@@ -3,8 +3,20 @@ name: CI - Jest
 on:
   push:
     branches: [ main ]
+    paths:
+      - 'src/**'
+      - 'tests/unit/**'
+      - 'tests/integration/**'
+      - 'jest.config.js'
+      - '.github/workflows/ci-jest.yml'
   pull_request:
     branches: [ main ]
+    paths:
+      - 'src/**'
+      - 'tests/unit/**'
+      - 'tests/integration/**'
+      - 'jest.config.js'
+      - '.github/workflows/ci-jest.yml'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
