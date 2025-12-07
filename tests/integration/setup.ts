@@ -1,8 +1,12 @@
 import { config } from 'dotenv';
 import { resolve } from 'path';
+import { loadLearnPlayEnv } from '../helpers/parse-learnplay-env';
 
-// Load environment variables from .env.local
+// Load environment variables from .env.local first (if exists)
 config({ path: resolve(__dirname, '../../.env.local') });
+
+// Load from learnplay.env (takes precedence for missing vars)
+loadLearnPlayEnv();
 
 // Validate required environment variables
 const requiredEnvVars = [
@@ -28,5 +32,5 @@ if (!process.env.TEST_TIMEOUT) {
 }
 
 console.log('Integration test setup complete');
-console.log(`SUPABASE_URL: ${process.env.SUPABASE_URL}`);
+console.log(`SUPABASE_URL: ${process.env.SUPABASE_URL || 'not set'}`);
 console.log(`Test timeout: ${process.env.TEST_TIMEOUT}ms`);

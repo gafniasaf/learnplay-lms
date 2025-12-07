@@ -2,6 +2,14 @@
 if (typeof jest !== 'undefined') {
   // @ts-ignore - dynamic import for Jest only
   require('@testing-library/jest-dom');
+  
+  // Load learnplay.env for Jest tests
+  try {
+    const { loadLearnPlayEnv } = require('./tests/helpers/parse-learnplay-env.cjs');
+    loadLearnPlayEnv();
+  } catch (error) {
+    // Ignore if helper not available
+  }
 }
 
 // Mock import.meta for Jest environment

@@ -1,52 +1,19 @@
 import type { PlaywrightTestConfig } from '@playwright/test';
-import { readFileSync } from 'fs';
-import path from 'path';
-import { fileURLToPath } from 'url';
-
-// Get __dirname equivalent for ES modules
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-// Helper to read OpenAI key from learnplay.env
-function getOpenAIKey(): string {
-  const envFile = path.resolve(__dirname, 'learnplay.env');
-  try {
-    const envContent = readFileSync(envFile, 'utf-8');
-    const lines = envContent.split('\n');
-    for (let i = 0; i < lines.length; i++) {
-      if (lines[i].includes('openai key') && i + 1 < lines.length) {
-        return lines[i + 1].trim();
-      }
-    }
-  } catch (error) {
-    // Ignore
-  }
-  return process.env.VITE_OPENAI_API_KEY || process.env.OPENAI_API_KEY || '';
-}
+import { parseLearnPlayEnv } from './tests/helpers/parse-learnplay-env';
 
 // Read environment variables from learnplay.env
-const envFile = path.resolve(__dirname, 'learnplay.env');
-let supabaseUrl = process.env.VITE_SUPABASE_URL;
-let supabaseKey = process.env.VITE_SUPABASE_PUBLISHABLE_KEY || process.env.VITE_SUPABASE_ANON_KEY;
+const env = parseLearnPlayEnv();
 
-if (!supabaseUrl || !supabaseKey) {
-  try {
-    const envContent = readFileSync(envFile, 'utf-8');
-    const lines = envContent.split('\n');
-    
-    for (let i = 0; i < lines.length; i++) {
-      const line = lines[i].trim();
-      if (line.includes('Project url') && i + 1 < lines.length) {
-        supabaseUrl = lines[i + 1].trim();
-      }
-      if (line.includes('anon public') && i + 1 < lines.length) {
-        supabaseKey = lines[i + 1].trim();
-      }
-    }
-  } catch (error) {
-    console.warn('Could not read learnplay.env, using environment variables');
-  }
-}
+const supabaseUrl = process.env.VITE_SUPABASE_URL || env.SUPABASE_URL;
+const supabaseKey = process.env.VITE_SUPABASE_PUBLISHABLE_KEY || 
+                    process.env.VITE_SUPABASE_ANON_KEY || 
+                    env.SUPABASE_ANON_KEY;
+const openaiKey = process.env.VITE_OPENAI_API_KEY || 
+                  process.env.OPENAI_API_KEY || 
+                  env.OPENAI_API_KEY;
+const anthropicKey = process.env.VITE_ANTHROPIC_API_KEY || 
+                     process.env.ANTHROPIC_API_KEY || 
+                     env.ANTHROPIC_API_KEY;
 
 if (!supabaseUrl || !supabaseKey) {
   throw new Error('Missing Supabase credentials. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY or ensure learnplay.env exists.');
@@ -63,14 +30,12 @@ const PORT = process.env.PORT ? Number(process.env.PORT) : 8082;
  *   npm run e2e:live
  * 
  * Make sure you have:
- *   - VITE_SUPABASE_URL set (or in learnplay.env)
- *   - VITE_SUPABASE_ANON_KEY set (or in learnplay.env)
+ *   - learnplay.env with Supabase credentials
  *   - Admin account created (run scripts/create-admin.ts first)
  */
 const config: PlaywrightTestConfig = {
   testDir: 'tests/e2e',
   testMatch: ['**/*live*.spec.ts', '**/live-*.spec.ts'],
-  timeout: 600_000, // 10 minutes for AI pipeline tests
   timeout: 180_000, // 3 minutes for tests with real LLM calls
   retries: process.env.CI ? 1 : 0,
   reporter: [
@@ -97,9 +62,9 @@ const config: PlaywrightTestConfig = {
       VITE_SUPABASE_URL: supabaseUrl,
       VITE_SUPABASE_ANON_KEY: supabaseKey,
       // Use real LLM APIs (no mocking)
-      VITE_OPENAI_API_KEY: process.env.VITE_OPENAI_API_KEY || getOpenAIKey(),
-      VITE_ANTHROPIC_API_KEY: process.env.VITE_ANTHROPIC_API_KEY || '',
-      OPENAI_API_KEY: process.env.OPENAI_API_KEY || getOpenAIKey(),
+      VITE_OPENAI_API_KEY: openaiKey || '',
+      VITE_ANTHROPIC_API_KEY: anthropicKey || '',
+      OPENAI_API_KEY: openaiKey || '',
     },
   },
   projects: [
@@ -118,4 +83,3 @@ const config: PlaywrightTestConfig = {
 };
 
 export default config;
-
