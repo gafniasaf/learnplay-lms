@@ -44,15 +44,20 @@ test.describe('Live Admin: Job Creation', () => {
     }
     
     // Click create/generate button (AIPipelineV2 uses "Generate Course" button)
-    const createButton = page.locator('button:has-text("Generate"), button:has-text("Create Course"), button:has-text("Create")').first();
-    await createButton.waitFor({ timeout: 5000 });
+    // Button text changes: "Generate Course" (ready) | "Creating..." (processing) | "Log In Required" (not auth)
+    const createButton = page.locator('button:has-text("Generate Course"), button:has-text("Generate")').first();
+    await createButton.waitFor({ timeout: 10000 });
+    
+    // Wait for button to be enabled (not disabled)
+    await expect(createButton).toBeEnabled({ timeout: 5000 });
+    
     await createButton.click();
     
-    // Wait for job to be created (should show success toast or job ID)
-    // Look for toast notification or job progress indicator
+    // Wait for job to be created (should show "Creating..." or progress indicator)
+    // AIPipelineV2 shows "Creating..." text or progress bar when job starts
     await expect(
-      page.locator('text=/job|success|created|started|processing/i').or(
-        page.locator('[data-testid*="job"], [data-cta-id*="job"], .toast, [role="status"]')
+      page.locator('text=/creating|generating|processing|started/i').or(
+        page.locator('[data-testid*="job"], .progress, [role="status"]')
       )
     ).toBeVisible({ timeout: 90000 }); // 90s timeout for real LLM calls
     

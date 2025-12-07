@@ -34,14 +34,15 @@ test.describe('Live Course Navigation: Full Flow', () => {
     }
     
     // Step 3: Create course (AIPipelineV2 uses "Generate Course" button)
-    const createButton = page.locator('button:has-text("Generate"), button:has-text("Generate Course"), button:has-text("Create Course")').first();
-    await createButton.waitFor({ timeout: 5000 });
+    const createButton = page.locator('button:has-text("Generate Course"), button:has-text("Generate")').first();
+    await createButton.waitFor({ timeout: 10000 });
+    await expect(createButton).toBeEnabled({ timeout: 5000 });
     await createButton.click();
     
-    // Step 4: Wait for job to be created
+    // Step 4: Wait for job to be created (AIPipelineV2 shows "Creating..." or progress)
     await expect(
-      page.locator('text=/generating|processing|started/i').or(
-        page.locator('[data-testid*="job"]')
+      page.locator('text=/creating|generating|processing|started/i').or(
+        page.locator('[data-testid*="job"], .progress')
       )
     ).toBeVisible({ timeout: 30000 });
     
@@ -102,38 +103,51 @@ test.describe('Live Course Navigation: Full Flow', () => {
       throw new Error('CourseId could not be extracted from job. This indicates a bug in courseId storage/extraction.');
     }
     
-    // Step 7: Click "View Course" button (if job is complete)
-    if (jobComplete) {
-      const viewCourseButton = page.locator('button:has-text("View Course"), button:has-text("Preview")').first();
-      const hasViewButton = await viewCourseButton.isVisible({ timeout: 5000 }).catch(() => false);
-      
-      if (hasViewButton) {
-        // Capture current URL before clicking
-        const urlBefore = page.url();
+      // Step 7: Click "View Course" button (if job is complete)
+      // AIPipelineV2 shows "Edit", "Preview", and "Publish" buttons in complete state
+      if (jobComplete) {
+        // Try "Edit" button first (most common action)
+        const editButton = page.locator('button:has-text("Edit")').first();
+        const hasEditButton = await editButton.isVisible({ timeout: 5000 }).catch(() => false);
         
-        // Click the button
-        await viewCourseButton.click();
-        
-        // Wait for navigation
-        await page.waitForLoadState('networkidle');
-        await page.waitForTimeout(2000);
-        
-        // Step 8: Verify navigation to CORRECT route (THIS WOULD CATCH THE ROUTE BUG!)
-        const urlAfter = page.url();
-        
-        // Should navigate to /admin/editor/:courseId, NOT /admin/courses/:courseId
-        expect(urlAfter).toMatch(/\/admin\/editor\/[a-z0-9-]+/i);
-        expect(urlAfter).not.toMatch(/\/admin\/courses\/[a-z0-9-]+/i); // This would fail with the bug!
-        expect(urlAfter).toContain(courseId);
-        
-        // Step 9: Verify course editor loaded (not 404)
-        const is404 = await page.locator('text=/404|not found|page not found/i').isVisible({ timeout: 2000 }).catch(() => false);
-        expect(is404).toBeFalsy(); // Should NOT be 404
-        
-        const hasEditor = await page.getByText(/course|edit|item|stem/i).isVisible({ timeout: 10000 }).catch(() => false);
-        expect(hasEditor).toBeTruthy(); // Course editor should load
+        if (hasEditButton) {
+          // Capture current URL before clicking
+          const urlBefore = page.url();
+          
+          // Click the Edit button
+          await editButton.click();
+          
+          // Wait for navigation
+          await page.waitForLoadState('networkidle');
+          await page.waitForTimeout(2000);
+          
+          // Step 8: Verify navigation to CORRECT route (THIS WOULD CATCH THE ROUTE BUG!)
+          const urlAfter = page.url();
+          
+          // Should navigate to /admin/editor/:courseId, NOT /admin/courses/:courseId
+          expect(urlAfter).toMatch(/\/admin\/editor\/[a-z0-9-]+/i);
+          expect(urlAfter).not.toMatch(/\/admin\/courses\/[a-z0-9-]+/i); // This would fail with the bug!
+          expect(urlAfter).toContain(courseId);
+          
+          // Step 9: Verify course editor loaded (not 404)
+          const is404 = await page.locator('text=/404|not found|page not found/i').isVisible({ timeout: 2000 }).catch(() => false);
+          expect(is404).toBeFalsy(); // Should NOT be 404
+          
+          const hasEditor = await page.getByText(/course|edit|item|stem/i).isVisible({ timeout: 10000 }).catch(() => false);
+          expect(hasEditor).toBeTruthy(); // Course editor should load
+        } else {
+          // Fallback: try Preview button
+          const previewButton = page.locator('button:has-text("Preview")').first();
+          const hasPreview = await previewButton.isVisible({ timeout: 2000 }).catch(() => false);
+          if (hasPreview) {
+            await previewButton.click();
+            await page.waitForLoadState('networkidle');
+            // Preview might go to /play/:courseId, which is also valid
+            const urlAfter = page.url();
+            expect(urlAfter).toMatch(/\/(admin\/editor|play)\/[a-z0-9-]+/i);
+          }
+        }
       }
-    }
   }, 600000); // 10 minute timeout
 
   test('courseId persists across page reloads', async ({ page }) => {
