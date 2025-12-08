@@ -95,8 +95,7 @@ Hot tip: keep the MCP server running in another terminal so background strategie
 1. **Contract presence** – `src/lib/contracts.ts` exists and isn’t empty.
 2. **Type safety** – `npm run typecheck`.
 3. **Unit tests** – `npm run test`.
-4. **CTA coverage checks** – `tests/e2e/all-ctas.spec.ts` presence + mock coverage validation.
-5. **Universal E2E presence** – Confirms the manifest-aware Playwright spec is still in the tree.
+4. **LearnPlay E2E tests** – `tests/e2e/learnplay-journeys.spec.ts` presence for core user journey coverage.
 
 If you break any of those, fix it locally before you push—Lovable, Cursor, and the MCP loop all depend on this script staying green.
 

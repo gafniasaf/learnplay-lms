@@ -29,7 +29,7 @@ Golden Plan reviews start from the mocks. Every route/state/CTA listed in `cover
 - Fix any warnings/errors before handing mocks over to React.
 
 ### 5. Wire E2E Coverage
-- `tests/e2e/all-ctas.spec.ts` uses the same CTA IDs. Add a Playwright assertion per CTA so regressions scream immediately.
+- `tests/e2e/learnplay-journeys.spec.ts` tests core user journeys (Learner, Teacher, Parent flows) with CTA assertions.
 - Once mocks + tests pass, React implementation can plug directly into MCP/Supabase knowing all user journeys already exist.
 
 By following this workflow you stay in “approve/reject” mode (no manual HTML grinding) while still guaranteeing 100% CTA coverage. The CTA editor mock is the single source of truth for product review; `coverage.json` and `mock:validate` keep it honest.

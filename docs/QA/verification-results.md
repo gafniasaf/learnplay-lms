@@ -90,7 +90,7 @@ VERIFY_LIVE=1 npm run verify
 
 # Run E2E tests (requires dev server running)
 npm run dev
-npx playwright test tests/e2e/all-ctas.spec.ts
+npx playwright test tests/e2e/learnplay-journeys.spec.ts
 ```
 
 ## Known Limitations

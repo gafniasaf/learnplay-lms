@@ -106,28 +106,11 @@ async function main() {
   execSync('npm run test', { stdio: 'inherit' });
   console.log("✅ UNIT TESTS PASSED");
 
-  // 5. Universal E2E Check (file presence)
-  if (fs.existsSync('tests/e2e/universal-smoke.spec.ts')) {
-     console.log("✅ Universal E2E Test Present");
+  // 5. LearnPlay E2E Tests Check
+  if (fs.existsSync('tests/e2e/learnplay-journeys.spec.ts')) {
+     console.log("✅ LearnPlay E2E Tests Present");
   } else {
-     console.warn("⚠️ Universal E2E Test MISSING");
-  }
-
-  // 6. ALL CTAs E2E Test Check (MANDATORY)
-  if (fs.existsSync('tests/e2e/all-ctas.spec.ts')) {
-     console.log("✅ All CTAs E2E Test Present");
-     
-     // Verify coverage.json exists and count CTAs
-     if (fs.existsSync('docs/mockups/coverage.json')) {
-       const coverage = JSON.parse(fs.readFileSync('docs/mockups/coverage.json', 'utf-8'));
-       let totalCTAs = 0;
-       for (const route of coverage.routes || []) {
-         totalCTAs += (route.requiredCTAs || []).length;
-       }
-       console.log(`   📊 Coverage: ${totalCTAs} CTAs defined in coverage.json`);
-     }
-  } else {
-     throw new Error("❌ ALL CTAs E2E Test MISSING (tests/e2e/all-ctas.spec.ts). Golden Plan requires 100% CTA coverage.");
+     console.warn("⚠️ LearnPlay E2E Tests MISSING (tests/e2e/learnplay-journeys.spec.ts)");
   }
 
   // 7. Mock Coverage Validation

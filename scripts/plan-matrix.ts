@@ -112,8 +112,8 @@ async function main() {
       const preview = spawn("npm", ["run", "preview"], { shell: true, stdio: "ignore" });
       await waitForPort(8080);
       console.log("✓ preview up on 8080");
-      // Run CTA wiring E2E
-      sh("npm", ["run", "e2e", "tests/e2e/plan-cta.spec.ts"]);
+      // Run LearnPlay E2E tests
+      sh("npm", ["run", "e2e", "tests/e2e/learnplay-journeys.spec.ts"]);
       // Stop preview
       try { process.platform === "win32" ? spawn("taskkill", ["/pid", String(preview.pid), "/f", "/t"]) : preview.kill(); } catch {}
       console.log(`✔ Plan ${plan}: OK`);
