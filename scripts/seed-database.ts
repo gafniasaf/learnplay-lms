@@ -27,8 +27,12 @@ const __dirname = path.dirname(__filename);
 
 const env = parseLearnPlayEnv();
 
-const SUPABASE_URL = process.env.SUPABASE_URL || env.SUPABASE_URL;
-const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || env.SUPABASE_SERVICE_ROLE_KEY;
+const SUPABASE_URL = process.env.SUPABASE_URL ? process.env.SUPABASE_URL : env.SUPABASE_URL;
+const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY ? process.env.SUPABASE_SERVICE_ROLE_KEY : env.SUPABASE_SERVICE_ROLE_KEY;
+if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+  console.error('❌ SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are REQUIRED');
+  process.exit(1);
+}
 
 if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
   console.error('❌ Missing Supabase credentials. Set SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY or ensure learnplay.env exists.');
@@ -42,8 +46,12 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
   },
 });
 
-// Default organization ID (from learnplay.env or use default)
-const DEFAULT_ORG_ID = process.env.ORGANIZATION_ID || '4d7b0a5c-3cf1-49e5-9ad7-bf6c1f8a2f58';
+// Organization ID (from env)
+const DEFAULT_ORG_ID = process.env.ORGANIZATION_ID;
+if (!DEFAULT_ORG_ID) {
+  console.error('❌ ORGANIZATION_ID is REQUIRED - set env var');
+  process.exit(1);
+}
 
 interface CourseJSON {
   title: string;

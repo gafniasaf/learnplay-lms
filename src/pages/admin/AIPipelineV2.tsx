@@ -185,7 +185,7 @@ export default function AIPipelineV2() {
                      job?.course_id || 
                      (job as any)?.payload?.course_id ||
                      (job as any)?.result?.course_id ||
-                     (job as any)?.result_path?.match(/courses\/([^\/]+)/)?.[1];
+                     (job as any)?.result_path?.match(/courses\/([^/]+)/)?.[1];
     
     if (courseId && courseId !== 'ai_course_generate') { // Guard against job type being used as courseId
       // Use the correct route: /admin/editor/:courseId

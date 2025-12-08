@@ -17,7 +17,7 @@ jest.mock('@/hooks/useJobContext', () => ({
 
 beforeAll(() => {
   // JSDOM doesn't implement scrollIntoView; stub it for the test
-  // eslint-disable-next-line @typescript-eslint/no-empty-function
+   
   (HTMLElement.prototype as any).scrollIntoView = () => {};
 });
 

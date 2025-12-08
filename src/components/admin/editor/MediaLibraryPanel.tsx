@@ -107,7 +107,7 @@ export const MediaLibraryPanel = ({ onSelect }: MediaLibraryPanelProps) => {
     if (mode === 'generated') {
       loadGenerated();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [mode]);
 
   return (

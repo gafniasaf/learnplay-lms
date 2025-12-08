@@ -175,7 +175,7 @@ test.describe('Admin: Course Editor', () => {
       const href = await courseLink.getAttribute('href');
       if (href) {
         // Extract course ID from href
-        const courseIdMatch = href.match(/\/admin\/editor\/([^\/]+)/);
+        const courseIdMatch = href.match(/\/admin\/editor\/([^/]+)/);
         if (courseIdMatch) {
           const courseId = courseIdMatch[1];
           
