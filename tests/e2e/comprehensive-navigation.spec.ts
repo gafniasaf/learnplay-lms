@@ -214,15 +214,21 @@ test.describe('Navigation: 404 Handling', () => {
     await page.goto('/this-definitely-does-not-exist-12345');
     await page.waitForLoadState('networkidle');
     
-    const has404 = await page.locator('text=/404|not found|page.*exist/i').isVisible().catch(() => false);
-    expect(has404).toBeTruthy();
+    // The 404 page shows "404" heading and "Oops! Page not found" text
+    const has404Heading = await page.getByRole('heading', { name: '404' }).isVisible().catch(() => false);
+    const hasNotFoundText = await page.getByText('not found', { exact: false }).isVisible().catch(() => false);
+    
+    expect(has404Heading || hasNotFoundText).toBeTruthy();
   });
 
   test('404 page has home link', async ({ page }) => {
     await page.goto('/this-definitely-does-not-exist-12345');
     await page.waitForLoadState('networkidle');
     
-    const hasHomeLink = await page.locator('a[href="/"], button:has-text("Home"), button:has-text("Back")').first().isVisible().catch(() => false);
-    expect(hasHomeLink).toBeTruthy();
+    // The 404 page has "Return to Home" link
+    const hasHomeLink = await page.getByRole('link', { name: /return.*home|home/i }).isVisible().catch(() => false);
+    const hasAnyHomeLink = await page.locator('a[href="/"]').isVisible().catch(() => false);
+    
+    expect(hasHomeLink || hasAnyHomeLink).toBeTruthy();
   });
 });

@@ -17,9 +17,9 @@ const config: PlaywrightTestConfig = {
     actionTimeout: 10_000, // Wait up to 10s for actions
   },
   webServer: {
-    // Use cross-env for cross-platform env vars and build:dev to skip prebuild (verify)
+    // Use cross-env for cross-platform env vars
     // The env vars are baked into the build via vite.config.ts define block
-    command: 'npx cross-env VITE_USE_MOCK=true SKIP_VERIFY=1 VITE_BYPASS_AUTH=true npm run build:dev && npm run preview -- --port 8080 --host',
+    command: 'npx cross-env VITE_USE_MOCK=true SKIP_VERIFY=1 VITE_BYPASS_AUTH=true npm run build && npm run preview -- --port 8080 --host',
     port: PORT,
     reuseExistingServer: false, // Always use fresh server to ensure mock mode is active
     timeout: 180_000, // 3 minutes for build + preview startup
