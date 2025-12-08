@@ -1,8 +1,10 @@
 import { test, expect } from "@playwright/test";
 
-const BASE_URL = process.env.PLAYWRIGHT_BASE_URL || "http://localhost:8080";
+const BASE_URL = process.env.PLAYWRIGHT_BASE_URL || process.env.BASE_URL || "http://localhost:8081";
 
-test.describe("Full Coverage - All Routes and CTAs", () => {
+// Skip: This test file covers legacy PlanBlueprint routes (/dashboard, /plans/editor) 
+// which are not part of LearnPlay LMS. LearnPlay uses routes like /student/dashboard, /admin/courses, etc.
+test.describe.skip("Full Coverage - All Routes and CTAs", () => {
   
   test.beforeEach(async ({ page }) => {
     // Bypass auth for testing

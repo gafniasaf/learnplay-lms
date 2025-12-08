@@ -2,7 +2,7 @@ import { test, expect } from "@playwright/test";
 import fs from "node:fs";
 import path from "node:path";
 
-const BASE_URL = process.env.PLAYWRIGHT_BASE_URL || "http://localhost:8080";
+const BASE_URL = process.env.PLAYWRIGHT_BASE_URL || process.env.BASE_URL || "http://localhost:8081";
 const routesPath = path.join(process.cwd(), "generated", "routes.json");
 
 test.beforeEach(async ({ page }) => {

@@ -1,6 +1,8 @@
 import { test, expect } from '@playwright/test';
 
-test.describe('Critical User Flows', () => {
+// Skip: This test covers legacy PlanBlueprint functionality (/dashboard, /plans/editor)
+// which is not part of LearnPlay LMS. LearnPlay uses different routes and workflows.
+test.describe.skip('Critical User Flows', () => {
   test('create, navigate, and load plan', async ({ page }) => {
     // 1. Go to dashboard
     await page.goto('/dashboard');

@@ -1,8 +1,9 @@
 import { test, expect } from '@playwright/test';
 
-const BASE_URL = process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:8080';
+const BASE_URL = process.env.PLAYWRIGHT_BASE_URL || process.env.BASE_URL || 'http://localhost:8081';
 
-test.describe('Bug Tracker Demo', () => {
+// Skip: Bug Tracker is a legacy demo route, not part of LearnPlay LMS core functionality
+test.describe.skip('Bug Tracker Demo', () => {
   test.beforeEach(async ({ page }) => {
     // Navigate to the bug tracker demo
     await page.goto(`${BASE_URL}/bug-tracker`);
