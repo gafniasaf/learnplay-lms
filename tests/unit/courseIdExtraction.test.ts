@@ -23,7 +23,7 @@ function extractCourseId(
                    job?.course_id || 
                    job?.payload?.course_id ||
                    job?.result?.course_id ||
-                   job?.result_path?.match(/courses\/([^\/]+)/)?.[1];
+                   job?.result_path?.match(/courses\/([^/]+)/)?.[1];
   
   // Guard against job type being used as courseId
   if (courseId && courseId !== 'ai_course_generate' && courseId !== jobType) {

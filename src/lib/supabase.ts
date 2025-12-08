@@ -30,7 +30,7 @@ export async function initAuth(): Promise<void> {
 export async function ensureSession(): Promise<string | null> {
   try {
     // Check for existing session
-    let { data: { session } } = await supabase.auth.getSession();
+    const { data: { session } } = await supabase.auth.getSession();
     
     if (session?.access_token) {
       // Try to refresh the token to get updated metadata

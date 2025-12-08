@@ -25,7 +25,7 @@ test.describe('Student Play Session - Complete Flow', () => {
     // Extract course ID from page
     const pageContent = await page.locator('body').textContent() || '';
     const idMatch = pageContent.match(/ID:\s*([a-z0-9-]+)/i);
-    let courseId = idMatch ? idMatch[1] : 'modals';  // Default to known course ID
+    const courseId = idMatch ? idMatch[1] : 'modals';  // Default to known course ID
 
     // Step 2: Navigate to play page
     await page.goto(`/play/${courseId}`);
