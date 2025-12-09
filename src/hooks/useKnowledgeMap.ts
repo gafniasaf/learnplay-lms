@@ -74,7 +74,10 @@ export function useStudentSkills(params: GetStudentSkillsParams): UseStudentSkil
   const mcp = useMCP();
   const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: knowledgeMapKeys.studentSkills(params),
-    queryFn: () => mcp.getStudentSkills(params),
+    queryFn: async () => {
+      const result = await mcp.getStudentSkills(params);
+      return result as { skills: MasteryStateWithKO[]; totalCount: number };
+    },
     staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 10 * 60 * 1000, // 10 minutes (formerly cacheTime)
   });
@@ -111,7 +114,10 @@ export function useDomainGrowth(studentId: string): UseDomainGrowthResult {
   const mcp = useMCP();
   const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: knowledgeMapKeys.domainGrowth(studentId),
-    queryFn: () => mcp.getDomainGrowth(studentId),
+    queryFn: async () => {
+      const result = await mcp.getDomainGrowth(studentId);
+      return result as DomainGrowthSummary[];
+    },
     staleTime: 10 * 60 * 1000, // 10 minutes (less volatile)
     gcTime: 30 * 60 * 1000, // 30 minutes
   });
@@ -151,7 +157,10 @@ export function useClassKOSummary(params: GetClassKOSummaryParams): UseClassKOSu
   const mcp = useMCP();
   const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: knowledgeMapKeys.classKOSummary(params),
-    queryFn: () => mcp.getClassKOSummary(params),
+    queryFn: async () => {
+      const result = await mcp.getClassKOSummary(params);
+      return result as ClassKOSummary[];
+    },
     staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 15 * 60 * 1000, // 15 minutes
   });
@@ -192,7 +201,10 @@ export function useStudentAssignments(
   const mcp = useMCP();
   const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: knowledgeMapKeys.studentAssignments(params),
-    queryFn: () => mcp.getStudentAssignments(params),
+    queryFn: async () => {
+      const result = await mcp.getStudentAssignments(params);
+      return result as AssignmentWithDetails[];
+    },
     staleTime: 2 * 60 * 1000, // 2 minutes (more volatile)
     gcTime: 10 * 60 * 1000, // 10 minutes
   });
@@ -233,7 +245,10 @@ export function useRecommendedCourses(
   const mcp = useMCP();
   const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: knowledgeMapKeys.recommendedCourses(params),
-    queryFn: () => mcp.getRecommendedCourses(params.koId, params.studentId, params.limit),
+    queryFn: async () => {
+      const result = await mcp.getRecommendedCourses(params.koId, params.studentId, params.limit);
+      return result as RecommendedCourse[];
+    },
     staleTime: 10 * 60 * 1000, // 10 minutes (stable)
     gcTime: 30 * 60 * 1000, // 30 minutes
     enabled: !!params.koId, // Only run if koId is provided
@@ -277,7 +292,10 @@ export function useAutoAssignSettings(studentId: string): UseAutoAssignSettingsR
 
   const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: knowledgeMapKeys.autoAssignSettings(studentId),
-    queryFn: () => mcp.getAutoAssignSettings(studentId),
+    queryFn: async () => {
+      const result = await mcp.getAutoAssignSettings(studentId);
+      return result as AutoAssignSettings;
+    },
     staleTime: 10 * 60 * 1000, // 10 minutes
     gcTime: 30 * 60 * 1000, // 30 minutes
   });
@@ -337,10 +355,11 @@ export function useCreateAssignment(): UseCreateAssignmentResult {
   const queryClient = useQueryClient();
 
   const mutation = useMutation({
-    mutationFn: (params: CreateAssignmentParams) => mcp.createAssignment(params),
+    mutationFn: (params: CreateAssignmentParams) => 
+      mcp.createAssignment(params as unknown as Parameters<typeof mcp.createAssignment>[0]),
     onSuccess: (_, variables) => {
       // Invalidate assignments for all affected students
-      variables.studentIds.forEach((studentId) => {
+      variables.studentIds.forEach(() => {
         queryClient.invalidateQueries({
           queryKey: ['knowledgeMap', 'studentAssignments'],
         });

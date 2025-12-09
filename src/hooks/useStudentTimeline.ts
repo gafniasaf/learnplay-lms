@@ -17,12 +17,14 @@ export function useStudentTimeline(
     [params]
   );
 
-  return useQuery({
+  return useQuery<StudentTimelineResponse>({
     queryKey: ['student-timeline', serializedParams],
-    queryFn: () => mcp.getStudentTimeline(params),
+    queryFn: async () => {
+      const result = await mcp.getStudentTimeline(params);
+      return result as StudentTimelineResponse;
+    },
     enabled: options.enabled !== false,
     staleTime: 60_000,
     refetchOnWindowFocus: false,
   });
 }
-

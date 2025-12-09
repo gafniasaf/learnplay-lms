@@ -37,7 +37,7 @@ export function useStudentData(studentId?: string) {
     mutationFn: ({ goalId, updates }: { goalId: string; updates: { progress_minutes?: number; status?: string; teacher_note?: string } }) =>
       mcp.updateStudentGoal(goalId, updates),
     onSuccess: () => {
-      queryClient.invalidateQueries(['student-goals']);
+      queryClient.invalidateQueries({ queryKey: ['student-goals'] });
     },
   });
   
@@ -48,4 +48,3 @@ export function useStudentData(studentId?: string) {
     updateGoal,
   };
 }
-

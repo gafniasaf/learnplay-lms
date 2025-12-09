@@ -17,12 +17,14 @@ export function useStudentGoals(
     [params]
   );
 
-  return useQuery({
+  return useQuery<StudentGoalsResponse>({
     queryKey: ['student-goals', serializedParams],
-    queryFn: () => mcp.getStudentGoals(params),
+    queryFn: async () => {
+      const result = await mcp.getStudentGoals(params);
+      return result as StudentGoalsResponse;
+    },
     enabled: options.enabled !== false,
     staleTime: 60_000,
     refetchOnWindowFocus: false,
   });
 }
-

@@ -10,7 +10,6 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { AssignStudentsModal } from "@/components/teacher/AssignStudentsModal";
 import { Users, BarChart3 } from "lucide-react";
-import { useMCP } from "@/hooks/useMCP";
 import { createLogger } from "@/lib/logger";
 
 const logger = createLogger('Assignments');
