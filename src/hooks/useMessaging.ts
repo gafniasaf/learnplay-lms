@@ -21,8 +21,8 @@ export function useMessaging() {
     mutationFn: (params: { recipientId: string; content: string }) =>
       mcp.sendMessage(params.recipientId, params.content),
     onSuccess: (_, vars) => {
-      queryClient.invalidateQueries(['conversations']);
-      queryClient.invalidateQueries(['messages', vars.recipientId]);
+      queryClient.invalidateQueries({ queryKey: ['conversations'] });
+      queryClient.invalidateQueries({ queryKey: ['messages', vars.recipientId] });
     },
   });
   

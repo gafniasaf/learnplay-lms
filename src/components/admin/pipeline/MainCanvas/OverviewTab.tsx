@@ -152,8 +152,8 @@ export function OverviewTab({ jobId }: OverviewTabProps) {
                       const data = await mcp.call('mcp-metrics-proxy', {
                         body: { method: 'lms.enqueueAndTrack', params: { type: jobType, subject, courseId, timeoutSec: 60 } },
                       });
-                      if (data?.ok !== false) {
-                        const payload = data?.data || data;
+                      if ((data as any)?.ok !== false) {
+                        const payload = (data as any)?.data || data;
                         toast.success('Re-run started', { description: `Job: ${payload?.jobId || 'N/A'}` });
                       } else {
                         throw new Error('Failed to re-run');

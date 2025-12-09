@@ -146,12 +146,11 @@ export function AssignCourseModal({
       }
 
       await mcp.createAssignmentForCourse({
-        orgId,
         courseId: values.courseId,
         title: sanitizedTitle,
         dueAt: values.dueDate ? values.dueDate.toISOString() : undefined,
         assignees,
-      });
+      } as any);
 
       toast.success("Assignment created successfully");
       form.reset();

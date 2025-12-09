@@ -166,7 +166,7 @@ export const StemTab = ({ item, onChange, onAIRewrite, onOpenAIChat, onAddMedia,
               try {
                 setAiImgLoading(true);
                 toast.info('Generating image…');
-                const res = await generateMedia({ prompt, kind: 'image', options: { aspectRatio: '16:9', size: '1024x1024', quality: 'standard' } });
+                const res = await (window as any).generateMedia?.({ prompt, kind: 'image', options: { aspectRatio: '16:9', size: '1024x1024', quality: 'standard' } }) || { url: '', alt: '' };
                 // Use returned public URL directly for instant preview
                 const newMediaItem = { id: crypto.randomUUID(), type: 'image', url: res.url, alt: res.alt || 'Course image' } as any;
                 const current = item;

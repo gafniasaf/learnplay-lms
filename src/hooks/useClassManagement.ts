@@ -21,7 +21,7 @@ export function useClassManagement() {
     mutationFn: (params: { name: string; description?: string }) =>
       mcp.createClass(params.name, params.description),
     onSuccess: () => {
-      queryClient.invalidateQueries(['classes']);
+      queryClient.invalidateQueries({ queryKey: ['classes'] });
     },
   });
   
@@ -29,8 +29,8 @@ export function useClassManagement() {
     mutationFn: (params: { classId: string; studentEmail: string }) =>
       mcp.addClassMember(params.classId, params.studentEmail),
     onSuccess: (_, vars) => {
-      queryClient.invalidateQueries(['classes']);
-      queryClient.invalidateQueries(['class-roster', vars.classId]);
+      queryClient.invalidateQueries({ queryKey: ['classes'] });
+      queryClient.invalidateQueries({ queryKey: ['class-roster', vars.classId] });
     },
   });
   
@@ -38,8 +38,8 @@ export function useClassManagement() {
     mutationFn: (params: { classId: string; studentId: string }) =>
       mcp.removeClassMember(params.classId, params.studentId),
     onSuccess: (_, vars) => {
-      queryClient.invalidateQueries(['classes']);
-      queryClient.invalidateQueries(['class-roster', vars.classId]);
+      queryClient.invalidateQueries({ queryKey: ['classes'] });
+      queryClient.invalidateQueries({ queryKey: ['class-roster', vars.classId] });
     },
   });
   
@@ -47,14 +47,14 @@ export function useClassManagement() {
     mutationFn: (params: { classId: string; refreshCode?: boolean }) =>
       mcp.generateClassCode(params.classId, params.refreshCode),
     onSuccess: () => {
-      queryClient.invalidateQueries(['classes']);
+      queryClient.invalidateQueries({ queryKey: ['classes'] });
     },
   });
   
   const joinClass = useMutation({
     mutationFn: (code: string) => mcp.joinClass(code),
     onSuccess: () => {
-      queryClient.invalidateQueries(['classes']);
+      queryClient.invalidateQueries({ queryKey: ['classes'] });
     },
   });
   
@@ -65,7 +65,7 @@ export function useClassManagement() {
   const linkChild = useMutation({
     mutationFn: (code: string) => mcp.linkChild(code),
     onSuccess: () => {
-      queryClient.invalidateQueries(['parent-children']);
+      queryClient.invalidateQueries({ queryKey: ['parent-children'] });
     },
   });
   
