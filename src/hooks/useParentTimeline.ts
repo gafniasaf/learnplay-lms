@@ -17,13 +17,14 @@ export function useParentTimeline(
     [params]
   );
 
-  return useQuery({
+  return useQuery<ParentTimelineResponse>({
     queryKey: ["parent-timeline", serializedParams],
-    queryFn: () => mcp.getParentTimeline(params.childId || '', params.limit),
-    enabled: (options.enabled !== false) && !!params.childId,
+    queryFn: async () => {
+      const result = await mcp.getParentTimeline(params.studentId || '', params.limit);
+      return result as ParentTimelineResponse;
+    },
+    enabled: (options.enabled !== false) && !!params.studentId,
     staleTime: 60_000,
     refetchOnWindowFocus: false,
   });
 }
-
-

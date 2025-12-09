@@ -85,6 +85,12 @@ export function enqueueAttempt(params: {
   console.info(`[OfflineQueue] Enqueued attempt (queue size: ${queue.length})`);
 }
 
+// Alias for backward compatibility
+export const enqueue = enqueueAttempt;
+
+// Alias for flush
+export const flush = flushAttempts;
+
 /**
  * Get the number of queued attempts
  */

@@ -14,12 +14,14 @@ export function useStudentAssignments(
 
   const queryKey = useMemo(() => ['student-assignments'], []);
 
-  return useQuery({
+  return useQuery<ListAssignmentsResponse>({
     queryKey,
-    queryFn: () => mcp.listAssignmentsForStudent(),
+    queryFn: async () => {
+      const result = await mcp.listAssignmentsForStudent();
+      return result as ListAssignmentsResponse;
+    },
     enabled: options.enabled !== false,
     staleTime: 60_000,
     refetchOnWindowFocus: false,
   });
 }
-

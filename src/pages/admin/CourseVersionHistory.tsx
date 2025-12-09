@@ -100,7 +100,7 @@ export default function CourseVersionHistory() {
 
       toast({
         title: 'Version Restored',
-        description: `Created version ${result.newVersion} from version ${version}`,
+        description: `Created version ${(result as any).newVersion || result.version} from version ${version}`,
       });
 
       // Reload versions

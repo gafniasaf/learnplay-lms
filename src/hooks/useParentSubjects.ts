@@ -18,15 +18,15 @@ export function useParentSubjects<TData = ParentSubjectsResponse>(
     [params]
   );
 
-  return useQuery({
+  return useQuery<ParentSubjectsResponse, Error, TData>({
     queryKey: ["parent-subjects", serializedParams],
-    queryFn: () => mcp.getParentSubjects(params.childId || ''),
+    queryFn: async () => {
+      const result = await mcp.getParentSubjects(params.studentId || '');
+      return result as ParentSubjectsResponse;
+    },
     select: options.select,
-    enabled: (options.enabled !== false) && !!params.childId,
+    enabled: (options.enabled !== false) && !!params.studentId,
     staleTime: 60_000,
     refetchOnWindowFocus: false,
   });
 }
-
-
-

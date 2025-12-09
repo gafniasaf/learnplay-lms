@@ -17,10 +17,13 @@ export function useParentGoals(
     [params]
   );
 
-  return useQuery({
+  return useQuery<ParentGoalsResponse>({
     queryKey: ["parent-goals", serializedParams],
-    queryFn: () => mcp.getParentGoals(params.childId || ''),
-    enabled: (options.enabled !== false) && !!params.childId,
+    queryFn: async () => {
+      const result = await mcp.getParentGoals(params.studentId || '');
+      return result as ParentGoalsResponse;
+    },
+    enabled: (options.enabled !== false) && !!params.studentId,
     staleTime: 60_000,
     refetchOnWindowFocus: false,
   });

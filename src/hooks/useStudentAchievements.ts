@@ -18,12 +18,14 @@ export function useStudentAchievements(
 ): UseQueryResult<StudentAchievementsResponse> {
   const mcp = useMCP();
 
-  return useQuery({
+  return useQuery<StudentAchievementsResponse>({
     queryKey: ['student-achievements', studentId],
-    queryFn: () => mcp.getStudentAchievements(studentId),
+    queryFn: async () => {
+      const result = await mcp.getStudentAchievements(studentId);
+      return result as StudentAchievementsResponse;
+    },
     enabled: !!studentId,
     staleTime: 60_000,
     refetchOnWindowFocus: false,
   });
 }
-

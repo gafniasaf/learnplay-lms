@@ -1,4 +1,4 @@
-import { enqueue, getQueueSize, clearQueue, flush, setupAutoFlush, getBackoffDelay, BASE_DELAY } from './offlineQueue';
+import { enqueue, enqueueAttempt, getQueueSize, clearQueue, flush, flushAttempts, setupAutoFlush, getBackoffDelay, BASE_DELAY } from './offlineQueue';
 import type { LogAttemptPayload } from './api';
 
 function mockPayload(): LogAttemptPayload {
@@ -69,8 +69,7 @@ describe('offlineQueue', () => {
 
   it('returns 0 when getQueue throws (read error path)', () => {
     const original = localStorage.getItem;
-    // @ts-expect-error - intentionally mocking localStorage for test
-    localStorage.getItem = () => { throw new Error('read'); };
+    (localStorage as any).getItem = () => { throw new Error('read'); };
     expect(getQueueSize()).toBe(0);
     // restore
     localStorage.getItem = original;
@@ -80,10 +79,8 @@ describe('offlineQueue', () => {
     const origSet = localStorage.setItem;
     const origGet = localStorage.getItem;
     // ensure queue can be read
-    // @ts-expect-error - intentionally mocking localStorage for test
-    localStorage.getItem = () => '[]';
-    // @ts-expect-error - intentionally mocking localStorage for test
-    localStorage.setItem = () => { throw new Error('write'); };
+    (localStorage as any).getItem = () => '[]';
+    (localStorage as any).setItem = () => { throw new Error('write'); };
     expect(() => enqueue(mockPayload())).not.toThrow();
     localStorage.setItem = origSet;
     localStorage.getItem = origGet;
@@ -125,7 +122,6 @@ describe('offlineQueue', () => {
 
   it('guards when window is undefined (no-op paths)', async () => {
     const originalWindow = (global as any).window;
-    // @ts-expect-error - intentionally deleting window for test
     delete (global as any).window;
     await expect(flush(jest.fn())).resolves.toBeUndefined();
     clearQueue();
@@ -133,5 +129,3 @@ describe('offlineQueue', () => {
     (global as any).window = originalWindow;
   });
 });
-
-
