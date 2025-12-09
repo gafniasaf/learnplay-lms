@@ -1,6 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, TrendingUp } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Progress } from "@/components/ui/progress";
 
@@ -21,7 +21,7 @@ export const GoalsGlance = ({ goalMinutes, actualMinutes, goalItems, actualItems
     return 'bg-destructive';
   };
 
-  const getStatusIcon = (percentage: number) => {
+  const _getStatusIcon = (percentage: number) => {
     return percentage >= 80 ? '✓' : '→';
   };
 

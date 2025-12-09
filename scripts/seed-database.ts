@@ -27,11 +27,14 @@ const __dirname = path.dirname(__filename);
 
 const env = parseLearnPlayEnv();
 
-const SUPABASE_URL = process.env.SUPABASE_URL ? process.env.SUPABASE_URL : env.SUPABASE_URL;
-const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY ? process.env.SUPABASE_SERVICE_ROLE_KEY : env.SUPABASE_SERVICE_ROLE_KEY;
-if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
-  console.error('❌ SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are REQUIRED');
-  process.exit(1);
+let SUPABASE_URL = process.env.SUPABASE_URL;
+if (!SUPABASE_URL) {
+  SUPABASE_URL = env.SUPABASE_URL;
+}
+
+let SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+if (!SUPABASE_SERVICE_ROLE_KEY) {
+  SUPABASE_SERVICE_ROLE_KEY = env.SUPABASE_SERVICE_ROLE_KEY;
 }
 
 if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
@@ -46,10 +49,11 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
   },
 });
 
-// Organization ID (from env)
+// Default organization ID (from learnplay.env or use default)
 const DEFAULT_ORG_ID = process.env.ORGANIZATION_ID;
+
 if (!DEFAULT_ORG_ID) {
-  console.error('❌ ORGANIZATION_ID is REQUIRED - set env var');
+  console.error('❌ ORGANIZATION_ID is REQUIRED');
   process.exit(1);
 }
 

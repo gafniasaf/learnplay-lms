@@ -1,17 +1,19 @@
 import { useEffect, useState } from "react";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { GraduationCap, UsersRound, BookOpen, BarChart3, TrendingUp, Activity, Gamepad2, Clock } from "lucide-react";
-import { getDashboard, getApiMode } from "@/lib/api";
+import { useMCP } from "@/hooks/useMCP";
+import { getApiMode } from "@/lib/api";
 import type { SchoolDashboard } from "@/lib/types/dashboard";
 
 const Schools = () => {
+  const mcp = useMCP();
   const [dashboard, setDashboard] = useState<SchoolDashboard | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const loadDashboard = async () => {
       try {
-        const data = await getDashboard("school") as SchoolDashboard;
+        const data = await mcp.getDashboard("school") as SchoolDashboard;
         setDashboard(data);
       } catch (error) {
         console.error("Failed to load dashboard:", error);

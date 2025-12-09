@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { CheckCircle2, Clock, AlertCircle, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useJobContext } from '@/hooks/useJobContext';
-import { parseJobSummary } from '@/lib/pipeline/jobParser';
+// parseJobSummary import removed - not used
 
 interface JobProgressVisualizationProps {
   jobId: string | null;

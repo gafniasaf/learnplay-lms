@@ -2,7 +2,7 @@
  * MediaManager - IgniteZero compliant
  * Uses edge functions for storage operations
  */
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { FolderOpen, Upload, Trash2, Copy, RefreshCw, Image as ImageIcon, Music, Video, File, CheckCircle2, AlertCircle, LogIn, Filter } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -78,13 +78,6 @@ export const MediaManager = () => {
     }
   }, [isAdmin]);
 
-  // Load files when course is selected
-  useEffect(() => {
-    if (selectedCourseId) {
-      loadFiles();
-    }
-  }, [selectedCourseId]);
-
   const loadCourses = async () => {
     try {
       const response = await listMediaFolders("courses");
@@ -102,7 +95,7 @@ export const MediaManager = () => {
     }
   };
 
-  const loadFiles = async () => {
+  const loadFiles = useCallback(async () => {
     if (!selectedCourseId) return;
 
     setLoading(true);
@@ -142,7 +135,14 @@ export const MediaManager = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [selectedCourseId, toast]);
+
+  // Load files when course is selected
+  useEffect(() => {
+    if (selectedCourseId) {
+      loadFiles();
+    }
+  }, [selectedCourseId, loadFiles]);
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -238,7 +238,7 @@ export const MediaManager = () => {
             <p className="text-muted-foreground mb-4">
               Please sign in with an admin account to continue.
             </p>
-            <Button onClick={() => window.location.href = "/admin"} data-cta-id="go-to-admin">
+            <Button onClick={() => window.location.href = "/admin"} data-cta-id="go-to-admin" data-action="navigate" data-target="/admin">
               Go to Admin Dashboard
             </Button>
           </CardContent>
@@ -287,7 +287,7 @@ export const MediaManager = () => {
 
               {selectedCourseId && (
                 <div className="flex items-end gap-2">
-                  <Button onClick={loadFiles} disabled={loading} variant="outline" data-cta-id="refresh-files">
+                  <Button onClick={loadFiles} disabled={loading} variant="outline" data-cta-id="refresh-files" data-action="click">
                     <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
                     Refresh
                   </Button>
@@ -449,6 +449,7 @@ export const MediaManager = () => {
                               variant="outline"
                               onClick={() => handleCopyUrl(file.publicUrl)}
                               data-cta-id="copy-url"
+                              data-action="click"
                             >
                               <Copy className="h-3 w-3 mr-1" />
                               Copy URL
@@ -461,6 +462,7 @@ export const MediaManager = () => {
                                 setDeleteDialogOpen(true);
                               }}
                               data-cta-id="delete-file"
+                              data-action="click"
                             >
                               <Trash2 className="h-3 w-3" />
                             </Button>
@@ -496,7 +498,7 @@ export const MediaManager = () => {
               <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>
                 Cancel
               </Button>
-              <Button variant="destructive" onClick={handleDeleteFile} data-cta-id="confirm-delete">
+              <Button variant="destructive" onClick={handleDeleteFile} data-cta-id="confirm-delete" data-action="click">
                 <Trash2 className="h-4 w-4 mr-2" />
                 Delete
               </Button>

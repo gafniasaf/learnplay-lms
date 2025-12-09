@@ -24,7 +24,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { filterNav, type NavItem } from "@/config/nav";
+import { filterNav } from "@/config/nav";
 import { isDevEnabled, isLiveMode, setDevEnabled, onDevChange } from "@/lib/env";
 import { useAuth } from "@/hooks/useAuth";
 import { getRole, setRole, onRoleChange, type Role } from "@/lib/roles";
@@ -393,6 +393,9 @@ export const HamburgerMenu = () => {
                                 <Link
                                   ref={(el) => (linksRef.current[linkIndex] = el)}
                                   to={item.path}
+                                  data-cta-id={item.id}
+                                  data-action="navigate"
+                                  data-target={item.path}
                                   className={`
                                     flex items-center gap-3 rounded-lg px-4 py-3 text-base font-medium
                                     min-h-[44px] transition-colors

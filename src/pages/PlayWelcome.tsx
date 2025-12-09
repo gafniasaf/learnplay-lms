@@ -2,9 +2,10 @@ import { useEffect, useState } from "react";
 import { useNavigate, useParams, useSearchParams, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Trophy } from "lucide-react";
-import { getCourse, getApiMode } from "@/lib/api";
+import { useMCP } from "@/hooks/useMCP";
 import type { Course } from "@/lib/types/course";
 import { useCoursePreloader } from "@/hooks/useCoursePreloader";
+import { getApiMode } from "@/lib/api";
 
 export default function PlayWelcome() {
   const { courseId } = useParams<{ courseId: string }>();
@@ -16,13 +17,15 @@ export default function PlayWelcome() {
   const [loaded, setLoaded] = useState(0);
   const [total, setTotal] = useState(0);
 
+  const mcp = useMCP();
+  
   useEffect(() => {
     if (!courseId) return;
     let mounted = true;
     (async () => {
       try {
         setLoading(true);
-        const c = await getCourse(courseId);
+        const c = await mcp.getCourse(courseId);
         if (!mounted) return;
         setCourse(c as Course);
         setError(null);

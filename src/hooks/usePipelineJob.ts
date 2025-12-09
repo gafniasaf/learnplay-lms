@@ -4,7 +4,7 @@
  * Polls for updates instead of realtime subscriptions
  */
 import { useEffect, useState, useCallback } from 'react';
-import { getCourseJob } from '@/lib/api/jobs';
+import { useMCP } from './useMCP';
 import type { Job } from './useJobsList';
 
 interface JobEvent {
@@ -26,6 +26,7 @@ interface UsePipelineJobOptions {
 }
 
 export function usePipelineJob(jobId: string | null, options?: UsePipelineJobOptions) {
+  const mcp = useMCP();
   const { enabled = true, pollInterval = 2000 } = options || {};
   const [job, setJob] = useState<Job | null>(null);
   const [events, setEvents] = useState<JobEvent[]>([]);
@@ -38,11 +39,11 @@ export function usePipelineJob(jobId: string | null, options?: UsePipelineJobOpt
     }
 
     try {
-      const response = await getCourseJob(jobId, true);
+      const response = await mcp.getCourseJob(jobId, true);
 
-      if (response.ok) {
-        setJob(response.job as Job);
-        setEvents((response.events || []) as JobEvent[]);
+      if ((response as { ok: boolean }).ok) {
+        setJob((response as { job: Job }).job);
+        setEvents(((response as { events?: JobEvent[] }).events || []) as JobEvent[]);
         setError(null);
       } else {
         throw new Error('Failed to fetch job');
@@ -53,7 +54,7 @@ export function usePipelineJob(jobId: string | null, options?: UsePipelineJobOpt
     } finally {
       setLoading(false);
     }
-  }, [jobId, enabled]);
+  }, [jobId, enabled, mcp]);
 
   useEffect(() => {
     if (!jobId || !enabled) {

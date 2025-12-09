@@ -3,33 +3,34 @@ import { Link } from "react-router-dom";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { Baby, Gamepad2, Trophy, Flame, Star, Clock, Activity, Calendar, AlertCircle, ArrowRight } from "lucide-react";
 import { useDashboard } from "@/hooks/useDashboard";
-import { getApiMode, listAssignments, type Assignment } from "@/lib/api";
+import { useMCP } from "@/hooks/useMCP";
+import type { Assignment } from "@/lib/api/assignments";
 import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
+import { getApiMode } from "@/lib/api";
 
 const Kids = () => {
   const { dashboard, loading, error } = useDashboard("student");
+  const mcp = useMCP();
   const isLive = getApiMode() === "live";
   const [assignments, setAssignments] = useState<Assignment[]>([]);
   const [loadingAssignments, setLoadingAssignments] = useState(false);
 
-  // Load assignments in live mode
+  // Load assignments
   useEffect(() => {
-    if (isLive) {
-      const loadAssignments = async () => {
-        try {
-          setLoadingAssignments(true);
-          const data = await listAssignments();
-          setAssignments(data.assignments);
-        } catch (err) {
-          console.error("Failed to load assignments:", err);
-        } finally {
-          setLoadingAssignments(false);
-        }
-      };
-      loadAssignments();
-    }
-  }, [isLive]);
+    const loadAssignments = async () => {
+      try {
+        setLoadingAssignments(true);
+        const data = await mcp.listAssignmentsForStudent();
+        setAssignments((data as { assignments: Assignment[] }).assignments);
+      } catch (err) {
+        console.error("Failed to load assignments:", err);
+      } finally {
+        setLoadingAssignments(false);
+      }
+    };
+    loadAssignments();
+  }, [mcp]);
 
   if (loading) {
     return (

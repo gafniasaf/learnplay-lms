@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { generateMedia, rewriteText } from '@/lib/api/aiRewrites';
-import { supabase } from '@/integrations/supabase/client';
+import { useMCP } from '@/hooks/useMCP';
+// supabase import removed - not used
 import { toast } from 'sonner';
-import { Sparkles, Upload, Link as LinkIcon, Plus, Eye, Code } from 'lucide-react';
+import { Sparkles, Upload, Link as LinkIcon, Eye, Code } from 'lucide-react';
 import { sanitizeHtml } from '@/lib/utils/sanitizeHtml';
 
 interface StemTabProps {
@@ -21,6 +21,7 @@ interface StemTabProps {
 }
 
 export const StemTab = ({ item, onChange, onAIRewrite, onOpenAIChat, onAddMedia, onFromURL, onRemoveMedia, onReplaceMedia, courseId, course }: StemTabProps) => {
+  const mcp = useMCP();
   // Debug: Log what we receive
   console.log('[StemTab] Received item:', {
     hasItem: !!item,
@@ -35,7 +36,7 @@ export const StemTab = ({ item, onChange, onAIRewrite, onOpenAIChat, onAddMedia,
   const [stemText, setStemText] = useState(initialText);
   const [showPreview, setShowPreview] = useState(false);
   const media = item?.stem?.media || (item as any)?.stimulus?.media || [];
-  const [aiImgLoading, setAiImgLoading] = useState(false);
+  const [_aiImgLoading, setAiImgLoading] = useState(false);
 
   // Sync state when item changes (navigation between items)
   useEffect(() => {
@@ -66,7 +67,7 @@ export const StemTab = ({ item, onChange, onAIRewrite, onOpenAIChat, onAddMedia,
   };
 
   const wordCount = stemText.split(/\s+/).filter(Boolean).length;
-  const readingTimeSeconds = Math.ceil((wordCount / 200) * 60);
+  const _readingTimeSeconds = Math.ceil((wordCount / 200) * 60);
   
   const sanitizedHtml = sanitizeHtml(stemText);
 
@@ -77,7 +78,7 @@ export const StemTab = ({ item, onChange, onAIRewrite, onOpenAIChat, onAddMedia,
         <div className="flex items-center justify-between px-6 py-4 bg-gradient-to-r from-gray-50 to-white border-b border-gray-200">
           <div>
             <h3 className="text-sm font-semibold text-gray-900">Question Text</h3>
-            <p className="text-xs text-gray-500 mt-0.5">Write the question or instruction in HTML format</p>
+            <p className="text-xs text-gray-700 mt-0.5">Write the question or instruction in HTML format</p>
           </div>
           <div className="flex gap-2">
             <Button
@@ -113,7 +114,7 @@ export const StemTab = ({ item, onChange, onAIRewrite, onOpenAIChat, onAddMedia,
             </div>
           )}
           
-          <div className="flex items-center gap-2 mt-3 text-xs text-gray-500">
+          <div className="flex items-center gap-2 mt-3 text-xs text-gray-700">
             <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
             </svg>
@@ -127,7 +128,7 @@ export const StemTab = ({ item, onChange, onAIRewrite, onOpenAIChat, onAddMedia,
         <div className="flex items-center justify-between px-6 py-4 bg-gradient-to-r from-gray-50 to-white border-b border-gray-200">
           <div>
             <h3 className="text-sm font-semibold text-gray-900">Media Assets</h3>
-            <p className="text-xs text-gray-500 mt-0.5">Add images, audio, or video to enrich the question</p>
+            <p className="text-xs text-gray-700 mt-0.5">Add images, audio, or video to enrich the question</p>
           </div>
           <div className="flex gap-2">
             <Button variant="outline" size="sm" onClick={onAddMedia} className="shadow-sm">
@@ -140,9 +141,9 @@ export const StemTab = ({ item, onChange, onAIRewrite, onOpenAIChat, onAddMedia,
                 return;
               }
               const stem = item?.stem?.text || (item as any)?.text || '';
-              const gradeBand = (course as any)?.gradeBand || '';
+              const _gradeBand = (course as any)?.gradeBand || '';
               const subj = (course as any)?.subject || course?.title || 'General';
-              const studyObjectives = ((course as any)?.studyTexts || [])
+              const _studyObjectives = ((course as any)?.studyTexts || [])
                 .flatMap((st: any) => Array.isArray(st?.learningObjectives) ? st.learningObjectives : [])
                 .slice(0, 6)
                 .join(', ');
@@ -288,7 +289,7 @@ export const StemTab = ({ item, onChange, onAIRewrite, onOpenAIChat, onAddMedia,
                           const gradeBand = (course as any)?.gradeBand || '';
                           const stemPlain = String(item?.stem?.text || (item as any)?.text || '').replace(/<[^>]*>/g,'');
                           const guidance = 'Generate a single concise descriptive alt text (<= 100 chars) for the image that best supports the question for the audience. No HTML.';
-                          const res = await rewriteText({
+                          const res = await mcp.rewriteText({
                             segmentType: 'stem',
                             currentText: stemPlain,
                             context: {

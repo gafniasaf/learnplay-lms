@@ -4,7 +4,7 @@
  * View and manage course version snapshots
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Clock, RotateCcw, Eye, User, FileJson } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -18,7 +18,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
-import { restoreCourseVersion } from '@/lib/api/restoreCourse';
+// restoreCourseVersion now via useMCP
 import { useMCP } from '@/hooks/useMCP';
 
 interface CourseVersion {
@@ -42,13 +42,7 @@ export default function CourseVersionHistory() {
   const [showSnapshotDialog, setShowSnapshotDialog] = useState(false);
   const [restoring, setRestoring] = useState(false);
 
-  useEffect(() => {
-    if (courseId) {
-      loadVersions();
-    }
-  }, [courseId]);
-
-  async function loadVersions() {
+  const loadVersions = useCallback(async () => {
     if (!courseId) return;
 
     try {
@@ -67,7 +61,13 @@ export default function CourseVersionHistory() {
     } finally {
       setLoading(false);
     }
-  }
+  }, [courseId, mcp, toast]);
+
+  useEffect(() => {
+    if (courseId) {
+      loadVersions();
+    }
+  }, [courseId, loadVersions]);
 
   async function handleViewSnapshot(version: number) {
     if (!courseId) return;
@@ -96,7 +96,7 @@ export default function CourseVersionHistory() {
     try {
       setRestoring(true);
 
-      const result = await restoreCourseVersion(courseId, version, changelog);
+      const result = await mcp.restoreCourseVersion(courseId, version);
 
       toast({
         title: 'Version Restored',

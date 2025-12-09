@@ -1,7 +1,8 @@
 import { useEffect, useState, useRef, useMemo } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { Trophy, Menu, Home, Target } from "lucide-react";
-import { getCourse, startRound, logAttemptLive, getApiMode } from "@/lib/api";
+import { useMCP } from "@/hooks/useMCP";
+import { useGameSession } from "@/hooks/useGameSession";
 import { isDevEnabled } from "@/lib/env";
 import { speak, stop as stopTTS, isTTSAvailable, getTTSPreference, setTTSPreference } from "@/lib/tts";
 import { setupAutoFlush, getQueueSize } from "@/lib/offlineQueue";
@@ -35,8 +36,7 @@ import { isEmbed, postToHost, listenHost } from "@/lib/embed";
 import { supabase as supabaseClient } from "@/integrations/supabase/client";
 import { PlayErrorBoundary } from "@/components/game/PlayErrorBoundary";
 import { useCoursePreloader } from "@/hooks/useCoursePreloader";
-import { updateMastery as kmUpdateMastery, getKnowledgeObjective } from "@/lib/api/knowledgeMap";
-import { useMCP } from "@/hooks/useMCP";
+import { getApiMode } from "@/lib/api";
 
 type Phase = 'idle' | 'committing' | 'feedback-correct' | 'feedback-wrong' | 'advancing';
 
@@ -132,7 +132,7 @@ const Play = () => {
     let cancelled = false;
     (async () => {
       if (!skillFocus) { setKoLabel(null); return; }
-      const ko = await getKnowledgeObjective(skillFocus);
+      const ko = await mcp.getKnowledgeObjective(skillFocus);
       if (!cancelled) setKoLabel(ko?.name ?? null);
     })();
     return () => { cancelled = true; };
@@ -311,7 +311,7 @@ const Play = () => {
     const loadCourse = async () => {
       try {
         setLoading(true);
-        const data = await getCourse(courseId);
+        const data = await mcp.getCourse(courseId) as Course;
         setCourse(data);
         
         // Get level from URL (after course is loaded)
@@ -336,7 +336,7 @@ const Play = () => {
         
         // Start a new round with selected level
         console.info("[Play] Starting round", { courseId, level, contentVersion: data.contentVersion, assignmentId });
-        const roundData = await startRound(courseId, level, data.contentVersion, assignmentId);
+        const roundData = await mcp.startGameRound({ courseId, level, assignmentId });
         sessionStore.startSession(courseId, level, roundData.sessionId, roundData.roundId);
         
         // Post round:start event to embed parent
@@ -355,7 +355,7 @@ const Play = () => {
         distinctItemsRef.current.clear();
         itemStartTime.current = Date.now();
         
-        console.info(`[Play] Round started: ${roundData.roundId}, API mode: ${getApiMode()}`);
+        console.info(`[Play] Round started: ${roundData.roundId}`);
         setError(null);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to load course");
@@ -530,7 +530,7 @@ const Play = () => {
           latencyMs 
         });
         
-        const attemptResult = await logAttemptLive({
+        const attemptResult = await mcp.logGameAttempt({
           roundId: sessionStore.roundId,
           itemId: frozenItem.id,
           itemKey: `${frozenItem.id}:${frozenItem.clusterId}:${frozenItem.variant}`,
@@ -551,7 +551,7 @@ const Play = () => {
             const { data } = await supabaseClient.auth.getUser();
             const studentId = data.user?.id;
             if (studentId) {
-              await kmUpdateMastery({
+              await mcp.updateMastery({
                 studentId,
                 koId: skillFocus,
                 exerciseScore: 1.0,
@@ -678,7 +678,7 @@ const Play = () => {
         replace: true,
       });
     }
-  }, [gameState.isComplete, course, courseId, gameState.level, gameState.score, gameState.mistakes, gameState.elapsedTime, gameState.poolSize, sessionStore.roundId, navigate]);
+  }, [gameState.isComplete, course, courseId, gameState.level, gameState.score, gameState.mistakes, gameState.elapsedTime, gameState.poolSize, sessionStore.roundId, navigate, sessionStore]);
 
   // Handle level change
   const handleLevelChange = async (newLevel: string) => {
@@ -698,7 +698,7 @@ const Play = () => {
       
       // Start a new round with new level
       console.info("[Play] Changing level", { courseId, level: levelNum, contentVersion: course.contentVersion, assignmentId });
-      const roundData = await startRound(courseId, levelNum, course.contentVersion, assignmentId);
+      const roundData = await mcp.startGameRound({ courseId, level: levelNum, assignmentId });
       sessionStore.startSession(courseId, levelNum, roundData.sessionId, roundData.roundId);
       
       // Post round:start event to embed parent
@@ -736,7 +736,7 @@ const Play = () => {
       // Start a new round
       const level = currentLevel;
       console.info("[Play] Restarting round", { courseId, level, contentVersion: course.contentVersion, assignmentId });
-      const roundData = await startRound(courseId, level, course.contentVersion, assignmentId);
+      const roundData = await mcp.startGameRound({ courseId, level, assignmentId });
       sessionStore.startSession(courseId, level, roundData.sessionId, roundData.roundId);
       
       // Post round:start event to embed parent

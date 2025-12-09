@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { uploadMediaFile } from "@/lib/api/media";
+import { useMCP } from "@/hooks/useMCP";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -9,7 +9,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
-import { ImageIcon, Music, Video, Upload, Link as LinkIcon, Info, Sparkles, Loader2 } from "lucide-react";
+import { ImageIcon, Music, Video, Link as LinkIcon, Info, Sparkles, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 interface StimulusEditorProps {
@@ -34,6 +34,7 @@ export const StimulusEditor = ({
   onRemove,
   onInsertMediaToken 
 }: StimulusEditorProps) => {
+  const mcp = useMCP();
   const [activeTab, setActiveTab] = useState<'image' | 'audio' | 'video'>('image');
   const [uploading, setUploading] = useState(false);
   const [attachTarget, setAttachTarget] = useState<string>('stem-block');
@@ -58,7 +59,7 @@ export const StimulusEditor = ({
       const storagePath = `${courseId}/assets/${folder}/${uuid}.${ext}`;
 
       // Upload via edge function (IgniteZero compliant)
-      const result = await uploadMediaFile(storagePath, file, 'courses');
+      const result = await mcp.uploadMediaFile(file, storagePath);
 
       if (!result.ok) throw new Error('Upload failed');
 
@@ -67,7 +68,7 @@ export const StimulusEditor = ({
       else if (type === 'video') setVideoUrl(result.url);
 
       toast.success(`Uploaded successfully`);
-    } catch (err) {
+    } catch {
       toast.error('Failed to upload');
     } finally {
       setUploading(false);

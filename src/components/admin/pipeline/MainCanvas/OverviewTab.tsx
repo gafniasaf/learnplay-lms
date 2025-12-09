@@ -10,8 +10,8 @@ import { MetricCard } from '../shared/MetricCard';
 import { ReviewFeedback } from '../shared/ReviewFeedback';
 import { parseJobSummary } from '@/lib/pipeline/jobParser';
 import { formatLogEntry } from '@/lib/pipeline/logFormatter';
-import { STEP_TO_PHASE_INDEX } from '@/lib/pipeline/phaseSteps';
-import { supabase } from '@/integrations/supabase/client';
+// STEP_TO_PHASE_INDEX import removed - not used
+import { useMCP } from '@/hooks/useMCP';
 import { toast } from 'sonner';
 import { Loader2, AlertTriangle, Play } from 'lucide-react';
 import { MetricSkeleton } from '../Skeleton';
@@ -21,7 +21,8 @@ interface OverviewTabProps {
 }
 
 export function OverviewTab({ jobId }: OverviewTabProps) {
-  const { job, events, loading, error } = useJobContext(jobId);
+  const mcp = useMCP();
+  const { job, events, loading, error: _error } = useJobContext(jobId);
   const [triggering, setTriggering] = useState(false);
 
   const summary = useMemo(() => {
@@ -39,11 +40,7 @@ export function OverviewTab({ jobId }: OverviewTabProps) {
   const triggerJobRunner = async () => {
     setTriggering(true);
     try {
-      const { data, error } = await supabase.functions.invoke('ai-job-batch-runner', {
-        body: { n: 3 }
-      });
-
-      if (error) throw error;
+      await mcp.call('ai-job-batch-runner', { n: 3 });
 
       toast.success('Job runner triggered', {
         description: `Processing queue... Refresh to see updates`
@@ -152,14 +149,14 @@ export function OverviewTab({ jobId }: OverviewTabProps) {
                       const jobType = (job as any)?.type || (job as any)?.job_type || 'variants';
                       const subject = job.subject || 'job-retry';
                       const courseId = (job as any)?.course_id || (job as any)?.courseId;
-                      const { data, error } = await supabase.functions.invoke('mcp-metrics-proxy', {
+                      const data = await mcp.call('mcp-metrics-proxy', {
                         body: { method: 'lms.enqueueAndTrack', params: { type: jobType, subject, courseId, timeoutSec: 60 } },
                       });
-                      if (!error && data?.ok !== false) {
+                      if (data?.ok !== false) {
                         const payload = data?.data || data;
                         toast.success('Re-run started', { description: `Job: ${payload?.jobId || 'N/A'}` });
                       } else {
-                        throw new Error(error?.message || 'Failed to re-run');
+                        throw new Error('Failed to re-run');
                       }
                     } catch (e) {
                       toast.error('Re-run failed', { description: e instanceof Error ? e.message : 'Unknown error' });

@@ -13,7 +13,7 @@ const COLORS = ['hsl(var(--chart-1))', 'hsl(var(--chart-2))', 'hsl(var(--chart-3
 export const SubjectTimeGlance = ({ bySubject }: SubjectTimeGlanceProps) => {
   const safeSubjects = Array.isArray(bySubject) ? bySubject : [];
   const topThree = safeSubjects.slice(0, 3);
-  const totalMinutes = topThree.reduce((sum, item) => sum + item.minutes, 0);
+  const _totalMinutes = topThree.reduce((sum, item) => sum + item.minutes, 0);
 
   return (
     <Card>

@@ -1,0 +1,9 @@
+Lovable Push Test
+=================
+
+This file is pushed to trigger Lovable's repository sync.
+
+Timestamp: 2025-01-07
+Purpose: Test Lovable integration
+Status: Active
+

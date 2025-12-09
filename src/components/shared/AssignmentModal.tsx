@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+// Badge import removed - not used
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -14,10 +14,8 @@ import {
 } from "@/components/ui/select";
 import {
   X,
-  Users,
   Brain,
   Target,
-  Calendar,
   BookOpen,
   Info,
   CheckCircle2,

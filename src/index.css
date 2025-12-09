@@ -154,13 +154,17 @@ All colors MUST be HSL.
   [role="menuitemcheckbox"],
   [role="menuitemradio"],
   [data-radix-menu-item],
-  [data-radix-dropdown-menu-item] {
+  [data-radix-dropdown-menu-item],
+  [data-radix-dropdown-menu-content],
+  [data-radix-dropdown-menu-sub-content] {
     color: hsl(0 0% 0%) !important;
   }
 
   /* Sheet/Dialog content should have black text */
   [data-radix-sheet-content],
-  [data-radix-dialog-content] {
+  [data-radix-dialog-content],
+  [data-radix-dialog-title],
+  [data-radix-dialog-description] {
     color: hsl(0 0% 0%) !important;
   }
 
@@ -172,8 +176,128 @@ All colors MUST be HSL.
 
   /* Select content */
   [data-radix-select-content],
-  [data-radix-select-item] {
+  [data-radix-select-item],
+  [data-radix-select-trigger],
+  [data-radix-select-value] {
     color: hsl(0 0% 0%) !important;
+  }
+
+  /* Command palette (search) */
+  [cmdk-input],
+  [cmdk-item],
+  [cmdk-group-heading],
+  [cmdk-empty] {
+    color: hsl(0 0% 0%) !important;
+  }
+
+  /* Popover content */
+  [data-radix-popover-content],
+  [data-radix-popover-trigger] {
+    color: hsl(0 0% 0%) !important;
+  }
+
+  /* Context menu */
+  [data-radix-context-menu-content],
+  [data-radix-context-menu-item] {
+    color: hsl(0 0% 0%) !important;
+  }
+
+  /* Tooltip */
+  [data-radix-tooltip-content] {
+    color: hsl(0 0% 0%) !important;
+  }
+
+  /* Navigation menu */
+  [data-radix-navigation-menu-content],
+  [data-radix-navigation-menu-item] {
+    color: hsl(0 0% 0%) !important;
+  }
+
+  /* Hover card */
+  [data-radix-hover-card-content] {
+    color: hsl(0 0% 0%) !important;
+  }
+
+  /* Chat and messaging components */
+  .chat-message,
+  .message-content,
+  [class*="chat"],
+  [class*="message"] {
+    color: hsl(0 0% 0%) !important;
+  }
+
+  /* All UI component text should be black */
+  .popover,
+  .dropdown-menu,
+  .select-content,
+  .command,
+  .sheet-content,
+  .dialog-content {
+    color: hsl(0 0% 0%) !important;
+  }
+
+  /* Force black text on all text elements inside UI components */
+  .popover *,
+  [data-radix-dropdown-menu-content] *,
+  [data-radix-select-content] *,
+  [data-radix-dialog-content] *,
+  [data-radix-sheet-content] *,
+  [cmdk-input-wrapper] *,
+  [cmdk-group] * {
+    color: inherit !important;
+  }
+
+  /* Override any light text in badges, labels, etc. */
+  .badge,
+  .label,
+  .text-xs,
+  .text-sm,
+  .text-base,
+  .text-lg,
+  .text-xl {
+    color: hsl(0 0% 0%) !important;
+  }
+
+  /* Keep muted text dark gray but readable */
+  .text-muted-foreground,
+  [class*="text-muted"],
+  [class*="text-gray-500"],
+  [class*="text-gray-400"],
+  [class*="text-slate-500"],
+  [class*="text-slate-400"] {
+    color: hsl(0 0% 30%) !important;
+  }
+
+  /* Ensure all text in UI components is dark */
+  .sheet-content,
+  .dialog-content,
+  .popover-content,
+  .dropdown-menu-content,
+  .select-content,
+  .command-dialog,
+  [role="dialog"],
+  [role="menu"],
+  [role="listbox"] {
+    color: hsl(0 0% 0%) !important;
+  }
+
+  /* Force dark text on all child elements in UI components */
+  .sheet-content *:not(.text-white):not([class*="bg-"][class*="text-white"]),
+  .dialog-content *:not(.text-white):not([class*="bg-"][class*="text-white"]),
+  .popover-content *:not(.text-white):not([class*="bg-"][class*="text-white"]),
+  .dropdown-menu-content *:not(.text-white):not([class*="bg-"][class*="text-white"]),
+  .select-content *:not(.text-white):not([class*="bg-"][class*="text-white"]),
+  [role="dialog"] *:not(.text-white):not([class*="bg-"][class*="text-white"]),
+  [role="menu"] *:not(.text-white):not([class*="bg-"][class*="text-white"]),
+  [role="listbox"] *:not(.text-white):not([class*="bg-"][class*="text-white"]) {
+    color: inherit !important;
+  }
+
+  /* Ensure placeholder text is dark gray but visible */
+  ::placeholder,
+  input::placeholder,
+  textarea::placeholder {
+    color: hsl(0 0% 40%) !important;
   }
 
   /* Screen reader only utility */

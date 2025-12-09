@@ -467,6 +467,16 @@
     },
     {
       "path": "/teacher/analytics",
+      "requiredCTAs": [
+        {
+          "id": "cta-view-analytics",
+          "target": "action"
+        },
+        {
+          "id": "cta-export-analytics",
+          "target": "action"
+        }
+      ],
       "name": "Analytics",
       "description": "Analytics",
       "states": [
@@ -524,6 +534,22 @@
         {
           "id": "nav-admin",
           "target": "/admin"
+        },
+        {
+          "id": "cta-create-class",
+          "target": "#"
+        },
+        {
+          "id": "cta-add-student",
+          "target": "#"
+        },
+        {
+          "id": "cta-remove-student",
+          "target": "#"
+        },
+        {
+          "id": "cta-generate-class-code",
+          "target": "#"
         }
       ]
     },
@@ -648,6 +674,10 @@
         {
           "id": "nav-admin",
           "target": "/admin"
+        },
+        {
+          "id": "cta-view-timeline-event",
+          "target": "#"
         }
       ]
     },
@@ -710,6 +740,14 @@
         {
           "id": "nav-admin",
           "target": "/admin"
+        },
+        {
+          "id": "cta-update-goal",
+          "target": "#"
+        },
+        {
+          "id": "cta-view-achievement",
+          "target": "/student/achievements"
         }
       ]
     },
@@ -741,6 +779,10 @@
         {
           "id": "nav-admin",
           "target": "/admin"
+        },
+        {
+          "id": "cta-join-class",
+          "target": "#"
         }
       ]
     },
@@ -772,6 +814,14 @@
         {
           "id": "nav-admin",
           "target": "/admin"
+        },
+        {
+          "id": "cta-view-child-progress",
+          "target": "#"
+        },
+        {
+          "id": "cta-view-child-goals",
+          "target": "/parent/goals"
         }
       ]
     },
@@ -927,6 +977,10 @@
         {
           "id": "nav-admin",
           "target": "/admin"
+        },
+        {
+          "id": "cta-link-child",
+          "target": "#"
         }
       ]
     },
@@ -971,6 +1025,20 @@
           "file": "play/demo-course/default.html",
           "description": "Default state",
           "required": true
+        }
+      ],
+      "requiredCTAs": [
+        {
+          "id": "cta-start-game",
+          "target": "action"
+        },
+        {
+          "id": "cta-submit-answer",
+          "target": "action"
+        },
+        {
+          "id": "cta-end-round",
+          "target": "action"
         }
       ],
       "requiredCTAs": [

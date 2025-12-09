@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { isLiveMode } from "@/lib/env";
-import { startRound, logAttemptLive } from "@/lib/api";
+import { useGameSession } from "@/hooks/useGameSession";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { AlertCircle, CheckCircle, XCircle, Activity } from "lucide-react";
@@ -16,6 +16,7 @@ interface TestResponse {
 
 const DevHealth = () => {
   const isLive = isLiveMode();
+  const gameSession = useGameSession();
   const [roundId, setRoundId] = useState<string | null>(null);
   const [responses, setResponses] = useState<TestResponse[]>([]);
   const [loading, setLoading] = useState(false);
@@ -37,8 +38,8 @@ const DevHealth = () => {
   const handleStartRound = async () => {
     setLoading(true);
     try {
-      const result = await startRound('modals', 1, '1.0.0');
-      setRoundId(result.roundId);
+      const result = await gameSession.startRound({ courseId: 'modals', level: 1 });
+      setRoundId((result as { roundId: string }).roundId);
       addResponse('START_ROUND', 'success', result);
     } catch (err) {
       addResponse('START_ROUND', 'error', undefined, err instanceof Error ? err.message : 'Unknown error');
@@ -55,7 +56,7 @@ const DevHealth = () => {
 
     setLoading(true);
     try {
-      const result = await logAttemptLive({
+      const result = await gameSession.logAttempt({
         roundId,
         itemId: 1,
         itemKey: '1:test:1',
@@ -80,7 +81,7 @@ const DevHealth = () => {
 
     setLoading(true);
     try {
-      const result = await logAttemptLive({
+      const result = await gameSession.logAttempt({
         roundId,
         itemId: 2,
         itemKey: '2:test:2',
@@ -105,7 +106,7 @@ const DevHealth = () => {
 
     setLoading(true);
     try {
-      const result = await logAttemptLive({
+      const result = await gameSession.logAttempt({
         roundId,
         itemId: 3,
         itemKey: '3:test:3',

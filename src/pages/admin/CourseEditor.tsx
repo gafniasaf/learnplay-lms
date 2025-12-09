@@ -1,16 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { PageContainer } from '@/components/layout/PageContainer';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { getCourse } from '@/lib/api/course';
-import { updateCourse, PatchOperation } from '@/lib/api/updateCourse';
-import { publishCourse } from '@/lib/api/publishCourse';
-import { rewriteText } from '@/lib/api/aiRewrites';
 import { invalidateCourseCache } from '@/lib/utils/cacheInvalidation';
 import { editorTelemetry } from '@/lib/utils/telemetry';
-import { supabase } from '@/integrations/supabase/client';
-import { uploadMediaFile } from '@/lib/api/media';
+import type { PatchOperation } from '@/lib/api/updateCourse';
 import { useAuth } from '@/hooks/useAuth';
 import { useMCP } from '@/hooks/useMCP';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
@@ -93,40 +88,14 @@ const CourseEditor = () => {
     return () => window.removeEventListener('beforeunload', handler);
   }, [hasUnsavedChanges]);
 
-  useEffect(() => {
-    if (!isAdmin) {
-      navigate('/admin');
-      return;
-    }
-
-    if (!courseId) {
-      setError('No course ID provided');
-      setLoading(false);
-      return;
-    }
-
-    loadCourse();
-    // Load org thresholds (best-effort)
-    (async () => {
-      try {
-        const json = await mcp.callGet<any>('lms.getOrgSettings');
-        if (json?.ok) {
-          setOrgThresholds({ variantsCoverageMin: Number(json?.thresholds?.variantsCoverageMin ?? 0.9) });
-        }
-      } catch (err) {
-        logger.warn('[CourseEditor] org settings fetch skipped', err);
-      }
-    })();
-  }, [courseId, isAdmin, navigate]);
-
-  const loadCourse = async () => {
+  const loadCourse = useCallback(async () => {
     if (!courseId) return;
 
     try {
       setLoading(true);
       setError(null);
       editorTelemetry.opened(courseId); // Track editor opened
-      const courseData = await getCourse(courseId);
+      const courseData = await mcp.getCourse(courseId) as Course;
       
       // Transform course structure: group items by groupId
       const transformedCourse = { ...courseData };
@@ -156,7 +125,7 @@ const CourseEditor = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [courseId]);
 
   const getCurrentItem = (): CourseItem | null => {
     if (!course) return null;
@@ -259,10 +228,7 @@ const CourseEditor = () => {
 
       console.log('[CourseEditor] Saving draft with ops:', ops);
 
-      await updateCourse({
-        courseId,
-        ops,
-      });
+      await mcp.updateCourse(courseId, ops);
 
       setUnsavedItems(new Set());
       setLastSavedAt(new Date().toLocaleTimeString());
@@ -357,7 +323,7 @@ const CourseEditor = () => {
     try {
       toast.info('Generating AI rewrite...');
       const optionsTexts = ((currentItem as any).options || []).map((o: any) => typeof o === 'string' ? o : (o?.text ?? ''));
-const result = await rewriteText({
+const result = await mcp.rewriteText({
         segmentType: 'stem',
         currentText: stemText,
         context: {
@@ -496,7 +462,7 @@ const result = await rewriteText({
         
         // Upload via edge function (IgniteZero compliant)
         const path = `temp/${Date.now()}-${file.name}`;
-        const result = await uploadMediaFile(path, file, 'courses');
+        const result = await mcp.uploadMediaFile(file, path);
 
         if (!result.ok) throw new Error('Upload failed');
 
@@ -587,7 +553,7 @@ const result = await rewriteText({
         toast.info('Uploading replacement media...');
         
         const path = `temp/${Date.now()}-${file.name}`;
-        const result = await uploadMediaFile(path, file, 'courses');
+        const result = await mcp.uploadMediaFile(file, path);
 
         if (!result.ok) throw new Error('Upload failed');
 
@@ -637,7 +603,7 @@ const result = await rewriteText({
       toast.info('Generating AI rewrite...');
       const stemText = (currentItem as any).stem?.text || (currentItem as any).text || '';
       const optionsTexts = ((currentItem as any).options || []).map((o: any) => typeof o === 'string' ? o : (o?.text ?? ''));
-const result = await rewriteText({
+const result = await mcp.rewriteText({
         segmentType: 'reference',
         currentText: refText,
         context: {
@@ -688,7 +654,7 @@ const result = await rewriteText({
 
     try {
       toast.info(`Rewriting option ${index + 1}...`);
-const result = await rewriteText({
+const result = await mcp.rewriteText({
         segmentType: 'option',
         currentText: optionText,
         context: {
@@ -738,7 +704,7 @@ const result = await rewriteText({
         toast.info(`Uploading media for option ${index + 1}...`);
         
         const path = `temp/${Date.now()}-${file.name}`;
-        const uploadResult = await uploadMediaFile(path, file, 'courses');
+        const uploadResult = await mcp.uploadMediaFile(file, path);
 
         if (!uploadResult.ok) throw new Error('Upload failed');
 
@@ -1595,7 +1561,7 @@ const result = await rewriteText({
                       return options[idx] || '';
                     })();
 
-const result = await rewriteText({
+const result = await mcp.rewriteText({
                 segmentType: target.segment === 'option' ? 'option' : target.segment,
                 currentText: current,
                 context: {

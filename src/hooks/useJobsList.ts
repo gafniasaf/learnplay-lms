@@ -4,7 +4,7 @@
  * Polls for updates instead of realtime subscriptions
  */
 import { useEffect, useState, useCallback } from 'react';
-import { listCourseJobs, CourseJob } from '@/lib/api/jobs';
+import { useMCP } from './useMCP';
 
 export interface Job {
   id: string;
@@ -32,6 +32,7 @@ interface UseJobsListOptions {
 }
 
 export function useJobsList(options?: UseJobsListOptions) {
+  const mcp = useMCP();
   const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
@@ -42,13 +43,13 @@ export function useJobsList(options?: UseJobsListOptions) {
     
     try {
       setLoading(true);
-      const response = await listCourseJobs({
+      const response = await mcp.listCourseJobs({
         status,
         limit,
       });
 
-      if (response.ok) {
-        setJobs(response.jobs as Job[]);
+      if ((response as { ok: boolean }).ok) {
+        setJobs((response as { jobs: Job[] }).jobs);
         setError(null);
       } else {
         throw new Error('Failed to fetch jobs');
@@ -59,7 +60,7 @@ export function useJobsList(options?: UseJobsListOptions) {
     } finally {
       setLoading(false);
     }
-  }, [status, limit, enabled]);
+  }, [status, limit, enabled, mcp]);
 
   useEffect(() => {
     if (!enabled) {

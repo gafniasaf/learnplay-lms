@@ -2,12 +2,15 @@
 
 import path from 'node:path';
 import fs from 'node:fs';
+import { pathToFileURL } from 'node:url';
 
 async function runDirect() {
   // Build lms-mcp first (CI should do this before calling us)
   const root = process.cwd();
   // Import compiled UI audit handler directly
-  const { run } = await import(path.join(root, 'lms-mcp', 'dist', 'handlers', 'uiAudit.js'));
+  // Use pathToFileURL for Windows compatibility (import() requires file:// URLs)
+  const handlerPath = path.join(root, 'lms-mcp', 'dist', 'handlers', 'uiAudit.js');
+  const { run } = await import(pathToFileURL(handlerPath).href);
   const res = await run({ rootDir: root, srcDir: path.join(root, 'src'), mcpDir: path.join(root, 'lms-mcp') });
   const outDir = path.join(root, 'reports');
   fs.mkdirSync(outDir, { recursive: true });

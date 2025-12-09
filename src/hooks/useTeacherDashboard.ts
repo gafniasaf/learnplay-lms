@@ -1,7 +1,7 @@
 import { useQuery, type UseQueryResult } from '@tanstack/react-query';
-import { useMockData } from '@/lib/api';
-import { listAssignments, type Assignment, type ListAssignmentsResponse } from '@/lib/api/assignments';
-import { listClasses, listOrgStudents, type Class, type Student } from '@/lib/api/classes';
+import { useMCP } from './useMCP';
+import type { Assignment, ListAssignmentsResponse } from '@/lib/api/assignments';
+import type { Class, Student } from '@/lib/api/classes';
 
 export interface TeacherDashboardData {
   assignments: Assignment[];
@@ -13,30 +13,27 @@ export interface UseTeacherDashboardOptions {
   enabled?: boolean;
 }
 
-async function fetchTeacherDashboard(): Promise<TeacherDashboardData> {
-  const [assignmentsResponse, classesResponse, studentsResponse] = await Promise.all([
-    listAssignments(),
-    listClasses(),
-    listOrgStudents(),
-  ]);
-
-  return {
-    assignments: (assignmentsResponse as ListAssignmentsResponse).assignments ?? [],
-    classes: classesResponse.classes ?? [],
-    students: studentsResponse.students ?? [],
-  };
-}
-
 export function useTeacherDashboard(
   options: UseTeacherDashboardOptions = {}
 ): UseQueryResult<TeacherDashboardData> {
-  const mockMode = useMockData();
-  const queryEnabled = options.enabled ?? !mockMode;
+  const mcp = useMCP();
 
   return useQuery({
     queryKey: ['teacher-dashboard'],
-    queryFn: fetchTeacherDashboard,
-    enabled: queryEnabled,
+    queryFn: async () => {
+      const [assignmentsResponse, classesResponse, studentsResponse] = await Promise.all([
+        mcp.listAssignmentsForTeacher(),
+        mcp.listClasses(),
+        mcp.listOrgStudents(),
+      ]);
+
+      return {
+        assignments: (assignmentsResponse as ListAssignmentsResponse).assignments ?? [],
+        classes: (classesResponse as { classes: Class[] }).classes ?? [],
+        students: (studentsResponse as { students: Student[] }).students ?? [],
+      };
+    },
+    enabled: options.enabled !== false,
     staleTime: 60_000,
     refetchOnWindowFocus: false,
   });

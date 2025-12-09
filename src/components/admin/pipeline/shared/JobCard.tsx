@@ -1,5 +1,5 @@
 import { Card } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+// Badge import removed - not used
 import { Progress } from '@/components/ui/progress';
 import { formatDistanceToNow } from 'date-fns';
 import { cn } from '@/lib/utils';

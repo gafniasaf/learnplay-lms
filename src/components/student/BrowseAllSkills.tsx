@@ -17,7 +17,7 @@ import {
   Filter,
 } from "lucide-react";
 import { Link } from "react-router-dom";
-import type { KnowledgeObjective, MasteryState, Topic, KOStatus } from "@/lib/types/knowledgeMap";
+import type { KnowledgeObjective, Topic, KOStatus } from "@/lib/types/knowledgeMap";
 import { MOCK_KNOWLEDGE_OBJECTIVES, MOCK_TOPICS, MOCK_MASTERY_STATES } from "@/lib/mocks/knowledgeMockData";
 
 // Mock mode controlled by env var per IgniteZero rules

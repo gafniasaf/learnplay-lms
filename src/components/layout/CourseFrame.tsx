@@ -1,7 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
-import { ArrowLeft } from "lucide-react";
-import { Button } from "@/components/ui/button";
+// ArrowLeft and Button imports removed - not used
 import {
   AlertDialog,
   AlertDialogAction,

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import type { Course } from "@/lib/types/course";
 import { useGameStateStore } from "@/store/gameState";
 
@@ -32,7 +32,7 @@ interface GameActions {
  */
 export const useGameState = (course: Course | null, initialLevel: number = 1): [GameState, GameActions] => {
   const store = useGameStateStore();
-  const [initialized, setInitialized] = useState(false);
+  const [_initialized, setInitialized] = useState(false);
 
   // Initialize store when course loads
   useEffect(() => {

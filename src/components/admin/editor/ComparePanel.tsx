@@ -13,7 +13,7 @@ interface ComparePanelProps {
 export const ComparePanel = ({
   original,
   proposed,
-  type,
+  type: _type,
   onAdopt,
   onReject,
   label = 'AI Suggestion',

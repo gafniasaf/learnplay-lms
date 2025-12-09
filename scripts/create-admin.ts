@@ -83,7 +83,7 @@ async function createAdmin(email: string, password: string, fullName?: string) {
     // Step 2: Get or create default organization
     const defaultOrgId = process.env.ORGANIZATION_ID;
     if (!defaultOrgId) {
-      console.error('❌ ORGANIZATION_ID is REQUIRED - set env var');
+      console.error('❌ ORGANIZATION_ID is REQUIRED');
       process.exit(1);
     }
     console.log(`🏢 Checking organization: ${defaultOrgId}...`);

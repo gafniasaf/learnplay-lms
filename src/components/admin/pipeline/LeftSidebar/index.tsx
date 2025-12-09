@@ -5,7 +5,7 @@ import { RecentJobsList } from './RecentJobsList';
 import { QueueStatusSummary } from './QueueStatusSummary';
 import { Button } from '@/components/ui/button';
 import { ChevronDown, ChevronUp } from 'lucide-react';
-import { cn } from '@/lib/utils';
+// cn import removed - not used
 import { useMCP } from '@/hooks/useMCP';
 import { toast } from 'sonner';
 

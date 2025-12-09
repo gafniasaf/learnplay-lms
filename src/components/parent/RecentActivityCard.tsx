@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Clock, Target, TrendingUp } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
-import { cn } from "@/lib/utils";
+// cn import removed - not used
 
 interface SessionActivity {
   startISO: string;

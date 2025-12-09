@@ -1,6 +1,6 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { getAssignmentProgress, exportGradebook } from "@/lib/api";
+import { useMCP } from "@/hooks/useMCP";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,11 +12,12 @@ import { useState } from "react";
 export default function AssignmentProgress() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const mcp = useMCP();
   const [isExporting, setIsExporting] = useState(false);
   
   const { data, isLoading, error } = useQuery({
     queryKey: ["assignment-progress", id],
-    queryFn: () => getAssignmentProgress(id!),
+    queryFn: () => id ? mcp.getAssignmentProgress(id) : Promise.resolve(null),
     enabled: !!id,
   });
 
@@ -25,7 +26,8 @@ export default function AssignmentProgress() {
     
     setIsExporting(true);
     try {
-      const blob = await exportGradebook(id);
+      const result = await mcp.exportGradebook(id);
+      const blob = new Blob([JSON.stringify(result)], { type: 'text/csv' });
       
       // Create download link
       const url = window.URL.createObjectURL(blob);

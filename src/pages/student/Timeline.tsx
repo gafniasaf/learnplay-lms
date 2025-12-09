@@ -10,20 +10,19 @@ import { format, parseISO, differenceInMinutes } from "date-fns";
 import { useMemo, useState } from "react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useStudentTimeline } from "@/hooks/useStudentTimeline";
-import { useMockData } from "@/lib/api";
+// useMockData removed - useStudentTimeline handles mock mode internally
 import { mapStudentTimelineEventToSession } from "@/lib/student/timelineMappers";
 
 export default function StudentTimeline() {
   const { window } = useStudentRange();
   const [filter, setFilter] = useState<'all' | 'mistakes' | 'mastered'>('all');
-  const mockMode = useMockData();
   const {
     data,
     isLoading,
     isError,
     error,
     refetch,
-  } = useStudentTimeline({ limit: 100 }, { enabled: !mockMode });
+  } = useStudentTimeline({ limit: 100 });
 
   const liveSessions = useMemo<StudentSession[]>(() => {
     if (!data?.events) return [];
@@ -32,7 +31,7 @@ export default function StudentTimeline() {
       .filter((session) => Boolean(session.startISO && session.endISO));
   }, [data?.events]);
 
-  if (!mockMode && isLoading) {
+  if (isLoading) {
     return (
       <PageContainer>
         <StudentLayout>
@@ -42,7 +41,7 @@ export default function StudentTimeline() {
     );
   }
 
-  if (!mockMode && isError) {
+  if (isError) {
     const message = error instanceof Error ? error.message : "Unable to load timeline";
 
     return (
@@ -62,7 +61,7 @@ export default function StudentTimeline() {
     );
   }
 
-  if (!mockMode && data && data.events.length === 0) {
+  if (data && data.events.length === 0) {
     return (
       <PageContainer>
         <StudentLayout>
@@ -81,8 +80,8 @@ export default function StudentTimeline() {
     );
   }
 
-  const allSessions = (mockMode ? [] : liveSessions).length > 0
-    ? (mockMode ? [] : liveSessions)
+  const allSessions = liveSessions.length > 0
+    ? liveSessions
     : getRecentStudentSessions(window);
 
   const filteredSessions = allSessions.filter((s) => {

@@ -7,14 +7,13 @@ import { Button } from "@/components/ui/button";
 import { Target } from "lucide-react";
 import { getStudentGoals } from "@/lib/student/mockSelectors";
 import { useStudentGoals } from "@/hooks/useStudentGoals";
-import { useMockData } from "@/lib/api";
+// useMockData removed - useStudentGoals handles mock mode internally
 import { aggregateStudentGoalProgress } from "@/lib/student/goalsMappers";
 
 export default function StudentGoals() {
-  const mockMode = useMockData();
-  const { data, isLoading, isError, error, refetch } = useStudentGoals({}, { enabled: !mockMode });
+  const { data, isLoading, isError, error, refetch } = useStudentGoals();
 
-  if (!mockMode && isLoading) {
+  if (isLoading) {
     return (
       <PageContainer>
         <StudentLayout>
@@ -24,7 +23,7 @@ export default function StudentGoals() {
     );
   }
 
-  if (!mockMode && isError) {
+  if (isError) {
     const message = error instanceof Error ? error.message : "Unable to load goals.";
 
     return (

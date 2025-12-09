@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { PageContainer } from '@/components/layout/PageContainer';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -63,12 +63,7 @@ const Logs = () => {
   // Available functions
   const [functions, setFunctions] = useState<string[]>([]);
 
-  // Load logs
-  useEffect(() => {
-    loadLogs();
-  }, []);
-
-  const loadLogs = async () => {
+  const loadLogs = useCallback(async () => {
     setLoading(true);
     try {
       const response = await mcp.callGet<any>('lms.listEdgeLogs', { limit: "100" });
@@ -83,7 +78,12 @@ const Logs = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [mcp, toast]);
+
+  // Load logs
+  useEffect(() => {
+    loadLogs();
+  }, [loadLogs]);
 
   const toggleExpand = (logId: string) => {
     setExpandedLogs(prev => {

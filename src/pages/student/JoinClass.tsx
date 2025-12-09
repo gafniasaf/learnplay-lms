@@ -4,7 +4,8 @@
  */
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { joinClass } from "@/lib/api";
+import { useClassManagement } from "@/hooks/useClassManagement";
+import { useMCP } from "@/hooks/useMCP";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,7 +13,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Users, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
-import { callEdgeFunctionGet } from "@/lib/api/common";
 
 interface ClassData {
   id: string;
@@ -22,6 +22,8 @@ interface ClassData {
 
 export default function JoinClass() {
   const queryClient = useQueryClient();
+  const classMgmt = useClassManagement();
+  const mcp = useMCP();
   const [code, setCode] = useState("");
 
   // Get current classes via edge function
@@ -29,11 +31,8 @@ export default function JoinClass() {
     queryKey: ["student-classes"],
     queryFn: async () => {
       try {
-        const response = await callEdgeFunctionGet<{ ok: boolean; classes: ClassData[] }>(
-          "list-classes",
-          { role: "student" }
-        );
-        return response.classes ?? [];
+        const response = await mcp.listClasses();
+        return (response as { classes: ClassData[] }).classes ?? [];
       } catch (error) {
         console.warn('[JoinClass] Failed to load classes:', error);
         return [];
@@ -41,22 +40,25 @@ export default function JoinClass() {
     },
   });
 
-  const joinMutation = useMutation({
-    mutationFn: (code: string) => joinClass(code),
-    onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ["student-classes"] });
-      setCode("");
-      toast.success(data.message);
-    },
-    onError: (error: Error) => {
-      toast.error(error.message || "Failed to join class");
-    },
-  });
+  const joinMutation = classMgmt.joinClass;
+  
+  const handleJoinSuccess = (data: unknown) => {
+    queryClient.invalidateQueries({ queryKey: ["student-classes"] });
+    setCode("");
+    toast.success((data as { message?: string }).message || "Successfully joined class");
+  };
+  
+  const handleJoinError = (error: Error) => {
+    toast.error(error.message || "Failed to join class");
+  };
 
   const handleJoinClass = (e: React.FormEvent) => {
     e.preventDefault();
     if (code.trim().length === 6) {
-      joinMutation.mutate(code.trim().toUpperCase());
+      joinMutation.mutate(code.trim().toUpperCase(), {
+        onSuccess: handleJoinSuccess,
+        onError: handleJoinError,
+      });
     } else {
       toast.error("Please enter a valid 6-character code");
     }

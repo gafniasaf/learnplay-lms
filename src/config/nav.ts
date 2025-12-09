@@ -3,7 +3,7 @@
  * Single source of truth for all app navigation
  */
 
-import { LucideIcon } from "lucide-react";
+// LucideIcon import removed - type is inferred
 
 export type UserRole = "student" | "teacher" | "parent" | "school" | "admin";
 

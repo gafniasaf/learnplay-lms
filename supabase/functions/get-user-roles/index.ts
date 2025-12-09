@@ -34,9 +34,14 @@ serve(async (req: Request): Promise<Response> => {
     client = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
     
     // For agent calls, get userId from body or query
-    let body: any = {};
+    let body: Record<string, unknown> = {};
     if (req.method === "POST") {
-      try { body = await req.json(); } catch {}
+      try { 
+        body = await req.json() as Record<string, unknown>; 
+      } catch (error) {
+        // Body parsing failed - treat as empty (may be GET request or malformed JSON)
+        console.warn("[get-user-roles] Failed to parse request body:", error instanceof Error ? error.message : String(error));
+      }
     }
     const url = new URL(req.url);
     userId = body.userId || url.searchParams.get("userId") || "";

@@ -1,13 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { PageContainer } from '@/components/layout/PageContainer';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { getCourseCatalog } from '@/lib/api/catalog';
-import { getCoursesByTags } from '@/lib/api/coursesFiltered';
-import { getOrgConfig } from '@/lib/api/orgConfig';
+import { useMCP } from '@/hooks/useMCP';
 import type { OrgConfig } from '@/lib/api/orgConfig';
 import { useAuth } from '@/hooks/useAuth';
 import { Loader2, Search, Edit, BookOpen, X, Filter } from 'lucide-react';
@@ -18,6 +16,7 @@ const CourseSelector = () => {
   const navigate = useNavigate();
   const { user, role } = useAuth();
   const { toast } = useToast();
+  const mcp = useMCP();
   
   const [courses, setCourses] = useState<any[]>([]);
   const [filteredCourses, setFilteredCourses] = useState<any[]>([]);
@@ -44,9 +43,9 @@ const CourseSelector = () => {
     loadCourses();
   }, [isAdmin, navigate]);
 
-  const loadOrgConfig = async () => {
+  const loadOrgConfig = useCallback(async () => {
     try {
-      const config = await getOrgConfig();
+      const config = await mcp.getOrgConfig() as OrgConfig;
       setOrgConfig(config);
       setOrgConfigAuthRequired(false);
     } catch (error: any) {
@@ -57,25 +56,21 @@ const CourseSelector = () => {
       }
       // Continue without tag filtering (catalog view still works)
     }
-  };
+  }, []);
 
-  const loadCourses = async () => {
+  const loadCourses = useCallback(async () => {
     try {
       setLoading(true);
 
       if (useMetadata) {
         // Query course_metadata (new multi-tenant way)
-        const result = await getCoursesByTags({
-          tagIds: selectedTagIds.length > 0 ? selectedTagIds : undefined,
-          matchAll: filterLogic === 'AND',
-          limit: 100,
-        });
+        const result = await mcp.getCoursesByTags(selectedTagIds.length > 0 ? selectedTagIds : []);
 
         setCourses(result.courses);
         setFilteredCourses(result.courses);
       } else {
         // Fallback to catalog.json (legacy)
-        const catalog = await getCourseCatalog();
+        const catalog = await mcp.getCourseCatalog() as { courses: CourseCatalogItem[] };
         console.log('[CourseSelector] Loaded catalog:', catalog.courses.map(c => c.id));
         setCourses(catalog.courses);
         setFilteredCourses(catalog.courses);
@@ -98,14 +93,24 @@ const CourseSelector = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [useMetadata, selectedTagIds, filterLogic, toast]);
+
+  useEffect(() => {
+    if (!isAdmin) {
+      navigate('/admin');
+      return;
+    }
+
+    loadOrgConfig();
+    loadCourses();
+  }, [isAdmin, navigate, loadOrgConfig, loadCourses]);
 
   // Reload when tag filters change
   useEffect(() => {
     if (useMetadata) {
       loadCourses();
     }
-  }, [selectedTagIds, filterLogic, useMetadata]);
+  }, [selectedTagIds, filterLogic, useMetadata, loadCourses]);
 
   // Client-side search (works for both metadata and catalog)
   useEffect(() => {

@@ -20,7 +20,7 @@ export default function IntegrationGuide() {
         setLoading(false);
       })
       .catch((err) => {
-        console.error("Failed to load Integration Guide:", err);
+        console.error('Failed to load Integration Guide', err);
         setContent("# Error\n\nFailed to load Integration Guide.");
         setLoading(false);
       });
@@ -71,7 +71,7 @@ export default function IntegrationGuide() {
                       );
                     },
                     // Style links
-                    a: ({ node, children, ...props }) => (
+                    a: ({ node: _node, children, ...props }) => (
                       <a
                         className="text-primary hover:underline"
                         target="_blank"
@@ -82,14 +82,14 @@ export default function IntegrationGuide() {
                       </a>
                     ),
                     // Style tables
-                    table: ({ node, children, ...props }) => (
+                    table: ({ node: _node, children, ...props }) => (
                       <div className="overflow-x-auto my-6">
                         <table className="min-w-full divide-y divide-border" {...props}>
                           {children}
                         </table>
                       </div>
                     ),
-                    th: ({ node, children, ...props }) => (
+                    th: ({ node: _node, children, ...props }) => (
                       <th
                         className="px-4 py-2 bg-muted text-left font-semibold"
                         {...props}
@@ -97,7 +97,7 @@ export default function IntegrationGuide() {
                         {children}
                       </th>
                     ),
-                    td: ({ node, children, ...props }) => (
+                    td: ({ node: _node, children, ...props }) => (
                       <td className="px-4 py-2 border-t border-border" {...props}>
                         {children}
                       </td>

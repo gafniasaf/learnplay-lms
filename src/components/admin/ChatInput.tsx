@@ -1,16 +1,13 @@
 import { useState, useRef, KeyboardEvent } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Badge } from '@/components/ui/badge';
 import { Send, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import type { QuickAction } from '@/lib/types/chat';
 
 interface ChatInputProps {
   onSend: (message: string) => void | Promise<void>;
   disabled?: boolean;
   isLoading?: boolean;
-  quickActions?: QuickAction[];
   placeholder?: string;
   maxLength?: number;
 }
@@ -19,7 +16,6 @@ export function ChatInput({
   onSend,
   disabled = false,
   isLoading = false,
-  quickActions = [],
   placeholder = "Type your message or request...",
   maxLength = 2000,
 }: ChatInputProps) {
@@ -54,11 +50,6 @@ export function ChatInput({
     }
   };
 
-  const handleQuickAction = (action: QuickAction) => {
-    setInput(action.prompt);
-    textareaRef.current?.focus();
-  };
-
   // Auto-resize textarea
   const handleInput = (value: string) => {
     setInput(value);
@@ -70,7 +61,6 @@ export function ChatInput({
   };
 
   const charCount = input.length;
-  const isNearLimit = charCount > maxLength * 0.8;
   const isOverLimit = charCount > maxLength;
 
   return (

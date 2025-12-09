@@ -177,7 +177,7 @@ describe('resolveOnWrong', () => {
     expect(result.nextVariantNum).toBe(2);
   });
 
-  it('should handle variant as empty string by defaulting to 1', () => {
+  it('should handle variant as empty string by returning current item', () => {
     const emptyVariantItem: CourseItem = {
       ...baseItem,
       variant: '', // Empty string
@@ -191,9 +191,9 @@ describe('resolveOnWrong', () => {
 
     const result = resolveOnWrong(emptyVariantItem, pool, catalogWithEmptyVariant, variantMap);
 
-    // Should default to variant 1 and find variant 2
-    expect(result.itemToEnqueue.variant).toBe('2');
-    expect(result.nextVariantNum).toBe(2);
+    // Empty string variant means condition fails, so returns current item
+    expect(result.itemToEnqueue).toBe(emptyVariantItem);
+    expect(result.nextVariantNum).toBeUndefined();
   });
 });
 

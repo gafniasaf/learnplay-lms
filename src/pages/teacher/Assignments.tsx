@@ -3,7 +3,7 @@
  * Uses edge functions via API layer instead of direct Supabase calls
  */
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { listAssignmentsForTeacher, createAssignment, type CreateAssignmentRequest } from "@/lib/api";
+import { useMCP } from "@/hooks/useMCP";
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate, useLocation } from "react-router-dom";
@@ -11,6 +11,9 @@ import { Button } from "@/components/ui/button";
 import { AssignStudentsModal } from "@/components/teacher/AssignStudentsModal";
 import { Users, BarChart3 } from "lucide-react";
 import { useMCP } from "@/hooks/useMCP";
+import { createLogger } from "@/lib/logger";
+
+const logger = createLogger('Assignments');
 
 export default function TeacherAssignments() {
   const qc = useQueryClient();
@@ -22,11 +25,12 @@ export default function TeacherAssignments() {
   const mcp = useMCP();
   const { data, isLoading } = useQuery({ 
     queryKey: ["teacher-assignments"], 
-    queryFn: listAssignmentsForTeacher 
+    queryFn: () => mcp.listAssignmentsForTeacher()
   });
   
   const m = useMutation({
-    mutationFn: createAssignment,
+    mutationFn: (params: { courseId: string; title?: string; dueAt?: string; assignees: Array<{ type: string; classId?: string; userId?: string }> }) => 
+      mcp.createAssignmentForCourse(params),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["teacher-assignments"] });
       toast({ title: "Assignment created successfully" });
@@ -44,11 +48,11 @@ export default function TeacherAssignments() {
   const [open, setOpen] = useState(false);
   const [assignModalOpen, setAssignModalOpen] = useState(false);
   const [selectedAssignment, setSelectedAssignment] = useState<{ id: string; courseId: string } | null>(null);
-  const [orgId, setOrgId] = useState("");
+  const [_orgId, _setOrgId] = useState("");
   const [courseId, setCourseId] = useState("");
   const [title, setTitle] = useState("");
   const [due, setDue] = useState("");
-  const [classId, setClassId] = useState("");
+  const [_classId, _setClassId] = useState("");
 
   // If attachJobId present, prefill modal with job's course_id and title
   useEffect(() => {
@@ -57,9 +61,9 @@ export default function TeacherAssignments() {
       try {
         const response = await mcp.getCourseJob(attachJobId);
         if (response.ok && response.job) {
-          const job: any = response.job;
-          if ((job as any).course_id) {
-            setCourseId((job as any).course_id);
+        const job = response.job as { course_id?: string; subject?: string };
+        if (job.course_id) {
+          setCourseId(job.course_id);
             setTitle(job.subject ? `AI: ${job.subject}` : '');
             setOpen(true);
           } else {
@@ -67,7 +71,7 @@ export default function TeacherAssignments() {
           }
         }
       } catch (error) {
-        console.warn('[Assignments] Failed to load job:', error);
+        logger.warn('Failed to load job', { component: 'Assignments', action: 'loadJob', error });
         toast({ title: 'Unable to import job', description: 'Job not found', variant: 'destructive' });
       }
     };
@@ -85,9 +89,9 @@ export default function TeacherAssignments() {
     try {
       const response = await mcp.listCourseJobs({ status: 'done', limit: 1 });
       if (response.ok && response.jobs.length > 0) {
-        const job: any = response.jobs[0];
-        if ((job as any).course_id) {
-          setCourseId((job as any).course_id);
+        const job = response.jobs[0] as { course_id?: string; subject?: string };
+        if (job.course_id) {
+          setCourseId(job.course_id);
           setTitle(job.subject ? `AI: ${job.subject}` : '');
           setOpen(true);
         } else {
@@ -97,7 +101,7 @@ export default function TeacherAssignments() {
         toast({ title: 'No recent AI course', description: 'Run a generation job first' });
       }
     } catch (error) {
-      console.warn('[Assignments] Failed to load AI jobs:', error);
+      logger.warn('Failed to load AI jobs', { component: 'Assignments', action: 'importFromAI', error });
       toast({ title: 'Error', description: 'Failed to load AI jobs', variant: 'destructive' });
     }
   };
@@ -111,6 +115,7 @@ export default function TeacherAssignments() {
             className="px-3 py-2 bg-primary text-primary-foreground rounded hover:bg-primary/90" 
             onClick={() => setOpen(true)}
             data-cta-id="new-assignment"
+            data-action="click"
           >
             New
           </button>
@@ -119,6 +124,7 @@ export default function TeacherAssignments() {
             onClick={handleImportFromAI}
             title="Import from latest AI job"
             data-cta-id="import-from-ai"
+            data-action="click"
           >
             Import from AI
           </button>
@@ -130,7 +136,7 @@ export default function TeacherAssignments() {
       ) : assignments.length === 0 ? (
         <div className="text-center py-12">
           <p className="text-muted-foreground mb-4">No assignments yet</p>
-          <Button onClick={() => setOpen(true)} data-cta-id="create-first-assignment">
+          <Button onClick={() => setOpen(true)} data-cta-id="create-first-assignment" data-action="click">
             Create your first assignment
           </Button>
         </div>
@@ -150,6 +156,7 @@ export default function TeacherAssignments() {
                   size="sm"
                   onClick={() => handleOpenAssignModal(a.id, a.course_id)}
                   data-cta-id="assign-students"
+                  data-action="click"
                 >
                   <Users className="h-4 w-4 mr-1" />
                   Assign
@@ -159,6 +166,8 @@ export default function TeacherAssignments() {
                   size="sm"
                   onClick={() => navigate(`/teacher/analytics?assignmentId=${a.id}`)}
                   data-cta-id="view-analytics"
+                  data-action="navigate"
+                  data-target="/teacher/analytics"
                 >
                   <BarChart3 className="h-4 w-4 mr-1" />
                   Analytics
@@ -224,6 +233,7 @@ export default function TeacherAssignments() {
                 }}
                 disabled={m.isPending}
                 data-cta-id="confirm-create-assignment"
+                data-action="click"
               >
                 {m.isPending ? 'Creating...' : 'Create'}
               </Button>

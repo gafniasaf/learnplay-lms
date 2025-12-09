@@ -7,7 +7,7 @@ if (typeof jest !== 'undefined') {
   try {
     const { loadLearnPlayEnv } = require('./tests/helpers/parse-learnplay-env.cjs');
     loadLearnPlayEnv();
-  } catch (error) {
+  } catch {
     // Ignore if helper not available
   }
 }

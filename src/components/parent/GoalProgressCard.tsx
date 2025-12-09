@@ -1,6 +1,6 @@
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
+// Progress import removed - not used
 import { Target, TrendingUp, Star, Flame } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
@@ -30,7 +30,7 @@ export const GoalProgressCard = ({
     return { text: "Let's work together to catch up on weekly goals.", icon: Target, color: "text-muted-foreground" };
   };
 
-  const getProgressColor = () => {
+  const _getProgressColor = () => {
     if (overallPercentage >= 90) return "bg-gradient-to-r from-green-500 to-emerald-600";
     if (overallPercentage >= 70) return "bg-gradient-to-r from-blue-500 to-indigo-600";
     if (overallPercentage >= 50) return "bg-gradient-to-r from-amber-500 to-orange-600";

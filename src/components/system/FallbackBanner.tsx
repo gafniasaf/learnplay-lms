@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { callEdgeFunctionGet } from "@/lib/api/common";
+import { useMCP } from "@/hooks/useMCP";
 
 /**
  * Check if running in Lovable preview environment
@@ -11,6 +11,7 @@ function isLovablePreview(): boolean {
 }
 
 export function FallbackBanner() {
+  const mcp = useMCP();
   const [unavailable, setUnavailable] = useState(false);
 
   useEffect(() => {
@@ -24,7 +25,7 @@ export function FallbackBanner() {
     (async () => {
       try {
         // Use MCP proxy via Edge Function helper (infrastructure-level call)
-        const response = await callEdgeFunctionGet<{ error?: string }>('mcp-metrics-proxy', { type: 'summary' });
+        const response = await mcp.callGet('mcp-metrics-proxy', { type: 'summary' }) as { error?: string };
         if (!cancelled && response?.error === 'mcp_unavailable') {
           setUnavailable(true);
         }

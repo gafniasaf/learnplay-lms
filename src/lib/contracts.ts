@@ -58,9 +58,30 @@ export const CourseBlueprintSchema = z.object({
   multimedia_manifest: z.any().optional(),
   guard_status: z.enum(['pending', 'passed', 'failed']),
   published: z.boolean().optional(),
-  notes: z.string().optional()
+  notes: z.string().optional(),
+  game_type: z.enum(['mcq', 'audio_mcq', 'visual_mcq', 'drag_drop', 'matching', 'ordering', 'timed_fluency', 'numeric', 'diagram'])
 });
 export type CourseBlueprint = z.infer<typeof CourseBlueprintSchema>;
+
+
+export const GameSessionSchema = z.object({
+  id: z.string().uuid(),
+  organization_id: z.string().uuid(),
+  created_at: z.string().datetime().optional(),
+  updated_at: z.string().datetime().optional(),
+  version: z.number().int().default(1),
+  format: z.string().default('v1'),
+  assignment_id: z.string().optional(),
+  course_id: z.string().optional(),
+  level: z.number().optional(),
+  status: z.enum(['active', 'completed', 'abandoned']),
+  start_time: z.string().datetime().optional(),
+  end_time: z.string().datetime().optional(),
+  score: z.number().optional(),
+  accuracy: z.number().optional(),
+  content_version: z.string().optional()
+});
+export type GameSession = z.infer<typeof GameSessionSchema>;
 
 
 export const MessageThreadSchema = z.object({
@@ -288,6 +309,64 @@ export const ENTITY_FIELDS = {
     {
       "key": "notes",
       "type": "string"
+    },
+    {
+      "key": "game_type",
+      "type": "enum",
+      "options": [
+        "mcq",
+        "audio_mcq",
+        "visual_mcq",
+        "drag_drop",
+        "matching",
+        "ordering",
+        "timed_fluency",
+        "numeric",
+        "diagram"
+      ]
+    }
+  ],
+  "GameSession": [
+    {
+      "key": "assignment_id",
+      "type": "string"
+    },
+    {
+      "key": "course_id",
+      "type": "string"
+    },
+    {
+      "key": "level",
+      "type": "number"
+    },
+    {
+      "key": "status",
+      "type": "enum",
+      "options": [
+        "active",
+        "completed",
+        "abandoned"
+      ]
+    },
+    {
+      "key": "start_time",
+      "type": "date"
+    },
+    {
+      "key": "end_time",
+      "type": "date"
+    },
+    {
+      "key": "score",
+      "type": "number"
+    },
+    {
+      "key": "accuracy",
+      "type": "number"
+    },
+    {
+      "key": "content_version",
+      "type": "string"
     }
   ],
   "MessageThread": [
@@ -503,6 +582,42 @@ export const EDGE_FUNCTION_SCHEMAS = [
     },
     "output": {
       "ok": "boolean"
+    }
+  },
+  {
+    "id": "game-start-round",
+    "input": {
+      "courseId": "string",
+      "level": "number",
+      "assignmentId": "string"
+    },
+    "output": {
+      "sessionId": "string",
+      "roundId": "string"
+    }
+  },
+  {
+    "id": "game-log-attempt",
+    "input": {
+      "roundId": "string",
+      "itemId": "number",
+      "isCorrect": "boolean",
+      "latencyMs": "number",
+      "finalize": "boolean"
+    },
+    "output": {
+      "attemptId": "string"
+    }
+  },
+  {
+    "id": "get-analytics",
+    "input": {
+      "courseId": "string",
+      "range": "string"
+    },
+    "output": {
+      "dailyData": "json",
+      "summary": "json"
     }
   }
 ] as const;

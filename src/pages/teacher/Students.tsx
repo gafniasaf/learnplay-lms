@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { listOrgStudents, createChildCode } from "@/lib/api";
+import { useMCP } from "@/hooks/useMCP";
+import { useClassManagement } from "@/hooks/useClassManagement";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,6 +12,8 @@ import { toast } from "sonner";
 
 export default function Students() {
   const queryClient = useQueryClient();
+  const mcp = useMCP();
+  const classMgmt = useClassManagement();
   const [showCodeDialog, setShowCodeDialog] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState<{ id: string; name: string } | null>(null);
   const [generatedCode, setGeneratedCode] = useState<string | null>(null);
@@ -18,30 +21,34 @@ export default function Students() {
 
   const { data: studentsData, isLoading } = useQuery({
     queryKey: ["org-students"],
-    queryFn: listOrgStudents,
+    queryFn: () => mcp.listOrgStudents(),
   });
-
-  const generateCodeMutation = useMutation({
-    mutationFn: (studentId: string) => createChildCode(studentId),
-    onSuccess: (data, studentId) => {
-      setGeneratedCode(data.code);
-      setShowCodeDialog(true);
-      queryClient.invalidateQueries({ queryKey: ["org-students"] });
-      
-      if (data.isNew) {
-        toast.success("New code generated successfully");
-      } else {
-        toast.success("Retrieved existing code");
-      }
-    },
-    onError: (error) => {
-      toast.error(`Failed to generate code: ${error.message}`);
-    },
-  });
+  
+  const generateCodeMutation = classMgmt.createChildCode;
+  
+  const handleGenerateSuccess = (data: unknown, _studentId: string) => {
+    const codeData = data as { code: string; isNew?: boolean };
+    setGeneratedCode(codeData.code);
+    setShowCodeDialog(true);
+    queryClient.invalidateQueries({ queryKey: ["org-students"] });
+    
+    if (codeData.isNew) {
+      toast.success("New code generated successfully");
+    } else {
+      toast.success("Retrieved existing code");
+    }
+  };
+  
+  const handleGenerateError = (error: Error) => {
+    toast.error(`Failed to generate code: ${error.message}`);
+  };
 
   const handleGenerateCode = (studentId: string, studentName: string) => {
     setSelectedStudent({ id: studentId, name: studentName });
-    generateCodeMutation.mutate(studentId);
+    generateCodeMutation.mutate(studentId, {
+      onSuccess: handleGenerateSuccess,
+      onError: handleGenerateError,
+    });
   };
 
   const handleCopyCode = () => {

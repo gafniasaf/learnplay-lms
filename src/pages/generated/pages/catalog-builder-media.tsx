@@ -44,33 +44,35 @@ export default function CatalogBuilderMedia() {
   const [blockedBanner, setBlockedBanner] = useState("");
 
   // Load existing course if editing
+  const loadCourse = useCallback(async () => {
+    if (!id) return;
+    setLoading(true);
+    try {
+      const result = await mcp.getRecord("course-blueprint", id) as { record?: CourseBlueprint } | null;
+      if (result?.record) {
+        setTitle(result.record.title || "");
+        setSubject(result.record.subject || "");
+        setDifficulty(result.record.difficulty || "elementary");
+        setPublished(result.record.published ? "true" : "false");
+        setDescription(result.record.description || "");
+        if (result.record.mediaAssets) {
+          setMediaAssets(result.record.mediaAssets);
+          const alts: Record<string, string> = {};
+          result.record.mediaAssets.forEach(m => { alts[m.id] = m.alt || ""; });
+          setAltTexts(alts);
+        }
+      }
+    } catch {
+      toast.error("Failed to load course");
+    } finally {
+      setLoading(false);
+    }
+  }, [id, mcp, toast]);
+
   useEffect(() => {
     if (!id) return;
-    async function loadCourse() {
-      setLoading(true);
-      try {
-        const result = await mcp.getRecord("course-blueprint", id) as { record?: CourseBlueprint } | null;
-        if (result?.record) {
-          setTitle(result.record.title || "");
-          setSubject(result.record.subject || "");
-          setDifficulty(result.record.difficulty || "elementary");
-          setPublished(result.record.published ? "true" : "false");
-          setDescription(result.record.description || "");
-          if (result.record.mediaAssets) {
-            setMediaAssets(result.record.mediaAssets);
-            const alts: Record<string, string> = {};
-            result.record.mediaAssets.forEach(m => { alts[m.id] = m.alt || ""; });
-            setAltTexts(alts);
-          }
-        }
-      } catch {
-        toast.error("Failed to load course");
-      } finally {
-        setLoading(false);
-      }
-    }
     loadCourse();
-  }, [id]);
+  }, [id, loadCourse]);
 
   // Save handler
   const handleSave = useCallback(async () => {
@@ -93,7 +95,7 @@ export default function CatalogBuilderMedia() {
     } catch {
       toast.error("Failed to save course");
     }
-  }, [id, title, subject, difficulty, published, description, mediaAssets, altTexts]);
+  }, [mcp, id, title, subject, difficulty, published, description, mediaAssets, altTexts]);
 
   // AI Generate handler
   const handleAIGenerate = useCallback(async () => {
@@ -109,7 +111,7 @@ export default function CatalogBuilderMedia() {
       setBlockedBanner("AI generation unavailable. Check API keys.");
       toast.error("AI generation failed - check API keys");
     }
-  }, [id, title, subject, description]);
+  }, [mcp, id, title, subject, description]);
 
   // Guard check handler
   const handleGuardCheck = useCallback(async () => {
@@ -121,7 +123,7 @@ export default function CatalogBuilderMedia() {
       toast.error("Guard check failed");
       setGuardStatus("failed");
     }
-  }, [id]);
+  }, [mcp, id]);
 
   // File upload handler
   const handleFileUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {

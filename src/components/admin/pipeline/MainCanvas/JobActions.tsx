@@ -8,7 +8,6 @@ import {
   X, 
   ExternalLink, 
   Download,
-  Play,
   FileText
 } from 'lucide-react';
 import { useState } from 'react';

@@ -2,12 +2,11 @@ import type { PlaywrightTestConfig } from '@playwright/test';
 
 const PORT = process.env.PORT ? Number(process.env.PORT) : 8081; // Different port to avoid conflicts
 
-// Real DB/LLM config: no mock mode, assumes env vars are set by caller
 const config: PlaywrightTestConfig = {
-  testDir: 'tests/e2e',
-  testMatch: ['**/*.spec.ts'],
+  testDir: '.',
+  testMatch: ['tests/e2e/**/*.spec.ts', 'src/e2e/**/*.spec.ts'],
   timeout: 180_000, // 3 minutes for tests that create real jobs
-  retries: process.env.CI ? 1 : 0,
+  retries: 0, // No retries for real DB tests
   reporter: [
     ['list'], 
     ['junit', { outputFile: 'reports/playwright-real-db-junit.xml' }], 
@@ -15,10 +14,10 @@ const config: PlaywrightTestConfig = {
   ],
   use: {
     baseURL: `http://localhost:${PORT}`,
-    headless: true, // Set to false for debugging
-    screenshot: 'only-on-failure',
-    video: 'retain-on-failure',
-    trace: 'retain-on-failure',
+    headless: false, // Run headed to see what's happening
+    screenshot: 'on',
+    video: 'on',
+    trace: 'on',
     actionTimeout: 15_000,
   },
   webServer: {
@@ -51,3 +50,4 @@ const config: PlaywrightTestConfig = {
 };
 
 export default config;
+

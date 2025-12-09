@@ -318,7 +318,7 @@ export const ItemEditor = ({ item, groups, courseId, open, onClose, onSave, onDe
                 }
               }}
               onRemove={() => {
-                const { stimulus, ...rest } = editedItem;
+                const { stimulus: _stimulus, ...rest } = editedItem;
                 setEditedItem(rest as CourseItemV2);
               }}
               onInsertMediaToken={() => {

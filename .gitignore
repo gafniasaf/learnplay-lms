@@ -49,3 +49,10 @@ cursor-playground/workspaces/
 
 # Archived legacy code
 _archive/
+
+# Environment files with secrets
+learnplay.env
+*.env
+!.env.example
+!.env.local.example
+!.deploy.env.example
