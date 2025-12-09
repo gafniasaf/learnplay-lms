@@ -70,10 +70,10 @@ export function ChatPanel({ messages, isLoading, className }: ChatPanelProps) {
       >
         {messages.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-center space-y-2 opacity-40 px-4">
-            <svg className="h-16 w-16 sm:h-20 sm:w-20 md:h-24 md:w-24 text-gray-400" fill="currentColor" viewBox="0 0 24 24">
+            <svg className="h-16 w-16 sm:h-20 sm:w-20 md:h-24 md:w-24 text-gray-700" fill="currentColor" viewBox="0 0 24 24">
               <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z"/>
             </svg>
-            <div className="text-gray-500">
+            <div className="text-gray-800">
               <p className="text-xs sm:text-sm font-medium mb-1">Send a message to get started</p>
               <p className="text-[10px] sm:text-xs max-w-xs mx-auto">
                 Your messages are private and protected
@@ -177,7 +177,7 @@ export function ChatPanel({ messages, isLoading, className }: ChatPanelProps) {
                 {/* Timestamp */}
                 <div className={cn(
                   "text-[10px] sm:text-[11px] mt-1 flex items-center gap-1",
-                  message.role === 'user' ? 'text-gray-600 justify-end' : 'text-gray-500'
+                  message.role === 'user' ? 'text-gray-800 justify-end' : 'text-gray-700'
                 )}>
                   <span>{formatTimestamp(message.timestamp)}</span>
                   {message.role === 'user' && message.status !== 'error' && (
