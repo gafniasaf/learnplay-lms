@@ -81,7 +81,11 @@ async function createAdmin(email: string, password: string, fullName?: string) {
     }
 
     // Step 2: Get or create default organization
-    const defaultOrgId = process.env.ORGANIZATION_ID || '4d7b0a5c-3cf1-49e5-9ad7-bf6c1f8a2f58';
+    const defaultOrgId = process.env.ORGANIZATION_ID;
+    if (!defaultOrgId) {
+      console.error('❌ ORGANIZATION_ID is REQUIRED - set env var');
+      process.exit(1);
+    }
     console.log(`🏢 Checking organization: ${defaultOrgId}...`);
     
     // Check if organization exists
