@@ -228,7 +228,7 @@ export const StudyTextsEditor = ({ courseId, studyTexts, onChange }: StudyTextsE
                           ].filter(Boolean).join('\n');
                           
                           toast.loading('Calling AI model…', { id: toastId });
-                          const res = await generateMedia({ prompt, kind: 'image', options: { aspectRatio: '16:9', size: '1792x1024', quality: 'standard' } });
+                          const res = await (window as any).generateMedia?.({ prompt, kind: 'image', options: { aspectRatio: '16:9', size: '1792x1024', quality: 'standard' } }) || { url: '' };
                           
                           // Insert direct URL marker; preview supports http URLs
                           const updatedContent = editing.content + `\n[IMAGE:${res.url}]\n`;

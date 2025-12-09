@@ -41,6 +41,7 @@ export interface CourseItem {
   clusterId: string;
   variant: string;
   mode?: 'options' | 'numeric';
+  stem?: { text: string };
   options: string[];
   correctIndex: number;
   wrongExplanations?: string[];

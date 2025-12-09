@@ -83,8 +83,8 @@ export const CourseReviewTab = ({ course, onPatchApplied }: CourseReviewTabProps
         throw new Error(data.error || "Patch application failed");
       }
 
-      setSuccess(`Patch applied successfully! Version: ${data.versionPath}`);
-      onPatchApplied(data.patchedCourse);
+      setSuccess(`Patch applied successfully! Version: ${(data as any).versionPath || 'N/A'}`);
+      onPatchApplied((data as any).patchedCourse || data.course);
       setReviewData(null);
     } catch (err) {
       console.error("Apply patch error:", err);

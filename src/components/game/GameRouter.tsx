@@ -95,8 +95,8 @@ export function GameRouter({
           item={{
             id: item.id,
             mode: 'visual-mcq',
-            imageUrl: item.stimulus?.type === 'image' ? item.stimulus.url : '',
-            options: item.options,
+            stem: { text: item.stem?.text || item.text || '' },
+            options: item.optionMedia?.filter((m): m is { type: 'image'; url: string; alt?: string } => m?.type === 'image').map(m => ({ text: m.alt || '', image: m.url })) || [],
             correctIndex: item.correctIndex,
           }}
           onSelect={(index) => {
@@ -112,8 +112,16 @@ export function GameRouter({
     case 'drag-drop':
       return (
         <DragDropClassify
-          item={item}
-          onComplete={(isCorrect) => {
+          item={{
+            id: item.id,
+            mode: 'drag-drop',
+            stem: { text: item.stem?.text || '' },
+            items: (item as any).items || [],
+            categories: (item as any).categories || [],
+          }}
+          onComplete={(placements) => {
+            // Check if placements are correct
+            const isCorrect = (item as any).items?.every((i: any) => placements[i.id] === i.category) ?? false;
             handleAnswer(0, isCorrect);
           }}
         />
@@ -122,8 +130,16 @@ export function GameRouter({
     case 'matching':
       return (
         <MatchingPairs
-          item={item}
-          onComplete={(isCorrect) => {
+          item={{
+            id: item.id,
+            mode: 'matching',
+            stem: { text: item.stem?.text || '' },
+            pairs: (item as any).pairs || [],
+          }}
+          onComplete={(matches) => {
+            // Check if all matches are correct
+            const pairs = (item as any).pairs || [];
+            const isCorrect = pairs.every((p: any) => matches[p.left] === p.right);
             handleAnswer(0, isCorrect);
           }}
         />
@@ -132,8 +148,15 @@ export function GameRouter({
     case 'ordering':
       return (
         <OrderingSequence
-          item={item}
-          onComplete={(isCorrect) => {
+          item={{
+            mode: 'ordering',
+            stem: { text: item.stem?.text || '' },
+            steps: (item as any).steps || [],
+            correctOrder: (item as any).correctOrder || [],
+          }}
+          onSubmit={(order) => {
+            const correctOrder = (item as any).correctOrder || [];
+            const isCorrect = JSON.stringify(order) === JSON.stringify(correctOrder);
             handleAnswer(0, isCorrect);
           }}
         />
@@ -152,9 +175,8 @@ export function GameRouter({
     case 'numeric':
       return (
         <NumericPad
-          item={item}
-          onAnswer={(answer) => {
-            const isCorrect = answer === item.answer;
+          onSubmit={(answer) => {
+            const isCorrect = answer === (item as any).answer;
             handleAnswer(0, isCorrect);
           }}
         />
@@ -174,13 +196,13 @@ export function GameRouter({
     default:
       return (
         <OptionGrid
-          item={item}
+          options={item.options}
           onSelect={(index) => {
             const isCorrect = index === item.correctIndex;
             handleAnswer(index, isCorrect);
           }}
           selectedIndex={undefined}
-          showFeedback={false}
+          itemId={item.id}
         />
       );
   }
