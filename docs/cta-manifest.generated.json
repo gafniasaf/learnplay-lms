@@ -1,0 +1,2333 @@
+[
+  {
+    "id": "cta-pipeline-login",
+    "action": "action",
+    "file": "src\\pages\\admin\\AIPipelineV2.tsx",
+    "line": 301,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-pipeline-login-error",
+    "action": "action",
+    "file": "src\\pages\\admin\\AIPipelineV2.tsx",
+    "line": 319,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-pipeline-generate-course",
+    "action": "action",
+    "file": "src\\pages\\admin\\AIPipelineV2.tsx",
+    "line": 409,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-pipeline-toggle-recent",
+    "action": "action",
+    "file": "src\\pages\\admin\\AIPipelineV2.tsx",
+    "line": 442,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-pipeline-view-all-jobs",
+    "action": "action",
+    "file": "src\\pages\\admin\\AIPipelineV2.tsx",
+    "line": 474,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-pipeline-cancel-job",
+    "action": "action",
+    "file": "src\\pages\\admin\\AIPipelineV2.tsx",
+    "line": 504,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-pipeline-edit-course",
+    "action": "action",
+    "file": "src\\pages\\admin\\AIPipelineV2.tsx",
+    "line": 604,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-pipeline-preview-course",
+    "action": "action",
+    "file": "src\\pages\\admin\\AIPipelineV2.tsx",
+    "line": 613,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-pipeline-publish-course",
+    "action": "action",
+    "file": "src\\pages\\admin\\AIPipelineV2.tsx",
+    "line": 622,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-pipeline-create-another",
+    "action": "action",
+    "file": "src\\pages\\admin\\AIPipelineV2.tsx",
+    "line": 635,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-editor-back-to-selector",
+    "action": "navigate",
+    "file": "src\\pages\\admin\\CourseEditor.tsx",
+    "line": 975,
+    "inferredPage": "/admin/editor/test-course"
+  },
+  {
+    "id": "cta-editor-back-to-admin",
+    "action": "navigate",
+    "file": "src\\pages\\admin\\CourseEditor.tsx",
+    "line": 976,
+    "inferredPage": "/admin/editor/test-course"
+  },
+  {
+    "id": "cta-editor-toggle-media-library",
+    "action": "action",
+    "file": "src\\pages\\admin\\CourseEditor.tsx",
+    "line": 1049,
+    "inferredPage": "/admin/editor/test-course"
+  },
+  {
+    "id": "cta-editor-discard",
+    "action": "action",
+    "file": "src\\pages\\admin\\CourseEditor.tsx",
+    "line": 1056,
+    "inferredPage": "/admin/editor/test-course"
+  },
+  {
+    "id": "cta-editor-save-draft",
+    "action": "action",
+    "file": "src\\pages\\admin\\CourseEditor.tsx",
+    "line": 1060,
+    "inferredPage": "/admin/editor/test-course"
+  },
+  {
+    "id": "cta-editor-publish",
+    "action": "action",
+    "file": "src\\pages\\admin\\CourseEditor.tsx",
+    "line": 1074,
+    "inferredPage": "/admin/editor/test-course"
+  },
+  {
+    "id": "cta-editor-repair-course",
+    "action": "action",
+    "file": "src\\pages\\admin\\CourseEditor.tsx",
+    "line": 1079,
+    "inferredPage": "/admin/editor/test-course"
+  },
+  {
+    "id": "cta-editor-audit-variants",
+    "action": "action",
+    "file": "src\\pages\\admin\\CourseEditor.tsx",
+    "line": 1102,
+    "inferredPage": "/admin/editor/test-course"
+  },
+  {
+    "id": "cta-editor-generate-missing-variants",
+    "action": "action",
+    "file": "src\\pages\\admin\\CourseEditor.tsx",
+    "line": 1122,
+    "inferredPage": "/admin/editor/test-course"
+  },
+  {
+    "id": "cta-editor-archive-course",
+    "action": "action",
+    "file": "src\\pages\\admin\\CourseEditor.tsx",
+    "line": 1145,
+    "inferredPage": "/admin/editor/test-course"
+  },
+  {
+    "id": "cta-editor-delete-course",
+    "action": "action",
+    "file": "src\\pages\\admin\\CourseEditor.tsx",
+    "line": 1148,
+    "inferredPage": "/admin/editor/test-course"
+  },
+  {
+    "id": "cta-editor-copilot-variants",
+    "action": "action",
+    "file": "src\\pages\\admin\\CourseEditor.tsx",
+    "line": 1154,
+    "inferredPage": "/admin/editor/test-course"
+  },
+  {
+    "id": "cta-editor-copilot-enrich",
+    "action": "action",
+    "file": "src\\pages\\admin\\CourseEditor.tsx",
+    "line": 1171,
+    "inferredPage": "/admin/editor/test-course"
+  },
+  {
+    "id": "cta-editor-copilot-localize",
+    "action": "action",
+    "file": "src\\pages\\admin\\CourseEditor.tsx",
+    "line": 1188,
+    "inferredPage": "/admin/editor/test-course"
+  },
+  {
+    "id": "cta-editor-view-job",
+    "action": "action",
+    "file": "src\\pages\\admin\\CourseEditor.tsx",
+    "line": 1214,
+    "inferredPage": "/admin/editor/test-course"
+  },
+  {
+    "id": "cta-editor-tab-exercises",
+    "action": "action",
+    "file": "src\\pages\\admin\\CourseEditor.tsx",
+    "line": 1231,
+    "inferredPage": "/admin/editor/test-course"
+  },
+  {
+    "id": "cta-editor-tab-study-texts",
+    "action": "action",
+    "file": "src\\pages\\admin\\CourseEditor.tsx",
+    "line": 1242,
+    "inferredPage": "/admin/editor/test-course"
+  },
+  {
+    "id": "cta-editor-add-image-ai",
+    "action": "action",
+    "file": "src\\pages\\admin\\CourseEditor.tsx",
+    "line": 1330,
+    "inferredPage": "/admin/editor/test-course"
+  },
+  {
+    "id": "cta-editor-fix-missing-images",
+    "action": "action",
+    "file": "src\\pages\\admin\\CourseEditor.tsx",
+    "line": 1365,
+    "inferredPage": "/admin/editor/test-course"
+  },
+  {
+    "id": "cta-editor-add-study-text",
+    "action": "action",
+    "file": "src\\pages\\admin\\CourseEditor.tsx",
+    "line": 1542,
+    "inferredPage": "/admin/editor/test-course"
+  },
+  {
+    "id": "cta-editor-auto-fix",
+    "action": "action",
+    "file": "src\\pages\\admin\\CourseEditor.tsx",
+    "line": 1648,
+    "inferredPage": "/admin/editor/test-course"
+  },
+  {
+    "id": "cta-course-selector-toggle-metadata",
+    "action": "action",
+    "file": "src\\pages\\admin\\CourseSelector.tsx",
+    "line": 177,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-course-selector-toggle-filter-logic",
+    "action": "action",
+    "file": "src\\pages\\admin\\CourseSelector.tsx",
+    "line": 193,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-course-selector-clear-filters",
+    "action": "action",
+    "file": "src\\pages\\admin\\CourseSelector.tsx",
+    "line": 201,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-course-selector-sign-in",
+    "action": "navigate",
+    "file": "src\\pages\\admin\\CourseSelector.tsx",
+    "line": 216,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-course-version-back-to-editor",
+    "action": "navigate",
+    "file": "src\\pages\\admin\\CourseVersionHistory.tsx",
+    "line": 144,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-course-version-refresh",
+    "action": "action",
+    "file": "src\\pages\\admin\\CourseVersionHistory.tsx",
+    "line": 147,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-jobs-run-batch",
+    "action": "action",
+    "file": "src\\pages\\admin\\JobsDashboard.tsx",
+    "line": 349,
+    "inferredPage": "/admin/jobs"
+  },
+  {
+    "id": "cta-jobs-run-reconciler",
+    "action": "action",
+    "file": "src\\pages\\admin\\JobsDashboard.tsx",
+    "line": 352,
+    "inferredPage": "/admin/jobs"
+  },
+  {
+    "id": "cta-jobs-refresh",
+    "action": "action",
+    "file": "src\\pages\\admin\\JobsDashboard.tsx",
+    "line": 355,
+    "inferredPage": "/admin/jobs"
+  },
+  {
+    "id": "cta-jobs-apply-filters",
+    "action": "action",
+    "file": "src\\pages\\admin\\JobsDashboard.tsx",
+    "line": 406,
+    "inferredPage": "/admin/jobs"
+  },
+  {
+    "id": "cta-logs-refresh",
+    "action": "action",
+    "file": "src\\pages\\admin\\Logs.tsx",
+    "line": 143,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-logs-clear-filters",
+    "action": "action",
+    "file": "src\\pages\\admin\\Logs.tsx",
+    "line": 207,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-media-manager-go-to-admin",
+    "action": "navigate",
+    "file": "src\\pages\\admin\\MediaManager.tsx",
+    "line": 241,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-media-manager-refresh-files",
+    "action": "action",
+    "file": "src\\pages\\admin\\MediaManager.tsx",
+    "line": 290,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-media-manager-delete-cancel",
+    "action": "action",
+    "file": "src\\pages\\admin\\MediaManager.tsx",
+    "line": 498,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-media-manager-delete-confirm",
+    "action": "action",
+    "file": "src\\pages\\admin\\MediaManager.tsx",
+    "line": 501,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-system-health-refresh",
+    "action": "action",
+    "file": "src\\pages\\admin\\SystemHealth.tsx",
+    "line": 123,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-system-health-run-ui-audit",
+    "action": "action",
+    "file": "src\\pages\\admin\\SystemHealth.tsx",
+    "line": 181,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-system-health-check-integrity",
+    "action": "action",
+    "file": "src\\pages\\admin\\SystemHealth.tsx",
+    "line": 224,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-tag-approval-sign-in",
+    "action": "navigate",
+    "file": "src\\pages\\admin\\TagApprovalQueue.tsx",
+    "line": 189,
+    "inferredPage": "/admin/tags"
+  },
+  {
+    "id": "cta-tag-approval-retry-auth",
+    "action": "action",
+    "file": "src\\pages\\admin\\TagApprovalQueue.tsx",
+    "line": 190,
+    "inferredPage": "/admin/tags"
+  },
+  {
+    "id": "cta-tag-approval-retry-error",
+    "action": "action",
+    "file": "src\\pages\\admin\\TagApprovalQueue.tsx",
+    "line": 206,
+    "inferredPage": "/admin/tags"
+  },
+  {
+    "id": "cta-tag-approval-refresh",
+    "action": "action",
+    "file": "src\\pages\\admin\\TagApprovalQueue.tsx",
+    "line": 239,
+    "inferredPage": "/admin/tags"
+  },
+  {
+    "id": "cta-tag-approval-bulk-approve",
+    "action": "action",
+    "file": "src\\pages\\admin\\TagApprovalQueue.tsx",
+    "line": 244,
+    "inferredPage": "/admin/tags"
+  },
+  {
+    "id": "cta-tag-management-sign-in",
+    "action": "navigate",
+    "file": "src\\pages\\admin\\TagManagement.tsx",
+    "line": 97,
+    "inferredPage": "/admin/tags"
+  },
+  {
+    "id": "cta-tag-management-retry-auth",
+    "action": "action",
+    "file": "src\\pages\\admin\\TagManagement.tsx",
+    "line": 98,
+    "inferredPage": "/admin/tags"
+  },
+  {
+    "id": "cta-tag-management-retry-error",
+    "action": "action",
+    "file": "src\\pages\\admin\\TagManagement.tsx",
+    "line": 114,
+    "inferredPage": "/admin/tags"
+  },
+  {
+    "id": "cta-tag-management-refresh",
+    "action": "action",
+    "file": "src\\pages\\admin\\TagManagement.tsx",
+    "line": 131,
+    "inferredPage": "/admin/tags"
+  },
+  {
+    "id": "cta-admin-ai-author",
+    "action": "navigate",
+    "file": "src\\pages\\Admin.tsx",
+    "line": 175,
+    "inferredPage": "/admin/console"
+  },
+  {
+    "id": "cta-admin-add-course",
+    "action": "action",
+    "file": "src\\pages\\Admin.tsx",
+    "line": 181,
+    "inferredPage": "/admin/console"
+  },
+  {
+    "id": "cta-auth-sign-in",
+    "action": "action",
+    "file": "src\\pages\\Auth.tsx",
+    "line": 255,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-auth-forgot-password",
+    "action": "action",
+    "file": "src\\pages\\Auth.tsx",
+    "line": 262,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-auth-sign-up",
+    "action": "action",
+    "file": "src\\pages\\Auth.tsx",
+    "line": 343,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-auth-google-login",
+    "action": "action",
+    "file": "src\\pages\\Auth.tsx",
+    "line": 361,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-auth-anonymous-login",
+    "action": "action",
+    "file": "src\\pages\\Auth.tsx",
+    "line": 389,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-auth-send-reset-link",
+    "action": "action",
+    "file": "src\\pages\\Auth.tsx",
+    "line": 434,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-auth-cancel-reset",
+    "action": "action",
+    "file": "src\\pages\\Auth.tsx",
+    "line": 438,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-auth-close-reset-dialog",
+    "action": "action",
+    "file": "src\\pages\\Auth.tsx",
+    "line": 472,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-courses-retry-error",
+    "action": "action",
+    "file": "src\\pages\\Courses.tsx",
+    "line": 277,
+    "inferredPage": "/courses"
+  },
+  {
+    "id": "cta-courses-clear-filter",
+    "action": "action",
+    "file": "src\\pages\\Courses.tsx",
+    "line": 302,
+    "inferredPage": "/courses"
+  },
+  {
+    "id": "cta-courses-refresh",
+    "action": "action",
+    "file": "src\\pages\\Courses.tsx",
+    "line": 345,
+    "inferredPage": "/courses"
+  },
+  {
+    "id": "cta-courses-enqueue-media",
+    "action": "action",
+    "file": "src\\pages\\Courses.tsx",
+    "line": 357,
+    "inferredPage": "/courses"
+  },
+  {
+    "id": "cta-dev-guard-return-home",
+    "action": "navigate",
+    "file": "src\\pages\\DevGuard.tsx",
+    "line": 36,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-dev-health-start-round",
+    "action": "action",
+    "file": "src\\pages\\DevHealth.tsx",
+    "line": 148,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-dev-health-log-correct",
+    "action": "action",
+    "file": "src\\pages\\DevHealth.tsx",
+    "line": 156,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-dev-health-log-wrong",
+    "action": "action",
+    "file": "src\\pages\\DevHealth.tsx",
+    "line": 165,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-dev-health-end-round",
+    "action": "action",
+    "file": "src\\pages\\DevHealth.tsx",
+    "line": 174,
+    "inferredPage": "/"
+  },
+  {
+    "id": "back",
+    "action": "navigate",
+    "file": "src\\pages\\generated\\pages\\catalog-builder-media.tsx",
+    "line": 185,
+    "inferredPage": "/"
+  },
+  {
+    "id": "ai-generate",
+    "action": "enqueueJob",
+    "file": "src\\pages\\generated\\pages\\catalog-builder-media.tsx",
+    "line": 189,
+    "inferredPage": "/"
+  },
+  {
+    "id": "guard-course",
+    "action": "enqueueJob",
+    "file": "src\\pages\\generated\\pages\\catalog-builder-media.tsx",
+    "line": 192,
+    "inferredPage": "/"
+  },
+  {
+    "id": "save-course",
+    "action": "save",
+    "file": "src\\pages\\generated\\pages\\catalog-builder-media.tsx",
+    "line": 195,
+    "inferredPage": "/"
+  },
+  {
+    "id": "rerun-guard",
+    "action": "enqueueJob",
+    "file": "src\\pages\\generated\\pages\\catalog-builder-media.tsx",
+    "line": 218,
+    "inferredPage": "/"
+  },
+  {
+    "id": "upload-media",
+    "action": "action",
+    "file": "src\\pages\\generated\\pages\\catalog-builder-media.tsx",
+    "line": 264,
+    "inferredPage": "/"
+  },
+  {
+    "id": "open-item-editor",
+    "action": "navigate",
+    "file": "src\\pages\\generated\\pages\\catalog-builder-media.tsx",
+    "line": 332,
+    "inferredPage": "/"
+  },
+  {
+    "id": "ai-generate-items",
+    "action": "enqueueJob",
+    "file": "src\\pages\\generated\\pages\\catalog-builder-media.tsx",
+    "line": 335,
+    "inferredPage": "/"
+  },
+  {
+    "id": "back",
+    "action": "navigate",
+    "file": "src\\pages\\generated\\pages\\catalog-builder.tsx",
+    "line": 21,
+    "inferredPage": "/"
+  },
+  {
+    "id": "new-course",
+    "action": "save",
+    "file": "src\\pages\\generated\\pages\\catalog-builder.tsx",
+    "line": 46,
+    "inferredPage": "/"
+  },
+  {
+    "id": "ai-generate",
+    "action": "enqueueJob",
+    "file": "src\\pages\\generated\\pages\\catalog-builder.tsx",
+    "line": 62,
+    "inferredPage": "/"
+  },
+  {
+    "id": "guard-course",
+    "action": "enqueueJob",
+    "file": "src\\pages\\generated\\pages\\catalog-builder.tsx",
+    "line": 72,
+    "inferredPage": "/"
+  },
+  {
+    "id": "save-course",
+    "action": "save",
+    "file": "src\\pages\\generated\\pages\\catalog-builder.tsx",
+    "line": 82,
+    "inferredPage": "/"
+  },
+  {
+    "id": "exit-session",
+    "action": "navigate",
+    "file": "src\\pages\\generated\\pages\\play-session-media.tsx",
+    "line": 25,
+    "inferredPage": "/"
+  },
+  {
+    "id": "option-0",
+    "action": "ui",
+    "file": "src\\pages\\generated\\pages\\play-session-media.tsx",
+    "line": 44,
+    "inferredPage": "/"
+  },
+  {
+    "id": "option-1",
+    "action": "ui",
+    "file": "src\\pages\\generated\\pages\\play-session-media.tsx",
+    "line": 47,
+    "inferredPage": "/"
+  },
+  {
+    "id": "option-2",
+    "action": "ui",
+    "file": "src\\pages\\generated\\pages\\play-session-media.tsx",
+    "line": 51,
+    "inferredPage": "/"
+  },
+  {
+    "id": "option-3",
+    "action": "ui",
+    "file": "src\\pages\\generated\\pages\\play-session-media.tsx",
+    "line": 54,
+    "inferredPage": "/"
+  },
+  {
+    "id": "submit-answer",
+    "action": "ui",
+    "file": "src\\pages\\generated\\pages\\play-session-media.tsx",
+    "line": 64,
+    "inferredPage": "/"
+  },
+  {
+    "id": "back",
+    "action": "navigate",
+    "file": "src\\pages\\generated\\pages\\settings.tsx",
+    "line": 67,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cancel",
+    "action": "navigate",
+    "file": "src\\pages\\generated\\pages\\settings.tsx",
+    "line": 162,
+    "inferredPage": "/"
+  },
+  {
+    "id": "save-settings",
+    "action": "save",
+    "file": "src\\pages\\generated\\pages\\settings.tsx",
+    "line": 163,
+    "inferredPage": "/"
+  },
+  {
+    "id": "back",
+    "action": "navigate",
+    "file": "src\\pages\\generated\\pages\\teacher-control.tsx",
+    "line": 92,
+    "inferredPage": "/"
+  },
+  {
+    "id": "draft-plan",
+    "action": "enqueueJob",
+    "file": "src\\pages\\generated\\pages\\teacher-control.tsx",
+    "line": 140,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cancel",
+    "action": "navigate",
+    "file": "src\\pages\\generated\\pages\\teacher-control.tsx",
+    "line": 153,
+    "inferredPage": "/"
+  },
+  {
+    "id": "save-assignment",
+    "action": "save",
+    "file": "src\\pages\\generated\\pages\\teacher-control.tsx",
+    "line": 156,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-help-integration-guide",
+    "action": "navigate",
+    "file": "src\\pages\\Help.tsx",
+    "line": 210,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-help-tech-docs",
+    "action": "action",
+    "file": "src\\pages\\Help.tsx",
+    "line": 226,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-help-embed-docs",
+    "action": "action",
+    "file": "src\\pages\\Help.tsx",
+    "line": 232,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-help-sentry-docs",
+    "action": "action",
+    "file": "src\\pages\\Help.tsx",
+    "line": 238,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-kids-view-all-assignments",
+    "action": "navigate",
+    "file": "src\\pages\\Kids.tsx",
+    "line": 123,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-kids-play-modals",
+    "action": "action",
+    "file": "src\\pages\\Kids.tsx",
+    "line": 201,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-kids-play-verbs",
+    "action": "action",
+    "file": "src\\pages\\Kids.tsx",
+    "line": 214,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-inbox-refresh",
+    "action": "action",
+    "file": "src\\pages\\messages\\Inbox.tsx",
+    "line": 191,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-inbox-new-message",
+    "action": "action",
+    "file": "src\\pages\\messages\\Inbox.tsx",
+    "line": 194,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-inbox-load-more-messages",
+    "action": "action",
+    "file": "src\\pages\\messages\\Inbox.tsx",
+    "line": 274,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-inbox-send-message",
+    "action": "action",
+    "file": "src\\pages\\messages\\Inbox.tsx",
+    "line": 321,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-parent-dashboard-retry-error",
+    "action": "action",
+    "file": "src\\pages\\parent\\Dashboard.tsx",
+    "line": 205,
+    "inferredPage": "/parent/dashboard"
+  },
+  {
+    "id": "cta-parent-dashboard-retry-empty",
+    "action": "action",
+    "file": "src\\pages\\parent\\Dashboard.tsx",
+    "line": 230,
+    "inferredPage": "/parent/dashboard"
+  },
+  {
+    "id": "parent-link-child",
+    "action": "navigate",
+    "file": "src\\pages\\parent\\Dashboard.tsx",
+    "line": 258,
+    "inferredPage": "/"
+  },
+  {
+    "id": "parent-messages",
+    "action": "navigate",
+    "file": "src\\pages\\parent\\Dashboard.tsx",
+    "line": 262,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-parent-goals-retry-error",
+    "action": "action",
+    "file": "src\\pages\\parent\\Goals.tsx",
+    "line": 280,
+    "inferredPage": "/parent/dashboard"
+  },
+  {
+    "id": "cta-parent-link-child-submit",
+    "action": "action",
+    "file": "src\\pages\\parent\\LinkChild.tsx",
+    "line": 103,
+    "inferredPage": "/parent/dashboard"
+  },
+  {
+    "id": "cta-subjects-retry-error",
+    "action": "action",
+    "file": "src\\pages\\parent\\Subjects.tsx",
+    "line": 324,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-subjects-refresh-empty",
+    "action": "action",
+    "file": "src\\pages\\parent\\Subjects.tsx",
+    "line": 347,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-subjects-filter-dropdown",
+    "action": "action",
+    "file": "src\\pages\\parent\\Subjects.tsx",
+    "line": 404,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-subjects-clear-filters-dropdown",
+    "action": "action",
+    "file": "src\\pages\\parent\\Subjects.tsx",
+    "line": 429,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-subjects-export-csv",
+    "action": "action",
+    "file": "src\\pages\\parent\\Subjects.tsx",
+    "line": 442,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-subjects-clear-filters-empty",
+    "action": "action",
+    "file": "src\\pages\\parent\\Subjects.tsx",
+    "line": 473,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-parent-timeline-retry-error",
+    "action": "action",
+    "file": "src\\pages\\parent\\Timeline.tsx",
+    "line": 278,
+    "inferredPage": "/parent/dashboard"
+  },
+  {
+    "id": "cta-parent-timeline-date-picker",
+    "action": "action",
+    "file": "src\\pages\\parent\\Timeline.tsx",
+    "line": 321,
+    "inferredPage": "/parent/dashboard"
+  },
+  {
+    "id": "cta-parents-retry-error",
+    "action": "action",
+    "file": "src\\pages\\Parents.tsx",
+    "line": 340,
+    "inferredPage": "/parent/dashboard"
+  },
+  {
+    "id": "cta-parents-messages",
+    "action": "navigate",
+    "file": "src\\pages\\Parents.tsx",
+    "line": 355,
+    "inferredPage": "/parent/dashboard"
+  },
+  {
+    "id": "cta-parents-link-child",
+    "action": "navigate",
+    "file": "src\\pages\\Parents.tsx",
+    "line": 359,
+    "inferredPage": "/parent/dashboard"
+  },
+  {
+    "id": "cta-play-back-to-courses",
+    "action": "navigate",
+    "file": "src\\pages\\Play.tsx",
+    "line": 803,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-play-reload-version",
+    "action": "action",
+    "file": "src\\pages\\Play.tsx",
+    "line": 822,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-play-toggle-sidebar",
+    "action": "action",
+    "file": "src\\pages\\Play.tsx",
+    "line": 830,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-play-hint",
+    "action": "action",
+    "file": "src\\pages\\Play.tsx",
+    "line": 935,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-play-welcome-back-to-courses",
+    "action": "navigate",
+    "file": "src\\pages\\PlayWelcome.tsx",
+    "line": 72,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-play-welcome-start",
+    "action": "action",
+    "file": "src\\pages\\PlayWelcome.tsx",
+    "line": 103,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-play-welcome-skip-preloading",
+    "action": "navigate",
+    "file": "src\\pages\\PlayWelcome.tsx",
+    "line": 104,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-results-home",
+    "action": "action",
+    "file": "src\\pages\\Results.tsx",
+    "line": 140,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-results-replay-level",
+    "action": "action",
+    "file": "src\\pages\\Results.tsx",
+    "line": 151,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-schools-manage-classes",
+    "action": "action",
+    "file": "src\\pages\\Schools.tsx",
+    "line": 168,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-schools-course-catalog",
+    "action": "action",
+    "file": "src\\pages\\Schools.tsx",
+    "line": 174,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-schools-analytics",
+    "action": "action",
+    "file": "src\\pages\\Schools.tsx",
+    "line": 180,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-student-assignments-retry-error",
+    "action": "action",
+    "file": "src\\pages\\student\\Assignments.tsx",
+    "line": 62,
+    "inferredPage": "/student/dashboard"
+  },
+  {
+    "id": "cta-student-assignments-messages",
+    "action": "navigate",
+    "file": "src\\pages\\student\\Assignments.tsx",
+    "line": 78,
+    "inferredPage": "/student/dashboard"
+  },
+  {
+    "id": "cta-student-dashboard-retry-error",
+    "action": "action",
+    "file": "src\\pages\\student\\Dashboard.tsx",
+    "line": 92,
+    "inferredPage": "/student/dashboard"
+  },
+  {
+    "id": "cta-student-dashboard-dismiss-banner",
+    "action": "action",
+    "file": "src\\pages\\student\\Dashboard.tsx",
+    "line": 164,
+    "inferredPage": "/student/dashboard"
+  },
+  {
+    "id": "cta-student-dashboard-range-day",
+    "action": "action",
+    "file": "src\\pages\\student\\Dashboard.tsx",
+    "line": 186,
+    "inferredPage": "/student/dashboard"
+  },
+  {
+    "id": "cta-student-dashboard-range-week",
+    "action": "action",
+    "file": "src\\pages\\student\\Dashboard.tsx",
+    "line": 195,
+    "inferredPage": "/student/dashboard"
+  },
+  {
+    "id": "cta-student-dashboard-range-month",
+    "action": "action",
+    "file": "src\\pages\\student\\Dashboard.tsx",
+    "line": 204,
+    "inferredPage": "/student/dashboard"
+  },
+  {
+    "id": "cta-student-goals-retry-error",
+    "action": "action",
+    "file": "src\\pages\\student\\Goals.tsx",
+    "line": 37,
+    "inferredPage": "/student/dashboard"
+  },
+  {
+    "id": "cta-student-join-class-submit",
+    "action": "action",
+    "file": "src\\pages\\student\\JoinClass.tsx",
+    "line": 104,
+    "inferredPage": "/student/dashboard"
+  },
+  {
+    "id": "cta-student-timeline-retry-error",
+    "action": "action",
+    "file": "src\\pages\\student\\Timeline.tsx",
+    "line": 54,
+    "inferredPage": "/student/dashboard"
+  },
+  {
+    "id": "cta-student-timeline-filter-all",
+    "action": "action",
+    "file": "src\\pages\\student\\Timeline.tsx",
+    "line": 108,
+    "inferredPage": "/student/dashboard"
+  },
+  {
+    "id": "cta-student-timeline-filter-mistakes",
+    "action": "action",
+    "file": "src\\pages\\student\\Timeline.tsx",
+    "line": 116,
+    "inferredPage": "/student/dashboard"
+  },
+  {
+    "id": "cta-student-timeline-filter-mastered",
+    "action": "action",
+    "file": "src\\pages\\student\\Timeline.tsx",
+    "line": 124,
+    "inferredPage": "/student/dashboard"
+  },
+  {
+    "id": "cta-assignment-progress-back",
+    "action": "action",
+    "file": "src\\pages\\teacher\\AssignmentProgress.tsx",
+    "line": 79,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-assignment-progress-export-csv",
+    "action": "action",
+    "file": "src\\pages\\teacher\\AssignmentProgress.tsx",
+    "line": 95,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-assignments-new",
+    "action": "action",
+    "file": "src\\pages\\teacher\\Assignments.tsx",
+    "line": 124,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-assignments-import-ai",
+    "action": "action",
+    "file": "src\\pages\\teacher\\Assignments.tsx",
+    "line": 131,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-assignments-create-first",
+    "action": "action",
+    "file": "src\\pages\\teacher\\Assignments.tsx",
+    "line": 146,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-assignments-create-cancel",
+    "action": "action",
+    "file": "src\\pages\\teacher\\Assignments.tsx",
+    "line": 223,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-assignments-create-submit",
+    "action": "action",
+    "file": "src\\pages\\teacher\\Assignments.tsx",
+    "line": 227,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-classes-create-header",
+    "action": "action",
+    "file": "src\\pages\\teacher\\Classes.tsx",
+    "line": 158,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-classes-create-empty",
+    "action": "action",
+    "file": "src\\pages\\teacher\\Classes.tsx",
+    "line": 177,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-classes-create-cancel",
+    "action": "action",
+    "file": "src\\pages\\teacher\\Classes.tsx",
+    "line": 274,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-classes-create-submit",
+    "action": "action",
+    "file": "src\\pages\\teacher\\Classes.tsx",
+    "line": 281,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-classes-add-member",
+    "action": "action",
+    "file": "src\\pages\\teacher\\Classes.tsx",
+    "line": 309,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-classes-copy-code",
+    "action": "action",
+    "file": "src\\pages\\teacher\\Classes.tsx",
+    "line": 399,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-classes-refresh-code",
+    "action": "action",
+    "file": "src\\pages\\teacher\\Classes.tsx",
+    "line": 414,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-classes-close-code-dialog",
+    "action": "action",
+    "file": "src\\pages\\teacher\\Classes.tsx",
+    "line": 427,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-class-progress-refresh",
+    "action": "action",
+    "file": "src\\pages\\teacher\\ClassProgress.tsx",
+    "line": 34,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-class-progress-suggest-remediation",
+    "action": "action",
+    "file": "src\\pages\\teacher\\ClassProgress.tsx",
+    "line": 146,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-teacher-students-copy-code",
+    "action": "action",
+    "file": "src\\pages\\teacher\\Students.tsx",
+    "line": 165,
+    "inferredPage": "/teacher/dashboard"
+  },
+  {
+    "id": "cta-teacher-students-close-code-dialog",
+    "action": "action",
+    "file": "src\\pages\\teacher\\Students.tsx",
+    "line": 201,
+    "inferredPage": "/teacher/dashboard"
+  },
+  {
+    "id": "cta-teacher-dashboard-retry-error",
+    "action": "action",
+    "file": "src\\pages\\teacher\\TeacherDashboard.tsx",
+    "line": 167,
+    "inferredPage": "/teacher/dashboard"
+  },
+  {
+    "id": "teacher-students",
+    "action": "navigate",
+    "file": "src\\pages\\teacher\\TeacherDashboard.tsx",
+    "line": 191,
+    "inferredPage": "/"
+  },
+  {
+    "id": "teacher-classes",
+    "action": "navigate",
+    "file": "src\\pages\\teacher\\TeacherDashboard.tsx",
+    "line": 195,
+    "inferredPage": "/"
+  },
+  {
+    "id": "teacher-analytics",
+    "action": "navigate",
+    "file": "src\\pages\\teacher\\TeacherDashboard.tsx",
+    "line": 199,
+    "inferredPage": "/"
+  },
+  {
+    "id": "teacher-messages",
+    "action": "navigate",
+    "file": "src\\pages\\teacher\\TeacherDashboard.tsx",
+    "line": 203,
+    "inferredPage": "/"
+  },
+  {
+    "id": "teacher-assignments",
+    "action": "navigate",
+    "file": "src\\pages\\teacher\\TeacherDashboard.tsx",
+    "line": 207,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-teacher-dashboard-generate-assignment",
+    "action": "action",
+    "file": "src\\pages\\teacher\\TeacherDashboard.tsx",
+    "line": 212,
+    "inferredPage": "/teacher/dashboard"
+  },
+  {
+    "id": "cta-teacher-dashboard-assign-course",
+    "action": "action",
+    "file": "src\\pages\\teacher\\TeacherDashboard.tsx",
+    "line": 234,
+    "inferredPage": "/teacher/dashboard"
+  },
+  {
+    "id": "cta-teacher-dashboard-generate-remediation",
+    "action": "action",
+    "file": "src\\pages\\teacher\\TeacherDashboard.tsx",
+    "line": 266,
+    "inferredPage": "/teacher/dashboard"
+  },
+  {
+    "id": "draft-plan",
+    "action": "action",
+    "file": "src\\pages\\workspace\\AssignmentEditor.tsx",
+    "line": 162,
+    "inferredPage": "/"
+  },
+  {
+    "id": "guard-course",
+    "action": "action",
+    "file": "src\\pages\\workspace\\CourseBlueprintEditor.tsx",
+    "line": 203,
+    "inferredPage": "/"
+  },
+  {
+    "id": "ai-generate",
+    "action": "action",
+    "file": "src\\pages\\workspace\\CourseBlueprintEditor.tsx",
+    "line": 216,
+    "inferredPage": "/"
+  },
+  {
+    "id": "retry-job",
+    "action": "action",
+    "file": "src\\pages\\workspace\\JobTicketEditor.tsx",
+    "line": 202,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-add-course-cancel",
+    "action": "action",
+    "file": "src\\components\\admin\\AddCourseModal.tsx",
+    "line": 149,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-add-course-submit",
+    "action": "action",
+    "file": "src\\components\\admin\\AddCourseModal.tsx",
+    "line": 152,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-chat-input-send",
+    "action": "action",
+    "file": "src\\components\\admin\\ChatInput.tsx",
+    "line": 91,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-course-items-filter-all",
+    "action": "action",
+    "file": "src\\components\\admin\\CourseItemsList.tsx",
+    "line": 63,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-course-picker-browse",
+    "action": "action",
+    "file": "src\\components\\admin\\CoursePicker.tsx",
+    "line": 60,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-course-picker-load-manual",
+    "action": "action",
+    "file": "src\\components\\admin\\CoursePicker.tsx",
+    "line": 116,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-course-review-start-review",
+    "action": "action",
+    "file": "src\\components\\admin\\CourseReviewTab.tsx",
+    "line": 159,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-course-review-apply-patch",
+    "action": "action",
+    "file": "src\\components\\admin\\CourseReviewTab.tsx",
+    "line": 260,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-diff-viewer-approve",
+    "action": "action",
+    "file": "src\\components\\admin\\DiffViewer.tsx",
+    "line": 18,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-diff-viewer-cancel",
+    "action": "action",
+    "file": "src\\components\\admin\\DiffViewer.tsx",
+    "line": 19,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-compare-panel-adopt",
+    "action": "action",
+    "file": "src\\components\\admin\\editor\\ComparePanel.tsx",
+    "line": 47,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-compare-panel-reject",
+    "action": "action",
+    "file": "src\\components\\admin\\editor\\ComparePanel.tsx",
+    "line": 51,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-media-library-panel-mode-search",
+    "action": "action",
+    "file": "src\\components\\admin\\editor\\MediaLibraryPanel.tsx",
+    "line": 123,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-media-library-panel-mode-generated",
+    "action": "action",
+    "file": "src\\components\\admin\\editor\\MediaLibraryPanel.tsx",
+    "line": 130,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-media-library-panel-refresh-generated",
+    "action": "action",
+    "file": "src\\components\\admin\\editor\\MediaLibraryPanel.tsx",
+    "line": 143,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-media-library-panel-search",
+    "action": "action",
+    "file": "src\\components\\admin\\editor\\MediaLibraryPanel.tsx",
+    "line": 158,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-media-library-panel-insert-selected",
+    "action": "action",
+    "file": "src\\components\\admin\\editor\\MediaLibraryPanel.tsx",
+    "line": 267,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-media-library-panel-clear-selection",
+    "action": "action",
+    "file": "src\\components\\admin\\editor\\MediaLibraryPanel.tsx",
+    "line": 270,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-navigator-add-group",
+    "action": "action",
+    "file": "src\\components\\admin\\editor\\Navigator.tsx",
+    "line": 321,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-options-tab-ai-improve-all",
+    "action": "action",
+    "file": "src\\components\\admin\\editor\\OptionsTab.tsx",
+    "line": 186,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-options-tab-add-option",
+    "action": "action",
+    "file": "src\\components\\admin\\editor\\OptionsTab.tsx",
+    "line": 215,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-stem-tab-toggle-preview",
+    "action": "action",
+    "file": "src\\components\\admin\\editor\\StemTab.tsx",
+    "line": 86,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-stem-tab-ai-rewrite",
+    "action": "action",
+    "file": "src\\components\\admin\\editor\\StemTab.tsx",
+    "line": 95,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-stem-tab-upload-media",
+    "action": "action",
+    "file": "src\\components\\admin\\editor\\StemTab.tsx",
+    "line": 136,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-stem-tab-ai-image",
+    "action": "action",
+    "file": "src\\components\\admin\\editor\\StemTab.tsx",
+    "line": 140,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-stem-tab-media-from-url",
+    "action": "action",
+    "file": "src\\components\\admin\\editor\\StemTab.tsx",
+    "line": 192,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-generate-course-submit",
+    "action": "action",
+    "file": "src\\components\\admin\\GenerateCourseForm.tsx",
+    "line": 232,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-item-editor-add-option",
+    "action": "action",
+    "file": "src\\components\\admin\\ItemEditor.tsx",
+    "line": 206,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-item-editor-save",
+    "action": "action",
+    "file": "src\\components\\admin\\ItemEditor.tsx",
+    "line": 340,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-item-editor-delete",
+    "action": "action",
+    "file": "src\\components\\admin\\ItemEditor.tsx",
+    "line": 345,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-media-library-bulk-regenerate",
+    "action": "action",
+    "file": "src\\components\\admin\\MediaLibrary.tsx",
+    "line": 164,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-media-library-clear-selection",
+    "action": "action",
+    "file": "src\\components\\admin\\MediaLibrary.tsx",
+    "line": 168,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-media-library-view-grid",
+    "action": "action",
+    "file": "src\\components\\admin\\MediaLibrary.tsx",
+    "line": 219,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-media-library-view-list",
+    "action": "action",
+    "file": "src\\components\\admin\\MediaLibrary.tsx",
+    "line": 227,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-media-library-select-all",
+    "action": "action",
+    "file": "src\\components\\admin\\MediaLibrary.tsx",
+    "line": 237,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-media-library-bulk-cancel",
+    "action": "action",
+    "file": "src\\components\\admin\\MediaLibrary.tsx",
+    "line": 436,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-media-library-bulk-regenerate-all",
+    "action": "action",
+    "file": "src\\components\\admin\\MediaLibrary.tsx",
+    "line": 439,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-pipeline-sidebar-toggle-queue",
+    "action": "action",
+    "file": "src\\components\\admin\\pipeline\\LeftSidebar\\index.tsx",
+    "line": 59,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-pipeline-sidebar-toggle-active",
+    "action": "action",
+    "file": "src\\components\\admin\\pipeline\\LeftSidebar\\index.tsx",
+    "line": 82,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-pipeline-sidebar-toggle-recent",
+    "action": "action",
+    "file": "src\\components\\admin\\pipeline\\LeftSidebar\\index.tsx",
+    "line": 105,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-quick-start-create",
+    "action": "action",
+    "file": "src\\components\\admin\\pipeline\\LeftSidebar\\QuickStartPanel.tsx",
+    "line": 196,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-right-inspector-toggle-timeline",
+    "action": "action",
+    "file": "src\\components\\admin\\pipeline\\RightInspector\\index.tsx",
+    "line": 49,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-right-inspector-toggle-logs",
+    "action": "action",
+    "file": "src\\components\\admin\\pipeline\\RightInspector\\index.tsx",
+    "line": 74,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-right-inspector-toggle-health",
+    "action": "action",
+    "file": "src\\components\\admin\\pipeline\\RightInspector\\index.tsx",
+    "line": 102,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-job-filters-clear",
+    "action": "action",
+    "file": "src\\components\\admin\\pipeline\\TopBar\\JobFilters.tsx",
+    "line": 71,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-job-filters-remove-status",
+    "action": "action",
+    "file": "src\\components\\admin\\pipeline\\TopBar\\JobFilters.tsx",
+    "line": 89,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-regeneration-toggle-custom-prompt",
+    "action": "action",
+    "file": "src\\components\\admin\\RegenerationModal.tsx",
+    "line": 227,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-regeneration-cancel",
+    "action": "action",
+    "file": "src\\components\\admin\\RegenerationModal.tsx",
+    "line": 282,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-regeneration-regenerate",
+    "action": "action",
+    "file": "src\\components\\admin\\RegenerationModal.tsx",
+    "line": 285,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-stimulus-editor-insert-media-token",
+    "action": "action",
+    "file": "src\\components\\admin\\StimulusEditor.tsx",
+    "line": 214,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-stimulus-editor-generate-image-ai",
+    "action": "action",
+    "file": "src\\components\\admin\\StimulusEditor.tsx",
+    "line": 252,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-stimulus-editor-generate-audio-ai",
+    "action": "action",
+    "file": "src\\components\\admin\\StimulusEditor.tsx",
+    "line": 330,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-stimulus-editor-generate-video-ai",
+    "action": "action",
+    "file": "src\\components\\admin\\StimulusEditor.tsx",
+    "line": 400,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-stimulus-editor-attach",
+    "action": "action",
+    "file": "src\\components\\admin\\StimulusEditor.tsx",
+    "line": 460,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-stimulus-editor-remove",
+    "action": "action",
+    "file": "src\\components\\admin\\StimulusEditor.tsx",
+    "line": 461,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-stimulus-panel-close",
+    "action": "action",
+    "file": "src\\components\\admin\\StimulusPanel.tsx",
+    "line": 269,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-stimulus-panel-generate-image-ai",
+    "action": "action",
+    "file": "src\\components\\admin\\StimulusPanel.tsx",
+    "line": 309,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-stimulus-panel-generate-audio-ai",
+    "action": "action",
+    "file": "src\\components\\admin\\StimulusPanel.tsx",
+    "line": 422,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-stimulus-panel-generate-video-ai",
+    "action": "action",
+    "file": "src\\components\\admin\\StimulusPanel.tsx",
+    "line": 534,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-stimulus-panel-attach",
+    "action": "action",
+    "file": "src\\components\\admin\\StimulusPanel.tsx",
+    "line": 639,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-stimulus-panel-remove",
+    "action": "action",
+    "file": "src\\components\\admin\\StimulusPanel.tsx",
+    "line": 650,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-study-texts-add",
+    "action": "action",
+    "file": "src\\components\\admin\\StudyTextsEditor.tsx",
+    "line": 94,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-tag-value-add-submit",
+    "action": "action",
+    "file": "src\\components\\admin\\tags\\TagValueEditor.tsx",
+    "line": 231,
+    "inferredPage": "/admin/tags"
+  },
+  {
+    "id": "cta-tag-value-add-cancel",
+    "action": "action",
+    "file": "src\\components\\admin\\tags\\TagValueEditor.tsx",
+    "line": 236,
+    "inferredPage": "/admin/tags"
+  },
+  {
+    "id": "cta-tag-value-add-new",
+    "action": "action",
+    "file": "src\\components\\admin\\tags\\TagValueEditor.tsx",
+    "line": 250,
+    "inferredPage": "/admin/tags"
+  },
+  {
+    "id": "cta-audio-mcq-toggle-play",
+    "action": "action",
+    "file": "src\\components\\game\\AudioMCQ.tsx",
+    "line": 54,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-audio-mcq-restart",
+    "action": "action",
+    "file": "src\\components\\game\\AudioMCQ.tsx",
+    "line": 63,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-diagram-labeling-submit",
+    "action": "action",
+    "file": "src\\components\\game\\DiagramLabeling.tsx",
+    "line": 28,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-drag-drop-classify-submit",
+    "action": "action",
+    "file": "src\\components\\game\\DragDropClassify.tsx",
+    "line": 91,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-game-sidebar-toggle-tts",
+    "action": "action",
+    "file": "src\\components\\game\\GameSidebar.tsx",
+    "line": 170,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-game-sidebar-toggle-category-mode",
+    "action": "action",
+    "file": "src\\components\\game\\GameSidebar.tsx",
+    "line": 186,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-game-sidebar-exit",
+    "action": "action",
+    "file": "src\\components\\game\\GameSidebar.tsx",
+    "line": 197,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-manipulative-numeric-submit",
+    "action": "action",
+    "file": "src\\components\\game\\ManipulativeNumeric.tsx",
+    "line": 30,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-matching-pairs-submit",
+    "action": "action",
+    "file": "src\\components\\game\\MatchingPairs.tsx",
+    "line": 87,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-game-numeric-decimal",
+    "action": "action",
+    "file": "src\\components\\game\\NumericPad.tsx",
+    "line": 124,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-game-numeric-digit-0",
+    "action": "action",
+    "file": "src\\components\\game\\NumericPad.tsx",
+    "line": 136,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-game-numeric-negative",
+    "action": "action",
+    "file": "src\\components\\game\\NumericPad.tsx",
+    "line": 148,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-game-numeric-delete",
+    "action": "action",
+    "file": "src\\components\\game\\NumericPad.tsx",
+    "line": 163,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-game-numeric-clear",
+    "action": "action",
+    "file": "src\\components\\game\\NumericPad.tsx",
+    "line": 176,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-game-numeric-submit",
+    "action": "action",
+    "file": "src\\components\\game\\NumericPad.tsx",
+    "line": 188,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-ordering-submit",
+    "action": "action",
+    "file": "src\\components\\game\\OrderingSequence.tsx",
+    "line": 39,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-wrong-modal-continue",
+    "action": "action",
+    "file": "src\\components\\game\\WrongModal.tsx",
+    "line": 73,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-hamburger-toggle",
+    "action": "action",
+    "file": "src\\components\\layout\\HamburgerMenu.tsx",
+    "line": 275,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-hamburger-logout",
+    "action": "action",
+    "file": "src\\components\\layout\\HamburgerMenu.tsx",
+    "line": 318,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-hamburger-login",
+    "action": "action",
+    "file": "src\\components\\layout\\HamburgerMenu.tsx",
+    "line": 344,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-hamburger-toggle-dev",
+    "action": "action",
+    "file": "src\\components\\layout\\HamburgerMenu.tsx",
+    "line": 450,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-hamburger-toggle-api-mode",
+    "action": "action",
+    "file": "src\\components\\layout\\HamburgerMenu.tsx",
+    "line": 477,
+    "inferredPage": "/"
+  },
+  {
+    "id": "nav-home",
+    "action": "navigate",
+    "file": "src\\components\\layout\\Header.tsx",
+    "line": 73,
+    "inferredPage": "/"
+  },
+  {
+    "id": "nav-dev-tests",
+    "action": "navigate",
+    "file": "src\\components\\layout\\Header.tsx",
+    "line": 87,
+    "inferredPage": "/dev-tests"
+  },
+  {
+    "id": "cta-header-toggle-mode",
+    "action": "action",
+    "file": "src\\components\\layout\\Header.tsx",
+    "line": 100,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-study-materials-open",
+    "action": "action",
+    "file": "src\\components\\learning\\StudyTextsDrawer.tsx",
+    "line": 31,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-study-materials-back-to-list",
+    "action": "action",
+    "file": "src\\components\\learning\\StudyTextsDrawer.tsx",
+    "line": 129,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-activity-glance-view-timeline",
+    "action": "navigate",
+    "file": "src\\components\\parent\\ActivityGlance.tsx",
+    "line": 71,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-editable-goals-edit",
+    "action": "action",
+    "file": "src\\components\\parent\\EditableGoalsPanel.tsx",
+    "line": 161,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-editable-goals-cancel",
+    "action": "action",
+    "file": "src\\components\\parent\\EditableGoalsPanel.tsx",
+    "line": 173,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-editable-goals-save",
+    "action": "action",
+    "file": "src\\components\\parent\\EditableGoalsPanel.tsx",
+    "line": 182,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-goal-progress-edit-goals",
+    "action": "navigate",
+    "file": "src\\components\\parent\\GoalProgress.tsx",
+    "line": 24,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-parent-goals-glance-view-all",
+    "action": "navigate",
+    "file": "src\\components\\parent\\GoalsGlance.tsx",
+    "line": 76,
+    "inferredPage": "/parent/dashboard"
+  },
+  {
+    "id": "cta-growth-tracker-view-details",
+    "action": "action",
+    "file": "src\\components\\parent\\GrowthTracker.tsx",
+    "line": 89,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-growth-tracker-assign-practice",
+    "action": "action",
+    "file": "src\\components\\parent\\GrowthTracker.tsx",
+    "line": 100,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-recent-activity-view-timeline-empty",
+    "action": "action",
+    "file": "src\\components\\parent\\RecentActivityCard.tsx",
+    "line": 44,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-recent-activity-view-timeline",
+    "action": "action",
+    "file": "src\\components\\parent\\RecentActivityCard.tsx",
+    "line": 106,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-recent-topics-view-topics-empty",
+    "action": "action",
+    "file": "src\\components\\parent\\RecentTopicsCard.tsx",
+    "line": 49,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-recent-topics-view-topics",
+    "action": "action",
+    "file": "src\\components\\parent\\RecentTopicsCard.tsx",
+    "line": 105,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-subject-time-card-view-details",
+    "action": "action",
+    "file": "src\\components\\parent\\SubjectTimeCard.tsx",
+    "line": 113,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-subject-time-glance-view-details",
+    "action": "navigate",
+    "file": "src\\components\\parent\\SubjectTimeGlance.tsx",
+    "line": 59,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-topics-glance-view-all",
+    "action": "navigate",
+    "file": "src\\components\\parent\\TopicsGlance.tsx",
+    "line": 56,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-topics-handled-clear-search",
+    "action": "action",
+    "file": "src\\components\\parent\\TopicsHandled.tsx",
+    "line": 190,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-topics-handled-filter-subjects",
+    "action": "action",
+    "file": "src\\components\\parent\\TopicsHandled.tsx",
+    "line": 210,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-topics-handled-filter-status",
+    "action": "action",
+    "file": "src\\components\\parent\\TopicsHandled.tsx",
+    "line": 237,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-topics-handled-clear-filters",
+    "action": "action",
+    "file": "src\\components\\parent\\TopicsHandled.tsx",
+    "line": 263,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-topics-handled-prev-page",
+    "action": "action",
+    "file": "src\\components\\parent\\TopicsHandled.tsx",
+    "line": 296,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-topics-handled-next-page",
+    "action": "action",
+    "file": "src\\components\\parent\\TopicsHandled.tsx",
+    "line": 309,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-assignment-modal-close-error",
+    "action": "action",
+    "file": "src\\components\\shared\\AssignmentModal.tsx",
+    "line": 144,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-assignment-modal-close-header",
+    "action": "action",
+    "file": "src\\components\\shared\\AssignmentModal.tsx",
+    "line": 201,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-assignment-modal-cancel",
+    "action": "action",
+    "file": "src\\components\\shared\\AssignmentModal.tsx",
+    "line": 457,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-assignment-modal-submit",
+    "action": "action",
+    "file": "src\\components\\shared\\AssignmentModal.tsx",
+    "line": 460,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-auto-assign-settings-cancel",
+    "action": "action",
+    "file": "src\\components\\shared\\AutoAssignSettings.tsx",
+    "line": 387,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-auto-assign-settings-save",
+    "action": "action",
+    "file": "src\\components\\shared\\AutoAssignSettings.tsx",
+    "line": 390,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-recommended-courses-close-header",
+    "action": "action",
+    "file": "src\\components\\shared\\RecommendedCoursesModal.tsx",
+    "line": 67,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-recommended-courses-cancel",
+    "action": "action",
+    "file": "src\\components\\shared\\RecommendedCoursesModal.tsx",
+    "line": 97,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-recommended-courses-close-empty",
+    "action": "action",
+    "file": "src\\components\\shared\\RecommendedCoursesModal.tsx",
+    "line": 214,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-recommended-courses-browse-all",
+    "action": "navigate",
+    "file": "src\\components\\shared\\RecommendedCoursesModal.tsx",
+    "line": 217,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-achievements-glance-view-all",
+    "action": "navigate",
+    "file": "src\\components\\student\\AchievementsGlance.tsx",
+    "line": 32,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-browse-skills-close-header",
+    "action": "action",
+    "file": "src\\components\\student\\BrowseAllSkills.tsx",
+    "line": 159,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-browse-skills-filter-domain-all",
+    "action": "action",
+    "file": "src\\components\\student\\BrowseAllSkills.tsx",
+    "line": 209,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-browse-skills-load-more",
+    "action": "action",
+    "file": "src\\components\\student\\BrowseAllSkills.tsx",
+    "line": 309,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-browse-skills-close-footer",
+    "action": "action",
+    "file": "src\\components\\student\\BrowseAllSkills.tsx",
+    "line": 323,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-continue-card-browse-courses-empty",
+    "action": "navigate",
+    "file": "src\\components\\student\\ContinueCard.tsx",
+    "line": 20,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-skill-cards-browse-all-empty",
+    "action": "action",
+    "file": "src\\components\\student\\SkillCards.tsx",
+    "line": 61,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-skill-cards-browse-all",
+    "action": "action",
+    "file": "src\\components\\student\\SkillCards.tsx",
+    "line": 89,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-summary-cards-info-active-minutes",
+    "action": "action",
+    "file": "src\\components\\student\\SummaryCardsStudent.tsx",
+    "line": 67,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-summary-cards-info-items-answered",
+    "action": "action",
+    "file": "src\\components\\student\\SummaryCardsStudent.tsx",
+    "line": 111,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-summary-cards-info-accuracy",
+    "action": "action",
+    "file": "src\\components\\student\\SummaryCardsStudent.tsx",
+    "line": 157,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-weekly-goal-ring-edit-goals",
+    "action": "navigate",
+    "file": "src\\components\\student\\WeeklyGoalRing.tsx",
+    "line": 29,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-assign-course-due-date-picker",
+    "action": "action",
+    "file": "src\\components\\teacher\\AssignCourseModal.tsx",
+    "line": 265,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-assign-course-cancel",
+    "action": "action",
+    "file": "src\\components\\teacher\\AssignCourseModal.tsx",
+    "line": 395,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-assign-course-submit",
+    "action": "action",
+    "file": "src\\components\\teacher\\AssignCourseModal.tsx",
+    "line": 398,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-assign-students-cancel",
+    "action": "action",
+    "file": "src\\components\\teacher\\AssignStudentsModal.tsx",
+    "line": 154,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-assign-students-submit",
+    "action": "action",
+    "file": "src\\components\\teacher\\AssignStudentsModal.tsx",
+    "line": 158,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-class-focus-widget-view-all",
+    "action": "action",
+    "file": "src\\components\\teacher\\ClassFocusWidget.tsx",
+    "line": 83,
+    "inferredPage": "/"
+  },
+  {
+    "id": "cta-teacher-ko-table-close-header",
+    "action": "action",
+    "file": "src\\components\\teacher\\TeacherKOTable.tsx",
+    "line": 136,
+    "inferredPage": "/teacher/dashboard"
+  },
+  {
+    "id": "cta-teacher-ko-table-load-more",
+    "action": "action",
+    "file": "src\\components\\teacher\\TeacherKOTable.tsx",
+    "line": 224,
+    "inferredPage": "/teacher/dashboard"
+  },
+  {
+    "id": "cta-teacher-ko-table-close-footer",
+    "action": "action",
+    "file": "src\\components\\teacher\\TeacherKOTable.tsx",
+    "line": 237,
+    "inferredPage": "/teacher/dashboard"
+  }
+]
