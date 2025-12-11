@@ -91,7 +91,13 @@ export default function AIPipelineV2() {
       }
       
       if (job.status === 'done') {
-        setState('complete');
+        // Only set to complete if job has required data
+        if (job.subject || job.course_id) {
+          setState('complete');
+        } else {
+          // Job is done but missing data - keep in creating state
+          setState('creating');
+        }
       } else if (['pending', 'processing', 'running'].includes(job.status)) {
         setState('creating');
       } else if (job.status === 'failed') {
@@ -102,6 +108,9 @@ export default function AIPipelineV2() {
         localStorage.removeItem('selectedJobId');
         localStorage.removeItem('selectedCourseId');
       }
+    } else if (currentJobId) {
+      // Job ID exists but job data not loaded yet - stay in creating state
+      setState('creating');
     }
   }, [job, currentJobId, currentCourseId]);
 
@@ -521,7 +530,7 @@ export default function AIPipelineV2() {
             <CardHeader>
               <div className="flex items-center gap-2">
                 <CheckCircle2 className="h-6 w-6 text-green-600" />
-                <CardTitle>Course Generated: {job.subject}</CardTitle>
+                <CardTitle>Course Generated: {job.subject || 'Course'}</CardTitle>
               </div>
               <p className="text-sm text-muted-foreground mt-1">
                 Completed {formatDistanceToNow(new Date(job.updated_at || job.created_at), { addSuffix: true })}
@@ -536,7 +545,7 @@ export default function AIPipelineV2() {
                 <CardContent>
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
-                      <span className="font-medium">{job.subject}</span>
+                      <span className="font-medium">{job.subject || 'Untitled Course'}</span>
                       <Badge>{job.grade_band || job.grade || 'All Grades'}</Badge>
                     </div>
                     <div className="text-sm text-muted-foreground">
