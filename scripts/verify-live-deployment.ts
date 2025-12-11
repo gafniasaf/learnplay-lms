@@ -211,7 +211,7 @@ async function main() {
 
   // 1.4 get-job (requires job ID)
   if (testJobId) {
-    await testFunction('get-job', { jobId: testJobId }, { method: 'GET' });
+    await testFunction('get-job', { id: testJobId }, { method: 'GET' });
   } else {
     skip('get-job', 'No job ID available');
   }
