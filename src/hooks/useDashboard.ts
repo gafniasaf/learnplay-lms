@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useMCP } from "./useMCP";
+import { useAuth } from "./useAuth";
 import type { Dashboard, DashboardRole } from "@/lib/types/dashboard";
 
 /**
@@ -13,18 +14,34 @@ export function useDashboard(role: DashboardRole) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
   const mcp = useMCP();
+  const { user, loading: authLoading } = useAuth();
 
   useEffect(() => {
+    // Wait for auth to load before fetching
+    if (authLoading) return;
+
     const loadDashboard = async () => {
       try {
         setLoading(true);
         setError(null);
         
         // Use MCP to fetch dashboard data
-        // Map role to appropriate edge function
-        const functionName = role === 'student' ? 'student-dashboard' : role === 'teacher' ? 'get-dashboard' : 'parent-dashboard';
-        const data = await mcp.callGet<Dashboard>(`lms.${functionName}`, { role });
-        setDashboard(data);
+        // Map role to appropriate edge function with correct params
+        if (role === 'student') {
+          if (!user?.id) {
+            throw new Error("User not authenticated");
+          }
+          const data = await mcp.callGet<Dashboard>('lms.student-dashboard', { studentId: user.id });
+          setDashboard(data);
+        } else if (role === 'teacher') {
+          const data = await mcp.callGet<Dashboard>('lms.get-dashboard', { role });
+          setDashboard(data);
+        } else {
+          // parent, school, admin
+          const functionName = role === 'parent' ? 'parent-dashboard' : 'get-dashboard';
+          const data = await mcp.callGet<Dashboard>(`lms.${functionName}`, { role });
+          setDashboard(data);
+        }
       } catch (err) {
         setError(err instanceof Error ? err : new Error("Failed to load dashboard"));
         console.error("Failed to load dashboard:", err);
@@ -34,7 +51,7 @@ export function useDashboard(role: DashboardRole) {
     };
 
     loadDashboard();
-  }, [role, mcp]);
+  }, [role, mcp, user?.id, authLoading]);
 
-  return { dashboard, loading, error };
+  return { dashboard, loading: loading || authLoading, error };
 }
