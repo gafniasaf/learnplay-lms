@@ -368,3 +368,73 @@ LOVABLE_URL=https://your-preview.lovable.app npm run test:lovable
 - Before releasing to production
 - In CI as a post-deployment verification step
 
+---
+
+## 🧪 Hook Contract Testing
+
+**Purpose:** Catch parameter mismatches between hooks and Edge Functions (e.g., passing `role` instead of `studentId`).
+
+### The Problem This Solves
+
+```typescript
+// ❌ BUG: Passes wrong param
+const data = await mcp.callGet('lms.student-dashboard', { role: 'student' });
+
+// ✅ CORRECT: Passes required param
+const data = await mcp.callGet('lms.student-dashboard', { studentId: user.id });
+```
+
+Component tests mock `useDashboard` entirely, so they never catch this. We need **layered testing**:
+
+| Layer | Test | What to Mock | What It Catches |
+|-------|------|--------------|-----------------|
+| **Component** | `Dashboard.test.tsx` | Mock `useDashboard` | UI rendering |
+| **Hook Contract** | `allHookContracts.test.ts` | Mock `useMCP` methods | Wrong params |
+| **Integration** | E2E tests | Nothing | Full system |
+
+### Running Contract Tests
+
+```bash
+# Run all hook contract tests
+npm run test:contracts
+
+# Run with verbose output
+npm run test:contracts -- --verbose
+
+# Run specific hook tests
+npm run test -- --testPathPattern="useDashboard"
+```
+
+### Adding New Hook Contract Tests
+
+When creating a new hook that calls MCP/Edge Functions:
+
+1. Add test to `tests/unit/hooks/contracts/allHookContracts.test.ts`
+2. Use the tracking utilities from `hookContractTestUtils.ts`
+3. Verify required parameters are passed
+4. Verify forbidden parameters (like `role` for student endpoints) are NOT passed
+
+```typescript
+describe('useMyNewHook', () => {
+  it('passes required params correctly', async () => {
+    const { useMyNewHook } = await import('@/hooks/useMyNewHook');
+    
+    renderHook(() => useMyNewHook({ myParam: 'value' }), {
+      wrapper: createTestWrapper(),
+    });
+    
+    await waitFor(() => {
+      const calls = getCallsTo('myEdgeFunction');
+      expect(calls.length).toBeGreaterThan(0);
+    });
+    
+    expectMethodCalledWith('myEdgeFunction', { myParam: 'value' });
+  });
+});
+```
+
+### Files
+
+- `tests/unit/hooks/contracts/hookContractTestUtils.ts` - Test utilities
+- `tests/unit/hooks/contracts/allHookContracts.test.ts` - All hook tests
+
