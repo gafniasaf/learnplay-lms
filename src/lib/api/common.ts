@@ -142,19 +142,34 @@ export async function callEdgeFunction<TRequest, TResponse>(
 
   const makeRequest = async (authToken: string | null) => {
     const authHeader = authToken ? `Bearer ${authToken}` : `Bearer ${anonKey}`;
-    return fetchWithTimeout(
-      url,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: authHeader,
-          apikey: anonKey,
+    try {
+      return await fetchWithTimeout(
+        url,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: authHeader,
+            apikey: anonKey,
+          },
+          body: JSON.stringify(payload),
         },
-        body: JSON.stringify(payload),
-      },
-      timeoutMs
-    );
+        timeoutMs
+      );
+    } catch (fetchError) {
+      // Handle CORS and network errors gracefully
+      const errMsg = fetchError instanceof Error ? fetchError.message.toLowerCase() : String(fetchError).toLowerCase();
+      if (errMsg.includes('cors') || errMsg.includes('blocked') || errMsg.includes('failed to fetch') ||
+          (fetchError instanceof TypeError && errMsg.includes('fetch'))) {
+        throw new ApiError(
+          `CORS error: Edge function ${functionName} is not accessible from this origin. This may be expected in preview environments.`,
+          "CORS_ERROR",
+          0, // No HTTP status for CORS errors
+          { functionName, url }
+        );
+      }
+      throw fetchError;
+    }
   };
 
   // First attempt
@@ -302,22 +317,13 @@ export async function callEdgeFunctionGet<TResponse>(
   const anonKey = getSupabaseAnonKey();
   const { timeoutMs = 30000 } = options;
 
-  const token = await getAccessToken();
-  const guestMode = isGuestMode();
-
-  // Allow anonymous calls in guest mode
-  if (!token && !guestMode) {
-    throw new ApiError(
-      "User not authenticated",
-      "UNAUTHORIZED",
-      401
-    );
-  }
-
   const queryString = params
     ? `?${new URLSearchParams(params).toString()}`
     : "";
   const url = `${supabaseUrl}/functions/v1/${functionName}${queryString}`;
+
+  const token = await getAccessToken();
+  const guestMode = isGuestMode();
 
   // Use token if available, otherwise use anon key for guest mode
   const authHeader = token ? `Bearer ${token}` : `Bearer ${anonKey}`;
@@ -336,9 +342,10 @@ export async function callEdgeFunctionGet<TResponse>(
       timeoutMs
     );
   } catch (fetchError) {
-    // Handle CORS and network errors gracefully
+    // Handle CORS and network errors gracefully - check BEFORE auth check
     const errMsg = fetchError instanceof Error ? fetchError.message.toLowerCase() : String(fetchError).toLowerCase();
-    if (errMsg.includes('cors') || errMsg.includes('blocked') || errMsg.includes('failed to fetch')) {
+    if (errMsg.includes('cors') || errMsg.includes('blocked') || errMsg.includes('failed to fetch') ||
+        (fetchError instanceof TypeError && errMsg.includes('fetch'))) {
       throw new ApiError(
         `CORS error: Edge function ${functionName} is not accessible from this origin. This may be expected in preview environments.`,
         "CORS_ERROR",
@@ -347,6 +354,15 @@ export async function callEdgeFunctionGet<TResponse>(
       );
     }
     throw fetchError;
+  }
+
+  // Allow anonymous calls in guest mode - check AFTER fetch attempt (CORS errors handled above)
+  if (!res.ok && res.status === 401 && !token && !guestMode) {
+    throw new ApiError(
+      "User not authenticated",
+      "UNAUTHORIZED",
+      401
+    );
   }
 
   // Extract requestId from response headers for error tracking
