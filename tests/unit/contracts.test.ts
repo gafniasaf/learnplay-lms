@@ -111,6 +111,7 @@ describe('CourseBlueprintSchema', () => {
     organization_id: '123e4567-e89b-12d3-a456-426614174001',
     difficulty: 'middle' as const,
     guard_status: 'pending' as const,
+    game_type: 'mcq' as const,
   };
 
   it('accepts valid course blueprint', () => {
