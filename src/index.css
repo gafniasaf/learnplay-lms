@@ -293,6 +293,124 @@ All colors MUST be HSL.
     color: inherit !important;
   }
 
+  /* Override Tailwind text color classes in menus and dropdowns */
+  .text-popover-foreground,
+  [class*="text-popover-foreground"],
+  [data-radix-dropdown-menu-content] .text-popover-foreground,
+  [data-radix-dropdown-menu-content] [class*="text-popover-foreground"],
+  [data-radix-select-content] .text-popover-foreground,
+  [data-radix-select-content] [class*="text-popover-foreground"],
+  [data-radix-menubar-content] .text-popover-foreground,
+  [data-radix-menubar-content] [class*="text-popover-foreground"] {
+    color: hsl(0 0% 0%) !important;
+  }
+
+  /* Force black text on all menu items regardless of Tailwind classes */
+  [data-radix-dropdown-menu-item],
+  [data-radix-dropdown-menu-item] *,
+  [data-radix-menubar-item],
+  [data-radix-menubar-item] *,
+  [data-radix-select-item],
+  [data-radix-select-item] *,
+  [data-radix-menubar-sub-trigger],
+  [data-radix-menubar-sub-trigger] *,
+  [data-radix-dropdown-menu-sub-trigger],
+  [data-radix-dropdown-menu-sub-trigger] * {
+    color: hsl(0 0% 0%) !important;
+  }
+
+  /* Override text-accent-foreground in menus (should be black, not white) */
+  [data-radix-dropdown-menu-item][class*="text-accent-foreground"],
+  [data-radix-menubar-item][class*="text-accent-foreground"],
+  [data-radix-select-item][class*="text-accent-foreground"],
+  [data-radix-dropdown-menu-item].focus\:text-accent-foreground:focus,
+  [data-radix-menubar-item].focus\:text-accent-foreground:focus {
+    color: hsl(0 0% 0%) !important;
+  }
+
+  /* Ensure all text in menu containers is black */
+  [data-radix-dropdown-menu-content],
+  [data-radix-dropdown-menu-content] span,
+  [data-radix-dropdown-menu-content] div,
+  [data-radix-dropdown-menu-content] p,
+  [data-radix-menubar-content],
+  [data-radix-menubar-content] span,
+  [data-radix-menubar-content] div,
+  [data-radix-menubar-content] p,
+  [data-radix-select-content],
+  [data-radix-select-content] span,
+  [data-radix-select-content] div,
+  [data-radix-select-content] p {
+    color: hsl(0 0% 0%) !important;
+  }
+
+  /* Force black text on command palette items */
+  [cmdk-item],
+  [cmdk-item] *,
+  [cmdk-item][data-selected="true"],
+  [cmdk-item][data-selected="true"] *,
+  [cmdk-item][data-selected='true'],
+  [cmdk-item][data-selected='true'] * {
+    color: hsl(0 0% 0%) !important;
+  }
+
+  /* Override text-accent-foreground everywhere (should be black, not white) */
+  .text-accent-foreground,
+  [class*="text-accent-foreground"],
+  [data-selected="true"].text-accent-foreground,
+  [data-selected='true'].text-accent-foreground,
+  [data-radix-dropdown-menu-item].text-accent-foreground,
+  [data-radix-menubar-item].text-accent-foreground,
+  [data-radix-select-item].text-accent-foreground,
+  [cmdk-item].text-accent-foreground,
+  [cmdk-item][data-selected="true"].text-accent-foreground,
+  [cmdk-item][data-selected='true'].text-accent-foreground {
+    color: hsl(0 0% 0%) !important;
+  }
+
+  /* Override focus states that might use accent-foreground */
+  [data-radix-dropdown-menu-item]:focus,
+  [data-radix-dropdown-menu-item]:focus *,
+  [data-radix-menubar-item]:focus,
+  [data-radix-menubar-item]:focus *,
+  [data-radix-select-item]:focus,
+  [data-radix-select-item]:focus *,
+  [cmdk-item]:focus,
+  [cmdk-item]:focus *,
+  [cmdk-item][data-selected="true"]:focus,
+  [cmdk-item][data-selected="true"]:focus * {
+    color: hsl(0 0% 0%) !important;
+  }
+
+  /* Ensure all nested text elements in menus are black */
+  [data-radix-dropdown-menu-content] *:not([class*="bg-"][class*="text-white"]),
+  [data-radix-menubar-content] *:not([class*="bg-"][class*="text-white"]),
+  [data-radix-select-content] *:not([class*="bg-"][class*="text-white"]),
+  [data-radix-context-menu-content] *:not([class*="bg-"][class*="text-white"]),
+  [cmdk-group] *:not([class*="bg-"][class*="text-white"]) {
+    color: hsl(0 0% 0%) !important;
+  }
+
+  /* Override hover states that use accent-foreground */
+  [data-radix-dropdown-menu-item]:hover,
+  [data-radix-dropdown-menu-item]:hover *,
+  [data-radix-menubar-item]:hover,
+  [data-radix-menubar-item]:hover *,
+  [data-radix-select-item]:hover,
+  [data-radix-select-item]:hover *,
+  [data-radix-navigation-menu-item]:hover,
+  [data-radix-navigation-menu-item]:hover *,
+  [cmdk-item]:hover,
+  [cmdk-item]:hover * {
+    color: hsl(0 0% 0%) !important;
+  }
+
+  /* Override any remaining text-popover-foreground usage */
+  .text-popover-foreground,
+  [class*="text-popover-foreground"]:not([class*="bg-"][class*="text-white"]) {
+    color: hsl(0 0% 0%) !important;
+  }
+
   /* Ensure placeholder text is dark gray but visible */
   ::placeholder,
   input::placeholder,
