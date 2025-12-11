@@ -12,7 +12,8 @@ export async function bootFailureAudit() {
 		// Call through MCP itself is not feasible here; perform a direct fetch to Edge functionInfo helper if present
 		// Fallback: return empty set if not available
 		try {
-			const res = await fetchJson(`${config.supabaseUrl}/functions/v1/get-format-registry`, {
+			// Probe for get-format-registry to verify connectivity
+			await fetchJson(`${config.supabaseUrl}/functions/v1/get-format-registry`, {
 				method: 'GET',
 				headers: { 'X-Agent-Token': config.agentToken },
 				timeoutMs: 8000,

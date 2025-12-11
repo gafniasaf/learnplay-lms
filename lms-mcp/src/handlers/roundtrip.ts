@@ -20,7 +20,7 @@ export function roundtripSeeds({ params }: { params: { method?: string } }) {
 }
 
 export async function roundtripTest({ params }: { params: { method: string; variant?: string; args?: any } }) {
-	const { method, variant = 'minimal', args } = params;
+	const { method, args } = params;
 
 	// Map a few supported methods to edge calls for quick validation
 	if (method === 'lms.getCourse') {

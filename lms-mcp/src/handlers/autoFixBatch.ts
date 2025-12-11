@@ -22,7 +22,7 @@ export async function autoFixBatch({ params }: { params: { orgId?: string; limit
 		try {
 			const a = await autoFix({ params: { courseId, apply: params.apply } });
 			autoFixOk = !!(a as any)?.ok;
-		} catch (e) {
+		} catch (_e) {
 			autoFixOk = false;
 		}
 		results.push({ courseId, validateOk, autoFixOk, validationErrors, diffSize: undefined });

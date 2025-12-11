@@ -20,14 +20,28 @@ const config: Config = {
       '@swc/jest',
       {
         jsc: {
+          parser: {
+            syntax: 'typescript',
+            tsx: true,
+          },
           transform: {
             react: {
               runtime: 'automatic',
             },
           },
         },
+        // Replace import.meta.env with process.env for Jest compatibility
+        env: {
+          targets: { node: '18' },
+        },
       },
     ],
+  },
+  // Globals to inject import.meta.env at runtime
+  globals: {
+    'import.meta': {
+      env: {},
+    },
   },
   reporters: [
     'default',
@@ -43,6 +57,10 @@ const config: Config = {
   ],
   setupFilesAfterEnv: ['<rootDir>/jest.setup.ts'],
   moduleNameMapper: {
+    // Mock useMCP hook to avoid import.meta.env issues (all import patterns)
+    '^@/hooks/useMCP$': '<rootDir>/src/hooks/__mocks__/useMCP.ts',
+    '^\\.\\./useMCP$': '<rootDir>/src/hooks/__mocks__/useMCP.ts',
+    '^\\./useMCP$': '<rootDir>/src/hooks/__mocks__/useMCP.ts',
     '^@/(.*)$': '<rootDir>/src/$1',
     '\\.(css|less|scss|sass)$': 'identity-obj-proxy',
   },

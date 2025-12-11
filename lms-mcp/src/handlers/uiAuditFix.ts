@@ -1,5 +1,5 @@
 // Simplified UI audit fix - full implementation would require UI scanner utilities
-export async function uiAuditFix({ params }: { params: { dryRun?: boolean; autoRemove?: boolean; root?: string; sourceDir?: string } }) {
+export async function uiAuditFix({ params: _params }: { params: { dryRun?: boolean; autoRemove?: boolean; root?: string; sourceDir?: string } }) {
 	// Placeholder implementation
 	return {
 		ok: true,
