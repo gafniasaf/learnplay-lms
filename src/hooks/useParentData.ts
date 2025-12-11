@@ -7,20 +7,34 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { useMCP } from './useMCP';
+import { useAuth } from './useAuth';
 
 export function useParentData() {
   const mcp = useMCP();
+  const { user } = useAuth();
   
   const dashboard = useQuery({
-    queryKey: ['parent-dashboard'],
-    queryFn: () => mcp.getParentDashboard(),
+    queryKey: ['parent-dashboard', user?.id],
+    queryFn: () => {
+      if (!user?.id) {
+        throw new Error('User not authenticated - parentId required');
+      }
+      return mcp.getParentDashboard(user.id);
+    },
     staleTime: 60_000,
+    enabled: !!user?.id, // Don't fetch until we have a user ID
   });
   
   const children = useQuery({
-    queryKey: ['parent-children'],
-    queryFn: () => mcp.getParentChildren(),
+    queryKey: ['parent-children', user?.id],
+    queryFn: () => {
+      if (!user?.id) {
+        throw new Error('User not authenticated - parentId required');
+      }
+      return mcp.getParentChildren(user.id);
+    },
     staleTime: 60_000,
+    enabled: !!user?.id, // Don't fetch until we have a user ID
   });
   
   const useChildData = (childId: string) => ({

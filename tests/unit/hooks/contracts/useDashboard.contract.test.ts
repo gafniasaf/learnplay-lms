@@ -63,7 +63,7 @@ describe('useDashboard Contract', () => {
     expect(studentCall?.params).not.toHaveProperty('role');
   });
 
-  it('passes role for non-student dashboards', async () => {
+  it('passes role for teacher dashboard', async () => {
     const { useDashboard } = await import('@/hooks/useDashboard');
     
     renderHook(() => useDashboard('teacher'), { wrapper: createWrapper() });
@@ -73,6 +73,37 @@ describe('useDashboard Contract', () => {
     // Teacher dashboard CAN pass role
     const call = mcpCalls[0];
     expect(call.params).toHaveProperty('role');
+  });
+
+  it('passes parentId (NOT role) for parent dashboard', async () => {
+    const { useDashboard } = await import('@/hooks/useDashboard');
+    
+    renderHook(() => useDashboard('parent'), { wrapper: createWrapper() });
+    
+    await waitFor(() => expect(mcpCalls.length).toBeGreaterThan(0));
+    
+    const parentCall = mcpCalls.find(c => c.method.includes('parent-dashboard'));
+    
+    // THE BUG: This assertion would have FAILED before the fix
+    // Parent dashboard requires parentId, NOT role
+    expect(parentCall).toBeDefined();
+    expect(parentCall?.params).toHaveProperty('parentId');
+    expect(parentCall?.params.parentId).toBe('test-user-123');
+    expect(parentCall?.params).not.toHaveProperty('role');
+  });
+
+  it('passes role for school/admin dashboards', async () => {
+    const { useDashboard } = await import('@/hooks/useDashboard');
+    
+    renderHook(() => useDashboard('school'), { wrapper: createWrapper() });
+    
+    await waitFor(() => expect(mcpCalls.length).toBeGreaterThan(0));
+    
+    // School/admin dashboards use get-dashboard with role
+    const call = mcpCalls.find(c => c.method.includes('get-dashboard'));
+    expect(call).toBeDefined();
+    expect(call?.params).toHaveProperty('role');
+    expect(call?.params.role).toBe('school');
   });
 });
 

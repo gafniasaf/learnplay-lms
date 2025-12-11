@@ -36,10 +36,16 @@ export function useDashboard(role: DashboardRole) {
         } else if (role === 'teacher') {
           const data = await mcp.callGet<Dashboard>('lms.get-dashboard', { role });
           setDashboard(data);
+        } else if (role === 'parent') {
+          // Parent dashboard requires parentId, not role
+          if (!user?.id) {
+            throw new Error("User not authenticated");
+          }
+          const data = await mcp.callGet<Dashboard>('lms.parent-dashboard', { parentId: user.id });
+          setDashboard(data);
         } else {
-          // parent, school, admin
-          const functionName = role === 'parent' ? 'parent-dashboard' : 'get-dashboard';
-          const data = await mcp.callGet<Dashboard>(`lms.${functionName}`, { role });
+          // school, admin
+          const data = await mcp.callGet<Dashboard>('lms.get-dashboard', { role });
           setDashboard(data);
         }
       } catch (err) {

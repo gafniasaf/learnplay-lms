@@ -272,6 +272,17 @@ export function createTrackedMCPMock() {
       recordMCPCall('linkChild', { code });
       return Promise.resolve({ ok: true });
     }),
+    
+    // Job context methods
+    getCourseJob: jest.fn((jobId: string, includeEvents?: boolean) => {
+      recordMCPCall('getCourseJob', { jobId, includeEvents });
+      return Promise.resolve({ ok: true, job: { id: jobId, status: 'pending' }, events: [] });
+    }),
+    
+    getRecord: jest.fn((table: string, id: string) => {
+      recordMCPCall('getRecord', { table, id });
+      return Promise.resolve({ record: {} });
+    }),
   };
 }
 

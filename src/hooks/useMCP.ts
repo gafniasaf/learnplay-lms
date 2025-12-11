@@ -742,21 +742,28 @@ export function useMCP() {
         console.log('[MCP Mock] getParentDashboard:', parentId);
         return { children: [], summary: { totalChildren: 0, activeGoals: 0, completedGoals: 0 } };
       }
-      const query = parentId ? `?parentId=${parentId}` : '';
-      return await callEdgeFunctionGet<unknown>(`parent-dashboard${query}`);
+      // Per NO-FALLBACK policy: parentId is required, fail explicitly if missing
+      if (!parentId) {
+        throw new Error("parentId is required for parent-dashboard - no anonymous access");
+      }
+      return await callEdgeFunctionGet<unknown>(`parent-dashboard?parentId=${parentId}`);
     } finally {
       setLoading(false);
     }
   };
 
-  const getParentChildren = async () => {
+  const getParentChildren = async (parentId?: string) => {
     setLoading(true);
     try {
       if (useMockMode) {
-        console.log('[MCP Mock] getParentChildren');
+        console.log('[MCP Mock] getParentChildren:', parentId);
         return { children: [] };
       }
-      return await callEdgeFunctionGet<{ children: unknown[] }>('parent-children');
+      // Per NO-FALLBACK policy: parentId is required, fail explicitly if missing
+      if (!parentId) {
+        throw new Error("parentId is required for parent-children - no anonymous access");
+      }
+      return await callEdgeFunctionGet<{ children: unknown[] }>(`parent-children?parentId=${parentId}`);
     } finally {
       setLoading(false);
     }
