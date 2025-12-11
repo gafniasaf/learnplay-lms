@@ -36,10 +36,11 @@ export function useJobsList(options?: UseJobsListOptions) {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
+  const [shouldPoll, setShouldPoll] = useState(true);
   const { status, limit = 50, pollInterval = 5000, enabled = true } = options || {};
 
   const fetchJobs = useCallback(async () => {
-    if (!enabled) return;
+    if (!enabled || !shouldPoll) return;
     
     try {
       setLoading(true);
@@ -51,16 +52,27 @@ export function useJobsList(options?: UseJobsListOptions) {
       if ((response as { ok: boolean }).ok) {
         setJobs((response as { jobs: Job[] }).jobs);
         setError(null);
+        setShouldPoll(true); // Re-enable polling on success
       } else {
         throw new Error('Failed to fetch jobs');
       }
     } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : String(err);
+      const isCorsError = errorMessage.toLowerCase().includes('cors') || 
+                         errorMessage.toLowerCase().includes('not accessible from this origin');
+      
       console.warn('[useJobsList] Error fetching jobs:', err);
       setError(err instanceof Error ? err : new Error('Failed to fetch jobs'));
+      
+      // Stop polling on CORS errors (they won't resolve by retrying)
+      if (isCorsError) {
+        console.warn('[useJobsList] CORS error detected - stopping polling');
+        setShouldPoll(false);
+      }
     } finally {
       setLoading(false);
     }
-  }, [status, limit, enabled, mcp]);
+  }, [status, limit, enabled, mcp, shouldPoll]);
 
   useEffect(() => {
     if (!enabled) {
@@ -71,18 +83,24 @@ export function useJobsList(options?: UseJobsListOptions) {
     // Initial fetch
     fetchJobs();
 
+    // Only poll if shouldPoll is true (stops on CORS errors)
+    if (!shouldPoll) {
+      return;
+    }
+
     // Poll for updates (replaces realtime subscription)
     const interval = setInterval(fetchJobs, pollInterval);
 
     return () => {
       clearInterval(interval);
     };
-  }, [fetchJobs, pollInterval, enabled]);
+  }, [fetchJobs, pollInterval, enabled, shouldPoll]);
 
-  // Manual refresh function
+  // Manual refresh function (re-enables polling if it was stopped)
   const refresh = useCallback(() => {
+    setShouldPoll(true);
     fetchJobs();
   }, [fetchJobs]);
 
-  return { jobs, loading, error, refresh };
+  return { jobs, loading, error, refresh, isPolling: shouldPoll };
 }

@@ -140,12 +140,27 @@ export const GenerateCourseForm = ({ onGenerated }: GenerateCourseFormProps) => 
       }
     } catch (err) {
       console.error("[GenerateCourseForm] Generation error:", err);
-      setError(err instanceof Error ? err.message : "Generation failed");
-      toast({
-        title: "Generation Failed",
-        description: err instanceof Error ? err.message : "Unknown error",
-        variant: "destructive",
-      });
+      const errorMessage = err instanceof Error ? err.message : String(err);
+      const isCorsError = errorMessage.toLowerCase().includes('cors') || 
+                         errorMessage.toLowerCase().includes('not accessible from this origin') ||
+                         errorMessage.toLowerCase().includes('failed to fetch');
+      
+      if (isCorsError) {
+        const friendlyMessage = 'Edge Functions are not accessible. This may be expected in preview environments. Please check your deployment configuration.';
+        setError(friendlyMessage);
+        toast({
+          title: "Connection Error",
+          description: friendlyMessage,
+          variant: "destructive",
+        });
+      } else {
+        setError(errorMessage);
+        toast({
+          title: "Generation Failed",
+          description: errorMessage,
+          variant: "destructive",
+        });
+      }
     } finally {
       setGenerating(false);
     }
