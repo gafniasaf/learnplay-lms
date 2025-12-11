@@ -34,14 +34,20 @@ const mockMCP = {
   }),
 };
 
+const mockUser = { id: 'test-parent-user-123', email: 'parent@example.com' };
+
 jest.mock('@/hooks/useMCP', () => ({
   useMCP: () => mockMCP,
+}));
+
+jest.mock('@/hooks/useAuth', () => ({
+  useAuth: () => ({ user: mockUser, loading: false }),
 }));
 
 jest.mock('@/integrations/supabase/client', () => ({
   supabase: {
     auth: {
-      getSession: jest.fn().mockResolvedValue({ data: { session: null } }),
+      getSession: jest.fn().mockResolvedValue({ data: { session: { user: mockUser } } }),
       onAuthStateChange: jest.fn().mockReturnValue({ data: { subscription: { unsubscribe: jest.fn() } } }),
     },
   },
@@ -60,7 +66,7 @@ describe('Parent Hook Contracts', () => {
   });
 
   describe('useParentDashboard', () => {
-    it('passes parentId to getParentDashboard', async () => {
+    it('passes parentId from params to getParentDashboard', async () => {
       const { useParentDashboard } = await import('@/hooks/useParentDashboard');
       
       renderHook(() => useParentDashboard({ parentId: 'parent-123' }), { wrapper: createWrapper() });
@@ -69,6 +75,20 @@ describe('Parent Hook Contracts', () => {
       
       const call = mcpCalls.find(c => c.method === 'getParentDashboard');
       expect(call?.params).toEqual({ parentId: 'parent-123' });
+    });
+
+    it('uses user.id as parentId when params.parentId not provided', async () => {
+      const { useParentDashboard } = await import('@/hooks/useParentDashboard');
+      
+      // Call without parentId - should use user.id from useAuth
+      renderHook(() => useParentDashboard(), { wrapper: createWrapper() });
+      
+      await waitFor(() => expect(mcpCalls.length).toBeGreaterThan(0));
+      
+      const call = mcpCalls.find(c => c.method === 'getParentDashboard');
+      expect(call).toBeDefined();
+      // Should use the mock user ID from useAuth mock
+      expect(call?.params).toEqual({ parentId: 'test-parent-user-123' });
     });
   });
 
