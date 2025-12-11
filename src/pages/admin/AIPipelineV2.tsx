@@ -64,19 +64,35 @@ export default function AIPipelineV2() {
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
 
-  // Load stored jobId and courseId from localStorage on mount
+  // Check for in-progress jobs on mount (only restore if job is still running)
   useEffect(() => {
     const storedJobId = localStorage.getItem('selectedJobId');
     const storedCourseId = localStorage.getItem('selectedCourseId');
+    
+    // Only restore job context if there's an in-progress job
+    // Completed jobs should NOT be shown - user should see creation form
     if (storedJobId) {
-      setCurrentJobId(storedJobId);
+      // We'll check the job status and only restore if it's still running
+      const checkJobStatus = async () => {
+        try {
+          // Temporarily set the job ID to trigger the job context hook
+          setCurrentJobId(storedJobId);
+          if (storedCourseId) {
+            setCurrentCourseId(storedCourseId);
+          }
+        } catch {
+          // If we can't load the job, clear localStorage and show creation form
+          localStorage.removeItem('selectedJobId');
+          localStorage.removeItem('selectedCourseId');
+        }
+      };
+      checkJobStatus();
     }
-    if (storedCourseId) {
-      setCurrentCourseId(storedCourseId);
-    }
+    // If no stored job, stay in 'idle' state (creation form) - this is the default
   }, []);
 
   // Auto-detect state from job status
+  // Key UX rule: Don't show completed jobs on page load - show creation form instead
   useEffect(() => {
     if (!currentJobId) {
       setState('idle');
@@ -91,12 +107,22 @@ export default function AIPipelineV2() {
       }
       
       if (job.status === 'done') {
-        // Only set to complete if job has required data
-        if (job.subject || job.course_id) {
+        // Check if this is a restored job from localStorage (page load)
+        // vs a job that just completed while user was watching
+        const wasWatching = state === 'creating';
+        
+        if (wasWatching) {
+          // Job just completed while user was watching - show completion
           setState('complete');
+          toast.success('Course generation complete!');
         } else {
-          // Job is done but missing data - keep in creating state
-          setState('creating');
+          // This is a restored completed job from localStorage on page load
+          // Clear it and show the creation form instead
+          localStorage.removeItem('selectedJobId');
+          localStorage.removeItem('selectedCourseId');
+          setCurrentJobId(null);
+          setCurrentCourseId(null);
+          setState('idle');
         }
       } else if (['pending', 'processing', 'running'].includes(job.status)) {
         setState('creating');
@@ -112,7 +138,7 @@ export default function AIPipelineV2() {
       // Job ID exists but job data not loaded yet - stay in creating state
       setState('creating');
     }
-  }, [job, currentJobId, currentCourseId]);
+  }, [job, currentJobId, currentCourseId, state]);
 
   const handleCreate = async () => {
     if (!subject.trim()) {
