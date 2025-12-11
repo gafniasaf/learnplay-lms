@@ -115,7 +115,7 @@ export default function Classes() {
     }
   };
 
-  const classes = classesData?.classes ?? [];
+  const classes = (classesData?.classes ?? []) as Array<{ id: string; name: string; description?: string; created_at?: string; class_members?: any[] }>;
   const selectedClass = classes.find(c => c.id === selectedClassId);
 
   const { data: rosterData, isLoading: rosterLoading, isFetching: rosterFetching } = useQuery({
@@ -124,7 +124,7 @@ export default function Classes() {
     enabled: !!selectedClassId && showRosterSheet,
   });
 
-  const members = rosterData?.roster ?? selectedClass?.class_members ?? [];
+  const members = ((rosterData as any)?.roster ?? selectedClass?.class_members ?? []) as Array<{ id: string; user_id: string; name?: string; email?: string; profiles?: { full_name?: string } }>;
   const isLoadingRoster = rosterLoading || rosterFetching || addMemberMutation.isPending || removeMemberMutation.isPending;
 
   return (

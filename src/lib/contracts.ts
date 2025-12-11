@@ -116,6 +116,54 @@ export const JobTicketSchema = z.object({
 export type JobTicket = z.infer<typeof JobTicketSchema>;
 
 
+export const MasteryStateSchema = z.object({
+  id: z.string().uuid(),
+  organization_id: z.string().uuid(),
+  created_at: z.string().datetime().optional(),
+  updated_at: z.string().datetime().optional(),
+  version: z.number().int().default(1),
+  format: z.string().default('v1'),
+  student_id: z.string().optional(),
+  ko_id: z.string().optional(),
+  mastery: z.number().optional(),
+  status: z.enum(['locked', 'in-progress', 'mastered']),
+  evidence_count: z.number().optional(),
+  last_practiced: z.string().datetime().optional()
+});
+export type MasteryState = z.infer<typeof MasteryStateSchema>;
+
+
+export const StudentGoalSchema = z.object({
+  id: z.string().uuid(),
+  organization_id: z.string().uuid(),
+  created_at: z.string().datetime().optional(),
+  updated_at: z.string().datetime().optional(),
+  version: z.number().int().default(1),
+  format: z.string().default('v1'),
+  student_id: z.string().optional(),
+  title: z.string().optional(),
+  target_minutes: z.number().optional(),
+  progress_minutes: z.number().optional(),
+  status: z.enum(['on_track', 'behind', 'completed']),
+  due_at: z.string().datetime().optional()
+});
+export type StudentGoal = z.infer<typeof StudentGoalSchema>;
+
+
+export const ClassMembershipSchema = z.object({
+  id: z.string().uuid(),
+  organization_id: z.string().uuid(),
+  created_at: z.string().datetime().optional(),
+  updated_at: z.string().datetime().optional(),
+  version: z.number().int().default(1),
+  format: z.string().default('v1'),
+  class_id: z.string().optional(),
+  user_id: z.string().optional(),
+  role: z.enum(['student', 'teacher'])
+});
+export type ClassMembership = z.infer<typeof ClassMembershipSchema>;
+
+
 export const SessionEventSchema = z.object({
   id: z.string().uuid(),
   organization_id: z.string().uuid(),
@@ -419,6 +467,86 @@ export const ENTITY_FIELDS = {
       "type": "string"
     }
   ],
+  "MasteryState": [
+    {
+      "key": "student_id",
+      "type": "string"
+    },
+    {
+      "key": "ko_id",
+      "type": "string"
+    },
+    {
+      "key": "mastery",
+      "type": "number"
+    },
+    {
+      "key": "status",
+      "type": "enum",
+      "options": [
+        "locked",
+        "in-progress",
+        "mastered"
+      ]
+    },
+    {
+      "key": "evidence_count",
+      "type": "number"
+    },
+    {
+      "key": "last_practiced",
+      "type": "date"
+    }
+  ],
+  "StudentGoal": [
+    {
+      "key": "student_id",
+      "type": "string"
+    },
+    {
+      "key": "title",
+      "type": "string"
+    },
+    {
+      "key": "target_minutes",
+      "type": "number"
+    },
+    {
+      "key": "progress_minutes",
+      "type": "number"
+    },
+    {
+      "key": "status",
+      "type": "enum",
+      "options": [
+        "on_track",
+        "behind",
+        "completed"
+      ]
+    },
+    {
+      "key": "due_at",
+      "type": "date"
+    }
+  ],
+  "ClassMembership": [
+    {
+      "key": "class_id",
+      "type": "string"
+    },
+    {
+      "key": "user_id",
+      "type": "string"
+    },
+    {
+      "key": "role",
+      "type": "enum",
+      "options": [
+        "student",
+        "teacher"
+      ]
+    }
+  ],
   "SessionEvent": [
     {
       "key": "assignment_id",
@@ -618,6 +746,161 @@ export const EDGE_FUNCTION_SCHEMAS = [
     "output": {
       "dailyData": "json",
       "summary": "json"
+    }
+  },
+  {
+    "id": "get-student-skills",
+    "input": {
+      "studentId": "string",
+      "domain": "string",
+      "status": "string"
+    },
+    "output": {
+      "skills": "json",
+      "totalCount": "number"
+    }
+  },
+  {
+    "id": "update-mastery",
+    "input": {
+      "studentId": "string",
+      "koId": "string",
+      "exerciseScore": "number"
+    },
+    "output": {
+      "oldMastery": "number",
+      "newMastery": "number"
+    }
+  },
+  {
+    "id": "get-domain-growth",
+    "input": {
+      "studentId": "string"
+    },
+    "output": {
+      "domains": "json"
+    }
+  },
+  {
+    "id": "get-recommended-courses",
+    "input": {
+      "koId": "string",
+      "studentId": "string"
+    },
+    "output": {
+      "courses": "json"
+    }
+  },
+  {
+    "id": "create-class",
+    "input": {
+      "name": "string",
+      "description": "string"
+    },
+    "output": {
+      "class": "json"
+    }
+  },
+  {
+    "id": "add-class-member",
+    "input": {
+      "classId": "string",
+      "studentEmail": "string"
+    },
+    "output": {
+      "ok": "boolean"
+    }
+  },
+  {
+    "id": "remove-class-member",
+    "input": {
+      "classId": "string",
+      "studentId": "string"
+    },
+    "output": {
+      "ok": "boolean"
+    }
+  },
+  {
+    "id": "invite-student",
+    "input": {
+      "orgId": "string",
+      "classId": "string",
+      "email": "string"
+    },
+    "output": {
+      "inviteId": "string",
+      "success": "boolean"
+    }
+  },
+  {
+    "id": "generate-class-code",
+    "input": {
+      "classId": "string",
+      "refreshCode": "boolean"
+    },
+    "output": {
+      "code": "string",
+      "expiresAt": "string"
+    }
+  },
+  {
+    "id": "join-class",
+    "input": {
+      "code": "string"
+    },
+    "output": {
+      "success": "boolean",
+      "classId": "string"
+    }
+  },
+  {
+    "id": "create-child-code",
+    "input": {
+      "studentId": "string"
+    },
+    "output": {
+      "code": "string",
+      "expiresAt": "string"
+    }
+  },
+  {
+    "id": "link-child",
+    "input": {
+      "code": "string"
+    },
+    "output": {
+      "success": "boolean",
+      "childId": "string"
+    }
+  },
+  {
+    "id": "send-message",
+    "input": {
+      "recipientId": "string",
+      "content": "string"
+    },
+    "output": {
+      "messageId": "string",
+      "success": "boolean"
+    }
+  },
+  {
+    "id": "list-conversations",
+    "input": {},
+    "output": {
+      "conversations": "json"
+    }
+  },
+  {
+    "id": "list-messages",
+    "input": {
+      "conversationWith": "string",
+      "limit": "number"
+    },
+    "output": {
+      "messages": "json",
+      "nextCursor": "string"
     }
   }
 ] as const;

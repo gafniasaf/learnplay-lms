@@ -14,9 +14,9 @@ export function useStudentAssignments(
 
   const queryKey = useMemo(() => ['student-assignments'], []);
 
-  return useQuery({
+  return useQuery<ListAssignmentsResponse>({
     queryKey,
-    queryFn: () => mcp.listAssignmentsForStudent(),
+    queryFn: async () => mcp.listAssignmentsForStudent() as Promise<ListAssignmentsResponse>,
     enabled: options.enabled !== false,
     staleTime: 60_000,
     refetchOnWindowFocus: false,

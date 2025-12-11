@@ -27,7 +27,7 @@ const mapMockAssignments = (): StudentAssignmentDisplay[] => {
 
 export default function StudentAssignments() {
   const navigate = useNavigate();
-  const mockMode = shouldUseMockData();
+  const mockMode = (import.meta as any).env?.VITE_USE_MOCK === 'true';
   const { data, isLoading, isError, error, refetch } = useStudentAssignments({ enabled: !mockMode });
 
   const liveAssignments = useMemo(() => {

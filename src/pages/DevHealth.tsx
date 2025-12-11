@@ -16,7 +16,7 @@ interface TestResponse {
 
 const DevHealth = () => {
   const isLive = isLiveMode();
-  const gameSession = useGameSession();
+  const gameSession = useGameSession({ courseId: 'modals', level: 1, autoStart: false });
   const [roundId, setRoundId] = useState<string | null>(null);
   const [responses, setResponses] = useState<TestResponse[]>([]);
   const [loading, setLoading] = useState(false);
@@ -38,9 +38,9 @@ const DevHealth = () => {
   const handleStartRound = async () => {
     setLoading(true);
     try {
-      const result = await gameSession.startRound({ courseId: 'modals', level: 1 });
-      setRoundId((result as { roundId: string }).roundId);
-      addResponse('START_ROUND', 'success', result);
+      await gameSession.startRound();
+      setRoundId(gameSession.roundId);
+      addResponse('START_ROUND', 'success', { roundId: gameSession.roundId });
     } catch (err) {
       addResponse('START_ROUND', 'error', undefined, err instanceof Error ? err.message : 'Unknown error');
     } finally {
@@ -56,15 +56,14 @@ const DevHealth = () => {
 
     setLoading(true);
     try {
-      const result = await gameSession.logAttempt({
-        roundId,
-        itemId: 1,
-        itemKey: '1:test:1',
-        selectedIndex: 0,
-        isCorrect: true,
-        latencyMs: Math.floor(Math.random() * 3000) + 500,
-      });
-      addResponse('LOG_CORRECT', 'success', result);
+      await gameSession.submitAnswer(
+        1, // itemId
+        true, // isCorrect
+        Math.floor(Math.random() * 3000) + 500, // latencyMs
+        0, // selectedIndex
+        '1:test:1' // itemKey
+      );
+      addResponse('LOG_CORRECT', 'success', { itemId: 1 });
       setTestScore(prev => prev + 1);
     } catch (err) {
       addResponse('LOG_CORRECT', 'error', undefined, err instanceof Error ? err.message : 'Unknown error');
@@ -81,15 +80,14 @@ const DevHealth = () => {
 
     setLoading(true);
     try {
-      const result = await gameSession.logAttempt({
-        roundId,
-        itemId: 2,
-        itemKey: '2:test:2',
-        selectedIndex: 1,
-        isCorrect: false,
-        latencyMs: Math.floor(Math.random() * 3000) + 500,
-      });
-      addResponse('LOG_WRONG', 'success', result);
+      await gameSession.submitAnswer(
+        2, // itemId
+        false, // isCorrect
+        Math.floor(Math.random() * 3000) + 500, // latencyMs
+        1, // selectedIndex
+        '2:test:2' // itemKey
+      );
+      addResponse('LOG_WRONG', 'success', { itemId: 2 });
       setTestMistakes(prev => prev + 1);
     } catch (err) {
       addResponse('LOG_WRONG', 'error', undefined, err instanceof Error ? err.message : 'Unknown error');
@@ -106,21 +104,17 @@ const DevHealth = () => {
 
     setLoading(true);
     try {
-      const result = await gameSession.logAttempt({
-        roundId,
-        itemId: 3,
-        itemKey: '3:test:3',
-        selectedIndex: 0,
-        isCorrect: true,
-        latencyMs: Math.floor(Math.random() * 3000) + 500,
-        endRound: {
-          baseScore: testScore + 1,
-          mistakes: testMistakes,
-          elapsedSeconds: 45,
-          distinctItems: 8,
-        },
-      });
-      addResponse('END_ROUND', 'success', result);
+      // Submit final answer then end round
+      await gameSession.submitAnswer(
+        3, // itemId
+        true, // isCorrect
+        Math.floor(Math.random() * 3000) + 500, // latencyMs
+        0, // selectedIndex
+        '3:test:3' // itemKey
+      );
+      // End the round
+      await gameSession.endRound();
+      addResponse('END_ROUND', 'success', { score: testScore + 1, mistakes: testMistakes });
       setRoundId(null); // Clear round
       setTestScore(5);
       setTestMistakes(2);

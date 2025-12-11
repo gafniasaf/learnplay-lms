@@ -1,4 +1,4 @@
-import { enqueue, getQueueSize, clearQueue, flush, setupAutoFlush, getBackoffDelay, BASE_DELAY } from './offlineQueue';
+import { enqueueAttempt, getQueueSize, clearQueue, flushAttempts, setupAutoFlush, getBackoffDelay, BASE_DELAY } from './offlineQueue';
 import type { LogAttemptPayload } from './api';
 
 function mockPayload(): LogAttemptPayload {
@@ -20,21 +20,21 @@ describe('offlineQueue', () => {
   });
 
   it('enqueues and counts attempts', () => {
-    enqueue(mockPayload());
-    enqueue(mockPayload());
+    enqueueAttempt(mockPayload());
+    enqueueAttempt(mockPayload());
     expect(getQueueSize()).toBe(2);
   });
 
   it('flushes successfully when online', async () => {
-    enqueue(mockPayload());
+    enqueueAttempt(mockPayload());
     const spy = jest.fn().mockResolvedValue({ ok: true });
-    await flush(spy);
+    await flushAttempts(spy);
     expect(spy).toHaveBeenCalledTimes(1);
   });
 
   it('retries failed attempts and clears queue on subsequent success', async () => {
     jest.useFakeTimers();
-    enqueue(mockPayload());
+    enqueueAttempt(mockPayload());
     // First call rejects, second resolves
     const spy = jest
       .fn()
@@ -42,13 +42,13 @@ describe('offlineQueue', () => {
       .mockResolvedValueOnce({ ok: true });
 
     // First flush: failure -> re-queued with retries=1
-    await flush(spy);
+    await flushAttempts(spy);
     expect(spy).toHaveBeenCalledTimes(1);
     expect(getQueueSize()).toBe(1);
 
     // Second flush: should wait backoff then succeed (uses exponential backoff helper)
     Object.defineProperty(global, 'navigator', { value: { onLine: true }, writable: true });
-    const p = flush(spy);
+    const p = flushAttempts(spy);
     jest.advanceTimersByTime(getBackoffDelay(1));
     await p;
     expect(spy).toHaveBeenCalledTimes(2);
@@ -57,7 +57,7 @@ describe('offlineQueue', () => {
   });
 
   it('auto-flushes when online event fires', async () => {
-    enqueue(mockPayload());
+    enqueueAttempt(mockPayload());
     const spy = jest.fn().mockResolvedValue({ ok: true });
     const cleanup = setupAutoFlush(spy);
     window.dispatchEvent(new Event('online'));
@@ -68,40 +68,43 @@ describe('offlineQueue', () => {
   });
 
   it('returns 0 when getQueue throws (read error path)', () => {
-    const original = localStorage.getItem;
-    // @ts-expect-error - intentionally mocking localStorage for test
-    localStorage.getItem = () => { throw new Error('read'); };
+    const original = localStorage.getItem.bind(localStorage);
+    Object.defineProperty(localStorage, 'getItem', {
+      value: () => { throw new Error('read'); },
+      writable: true,
+    });
     expect(getQueueSize()).toBe(0);
     // restore
-    localStorage.getItem = original;
+    Object.defineProperty(localStorage, 'getItem', { value: original, writable: true });
   });
 
   it('handles saveQueue error path without throwing', () => {
-    const origSet = localStorage.setItem;
-    const origGet = localStorage.getItem;
+    const origSet = localStorage.setItem.bind(localStorage);
+    const origGet = localStorage.getItem.bind(localStorage);
     // ensure queue can be read
-    // @ts-expect-error - intentionally mocking localStorage for test
-    localStorage.getItem = () => '[]';
-    // @ts-expect-error - intentionally mocking localStorage for test
-    localStorage.setItem = () => { throw new Error('write'); };
-    expect(() => enqueue(mockPayload())).not.toThrow();
-    localStorage.setItem = origSet;
-    localStorage.getItem = origGet;
+    Object.defineProperty(localStorage, 'getItem', { value: () => '[]', writable: true });
+    Object.defineProperty(localStorage, 'setItem', {
+      value: () => { throw new Error('write'); },
+      writable: true,
+    });
+    expect(() => enqueueAttempt(mockPayload())).not.toThrow();
+    Object.defineProperty(localStorage, 'setItem', { value: origSet, writable: true });
+    Object.defineProperty(localStorage, 'getItem', { value: origGet, writable: true });
   });
 
   it('flush returns early when queue empty', async () => {
     clearQueue();
     const spy = jest.fn();
-    await flush(spy);
+    await flushAttempts(spy);
     expect(spy).not.toHaveBeenCalled();
   });
 
   it('skips flush when offline', async () => {
     const original = { ...global.navigator } as any;
     Object.defineProperty(global, 'navigator', { value: { onLine: false }, writable: true });
-    enqueue(mockPayload());
+    enqueueAttempt(mockPayload());
     const spy = jest.fn();
-    await flush(spy);
+    await flushAttempts(spy);
     expect(spy).not.toHaveBeenCalled();
     Object.defineProperty(global, 'navigator', { value: original, writable: true });
   });
@@ -117,7 +120,7 @@ describe('offlineQueue', () => {
     localStorage.setItem('offline-attempts-queue', JSON.stringify([attempt]));
 
     const spy = jest.fn();
-    await flush(spy);
+    await flushAttempts(spy);
     // Should not try to send attempts that exceeded retries
     expect(spy).not.toHaveBeenCalled();
     expect(getQueueSize()).toBe(0);
@@ -125,9 +128,8 @@ describe('offlineQueue', () => {
 
   it('guards when window is undefined (no-op paths)', async () => {
     const originalWindow = (global as any).window;
-    // @ts-expect-error - intentionally deleting window for test
-    delete (global as any).window;
-    await expect(flush(jest.fn())).resolves.toBeUndefined();
+    (global as any).window = undefined;
+    await expect(flushAttempts(jest.fn())).resolves.toBeUndefined();
     clearQueue();
     // restore
     (global as any).window = originalWindow;

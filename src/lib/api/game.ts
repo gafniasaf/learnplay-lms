@@ -190,8 +190,8 @@ export async function logAttemptLive(
       action: "logAttemptLive",
       reason: "offline",
     });
-    const { enqueue } = await import("../offlineQueue");
-    enqueue(payload);
+    const { enqueueAttempt } = await import("../offlineQueue");
+    enqueueAttempt(payload);
 
     // Return mock response for offline
     return {
@@ -247,8 +247,8 @@ export async function logAttemptLive(
         action: "logAttemptLive",
         error: err instanceof Error ? err.message : String(err),
       });
-      const { enqueue } = await import("../offlineQueue");
-      enqueue(payload);
+      const { enqueueAttempt } = await import("../offlineQueue");
+      enqueueAttempt(payload);
 
       // Return mock response for network error
       return {

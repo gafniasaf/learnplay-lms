@@ -678,9 +678,9 @@ export function useMCP() {
         return { id: goalId, ...updates, updated_at: new Date().toISOString() };
       }
       // Use direct fetch for PATCH since callEdgeFunction only supports POST
-      const { getAccessToken } = await import("../supabase");
-      const supabaseUrl = (await import("../api/common")).getSupabaseUrl();
-      const anonKey = (await import("../api/common")).getSupabaseAnonKey();
+      const { getAccessToken } = await import("@/integrations/supabase/client");
+      const supabaseUrl = (await import("@/lib/api/common")).getSupabaseUrl();
+      const anonKey = (await import("@/lib/api/common")).getSupabaseAnonKey();
       const token = await getAccessToken();
       const authHeader = token ? `Bearer ${token}` : `Bearer ${anonKey}`;
       const url = `${supabaseUrl}/functions/v1/student-goals/${goalId}`;
@@ -1280,9 +1280,9 @@ export function useMCP() {
       formData.append('file', file);
       formData.append('path', path);
       
-      const { getAccessToken } = await import("../supabase");
-      const supabaseUrl = (await import("../api/common")).getSupabaseUrl();
-      const anonKey = (await import("../api/common")).getSupabaseAnonKey();
+      const { getAccessToken } = await import("@/integrations/supabase/client");
+      const supabaseUrl = (await import("@/lib/api/common")).getSupabaseUrl();
+      const anonKey = (await import("@/lib/api/common")).getSupabaseAnonKey();
       const token = await getAccessToken();
       const authHeader = token ? `Bearer ${token}` : `Bearer ${anonKey}`;
       

@@ -130,7 +130,7 @@ export default function Timeline() {
     }
   }, [searchParams]);
 
-  const mockMode = useMockData();
+  const mockMode = (import.meta as any).env?.VITE_USE_MOCK === 'true';
   const studentIdParam = searchParams.get("studentId") ?? undefined;
 
   const {

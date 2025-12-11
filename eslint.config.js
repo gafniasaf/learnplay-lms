@@ -20,6 +20,7 @@ export default tseslint.config(
       "scripts/**",
       "public/**/*.zip",
       "_archive/**",
+      "dawn-react-starter/**",
     ],
   },
   {
@@ -83,6 +84,8 @@ export default tseslint.config(
     },
     rules: {
       "@typescript-eslint/no-explicit-any": "off",
+      "ignite-zero/no-direct-supabase-ui": "off", // Backend handlers can access Supabase directly
+      "no-empty": "off", // Allow empty catch blocks in handlers
     },
   },
 );

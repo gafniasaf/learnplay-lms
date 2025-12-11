@@ -9,7 +9,7 @@ import { Plus, Trash2, MoveUp, MoveDown, Sparkles } from "lucide-react";
 import { StudyText } from "@/lib/types/course";
 import { parseStudyText } from "@/lib/types/studyText";
 import { useMCP } from "@/hooks/useMCP";
-// supabase import removed - using useMCP
+import { generateMedia } from "@/lib/api/aiRewrites";
 import { resolvePublicMediaUrl } from "@/lib/media/resolvePublicMediaUrl";
 import { toast } from "sonner";
 

@@ -28,9 +28,9 @@ export default function AIPipeline() {
     if (!jobId && !loading) {
       const resolveJobId = async () => {
         try {
-          const response = await mcp.listCourseJobs({ limit: 1 });
-          if (response.ok && response.jobs.length > 0) {
-            setSearchParams({ jobId: response.jobs[0].id }, { replace: true });
+          const response = await mcp.listCourseJobs({ limit: 1 }) as any;
+          if (response.ok && response.jobs?.length > 0) {
+            setSearchParams({ jobId: response.jobs[0]?.id }, { replace: true });
           }
         } catch (error) {
           console.warn('[AIPipeline] Failed to resolve latest job:', error);
@@ -44,9 +44,9 @@ export default function AIPipeline() {
     const load = async () => {
       setLoading(true);
       try {
-        const response = await mcp.getJobMetrics(24);
+        const response = await mcp.getJobMetrics(24) as any;
         if (response.ok) {
-          const byStatus = response.courseJobs.byStatus || {};
+          const byStatus = response.courseJobs?.byStatus || {};
           setCounts({
             pending: byStatus['pending'] || 0,
             processing: byStatus['processing'] || 0,
@@ -68,7 +68,7 @@ export default function AIPipeline() {
       setMkSubmitting(true);
       
       // Use MCP enqueueJob
-      const result = await enqueueJob('marketing', {
+      const result = await mcp.enqueueJob('marketing', {
         subject: mkSubject,
         target: mkTarget,
         tone: mkTone,

@@ -132,7 +132,7 @@ const Play = () => {
     let cancelled = false;
     (async () => {
       if (!skillFocus) { setKoLabel(null); return; }
-      const ko = await mcp.getKnowledgeObjective(skillFocus);
+      const ko = await mcp.call<{ name?: string }>('getKnowledgeObjective', { id: skillFocus });
       if (!cancelled) setKoLabel(ko?.name ?? null);
     })();
     return () => { cancelled = true; };
@@ -336,7 +336,7 @@ const Play = () => {
         
         // Start a new round with selected level
         console.info("[Play] Starting round", { courseId, level, contentVersion: data.contentVersion, assignmentId });
-        const roundData = await mcp.startGameRound({ courseId, level, assignmentId });
+        const roundData = await mcp.startGameRound(courseId, level, assignmentId, data.contentVersion);
         sessionStore.startSession(courseId, level, roundData.sessionId, roundData.roundId);
         
         // Post round:start event to embed parent
@@ -370,7 +370,7 @@ const Play = () => {
 
   // Set up offline queue auto-flush
   useEffect(() => {
-    const cleanup = setupAutoFlush(logAttemptLive);
+    const cleanup = setupAutoFlush(mcp.logGameAttempt);
     
     // Update queue size on load
     setQueuedAttempts(getQueueSize());
@@ -530,20 +530,16 @@ const Play = () => {
           latencyMs 
         });
         
-        const attemptResult = await mcp.logGameAttempt({
-          roundId: sessionStore.roundId,
-          itemId: frozenItem.id,
-          itemKey: `${frozenItem.id}:${frozenItem.clusterId}:${frozenItem.variant}`,
-          selectedIndex: isNumericMode ? 0 : selectedIndex, // Numeric mode uses 0 as placeholder
+        const attemptResult = await mcp.logGameAttempt(
+          sessionStore.roundId!,
+          frozenItem.id,
           isCorrect,
           latencyMs,
-          endRound: isLastItem ? {
-            baseScore: gameState.score,
-            mistakes: gameState.mistakes,
-            elapsedSeconds: gameState.elapsedTime,
-            distinctItems: distinctItemsRef.current.size,
-          } : undefined,
-        });
+          isLastItem, // finalize
+          isNumericMode ? 0 : selectedIndex,
+          `${frozenItem.id}:${frozenItem.clusterId}:${frozenItem.variant}`,
+          undefined // idempotencyKey
+        );
 
         // If correct and we have a skill focus + user, update mastery (fire-and-forget)
         if (isCorrect && skillFocus) {
@@ -698,7 +694,7 @@ const Play = () => {
       
       // Start a new round with new level
       console.info("[Play] Changing level", { courseId, level: levelNum, contentVersion: course.contentVersion, assignmentId });
-      const roundData = await mcp.startGameRound({ courseId, level: levelNum, assignmentId });
+      const roundData = await mcp.startGameRound(courseId, levelNum, assignmentId, course?.contentVersion);
       sessionStore.startSession(courseId, levelNum, roundData.sessionId, roundData.roundId);
       
       // Post round:start event to embed parent
@@ -736,7 +732,7 @@ const Play = () => {
       // Start a new round
       const level = currentLevel;
       console.info("[Play] Restarting round", { courseId, level, contentVersion: course.contentVersion, assignmentId });
-      const roundData = await mcp.startGameRound({ courseId, level, assignmentId });
+      const roundData = await mcp.startGameRound(courseId, level, assignmentId, course?.contentVersion);
       sessionStore.startSession(courseId, level, roundData.sessionId, roundData.roundId);
       
       // Post round:start event to embed parent

@@ -142,7 +142,7 @@ export default function Subjects() {
   const { toast } = useToast();
   const [searchParams] = useSearchParams();
   const studentIdParam = searchParams.get("studentId") ?? undefined;
-  const mockMode = useMockData();
+  const mockMode = (import.meta as any).env?.VITE_USE_MOCK === 'true';
 
   const {
     data,

@@ -95,3 +95,14 @@ export const supabase = USE_MOCK
         }
       }
     );
+
+/**
+ * Helper function to get the current user's access token
+ */
+export async function getAccessToken(): Promise<string | null> {
+  if (USE_MOCK) {
+    return 'mock-access-token';
+  }
+  const { data: { session } } = await supabase.auth.getSession();
+  return session?.access_token ?? null;
+}

@@ -12,7 +12,7 @@ export default function TeacherAnalytics() {
     queryFn: () => mcp.getCourseCatalog(), 
     staleTime: 5 * 60_000 
   });
-  const catalog = (catalogData as { courses?: Array<{ id: string }> })?.courses ?? [];
+  const catalog = (catalogData as { courses?: Array<{ id: string; title?: string }> })?.courses ?? [];
   const [courseId, setCourseId] = useState<string>('');
   
   useEffect(() => { 

@@ -78,9 +78,9 @@ export default function SystemHealthPage() {
         callProxy("lms.envAudit", {}),
         callProxy("lms.uiAudit.summary", {}),
       ]);
-      setHealth(h?.data || null);
-      setEnv(e?.data || null);
-      setUiSummary(u?.data || null);
+      setHealth((h as any)?.data || null);
+      setEnv((e as any)?.data || null);
+      setUiSummary((u as any)?.data || null);
     } catch (e: any) {
       console.error(e);
       toast.error("Failed to load system health");
@@ -100,8 +100,8 @@ export default function SystemHealthPage() {
     }
     try {
       const res = await callProxy("lms.checkStorageIntegrity", { courseId });
-      setIntegrity(res?.data || null);
-      if (res?.data?.ok) {
+      setIntegrity((res as any)?.data || null);
+      if ((res as any)?.data?.ok) {
         toast.success("Storage OK");
       } else {
         toast.warning("Storage issues detected");
@@ -181,8 +181,8 @@ export default function SystemHealthPage() {
                 onClick={async () => {
                   try {
                     const res = await callProxy("lms.uiAudit.run", {});
-                    setUiRun(res?.data || null);
-                    if (res?.data?.ok) toast.success("UI OK");
+                    setUiRun((res as any)?.data || null);
+                    if ((res as any)?.data?.ok) toast.success("UI OK");
                     else toast.warning("UI issues found");
                   } catch (e: any) {
                     console.error(e);

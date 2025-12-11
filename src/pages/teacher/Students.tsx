@@ -67,7 +67,7 @@ export default function Students() {
     setCopiedCode(false);
   };
 
-  const students = studentsData?.students ?? [];
+  const students = ((studentsData as any)?.students ?? []) as Array<{ id: string; name: string; classIds: string[]; email?: string }>;
 
   return (
     <PageContainer>

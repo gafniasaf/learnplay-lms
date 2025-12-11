@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { useMCP } from '@/hooks/useMCP';
-// supabase import removed - not used
+import { generateMedia } from '@/lib/api/aiRewrites';
 import { toast } from 'sonner';
 import { Sparkles, Upload, Link as LinkIcon, Eye, Code } from 'lucide-react';
 import { sanitizeHtml } from '@/lib/utils/sanitizeHtml';

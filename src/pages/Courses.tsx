@@ -13,6 +13,7 @@ import { useCatalogVersionListener } from "@/hooks/useCatalogVersionListener";
 import { isLiveMode } from "@/lib/env";
 import { toast } from "sonner";
 import { MOCK_KNOWLEDGE_OBJECTIVES } from "@/lib/mocks/knowledgeMockData";
+import { supabase } from "@/integrations/supabase/client";
 
 const Courses = () => {
   const mcp = useMCP();
@@ -97,7 +98,7 @@ const Courses = () => {
           setKoName(ko?.name || null);
           
           // Get recommended courses
-          const recommended = await mcp.getRecommendedCourses({ koId: recommendedFor, studentId }) as Array<{ courseId: string; relevance?: number; exerciseCount?: number }>;
+          const recommended = await mcp.getRecommendedCourses(recommendedFor, studentId) as Array<{ courseId: string; relevance?: number; exerciseCount?: number }>;
           
           // Load full catalog to match against
           const catalog = await mcp.getCourseCatalog() as { courses: CourseCatalogItem[] };
@@ -147,7 +148,7 @@ const Courses = () => {
         const catalog = await Promise.race([
           catalogPromise,
           timeoutPromise
-        ]) as Awaited<ReturnType<typeof getCourseCatalog>>;
+        ]) as { courses: CourseCatalogItem[] };
         
         console.log("[Courses] ✅ Loaded", catalog.courses.length, "courses");
         setCourses(catalog.courses);
@@ -212,11 +213,12 @@ const Courses = () => {
         } else {
           // Perform server-side search
           console.log('[Courses] Searching for:', searchQuery);
-          const results = await mcp.searchCourses(searchQuery) as { courses: CourseCatalogItem[] };
-          console.log('[Courses] Search results:', results.items.length, 'courses');
+          const results = await mcp.searchCourses(searchQuery) as { courses: CourseCatalogItem[]; items?: CourseCatalogItem[] };
+          const items = results.courses || results.items || [];
+          console.log('[Courses] Search results:', items.length, 'courses');
           
           // Convert API response to CourseCatalogItem format
-          const searchResults: CourseCatalogItem[] = results.items.map(item => ({
+          const searchResults: CourseCatalogItem[] = items.map((item: any) => ({
             id: item.id,
             title: item.title,
             subject: item.subject,
@@ -361,11 +363,11 @@ const Courses = () => {
                 const courseId = window.prompt('Enter courseId to enqueue media from [IMAGE:] markers:');
                 if (!courseId) return;
                 try {
-                  const { data, error } = await mcp.call('enqueue-course-media', {
+                  const result = await mcp.call('enqueue-course-media', {
                     body: { courseId, limit: 6 },
-                  });
-                  if (error) throw error;
-                  toast.success(`Enqueued ${data?.enqueued ?? 0} media job(s)`, { description: data?.skipped ? `${data.skipped} skipped (already exist)` : undefined });
+                  }) as { enqueued?: number; skipped?: number; error?: string };
+                  if (result.error) throw new Error(result.error);
+                  toast.success(`Enqueued ${result?.enqueued ?? 0} media job(s)`, { description: result?.skipped ? `${result.skipped} skipped (already exist)` : undefined });
                 } catch (err: any) {
                   toast.error(`Failed to enqueue media: ${err?.message || 'Error'}`);
                 }

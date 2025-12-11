@@ -25,7 +25,7 @@ test.describe('Pagination & Infinite Scroll', () => {
     // Look for pagination controls
     const nextButton = page.getByRole('button', { name: /next|>|→/i });
     const prevButton = page.getByRole('button', { name: /previous|<|←/i });
-    const pageNumbers = page.locator('[aria-label*="page" i], button:has-text(/^\d+$/), [data-testid*="page"]');
+    const pageNumbers = page.locator('[aria-label*="page" i], button:has-text(/^[0-9]+$/), [data-testid*="page"]');
     
     const hasNext = await nextButton.isVisible({ timeout: 5000 }).catch(() => false);
     const hasPrev = await prevButton.isVisible({ timeout: 5000 }).catch(() => false);
@@ -104,7 +104,7 @@ test.describe('Pagination & Infinite Scroll', () => {
     await page.waitForLoadState('networkidle');
     await page.waitForTimeout(2000);
 
-    const pageNumbers = page.locator('button:has-text(/^\d+$/), [aria-label*="page" i]');
+    const pageNumbers = page.locator('button:has-text(/^[0-9]+$/), [aria-label*="page" i]');
     const pageCount = await pageNumbers.count().catch(() => 0);
     
     if (pageCount > 1) {

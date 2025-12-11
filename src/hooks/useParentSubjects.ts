@@ -20,12 +20,12 @@ export function useParentSubjects<TData = ParentSubjectsResponse>(
 
   return useQuery({
     queryKey: ["parent-subjects", serializedParams],
-    queryFn: () => mcp.getParentSubjects(params.childId || ''),
-    select: options.select,
-    enabled: (options.enabled !== false) && !!params.childId,
+    queryFn: async () => mcp.getParentSubjects(params.studentId || '') as Promise<ParentSubjectsResponse>,
+    select: options.select as ((data: ParentSubjectsResponse) => TData) | undefined,
+    enabled: (options.enabled !== false) && !!params.studentId,
     staleTime: 60_000,
     refetchOnWindowFocus: false,
-  });
+  }) as UseQueryResult<TData>;
 }
 
 
