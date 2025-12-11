@@ -63,16 +63,20 @@ describe('useDashboard Contract', () => {
     expect(studentCall?.params).not.toHaveProperty('role');
   });
 
-  it('passes role for teacher dashboard', async () => {
+  it('passes teacherId (NOT role) for teacher dashboard', async () => {
     const { useDashboard } = await import('@/hooks/useDashboard');
     
     renderHook(() => useDashboard('teacher'), { wrapper: createWrapper() });
     
     await waitFor(() => expect(mcpCalls.length).toBeGreaterThan(0));
     
-    // Teacher dashboard CAN pass role
-    const call = mcpCalls[0];
-    expect(call.params).toHaveProperty('role');
+    const teacherCall = mcpCalls.find(c => c.method.includes('get-dashboard'));
+    
+    // Teacher dashboard requires teacherId, NOT role
+    expect(teacherCall).toBeDefined();
+    expect(teacherCall?.params).toHaveProperty('teacherId');
+    expect(teacherCall?.params.teacherId).toBe('test-user-123');
+    expect(teacherCall?.params).not.toHaveProperty('role');
   });
 
   it('passes parentId (NOT role) for parent dashboard', async () => {
@@ -92,18 +96,19 @@ describe('useDashboard Contract', () => {
     expect(parentCall?.params).not.toHaveProperty('role');
   });
 
-  it('passes role for school/admin dashboards', async () => {
+  it('passes teacherId (NOT role) for school/admin dashboards', async () => {
     const { useDashboard } = await import('@/hooks/useDashboard');
     
     renderHook(() => useDashboard('school'), { wrapper: createWrapper() });
     
     await waitFor(() => expect(mcpCalls.length).toBeGreaterThan(0));
     
-    // School/admin dashboards use get-dashboard with role
+    // School/admin dashboards use get-dashboard with teacherId, NOT role
     const call = mcpCalls.find(c => c.method.includes('get-dashboard'));
     expect(call).toBeDefined();
-    expect(call?.params).toHaveProperty('role');
-    expect(call?.params.role).toBe('school');
+    expect(call?.params).toHaveProperty('teacherId');
+    expect(call?.params.teacherId).toBe('test-user-123');
+    expect(call?.params).not.toHaveProperty('role');
   });
 });
 

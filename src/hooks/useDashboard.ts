@@ -34,7 +34,11 @@ export function useDashboard(role: DashboardRole) {
           const data = await mcp.callGet<Dashboard>('lms.student-dashboard', { studentId: user.id });
           setDashboard(data);
         } else if (role === 'teacher') {
-          const data = await mcp.callGet<Dashboard>('lms.get-dashboard', { role });
+          // Teacher dashboard requires teacherId, not role
+          if (!user?.id) {
+            throw new Error("User not authenticated");
+          }
+          const data = await mcp.callGet<Dashboard>('lms.get-dashboard', { teacherId: user.id });
           setDashboard(data);
         } else if (role === 'parent') {
           // Parent dashboard requires parentId, not role
@@ -44,8 +48,11 @@ export function useDashboard(role: DashboardRole) {
           const data = await mcp.callGet<Dashboard>('lms.parent-dashboard', { parentId: user.id });
           setDashboard(data);
         } else {
-          // school, admin
-          const data = await mcp.callGet<Dashboard>('lms.get-dashboard', { role });
+          // school, admin - also use teacherId (same Edge Function)
+          if (!user?.id) {
+            throw new Error("User not authenticated");
+          }
+          const data = await mcp.callGet<Dashboard>('lms.get-dashboard', { teacherId: user.id });
           setDashboard(data);
         }
       } catch (err) {
