@@ -321,3 +321,50 @@ See `.cursorrules` section "100% CTA TRACKING MANDATE" for full details.
 
 **Smoke Testing:**
 - See `docs/SMOKE_TEST_CHECKLIST.md` for manual verification steps
+
+---
+
+## 🧪 Lovable Deployment Smoke Tests
+
+**Purpose:** Catch runtime issues that only appear in deployed environments (Lovable, Vercel, etc.)
+
+### What This Tests
+
+| Test | What It Catches |
+|------|-----------------|
+| Dynamic import failures | `React.lazy()` module loading over network/CDN |
+| Edge Function connectivity | Real API calls (not mocks) timing out |
+| CORS from external origins | Lovable domain ↔ Supabase Edge Functions |
+| Auth page functionality | Login form renders correctly |
+| Error boundaries | Graceful error handling |
+
+### Running the Tests
+
+```bash
+# Run against default Lovable preview
+npm run test:lovable
+
+# Run with headed browser (for debugging)
+npm run test:lovable:headed
+
+# View HTML report
+npm run test:lovable:report
+
+# Run against custom URL
+LOVABLE_URL=https://your-preview.lovable.app npm run test:lovable
+```
+
+### Why Standard Tests Miss These Issues
+
+1. **Unit tests** mock `useMCP` - never hit real network
+2. **E2E tests** run with `VITE_USE_MOCK=true` - use fake data
+3. **E2E tests** run against `localhost` - no CORS testing
+4. **Jest** uses its own module system - not Vite's dynamic imports
+
+### When to Run
+
+- After deploying to Lovable
+- When debugging "works locally, fails on Lovable" issues
+- Before releasing to production
+- In CI as a post-deployment verification step
+
