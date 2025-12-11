@@ -1110,7 +1110,13 @@ export function useMCP() {
         console.log('[MCP Mock] getCourseCatalog');
         return { courses: [], subjects: [] };
       }
-      return await callEdgeFunctionGet<unknown>('get-course-catalog');
+      // Fetch from static catalog.json file (not an Edge Function)
+      // This file is served from /public/catalog.json
+      const response = await fetch('/catalog.json');
+      if (!response.ok) {
+        throw new Error(`Failed to load catalog: ${response.status} ${response.statusText}`);
+      }
+      return await response.json();
     } finally {
       setLoading(false);
     }
