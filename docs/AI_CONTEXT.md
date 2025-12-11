@@ -186,12 +186,82 @@ if (USE_MOCK) {
 }
 ```
 
-## 🛡️ Test Integrity
+## 🛡️ Test Integrity & Contract Testing (CRITICAL)
 
 **NEVER weaken a test to make it pass.**
 - If a test fails, fix the code.
 - If the test is wrong, update the test logic, but do not remove assertions or skip checks without explicit approval.
 - Run `npm run test` locally to verify before pushing.
+
+### 🚫 FORBIDDEN: Mock Theater Tests
+
+**Do NOT write tests that mock the thing they're supposed to test.**
+
+```typescript
+// ❌ FORBIDDEN - "Mock Theater" (tests nothing)
+jest.mock('@/hooks/useDashboard', () => ({
+  useDashboard: jest.fn(),
+}));
+
+mockUseDashboard.mockReturnValue({
+  dashboard: { /* fake data */ },
+  loading: false,
+});
+
+it('renders', () => {
+  render(<Dashboard />);
+  expect(screen.getByText('fake data')).toBeInTheDocument();
+  // ↑ This only tests that React can render a string!
+});
+```
+
+### ✅ REQUIRED: Contract Tests for Hooks
+
+**Every hook that calls an Edge Function MUST have a contract test.**
+
+```typescript
+// ✅ REQUIRED - Contract test (catches bugs like { role } vs { studentId })
+it('passes studentId (NOT role) for student dashboard', async () => {
+  renderHook(() => useDashboard('student'));
+  
+  await waitFor(() => expect(mcpCalls.length).toBeGreaterThan(0));
+  
+  const call = mcpCalls.find(c => c.method.includes('student-dashboard'));
+  expect(call?.params).toHaveProperty('studentId');  // ← Catches the bug!
+  expect(call?.params).not.toHaveProperty('role');   // ← Explicit negative
+});
+```
+
+### Test File Locations
+
+| Test Type | Location | What It Tests |
+|-----------|----------|---------------|
+| **Contract tests** | `tests/unit/hooks/contracts/*.contract.test.ts` | Correct params passed to APIs |
+| **Pure logic** | `tests/unit/*.test.ts`, `src/lib/tests/*.test.ts` | Functions with inputs/outputs |
+| **E2E** | `tests/e2e/*.spec.ts` | Full user flows |
+| **Live API** | `tests/e2e/live-*.spec.ts` | Real Supabase/LLM calls |
+
+### When Adding a New Hook
+
+1. If hook calls Edge Function → **ADD CONTRACT TEST** in `tests/unit/hooks/contracts/`
+2. If hook manages UI state only → Unit test is optional
+3. **NEVER** mock the hook in page tests - use E2E instead
+
+### Running Contract Tests
+
+```bash
+npm run test:contracts  # Run all contract tests
+npm run test -- --testPathPattern="useDashboard.contract"  # Run specific
+```
+
+### Why This Matters
+
+The `{ role }` instead of `{ studentId }` bug slipped through because:
+1. Page tests mocked `useDashboard` completely
+2. No test verified what params `useDashboard` passed to the API
+3. Jest mocks hid the actual bug
+
+Contract tests would have caught this immediately.
 
 ## 🚀 Edge Function Deployment (MANDATORY READING)
 
