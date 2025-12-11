@@ -178,7 +178,21 @@ All colors MUST be HSL.
   [data-radix-select-content],
   [data-radix-select-item],
   [data-radix-select-trigger],
-  [data-radix-select-value] {
+  [data-radix-select-value],
+  [data-radix-select-item-text],
+  [data-radix-select-viewport] {
+    color: hsl(0 0% 0%) !important;
+  }
+
+  /* Radix Select items - all states */
+  [data-radix-select-item],
+  [data-radix-select-item] *,
+  [data-radix-select-item][data-highlighted],
+  [data-radix-select-item][data-highlighted] *,
+  [data-radix-select-item][data-state="checked"],
+  [data-radix-select-item][data-state="checked"] *,
+  [data-radix-select-item-text],
+  [data-radix-select-item-text] * {
     color: hsl(0 0% 0%) !important;
   }
 
@@ -340,7 +354,9 @@ All colors MUST be HSL.
   [data-radix-select-content],
   [data-radix-select-content] span,
   [data-radix-select-content] div,
-  [data-radix-select-content] p {
+  [data-radix-select-content] p,
+  [data-radix-select-viewport],
+  [data-radix-select-viewport] * {
     color: hsl(0 0% 0%) !important;
   }
 
@@ -402,6 +418,39 @@ All colors MUST be HSL.
   [data-radix-navigation-menu-item]:hover *,
   [cmdk-item]:hover,
   [cmdk-item]:hover * {
+    color: hsl(0 0% 0%) !important;
+  }
+
+  /* Radix Select highlighted state (hover/focus) - force black text */
+  [data-radix-select-item][data-highlighted],
+  [data-radix-select-item][data-highlighted] *,
+  [data-radix-select-item][data-highlighted] [data-radix-select-item-text],
+  [data-radix-select-item][data-highlighted] [data-radix-select-item-text] *,
+  [data-radix-select-item][data-state="checked"],
+  [data-radix-select-item][data-state="checked"] *,
+  [data-radix-select-item][data-state="checked"] [data-radix-select-item-text],
+  [data-radix-select-item][data-state="checked"] [data-radix-select-item-text] * {
+    color: hsl(0 0% 0%) !important;
+  }
+
+  /* Ensure SelectItemText is always black - target all possible nested structures */
+  [data-radix-select-item-text],
+  [data-radix-select-item-text] *,
+  [data-radix-select-viewport],
+  [data-radix-select-viewport] *,
+  [data-radix-select-viewport] span,
+  [data-radix-select-viewport] div,
+  [data-radix-select-content] span,
+  [data-radix-select-content] div,
+  [data-radix-select-content] *:not([class*="bg-"][class*="text-white"]) {
+    color: hsl(0 0% 0%) !important;
+  }
+
+  /* Force black on all Select items regardless of any state or class */
+  [data-radix-select-item],
+  [data-radix-select-item] > *,
+  [data-radix-select-item] span,
+  [data-radix-select-item] div {
     color: hsl(0 0% 0%) !important;
   }
 
