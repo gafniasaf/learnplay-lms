@@ -1,7 +1,4 @@
 import { test, expect } from '@playwright/test';
-import { readFileSync } from 'fs';
-import path from 'path';
-import { fileURLToPath } from 'url';
 
 /**
  * Live E2E Tests: AI Pipeline - Full Course Creation & Editor
@@ -22,38 +19,21 @@ import { fileURLToPath } from 'url';
  * ⚠️ WARNING: These tests create REAL courses and use REAL LLM APIs (costs apply)
  */
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+function requireEnv(name: string): string {
+  const value = process.env[name];
+  if (!value) throw new Error(`${name} is required for live e2e tests`);
+  return value;
+}
 
-// Read OpenAI key - REQUIRED for live AI pipeline tests per NO-FALLBACK policy
-function getOpenAIKey(): string {
-  // Try env vars first (preferred)
-  const key = process.env.VITE_OPENAI_API_KEY || process.env.OPENAI_API_KEY;
-  if (key) {
-    return key;
-  }
-  
-  // Fallback to reading from learnplay.env file
-  const envFile = path.resolve(__dirname, '../../learnplay.env');
-  try {
-    const envContent = readFileSync(envFile, 'utf-8');
-    const lines = envContent.split('\n');
-    for (let i = 0; i < lines.length; i++) {
-      if (lines[i].includes('openai key') && i + 1 < lines.length) {
-        const fileKey = lines[i + 1].trim();
-        if (fileKey) {
-          return fileKey;
-        }
-      }
-    }
-  } catch (error) {
-    // File doesn't exist or can't be read - will fail below
-  }
-  
-  // Fail explicitly per NO-FALLBACK policy
-  console.error('❌ OpenAI API key is REQUIRED for live AI pipeline tests');
-  console.error('   Set VITE_OPENAI_API_KEY or OPENAI_API_KEY env var, or add to learnplay.env');
-  throw new Error('OpenAI API key is required for live AI pipeline tests');
+function getSupabaseBase(): { url: string; anonKey: string } {
+  const url = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
+  const anonKey =
+    process.env.VITE_SUPABASE_PUBLISHABLE_KEY ||
+    process.env.VITE_SUPABASE_ANON_KEY ||
+    process.env.SUPABASE_ANON_KEY;
+  if (!url) throw new Error('VITE_SUPABASE_URL (or SUPABASE_URL) is required');
+  if (!anonKey) throw new Error('VITE_SUPABASE_ANON_KEY (or VITE_SUPABASE_PUBLISHABLE_KEY / SUPABASE_ANON_KEY) is required');
+  return { url, anonKey };
 }
 
 test.describe('Live AI Pipeline: Course Creation', () => {
@@ -88,6 +68,10 @@ test.describe('Live AI Pipeline: Course Creation', () => {
     const createButton = page.locator('button:has-text("Generate Course"), button:has-text("Generate")').first();
     await expect(createButton).toBeEnabled({ timeout: 10000 });
     await createButton.click();
+
+    // Capture the generated courseId from localStorage (this app sets selectedCourseId immediately on enqueue)
+    const courseId = await page.evaluate(() => localStorage.getItem('selectedCourseId'));
+    expect(courseId).toBeTruthy();
     
     // Step 4: Wait for job creation confirmation
     // Wait for the button text to change or for processing indication
@@ -171,9 +155,31 @@ test.describe('Live AI Pipeline: Course Creation', () => {
       // Instead, verify what we can
     }
     
-    // Step 7: Verify course was created and stored
+    // Step 7: Verify course is stored and becomes visible via list-courses + get-course
     if (courseId) {
-      // Use CORRECT route: /admin/editor/:courseId (not /admin/courses/:courseId)
+      const { url, anonKey } = getSupabaseBase();
+
+      // Poll list-courses until it appears (up to 60s)
+      let found = false;
+      for (let i = 0; i < 30; i++) {
+        const res = await page.request.get(`${url}/functions/v1/list-courses?search=${encodeURIComponent(courseId)}&limit=5`, {
+          headers: { apikey: anonKey },
+        });
+        expect(res.ok()).toBeTruthy();
+        const data = await res.json();
+        found = Array.isArray(data.items) && data.items.some((it: any) => it.id === courseId);
+        if (found) break;
+        await page.waitForTimeout(2000);
+      }
+      expect(found).toBeTruthy();
+
+      // Verify get-course loads it
+      const getRes = await page.request.get(`${url}/functions/v1/get-course?courseId=${encodeURIComponent(courseId)}`, {
+        headers: { apikey: anonKey },
+      });
+      expect(getRes.ok()).toBeTruthy();
+
+      // Open editor (correct route) and verify it loads (not 404)
       await page.goto(`/admin/editor/${courseId}`);
       await page.waitForLoadState('networkidle');
       
@@ -190,15 +196,29 @@ test.describe('Live AI Pipeline: Course Creation', () => {
       expect(courseContent).toBeTruthy();
       expect(courseContent?.length).toBeGreaterThan(500); // Course has content
       
-      // Step 9: Check for images (DALL-E generated)
-      // Look for image references or media library
-      const hasImages = await page.locator('img, [data-testid*="image"], [data-testid*="media"]').count();
-      const hasImageText = courseContent?.toLowerCase().includes('image') || 
-                          courseContent?.toLowerCase().includes('media') ||
-                          courseContent?.toLowerCase().includes('diagram');
-      
-      // Images might be in media library or referenced in content
-      console.log(`Course created: ${courseId}, Images found: ${hasImages > 0 || hasImageText}`);
+      // Step 9: Trigger ONE real image generation via enqueue-course-media + media-runner, then confirm stimulus exists
+      const agentToken = requireEnv('AGENT_TOKEN');
+      const enqueueRes = await page.request.post(`${url}/functions/v1/enqueue-course-media`, {
+        headers: { 'Content-Type': 'application/json', 'x-agent-token': agentToken, apikey: anonKey, Authorization: `Bearer ${anonKey}` },
+        data: { courseId, itemId: 0, prompt: 'A simple kid-friendly illustration for the first question', provider: 'openai-dalle3' },
+      });
+      expect(enqueueRes.ok()).toBeTruthy();
+
+      const runRes = await page.request.post(`${url}/functions/v1/media-runner?n=1`, {
+        headers: { 'Content-Type': 'application/json', 'x-agent-token': agentToken },
+        data: {},
+      });
+      expect(runRes.ok()).toBeTruthy();
+
+      const after = await page.request.get(`${url}/functions/v1/get-course?courseId=${encodeURIComponent(courseId)}`, {
+        headers: { apikey: anonKey },
+      });
+      expect(after.ok()).toBeTruthy();
+      const afterJson = await after.json();
+      const coursePayload = afterJson?.content ?? afterJson;
+      const stim = coursePayload?.items?.[0]?.stimulus;
+      expect(stim?.type).toBe('image');
+      expect(typeof stim?.url).toBe('string');
     }
   }, 600000); // 10 minute timeout for full pipeline
 });
@@ -207,12 +227,11 @@ test.describe('Live AI Pipeline: Course Editor LLM Features', () => {
   test.use({ storageState: 'playwright/.auth/admin.json' });
 
   test('course editor LLM rewrite feature works', async ({ page }) => {
-    // Navigate to a course editor (use existing course or create one)
-    await page.goto('/admin/courses');
+    // Navigate to catalog and pick a course, or skip if none are visible
+    await page.goto('/courses');
     await page.waitForLoadState('networkidle');
     
-    // Try to find an existing course
-    const courseLink = page.locator('a[href*="/admin/courses/"]').first();
+    const courseLink = page.locator('a[href*="/play/"], a[href*="/admin/editor/"]').first();
     const hasCourse = await courseLink.isVisible({ timeout: 5000 }).catch(() => false);
     
     if (!hasCourse) {
