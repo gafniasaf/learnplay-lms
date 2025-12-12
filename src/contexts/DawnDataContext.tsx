@@ -304,7 +304,8 @@ export function DawnDataProvider({ children }: { children: React.ReactNode }) {
       }
     };
     safeRefresh();
-  }, [authLoading, user, refresh]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authLoading, user]);
 
   return (
     <DawnDataContext.Provider value={{
