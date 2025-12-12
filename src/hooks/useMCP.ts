@@ -358,15 +358,12 @@ export function useMCP() {
         console.log('[MCP Mock] listCourseJobs:', params);
         return { ok: true, jobs: [], total: 0 };
       }
-      const queryParams = new URLSearchParams();
-      if (params.status) queryParams.set('status', params.status);
-      if (params.sinceHours) queryParams.set('sinceHours', String(params.sinceHours));
-      if (params.limit) queryParams.set('limit', String(params.limit));
-      if (params.search) queryParams.set('search', params.search);
-      
-      return await callEdgeFunctionGet<ListCourseJobsResponse>(
-        `list-course-jobs?${queryParams.toString()}`
-      );
+      const queryParams: Record<string, string> = {};
+      if (params.status) queryParams.status = params.status;
+      if (params.sinceHours !== undefined) queryParams.sinceHours = String(params.sinceHours);
+      if (params.limit !== undefined) queryParams.limit = String(params.limit);
+      if (params.search) queryParams.search = params.search;
+      return await callEdgeFunctionGet<ListCourseJobsResponse>("list-course-jobs", queryParams);
     } finally {
       setLoading(false);
     }
@@ -380,9 +377,10 @@ export function useMCP() {
         console.log('[MCP Mock] getCourseJob:', jobId);
         return { ok: true, job: null, events: [] };
       }
-      return await callEdgeFunctionGet<GetJobResponse>(
-        `get-course-job?id=${jobId}&includeEvents=${includeEvents}`
-      );
+      return await callEdgeFunctionGet<GetJobResponse>("get-course-job", {
+        id: jobId,
+        includeEvents: includeEvents ? "true" : "false",
+      });
     } finally {
       setLoading(false);
     }
@@ -425,7 +423,8 @@ export function useMCP() {
         return { ok: true, courseJobs: { total: 0, byStatus: {} }, mediaJobs: { total: 0, byStatus: {} } };
       }
       return await callEdgeFunctionGet<{ ok: boolean; courseJobs: Record<string, any>; mediaJobs: Record<string, any> }>(
-        `get-job-metrics?sinceHours=${sinceHours}`
+        "get-job-metrics",
+        { sinceHours: String(sinceHours) }
       );
     } finally {
       setLoading(false);
@@ -682,8 +681,9 @@ export function useMCP() {
         console.log('[MCP Mock] getRecommendedCourses:', koId, studentId);
         return [];
       }
-      const query = `koId=${koId}&studentId=${studentId}${limit ? `&limit=${limit}` : ''}`;
-      return await callEdgeFunctionGet<GetRecommendedCoursesResponse>(`get-recommended-courses?${query}`);
+      const queryParams: Record<string, string> = { koId, studentId };
+      if (limit !== undefined) queryParams.limit = String(limit);
+      return await callEdgeFunctionGet<GetRecommendedCoursesResponse>("get-recommended-courses", queryParams);
     } finally {
       setLoading(false);
     }
@@ -696,7 +696,7 @@ export function useMCP() {
         console.log('[MCP Mock] getAutoAssignSettings:', studentId);
         return null;
       }
-      return await callEdgeFunctionGet<GetAutoAssignSettingsResponse | null>(`get-auto-assign-settings?studentId=${studentId}`);
+      return await callEdgeFunctionGet<GetAutoAssignSettingsResponse | null>("get-auto-assign-settings", { studentId });
     } finally {
       setLoading(false);
     }
@@ -762,10 +762,10 @@ export function useMCP() {
         console.log('[MCP Mock] getStudentGoals:', params);
         return { goals: [], summary: { total: 0, onTrack: 0, behind: 0, completed: 0 } };
       }
-      const queryParams = new URLSearchParams();
-      if (params?.studentId) queryParams.set('studentId', params.studentId);
-      if (params?.status) queryParams.set('status', params.status);
-      return await callEdgeFunctionGet<StudentGoalsResponse>(`student-goals?${queryParams}`);
+      const queryParams: Record<string, string> = {};
+      if (params?.studentId) queryParams.studentId = params.studentId;
+      if (params?.status) queryParams.status = params.status;
+      return await callEdgeFunctionGet<StudentGoalsResponse>("student-goals", queryParams);
     } finally {
       setLoading(false);
     }
@@ -811,11 +811,11 @@ export function useMCP() {
         console.log('[MCP Mock] getStudentTimeline:', params);
         return { events: [], nextCursor: null };
       }
-      const queryParams = new URLSearchParams();
-      if (params?.studentId) queryParams.set('studentId', params.studentId);
-      if (params?.limit) queryParams.set('limit', String(params.limit));
-      if (params?.cursor) queryParams.set('cursor', params.cursor);
-      return await callEdgeFunctionGet<StudentTimelineResponse>(`student-timeline?${queryParams}`);
+      const queryParams: Record<string, string> = {};
+      if (params?.studentId) queryParams.studentId = params.studentId;
+      if (params?.limit !== undefined) queryParams.limit = String(params.limit);
+      if (params?.cursor) queryParams.cursor = params.cursor;
+      return await callEdgeFunctionGet<StudentTimelineResponse>("student-timeline", queryParams);
     } finally {
       setLoading(false);
     }
@@ -828,8 +828,10 @@ export function useMCP() {
         console.log('[MCP Mock] getStudentAchievements:', studentId);
         return { achievements: [], total: 0 };
       }
-      const query = studentId ? `?studentId=${studentId}` : '';
-      return await callEdgeFunctionGet<StudentAchievementsResponse>(`student-achievements${query}`);
+      return await callEdgeFunctionGet<StudentAchievementsResponse>(
+        "student-achievements",
+        studentId ? { studentId } : undefined
+      );
     } finally {
       setLoading(false);
     }
@@ -847,7 +849,10 @@ export function useMCP() {
       if (!parentId) {
         throw new Error("parentId is required for parent-dashboard - no anonymous access");
       }
-      return await callEdgeFunctionGet<import('@/lib/types/edge-functions').ParentDashboardResponse>(`parent-dashboard?parentId=${parentId}`);
+      return await callEdgeFunctionGet<import('@/lib/types/edge-functions').ParentDashboardResponse>(
+        "parent-dashboard",
+        { parentId }
+      );
     } finally {
       setLoading(false);
     }
@@ -864,7 +869,7 @@ export function useMCP() {
       if (!parentId) {
         throw new Error("parentId is required for parent-children - no anonymous access");
       }
-      return await callEdgeFunctionGet<ParentChildrenResponse>(`parent-children?parentId=${parentId}`);
+      return await callEdgeFunctionGet<ParentChildrenResponse>("parent-children", { parentId });
     } finally {
       setLoading(false);
     }
@@ -877,7 +882,7 @@ export function useMCP() {
         console.log('[MCP Mock] getParentGoals:', childId);
         return { goals: [], summary: { total: 0, onTrack: 0, behind: 0, completed: 0 } };
       }
-      return await callEdgeFunctionGet<ParentGoalsResponse>(`parent-goals?childId=${childId}`);
+      return await callEdgeFunctionGet<ParentGoalsResponse>("parent-goals", { childId });
     } finally {
       setLoading(false);
     }
@@ -890,7 +895,7 @@ export function useMCP() {
         console.log('[MCP Mock] getParentSubjects:', childId);
         return { subjects: [] };
       }
-      return await callEdgeFunctionGet<ParentSubjectsResponse>(`parent-subjects?childId=${childId}`);
+      return await callEdgeFunctionGet<ParentSubjectsResponse>("parent-subjects", { childId });
     } finally {
       setLoading(false);
     }
@@ -903,8 +908,9 @@ export function useMCP() {
         console.log('[MCP Mock] getParentTimeline:', childId, limit);
         return { events: [], nextCursor: null };
       }
-      const query = `childId=${childId}${limit ? `&limit=${limit}` : ''}`;
-      return await callEdgeFunctionGet<ParentTimelineResponse>(`parent-timeline?${query}`);
+      const queryParams: Record<string, string> = { childId };
+      if (limit !== undefined) queryParams.limit = String(limit);
+      return await callEdgeFunctionGet<ParentTimelineResponse>("parent-timeline", queryParams);
     } finally {
       setLoading(false);
     }
@@ -917,7 +923,7 @@ export function useMCP() {
         console.log('[MCP Mock] getParentTopics:', childId);
         return { topics: [] };
       }
-      return await callEdgeFunctionGet<ParentTopicsResponse>(`parent-topics?childId=${childId}`);
+      return await callEdgeFunctionGet<ParentTopicsResponse>("parent-topics", { childId });
     } finally {
       setLoading(false);
     }
@@ -957,7 +963,7 @@ export function useMCP() {
         console.log('[MCP Mock] getClassRoster:', classId);
         return { members: [], pendingInvites: [] };
       }
-      return await callEdgeFunctionGet<GetClassRosterResponse>(`get-class-roster?classId=${classId}`);
+      return await callEdgeFunctionGet<GetClassRosterResponse>("get-class-roster", { classId });
     } finally {
       setLoading(false);
     }
@@ -1101,10 +1107,10 @@ export function useMCP() {
         console.log('[MCP Mock] listMessages:', conversationWith, limit);
         return { messages: [], nextCursor: null };
       }
-      const params = new URLSearchParams();
-      if (conversationWith) params.set('conversationWith', conversationWith);
-      if (limit) params.set('limit', String(limit));
-      return await callEdgeFunctionGet<ListMessagesResponse>(`list-messages?${params}`);
+      const queryParams: Record<string, string> = {};
+      if (conversationWith) queryParams.conversationWith = conversationWith;
+      if (limit !== undefined) queryParams.limit = String(limit);
+      return await callEdgeFunctionGet<ListMessagesResponse>("list-messages", queryParams);
     } finally {
       setLoading(false);
     }
@@ -1122,11 +1128,11 @@ export function useMCP() {
         console.log('[MCP Mock] listMediaJobsFiltered:', params);
         return { ok: true, jobs: [] };
       }
-      const queryParams = new URLSearchParams();
-      if (params.courseId) queryParams.set('courseId', params.courseId);
-      if (params.status) queryParams.set('status', params.status);
-      if (params.limit) queryParams.set('limit', String(params.limit));
-      return await callEdgeFunctionGet<ListMediaJobsResponse>(`list-media-jobs?${queryParams}`);
+      const queryParams: Record<string, string> = {};
+      if (params.courseId) queryParams.courseId = params.courseId;
+      if (params.status) queryParams.status = params.status;
+      if (params.limit !== undefined) queryParams.limit = String(params.limit);
+      return await callEdgeFunctionGet<ListMediaJobsResponse>("list-media-jobs", queryParams);
     } finally {
       setLoading(false);
     }
@@ -1184,7 +1190,7 @@ export function useMCP() {
         console.log('[MCP Mock] getAssignmentProgress:', assignmentId);
         return { rows: [], assignmentTitle: 'Mock Assignment' };
       }
-      return await callEdgeFunctionGet<GetAssignmentProgressResponse>(`get-assignment-progress?assignmentId=${assignmentId}`);
+      return await callEdgeFunctionGet<GetAssignmentProgressResponse>("get-assignment-progress", { assignmentId });
     } finally {
       setLoading(false);
     }
@@ -1197,7 +1203,7 @@ export function useMCP() {
         console.log('[MCP Mock] exportGradebook:', assignmentId);
         return { url: 'mock-url', filename: 'gradebook.csv' };
       }
-      return await callEdgeFunctionGet<{ url: string; filename: string }>(`export-gradebook?assignmentId=${assignmentId}`);
+      return await callEdgeFunctionGet<{ url: string; filename: string }>("export-gradebook", { assignmentId });
     } finally {
       setLoading(false);
     }
@@ -1211,7 +1217,7 @@ export function useMCP() {
         console.log('[MCP Mock] getCourse:', courseId);
         return { id: courseId, title: 'Mock Course', items: [] };
       }
-      return await callEdgeFunctionGet<GetCourseResponse>(`get-course?courseId=${courseId}`);
+      return await callEdgeFunctionGet<GetCourseResponse>("get-course", { courseId });
     } finally {
       setLoading(false);
     }
@@ -1261,7 +1267,7 @@ export function useMCP() {
         console.log('[MCP Mock] searchCourses:', query);
         return { courses: [] };
       }
-      return await callEdgeFunctionGet<SearchCoursesResponse>(`search-courses?query=${encodeURIComponent(query)}`);
+      return await callEdgeFunctionGet<SearchCoursesResponse>("search-courses", { query });
     } finally {
       setLoading(false);
     }
@@ -1346,7 +1352,7 @@ export function useMCP() {
         console.log('[MCP Mock] getClassProgress:', classId);
         return { students: [], summary: {} };
       }
-      return await callEdgeFunctionGet<GetClassProgressResponse>(`get-class-progress?classId=${classId}`);
+      return await callEdgeFunctionGet<GetClassProgressResponse>("get-class-progress", { classId });
     } finally {
       setLoading(false);
     }
@@ -1359,7 +1365,7 @@ export function useMCP() {
         console.log('[MCP Mock] fetchAnalytics:', courseId, range);
         return { dailyData: [], summary: {} };
       }
-      return await callEdgeFunctionGet<GetAnalyticsResponse>(`get-analytics?courseId=${courseId}&range=${range}`);
+      return await callEdgeFunctionGet<GetAnalyticsResponse>("get-analytics", { courseId, range });
     } finally {
       setLoading(false);
     }
@@ -1477,7 +1483,10 @@ export function useMCP() {
         console.log('[MCP Mock] getJobStatus:', jobId);
         return { jobId, state: 'running', step: 'generating', progress: 50 };
       }
-      return await callEdgeFunctionGet<{ jobId: string; state: string; step: string; progress: number; message?: string }>(`job-status?jobId=${jobId}`);
+      return await callEdgeFunctionGet<{ jobId: string; state: string; step: string; progress: number; message?: string }>(
+        "job-status",
+        { jobId }
+      );
     } finally {
       setLoading(false);
     }

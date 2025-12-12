@@ -6,33 +6,31 @@ import { isLiveMode } from "../env";
 //   VITE_SUPABASE_ANON_KEY=your-anon-key
 
 /**
- * Get Supabase URL (required in live mode, empty string allowed in mock mode)
- * TEMPORARY: Hardcoded dev fallbacks for Lovable deployment
+ * Get Supabase URL (REQUIRED)
  */
 export function getSupabaseUrl(): string {
-  // TEMPORARY: Hardcoded dev fallback
-  const DEV_SUPABASE_URL = 'https://eidcegehaswbtzrwzvfa.supabase.co';
-  const url = import.meta.env.VITE_SUPABASE_URL || DEV_SUPABASE_URL;
-  if (!url && isLiveMode()) {
-    console.error('❌ BLOCKED: VITE_SUPABASE_URL is required in live mode');
+  const url = import.meta.env.VITE_SUPABASE_URL;
+  if (!url) {
+    // Per IgniteZero rules: fail loudly, no environment fallbacks
+    throw new Error("❌ BLOCKED: VITE_SUPABASE_URL is REQUIRED (no hardcoded fallback allowed)");
   }
-  return url || DEV_SUPABASE_URL;
+  return url;
 }
 
 /**
- * Get Supabase anon key (required in live mode)
- * TEMPORARY: Hardcoded dev fallbacks for Lovable deployment
+ * Get Supabase anon/publishable key (REQUIRED)
  */
 export function getSupabaseAnonKey(): string {
-  // TEMPORARY: Hardcoded dev fallback
-  const DEV_SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVpZGNlZ2VoYXN3YnR6cnd6dmZhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ4NDYzNTAsImV4cCI6MjA4MDQyMjM1MH0.DpXOHjccnVEewnPF5gA6tw27TcRXkkAfgrJkn0NvT_Q';
-  const key = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || 
-              import.meta.env.VITE_SUPABASE_ANON_KEY || 
-              DEV_SUPABASE_KEY;
-  if (!key && isLiveMode()) {
-    console.error('❌ BLOCKED: Supabase anon key is required in live mode');
+  const key =
+    import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY ||
+    import.meta.env.VITE_SUPABASE_ANON_KEY;
+  if (!key) {
+    // Per IgniteZero rules: fail loudly, no environment fallbacks
+    throw new Error(
+      "❌ BLOCKED: VITE_SUPABASE_PUBLISHABLE_KEY (or VITE_SUPABASE_ANON_KEY) is REQUIRED (no hardcoded fallback allowed)"
+    );
   }
-  return key || DEV_SUPABASE_KEY;
+  return key;
 }
 
 /**
@@ -129,11 +127,21 @@ export function isDevMode(): boolean {
   return devMode;
 }
 
-// Dev mode credentials (safe to expose - only work in dev)
-const DEV_AGENT_TOKEN = 'learnplay-agent-token';
-const DEV_ORG_ID = '4d7b0a5c-3cf1-49e5-9ad7-bf6c1f8a2f58';
-// Dev user ID - seeded test student for demo purposes
-const DEV_USER_ID = '67309138-ccd0-4015-980a-25ef7b7442e6';
+function getDevAgentToken(): string {
+  const token = import.meta.env.VITE_DEV_AGENT_TOKEN;
+  if (!token) {
+    throw new Error("❌ BLOCKED: VITE_DEV_AGENT_TOKEN is REQUIRED when devMode=true");
+  }
+  return token;
+}
+
+function getDevOrgId(): string {
+  const orgId = import.meta.env.VITE_DEV_ORG_ID;
+  if (!orgId) {
+    throw new Error("❌ BLOCKED: VITE_DEV_ORG_ID is REQUIRED when devMode=true");
+  }
+  return orgId;
+}
 
 /**
  * Call an edge function with authentication and automatic retry on 401
@@ -368,36 +376,38 @@ async function callEdgeFunctionWithAgentToken<TRequest, TResponse>(
   const anonKey = getSupabaseAnonKey();
   const { timeoutMs = 30000, userId } = options;
 
-  // Try to get real user ID from session, fallback to dev user ID
+  // Optional: attach x-user-id if we can determine it (some endpoints require it)
   let effectiveUserId = userId;
   if (!effectiveUserId) {
     try {
       const { supabase } = await import("@/integrations/supabase/client");
       const { data: { session } } = await supabase.auth.getSession();
-      effectiveUserId = session?.user?.id || DEV_USER_ID;
+      effectiveUserId = session?.user?.id || undefined;
     } catch {
-      effectiveUserId = DEV_USER_ID;
+      effectiveUserId = undefined;
     }
   }
 
   const url = `${supabaseUrl}/functions/v1/${functionName}`;
 
-  console.log(`[callEdgeFunctionWithAgentToken:${functionName}] Making request with agent token, userId=${effectiveUserId}`);
+  console.log(`[callEdgeFunctionWithAgentToken:${functionName}] Making request with agent token`);
 
   let res: Response;
   try {
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${anonKey}`,
+      "apikey": anonKey,
+      "x-agent-token": getDevAgentToken(),
+      "x-organization-id": getDevOrgId(),
+    };
+    if (effectiveUserId) headers["x-user-id"] = effectiveUserId;
+
     res = await fetchWithTimeout(
       url,
       {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${anonKey}`,
-          "apikey": anonKey,
-          "x-agent-token": DEV_AGENT_TOKEN,
-          "x-organization-id": DEV_ORG_ID,
-          "x-user-id": effectiveUserId,
-        },
+        headers,
         body: JSON.stringify(payload),
       },
       timeoutMs
@@ -479,14 +489,14 @@ export async function callEdgeFunctionGet<TResponse>(
   };
   
   if (devMode) {
-    headers["x-agent-token"] = DEV_AGENT_TOKEN;
-    headers["x-organization-id"] = DEV_ORG_ID;
-    // Get user ID from session or use dev fallback
+    headers["x-agent-token"] = getDevAgentToken();
+    headers["x-organization-id"] = getDevOrgId();
+    // Optional: attach x-user-id if session exists (some endpoints require it)
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      headers["x-user-id"] = session?.user?.id || DEV_USER_ID;
+      if (session?.user?.id) headers["x-user-id"] = session.user.id;
     } catch {
-      headers["x-user-id"] = DEV_USER_ID;
+      // no-op
     }
   }
 
