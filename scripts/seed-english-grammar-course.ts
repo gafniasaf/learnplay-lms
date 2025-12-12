@@ -86,7 +86,9 @@ async function main() {
     console.error(getJson ?? (await getRes.text()));
     process.exit(1);
   }
-  console.log(`✅ Verified get-course: items=${Array.isArray(getJson?.items) ? getJson.items.length : "?"}`);
+  const courseBody: any =
+    getJson && typeof getJson === "object" && "content" in getJson ? (getJson as any).content : getJson;
+  console.log(`✅ Verified get-course: items=${Array.isArray(courseBody?.items) ? courseBody.items.length : "?"}`);
 
   console.log("🎉 Done.");
 }
