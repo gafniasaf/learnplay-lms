@@ -15,6 +15,14 @@ export default function ClassProgress() {
   const [jobId, setJobId] = useState<string | null>(null);
   const mcp = useMCP();
   
+  // Fetch available courses from catalog
+  const { data: catalogData } = useQuery({
+    queryKey: ["course-catalog"],
+    queryFn: () => mcp.getCourseCatalog(),
+  });
+  
+  const courses = (catalogData as { courses?: Array<{ id: string; title: string }> })?.courses || [];
+  
   const { data, isLoading, refetch, isFetching } = useQuery({
     queryKey: ["class-progress", classId],
     queryFn: () => classId ? mcp.getClassProgress(classId) : Promise.resolve(null),
@@ -47,11 +55,18 @@ export default function ClassProgress() {
               <label className="text-sm font-medium mb-2 block">Course</label>
               <Select value={courseId} onValueChange={setCourseId}>
                 <SelectTrigger>
-                  <SelectValue />
+                  <SelectValue placeholder="Select a course" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="modals">English Modals</SelectItem>
-                  <SelectItem value="verbs">English Verbs</SelectItem>
+                  {courses.length > 0 ? (
+                    courses.map((course) => (
+                      <SelectItem key={course.id} value={course.id}>
+                        {course.title}
+                      </SelectItem>
+                    ))
+                  ) : (
+                    <SelectItem value="" disabled>No courses available</SelectItem>
+                  )}
                 </SelectContent>
               </Select>
             </div>

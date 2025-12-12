@@ -18,35 +18,36 @@ interface Course {
   enrollments?: number;
 }
 
+// Placeholder courses for mock mode only - in live mode, courses are fetched from catalog
 const initialCourses: Course[] = [
   {
-    id: "modals",
-    title: "English Modals",
-    description: "Master modal verbs in English",
+    id: "example-course-1",
+    title: "Sample Course 1",
+    description: "This is a placeholder course for demo purposes",
     level: "Intermediate",
     duration: "30 min",
     enrollments: 245,
   },
   {
-    id: "math-101",
-    title: "Math Adventures",
-    description: "Fun introduction to mathematics",
+    id: "example-course-2",
+    title: "Sample Course 2",
+    description: "Fun introduction to learning",
     level: "Beginner",
     duration: "25 min",
     enrollments: 223,
   },
   {
-    id: "science-lab",
-    title: "Science Lab",
-    description: "Hands-on science experiments",
+    id: "example-course-3",
+    title: "Sample Course 3",
+    description: "Hands-on activities",
     level: "Intermediate",
     duration: "40 min",
     enrollments: 198,
   },
   {
-    id: "reading-fun",
-    title: "Reading Fun",
-    description: "Improve reading comprehension",
+    id: "example-course-4",
+    title: "Sample Course 4",
+    description: "Improve comprehension",
     level: "Beginner",
     duration: "25 min",
     enrollments: 267,
