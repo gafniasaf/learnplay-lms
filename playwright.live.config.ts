@@ -35,7 +35,7 @@ const PORT = process.env.PORT ? Number(process.env.PORT) : 8082;
  */
 const config: PlaywrightTestConfig = {
   testDir: 'tests/e2e',
-  testMatch: ['**/*live*.spec.ts', '**/live-*.spec.ts'],
+  testMatch: ['**/*live*.spec.ts', '**/live-*.spec.ts', '**/dashboard-loading.spec.ts'],
   timeout: 180_000, // 3 minutes for tests with real LLM calls
   retries: process.env.CI ? 1 : 0,
   reporter: [
