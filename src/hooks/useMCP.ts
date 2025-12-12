@@ -384,7 +384,16 @@ export function useMCP() {
         return await callMCP<T>(method, params);
       }
 
-      const functionName = method.replace('lms.', '').replace(/([A-Z])/g, '-$1').toLowerCase();
+      // Map MCP method names to Edge Function names
+      // Handle kebab-case method names (e.g., 'lms.student-dashboard' -> 'student-dashboard')
+      let functionName = method.replace('lms.', '');
+      // Only apply camelCase to kebab-case conversion if there are uppercase letters
+      // Otherwise, keep kebab-case as-is
+      if (/[A-Z]/.test(functionName)) {
+        functionName = functionName.replace(/([A-Z])/g, '-$1').toLowerCase();
+      } else {
+        functionName = functionName.toLowerCase();
+      }
       return await callEdgeFunctionGet<T>(functionName, params);
     } finally {
       setLoading(false);

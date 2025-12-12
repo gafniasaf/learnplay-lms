@@ -31,8 +31,64 @@ export function useDashboard(role: DashboardRole) {
           if (!user?.id) {
             throw new Error("User not authenticated");
           }
-          const data = await mcp.callGet<Dashboard>('lms.student-dashboard', { studentId: user.id });
-          setDashboard(data);
+          // Ensure studentId is a string for callGet
+          const response = await mcp.callGet<{
+            assignments: Array<{
+              id: string;
+              title: string;
+              course_id?: string;
+              due_at?: string;
+              status?: string;
+              progress_pct?: number;
+              score?: number;
+              completed_at?: string;
+            }>;
+            performance: {
+              recentScore: number;
+              streakDays: number;
+              xp: number;
+            };
+            recommendedCourses: Array<{
+              courseId: string;
+              reason: string;
+              createdAt: string;
+            }>;
+          }>('lms.student-dashboard', { studentId: String(user.id) });
+
+          // Transform Edge Function response to Dashboard format
+          const dashboard: Dashboard = {
+            role: 'student',
+            userId: user.id,
+            displayName: user.email?.split('@')[0] || 'Student',
+            stats: {
+              coursesInProgress: response.assignments?.filter(a => a.status === 'in_progress').length || 0,
+              coursesCompleted: response.assignments?.filter(a => a.status === 'completed').length || 0,
+              totalPoints: response.performance?.xp || 0,
+              currentStreak: response.performance?.streakDays || 0,
+              bestStreak: response.performance?.streakDays || 0,
+              accuracyRate: response.performance?.recentScore || 0,
+            },
+            upcoming: (response.assignments || [])
+              .filter(a => a.status !== 'completed' && a.due_at)
+              .map(a => ({
+                id: a.id,
+                title: a.title,
+                type: a.course_id || 'course',
+                dueDate: a.due_at || new Date().toISOString(),
+                progress: a.progress_pct || 0,
+              })),
+            recent: (response.assignments || [])
+              .filter(a => a.status === 'completed' && a.completed_at)
+              .map(a => ({
+                id: a.id,
+                title: a.title,
+                type: a.course_id || 'course',
+                completedAt: a.completed_at || new Date().toISOString(),
+                score: a.score || 0,
+              })),
+            achievements: [], // TODO: Fetch from student-achievements Edge Function if needed
+          };
+          setDashboard(dashboard);
         } else if (role === 'teacher') {
           // Teacher dashboard requires teacherId, not role
           if (!user?.id) {
