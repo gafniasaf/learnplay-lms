@@ -21,14 +21,15 @@ interface StartRoundBody {
 }
 
 serve(async (req: Request): Promise<Response> => {
+  const requestId = crypto.randomUUID();
   if (req.method === "OPTIONS") {
-    return handleOptions(req, "game-start-round");
+    return handleOptions(req, requestId);
   }
 
   if (req.method !== "POST") {
     return new Response("Method Not Allowed", {
       status: 405,
-      headers: stdHeaders(req),
+      headers: stdHeaders(req, { "X-Request-Id": requestId }),
     });
   }
 
@@ -38,8 +39,8 @@ serve(async (req: Request): Promise<Response> => {
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unauthorized";
     return new Response(
-      JSON.stringify({ error: message }),
-      { status: message === "Missing organization_id" ? 400 : 401, headers: stdHeaders(req, { "Content-Type": "application/json" }) }
+      JSON.stringify({ error: message, requestId }),
+      { status: message === "Missing organization_id" ? 400 : 401, headers: stdHeaders(req, { "Content-Type": "application/json", "X-Request-Id": requestId }) }
     );
   }
 
@@ -49,21 +50,21 @@ serve(async (req: Request): Promise<Response> => {
   } catch {
     return new Response(JSON.stringify({ error: "Invalid JSON body" }), {
       status: 400,
-      headers: stdHeaders(req, { "Content-Type": "application/json" }),
+      headers: stdHeaders(req, { "Content-Type": "application/json", "X-Request-Id": requestId }),
     });
   }
 
   if (!body?.courseId || typeof body.courseId !== "string") {
     return new Response(JSON.stringify({ error: "courseId is required" }), {
       status: 400,
-      headers: stdHeaders(req, { "Content-Type": "application/json" }),
+      headers: stdHeaders(req, { "Content-Type": "application/json", "X-Request-Id": requestId }),
     });
   }
 
   if (body.level === undefined || typeof body.level !== "number") {
     return new Response(JSON.stringify({ error: "level is required and must be a number" }), {
       status: 400,
-      headers: stdHeaders(req, { "Content-Type": "application/json" }),
+      headers: stdHeaders(req, { "Content-Type": "application/json", "X-Request-Id": requestId }),
     });
   }
 
@@ -73,7 +74,7 @@ serve(async (req: Request): Promise<Response> => {
   if (!userId) {
     return new Response(JSON.stringify({ error: "User ID is required" }), {
       status: 400,
-      headers: stdHeaders(req, { "Content-Type": "application/json" }),
+      headers: stdHeaders(req, { "Content-Type": "application/json", "X-Request-Id": requestId }),
     });
   }
 
@@ -107,9 +108,9 @@ serve(async (req: Request): Promise<Response> => {
 
       if (sessionError || !newSession) {
         console.error("Failed to create session:", sessionError);
-        return new Response(JSON.stringify({ error: "Failed to create game session" }), {
+        return new Response(JSON.stringify({ error: "Failed to create game session", requestId, details: sessionError }), {
           status: 500,
-          headers: stdHeaders(req, { "Content-Type": "application/json" }),
+          headers: stdHeaders(req, { "Content-Type": "application/json", "X-Request-Id": requestId }),
         });
       }
 
@@ -124,30 +125,76 @@ serve(async (req: Request): Promise<Response> => {
       p_user_id: userId,
     });
 
-    if (roundError || !round) {
-      console.error("Failed to create round:", roundError);
-      return new Response(JSON.stringify({ error: "Failed to create game round" }), {
-        status: 500,
-        headers: stdHeaders(req, { "Content-Type": "application/json" }),
+    // Some deployments may not have the newer game_rounds columns / RPC migrations applied.
+    // Fallback to a legacy insert (minimal columns) so preview/game flows remain usable.
+    let effectiveRound: any = round;
+    if (roundError || !effectiveRound) {
+      console.error("Failed to create round via RPC:", roundError);
+      console.warn("[game-start-round] Falling back to legacy insert into game_rounds");
+
+      const tryInsert = async (payload: Record<string, unknown>) => {
+        return await adminSupabase
+          .from("game_rounds")
+          .insert(payload)
+          .select("id, started_at")
+          .single();
+      };
+
+      // Attempt 1: include newer columns if present
+      let insertRes = await tryInsert({
+        session_id: sessionId,
+        level: body.level,
+        content_version: body.contentVersion || "unknown",
+        created_by: userId,
       });
+
+      // If schema doesn't support newer columns, retry without them
+      if (insertRes.error) {
+        const msg = insertRes.error.message || "";
+        if (msg.includes("content_version") || msg.includes("created_by") || msg.includes("column")) {
+          insertRes = await tryInsert({
+            session_id: sessionId,
+            level: body.level,
+          });
+        }
+      }
+
+      if (insertRes.error || !insertRes.data) {
+        console.error("Legacy insert failed:", insertRes.error);
+        return new Response(
+          JSON.stringify({
+            error: "Failed to create game round",
+            requestId,
+            rpcError: roundError,
+            insertError: insertRes.error,
+          }),
+          {
+            status: 500,
+            headers: stdHeaders(req, { "Content-Type": "application/json", "X-Request-Id": requestId }),
+          }
+        );
+      }
+
+      effectiveRound = insertRes.data;
     }
 
     return new Response(
       JSON.stringify({
         sessionId,
-        roundId: round.id,
-        startedAt: round.started_at || new Date().toISOString(),
+        roundId: effectiveRound.id,
+        startedAt: effectiveRound.started_at || new Date().toISOString(),
+        requestId,
       }),
       {
         status: 200,
-        headers: stdHeaders(req, { "Content-Type": "application/json" }),
+        headers: stdHeaders(req, { "Content-Type": "application/json", "X-Request-Id": requestId }),
       }
     );
   } catch (error) {
     console.error("game-start-round error:", error);
     return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" }),
-      { status: 500, headers: stdHeaders(req, { "Content-Type": "application/json" }) }
+      JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error", requestId }),
+      { status: 500, headers: stdHeaders(req, { "Content-Type": "application/json", "X-Request-Id": requestId }) }
     );
   }
 });

@@ -1,8 +1,11 @@
 import { ReactNode } from "react";
 import { Header } from "./Header";
 import { Footer } from "./Footer";
-import { isEmbed } from "@/lib/embed";
+import { isCourseFullscreen, isEmbed } from "@/lib/embed";
 import { FallbackBanner } from "@/components/system/FallbackBanner";
+import { ModeBanner } from "@/components/system/ModeBanner";
+import { CourseFrame } from "@/components/layout/CourseFrame";
+import { DawnDataBanner } from "@/components/system/DawnDataBanner";
 
 interface LayoutProps {
   children: ReactNode;
@@ -10,15 +13,18 @@ interface LayoutProps {
 
 export const Layout = ({ children }: LayoutProps) => {
   const embedMode = isEmbed();
+  const fullscreen = !embedMode && isCourseFullscreen();
   
   return (
     <div className="flex min-h-screen flex-col">
-      {!embedMode && <Header />}
-      {!embedMode && <FallbackBanner />}
+      {!embedMode && !fullscreen && <Header />}
+      {!embedMode && !fullscreen && <ModeBanner />}
+      {!embedMode && !fullscreen && <DawnDataBanner />}
+      {!embedMode && !fullscreen && <FallbackBanner />}
       <main className={`flex-1 ${embedMode ? "p-2 md:p-3" : ""}`}>
-        {children}
+        {fullscreen ? <CourseFrame>{children}</CourseFrame> : children}
       </main>
-      {!embedMode && <Footer />}
+      {!embedMode && !fullscreen && <Footer />}
     </div>
   );
 };

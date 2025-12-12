@@ -114,6 +114,7 @@ interface DawnDataState {
   messages: MessageThread[];
   loading: boolean;
   error: string | null;
+  authRequired: boolean;
 }
 
 interface DawnDataContextValue extends DawnDataState {
@@ -156,6 +157,7 @@ export function DawnDataProvider({ children }: { children: React.ReactNode }) {
     messages: [],
     loading: true,
     error: null,
+    authRequired: false,
   });
 
   const fetchEntity = useCallback(async (entity: string) => {
@@ -166,6 +168,8 @@ export function DawnDataProvider({ children }: { children: React.ReactNode }) {
     
     // Don't fetch if user is not authenticated
     if (!user) {
+      // Explicit state: avoid “silent empty” behavior
+      setState(s => ({ ...s, authRequired: true, error: "AUTH_REQUIRED" }));
       return [];
     }
     
@@ -190,7 +194,12 @@ export function DawnDataProvider({ children }: { children: React.ReactNode }) {
   const refresh = useCallback(async () => {
     // Don't fetch if auth is still loading or user is not authenticated
     if (authLoading || !user) {
-      setState(s => ({ ...s, loading: false }));
+      setState(s => ({
+        ...s,
+        loading: false,
+        authRequired: !user && !authLoading,
+        error: !user && !authLoading ? "AUTH_REQUIRED" : s.error,
+      }));
       return;
     }
     
@@ -286,7 +295,7 @@ export function DawnDataProvider({ children }: { children: React.ReactNode }) {
     
     // If user is not authenticated, don't fetch and just set loading to false
     if (!user) {
-      setState(s => ({ ...s, loading: false }));
+      setState(s => ({ ...s, loading: false, authRequired: true, error: "AUTH_REQUIRED" }));
       return;
     }
     

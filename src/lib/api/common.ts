@@ -20,7 +20,7 @@ const DEV_ORG_ID_FALLBACK = "4d7b0a5c-3cf1-49e5-9ad7-bf6c1f8a2f58";
 const DEV_CHILD_ID_FALLBACK = "b2ed7195-4202-405b-85e4-608944a27837";
 const DEV_PARENT_ID_FALLBACK = "613d43cb-0922-4fad-b528-dbed8d2a5c79";
 
-function isDevOpenUiAllowed(): boolean {
+export function isDevOpenUiAllowed(): boolean {
   if (typeof window === "undefined") return DEV_OPEN_UI;
   const host = window.location.hostname;
   const isLovable = host.includes("lovable") || host.includes("lovableproject.com");
@@ -387,7 +387,7 @@ export async function callEdgeFunction<TRequest, TResponse>(
 /**
  * Check if running in guest/dev bypass mode (no auth required)
  */
-function isGuestMode(): boolean {
+export function isGuestMode(): boolean {
   if (typeof window === 'undefined') return false;
   
   // Check URL param
