@@ -227,35 +227,21 @@ export function validateEnv(): void {
   const errors: string[] = [];
   const liveMode = isLiveMode();
   
-  // TEMPORARY DEV FALLBACKS: Hardcoded values for Lovable dev deployment
-  // TODO: Remove these hardcoded values once env vars are properly configured in Lovable
-  const DEV_SUPABASE_URL = 'https://eidcegehaswbtzrwzvfa.supabase.co';
-  const DEV_SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVpZGNlZ2VoYXN3YnR6cnd6dmZhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ4NDYzNTAsImV4cCI6MjA4MDQyMjM1MH0.DpXOHjccnVEewnPF5gA6tw27TcRXkkAfgrJkn0NvT_Q';
-  
   // Only enforce hard requirements in LIVE mode; soft-pass otherwise
   let supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string | undefined;
   let supabaseKey =
     (import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string | undefined) ||
     (import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined);
 
-  // TEMPORARY: Use hardcoded dev values if env vars are missing (dev mode only)
-  if (!supabaseUrl) {
-    console.warn('[Env] VITE_SUPABASE_URL not set, using hardcoded dev fallback');
-    supabaseUrl = DEV_SUPABASE_URL;
+  // In Lovable, runtime config may provide these; validateEnv is only a hint layer.
+  // Real API calls will still fail loudly if config is missing.
+  if (liveMode && !supabaseUrl) {
+    // Note: runtime config may supply this at runtime (see /app-config.json)
+    console.warn("[Env] VITE_SUPABASE_URL not set (runtime config may supply it)");
   }
-  if (!supabaseKey) {
-    console.warn('[Env] Supabase key not set, using hardcoded dev fallback');
-    supabaseKey = DEV_SUPABASE_KEY;
+  if (liveMode && !supabaseKey) {
+    console.warn("[Env] Supabase key not set (runtime config may supply it)");
   }
-
-  // TEMPORARY: Skip validation since we're using hardcoded fallbacks for dev deployment
-  // TODO: Re-enable validation once env vars are properly configured in Lovable
-  // if (liveMode && !supabaseUrl) {
-  //   errors.push("VITE_SUPABASE_URL is required (no hardcoded fallback per IgniteZero rules)");
-  // }
-  // if (liveMode && !supabaseKey) {
-  //   errors.push("Supabase public key is required (VITE_SUPABASE_PUBLISHABLE_KEY or VITE_SUPABASE_ANON_KEY)");
-  // }
   if (!liveMode && (!supabaseUrl || !supabaseKey)) {
     console.warn(
       "[Env] Running in mock mode (VITE_USE_MOCK=true); Supabase credentials not required."

@@ -1,4 +1,5 @@
 import { isLiveMode } from "../env";
+import { getRuntimeConfigSync } from "@/lib/runtimeConfig";
 
 // IgniteZero: NO hardcoded fallbacks - environment variables are REQUIRED
 // Configure in .env:
@@ -32,6 +33,9 @@ export function getSupabaseUrl(): string {
   const url = import.meta.env.VITE_SUPABASE_URL;
   if (url) return url;
 
+  const cfgUrl = getRuntimeConfigSync()?.supabase?.url;
+  if (cfgUrl) return cfgUrl;
+
   if (isDevOpenUiAllowed()) {
     console.warn("[DEV OPEN UI] Using hardcoded Supabase URL fallback");
     return DEV_SUPABASE_URL_FALLBACK;
@@ -48,6 +52,9 @@ export function getSupabaseAnonKey(): string {
     import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY ||
     import.meta.env.VITE_SUPABASE_ANON_KEY;
   if (key) return key;
+
+  const cfgKey = getRuntimeConfigSync()?.supabase?.publishableKey;
+  if (cfgKey) return cfgKey;
 
   if (isDevOpenUiAllowed()) {
     console.warn("[DEV OPEN UI] Using hardcoded Supabase anon key fallback");
