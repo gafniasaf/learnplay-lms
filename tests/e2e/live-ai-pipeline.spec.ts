@@ -36,6 +36,36 @@ function getSupabaseBase(): { url: string; anonKey: string } {
   return { url, anonKey };
 }
 
+async function getSessionAccessToken(page: import('@playwright/test').Page): Promise<string> {
+  const token = await page.evaluate(() => {
+    try {
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        if (!k) continue;
+        if (!k.includes('auth-token')) continue;
+        const raw = localStorage.getItem(k);
+        if (!raw) continue;
+        try {
+          const parsed = JSON.parse(raw);
+          const access =
+            parsed?.currentSession?.access_token ||
+            parsed?.access_token ||
+            parsed?.currentSession?.accessToken ||
+            null;
+          if (typeof access === 'string' && access.length > 20) return access;
+        } catch {
+          // ignore
+        }
+      }
+      return null;
+    } catch {
+      return null;
+    }
+  });
+  if (!token) throw new Error('Could not extract Supabase session access token from localStorage');
+  return token;
+}
+
 test.describe('Live AI Pipeline: Course Creation', () => {
   test.use({ storageState: 'playwright/.auth/admin.json' });
 
@@ -192,10 +222,11 @@ test.describe('Live AI Pipeline: Course Creation', () => {
       const { url, anonKey } = getSupabaseBase();
 
       // Poll list-courses until it appears (up to 60s)
+      const sessionToken = await getSessionAccessToken(page);
       let found = false;
       for (let i = 0; i < 30; i++) {
         const res = await page.request.get(`${url}/functions/v1/list-courses?search=${encodeURIComponent(courseId)}&limit=5`, {
-          headers: { apikey: anonKey },
+          headers: { apikey: anonKey, Authorization: `Bearer ${sessionToken}` },
         });
         expect(res.ok()).toBeTruthy();
         const data = await res.json();
