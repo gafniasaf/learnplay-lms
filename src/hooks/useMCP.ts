@@ -2,6 +2,42 @@ import { useState } from 'react';
 // supabase import removed - not used directly
 import { JOB_MODES } from '@/lib/contracts';
 import { callEdgeFunctionGet } from '@/lib/api/common';
+import type {
+  SaveRecordResponse,
+  GetRecordResponse,
+  ListRecordsResponse,
+  ListJobsResponse,
+  ListCourseJobsResponse,
+  GetJobResponse,
+  GetStudentSkillsResponse,
+  GetClassKOSummaryResponse,
+  UpdateMasteryResponse,
+  GetDomainGrowthResponse,
+  GetRecommendedCoursesResponse,
+  GetAutoAssignSettingsResponse,
+  StudentGoalsResponse,
+  StudentTimelineResponse,
+  StudentAchievementsResponse,
+  ParentChildrenResponse,
+  ParentGoalsResponse,
+  ParentSubjectsResponse,
+  ParentTimelineResponse,
+  ParentTopicsResponse,
+  ListClassesResponse,
+  GetClassRosterResponse,
+  ListConversationsResponse,
+  ListMessagesResponse,
+  ListMediaJobsResponse,
+  ListAssignmentsResponse,
+  GetAssignmentProgressResponse,
+  GetCourseResponse,
+  SearchCoursesResponse,
+  GetClassProgressResponse,
+  GetAnalyticsResponse,
+  ListStudentsResponse,
+  GetOrgConfigResponse,
+  Assignment,
+} from '@/lib/types/edge-functions';
 
 // MCP Proxy settings (for local development only)
 // Per IgniteZero rules: No fallback tokens - require explicit configuration
@@ -236,7 +272,7 @@ export function useMCP() {
         return await callMCP('lms.saveRecord', { entity, values });
       }
       // Use Supabase Edge Function in production
-      return await callEdgeFunction<Record<string, unknown>, SaveRecordResponse>('save-record', { entity, values });
+      return await callEdgeFunction<SaveRecordResponse>('save-record', { entity, values });
     } finally {
       setLoading(false);
     }
@@ -256,7 +292,7 @@ export function useMCP() {
         return await callMCP('lms.getRecord', { entity, id });
       }
       // Use Supabase Edge Function in production
-      return await callEdgeFunction<Record<string, unknown>, GetRecordResponse>('get-record', { entity, id });
+      return await callEdgeFunction<GetRecordResponse>('get-record', { entity, id });
     } finally {
       setLoading(false);
     }
@@ -282,7 +318,7 @@ export function useMCP() {
         return await callMCP<ListRecordsResponse>('lms.listRecords', { entity, limit });
       }
       // Use Supabase Edge Function in production
-      return await callEdgeFunction<Record<string, unknown>, ListRecordsResponse>('list-records', { entity, limit });
+      return await callEdgeFunction<ListRecordsResponse>('list-records', { entity, limit });
     } catch (err) {
       // Handle 401 errors silently - user not authenticated
       const error = err as any;
@@ -308,7 +344,7 @@ export function useMCP() {
         return await callMCP<ListJobsResponse>('lms.listJobs', { limit });
       }
       // Use Supabase Edge Function in production
-      return await callEdgeFunction<Record<string, unknown>, ListJobsResponse>('list-jobs', { limit });
+      return await callEdgeFunction<ListJobsResponse>('list-jobs', { limit });
     } finally {
       setLoading(false);
     }
@@ -583,7 +619,7 @@ export function useMCP() {
         console.log('[MCP Mock] getStudentSkills:', params);
         return { skills: [], totalCount: 0 };
       }
-      return await callEdgeFunction<Record<string, unknown>, GetStudentSkillsResponse>('get-student-skills', params);
+      return await callEdgeFunction<GetStudentSkillsResponse>('get-student-skills', params);
     } finally {
       setLoading(false);
     }
@@ -602,7 +638,7 @@ export function useMCP() {
         console.log('[MCP Mock] getClassKOSummary:', params);
         return [];
       }
-      return await callEdgeFunction<Record<string, unknown>, GetClassKOSummaryResponse>('get-class-ko-summary', params);
+      return await callEdgeFunction<GetClassKOSummaryResponse>('get-class-ko-summary', params);
     } finally {
       setLoading(false);
     }
@@ -620,7 +656,7 @@ export function useMCP() {
         console.log('[MCP Mock] updateMastery:', params);
         return { oldMastery: 0, newMastery: params.exerciseScore, evidenceCount: 1 };
       }
-      return await callEdgeFunction<Record<string, unknown>, UpdateMasteryResponse>('update-mastery', params);
+      return await callEdgeFunction<UpdateMasteryResponse>('update-mastery', params);
     } finally {
       setLoading(false);
     }
@@ -633,7 +669,7 @@ export function useMCP() {
         console.log('[MCP Mock] getDomainGrowth:', studentId);
         return [];
       }
-      return await callEdgeFunction<Record<string, unknown>, GetDomainGrowthResponse>('get-domain-growth', { studentId });
+      return await callEdgeFunction<GetDomainGrowthResponse>('get-domain-growth', { studentId });
     } finally {
       setLoading(false);
     }
@@ -673,7 +709,7 @@ export function useMCP() {
         console.log('[MCP Mock] updateAutoAssignSettings:', studentId, settings);
         return { studentId, ...settings, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() };
       }
-      return await callEdgeFunction<Record<string, unknown>, GetAutoAssignSettingsResponse>('update-auto-assign-settings', { studentId, settings });
+      return await callEdgeFunction<GetAutoAssignSettingsResponse>('update-auto-assign-settings', { studentId, settings });
     } finally {
       setLoading(false);
     }
@@ -690,7 +726,7 @@ export function useMCP() {
         console.log('[MCP Mock] getStudentAssignments:', params);
         return [];
       }
-      return await callEdgeFunction<Record<string, unknown>, Array<Assignment>>('get-student-assignments', params);
+      return await callEdgeFunction<Array<Assignment>>('get-student-assignments', params);
     } finally {
       setLoading(false);
     }
@@ -934,7 +970,7 @@ export function useMCP() {
         console.log('[MCP Mock] createClass:', name, description);
         return { class: { id: `class-${Date.now()}`, name, description, owner: 'mock-owner', created_at: new Date().toISOString() } };
       }
-      return await callEdgeFunction<Record<string, unknown>, { class: { id: string; name: string; description?: string; owner: string; created_at: string } }>('create-class', { name, description });
+      return await callEdgeFunction<{ class: { id: string; name: string; description?: string; owner: string; created_at: string } }>('create-class', { name, description });
     } finally {
       setLoading(false);
     }
@@ -1259,7 +1295,7 @@ export function useMCP() {
         console.log('[MCP Mock] getCoursesByTags:', tags);
         return { courses: [] };
       }
-      return await callEdgeFunction<Record<string, unknown>, SearchCoursesResponse>('get-courses-by-tags', { tags });
+      return await callEdgeFunction<SearchCoursesResponse>('get-courses-by-tags', { tags });
     } finally {
       setLoading(false);
     }

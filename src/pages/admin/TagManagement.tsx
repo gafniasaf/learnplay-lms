@@ -39,7 +39,7 @@ export default function TagManagement() {
   async function loadOrgConfig() {
     try {
       setLoading(true);
-      const config = await mcp.getOrgConfig() as OrgConfig;
+      const config = await mcp.getOrgConfig() as unknown as OrgConfig;
       setOrgConfig(config);
       setAuthRequired(false);
       

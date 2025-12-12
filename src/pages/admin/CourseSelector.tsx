@@ -45,7 +45,7 @@ const CourseSelector = () => {
 
   const loadOrgConfig = useCallback(async () => {
     try {
-      const config = await mcp.getOrgConfig() as OrgConfig;
+      const config = await mcp.getOrgConfig() as unknown as OrgConfig;
       setOrgConfig(config);
       setOrgConfigAuthRequired(false);
     } catch (error: any) {

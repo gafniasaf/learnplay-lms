@@ -278,6 +278,9 @@ export function DawnDataProvider({ children }: { children: React.ReactNode }) {
   }, [mcp, refreshEntity]);
 
   // Initial load - wait for auth before fetching
+  // Using a ref to track if we've already loaded to prevent infinite loops
+  const hasLoadedRef = React.useRef(false);
+  
   useEffect(() => {
     // Don't fetch until auth is resolved
     if (authLoading) {
@@ -287,8 +290,15 @@ export function DawnDataProvider({ children }: { children: React.ReactNode }) {
     // If user is not authenticated, don't fetch and just set loading to false
     if (!user) {
       setState(s => ({ ...s, loading: false }));
+      hasLoadedRef.current = false; // Reset so we can load when user logs in
       return;
     }
+    
+    // Only load once per user session
+    if (hasLoadedRef.current) {
+      return;
+    }
+    hasLoadedRef.current = true;
     
     // Wrap in try-catch to prevent crashes in preview/iframe environments
     const safeRefresh = async () => {
@@ -304,7 +314,8 @@ export function DawnDataProvider({ children }: { children: React.ReactNode }) {
       }
     };
     safeRefresh();
-  }, [authLoading, user, refresh]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authLoading, user]);
 
   return (
     <DawnDataContext.Provider value={{
