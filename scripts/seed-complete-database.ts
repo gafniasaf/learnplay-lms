@@ -44,11 +44,14 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
 });
 
 // Helper to get or create organization ID
+// Note: For seeding scripts, we intentionally find-or-create an org if not configured
 async function getOrCreateOrgId(): Promise<string> {
-  let orgId = process.env.ORGANIZATION_ID || env.ORGANIZATION_ID;
+  // Check explicit env vars first
+  const configuredOrgId = process.env.ORGANIZATION_ID ?? env.ORGANIZATION_ID ?? undefined;
   
-  if (orgId) {
-    return orgId;
+  if (configuredOrgId) {
+    console.log(`✅ Using configured organization: ${configuredOrgId}`);
+    return configuredOrgId;
   }
   
   console.log('⚠️  ORGANIZATION_ID not set, attempting to find or create default organization...');
