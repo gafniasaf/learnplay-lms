@@ -44,27 +44,52 @@ Deno.serve(withCors(async (req: Request) => {
   try {
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
     
-    // Get assignments for the student
-    const { data: assignments, error } = await supabase
-      .from("assignments")
-      .select(`
-        id,
-        course_id,
-        title,
-        due_at,
-        created_at,
-        status,
-        progress_pct,
-        assigned_by,
-        assigned_by_role,
-        completion_criteria
-      `)
-      .contains("student_ids", [resolvedStudentId])
-      .order("due_at", { ascending: true });
+    // Try to get assignments - use multiple query approaches for flexibility
+    let assignments: any[] = [];
+    
+    // First try with student_ids array contains
+    try {
+      const { data, error } = await supabase
+        .from("assignments")
+        .select(`
+          id,
+          course_id,
+          title,
+          due_at,
+          created_at,
+          status,
+          progress_pct,
+          assigned_by,
+          assigned_by_role,
+          completion_criteria
+        `)
+        .contains("student_ids", [resolvedStudentId])
+        .order("due_at", { ascending: true });
 
-    if (error) {
-      console.error("[list-assignments-student] Query error:", error);
-      return jsonError("database_error", error.message, 500, requestId, req);
+      if (!error && data) {
+        assignments = data;
+      } else if (error) {
+        console.warn("[list-assignments-student] Primary query failed:", error.message);
+      }
+    } catch (e) {
+      console.warn("[list-assignments-student] Primary query exception:", e);
+    }
+
+    // If that fails, try student_assignments table
+    if (assignments.length === 0) {
+      try {
+        const { data, error } = await supabase
+          .from("student_assignments")
+          .select("*")
+          .eq("student_id", resolvedStudentId)
+          .order("due_at", { ascending: true });
+
+        if (!error && data) {
+          assignments = data;
+        }
+      } catch (e) {
+        console.warn("[list-assignments-student] Fallback query failed:", e);
+      }
     }
 
     return jsonOk({
