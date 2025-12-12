@@ -68,11 +68,11 @@ export default function Inbox() {
 
   // Get conversations from hook
   const conversationsData = messaging.conversations;
-  const conversations = (conversationsData.data as { conversations?: Conversation[] })?.conversations ?? [];
+  const conversations = (conversationsData.data as unknown as { conversations?: Conversation[] })?.conversations ?? [];
 
   // Get messages for selected conversation
   const messagesQuery = messaging.useMessages(selectedConversation || '');
-  const messages = (messagesQuery?.data as { messages?: Message[] })?.messages ?? [];
+  const messages = (messagesQuery?.data as unknown as { messages?: Message[] })?.messages ?? [];
 
   const loadConversationMessages = useCallback(async (conversationId: string) => {
     if (!user?.id) return;

@@ -80,7 +80,7 @@ export function useStudentSkills(params: GetStudentSkillsParams): UseStudentSkil
   });
 
   return {
-    skills: (data?.skills ?? []) as MasteryStateWithKO[],
+    skills: (data?.skills ?? []) as unknown as MasteryStateWithKO[],
     totalCount: data?.totalCount ?? 0,
     isLoading,
     isError,
@@ -198,7 +198,7 @@ export function useStudentAssignments(
   });
 
   return {
-    assignments: (data ?? []) as AssignmentWithDetails[],
+    assignments: (data ?? []) as unknown as AssignmentWithDetails[],
     isLoading,
     isError,
     error: error as Error | null,

@@ -244,8 +244,7 @@ export interface GetCourseResponse {
   visibility?: string;
   content_version?: number;
   etag?: number;
-  // Course content structure varies
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export interface SearchCoursesResponse {
@@ -255,7 +254,7 @@ export interface SearchCoursesResponse {
     description?: string;
     tags?: string[];
   }>;
-  total: number;
+  total?: number;
 }
 
 // Health and system-related responses
@@ -451,26 +450,6 @@ export interface GetAssignmentProgressResponse {
   assignmentTitle: string;
 }
 
-export interface GetCourseResponse {
-  id: string;
-  title: string;
-  description?: string;
-  organization_id?: string;
-  visibility?: string;
-  content_version?: number;
-  etag?: number;
-  [key: string]: any; // Course content structure varies
-}
-
-export interface SearchCoursesResponse {
-  courses: Array<{
-    id: string;
-    title: string;
-    description?: string;
-    tags?: string[];
-  }>;
-  total?: number;
-}
 
 export interface GetClassProgressResponse {
   classId: string;

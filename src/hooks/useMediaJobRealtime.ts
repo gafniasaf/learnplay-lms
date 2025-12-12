@@ -49,7 +49,7 @@ export function useMediaJobRealtime({
       });
 
       if ((response as { ok: boolean }).ok) {
-        const newJobs = (response as { jobs: MediaJob[] }).jobs;
+        const newJobs = (response as unknown as { jobs: MediaJob[] }).jobs;
         
         // Check for status changes
         newJobs.forEach((job) => {
