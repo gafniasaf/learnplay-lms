@@ -131,10 +131,12 @@ export async function callEdgeFunction<TRequest, TResponse>(
   const { data: { session }, error: sessionError } = await supabase.auth.getSession();
   let token = session?.access_token || null;
   
-  console.log(`[callEdgeFunction:${functionName}] Auth debug:`, {
+  console.log(`[callEdgeFunction:${functionName}] Auth debug @ ${new Date().toISOString()}:`, {
     hasSession: !!session,
     hasToken: !!token,
+    tokenLength: token?.length || 0,
     userId: session?.user?.id || 'none',
+    userEmail: session?.user?.email || 'none',
     sessionError: sessionError?.message || 'none',
     guestMode
   });
