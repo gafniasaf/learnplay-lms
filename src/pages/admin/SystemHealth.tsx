@@ -74,13 +74,28 @@ export default function SystemHealthPage() {
     setLoading(true);
     try {
       const [h, e, u] = await Promise.all([
-        callProxy("lms.health", {}),
-        callProxy("lms.envAudit", {}),
-        callProxy("lms.uiAudit.summary", {}),
+        callProxy("lms.health", {}).catch(err => {
+          console.warn('[SystemHealth] Health check failed:', err);
+          return { ok: false, error: err instanceof Error ? err.message : String(err) };
+        }),
+        callProxy("lms.envAudit", {}).catch(err => {
+          console.warn('[SystemHealth] Env audit failed:', err);
+          return { ok: false, error: err instanceof Error ? err.message : String(err) };
+        }),
+        callProxy("lms.uiAudit.summary", {}).catch(err => {
+          console.warn('[SystemHealth] UI audit failed:', err);
+          return { ok: false, error: err instanceof Error ? err.message : String(err) };
+        }),
       ]);
       setHealth((h as any)?.data || null);
       setEnv((e as any)?.data || null);
       setUiSummary((u as any)?.data || null);
+
+      // Show warning if any calls failed, but don't throw
+      const failures = [h, e, u].filter(r => r && !(r as any).ok && (r as any).error);
+      if (failures.length > 0) {
+        toast.warning(`Some health checks failed (${failures.length}/3). Check console for details.`);
+      }
     } catch (e: any) {
       console.error(e);
       toast.error("Failed to load system health");

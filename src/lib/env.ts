@@ -96,8 +96,9 @@ export function isLiveMode(): boolean {
     }
   }
 
-  // Default to mock mode
-  return false;
+  // Default to live mode (production behavior)
+  // Only use mock mode if explicitly set via VITE_USE_MOCK='true'
+  return import.meta.env.VITE_USE_MOCK !== 'true';
 }
 
 /**
