@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useMCP } from "./useMCP";
 import { useAuth } from "./useAuth";
 import type { Dashboard, DashboardRole } from "@/lib/types/dashboard";
@@ -15,6 +15,10 @@ export function useDashboard(role: DashboardRole) {
   const [error, setError] = useState<Error | null>(null);
   const mcp = useMCP();
   const { user, loading: authLoading } = useAuth();
+  
+  // Use ref to avoid mcp triggering re-renders (mcp object changes every render)
+  const mcpRef = useRef(mcp);
+  mcpRef.current = mcp;
 
   useEffect(() => {
     // Wait for auth to load before fetching
@@ -43,7 +47,7 @@ export function useDashboard(role: DashboardRole) {
         // Map role to appropriate edge function with correct params
         if (role === 'student') {
           // At this point we know user.id is defined (checked above)
-          const response = await mcp.callGet<{
+          const response = await mcpRef.current.callGet<{
             assignments: Array<{
               id: string;
               title: string;
@@ -106,7 +110,7 @@ export function useDashboard(role: DashboardRole) {
           
           // Fetch all required data in parallel
           const [dashboardResponse, classesResponse, studentsResponse, assignmentsResponse] = await Promise.all([
-            mcp.callGet<{
+            mcpRef.current.callGet<{
               role: string;
               stats: {
                 sessions?: number;
@@ -116,9 +120,9 @@ export function useDashboard(role: DashboardRole) {
                 lastFinalScore?: number | null;
               };
             }>('lms.get-dashboard', { teacherId: String(user.id) }),
-            mcp.listClasses().catch(() => ({ classes: [] })),
-            mcp.listOrgStudents().catch(() => ({ students: [] })),
-            mcp.listAssignmentsForTeacher().catch(() => ({ assignments: [], scope: 'teacher' as const })),
+            mcpRef.current.listClasses().catch(() => ({ classes: [] })),
+            mcpRef.current.listOrgStudents().catch(() => ({ students: [] })),
+            mcpRef.current.listAssignmentsForTeacher().catch(() => ({ assignments: [], scope: 'teacher' as const })),
           ]);
 
           const classes = (classesResponse as { classes: Array<{ id: string; name: string; student_count?: number; class_members?: Array<{ user_id: string }> }> }).classes || [];
@@ -222,7 +226,7 @@ export function useDashboard(role: DashboardRole) {
         } else if (role === 'parent') {
           // Parent dashboard requires parentId, not role
           // At this point we know user.id is defined (checked above)
-          const response = await mcp.callGet<{
+          const response = await mcpRef.current.callGet<{
             parentId: string;
             children: Array<{
               studentId: string;
@@ -348,7 +352,7 @@ export function useDashboard(role: DashboardRole) {
           
           // Fetch all required data in parallel for admin dashboard
           const [dashboardResponse, classesResponse, studentsResponse, catalogResponse, healthResponse] = await Promise.all([
-            mcp.callGet<{
+            mcpRef.current.callGet<{
               role: string;
               stats: {
                 sessions?: number;
@@ -358,10 +362,10 @@ export function useDashboard(role: DashboardRole) {
                 lastFinalScore?: number | null;
               };
             }>('lms.get-dashboard', { teacherId: String(user.id) }),
-            mcp.listClasses().catch(() => ({ classes: [] })),
-            mcp.listOrgStudents().catch(() => ({ students: [] })),
-            mcp.getCourseCatalog().catch(() => ({ courses: [] })),
-            mcp.call('lms.health', {}).catch(() => ({ ok: false, data: null })),
+            mcpRef.current.listClasses().catch(() => ({ classes: [] })),
+            mcpRef.current.listOrgStudents().catch(() => ({ students: [] })),
+            mcpRef.current.getCourseCatalog().catch(() => ({ courses: [] })),
+            mcpRef.current.call('lms.health', {}).catch(() => ({ ok: false, data: null })),
           ]);
 
           const classes = (classesResponse as { classes: Array<{ id: string; name: string }> }).classes || [];
@@ -449,7 +453,8 @@ export function useDashboard(role: DashboardRole) {
     };
 
     loadDashboard();
-  }, [role, mcp, user?.id, authLoading]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [role, user?.id, authLoading]); // mcp removed - use mcpRef instead to prevent infinite loop
 
   return { dashboard, loading: loading || authLoading, error };
 }
