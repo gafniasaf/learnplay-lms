@@ -17,7 +17,7 @@ import { createGenerationRunner } from "./orchestrator.ts";
 
 // Minimal Deno shim for local TypeScript tooling
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-declare const Deno: { env: { get(key: string): string | undefined } };
+declare const Deno: { env: { get(key: string): string | undefined }; serve: any };
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
@@ -39,7 +39,8 @@ const InputSchema = z.object({
   mode: z.enum(["options", "numeric"]).default("options"),
 });
 
-async function fetchJobCourseId(supabase: ReturnType<typeof createClient>, jobId: string): Promise<string | null> {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function fetchJobCourseId(supabase: any, jobId: string): Promise<string | null> {
   const { data, error } = await supabase
     .from("ai_course_jobs")
     .select("course_id")
@@ -50,7 +51,7 @@ async function fetchJobCourseId(supabase: ReturnType<typeof createClient>, jobId
     throw new Error(`Failed to load job ${jobId}: ${error.message}`);
   }
 
-  return data?.course_id ?? null;
+  return (data as any)?.course_id ?? null;
 }
 
 type PlaceholderInput = {
@@ -246,7 +247,8 @@ function buildPlaceholderCourse({
   };
 }
 
-function createJobHelpers(supabase: ReturnType<typeof createClient>) {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function createJobHelpers(supabase: any) {
   async function updateJobProgress(
     jobId: string | null,
     stage: string,
@@ -331,7 +333,8 @@ function createJobHelpers(supabase: ReturnType<typeof createClient>) {
   };
 }
 
-function createPersistenceHelpers(supabase: ReturnType<typeof createClient>) {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function createPersistenceHelpers(supabase: any) {
   async function uploadCourseJson(courseId: string, payload: any) {
     const coursePath = `${courseId}/course.json`;
     const blob = new Blob([JSON.stringify(payload, null, 2)], {
@@ -355,7 +358,7 @@ function createPersistenceHelpers(supabase: ReturnType<typeof createClient>) {
     _context: { jobId: string | null; deterministicPack: unknown },
   ) {
     await uploadCourseJson(course.id, course);
-    await upsertCourseMetadata(supabase, course.id, course);
+    await upsertCourseMetadata(supabase as any, course.id, course);
   }
 
   async function persistPlaceholder(
@@ -363,7 +366,7 @@ function createPersistenceHelpers(supabase: ReturnType<typeof createClient>) {
     _context: { jobId: string | null; reason: string },
   ) {
     await uploadCourseJson(course.id, course);
-    await upsertCourseMetadata(supabase, course.id, course);
+    await upsertCourseMetadata(supabase as any, course.id, course);
   }
 
   return {
@@ -418,7 +421,7 @@ Deno.serve(
           buildSkeleton,
         }),
       fillSkeleton: (skeleton, ctx) => fillSkeleton(skeleton, ctx),
-      validateCourse,
+      validateCourse: validateCourse as any,
       buildPlaceholder: (placeholderInput) =>
         buildPlaceholderCourse({
           subject: placeholderInput.subject,
@@ -443,7 +446,9 @@ Deno.serve(
           ...input,
           title,
           gradeBand,
-        },
+          format: 'practice',
+          grade: input.grade ?? null,
+        } as any,
         requestId,
         jobId,
         expectedCourseId,

@@ -35,7 +35,7 @@ export async function emitJobEvent(
   message = "",
   meta: Record<string, unknown> = {}
 ) {
-  const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+  const supabase = createClient(SUPABASE_URL!, SUPABASE_SERVICE_ROLE_KEY!);
   // compute next seq (best-effort; reconciler will correct any gaps)
   const { data: nextSeqData } = await supabase.rpc("next_job_event_seq", { p_job_id: jobId });
   const seq = (nextSeqData as number) ?? 1;

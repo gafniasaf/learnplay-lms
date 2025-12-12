@@ -44,7 +44,7 @@ serve(async (req: Request): Promise<Response> => {
       }
     }
     const url = new URL(req.url);
-    userId = body.userId || url.searchParams.get("userId") || "";
+    userId = String(body.userId || url.searchParams.get("userId") || "");
     
     if (!userId) {
       // Return empty roles for agent without userId (system check)
