@@ -13,19 +13,13 @@ export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
   const runtimeBypass =
     typeof window !== "undefined" &&
     Boolean((window as typeof window & { __BYPASS_AUTH__?: boolean }).__BYPASS_AUTH__);
-  
-  // Check for guest mode (dev bypass via "Continue as Guest")
-  // Supports both localStorage and URL param ?guest=1 for iframe environments
-  const guestMode = import.meta.env.VITE_ENABLE_GUEST === "true" && typeof window !== "undefined" && (() => {
-    // Check URL param first (works in iframes where localStorage is blocked)
-    const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.get('guest') === '1') return true;
-    // Fallback to localStorage
-    try { return localStorage.getItem('guestMode') === 'true'; } catch { return false; }
-  })();
-  
+
+  // Dev-only bypass mode for development velocity. MUST be explicitly enabled.
+  const devAgentMode = import.meta.env.VITE_DEV_AGENT_MODE === "true";
   const bypassAuth =
-    import.meta.env.VITE_BYPASS_AUTH === "true" || runtimeBypass || guestMode;
+    devAgentMode ||
+    runtimeBypass ||
+    (import.meta.env.VITE_BYPASS_AUTH === "true" && !import.meta.env.PROD);
   if (bypassAuth) {
     return <>{children}</>;
   }

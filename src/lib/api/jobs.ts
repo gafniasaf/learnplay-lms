@@ -202,21 +202,6 @@ export async function listMediaJobs(params: ListMediaJobsParams = {}): Promise<L
 
 // Get job quota (with guest mode fallback)
 export async function getJobQuota(): Promise<JobQuota> {
-  // Check if in guest mode
-  if (typeof window !== 'undefined') {
-    const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.get('guest') === '1') {
-      return DEFAULT_QUOTA;
-    }
-    try {
-      if (localStorage.getItem('guestMode') === 'true') {
-        return DEFAULT_QUOTA;
-      }
-    } catch {
-      // localStorage blocked
-    }
-  }
-
   try {
     // Try to get from edge function or direct query
     // For now, return default - this would be enhanced with a proper edge function

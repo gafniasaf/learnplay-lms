@@ -228,13 +228,6 @@ export function useMCP() {
           );
         }
         
-        // Check if in guest mode
-        const isGuestMode = typeof window !== 'undefined' && (() => {
-          const urlParams = new URLSearchParams(window.location.search);
-          if (urlParams.get('guest') === '1') return true;
-          try { return localStorage.getItem('guestMode') === 'true'; } catch { return false; }
-        })();
-        
         const isLovablePreview = typeof window !== 'undefined' && (
           window.location.hostname.includes('lovable.app') || 
           window.location.hostname.includes('lovableproject.com') ||
@@ -242,9 +235,7 @@ export function useMCP() {
         );
         
         let message = 'Authentication required. Please log in to enqueue jobs.';
-        if (isGuestMode) {
-          message = 'Job creation requires a full account. Please sign up or log in to create jobs.';
-        } else if (isLovablePreview) {
+        if (isLovablePreview) {
           message = 'Authentication required. Please log in to use this feature in preview environments.';
         } else if (errorMessage) {
           // Use the specific error message from the API if available
@@ -307,23 +298,16 @@ export function useMCP() {
         return MOCK_DATA[entity] || { records: [] };
       }
 
-      // Pre-flight auth check - don't make request if no token available
-      const token = await checkAuth();
-      if (!token) {
-        // Return empty result instead of making an unauthorized request
-        return { ok: true, records: [] };
-      }
-
       if (isLocalDev) {
         return await callMCP<ListRecordsResponse>('lms.listRecords', { entity, limit });
       }
       // Use Supabase Edge Function in production
       return await callEdgeFunction<ListRecordsResponse>('list-records', { entity, limit });
     } catch (err) {
-      // Handle 401 errors silently - user not authenticated
+      // Fail loudly - auth issues must be visible in UI (no silent empty lists).
       const error = err as any;
       if (error?.status === 401 || error?.code === 'UNAUTHORIZED') {
-        return { ok: false, records: [] };
+        throw new Error('Authentication required. Please sign in.');
       }
       throw err;
     } finally {

@@ -17,14 +17,6 @@ const DEFAULT_QUOTA: JobQuota = {
   daily_limit: 50,
 };
 
-// Check if in guest mode
-function isGuestMode(): boolean {
-  if (typeof window === 'undefined') return false;
-  const urlParams = new URLSearchParams(window.location.search);
-  if (urlParams.get('guest') === '1') return true;
-  try { return localStorage.getItem('guestMode') === 'true'; } catch { return false; }
-}
-
 export function useJobQuota() {
   const mcp = useMCP();
   const [quota, setQuota] = useState<JobQuota | null>(null);
@@ -35,8 +27,8 @@ export function useJobQuota() {
     let isMounted = true;
 
     const fetchQuota = async () => {
-      // In guest mode or mock mode, return default quota without hitting the database
-      if (isGuestMode() || !isLiveMode()) {
+      // In mock mode, return default quota without hitting the database
+      if (!isLiveMode()) {
         if (isMounted) {
           setQuota(DEFAULT_QUOTA);
           setLoading(false);
@@ -76,9 +68,8 @@ export function useJobQuota() {
 
     fetchQuota();
 
-    // Refresh quota every minute (skip in guest mode or mock mode)
-    const shouldPoll = !isGuestMode() && isLiveMode();
-    const interval = shouldPoll ? setInterval(fetchQuota, 60000) : null;
+    // Refresh quota every minute (skip in mock mode)
+    const interval = isLiveMode() ? setInterval(fetchQuota, 60000) : null;
 
     return () => {
       isMounted = false;

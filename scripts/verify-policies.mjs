@@ -1,7 +1,11 @@
 // Verify RLS policies on student_activity_log table
 
 const projectRef = 'eidcegehaswbtzrwzvfa';
-const accessToken = process.env.SUPABASE_ACCESS_TOKEN || 'sbp_26da40b93963c303358083b9131f5febe0950f16';
+const accessToken = process.env.SUPABASE_ACCESS_TOKEN;
+if (!accessToken) {
+  console.error("❌ SUPABASE_ACCESS_TOKEN is REQUIRED - set env var before running");
+  process.exit(1);
+}
 
 const sql = `SELECT policyname, cmd FROM pg_policies WHERE tablename = 'student_activity_log' ORDER BY policyname;`;
 

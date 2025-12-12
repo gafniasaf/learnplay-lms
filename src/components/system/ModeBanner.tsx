@@ -1,26 +1,18 @@
 import { isLiveMode } from "@/lib/env";
-import { isDevMode, isDevOpenUiAllowed, isGuestMode } from "@/lib/api/common";
+import { isDevAgentMode } from "@/lib/api/common";
 
 const SHOW_MODE_BANNER = import.meta.env.VITE_SHOW_MODE_BANNER === "true";
 
 function modeLabel(): { label: string; detail?: string; variant: "info" | "warn" } | null {
   const live = isLiveMode();
-  const guest = isGuestMode();
-  const dev = isDevMode();
-  const openUi = isDevOpenUiAllowed();
+  const devAgent = isDevAgentMode();
 
   // Highest signal banners first
-  if (openUi) {
-    return { label: "DEV OPEN UI", detail: "Hardcoded Supabase config + seeded ids (temporary)", variant: "warn" };
-  }
   if (!live) {
     return { label: "MOCK MODE", detail: "Using mocks/fallbacks (not fully live)", variant: "warn" };
   }
-  if (guest) {
-    return { label: "GUEST MODE", detail: "Limited access, no authenticated user", variant: "warn" };
-  }
-  if (dev) {
-    return { label: "DEV MODE", detail: "Using agent-token path in preview", variant: "info" };
+  if (devAgent) {
+    return { label: "DEV AGENT MODE", detail: "Using agent-token auth (explicit)", variant: "warn" };
   }
   return null;
 }

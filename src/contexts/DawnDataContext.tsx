@@ -239,6 +239,7 @@ export function DawnDataProvider({ children }: { children: React.ReactNode }) {
         studentProfiles: learnerProfiles as LearnerProfile[],
         tags: [],
         messages: messageThreads as MessageThread[],
+        authRequired: false,
         loading: false,
         error: null,
       });
@@ -335,6 +336,14 @@ export function useDawnData() {
     throw new Error("useDawnData must be used within a DawnDataProvider");
   }
   return context;
+}
+
+/**
+ * Optional variant for UI chrome that should not crash if the provider is absent.
+ * IMPORTANT: still a hook; always call unconditionally from components.
+ */
+export function useDawnDataOptional() {
+  return useContext(DawnDataContext);
 }
 
 

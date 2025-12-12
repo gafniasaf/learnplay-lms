@@ -95,68 +95,6 @@ export default function Auth() {
     }
   };
 
-  const handleAnonymous = async () => {
-    setError("");
-    setLoading(true);
-
-    try {
-      // First try Supabase anonymous auth
-      const { error } = await supabase.auth.signInAnonymously();
-
-      if (error) {
-        // If anonymous auth is disabled, bypass with dev guest mode
-        console.log('[Auth] Anonymous auth disabled, using dev guest bypass');
-        
-        // Set a guest flag in localStorage for role detection
-        try {
-          localStorage.setItem('guestMode', 'true');
-          localStorage.setItem('roleOverride', 'student'); // Default guest role
-        } catch {
-          // localStorage might be blocked in iframe
-        }
-        
-        toast({
-          title: "Guest Mode",
-          description: "Continuing as guest (dev mode)",
-        });
-
-        // Use URL parameter as fallback for iframe environments where localStorage is blocked
-        const targetUrl = new URL(redirectTo || '/', window.location.origin);
-        targetUrl.searchParams.set('guest', '1');
-        window.location.href = targetUrl.toString();
-        return;
-      }
-
-      toast({
-        title: "Success!",
-        description: "Signed in as guest",
-      });
-
-      navigate(redirectTo);
-    } catch (err) {
-      // On any error, fallback to dev guest bypass
-      console.log('[Auth] Fallback to dev guest bypass');
-      try {
-        localStorage.setItem('guestMode', 'true');
-        localStorage.setItem('roleOverride', 'student');
-      } catch {
-        // localStorage might be blocked
-      }
-      
-      toast({
-        title: "Guest Mode",
-        description: "Continuing as guest",
-      });
-      
-      // Use URL parameter as fallback for iframe environments
-      const targetUrl = new URL(redirectTo || '/', window.location.origin);
-      targetUrl.searchParams.set('guest', '1');
-      window.location.href = targetUrl.toString();
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handleForgotPassword = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
@@ -211,7 +149,7 @@ export default function Auth() {
             <h1 className="text-2xl font-bold text-black">LearnPlay</h1>
           </div>
           <CardTitle className="text-2xl text-black">Welcome</CardTitle>
-          <CardDescription className="text-black/70">Sign in to access admin features or continue as guest</CardDescription>
+          <CardDescription className="text-black/70">Sign in to continue</CardDescription>
         </CardHeader>
         <CardContent>
           <Tabs defaultValue="login" className="w-full">
@@ -381,15 +319,6 @@ export default function Auth() {
                 />
               </svg>
               Continue with Google
-            </Button>
-
-            <Button
-              variant="outline"
-              className="w-full text-black"
-              onClick={handleAnonymous}
-              disabled={loading}
-            >
-              Continue as Guest
             </Button>
           </div>
         </CardContent>

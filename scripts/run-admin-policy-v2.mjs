@@ -2,7 +2,11 @@
 // Requires SUPABASE_ACCESS_TOKEN (personal access token)
 
 const projectRef = 'eidcegehaswbtzrwzvfa';
-const accessToken = process.env.SUPABASE_ACCESS_TOKEN || 'sbp_26da40b93963c303358083b9131f5febe0950f16';
+const accessToken = process.env.SUPABASE_ACCESS_TOKEN;
+if (!accessToken) {
+  console.error("❌ SUPABASE_ACCESS_TOKEN is REQUIRED - set env var before running");
+  process.exit(1);
+}
 
 const sql = `
 -- Drop existing policies if they exist
@@ -36,7 +40,7 @@ WITH CHECK (
 
 async function run() {
   console.log('🔗 Project:', projectRef);
-  console.log('🔑 Using access token (first 20 chars):', accessToken.substring(0, 20) + '...');
+  console.log('🔑 Using access token:', `${String(accessToken).slice(0, 8)}...`);
   console.log('🚀 Executing SQL via Management API...\n');
   
   const response = await fetch(`https://api.supabase.com/v1/projects/${projectRef}/database/query`, {
@@ -54,10 +58,6 @@ async function run() {
     console.error('❌ API Error:', response.status, response.statusText);
     console.error('   Response:', text);
     
-    // If the API doesn't work, fall back to instructions
-    console.log('\n📋 Please run the SQL manually in Supabase Dashboard:');
-    console.log('   https://supabase.com/dashboard/project/eidcegehaswbtzrwzvfa/sql/new\n');
-    console.log(sql);
     process.exit(1);
   }
   

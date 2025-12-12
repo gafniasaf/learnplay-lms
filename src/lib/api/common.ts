@@ -6,26 +6,15 @@ import { getRuntimeConfigSync } from "@/lib/runtimeConfig";
 //   VITE_SUPABASE_URL=https://your-project.supabase.co
 //   VITE_SUPABASE_ANON_KEY=your-anon-key
 
-// -------------------------
-// DEV OPEN UI BYPASS
-// -------------------------
-// DEV_OPEN_UI is an explicit override for preview-only environments.
-// IMPORTANT: This must be OFF for end-client (production) builds.
-const DEV_OPEN_UI = import.meta.env.VITE_DEV_OPEN_UI === "true";
 // Force product-like behavior even on localhost (used by live Playwright runs)
 const FORCE_LIVE = import.meta.env.VITE_FORCE_LIVE === "true";
-const DEV_SUPABASE_URL_FALLBACK = "https://eidcegehaswbtzrwzvfa.supabase.co";
-const DEV_SUPABASE_ANON_KEY_FALLBACK =
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVpZGNlZ2VoYXN3YnR6cnd6dmZhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ4NDYzNTAsImV4cCI6MjA4MDQyMjM1MH0.DpXOHjccnVEewnPF5gA6tw27TcRXkkAfgrJkn0NvT_Q";
-const DEV_AGENT_TOKEN_FALLBACK = "learnplay-agent-token";
-const DEV_ORG_ID_FALLBACK = "4d7b0a5c-3cf1-49e5-9ad7-bf6c1f8a2f58";
-// Seeded IDs (present in repo, used in existing parent APIs)
-const DEV_CHILD_ID_FALLBACK = "b2ed7195-4202-405b-85e4-608944a27837";
-const DEV_PARENT_ID_FALLBACK = "613d43cb-0922-4fad-b528-dbed8d2a5c79";
 
-export function isDevOpenUiAllowed(): boolean {
-  // Explicit only (no hostname-based auto-enable). Keeps production behavior clean.
-  return DEV_OPEN_UI;
+/**
+ * Explicit dev bypass mode that uses agent-token auth for Edge functions.
+ * This is intended for development-only stability when user auth/metadata is not ready.
+ */
+export function isDevAgentMode(): boolean {
+  return import.meta.env.VITE_DEV_AGENT_MODE === "true";
 }
 
 /**
@@ -37,11 +26,6 @@ export function getSupabaseUrl(): string {
 
   const cfgUrl = getRuntimeConfigSync()?.supabase?.url;
   if (cfgUrl) return cfgUrl;
-
-  if (isDevOpenUiAllowed()) {
-    console.warn("[DEV OPEN UI] Using hardcoded Supabase URL fallback");
-    return DEV_SUPABASE_URL_FALLBACK;
-  }
 
   throw new Error("❌ BLOCKED: VITE_SUPABASE_URL is REQUIRED");
 }
@@ -57,11 +41,6 @@ export function getSupabaseAnonKey(): string {
 
   const cfgKey = getRuntimeConfigSync()?.supabase?.publishableKey;
   if (cfgKey) return cfgKey;
-
-  if (isDevOpenUiAllowed()) {
-    console.warn("[DEV OPEN UI] Using hardcoded Supabase anon key fallback");
-    return DEV_SUPABASE_ANON_KEY_FALLBACK;
-  }
 
   throw new Error("❌ BLOCKED: VITE_SUPABASE_PUBLISHABLE_KEY (or VITE_SUPABASE_ANON_KEY) is REQUIRED");
 }
@@ -139,57 +118,33 @@ export async function fetchWithTimeout(
   }
 }
 
-/**
- * Check if we're in dev/preview mode (Lovable, localhost, etc.)
- * In dev mode, we use agent token auth instead of user session auth
- */
-export function isDevMode(): boolean {
-  if (typeof window === 'undefined') return false;
+function shouldUseAgentTokenAuth(): boolean {
   if (FORCE_LIVE) return false;
-  const hostname = window.location.hostname;
-  const isLovable = hostname.includes('lovable') || hostname.includes('lovableproject.com');
-  const isLocalhost = hostname.includes('localhost') || hostname.includes('127.0.0.1');
-  const isUrlOverride = new URLSearchParams(window.location.search).get('devMode') === '1';
-  const devMode = isLovable || isLocalhost || isUrlOverride;
-  
-  // Log once per session for debugging
-  if (typeof window !== 'undefined' && !(window as any).__devModeLogged) {
-    console.log(`[isDevMode] hostname=${hostname}, isLovable=${isLovable}, isLocalhost=${isLocalhost}, devMode=${devMode}`);
-    (window as any).__devModeLogged = true;
-  }
-  
-  return devMode;
+  return isDevAgentMode();
 }
 
 function getDevAgentToken(): string {
-  const token = import.meta.env.VITE_DEV_AGENT_TOKEN;
-  if (token) return token;
-  if (isDevOpenUiAllowed()) {
-    console.warn("[DEV OPEN UI] Using hardcoded VITE_DEV_AGENT_TOKEN fallback");
-    return DEV_AGENT_TOKEN_FALLBACK;
+  const token = import.meta.env.VITE_DEV_AGENT_TOKEN as string | undefined;
+  if (!token) {
+    throw new Error("❌ BLOCKED: VITE_DEV_AGENT_TOKEN is REQUIRED when VITE_DEV_AGENT_MODE=true");
   }
-  throw new Error("❌ BLOCKED: VITE_DEV_AGENT_TOKEN is REQUIRED when devMode=true");
+  return token;
 }
 
 function getDevOrgId(): string {
-  const orgId = import.meta.env.VITE_DEV_ORG_ID;
-  if (orgId) return orgId;
-  if (isDevOpenUiAllowed()) {
-    console.warn("[DEV OPEN UI] Using hardcoded VITE_DEV_ORG_ID fallback");
-    return DEV_ORG_ID_FALLBACK;
+  const orgId = import.meta.env.VITE_DEV_ORG_ID as string | undefined;
+  if (!orgId) {
+    throw new Error("❌ BLOCKED: VITE_DEV_ORG_ID is REQUIRED when VITE_DEV_AGENT_MODE=true");
   }
-  throw new Error("❌ BLOCKED: VITE_DEV_ORG_ID is REQUIRED when devMode=true");
+  return orgId;
 }
 
 function getDevUserId(): string {
-  const userId = import.meta.env.VITE_DEV_USER_ID;
-  if (userId) return userId;
-  if (isDevOpenUiAllowed()) {
-    // Prefer child id (most student endpoints), fall back to parent id if needed elsewhere.
-    console.warn("[DEV OPEN UI] Using seeded dev user id fallback");
-    return DEV_CHILD_ID_FALLBACK;
+  const userId = import.meta.env.VITE_DEV_USER_ID as string | undefined;
+  if (!userId) {
+    throw new Error("❌ BLOCKED: VITE_DEV_USER_ID is REQUIRED when VITE_DEV_AGENT_MODE=true (or provide a logged-in session)");
   }
-  throw new Error("❌ BLOCKED: VITE_DEV_USER_ID is REQUIRED when devMode=true");
+  return userId;
 }
 
 /**
@@ -209,12 +164,11 @@ export async function callEdgeFunction<TRequest, TResponse>(
   const supabaseUrl = getSupabaseUrl();
   const anonKey = getSupabaseAnonKey();
   const { maxRetries = 1, timeoutMs = 30000 } = options;
-  const guestMode = isGuestMode();
-  const devMode = isDevMode();
+  const devAgentMode = shouldUseAgentTokenAuth();
 
-  // In dev mode, use agent token auth (bypasses user session issues)
-  if (devMode) {
-    console.log(`[callEdgeFunction:${functionName}] 🔧 DEV MODE - using agent token auth`);
+  // In dev agent mode, use agent token auth (bypasses user session issues)
+  if (devAgentMode) {
+    console.log(`[callEdgeFunction:${functionName}] 🔧 DEV AGENT MODE - using agent token auth`);
     return await callEdgeFunctionWithAgentToken<TRequest, TResponse>(
       functionName, 
       payload, 
@@ -233,11 +187,9 @@ export async function callEdgeFunction<TRequest, TResponse>(
     userId: session?.user?.id || 'none',
     userEmail: session?.user?.email || 'none',
     sessionError: sessionError?.message || 'none',
-    guestMode
   });
 
-  // Allow anonymous calls in guest mode
-  if (!token && !guestMode) {
+  if (!token) {
     console.error(`[callEdgeFunction:${functionName}] No token and not in guest mode - throwing 401`);
     throw new ApiError(
       "User not authenticated",
@@ -396,22 +348,7 @@ export async function callEdgeFunction<TRequest, TResponse>(
  * Check if running in guest/dev bypass mode (no auth required)
  */
 export function isGuestMode(): boolean {
-  if (typeof window === 'undefined') return false;
-
-  // Production default: guest mode must be explicitly enabled.
-  if (import.meta.env.VITE_ENABLE_GUEST !== "true") return false;
-  
-  // Check URL param
-  const urlParams = new URLSearchParams(window.location.search);
-  if (urlParams.get('guest') === '1') return true;
-  
-  // Check localStorage
-  try {
-    if (localStorage.getItem('guestMode') === 'true') return true;
-  } catch {
-    // localStorage blocked
-  }
-  
+  // Guest bypass is intentionally disabled; dev bypass should use VITE_DEV_AGENT_MODE.
   return false;
 }
 
@@ -522,20 +459,19 @@ export async function callEdgeFunctionGet<TResponse>(
   const supabaseUrl = getSupabaseUrl();
   const anonKey = getSupabaseAnonKey();
   const { timeoutMs = 30000 } = options;
-  const devMode = isDevMode();
+  const devAgentMode = shouldUseAgentTokenAuth();
 
   const queryString = params
     ? `?${new URLSearchParams(params).toString()}`
     : "";
   const url = `${supabaseUrl}/functions/v1/${functionName}${queryString}`;
 
-  // In dev mode, use agent token auth
-  if (devMode) {
-    console.log(`[callEdgeFunctionGet:${functionName}] 🔧 DEV MODE - using agent token auth`);
+  // In dev agent mode, use agent token auth
+  if (devAgentMode) {
+    console.log(`[callEdgeFunctionGet:${functionName}] 🔧 DEV AGENT MODE - using agent token auth`);
   }
 
-  const token = devMode ? null : await getAccessToken();
-  const guestMode = isGuestMode();
+  const token = devAgentMode ? null : await getAccessToken();
 
   // Build headers - add agent token in dev mode
   const headers: Record<string, string> = {
@@ -543,7 +479,7 @@ export async function callEdgeFunctionGet<TResponse>(
     "apikey": anonKey,
   };
   
-  if (devMode) {
+  if (devAgentMode) {
     headers["x-agent-token"] = getDevAgentToken();
     headers["x-organization-id"] = getDevOrgId();
     // In devMode, x-user-id MUST be available (some endpoints require it).
@@ -580,8 +516,7 @@ export async function callEdgeFunctionGet<TResponse>(
     throw fetchError;
   }
 
-  // Allow anonymous calls in guest mode - check AFTER fetch attempt (CORS errors handled above)
-  if (!res.ok && res.status === 401 && !token && !guestMode) {
+  if (!res.ok && res.status === 401 && !token) {
     throw new ApiError(
       "User not authenticated",
       "UNAUTHORIZED",

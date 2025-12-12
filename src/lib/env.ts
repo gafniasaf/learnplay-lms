@@ -228,8 +228,8 @@ export function validateEnv(): void {
   const liveMode = isLiveMode();
   
   // Only enforce hard requirements in LIVE mode; soft-pass otherwise
-  let supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string | undefined;
-  let supabaseKey =
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string | undefined;
+  const supabaseKey =
     (import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string | undefined) ||
     (import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined);
 
