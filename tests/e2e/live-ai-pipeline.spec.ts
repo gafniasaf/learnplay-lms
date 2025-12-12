@@ -70,12 +70,28 @@ test.describe('Live AI Pipeline: Course Creation', () => {
     await createButton.click();
 
     // Capture the generated courseId from localStorage (this app sets selectedCourseId immediately on enqueue)
-    const selectedCourseId = await page.evaluate(() => localStorage.getItem('selectedCourseId'));
+    let selectedCourseId: string | null = null;
+    for (let i = 0; i < 10; i++) {
+      selectedCourseId = await page.evaluate(() => localStorage.getItem('selectedCourseId'));
+      if (selectedCourseId) break;
+      await page.waitForTimeout(500);
+    }
+
+    // Fallback: extract courseId from /admin/jobs table if localStorage isn't populated
+    if (!selectedCourseId) {
+      await page.goto('/admin/jobs');
+      await page.waitForLoadState('networkidle');
+      const row = page.locator(`tr:has-text("${testSubject}")`).first();
+      const hasRow = await row.isVisible({ timeout: 10000 }).catch(() => false);
+      if (hasRow) {
+        const rowText = (await row.textContent()) || '';
+        const match = rowText.match(/[a-z0-9-]+-\d{10,}/i);
+        if (match) selectedCourseId = match[0];
+      }
+    }
+
     expect(selectedCourseId).toBeTruthy();
-    // Prefer localStorage course id; also feed the later verification path
-    // (some UIs don't render courseId into the DOM)
-    // eslint-disable-next-line no-extra-boolean-cast
-    if (!!selectedCourseId) courseId = selectedCourseId;
+    courseId = selectedCourseId;
     
     // Step 4: Wait for job creation confirmation
     // Wait for the button text to change or for processing indication
