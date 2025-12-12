@@ -79,20 +79,31 @@ test.describe('Live AI Pipeline: Course Creation', () => {
       await page.waitForTimeout(500);
     }
 
-    // Fallback: extract courseId from /admin/jobs table if localStorage isn't populated
+    // Fallback: resolve courseId from backend job list (stable + real DB evidence)
     if (!selectedCourseId) {
-      await page.goto('/admin/jobs');
-      await page.waitForLoadState('domcontentloaded');
-      const row = page.locator(`tr:has-text("${testSubject}")`).first();
-      const hasRow = await row.isVisible({ timeout: 10000 }).catch(() => false);
-      if (hasRow) {
-        const rowText = (await row.textContent()) || '';
-        const match = rowText.match(/[a-z0-9-]+-\d{10,}/i);
-        if (match) selectedCourseId = match[0];
+      const { url, anonKey } = getSupabaseBase();
+      for (let i = 0; i < 15; i++) {
+        const res = await page.request.get(
+          `${url}/functions/v1/list-course-jobs?search=${encodeURIComponent(testSubject)}&limit=5`,
+          { headers: { apikey: anonKey } },
+        );
+        if (res.ok()) {
+          const data = await res.json();
+          const job = Array.isArray(data.jobs) ? data.jobs[0] : null;
+          const backendCourseId = job?.course_id;
+          if (typeof backendCourseId === 'string' && backendCourseId.length > 3) {
+            selectedCourseId = backendCourseId;
+            break;
+          }
+        }
+        await page.waitForTimeout(1000);
       }
     }
 
-    expect(selectedCourseId).toBeTruthy();
+    if (!selectedCourseId) {
+      throw new Error('Course ID could not be resolved after clicking Generate Course (no localStorage and no matching job in list-course-jobs).');
+    }
+
     courseId = selectedCourseId;
     
     // Step 4: Wait for job creation confirmation
