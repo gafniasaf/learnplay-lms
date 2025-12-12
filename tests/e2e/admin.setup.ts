@@ -33,11 +33,6 @@ setup('authenticate as admin', async ({ page }) => {
   // Navigate to auth page (Playwright config provides baseURL)
   await page.goto('/auth');
   
-  // Extract base URL from current page URL for later comparison
-  const currentPageUrl = page.url();
-  const urlObj = new URL(currentPageUrl);
-  const baseURL = `${urlObj.protocol}//${urlObj.host}`;
-  
   // Wait for login form
   await page.waitForSelector('input[type="email"]', { timeout: LOGIN_FORM_TIMEOUT_MS });
   
@@ -52,7 +47,7 @@ setup('authenticate as admin', async ({ page }) => {
   // Could redirect to /, /dashboard, /admin, or /courses
   try {
     await page.waitForURL(/\/(dashboard|admin|courses|\?|$)/, { timeout: LOGIN_REDIRECT_TIMEOUT_MS });
-  } catch (_error: unknown) {
+  } catch (error: unknown) {
     // Capture page state for debugging if login fails
     const failedUrl = page.url();
     const errorMessage = await page.locator('[role="alert"], .error, .alert-error').first().textContent().catch(() => null);
@@ -65,21 +60,16 @@ setup('authenticate as admin', async ({ page }) => {
     );
   }
   
-  // Wait for navigation to complete and any client-side redirects
-  await page.waitForLoadState('networkidle');
-  
+  // Avoid waiting for `networkidle` (admin pages poll/realtime and may never idle).
+  await page.waitForLoadState('domcontentloaded');
+
   // Verify we're logged in (not on auth page)
-  const currentUrl = page.url();
-  expect(currentUrl).not.toContain('/auth');
-  
-  // If we're on /, navigate to admin to verify auth works
-  if (currentUrl === baseURL + '/' || currentUrl === baseURL + '/?') {
-    await page.goto('/admin');
-    await page.waitForLoadState('networkidle');
-    // Should not redirect back to auth
-    const adminUrl = page.url();
-    expect(adminUrl).not.toContain('/auth');
-  }
+  expect(page.url()).not.toContain('/auth');
+
+  // Verify auth works by loading a stable admin page and waiting for a stable selector.
+  await page.goto('/admin/ai-pipeline');
+  await page.waitForLoadState('domcontentloaded');
+  await page.waitForSelector('input#subject', { timeout: 15000 });
   
   // Save authenticated state
   await page.context().storageState({ path: authFile });
