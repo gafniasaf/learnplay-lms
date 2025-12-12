@@ -198,25 +198,25 @@ const Kids = () => {
             <h2 className="text-2xl font-bold mb-6">Start Playing</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <Link
-                to="/play/modals/welcome"
+                to="/courses"
                 className="group p-6 rounded-2xl border bg-card hover:shadow-lg hover:scale-[1.02] transition-all"
               >
                 <div className="p-3 rounded-2xl bg-role-kids/10 group-hover:bg-role-kids/20 transition-colors inline-flex mb-4">
                   <Gamepad2 className="h-6 w-6 text-role-kids" />
                 </div>
-                <h3 className="text-lg font-semibold mb-2">English Modals</h3>
-                <p className="text-sm text-muted-foreground">Practice modal verbs (can, could, may, might...)</p>
+                <h3 className="text-lg font-semibold mb-2">Browse Courses</h3>
+                <p className="text-sm text-muted-foreground">Find a course to start learning</p>
               </Link>
               
               <Link
-                to="/play/verbs/welcome"
+                to="/student/assignments"
                 className="group p-6 rounded-2xl border bg-card hover:shadow-lg hover:scale-[1.02] transition-all"
               >
                 <div className="p-3 rounded-2xl bg-role-kids/10 group-hover:bg-role-kids/20 transition-colors inline-flex mb-4">
                   <Star className="h-6 w-6 text-role-kids" />
                 </div>
-                <h3 className="text-lg font-semibold mb-2">English Verbs</h3>
-                <p className="text-sm text-muted-foreground">Master verb forms and tenses</p>
+                <h3 className="text-lg font-semibold mb-2">My Assignments</h3>
+                <p className="text-sm text-muted-foreground">Continue where you left off</p>
               </Link>
             </div>
           </div>

@@ -28,9 +28,10 @@ export default function Diagnostics() {
     setResults([]);
     const newResults: DiagResult[] = [];
 
+    // Note: 'test-course' is a placeholder - replace with a real course ID from your catalog
     const testUrls = [
       `${supabaseUrl}/functions/v1/list-courses`,
-      `${supabaseUrl}/functions/v1/get-course?courseId=modals`,
+      `${supabaseUrl}/functions/v1/get-course?courseId=test-course`,
     ];
 
     for (const url of testUrls) {

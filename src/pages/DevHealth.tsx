@@ -16,7 +16,10 @@ interface TestResponse {
 
 const DevHealth = () => {
   const isLive = isLiveMode();
-  const gameSession = useGameSession({ courseId: 'modals', level: 1, autoStart: false });
+  // Note: 'test-course' is a placeholder - you need to seed a course with this ID
+  // or use a real course ID from your catalog
+  const TEST_COURSE_ID = 'test-course';
+  const gameSession = useGameSession({ courseId: TEST_COURSE_ID, level: 1, autoStart: false });
   const [roundId, setRoundId] = useState<string | null>(null);
   const [responses, setResponses] = useState<TestResponse[]>([]);
   const [loading, setLoading] = useState(false);
