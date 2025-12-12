@@ -1,6 +1,8 @@
 import { isLiveMode } from "@/lib/env";
 import { isDevMode, isDevOpenUiAllowed, isGuestMode } from "@/lib/api/common";
 
+const SHOW_MODE_BANNER = import.meta.env.VITE_SHOW_MODE_BANNER === "true";
+
 function modeLabel(): { label: string; detail?: string; variant: "info" | "warn" } | null {
   const live = isLiveMode();
   const guest = isGuestMode();
@@ -25,6 +27,7 @@ function modeLabel(): { label: string; detail?: string; variant: "info" | "warn"
 
 export function ModeBanner() {
   if (typeof window === "undefined") return null;
+  if (!SHOW_MODE_BANNER) return null;
   const m = modeLabel();
   if (!m) return null;
 

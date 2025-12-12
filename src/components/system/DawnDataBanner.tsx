@@ -1,6 +1,8 @@
 import { useDawnData } from "@/contexts/DawnDataContext";
 import { isGuestMode } from "@/lib/api/common";
 
+const SHOW_MODE_BANNER = import.meta.env.VITE_SHOW_MODE_BANNER === "true";
+
 export function DawnDataBanner() {
   // If provider isn't present, do nothing
   let data;
@@ -10,6 +12,7 @@ export function DawnDataBanner() {
     return null;
   }
 
+  if (!SHOW_MODE_BANNER) return null;
   if (!data.authRequired) return null;
 
   const guest = isGuestMode();

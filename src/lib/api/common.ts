@@ -8,8 +8,8 @@ import { isLiveMode } from "../env";
 // -------------------------
 // DEV OPEN UI BYPASS
 // -------------------------
-// User explicitly approved bypassing repo rules for this phase (preview-only).
-// This keeps Lovable previews usable even before proper auth/env wiring exists.
+// DEV_OPEN_UI is an explicit override for preview-only environments.
+// IMPORTANT: This must be OFF for end-client (production) builds.
 const DEV_OPEN_UI = import.meta.env.VITE_DEV_OPEN_UI === "true";
 const DEV_SUPABASE_URL_FALLBACK = "https://eidcegehaswbtzrwzvfa.supabase.co";
 const DEV_SUPABASE_ANON_KEY_FALLBACK =
@@ -21,10 +21,8 @@ const DEV_CHILD_ID_FALLBACK = "b2ed7195-4202-405b-85e4-608944a27837";
 const DEV_PARENT_ID_FALLBACK = "613d43cb-0922-4fad-b528-dbed8d2a5c79";
 
 export function isDevOpenUiAllowed(): boolean {
-  if (typeof window === "undefined") return DEV_OPEN_UI;
-  const host = window.location.hostname;
-  const isLovable = host.includes("lovable") || host.includes("lovableproject.com");
-  return DEV_OPEN_UI || isLovable;
+  // Explicit only (no hostname-based auto-enable). Keeps production behavior clean.
+  return DEV_OPEN_UI;
 }
 
 /**
@@ -389,6 +387,9 @@ export async function callEdgeFunction<TRequest, TResponse>(
  */
 export function isGuestMode(): boolean {
   if (typeof window === 'undefined') return false;
+
+  // Production default: guest mode must be explicitly enabled.
+  if (import.meta.env.VITE_ENABLE_GUEST !== "true") return false;
   
   // Check URL param
   const urlParams = new URLSearchParams(window.location.search);

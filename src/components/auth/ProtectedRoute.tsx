@@ -16,7 +16,7 @@ export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
   
   // Check for guest mode (dev bypass via "Continue as Guest")
   // Supports both localStorage and URL param ?guest=1 for iframe environments
-  const guestMode = typeof window !== "undefined" && (() => {
+  const guestMode = import.meta.env.VITE_ENABLE_GUEST === "true" && typeof window !== "undefined" && (() => {
     // Check URL param first (works in iframes where localStorage is blocked)
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.get('guest') === '1') return true;
