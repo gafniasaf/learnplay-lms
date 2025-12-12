@@ -1,120 +1,28 @@
 project_id = "eidcegehaswbtzrwzvfa"
 
-[functions.save-record]
+# All Edge Functions - verify_jwt = false to allow agent token auth
+[functions.add-class-member]
 verify_jwt = false
 
-[functions.list-records]
-verify_jwt = false
-
-[functions.org-config]
-verify_jwt = false
-
-[functions.list-courses-filtered]
-verify_jwt = false
-
-[functions.publish-course]
-verify_jwt = false
-
-[functions.restore-course-version]
+[functions.adopt-media]
 verify_jwt = false
 
 [functions.ai-job-runner]
 verify_jwt = false
 
-[functions.list-courses]
-verify_jwt = false
-
-[functions.author-course]
-verify_jwt = false
-
-[functions.generate-course]
-verify_jwt = false
-
-[functions.review-course]
-verify_jwt = false
-
 [functions.apply-course-patch]
 verify_jwt = false
 
-[functions.create-assignment]
+[functions.apply-job-result]
 verify_jwt = false
 
-[functions.list-assignments]
+[functions.archive-course]
 verify_jwt = false
 
-[functions.get-class-progress]
+[functions.blueprint-library]
 verify_jwt = false
 
-[functions.list-classes]
-verify_jwt = false
-
-[functions.list-org-students]
-verify_jwt = false
-
-[functions.game-log-attempt]
-verify_jwt = false
-
-[functions.game-start-round]
-verify_jwt = false
-
-[functions.game-end-round]
-verify_jwt = false
-
-[functions.get-course]
-verify_jwt = false
-
-[functions.list-assignments-student]
-verify_jwt = false
-
-[functions.log-event]
-verify_jwt = false
-
-[functions.debug-catalog]
-verify_jwt = false
-
-[functions.debug-storage]
-verify_jwt = false
-
-[functions.export-analytics]
-verify_jwt = false
-
-[functions.export-gradebook]
-verify_jwt = false
-
-[functions.get-analytics]
-verify_jwt = false
-
-[functions.get-assignment-progress]
-verify_jwt = false
-
-[functions.get-class-roster]
-verify_jwt = false
-
-[functions.get-dashboard]
-verify_jwt = false
-
-[functions.invite-student]
-verify_jwt = false
-
-[functions.link-child]
-verify_jwt = false
-
-[functions.join-class]
-verify_jwt = false
-
-[functions.list-conversations]
-verify_jwt = false
-
-[functions.list-messages]
-verify_jwt = false
-
-[functions.list-students-for-course]
-verify_jwt = false
-
-[functions.send-message]
-verify_jwt = false
-
-[functions.update-catalog]
+[functions.chat-course-assistant]
 verify_jwt = false
 
 [functions.create-child-code]
@@ -123,119 +31,230 @@ verify_jwt = false
 [functions.create-class]
 verify_jwt = false
 
-[functions.add-class-member]
+[functions.create-tag]
 verify_jwt = false
 
-[functions.remove-class-member]
+[functions.delete-course]
 verify_jwt = false
 
-[functions.assign-assignees]
+[functions.delete-job]
 verify_jwt = false
 
-[functions.generate-class-code]
+[functions.download-release]
 verify_jwt = false
 
-[functions.fix-catalog-entry]
+[functions.editor-auto-fix]
 verify_jwt = false
 
-[functions.chat-course-assistant]
+[functions.editor-co-pilot]
 verify_jwt = false
 
-[functions.search-media]
+[functions.editor-repair-course]
 verify_jwt = false
 
-[functions.search-content]
+[functions.editor-variants-audit]
 verify_jwt = false
 
-[functions.update-course]
-verify_jwt = false
-
-[functions.ai-rewrite-text]
-verify_jwt = false
-
-[functions.ai-generate-media]
-verify_jwt = false
-
-[functions.ai-generate-exercises]
-verify_jwt = false
-
-[functions.ai-media-runner]
-verify_jwt = false
-
-[functions.ai-job-batch-runner]
-verify_jwt = false
-
-[functions.jobs-reconciler]
-verify_jwt = false
-
-[functions.job-status]
+[functions.editor-variants-missing]
 verify_jwt = false
 
 [functions.enqueue-course-media]
 verify_jwt = false
 
-[functions.architect-advisor]
+[functions.enqueue-course-missing-images]
 verify_jwt = false
 
 [functions.enqueue-job]
 verify_jwt = false
 
-[functions.save-plan]
+[functions.env-audit]
 verify_jwt = false
 
-[functions.enqueue-media-job]
+[functions.fix-catalog-entry]
+verify_jwt = false
+
+[functions.fix-schema]
+verify_jwt = false
+
+[functions.game-log-attempt]
+verify_jwt = false
+
+[functions.game-start-round]
+verify_jwt = false
+
+[functions.generate-class-code]
+verify_jwt = false
+
+[functions.generate-course]
+verify_jwt = false
+
+[functions.generate-hint]
 verify_jwt = false
 
 [functions.generate-image]
 verify_jwt = false
 
-[functions.generate-localize]
+[functions.get-class-ko-summary]
+verify_jwt = false
+
+[functions.get-class-progress]
+verify_jwt = false
+
+[functions.get-class-roster]
+verify_jwt = false
+
+[functions.get-course]
+verify_jwt = false
+
+[functions.get-course-job]
+verify_jwt = false
+
+[functions.get-dashboard]
+verify_jwt = false
+
+[functions.get-domain-growth]
+verify_jwt = false
+
+[functions.get-job]
+verify_jwt = false
+
+[functions.get-job-metrics]
+verify_jwt = false
+
+[functions.get-org-config]
+verify_jwt = false
+
+[functions.get-recommended-courses]
+verify_jwt = false
+
+[functions.get-record]
+verify_jwt = false
+
+[functions.get-student-assignments]
+verify_jwt = false
+
+[functions.get-student-skills]
+verify_jwt = false
+
+[functions.get-user-roles]
+verify_jwt = false
+
+[functions.health]
+verify_jwt = false
+
+[functions.invite-student]
+verify_jwt = false
+
+[functions.join-class]
+verify_jwt = false
+
+[functions.link-child]
+verify_jwt = false
+
+[functions.list-assignments-student]
+verify_jwt = false
+
+[functions.list-classes]
+verify_jwt = false
+
+[functions.list-conversations]
+verify_jwt = false
+
+[functions.list-course-jobs]
+verify_jwt = false
+
+[functions.list-courses]
+verify_jwt = false
+
+[functions.list-edge-logs]
+verify_jwt = false
+
+[functions.list-jobs]
+verify_jwt = false
+
+[functions.list-media-jobs]
+verify_jwt = false
+
+[functions.list-messages]
+verify_jwt = false
+
+[functions.list-records]
+verify_jwt = false
+
+[functions.manage-media]
+verify_jwt = false
+
+[functions.media-runner]
+verify_jwt = false
+
+[functions.parent-children]
 verify_jwt = false
 
 [functions.parent-dashboard]
 verify_jwt = false
-[functions.parent-subjects]
-verify_jwt = false
-[functions.parent-topics]
-verify_jwt = false
-[functions.parent-timeline]
-verify_jwt = false
+
 [functions.parent-goals]
 verify_jwt = false
-[functions.parent-children]
+
+[functions.parent-subjects]
+verify_jwt = false
+
+[functions.parent-timeline]
+verify_jwt = false
+
+[functions.parent-topics]
+verify_jwt = false
+
+[functions.publish-course]
+verify_jwt = false
+
+[functions.remove-class-member]
+verify_jwt = false
+
+[functions.requeue-job]
+verify_jwt = false
+
+[functions.restore-course-version]
+verify_jwt = false
+
+[functions.resume-session]
+verify_jwt = false
+
+[functions.save-course]
+verify_jwt = false
+
+[functions.save-course-json]
+verify_jwt = false
+
+[functions.save-plan]
+verify_jwt = false
+
+[functions.save-record]
+verify_jwt = false
+
+[functions.send-message]
+verify_jwt = false
+
+[functions.student-achievements]
 verify_jwt = false
 
 [functions.student-dashboard]
 verify_jwt = false
-[functions.student-achievements]
-verify_jwt = false
+
 [functions.student-goals]
 verify_jwt = false
+
 [functions.student-timeline]
 verify_jwt = false
-[functions.get-student-skills]
-verify_jwt = false
-[functions.get-student-assignments]
+
+[functions.ui-audit]
 verify_jwt = false
 
-# Job management (IgniteZero migration)
-[functions.list-course-jobs]
+[functions.update-course]
 verify_jwt = false
-[functions.get-course-job]
+
+[functions.update-mastery]
 verify_jwt = false
-[functions.requeue-job]
-verify_jwt = false
-[functions.delete-job]
-verify_jwt = false
-[functions.get-job-metrics]
-verify_jwt = false
-[functions.list-media-jobs]
-verify_jwt = false
-[functions.manage-media]
-verify_jwt = false
-[functions.adopt-media]
-verify_jwt = false
-[functions.save-course-json]
-verify_jwt = false
-[functions.create-tag]
+
+[functions.validate-course-structure]
 verify_jwt = false
