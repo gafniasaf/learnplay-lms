@@ -21,7 +21,7 @@ if (!AGENT_TOKEN) {
 
 function isAuthorized(req: Request): boolean {
   const header = req.headers.get("X-Agent-Token") || "";
-  return header && header === AGENT_TOKEN;
+  return Boolean(header && header === AGENT_TOKEN);
 }
 
 Deno.serve(withCors(async (req: Request) => {

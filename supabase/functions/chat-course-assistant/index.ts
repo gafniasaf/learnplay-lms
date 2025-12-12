@@ -232,12 +232,13 @@ Deno.serve(withCors(async (req) => {
           return base + extra;
         })();
 
-        const mapMsg = (m: { role: 'user' | 'assistant'; content: string }) => ({
-          role: (m.role === 'user' ? 'user' : 'assistant') as const,
+        const mapMsg = (m: { role: string; content: string }) => ({
+          role: m.role === 'user' ? 'user' as const : 'assistant' as const,
           content: [{ type: 'text', text: m.content }]
         });
+        const filteredHistory = (conversationHistory || []).filter(m => m.role !== 'system');
         const anthroMessages = [
-          ...(conversationHistory || []).filter(m => m.role !== 'system').map(mapMsg),
+          ...filteredHistory.map(mapMsg),
           { role: 'user' as const, content: [{ type: 'text', text: message }] },
         ];
 
