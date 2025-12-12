@@ -33,7 +33,9 @@ export async function upsertCourseMetadata(
     .maybeSingle();
 
   const orgId = orgResult?.data?.id;
-  if (!orgId) return;
+  if (!orgId) {
+    throw new Error("No organizations found; cannot upsert course metadata");
+  }
 
   const title = content.title || courseId;
   const subject = content.subject || "General";
@@ -43,7 +45,19 @@ export async function upsertCourseMetadata(
     __format: format,
   };
 
-  await supabase
+  const rawVisibility = String(content.visibility ?? "org");
+  const visibility =
+    rawVisibility === "public"
+      ? "global"
+      : rawVisibility === "org" || rawVisibility === "global"
+        ? rawVisibility
+        : null;
+
+  if (!visibility) {
+    throw new Error(`Invalid visibility '${rawVisibility}'. Expected 'org' or 'global'.`);
+  }
+
+  const { error: metadataErr } = await supabase
     .from("course_metadata")
     .upsert({
       id: courseId,
@@ -53,12 +67,16 @@ export async function upsertCourseMetadata(
       grade_band: gradeBand,
       tags,
       tag_ids: content.tag_ids ?? [],
-      visibility: content.visibility ?? "public",
+      visibility,
       content_version: content.contentVersion ?? courseJson?.version ?? 1,
       updated_at: new Date().toISOString(),
     }, { onConflict: "id,organization_id" });
 
-  await supabase
+  if (metadataErr) {
+    throw new Error(`Failed to upsert course_metadata: ${metadataErr.message ?? String(metadataErr)}`);
+  }
+
+  const { error: coursesErr } = await supabase
     .from("courses")
     .upsert({
       id: courseId,
@@ -67,6 +85,10 @@ export async function upsertCourseMetadata(
       grade_band: gradeBand,
       updated_at: new Date().toISOString(),
     }, { onConflict: "id" });
+
+  if (coursesErr) {
+    throw new Error(`Failed to upsert courses: ${coursesErr.message ?? String(coursesErr)}`);
+  }
 
   try {
     const { data: versionNum } = await supabase.rpc("get_next_catalog_version");

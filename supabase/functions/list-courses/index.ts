@@ -59,11 +59,11 @@ serve(withCors(async (req) => {
 
     // Apply visibility filter (global vs org)
     if (userOrgId) {
-      // User can see their org's courses + global/public courses (backward-compat)
-      query = query.or(`organization_id.eq.${userOrgId},visibility.eq.global,visibility.eq.public`);
+      // User can see their org's courses + global courses
+      query = query.or(`organization_id.eq.${userOrgId},visibility.eq.global`);
     } else {
-      // Unauthenticated users can see global/public
-      query = query.or('visibility.eq.global,visibility.eq.public');
+      // Unauthenticated users can see global only
+      query = query.or('visibility.eq.global');
     }
 
     // Exclude deleted always; exclude archived unless includeArchived=1 and caller is superadmin

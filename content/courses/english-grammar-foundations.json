@@ -3,6 +3,7 @@
   "title": "English Grammar Foundations",
   "subject": "english-grammar",
   "gradeBand": "Grades 4-8",
+  "visibility": "global",
   "contentVersion": "1",
   "description": "Build confidence with parts of speech, sentence structure, verb tenses, and punctuation through short practice questions.",
   "groups": [
