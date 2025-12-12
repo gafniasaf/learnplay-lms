@@ -20,6 +20,7 @@ type MediaJobRow = {
   media_type: "image" | "audio" | "video";
   prompt: string;
   provider: string | null;
+  metadata?: Record<string, unknown> | null;
 };
 
 async function pickNextPending(): Promise<MediaJobRow | null> {
@@ -128,7 +129,15 @@ serve(async (req: Request): Promise<Response> => {
         throw new Error(`Unsupported media_type: ${job.media_type}`);
       }
 
-      const providerId = job.provider || "openai-dalle3";
+      const metaProviderId = (job.metadata as any)?.provider_id;
+      const providerId =
+        typeof metaProviderId === "string" && metaProviderId.trim()
+          ? metaProviderId.trim()
+          : job.provider === "replicate"
+            ? "replicate-sdxl"
+            : job.provider === "openai"
+              ? "openai-dalle3"
+              : "openai-dalle3";
       const provider = getProvider(providerId);
       if (!provider || !provider.enabled) {
         throw new Error(`Media provider not enabled: ${providerId}`);

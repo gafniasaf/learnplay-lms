@@ -14,7 +14,7 @@ type Body = {
   courseId: string;
   itemId: number;
   prompt: string;
-  provider?: string;
+  provider?: string; // provider id, e.g. openai-dalle3 / replicate-sdxl
   style?: string;
   idempotencyKey?: string;
   targetRef?: Record<string, unknown> | null;
@@ -65,7 +65,11 @@ Deno.serve(withCors(async (req: Request): Promise<Response> => {
   const courseId = String(body?.courseId || "").trim();
   const itemId = Number(body?.itemId);
   const prompt = String(body?.prompt || "").trim();
-  const provider = String(body?.provider || "openai-dalle3").trim();
+  const providerId = String(body?.provider || "openai-dalle3").trim();
+  const providerFamily =
+    providerId.startsWith("replicate") ? "replicate"
+    : providerId.startsWith("elevenlabs") ? "elevenlabs"
+    : "openai";
   const style = body?.style ? String(body.style) : undefined;
   const idempotencyKey = body?.idempotencyKey ? String(body.idempotencyKey) : undefined;
 
@@ -81,11 +85,12 @@ Deno.serve(withCors(async (req: Request): Promise<Response> => {
     item_id: itemId,
     media_type: "image",
     prompt,
-    provider,
+    provider: providerFamily,
     idempotency_key: idempotencyKey ?? null,
     metadata: {
       style: style ?? null,
       targetRef: body?.targetRef ?? null,
+      provider_id: providerId,
     },
     status: "pending",
   };
