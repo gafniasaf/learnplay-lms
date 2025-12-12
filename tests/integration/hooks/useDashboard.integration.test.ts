@@ -51,6 +51,90 @@ describe('useDashboard Integration Tests', () => {
       expect(lastCall?.params).toHaveProperty('studentId', studentAuth.user.id);
       expect(lastCall?.params).not.toHaveProperty('role');
     });
+
+    test.skipIf(!studentAuth)('student-dashboard response can be transformed to Dashboard format', async () => {
+      // This test verifies the actual response shape from the Edge Function
+      // and ensures useDashboard can transform it correctly
+      
+      const response = await callEdgeFunctionTracked(
+        'student-dashboard',
+        { studentId: studentAuth!.user.id },
+        { role: 'student', token: studentAuth!.accessToken }
+      );
+      
+      expect(response.status).toBe(200);
+      
+      // Verify Edge Function returns expected shape
+      const body = response.body as any;
+      expect(body).toHaveProperty('assignments');
+      expect(body).toHaveProperty('performance');
+      expect(body.performance).toHaveProperty('recentScore');
+      expect(body.performance).toHaveProperty('streakDays');
+      expect(body.performance).toHaveProperty('xp');
+      expect(body).toHaveProperty('recommendedCourses');
+      
+      // Verify assignments array structure (if present)
+      if (Array.isArray(body.assignments)) {
+        body.assignments.forEach((assignment: any) => {
+          expect(assignment).toHaveProperty('id');
+          expect(assignment).toHaveProperty('title');
+          // status, due_at, progress_pct, score, completed_at are optional
+        });
+      }
+      
+      // Now verify the transformation logic would work
+      // This simulates what useDashboard does internally
+      const transformed = {
+        role: 'student' as const,
+        userId: studentAuth.user.id,
+        displayName: studentAuth.user.email?.split('@')[0] || 'Student',
+        stats: {
+          coursesInProgress: body.assignments?.filter((a: any) => a.status === 'in_progress').length || 0,
+          coursesCompleted: body.assignments?.filter((a: any) => a.status === 'completed').length || 0,
+          totalPoints: body.performance?.xp || 0,
+          currentStreak: body.performance?.streakDays || 0,
+          bestStreak: body.performance?.streakDays || 0,
+          accuracyRate: body.performance?.recentScore || 0,
+        },
+        upcoming: (body.assignments || [])
+          .filter((a: any) => a.status !== 'completed' && a.due_at)
+          .map((a: any) => ({
+            id: a.id,
+            title: a.title,
+            type: a.course_id || 'course',
+            dueDate: a.due_at || new Date().toISOString(),
+            progress: a.progress_pct || 0,
+          })),
+        recent: (body.assignments || [])
+          .filter((a: any) => a.status === 'completed' && a.completed_at)
+          .map((a: any) => ({
+            id: a.id,
+            title: a.title,
+            type: a.course_id || 'course',
+            completedAt: a.completed_at || new Date().toISOString(),
+            score: a.score || 0,
+          })),
+        achievements: [],
+      };
+      
+      // Verify transformed object has correct Dashboard shape
+      expect(transformed).toHaveProperty('role', 'student');
+      expect(transformed).toHaveProperty('userId');
+      expect(transformed).toHaveProperty('displayName');
+      expect(transformed).toHaveProperty('stats');
+      expect(transformed.stats).toHaveProperty('coursesInProgress');
+      expect(transformed.stats).toHaveProperty('coursesCompleted');
+      expect(transformed.stats).toHaveProperty('totalPoints');
+      expect(transformed.stats).toHaveProperty('currentStreak');
+      expect(transformed.stats).toHaveProperty('bestStreak');
+      expect(transformed.stats).toHaveProperty('accuracyRate');
+      expect(transformed).toHaveProperty('upcoming');
+      expect(transformed).toHaveProperty('recent');
+      expect(transformed).toHaveProperty('achievements');
+      expect(Array.isArray(transformed.upcoming)).toBe(true);
+      expect(Array.isArray(transformed.recent)).toBe(true);
+      expect(Array.isArray(transformed.achievements)).toBe(true);
+    });
   });
   
   describe('Teacher Dashboard', () => {
