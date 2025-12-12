@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { BookOpen, Search, RefreshCw, Target, X } from "lucide-react";
@@ -17,6 +17,9 @@ import { supabase } from "@/integrations/supabase/client";
 
 const Courses = () => {
   const mcp = useMCP();
+  // Use ref to prevent mcp from triggering re-renders (useMCP returns new object each render)
+  const mcpRef = useRef(mcp);
+  mcpRef.current = mcp;
   const [searchParams, setSearchParams] = useSearchParams();
   const recommendedFor = searchParams.get('recommendedFor');
   const studentId = searchParams.get('studentId') || 'student-1';
@@ -61,7 +64,7 @@ const Courses = () => {
           // Force fresh fetch with cache-busting
           try {
             console.log("[Courses] 🔄 Fetching fresh catalog...");
-            const freshCatalog = await mcp.getCourseCatalog() as { courses: CourseCatalogItem[] };
+            const freshCatalog = await mcpRef.current.getCourseCatalog() as { courses: CourseCatalogItem[] };
             console.log("[Courses] ✅ Fresh catalog loaded:", freshCatalog.courses.length, "courses");
             setCourses(freshCatalog.courses);
             setFilteredCourses(freshCatalog.courses);
@@ -98,10 +101,10 @@ const Courses = () => {
           setKoName(ko?.name || null);
           
           // Get recommended courses
-          const recommended = await mcp.getRecommendedCourses(recommendedFor, studentId) as Array<{ courseId: string; relevance?: number; exerciseCount?: number }>;
+          const recommended = await mcpRef.current.getRecommendedCourses(recommendedFor, studentId) as Array<{ courseId: string; relevance?: number; exerciseCount?: number }>;
           
           // Load full catalog to match against
-          const catalog = await mcp.getCourseCatalog() as { courses: CourseCatalogItem[] };
+          const catalog = await mcpRef.current.getCourseCatalog() as { courses: CourseCatalogItem[] };
           
           // Filter catalog by recommended course IDs
           const recommendedIds = new Set(recommended.map(r => r.courseId));
@@ -143,7 +146,7 @@ const Courses = () => {
           }, 30000)
         );
         
-        const catalogPromise = mcp.getCourseCatalog();
+        const catalogPromise = mcpRef.current.getCourseCatalog();
         
         const catalog = await Promise.race([
           catalogPromise,
@@ -163,7 +166,8 @@ const Courses = () => {
         console.log("[Courses] 🏁 Loading complete, setting loading=false");
         setLoading(false);
       }
-  }, [recommendedFor, studentId, toast]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [recommendedFor, studentId]); // mcpRef is stable via ref, toast is stable from sonner
 
   useEffect(() => {
     loadCatalog();
@@ -207,13 +211,13 @@ const Courses = () => {
       try {
         if (!searchQuery.trim()) {
           // Empty search - reload full catalog
-          const catalog = await mcp.getCourseCatalog() as { courses: CourseCatalogItem[] };
+          const catalog = await mcpRef.current.getCourseCatalog() as { courses: CourseCatalogItem[] };
           setCourses(catalog.courses);
           setFilteredCourses(catalog.courses);
         } else {
           // Perform server-side search
           console.log('[Courses] Searching for:', searchQuery);
-          const results = await mcp.searchCourses(searchQuery) as { courses: CourseCatalogItem[]; items?: CourseCatalogItem[] };
+          const results = await mcpRef.current.searchCourses(searchQuery) as { courses: CourseCatalogItem[]; items?: CourseCatalogItem[] };
           const items = results.courses || results.items || [];
           console.log('[Courses] Search results:', items.length, 'courses');
           

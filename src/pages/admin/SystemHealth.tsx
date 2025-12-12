@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -57,6 +57,9 @@ type UiAuditRun = {
 
 export default function SystemHealthPage() {
   const mcp = useMCP();
+  // Use ref to prevent mcp from triggering re-renders (useMCP returns new object each render)
+  const mcpRef = useRef(mcp);
+  mcpRef.current = mcp;
   const [loading, setLoading] = useState(false);
   const [health, setHealth] = useState<HealthResponse["data"] | null>(null);
   const [env, setEnv] = useState<EnvAuditResponse["data"] | null>(null);
@@ -66,16 +69,16 @@ export default function SystemHealthPage() {
   const [uiSummary, setUiSummary] = useState<UiAuditSummary | null>(null);
   const [uiRun, setUiRun] = useState<UiAuditRun | null>(null);
 
-  const callProxy = async (method: string, params: any = {}) => {
+  const callProxy = useCallback(async (method: string, params: any = {}) => {
     // Map special methods to correct Edge Function names
     if (method === 'lms.uiAudit.summary') {
-      return await mcp.callGet('lms.ui-audit', { action: 'summary' });
+      return await mcpRef.current.callGet('lms.ui-audit', { action: 'summary' });
     }
     if (method === 'lms.uiAudit.run') {
-      return await mcp.callGet('lms.ui-audit', { action: 'run' });
+      return await mcpRef.current.callGet('lms.ui-audit', { action: 'run' });
     }
-    return await mcp.call(method, params);
-  };
+    return await mcpRef.current.call(method, params);
+  }, []); // mcpRef is stable
 
   const load = async () => {
     setLoading(true);

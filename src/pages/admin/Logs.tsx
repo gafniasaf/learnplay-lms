@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { PageContainer } from '@/components/layout/PageContainer';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -59,6 +59,9 @@ const Logs = () => {
   const [jobIdFilter, setJobIdFilter] = useState(initJobId);
   const [expandedLogs, setExpandedLogs] = useState<Set<string>>(new Set());
   const mcp = useMCP();
+  // Use ref to prevent mcp from triggering re-renders (useMCP returns new object each render)
+  const mcpRef = useRef(mcp);
+  mcpRef.current = mcp;
   
   // Available functions
   const [functions, setFunctions] = useState<string[]>([]);
@@ -66,7 +69,7 @@ const Logs = () => {
   const loadLogs = useCallback(async () => {
     setLoading(true);
     try {
-      const response = await mcp.callGet<any>('lms.list-edge-logs', { limit: "100" });
+      const response = await mcpRef.current.callGet<any>('lms.list-edge-logs', { limit: "100" });
       const records = (response?.logs || response?.records || []) as LogEntry[];
       setLogs(records);
       const fromLogs = records.map((log) => (log as any)?.function_name).filter(Boolean) as string[];
@@ -78,7 +81,8 @@ const Logs = () => {
     } finally {
       setLoading(false);
     }
-  }, [mcp, toast]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // mcpRef is stable, toast is stable from sonner
 
   // Load logs
   useEffect(() => {
