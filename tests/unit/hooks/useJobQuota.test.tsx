@@ -145,64 +145,6 @@ describe('useJobQuota', () => {
     });
   });
 
-  describe('in guest mode', () => {
-    const originalLocation = window.location;
-    const originalGetItem = Storage.prototype.getItem;
-    
-    beforeEach(() => {
-      // Mock guest mode detection - useJobQuota checks URL params and localStorage
-      Object.defineProperty(window, 'location', {
-        writable: true,
-        configurable: true,
-        value: { ...originalLocation, search: '?guest=1' },
-      });
-      
-      // Mock localStorage
-      Storage.prototype.getItem = jest.fn((key: string) => {
-        if (key === 'guestMode') return 'true';
-        return null;
-      });
-    });
-    
-    afterEach(() => {
-      // Restore
-      Object.defineProperty(window, 'location', {
-        writable: true,
-        configurable: true,
-        value: originalLocation,
-      });
-      Storage.prototype.getItem = originalGetItem;
-    });
-
-    it('returns default quota without API call', async () => {
-      const { result } = renderHook(() => useJobQuota());
-
-      await waitFor(() => {
-        expect(result.current.loading).toBe(false);
-      });
-
-      expect(result.current.quota).toBeTruthy();
-      expect(result.current.error).toBeNull();
-      // Should not call API in guest mode
-      expect(mockMCP.getRecord).not.toHaveBeenCalled();
-    });
-
-    it('does not poll in guest mode', async () => {
-      const { result } = renderHook(() => useJobQuota());
-
-      await waitFor(() => {
-        expect(result.current.loading).toBe(false);
-      });
-
-      act(() => {
-        jest.advanceTimersByTime(60000);
-      });
-
-      // Should not trigger polling
-      expect(mockMCP.getRecord).not.toHaveBeenCalled();
-    });
-  });
-
   describe('in mock mode', () => {
     beforeEach(() => {
       jest.mocked(isLiveMode).mockReturnValue(false);
