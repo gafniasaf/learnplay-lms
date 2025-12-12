@@ -38,8 +38,6 @@ export async function upsertCourseMetadata(
   }
 
   const title = content.title || courseId;
-  const subject = content.subject || "General";
-  const gradeBand = content.gradeBand || "All Grades";
   const tags = {
     ...(content.tags ?? {}),
     __format: format,
@@ -62,15 +60,12 @@ export async function upsertCourseMetadata(
     .upsert({
       id: courseId,
       organization_id: orgId,
-      title,
-      subject,
-      grade_band: gradeBand,
-      tags,
       tag_ids: content.tag_ids ?? [],
       visibility,
       content_version: content.contentVersion ?? courseJson?.version ?? 1,
+      tags,
       updated_at: new Date().toISOString(),
-    }, { onConflict: "id,organization_id" });
+    }, { onConflict: "id" });
 
   if (metadataErr) {
     throw new Error(`Failed to upsert course_metadata: ${metadataErr.message ?? String(metadataErr)}`);
@@ -81,8 +76,8 @@ export async function upsertCourseMetadata(
     .upsert({
       id: courseId,
       name: title,
-      subject,
-      grade_band: gradeBand,
+      subject: content.subject || "General",
+      grade_band: content.gradeBand || "All Grades",
       updated_at: new Date().toISOString(),
     }, { onConflict: "id" });
 
