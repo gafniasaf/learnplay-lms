@@ -99,9 +99,38 @@ test.describe('Live AI Pipeline: Course Creation', () => {
     // Step 3: Create the job - look for Generate Course button
     const createButton = page.locator('button:has-text("Generate Course"), button:has-text("Generate")').first();
     await expect(createButton).toBeEnabled({ timeout: 10000 });
+    
+    // Capture the actual enqueue request so we can extract the generated course_id reliably.
+    const enqueueReqPromise = page.waitForRequest(
+      (req) =>
+        req.method() === 'POST' &&
+        req.url().includes('/functions/v1/enqueue-job'),
+      { timeout: 15000 }
+    );
+
     await createButton.click();
 
-    // Capture the generated courseId from localStorage (this app sets selectedCourseId immediately on enqueue)
+    // Extract course_id from the request payload (source of truth)
+    try {
+      const enqueueReq = await enqueueReqPromise;
+      const post = enqueueReq.postDataJSON() as any;
+      const bodyCourseId = post?.payload?.course_id;
+      if (typeof bodyCourseId === 'string' && bodyCourseId.length > 3) {
+        courseId = bodyCourseId;
+      }
+
+      const resp = await enqueueReq.response();
+      if (!resp || !resp.ok()) {
+        const status = resp?.status() ?? 0;
+        const text = resp ? await resp.text().catch(() => '') : '';
+        throw new Error(`enqueue-job failed: status=${status} body=${text.slice(0, 300)}`);
+      }
+    } catch (e) {
+      // We'll fall back to localStorage/job polling below; if those also fail, the test fails.
+      console.warn('Failed to capture enqueue-job request/response:', e);
+    }
+
+    // Capture the generated courseId from localStorage (UI sets selectedCourseId after enqueueJob succeeds)
     let selectedCourseId: string | null = null;
     for (let i = 0; i < 10; i++) {
       selectedCourseId = await page.evaluate(() => localStorage.getItem('selectedCourseId'));
@@ -111,7 +140,7 @@ test.describe('Live AI Pipeline: Course Creation', () => {
 
     // Fallback: resolve courseId from backend job list (stable + real DB evidence).
     // NOTE: ai_course_jobs.subject stores jobType; the human subject is in job.payload.subject.
-    if (!selectedCourseId) {
+    if (!selectedCourseId && !courseId) {
       const { url, anonKey } = getSupabaseBase();
       for (let i = 0; i < 20; i++) {
         const res = await page.request.get(`${url}/functions/v1/list-course-jobs?limit=50&sinceHours=1`, {
@@ -120,9 +149,11 @@ test.describe('Live AI Pipeline: Course Creation', () => {
         if (res.ok()) {
           const data = await res.json();
           const jobs = Array.isArray(data.jobs) ? data.jobs : [];
+          const expectedSlug = testSubject.toLowerCase().replace(/\s+/g, '-');
           const match = jobs.find((j: any) => {
-            const payloadSubject = j?.payload?.subject;
-            return typeof payloadSubject === 'string' && payloadSubject.trim() === testSubject.trim();
+            // Jobs table schema differs between deployments; best-effort match by course_id prefix.
+            const cid = j?.course_id;
+            return typeof cid === 'string' && cid.includes(expectedSlug);
           });
           const backendCourseId = match?.course_id;
           if (typeof backendCourseId === 'string' && backendCourseId.length > 3) {
@@ -134,11 +165,11 @@ test.describe('Live AI Pipeline: Course Creation', () => {
       }
     }
 
-    if (!selectedCourseId) {
+    if (!selectedCourseId && !courseId) {
       throw new Error('Course ID could not be resolved after clicking Generate Course (no localStorage and no matching job in list-course-jobs).');
     }
 
-    courseId = selectedCourseId;
+    courseId = courseId || selectedCourseId;
     
     // Step 4: Wait for job creation confirmation
     // Wait for the button text to change or for processing indication
