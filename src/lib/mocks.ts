@@ -80,7 +80,9 @@ export async function fetchDashboard(role: DashboardRole): Promise<Dashboard> {
  * In production, this would query a course catalog API
  */
 export function getAvailableCourses(): string[] {
-  return ["modals", "verbs", "history", "multiplication", "science"];
+  // REMOVED: Hardcoded demo course IDs that don't exist in production
+  // These caused 404 errors when mock mode was accidentally triggered
+  return [];
 }
 
 /**
@@ -88,34 +90,9 @@ export function getAvailableCourses(): string[] {
  * @returns Promise resolving to CourseCatalog
  */
 export async function fetchCourseCatalog(): Promise<CourseCatalog> {
-  await simulateDelay();
-
-  return {
-    courses: [
-      {
-        id: "modals",
-        title: "English Modals",
-        subject: "English Grammar",
-        gradeBand: "Middle School",
-        contentVersion: "1.0.0",
-        description: "Learn English modal verbs through interactive exercises.",
-        itemCount: 48,
-        duration: "15 min",
-        difficulty: "Intermediate",
-      },
-      {
-        id: "verbs",
-        title: "English Verbs",
-        subject: "English Grammar",
-        gradeBand: "Middle School",
-        contentVersion: "1.0.0",
-        description: "Master English verb tenses with hands-on practice.",
-        itemCount: 48,
-        duration: "15 min",
-        difficulty: "Intermediate",
-      },
-    ],
-  };
+  // No mock courses - always use live API
+  // Mock mode should fail fast, not return fake data
+  return { courses: [] };
 }
 
 /**

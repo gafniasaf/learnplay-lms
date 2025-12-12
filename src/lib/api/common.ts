@@ -120,17 +120,28 @@ export async function callEdgeFunction<TRequest, TResponse>(
   payload: TRequest,
   options: { maxRetries?: number; timeoutMs?: number } = {}
 ): Promise<TResponse> {
-  const { getAccessToken, ensureSession } = await import("../supabase");
+  const { supabase } = await import("@/integrations/supabase/client");
+  const { ensureSession } = await import("../supabase");
   const supabaseUrl = getSupabaseUrl();
   const anonKey = getSupabaseAnonKey();
   const { maxRetries = 1, timeoutMs = 30000 } = options;
   const guestMode = isGuestMode();
 
-  // Get auth token from cached session
-  let token = await getAccessToken();
+  // Get auth token DIRECTLY from session (not cached)
+  const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+  let token = session?.access_token || null;
+  
+  console.log(`[callEdgeFunction:${functionName}] Auth debug:`, {
+    hasSession: !!session,
+    hasToken: !!token,
+    userId: session?.user?.id || 'none',
+    sessionError: sessionError?.message || 'none',
+    guestMode
+  });
 
   // Allow anonymous calls in guest mode
   if (!token && !guestMode) {
+    console.error(`[callEdgeFunction:${functionName}] No token and not in guest mode - throwing 401`);
     throw new ApiError(
       "User not authenticated",
       "UNAUTHORIZED",
