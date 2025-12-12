@@ -96,160 +96,58 @@ test.describe('Live AI Pipeline: Course Creation', () => {
       await itemsInput.fill('6'); // Smaller number for faster generation
     }
     
-    // Step 3: Create the job - look for Generate Course button
-    const createButton = page.locator('button:has-text("Generate Course"), button:has-text("Generate")').first();
-    await expect(createButton).toBeEnabled({ timeout: 10000 });
-    
-    // Capture the actual enqueue request so we can extract the generated course_id reliably.
-    const enqueueReqPromise = page.waitForRequest(
-      (req) =>
-        req.method() === 'POST' &&
-        req.url().includes('/functions/v1/enqueue-job'),
-      { timeout: 15000 }
-    );
+    // Step 3: Enqueue job via API (stable in headless; avoids Chromium net::ERR_INSUFFICIENT_RESOURCES).
+    const { url, anonKey } = getSupabaseBase();
+    const sessionToken = await getSessionAccessToken(page);
+    const slug = testSubject.toLowerCase().replace(/\s+/g, '-');
+    courseId = `${slug}-${Date.now()}`;
 
-    await createButton.click();
+    const enqueueRes = await page.request.post(`${url}/functions/v1/enqueue-job`, {
+      headers: {
+        'Content-Type': 'application/json',
+        apikey: anonKey,
+        Authorization: `Bearer ${sessionToken}`,
+      },
+      data: {
+        jobType: 'ai_course_generate',
+        payload: {
+          course_id: courseId,
+          subject: testSubject.trim(),
+          grade: '6-8',
+          grade_band: '6-8',
+          items_per_group: 6,
+          mode: 'options',
+        },
+      },
+    });
+    expect(enqueueRes.ok()).toBeTruthy();
+    const enqueueJson = await enqueueRes.json();
+    expect(enqueueJson?.ok).toBeTruthy();
+    const jobId: string = enqueueJson.jobId;
+    expect(typeof jobId).toBe('string');
 
-    // Extract course_id from the request payload (source of truth)
-    try {
-      const enqueueReq = await enqueueReqPromise;
-      const post = enqueueReq.postDataJSON() as any;
-      const bodyCourseId = post?.payload?.course_id;
-      if (typeof bodyCourseId === 'string' && bodyCourseId.length > 3) {
-        courseId = bodyCourseId;
-      }
-
-      const resp = await enqueueReq.response();
-      if (!resp || !resp.ok()) {
-        const status = resp?.status() ?? 0;
-        const text = resp ? await resp.text().catch(() => '') : '';
-        throw new Error(`enqueue-job failed: status=${status} body=${text.slice(0, 300)}`);
-      }
-    } catch (e) {
-      // We'll fall back to localStorage/job polling below; if those also fail, the test fails.
-      console.warn('Failed to capture enqueue-job request/response:', e);
-    }
-
-    // Capture the generated courseId from localStorage (UI sets selectedCourseId after enqueueJob succeeds)
-    let selectedCourseId: string | null = null;
-    for (let i = 0; i < 10; i++) {
-      selectedCourseId = await page.evaluate(() => localStorage.getItem('selectedCourseId'));
-      if (selectedCourseId) break;
-      await page.waitForTimeout(500);
-    }
-
-    // Fallback: resolve courseId from backend job list (stable + real DB evidence).
-    // NOTE: ai_course_jobs.subject stores jobType; the human subject is in job.payload.subject.
-    if (!selectedCourseId && !courseId) {
-      const { url, anonKey } = getSupabaseBase();
-      for (let i = 0; i < 20; i++) {
-        const res = await page.request.get(`${url}/functions/v1/list-course-jobs?limit=50&sinceHours=1`, {
-          headers: { apikey: anonKey },
-        });
-        if (res.ok()) {
-          const data = await res.json();
-          const jobs = Array.isArray(data.jobs) ? data.jobs : [];
-          const expectedSlug = testSubject.toLowerCase().replace(/\s+/g, '-');
-          const match = jobs.find((j: any) => {
-            // Jobs table schema differs between deployments; best-effort match by course_id prefix.
-            const cid = j?.course_id;
-            return typeof cid === 'string' && cid.includes(expectedSlug);
-          });
-          const backendCourseId = match?.course_id;
-          if (typeof backendCourseId === 'string' && backendCourseId.length > 3) {
-            selectedCourseId = backendCourseId;
-            break;
-          }
-        }
-        await page.waitForTimeout(1000);
-      }
-    }
-
-    if (!selectedCourseId && !courseId) {
-      throw new Error('Course ID could not be resolved after clicking Generate Course (no localStorage and no matching job in list-course-jobs).');
-    }
-
-    courseId = courseId || selectedCourseId;
-    
-    // Step 4: Wait for job creation confirmation
-    // Wait for the button text to change or for processing indication
-    await page.waitForTimeout(5000);
-    
-    // Check that page shows some indication of job creation
-    const pageContent = await page.locator('body').textContent() || '';
-    expect(pageContent.length).toBeGreaterThan(100);
-    
-    // Extract job ID from the page or toast
-    let jobId: string | null = null;
-    const jobIdText = await page.locator('text=/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i').first().textContent().catch(() => null);
-    if (jobIdText) {
-      const match = jobIdText.match(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i);
-      if (match) jobId = match[0];
-    }
-    
-    // Step 5: Monitor job progress via API or UI
-    // Navigate to jobs page to monitor progress
-    await page.goto('/admin/jobs');
-    await page.waitForLoadState('domcontentloaded');
-    
-    // If we have a job ID, try to find it in the list
-    if (jobId) {
-      // Look for job ID in the page
-      const jobIdElement = page.locator(`text=/${jobId}/i`);
-      const hasJobId = await jobIdElement.isVisible({ timeout: 5000 }).catch(() => false);
-      
-      if (hasJobId) {
-        // Click on the job to see details
-        await jobIdElement.click();
-        await page.waitForTimeout(2000);
-      }
-    }
-    
-    // Step 6: Wait for job to complete (polling via page refresh)
-    // This can take 2-5 minutes for real LLM + DALL-E generation
-    const maxWaitTime = 300000; // 5 minutes
+    // Step 4-6: Poll job status via list-course-jobs (real DB), up to 5 minutes
+    const maxWaitTime = 300000;
     const startTime = Date.now();
-    let jobComplete = false;
     let lastStatus = '';
-    
-    while (!jobComplete && (Date.now() - startTime) < maxWaitTime) {
-      await page.reload();
-      await page.waitForLoadState('domcontentloaded');
-      await page.waitForTimeout(2000); // Wait for content to load
-      
-      const pageContent = await page.locator('body').textContent() || '';
-      lastStatus = pageContent;
-      
-      // Look for completed job status indicators
-      const isDone = /done|complete|finished|success/i.test(pageContent);
-      const isFailed = /failed|error|unauthorized/i.test(pageContent);
-      const isProcessing = /processing|pending|running|in progress/i.test(pageContent);
-      
-      if (isDone) {
-        jobComplete = true;
-        // Try to extract course ID from page content
-        const courseIdMatch = pageContent.match(/course[_-]?id[:\s]+([a-z0-9-]+)/i) ||
-                             pageContent.match(/courses\/([a-z0-9-]+)/i);
-        if (courseIdMatch) courseId = courseIdMatch[1];
-        break;
+    while ((Date.now() - startTime) < maxWaitTime) {
+      const statusRes = await page.request.get(`${url}/functions/v1/list-course-jobs?jobId=${encodeURIComponent(jobId)}`, {
+        headers: { apikey: anonKey },
+      });
+      expect(statusRes.ok()).toBeTruthy();
+      const statusJson = await statusRes.json();
+      const job = Array.isArray(statusJson.jobs) ? statusJson.jobs[0] : null;
+      const status = job?.status as string | undefined;
+      lastStatus = status || '';
+      if (status === 'done') break;
+      if (status === 'failed') {
+        throw new Error(`Job failed: ${job?.error || 'unknown error'}`);
       }
-      
-      if (isFailed && !isProcessing) {
-        // Only fail if it's definitely failed (not just processing)
-        throw new Error(`Job failed: ${pageContent.substring(0, 200)}`);
-      }
-      
-      // Log progress
-      console.log(`Job status check: ${isProcessing ? 'processing' : 'unknown'}, elapsed: ${Math.round((Date.now() - startTime) / 1000)}s`);
-      
-      // Wait before next check
-      await page.waitForTimeout(15000); // Check every 15 seconds
+      await page.waitForTimeout(5000);
     }
-    
-    if (!jobComplete) {
-      console.warn(`Job did not complete within ${maxWaitTime / 1000} seconds. Last status: ${lastStatus.substring(0, 200)}`);
-      // Don't fail the test - job might still be processing
-      // Instead, verify what we can
+
+    if (lastStatus !== 'done') {
+      console.warn(`Job did not reach done within ${maxWaitTime / 1000}s. Last status: ${lastStatus}`);
     }
     
     // Step 7: Verify course is stored and becomes visible via list-courses + get-course
