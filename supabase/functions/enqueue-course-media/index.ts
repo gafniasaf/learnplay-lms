@@ -91,12 +91,13 @@ serve(async (req: Request): Promise<Response> => {
   if (error) {
     // Idempotency conflict: return the existing job id if we can
     if (error.code === "23505" && idempotencyKey) {
-      const { data: existing } = await adminSupabase
+      const { data: existing, error: existingErr } = await adminSupabase
         .from("ai_media_jobs")
         .select("id,status")
         .eq("idempotency_key", idempotencyKey)
-        .maybeSingle();
-      if (existing?.id) {
+        .limit(1)
+        .single();
+      if (!existingErr && existing?.id) {
         return new Response(JSON.stringify({ ok: true, mediaJobId: existing.id, status: existing.status }), {
           status: 200,
           headers: stdHeaders(req, { "Content-Type": "application/json", "X-Request-Id": requestId }),
