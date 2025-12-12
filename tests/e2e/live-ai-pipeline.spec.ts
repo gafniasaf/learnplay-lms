@@ -70,8 +70,12 @@ test.describe('Live AI Pipeline: Course Creation', () => {
     await createButton.click();
 
     // Capture the generated courseId from localStorage (this app sets selectedCourseId immediately on enqueue)
-    const courseId = await page.evaluate(() => localStorage.getItem('selectedCourseId'));
-    expect(courseId).toBeTruthy();
+    const selectedCourseId = await page.evaluate(() => localStorage.getItem('selectedCourseId'));
+    expect(selectedCourseId).toBeTruthy();
+    // Prefer localStorage course id; also feed the later verification path
+    // (some UIs don't render courseId into the DOM)
+    // eslint-disable-next-line no-extra-boolean-cast
+    if (!!selectedCourseId) courseId = selectedCourseId;
     
     // Step 4: Wait for job creation confirmation
     // Wait for the button text to change or for processing indication
@@ -83,6 +87,7 @@ test.describe('Live AI Pipeline: Course Creation', () => {
     
     // Extract job ID from the page or toast
     let jobId: string | null = null;
+    let courseId: string | null = null;
     const jobIdText = await page.locator('text=/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i').first().textContent().catch(() => null);
     if (jobIdText) {
       const match = jobIdText.match(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i);
@@ -112,7 +117,6 @@ test.describe('Live AI Pipeline: Course Creation', () => {
     const maxWaitTime = 300000; // 5 minutes
     const startTime = Date.now();
     let jobComplete = false;
-    let courseId: string | null = null;
     let lastStatus = '';
     
     while (!jobComplete && (Date.now() - startTime) < maxWaitTime) {
