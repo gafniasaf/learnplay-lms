@@ -143,6 +143,14 @@ function getDevOrgId(): string {
   return orgId;
 }
 
+function getDevUserId(): string {
+  const userId = import.meta.env.VITE_DEV_USER_ID;
+  if (!userId) {
+    throw new Error("❌ BLOCKED: VITE_DEV_USER_ID is REQUIRED when devMode=true");
+  }
+  return userId;
+}
+
 /**
  * Call an edge function with authentication and automatic retry on 401
  * @param functionName - Name of the edge function
@@ -376,7 +384,7 @@ async function callEdgeFunctionWithAgentToken<TRequest, TResponse>(
   const anonKey = getSupabaseAnonKey();
   const { timeoutMs = 30000, userId } = options;
 
-  // Optional: attach x-user-id if we can determine it (some endpoints require it)
+  // In devMode, x-user-id MUST be available (some endpoints require it).
   let effectiveUserId = userId;
   if (!effectiveUserId) {
     try {
@@ -386,6 +394,9 @@ async function callEdgeFunctionWithAgentToken<TRequest, TResponse>(
     } catch {
       effectiveUserId = undefined;
     }
+  }
+  if (!effectiveUserId) {
+    effectiveUserId = getDevUserId();
   }
 
   const url = `${supabaseUrl}/functions/v1/${functionName}`;
@@ -401,7 +412,7 @@ async function callEdgeFunctionWithAgentToken<TRequest, TResponse>(
       "x-agent-token": getDevAgentToken(),
       "x-organization-id": getDevOrgId(),
     };
-    if (effectiveUserId) headers["x-user-id"] = effectiveUserId;
+    headers["x-user-id"] = effectiveUserId;
 
     res = await fetchWithTimeout(
       url,
@@ -491,12 +502,12 @@ export async function callEdgeFunctionGet<TResponse>(
   if (devMode) {
     headers["x-agent-token"] = getDevAgentToken();
     headers["x-organization-id"] = getDevOrgId();
-    // Optional: attach x-user-id if session exists (some endpoints require it)
+    // In devMode, x-user-id MUST be available (some endpoints require it).
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      if (session?.user?.id) headers["x-user-id"] = session.user.id;
+      headers["x-user-id"] = session?.user?.id || getDevUserId();
     } catch {
-      // no-op
+      headers["x-user-id"] = getDevUserId();
     }
   }
 
