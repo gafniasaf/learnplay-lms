@@ -4,6 +4,7 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { withCors } from "../_shared/cors.ts";
 import { jsonOk, jsonError, Errors } from "../_shared/error.ts";
+import { authenticateRequest } from "../_shared/auth.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -20,28 +21,16 @@ Deno.serve(withCors(async (req: Request) => {
   }
 
   try {
-    const url = new URL(req.url);
-    const studentId = url.searchParams.get("studentId");
-    
-    // Get student ID from:
-    // 1. Query param
-    // 2. x-user-id header (DEV MODE / agent token auth)
-    // 3. Auth JWT token
-    const xUserId = req.headers.get("x-user-id") ?? req.headers.get("X-User-Id");
-    let resolvedStudentId = studentId || xUserId || null;
-    const authHeader = req.headers.get("authorization");
-    
-    if (!resolvedStudentId && authHeader) {
-      try {
-        const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
-        const token = authHeader.replace("Bearer ", "");
-        const { data: { user } } = await supabase.auth.getUser(token);
-        resolvedStudentId = user?.id || null;
-      } catch (e) {
-        console.warn("[student-dashboard] Failed to get user from token:", e);
-      }
+    // Auth is REQUIRED: do not leak existence/data for arbitrary studentId
+    let auth;
+    try {
+      auth = await authenticateRequest(req);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Unauthorized";
+      return jsonError("unauthorized", msg, 401, requestId, req);
     }
 
+    const resolvedStudentId = auth.userId || null;
     if (!resolvedStudentId) {
       return jsonError("invalid_request", "studentId is required", 400, requestId, req);
     }
