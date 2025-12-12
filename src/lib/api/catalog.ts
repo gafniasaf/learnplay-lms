@@ -3,9 +3,6 @@ import type { CourseCatalog } from "../types/courseCatalog";
 import { shouldUseMockData, fetchWithTimeout, ApiError, getSupabaseUrl, getSupabaseAnonKey } from "./common";
 import { createLogger } from "../logger";
 
-// Conditional import for mocks (tree-shaken in production)
-const getMocks = () => import("../mocks");
-
 const log = createLogger("api/catalog");
 
 /**
@@ -19,28 +16,14 @@ export async function getCourseCatalog(): Promise<
   const liveMode = isLiveMode();
 
   if (shouldUseMockData()) {
-    if (liveMode) {
-      log.warn("Mock catalog used in LIVE mode - this should not happen!", {
-        action: "getCourseCatalog",
-      });
-    }
-    log.info("Loading course catalog from mock data", {
-      action: "getCourseCatalog",
-      source: "mock",
-    });
-    const { fetchCourseCatalog } = await getMocks();
-    const mockCatalog = await fetchCourseCatalog();
-    return {
-      ...mockCatalog,
-      _metadata: { dataSource: "mock" },
-    };
+    // Mocks removed: in mock mode we return an empty catalog.
+    return { courses: [], _metadata: { dataSource: "mock" } };
   }
 
   log.info("Loading course catalog from Edge Function (LIVE mode)", {
     action: "getCourseCatalog",
     source: "live",
   });
-  const allowMockFallback = (import.meta as any).env?.VITE_ALLOW_MOCK_FALLBACK === 'true';
   const supabaseUrl = getSupabaseUrl();
 
   // Check for hard-bust flags
@@ -236,7 +219,6 @@ async function fetchFreshCatalog(
 > {
   const url = `${supabaseUrl}/functions/v1/list-courses?limit=1000`;
   const liveMode = isLiveMode();
-  const allowMockFallback = (import.meta as any).env?.VITE_ALLOW_MOCK_FALLBACK === 'true';
 
   // Check for cached fallback data
   const cachedJson = localStorage.getItem("catalogJson");
@@ -288,15 +270,7 @@ async function fetchFreshCatalog(
           304
         );
       }
-      log.warn("304 but no cached data, falling back to mock", {
-        action: "fetchFreshCatalog",
-      });
-      const { fetchCourseCatalog } = await getMocks();
-      const mockCatalog = await fetchCourseCatalog();
-      return {
-        ...mockCatalog,
-        _metadata: { dataSource: "mock" },
-      };
+      return { courses: [], _metadata: { dataSource: "mock" } };
     }
 
     if (!res.ok) {
@@ -317,15 +291,6 @@ async function fetchFreshCatalog(
             _metadata: { dataSource: "live", etag: storedEtag },
           };
         }
-        if (allowMockFallback) {
-          log.warn(
-            "Falling back to mock catalog due to LIVE error and VITE_ALLOW_MOCK_FALLBACK=true",
-            { action: "fetchFreshCatalog" },
-          );
-          const { fetchCourseCatalog } = await getMocks();
-          const mockCatalog = await fetchCourseCatalog();
-          return { ...mockCatalog, _metadata: { dataSource: "mock" } };
-        }
         throw new ApiError(`Failed to fetch catalog in LIVE mode: ${errorText}`, "FETCH_FAILED", res.status);
       }
 
@@ -340,10 +305,8 @@ async function fetchFreshCatalog(
         };
       }
       log.warn("Falling back to mock data", { action: "fetchFreshCatalog" });
-      const { fetchCourseCatalog } = await getMocks();
-      const mockCatalog = await fetchCourseCatalog();
       return {
-        ...mockCatalog,
+        courses: [],
         _metadata: { dataSource: "mock" },
       };
     }
@@ -396,13 +359,8 @@ async function fetchFreshCatalog(
           _metadata: { dataSource: "live", etag: newEtag || undefined },
         };
       }
-      log.warn("Live catalog returned 0 courses, falling back to mock data", {
-        action: "fetchFreshCatalog",
-      });
-      const { fetchCourseCatalog } = await getMocks();
-      const mockCatalog = await fetchCourseCatalog();
       return {
-        ...mockCatalog,
+        courses: [],
         _metadata: { dataSource: "mock" },
       };
     }
@@ -432,15 +390,6 @@ async function fetchFreshCatalog(
           _metadata: { dataSource: "live", etag: storedEtag },
         };
       }
-      if (allowMockFallback) {
-        log.warn(
-          "Falling back to mock catalog due to exception and VITE_ALLOW_MOCK_FALLBACK=true",
-          { action: "fetchFreshCatalog" },
-        );
-        const { fetchCourseCatalog } = await getMocks();
-        const mockCatalog = await fetchCourseCatalog();
-        return { ...mockCatalog, _metadata: { dataSource: "mock" } };
-      }
       throw error;
     }
 
@@ -457,10 +406,8 @@ async function fetchFreshCatalog(
     log.warn("Falling back to mock data after exception", {
       action: "fetchFreshCatalog",
     });
-    const { fetchCourseCatalog } = await getMocks();
-    const mockCatalog = await fetchCourseCatalog();
     return {
-      ...mockCatalog,
+      courses: [],
       _metadata: { dataSource: "mock" },
     };
   }

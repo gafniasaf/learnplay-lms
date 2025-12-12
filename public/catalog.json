@@ -1,4 +1,0 @@
-{
-  "courses": [],
-  "_note": "This file is deprecated. Courses are now fetched from the list-courses Edge Function. DO NOT add courses here - they will cause 404 errors when users try to play them."
-}

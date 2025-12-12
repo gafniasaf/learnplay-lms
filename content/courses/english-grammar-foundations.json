@@ -1,0 +1,344 @@
+{
+  "id": "english-grammar-foundations",
+  "title": "English Grammar Foundations",
+  "subject": "english-grammar",
+  "gradeBand": "Grades 4-8",
+  "contentVersion": "1",
+  "description": "Build confidence with parts of speech, sentence structure, verb tenses, and punctuation through short practice questions.",
+  "groups": [
+    { "id": 0, "name": "Parts of Speech" },
+    { "id": 1, "name": "Sentence Structure" },
+    { "id": 2, "name": "Verb Tenses" },
+    { "id": 3, "name": "Punctuation & Capitalization" },
+    { "id": 4, "name": "Common Confusions" }
+  ],
+  "levels": [
+    { "id": 1, "title": "Level 1: Basics", "start": 0, "end": 1 },
+    { "id": 2, "title": "Level 2: Intermediate", "start": 1, "end": 3 },
+    { "id": 3, "title": "Level 3: Mixed Review", "start": 0, "end": 4 }
+  ],
+  "items": [
+    {
+      "id": 0,
+      "groupId": 0,
+      "text": "Which word is a noun in this sentence? \"The cat slept.\"",
+      "mode": "options",
+      "options": ["The", "cat", "slept", "None of these"],
+      "correctIndex": 1,
+      "explain": "\"Cat\" is a noun because it names a person, place, thing, or idea.",
+      "wrongExplanations": [
+        "\"The\" is an article (determiner), not a noun.",
+        "\"Slept\" is a verb; it shows an action.",
+        "There is a noun in the sentence: \"cat\"."
+      ],
+      "clusterId": "pos-nouns-1",
+      "variant": "1"
+    },
+    {
+      "id": 1,
+      "groupId": 0,
+      "text": "Choose the verb in the sentence: \"Birds fly.\"",
+      "mode": "options",
+      "options": ["Birds", "fly", "the", "quickly"],
+      "correctIndex": 1,
+      "explain": "\"Fly\" is the verb because it tells what the subject does.",
+      "wrongExplanations": [
+        "\"Birds\" is the subject (a noun).",
+        "\"The\" is not in the sentence.",
+        "\"Quickly\" is not in the sentence."
+      ],
+      "clusterId": "pos-verbs-1",
+      "variant": "1"
+    },
+    {
+      "id": 2,
+      "groupId": 0,
+      "text": "Which word is an adjective? \"She wore a bright jacket.\"",
+      "mode": "options",
+      "options": ["She", "wore", "bright", "jacket"],
+      "correctIndex": 2,
+      "explain": "\"Bright\" is an adjective because it describes the noun \"jacket.\"",
+      "wrongExplanations": [
+        "\"She\" is a pronoun.",
+        "\"Wore\" is a verb.",
+        "\"Jacket\" is a noun."
+      ],
+      "clusterId": "pos-adjectives-1",
+      "variant": "1"
+    },
+    {
+      "id": 3,
+      "groupId": 0,
+      "text": "Which word is an adverb? \"He ran quickly.\"",
+      "mode": "options",
+      "options": ["He", "ran", "quickly", "ran quickly"],
+      "correctIndex": 2,
+      "explain": "\"Quickly\" is an adverb because it tells how he ran.",
+      "wrongExplanations": [
+        "\"He\" is a pronoun.",
+        "\"Ran\" is a verb.",
+        "\"Ran quickly\" is a verb phrase; the adverb is \"quickly\"."
+      ],
+      "clusterId": "pos-adverbs-1",
+      "variant": "1"
+    },
+    {
+      "id": 4,
+      "groupId": 1,
+      "text": "Which sentence is a complete sentence?",
+      "mode": "options",
+      "options": ["Because it was raining.", "Running down the street.", "The dog barked loudly.", "After the movie."],
+      "correctIndex": 2,
+      "explain": "A complete sentence needs a subject and a verb and expresses a complete thought.",
+      "wrongExplanations": [
+        "This is a fragment; it starts with \"Because\" and is incomplete.",
+        "This is a fragment; it lacks a clear subject.",
+        "This is a fragment; it doesn’t express a complete thought."
+      ],
+      "clusterId": "sentence-complete-1",
+      "variant": "1"
+    },
+    {
+      "id": 5,
+      "groupId": 1,
+      "text": "Choose the subject in the sentence: \"My friends play soccer.\"",
+      "mode": "options",
+      "options": ["My", "friends", "play", "soccer"],
+      "correctIndex": 1,
+      "explain": "\"Friends\" is the subject because it tells who does the action.",
+      "wrongExplanations": [
+        "\"My\" describes the subject but isn’t the subject by itself.",
+        "\"Play\" is the verb.",
+        "\"Soccer\" is the object."
+      ],
+      "clusterId": "sentence-subject-1",
+      "variant": "1"
+    },
+    {
+      "id": 6,
+      "groupId": 1,
+      "text": "Choose the predicate (what the subject does) in: \"The teacher smiled.\"",
+      "mode": "options",
+      "options": ["The teacher", "teacher", "smiled", "The"],
+      "correctIndex": 2,
+      "explain": "The predicate includes the verb. Here, the action is \"smiled.\"",
+      "wrongExplanations": [
+        "That’s the subject.",
+        "That’s part of the subject.",
+        "That’s an article."
+      ],
+      "clusterId": "sentence-predicate-1",
+      "variant": "1"
+    },
+    {
+      "id": 7,
+      "groupId": 1,
+      "text": "Which sentence is correctly punctuated?",
+      "mode": "options",
+      "options": ["Lets eat, Grandma.", "Let's eat Grandma.", "Lets eat Grandma.", "Let's eat, Grandma."],
+      "correctIndex": 3,
+      "explain": "\"Let's\" means \"let us\" and the comma shows you are speaking to Grandma.",
+      "wrongExplanations": [
+        "\"Lets\" is missing the apostrophe in \"Let's\".",
+        "Missing comma after \"eat\"; this changes the meaning.",
+        "Missing apostrophe and comma; meaning changes."
+      ],
+      "clusterId": "punct-comma-vocative-1",
+      "variant": "1"
+    },
+    {
+      "id": 8,
+      "groupId": 2,
+      "text": "Choose the correct past tense form: \"Yesterday, I ___ to the store.\"",
+      "mode": "options",
+      "options": ["go", "went", "gone", "going"],
+      "correctIndex": 1,
+      "explain": "\"Went\" is the simple past tense of \"go.\"",
+      "wrongExplanations": [
+        "\"Go\" is present tense.",
+        "\"Gone\" is a past participle, not simple past here.",
+        "\"Going\" is present participle."
+      ],
+      "clusterId": "tense-past-1",
+      "variant": "1"
+    },
+    {
+      "id": 9,
+      "groupId": 2,
+      "text": "Choose the correct present tense: \"She ___ every morning.\"",
+      "mode": "options",
+      "options": ["run", "runs", "ran", "running"],
+      "correctIndex": 1,
+      "explain": "With \"she\" (third person singular), we use \"runs.\"",
+      "wrongExplanations": [
+        "\"Run\" is used with I/you/we/they.",
+        "\"Ran\" is past tense.",
+        "\"Running\" needs a helping verb (is/was)."
+      ],
+      "clusterId": "tense-present-1",
+      "variant": "1"
+    },
+    {
+      "id": 10,
+      "groupId": 2,
+      "text": "Choose the correct future tense: \"Tomorrow, they ___ the project.\"",
+      "mode": "options",
+      "options": ["finish", "finished", "will finish", "finishing"],
+      "correctIndex": 2,
+      "explain": "Future tense is often formed with \"will\" + base verb: \"will finish.\"",
+      "wrongExplanations": [
+        "\"Finish\" is present tense without a future marker.",
+        "\"Finished\" is past tense.",
+        "\"Finishing\" needs a helping verb."
+      ],
+      "clusterId": "tense-future-1",
+      "variant": "1"
+    },
+    {
+      "id": 11,
+      "groupId": 2,
+      "text": "Pick the correct form: \"They have ___ their homework.\"",
+      "mode": "options",
+      "options": ["do", "did", "done", "doing"],
+      "correctIndex": 2,
+      "explain": "\"Have\" + past participle: \"have done.\"",
+      "wrongExplanations": [
+        "\"Do\" is base form; needs \"have\" + participle.",
+        "\"Did\" is simple past, not used with \"have\" here.",
+        "\"Doing\" is a participle but not the correct form after \"have\"."
+      ],
+      "clusterId": "tense-present-perfect-1",
+      "variant": "1"
+    },
+    {
+      "id": 12,
+      "groupId": 3,
+      "text": "Choose the correctly capitalized sentence.",
+      "mode": "options",
+      "options": ["we went to france in july.", "We went to france in July.", "We went to France in July.", "we went to France in july."],
+      "correctIndex": 2,
+      "explain": "Capitalize the first word, proper nouns (France), and the month (July).",
+      "wrongExplanations": [
+        "Missing capitalization for the first word, France, and July.",
+        "France is a proper noun and should be capitalized.",
+        "Missing capitalization for the first word and July."
+      ],
+      "clusterId": "caps-proper-nouns-1",
+      "variant": "1"
+    },
+    {
+      "id": 13,
+      "groupId": 3,
+      "text": "Which sentence uses apostrophes correctly?",
+      "mode": "options",
+      "options": ["The dogs bone is missing.", "The dog's bone is missing.", "The dogs' bone is missing.", "The dog' s bone is missing."],
+      "correctIndex": 1,
+      "explain": "\"Dog's\" shows singular possession: the bone belongs to one dog.",
+      "wrongExplanations": [
+        "Missing apostrophe for possession.",
+        "\"Dogs'\" would mean the bone belongs to multiple dogs.",
+        "Apostrophe is in the wrong place."
+      ],
+      "clusterId": "apostrophes-possession-1",
+      "variant": "1"
+    },
+    {
+      "id": 14,
+      "groupId": 3,
+      "text": "Choose the sentence that correctly uses quotation marks.",
+      "mode": "options",
+      "options": ["She said \"hello\".", "She said, \"Hello.\"", "She said, \"Hello\".", "She said, Hello."],
+      "correctIndex": 1,
+      "explain": "In American English, periods usually go inside the quotation marks: \"Hello.\"",
+      "wrongExplanations": [
+        "Missing comma before the quote and capitalization is off for a full sentence quote.",
+        "The period should go inside the quotation marks here.",
+        "Missing quotation marks."
+      ],
+      "clusterId": "quotes-basic-1",
+      "variant": "1"
+    },
+    {
+      "id": 15,
+      "groupId": 4,
+      "text": "Choose the correct word: \"Their/There/They're going to the park.\"",
+      "mode": "options",
+      "options": ["Their", "There", "They're", "Either Their or There"],
+      "correctIndex": 2,
+      "explain": "\"They're\" is a contraction for \"they are\": \"They are going to the park.\"",
+      "wrongExplanations": [
+        "\"Their\" shows possession (their dog).",
+        "\"There\" refers to a place (over there).",
+        "Only \"they're\" works as \"they are\" here."
+      ],
+      "clusterId": "confusions-their-1",
+      "variant": "1"
+    },
+    {
+      "id": 16,
+      "groupId": 4,
+      "text": "Choose the correct word: \"I would like to ___ a glass of water.\"",
+      "mode": "options",
+      "options": ["have", "of", "off", "are"],
+      "correctIndex": 0,
+      "explain": "\"Have\" is the correct verb. \"Of\" is often confused with \"have\" in speech.",
+      "wrongExplanations": [
+        "\"Of\" is not a verb and doesn't fit here.",
+        "\"Off\" doesn't fit the meaning.",
+        "\"Are\" doesn't fit the subject \"I\" in this sentence."
+      ],
+      "clusterId": "confusions-have-of-1",
+      "variant": "1"
+    },
+    {
+      "id": 17,
+      "groupId": 4,
+      "text": "Choose the correct form: \"Its/It's tail is wagging.\"",
+      "mode": "options",
+      "options": ["Its", "It's", "Either one is correct", "Neither is correct"],
+      "correctIndex": 0,
+      "explain": "\"Its\" is possessive (belongs to it). \"It's\" means \"it is.\"",
+      "wrongExplanations": [
+        "\"It's\" means \"it is\"; here we need possession.",
+        "Only \"its\" is correct here.",
+        "\"Its\" is correct."
+      ],
+      "clusterId": "confusions-its-1",
+      "variant": "1"
+    },
+    {
+      "id": 18,
+      "groupId": 1,
+      "text": "Choose the best conjunction to complete the sentence: \"I wanted to go, ___ it was too late.\"",
+      "mode": "options",
+      "options": ["and", "but", "because", "so"],
+      "correctIndex": 1,
+      "explain": "\"But\" shows contrast between wanting to go and it being too late.",
+      "wrongExplanations": [
+        "\"And\" joins similar ideas, not contrasting ones.",
+        "\"Because\" would explain a reason, but the sentence is contrasting.",
+        "\"So\" shows cause/effect; here we need contrast."
+      ],
+      "clusterId": "sentence-conjunctions-1",
+      "variant": "1"
+    },
+    {
+      "id": 19,
+      "groupId": 2,
+      "text": "Choose the correct subject-verb agreement: \"The list of items ___ on the desk.\"",
+      "mode": "options",
+      "options": ["are", "is", "were", "be"],
+      "correctIndex": 1,
+      "explain": "The subject is \"list\" (singular), so the verb is singular: \"is.\"",
+      "wrongExplanations": [
+        "\"Are\" is plural; the subject is singular.",
+        "\"Were\" is past tense and also plural here.",
+        "\"Be\" is not the correct conjugation."
+      ],
+      "clusterId": "agreement-list-1",
+      "variant": "1"
+    }
+  ]
+}
+
+
