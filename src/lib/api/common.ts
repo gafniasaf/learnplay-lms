@@ -109,6 +109,27 @@ export async function fetchWithTimeout(
 }
 
 /**
+ * Check if we're in dev/preview mode (Lovable, localhost, etc.)
+ * In dev mode, we use agent token auth instead of user session auth
+ */
+export function isDevMode(): boolean {
+  if (typeof window === 'undefined') return false;
+  const hostname = window.location.hostname;
+  return (
+    hostname.includes('lovable') ||
+    hostname.includes('localhost') ||
+    hostname.includes('127.0.0.1') ||
+    hostname.includes('lovableproject.com') ||
+    // Check URL param override
+    new URLSearchParams(window.location.search).get('devMode') === '1'
+  );
+}
+
+// Dev mode credentials (safe to expose - only work in dev)
+const DEV_AGENT_TOKEN = 'learnplay-agent-token';
+const DEV_ORG_ID = '4d7b0a5c-3cf1-49e5-9ad7-bf6c1f8a2f58';
+
+/**
  * Call an edge function with authentication and automatic retry on 401
  * @param functionName - Name of the edge function
  * @param payload - Request payload
@@ -126,6 +147,17 @@ export async function callEdgeFunction<TRequest, TResponse>(
   const anonKey = getSupabaseAnonKey();
   const { maxRetries = 1, timeoutMs = 30000 } = options;
   const guestMode = isGuestMode();
+  const devMode = isDevMode();
+
+  // In dev mode, use agent token auth (bypasses user session issues)
+  if (devMode) {
+    console.log(`[callEdgeFunction:${functionName}] 🔧 DEV MODE - using agent token auth`);
+    return await callEdgeFunctionWithAgentToken<TRequest, TResponse>(
+      functionName, 
+      payload, 
+      { timeoutMs }
+    );
+  }
 
   // Get auth token DIRECTLY from session (not cached)
   const { data: { session }, error: sessionError } = await supabase.auth.getSession();
@@ -318,7 +350,78 @@ function isGuestMode(): boolean {
 }
 
 /**
- * Call an edge function with GET method
+ * Call an edge function with agent token auth (for dev/preview mode)
+ * This bypasses user session and uses a pre-configured agent token
+ */
+async function callEdgeFunctionWithAgentToken<TRequest, TResponse>(
+  functionName: string,
+  payload: TRequest,
+  options: { timeoutMs?: number } = {}
+): Promise<TResponse> {
+  const supabaseUrl = getSupabaseUrl();
+  const anonKey = getSupabaseAnonKey();
+  const { timeoutMs = 30000 } = options;
+
+  const url = `${supabaseUrl}/functions/v1/${functionName}`;
+
+  console.log(`[callEdgeFunctionWithAgentToken:${functionName}] Making request with agent token`);
+
+  let res: Response;
+  try {
+    res = await fetchWithTimeout(
+      url,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${anonKey}`,
+          "apikey": anonKey,
+          "x-agent-token": DEV_AGENT_TOKEN,
+          "x-organization-id": DEV_ORG_ID,
+        },
+        body: JSON.stringify(payload),
+      },
+      timeoutMs
+    );
+  } catch (fetchError) {
+    const errMsg = fetchError instanceof Error ? fetchError.message.toLowerCase() : String(fetchError).toLowerCase();
+    if (errMsg.includes('cors') || errMsg.includes('blocked') || errMsg.includes('failed to fetch')) {
+      throw new ApiError(
+        `CORS error: Edge function ${functionName} is not accessible. This may be a deployment issue.`,
+        "CORS_ERROR",
+        0,
+        { functionName, url }
+      );
+    }
+    throw fetchError;
+  }
+
+  if (!res.ok) {
+    const errorText = await res.text();
+    let errorData;
+    try {
+      errorData = JSON.parse(errorText);
+    } catch {
+      errorData = { message: errorText };
+    }
+    
+    console.error(`[callEdgeFunctionWithAgentToken:${functionName}] Error ${res.status}:`, errorData);
+    
+    throw new ApiError(
+      errorData.message || errorData.error || `Edge function ${functionName} failed`,
+      errorData.code || "API_ERROR",
+      res.status,
+      errorData
+    );
+  }
+
+  const data = await res.json();
+  console.log(`[callEdgeFunctionWithAgentToken:${functionName}] ✅ Success`);
+  return data as TResponse;
+}
+
+/**
+ * Call an edge function with GET method (also supports dev mode)
  */
 export async function callEdgeFunctionGet<TResponse>(
   functionName: string,
@@ -329,17 +432,31 @@ export async function callEdgeFunctionGet<TResponse>(
   const supabaseUrl = getSupabaseUrl();
   const anonKey = getSupabaseAnonKey();
   const { timeoutMs = 30000 } = options;
+  const devMode = isDevMode();
 
   const queryString = params
     ? `?${new URLSearchParams(params).toString()}`
     : "";
   const url = `${supabaseUrl}/functions/v1/${functionName}${queryString}`;
 
-  const token = await getAccessToken();
+  // In dev mode, use agent token auth
+  if (devMode) {
+    console.log(`[callEdgeFunctionGet:${functionName}] 🔧 DEV MODE - using agent token auth`);
+  }
+
+  const token = devMode ? null : await getAccessToken();
   const guestMode = isGuestMode();
 
-  // Use token if available, otherwise use anon key for guest mode
-  const authHeader = token ? `Bearer ${token}` : `Bearer ${anonKey}`;
+  // Build headers - add agent token in dev mode
+  const headers: Record<string, string> = {
+    "Authorization": token ? `Bearer ${token}` : `Bearer ${anonKey}`,
+    "apikey": anonKey,
+  };
+  
+  if (devMode) {
+    headers["x-agent-token"] = DEV_AGENT_TOKEN;
+    headers["x-organization-id"] = DEV_ORG_ID;
+  }
 
   let res: Response;
   try {
@@ -347,10 +464,7 @@ export async function callEdgeFunctionGet<TResponse>(
       url,
       {
         method: "GET",
-        headers: {
-          Authorization: authHeader,
-          apikey: anonKey,
-        },
+        headers,
       },
       timeoutMs
     );
