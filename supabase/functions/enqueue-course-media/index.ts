@@ -1,15 +1,14 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { withCors } from "../_shared/cors.ts";
 
-const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
-const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-const AGENT_TOKEN = Deno.env.get("AGENT_TOKEN");
+const SUPABASE_URL = Deno.env.get("SUPABASE_URL") || null;
+const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || null;
+const AGENT_TOKEN = Deno.env.get("AGENT_TOKEN") || null;
 
-if (!SUPABASE_URL) throw new Error("SUPABASE_URL is required");
-if (!SUPABASE_SERVICE_ROLE_KEY) throw new Error("SUPABASE_SERVICE_ROLE_KEY is required");
-if (!AGENT_TOKEN) throw new Error("AGENT_TOKEN is required");
-
-const adminSupabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+const adminSupabase =
+  SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY
+    ? createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
+    : null;
 
 type Body = {
   courseId: string;
@@ -23,6 +22,20 @@ type Body = {
 
 Deno.serve(withCors(async (req: Request): Promise<Response> => {
   const requestId = crypto.randomUUID();
+
+  if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY || !AGENT_TOKEN || !adminSupabase) {
+    return new Response(JSON.stringify({
+      error: {
+        code: "blocked",
+        message: "BLOCKED: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, and AGENT_TOKEN are required",
+      },
+      requestId,
+      timestamp: new Date().toISOString(),
+    }), {
+      status: 500,
+      headers: { "Content-Type": "application/json", "X-Request-Id": requestId },
+    });
+  }
 
   if (req.method !== "POST") {
     return new Response(JSON.stringify({ error: "Method not allowed" }), {
