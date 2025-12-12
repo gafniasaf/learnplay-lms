@@ -28,7 +28,13 @@ serve(async (req: Request): Promise<Response> => {
 
   // Optional: verify agent token for security
   const agentToken = req.headers.get("x-agent-token");
-  const expectedToken = Deno.env.get("AGENT_TOKEN") || "learnplay-agent-token";
+  const expectedToken = Deno.env.get("AGENT_TOKEN");
+  if (!expectedToken) {
+    return new Response(JSON.stringify({ error: "BLOCKED: AGENT_TOKEN is required" }), { 
+      status: 500, 
+      headers: stdHeaders(req, { "Content-Type": "application/json" }) 
+    });
+  }
   if (agentToken !== expectedToken) {
     return new Response(JSON.stringify({ error: "Unauthorized" }), { 
       status: 401, 

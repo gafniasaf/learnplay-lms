@@ -21,17 +21,22 @@ function requireEnvVar(name: string, allowMissing = false): string {
 }
 
 // Supabase configuration
-// Allow missing in non-live mode (tests can skip gracefully)
-const isLiveTest = process.env.RUN_LIVE_INTEGRATION === 'true';
-export const SUPABASE_URL = process.env.SUPABASE_URL || 
-                           process.env.VITE_SUPABASE_URL || 
-                           requireEnvVar('SUPABASE_URL', !isLiveTest) ||
-                           'https://eidcegehaswbtzrwzvfa.supabase.co'; // Default dev URL
+// Per repo policy: NO hardcoded defaults. Load from env or learnplay.env.
+import { loadLearnPlayEnv } from '@/../tests/helpers/parse-learnplay-env';
+loadLearnPlayEnv();
 
-export const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || 
-                                 process.env.VITE_SUPABASE_ANON_KEY || 
-                                 requireEnvVar('SUPABASE_ANON_KEY', !isLiveTest) ||
-                                 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVpZGNlZ2VoYXN3YnR6cnd6dmZhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ4NDYzNTAsImV4cCI6MjA4MDQyMjM1MH0.DpXOHjccnVEewnPF5gA6tw27TcRXkkAfgrJkn0NvT_Q'; // Default dev key
+const isLiveTest = process.env.RUN_LIVE_INTEGRATION === 'true';
+
+export const SUPABASE_URL =
+  process.env.SUPABASE_URL ||
+  process.env.VITE_SUPABASE_URL ||
+  requireEnvVar('SUPABASE_URL', !isLiveTest);
+
+export const SUPABASE_ANON_KEY =
+  process.env.SUPABASE_ANON_KEY ||
+  process.env.VITE_SUPABASE_ANON_KEY ||
+  process.env.VITE_SUPABASE_PUBLISHABLE_KEY ||
+  requireEnvVar('SUPABASE_ANON_KEY', !isLiveTest);
 
 // Agent token for service-level authentication
 export const AGENT_TOKEN = process.env.AGENT_TOKEN;
