@@ -59,6 +59,8 @@ const config: PlaywrightTestConfig = {
     env: {
       // LIVE MODE - no mocking!
       VITE_USE_MOCK: 'false',
+      // Ensure localhost runs use real session auth (not dev agent-token mode)
+      VITE_FORCE_LIVE: 'true',
       VITE_SUPABASE_URL: supabaseUrl,
       VITE_SUPABASE_ANON_KEY: supabaseKey,
       // Use real LLM APIs (no mocking)

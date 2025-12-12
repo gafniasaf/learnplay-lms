@@ -12,6 +12,8 @@ import { getRuntimeConfigSync } from "@/lib/runtimeConfig";
 // DEV_OPEN_UI is an explicit override for preview-only environments.
 // IMPORTANT: This must be OFF for end-client (production) builds.
 const DEV_OPEN_UI = import.meta.env.VITE_DEV_OPEN_UI === "true";
+// Force product-like behavior even on localhost (used by live Playwright runs)
+const FORCE_LIVE = import.meta.env.VITE_FORCE_LIVE === "true";
 const DEV_SUPABASE_URL_FALLBACK = "https://eidcegehaswbtzrwzvfa.supabase.co";
 const DEV_SUPABASE_ANON_KEY_FALLBACK =
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVpZGNlZ2VoYXN3YnR6cnd6dmZhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ4NDYzNTAsImV4cCI6MjA4MDQyMjM1MH0.DpXOHjccnVEewnPF5gA6tw27TcRXkkAfgrJkn0NvT_Q";
@@ -143,6 +145,7 @@ export async function fetchWithTimeout(
  */
 export function isDevMode(): boolean {
   if (typeof window === 'undefined') return false;
+  if (FORCE_LIVE) return false;
   const hostname = window.location.hostname;
   const isLovable = hostname.includes('lovable') || hostname.includes('lovableproject.com');
   const isLocalhost = hostname.includes('localhost') || hostname.includes('127.0.0.1');
