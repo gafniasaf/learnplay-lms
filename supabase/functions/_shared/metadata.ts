@@ -71,19 +71,8 @@ export async function upsertCourseMetadata(
     throw new Error(`Failed to upsert course_metadata: ${metadataErr.message ?? String(metadataErr)}`);
   }
 
-  const { error: coursesErr } = await supabase
-    .from("courses")
-    .upsert({
-      id: courseId,
-      name: title,
-      subject: content.subject || "General",
-      grade_band: content.gradeBand || "All Grades",
-      updated_at: new Date().toISOString(),
-    }, { onConflict: "id" });
-
-  if (coursesErr) {
-    throw new Error(`Failed to upsert courses: ${coursesErr.message ?? String(coursesErr)}`);
-  }
+  // NOTE: This repo's canonical relational index is course_metadata.
+  // Some older prototypes had a separate `courses` table; do not assume it exists.
 
   try {
     const { data: versionNum } = await supabase.rpc("get_next_catalog_version");
