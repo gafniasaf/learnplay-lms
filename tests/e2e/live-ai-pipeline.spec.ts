@@ -41,10 +41,12 @@ test.describe('Live AI Pipeline: Course Creation', () => {
 
   test('complete course creation with LLM text and DALL-E images', async ({ page }) => {
     const testSubject = `E2E Test Course ${Date.now()}`;
+    let courseId: string | null = null;
     
     // Step 1: Navigate to AI pipeline page
     await page.goto('/admin/ai-pipeline');
-    await page.waitForLoadState('networkidle');
+    // Avoid `networkidle` (admin pages poll/realtime and may never become idle)
+    await page.waitForLoadState('domcontentloaded');
     
     // Step 2: Find and fill Quick Start form
     // Look for subject input (required field)
@@ -80,7 +82,7 @@ test.describe('Live AI Pipeline: Course Creation', () => {
     // Fallback: extract courseId from /admin/jobs table if localStorage isn't populated
     if (!selectedCourseId) {
       await page.goto('/admin/jobs');
-      await page.waitForLoadState('networkidle');
+      await page.waitForLoadState('domcontentloaded');
       const row = page.locator(`tr:has-text("${testSubject}")`).first();
       const hasRow = await row.isVisible({ timeout: 10000 }).catch(() => false);
       if (hasRow) {
@@ -103,7 +105,6 @@ test.describe('Live AI Pipeline: Course Creation', () => {
     
     // Extract job ID from the page or toast
     let jobId: string | null = null;
-    let courseId: string | null = null;
     const jobIdText = await page.locator('text=/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i').first().textContent().catch(() => null);
     if (jobIdText) {
       const match = jobIdText.match(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i);
@@ -113,7 +114,7 @@ test.describe('Live AI Pipeline: Course Creation', () => {
     // Step 5: Monitor job progress via API or UI
     // Navigate to jobs page to monitor progress
     await page.goto('/admin/jobs');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
     
     // If we have a job ID, try to find it in the list
     if (jobId) {
@@ -137,7 +138,7 @@ test.describe('Live AI Pipeline: Course Creation', () => {
     
     while (!jobComplete && (Date.now() - startTime) < maxWaitTime) {
       await page.reload();
-      await page.waitForLoadState('networkidle');
+      await page.waitForLoadState('domcontentloaded');
       await page.waitForTimeout(2000); // Wait for content to load
       
       const pageContent = await page.locator('body').textContent() || '';
@@ -201,7 +202,7 @@ test.describe('Live AI Pipeline: Course Creation', () => {
 
       // Open editor (correct route) and verify it loads (not 404)
       await page.goto(`/admin/editor/${courseId}`);
-      await page.waitForLoadState('networkidle');
+      await page.waitForLoadState('domcontentloaded');
       
       // Verify NOT 404 (would catch route bug)
       const is404 = await page.locator('text=/404|not found/i').isVisible({ timeout: 2000 }).catch(() => false);
@@ -249,7 +250,7 @@ test.describe('Live AI Pipeline: Course Editor LLM Features', () => {
   test('course editor LLM rewrite feature works', async ({ page }) => {
     // Navigate to catalog and pick a course, or skip if none are visible
     await page.goto('/courses');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
     
     const courseLink = page.locator('a[href*="/play/"], a[href*="/admin/editor/"]').first();
     const hasCourse = await courseLink.isVisible({ timeout: 5000 }).catch(() => false);
@@ -260,7 +261,7 @@ test.describe('Live AI Pipeline: Course Editor LLM Features', () => {
     }
     
     await courseLink.click();
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
     
     // Look for AI rewrite button or feature
     // This might be in a tab or toolbar
@@ -295,19 +296,9 @@ test.describe('Live AI Pipeline: Course Editor LLM Features', () => {
   }, 120000); // 2 minute timeout
 
   test('course editor variants audit works', async ({ page }) => {
-    await page.goto('/admin/courses');
-    await page.waitForLoadState('networkidle');
-    
-    const courseLink = page.locator('a[href*="/admin/courses/"]').first();
-    const hasCourse = await courseLink.isVisible({ timeout: 5000 }).catch(() => false);
-    
-    if (!hasCourse) {
-      console.log('No courses found - skipping variants audit test');
-      return;
-    }
-    
-    await courseLink.click();
-    await page.waitForLoadState('networkidle');
+    // Use seeded real course directly (avoids empty lists / route drift)
+    await page.goto('/admin/editor/english-grammar-foundations');
+    await page.waitForLoadState('domcontentloaded');
     
     // Look for variants or audit button
     const variantsButton = page.locator('button:has-text("Variants"), button:has-text("Audit"), [data-testid*="variants"]').first();
@@ -327,19 +318,9 @@ test.describe('Live AI Pipeline: Course Editor LLM Features', () => {
   }, 120000);
 
   test('course editor co-pilot features work', async ({ page }) => {
-    await page.goto('/admin/courses');
-    await page.waitForLoadState('networkidle');
-    
-    const courseLink = page.locator('a[href*="/admin/courses/"]').first();
-    const hasCourse = await courseLink.isVisible({ timeout: 5000 }).catch(() => false);
-    
-    if (!hasCourse) {
-      console.log('No courses found - skipping co-pilot test');
-      return;
-    }
-    
-    await courseLink.click();
-    await page.waitForLoadState('networkidle');
+    // Use seeded real course directly (avoids empty lists / route drift)
+    await page.goto('/admin/editor/english-grammar-foundations');
+    await page.waitForLoadState('domcontentloaded');
     
     // Look for co-pilot buttons (Enrich, Variants, Localize)
     const copilotButtons = [
@@ -365,50 +346,23 @@ test.describe('Live AI Pipeline: Storage & Retrieval', () => {
   test.use({ storageState: 'playwright/.auth/admin.json' });
 
   test('created course is stored and retrievable', async ({ page }) => {
-    // Navigate to courses list
-    await page.goto('/admin/courses');
-    await page.waitForLoadState('networkidle');
-    
-    // Verify courses page loads
-    const hasCourses = await page.getByText(/course|catalog/i).isVisible({ timeout: 10000 }).catch(() => false);
-    expect(hasCourses).toBeTruthy();
-    
-    // Check if courses are listed (could be empty)
-    const courseLinks = page.locator('a[href*="/admin/courses/"]');
-    const courseCount = await courseLinks.count();
-    
-    console.log(`Found ${courseCount} courses in list`);
-    
-    // If courses exist, verify one can be opened
-    if (courseCount > 0) {
-      await courseLinks.first().click();
-      await page.waitForLoadState('networkidle');
-      
-      // Verify course editor loaded
-      const hasEditor = await page.getByText(/edit|course|item/i).isVisible({ timeout: 10000 }).catch(() => false);
-      expect(hasEditor).toBeTruthy();
-      
-      // Verify course data is present
-      const courseContent = await page.locator('body').textContent();
-      expect(courseContent).toBeTruthy();
-      expect(courseContent?.length).toBeGreaterThan(500);
-    }
+    // Verify via Edge Functions (real storage), not UI lists (route drift/polling)
+    const { url, anonKey } = getSupabaseBase();
+    const res = await page.request.get(`${url}/functions/v1/get-course?courseId=english-grammar-foundations`, {
+      headers: { apikey: anonKey },
+    });
+    expect(res.ok()).toBeTruthy();
   });
 
   test('course catalog displays created courses', async ({ page }) => {
-    // Navigate to admin console which shows course catalog
-    await page.goto('/admin/console');
-    await page.waitForLoadState('networkidle');
-    
-    // Check for course content on the page
-    const pageContent = await page.locator('body').textContent() || '';
-    
-    // Page should load with meaningful content
-    expect(pageContent.length).toBeGreaterThan(100);
-    
-    // Should have either courses or main content area
-    const hasMain = await page.locator('main').isVisible({ timeout: 5000 }).catch(() => false);
-    expect(hasMain).toBeTruthy();
+    const { url, anonKey } = getSupabaseBase();
+    const res = await page.request.get(`${url}/functions/v1/list-courses?limit=50`, {
+      headers: { apikey: anonKey },
+    });
+    expect(res.ok()).toBeTruthy();
+    const data = await res.json();
+    const ids = (data.items || []).map((it: any) => it.id);
+    expect(ids).toContain('english-grammar-foundations');
   });
 });
 
@@ -416,48 +370,31 @@ test.describe('Live AI Pipeline: Image Generation', () => {
   test.use({ storageState: 'playwright/.auth/admin.json' });
 
   test('DALL-E images are generated and stored', async ({ page }) => {
-    // This test verifies that image generation jobs are created
-    // Navigate to a course with images
-    await page.goto('/admin/courses');
-    await page.waitForLoadState('networkidle');
-    
-    const courseLink = page.locator('a[href*="/admin/courses/"]').first();
-    const hasCourse = await courseLink.isVisible({ timeout: 5000 }).catch(() => false);
-    
-    if (!hasCourse) {
-      console.log('No courses found - skipping image generation test');
-      return;
-    }
-    
-    await courseLink.click();
-    await page.waitForLoadState('networkidle');
-    
-    // Look for media library or image references
-    const mediaButton = page.locator('button:has-text("Media"), button:has-text("Images"), [data-testid*="media"]').first();
-    const hasMediaButton = await mediaButton.isVisible({ timeout: 5000 }).catch(() => false);
-    
-    if (hasMediaButton) {
-      await mediaButton.click();
-      await page.waitForTimeout(2000);
-      
-      // Check for images in media library
-      const images = page.locator('img, [data-testid*="image"]');
-      const imageCount = await images.count();
-      
-      console.log(`Found ${imageCount} images in media library`);
-      
-      // Verify media library loaded
-      const hasMediaLibrary = await page.getByText(/media|image|library/i).isVisible({ timeout: 5000 }).catch(() => false);
-      expect(hasMediaLibrary).toBeTruthy();
-    }
-    
-    // Also check for image references in course content
-    const courseContent = await page.locator('body').textContent();
-    const hasImageRefs = courseContent?.toLowerCase().includes('[image:') || 
-                        courseContent?.toLowerCase().includes('image') ||
-                        courseContent?.toLowerCase().includes('diagram');
-    
-    console.log(`Course has image references: ${hasImageRefs}`);
+    // Use the real media pipeline (enqueue-course-media + media-runner), no UI scraping
+    const { url, anonKey } = getSupabaseBase();
+    const agentToken = requireEnv('AGENT_TOKEN');
+
+    const enqueueRes = await page.request.post(`${url}/functions/v1/enqueue-course-media`, {
+      headers: { 'Content-Type': 'application/json', 'x-agent-token': agentToken, apikey: anonKey, Authorization: `Bearer ${anonKey}` },
+      data: { courseId: 'english-grammar-foundations', itemId: 0, prompt: 'A kid-friendly illustration for the first question', provider: 'openai-dalle3' },
+    });
+    expect(enqueueRes.ok()).toBeTruthy();
+
+    const runRes = await page.request.post(`${url}/functions/v1/media-runner?n=1`, {
+      headers: { 'Content-Type': 'application/json', 'x-agent-token': agentToken },
+      data: {},
+    });
+    expect(runRes.ok()).toBeTruthy();
+
+    const after = await page.request.get(`${url}/functions/v1/get-course?courseId=english-grammar-foundations`, {
+      headers: { apikey: anonKey },
+    });
+    expect(after.ok()).toBeTruthy();
+    const afterJson = await after.json();
+    const payload = afterJson?.content ?? afterJson;
+    const stim = payload?.items?.[0]?.stimulus;
+    expect(stim?.type).toBe('image');
+    expect(typeof stim?.url).toBe('string');
   });
 });
 
