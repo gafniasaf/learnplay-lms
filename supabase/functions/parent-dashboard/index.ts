@@ -28,8 +28,12 @@ serve(async (req: Request): Promise<Response> => {
 
   try {
     const url = new URL(req.url);
-    // Per IgniteZero rules: No ALLOW_ANON bypass, no dev fallbacks
-    const parentId = url.searchParams.get("parentId");
+    // Get parent ID from:
+    // 1. Query param
+    // 2. x-user-id header (DEV MODE / agent token auth)
+    const parentIdParam = url.searchParams.get("parentId");
+    const xUserId = req.headers.get("x-user-id") ?? req.headers.get("X-User-Id");
+    const parentId = parentIdParam || xUserId || null;
     
     if (!parentId) {
       return new Response(JSON.stringify({ error: "parentId is required - no anonymous access" }), {

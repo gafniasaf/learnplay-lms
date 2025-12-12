@@ -22,7 +22,9 @@ export async function authenticateRequest(req: Request): Promise<AuthContext> {
   const agentHeader = req.headers.get("x-agent-token") ?? req.headers.get("X-Agent-Token");
   if (AGENT_TOKEN && agentHeader === AGENT_TOKEN) {
     const organizationId = req.headers.get("x-organization-id") ?? req.headers.get("X-Organization-Id") ?? undefined;
-    return { type: "agent", organizationId };
+    // Allow passing user ID for agent token auth (DEV MODE or background workers)
+    const userId = req.headers.get("x-user-id") ?? req.headers.get("X-User-Id") ?? undefined;
+    return { type: "agent", organizationId, userId };
   }
 
   const authHeader = req.headers.get("Authorization");

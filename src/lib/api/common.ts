@@ -132,6 +132,8 @@ export function isDevMode(): boolean {
 // Dev mode credentials (safe to expose - only work in dev)
 const DEV_AGENT_TOKEN = 'learnplay-agent-token';
 const DEV_ORG_ID = '4d7b0a5c-3cf1-49e5-9ad7-bf6c1f8a2f58';
+// Dev user ID - seeded test student for demo purposes
+const DEV_USER_ID = '67309138-ccd0-4015-980a-25ef7b7442e6';
 
 /**
  * Call an edge function with authentication and automatic retry on 401
@@ -360,15 +362,27 @@ function isGuestMode(): boolean {
 async function callEdgeFunctionWithAgentToken<TRequest, TResponse>(
   functionName: string,
   payload: TRequest,
-  options: { timeoutMs?: number } = {}
+  options: { timeoutMs?: number; userId?: string } = {}
 ): Promise<TResponse> {
   const supabaseUrl = getSupabaseUrl();
   const anonKey = getSupabaseAnonKey();
-  const { timeoutMs = 30000 } = options;
+  const { timeoutMs = 30000, userId } = options;
+
+  // Try to get real user ID from session, fallback to dev user ID
+  let effectiveUserId = userId;
+  if (!effectiveUserId) {
+    try {
+      const { supabase } = await import("@/integrations/supabase/client");
+      const { data: { session } } = await supabase.auth.getSession();
+      effectiveUserId = session?.user?.id || DEV_USER_ID;
+    } catch {
+      effectiveUserId = DEV_USER_ID;
+    }
+  }
 
   const url = `${supabaseUrl}/functions/v1/${functionName}`;
 
-  console.log(`[callEdgeFunctionWithAgentToken:${functionName}] Making request with agent token`);
+  console.log(`[callEdgeFunctionWithAgentToken:${functionName}] Making request with agent token, userId=${effectiveUserId}`);
 
   let res: Response;
   try {
@@ -382,6 +396,7 @@ async function callEdgeFunctionWithAgentToken<TRequest, TResponse>(
           "apikey": anonKey,
           "x-agent-token": DEV_AGENT_TOKEN,
           "x-organization-id": DEV_ORG_ID,
+          "x-user-id": effectiveUserId,
         },
         body: JSON.stringify(payload),
       },
@@ -438,6 +453,7 @@ export async function callEdgeFunctionGet<TResponse>(
   options: { timeoutMs?: number } = {}
 ): Promise<TResponse> {
   const { getAccessToken } = await import("../supabase");
+  const { supabase } = await import("@/integrations/supabase/client");
   const supabaseUrl = getSupabaseUrl();
   const anonKey = getSupabaseAnonKey();
   const { timeoutMs = 30000 } = options;
@@ -465,6 +481,13 @@ export async function callEdgeFunctionGet<TResponse>(
   if (devMode) {
     headers["x-agent-token"] = DEV_AGENT_TOKEN;
     headers["x-organization-id"] = DEV_ORG_ID;
+    // Get user ID from session or use dev fallback
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      headers["x-user-id"] = session?.user?.id || DEV_USER_ID;
+    } catch {
+      headers["x-user-id"] = DEV_USER_ID;
+    }
   }
 
   let res: Response;

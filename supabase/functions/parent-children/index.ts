@@ -20,7 +20,10 @@ serve(async (req: Request): Promise<Response> => {
 
   try {
     const url = new URL(req.url);
-    const parentId = url.searchParams.get("parentId") || undefined;
+    // Get parent ID from query param or x-user-id header (DEV MODE)
+    const parentIdParam = url.searchParams.get("parentId");
+    const xUserId = req.headers.get("x-user-id") ?? req.headers.get("X-User-Id");
+    const parentId = parentIdParam || xUserId || undefined;
     if (!parentId) {
       return new Response(JSON.stringify({ error: "parentId is required" }), {
         status: 400,

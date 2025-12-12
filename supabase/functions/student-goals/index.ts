@@ -61,13 +61,14 @@ serve(withCors(async (req) => {
         Deno.env.get("SUPABASE_URL")!,
         Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
       );
-      // For agent calls, get studentId from query params (required)
+      // For agent calls, get studentId from query params or x-user-id header
       const url = new URL(req.url);
       const studentId = url.searchParams.get("studentId");
-      if (!studentId) {
+      const xUserId = req.headers.get("x-user-id") ?? req.headers.get("X-User-Id");
+      if (!studentId && !xUserId) {
         return Errors.invalidRequest("studentId required for agent auth", requestId, req);
       }
-      userId = studentId;
+      userId = studentId || xUserId!;
     } else {
       // User auth - require Authorization header
       const authHeader = req.headers.get("Authorization");

@@ -22,9 +22,13 @@ Deno.serve(withCors(async (req: Request) => {
   const url = new URL(req.url);
   const studentId = url.searchParams.get("studentId");
   
-  // Get student ID from auth if not provided
+  // Get student ID from:
+  // 1. Query param
+  // 2. x-user-id header (DEV MODE / agent token auth)
+  // 3. Auth JWT token
+  const xUserId = req.headers.get("x-user-id") ?? req.headers.get("X-User-Id");
   const authHeader = req.headers.get("authorization");
-  let resolvedStudentId = studentId;
+  let resolvedStudentId = studentId || xUserId || null;
   
   if (!resolvedStudentId && authHeader) {
     try {
