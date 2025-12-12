@@ -115,14 +115,18 @@ export async function fetchWithTimeout(
 export function isDevMode(): boolean {
   if (typeof window === 'undefined') return false;
   const hostname = window.location.hostname;
-  return (
-    hostname.includes('lovable') ||
-    hostname.includes('localhost') ||
-    hostname.includes('127.0.0.1') ||
-    hostname.includes('lovableproject.com') ||
-    // Check URL param override
-    new URLSearchParams(window.location.search).get('devMode') === '1'
-  );
+  const isLovable = hostname.includes('lovable') || hostname.includes('lovableproject.com');
+  const isLocalhost = hostname.includes('localhost') || hostname.includes('127.0.0.1');
+  const isUrlOverride = new URLSearchParams(window.location.search).get('devMode') === '1';
+  const devMode = isLovable || isLocalhost || isUrlOverride;
+  
+  // Log once per session for debugging
+  if (typeof window !== 'undefined' && !(window as any).__devModeLogged) {
+    console.log(`[isDevMode] hostname=${hostname}, isLovable=${isLovable}, isLocalhost=${isLocalhost}, devMode=${devMode}`);
+    (window as any).__devModeLogged = true;
+  }
+  
+  return devMode;
 }
 
 // Dev mode credentials (safe to expose - only work in dev)
@@ -384,13 +388,18 @@ async function callEdgeFunctionWithAgentToken<TRequest, TResponse>(
       timeoutMs
     );
   } catch (fetchError) {
-    const errMsg = fetchError instanceof Error ? fetchError.message.toLowerCase() : String(fetchError).toLowerCase();
-    if (errMsg.includes('cors') || errMsg.includes('blocked') || errMsg.includes('failed to fetch')) {
+    const errMsg = fetchError instanceof Error ? fetchError.message : String(fetchError);
+    console.error(`[callEdgeFunctionWithAgentToken:${functionName}] Fetch error:`, errMsg);
+    
+    const lowerMsg = errMsg.toLowerCase();
+    if (lowerMsg.includes('cors') || lowerMsg.includes('blocked') || lowerMsg.includes('failed to fetch')) {
+      // Log more details for debugging
+      console.error(`[callEdgeFunctionWithAgentToken:${functionName}] Network/CORS error detected. URL: ${url}`);
       throw new ApiError(
-        `CORS error: Edge function ${functionName} is not accessible. This may be a deployment issue.`,
-        "CORS_ERROR",
+        `Network error calling ${functionName}: ${errMsg}. Check browser console for details.`,
+        "NETWORK_ERROR",
         0,
-        { functionName, url }
+        { functionName, url, originalError: errMsg }
       );
     }
     throw fetchError;
