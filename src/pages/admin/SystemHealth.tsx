@@ -67,6 +67,13 @@ export default function SystemHealthPage() {
   const [uiRun, setUiRun] = useState<UiAuditRun | null>(null);
 
   const callProxy = async (method: string, params: any = {}) => {
+    // Map special methods to correct Edge Function names
+    if (method === 'lms.uiAudit.summary') {
+      return await mcp.callGet('lms.ui-audit', { action: 'summary' });
+    }
+    if (method === 'lms.uiAudit.run') {
+      return await mcp.callGet('lms.ui-audit', { action: 'run' });
+    }
     return await mcp.call(method, params);
   };
 

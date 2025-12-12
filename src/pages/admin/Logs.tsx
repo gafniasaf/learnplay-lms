@@ -66,7 +66,7 @@ const Logs = () => {
   const loadLogs = useCallback(async () => {
     setLoading(true);
     try {
-      const response = await mcp.callGet<any>('lms.listEdgeLogs', { limit: "100" });
+      const response = await mcp.callGet<any>('lms.list-edge-logs', { limit: "100" });
       const records = (response?.logs || response?.records || []) as LogEntry[];
       setLogs(records);
       const fromLogs = records.map((log) => (log as any)?.function_name).filter(Boolean) as string[];

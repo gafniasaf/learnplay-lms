@@ -55,7 +55,7 @@ export async function getOrgConfig(options?: {
   if (options?.slug) params.slug = options.slug;
 
   // Use MCP proxy (routes through Edge Function with auth)
-  const data = await callEdgeFunctionGet<OrgConfig>('org-config', params);
+  const data = await callEdgeFunctionGet<OrgConfig>('get-org-config', params);
   
   if (!data) {
     throw new Error('Failed to fetch org config: No data returned');
