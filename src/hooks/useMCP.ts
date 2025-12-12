@@ -1302,14 +1302,20 @@ export function useMCP() {
   };
 
   // Dashboard Methods
-  const getDashboard = async (role: string) => {
+  const getDashboard = async (role: string, userId?: string) => {
     setLoading(true);
     try {
       if (useMockMode) {
         console.log('[MCP Mock] getDashboard:', role);
         return { summary: {}, data: [] };
       }
-      return await callEdgeFunctionGet<import('@/lib/types/edge-functions').TeacherDashboardResponse | import('@/lib/types/dashboard').Dashboard>(`get-dashboard?role=${role}`);
+      // get-dashboard Edge Function requires teacherId, not role
+      // For student/parent dashboards, use dedicated endpoints via useDashboard hook
+      if (!userId) {
+        console.warn('[useMCP] getDashboard called without userId - use useDashboard hook instead');
+        return { summary: {}, data: [] };
+      }
+      return await callEdgeFunctionGet<import('@/lib/types/edge-functions').TeacherDashboardResponse | import('@/lib/types/dashboard').Dashboard>('get-dashboard', { teacherId: userId });
     } finally {
       setLoading(false);
     }

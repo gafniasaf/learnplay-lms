@@ -2,18 +2,29 @@ import { useEffect, useState } from "react";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { GraduationCap, UsersRound, BookOpen, BarChart3, TrendingUp, Activity, Gamepad2, Clock } from "lucide-react";
 import { useMCP } from "@/hooks/useMCP";
+import { useAuth } from "@/hooks/useAuth";
 import { getApiMode } from "@/lib/api";
 import type { SchoolDashboard } from "@/lib/types/dashboard";
 
 const Schools = () => {
   const mcp = useMCP();
+  const { user, loading: authLoading } = useAuth();
   const [dashboard, setDashboard] = useState<SchoolDashboard | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // Wait for auth to load
+    if (authLoading) return;
+    
+    // If user is not authenticated, don't try to fetch
+    if (!user?.id) {
+      setLoading(false);
+      return;
+    }
+    
     const loadDashboard = async () => {
       try {
-        const data = await mcp.getDashboard("school") as SchoolDashboard;
+        const data = await mcp.getDashboard("school", user.id) as SchoolDashboard;
         setDashboard(data);
       } catch (error) {
         console.error("Failed to load dashboard:", error);
@@ -22,7 +33,7 @@ const Schools = () => {
       }
     };
     loadDashboard();
-  }, []);
+  }, [user?.id, authLoading, mcp]);
 
   if (loading) {
     return (

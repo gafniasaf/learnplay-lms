@@ -84,8 +84,62 @@ export async function getDashboard(role: DashboardRole): Promise<Dashboard> {
     };
   }
 
-  // Use generic get-dashboard for other roles
-  const data = await callEdgeFunctionGet<Dashboard>("get-dashboard", { role });
+  // For teacher/school/admin roles, get-dashboard requires teacherId, not role
+  // Get userId from authenticated user
+  const { getAccessToken } = await import("../supabase");
+  const { supabase: supabaseClient } = await import("@/integrations/supabase/client");
+  const token = await getAccessToken();
+  
+  if (!token) {
+    throw new Error("User not authenticated");
+  }
+  
+  const { data: { user } } = await supabaseClient.auth.getUser(token);
+  if (!user) {
+    throw new Error("User not found");
+  }
+  
+  // For parent role, use parent-dashboard endpoint
+  if (role === "parent") {
+    const response = await callEdgeFunctionGet<{
+      parentId: string;
+      children: any[];
+      summary: { totalChildren: number; totalAlerts: number; averageStreak: number; totalXp: number };
+      parentName?: string;
+    }>("parent-dashboard", { parentId: user.id });
+
+    logger.debug('Parent dashboard response received', { component: 'getDashboard', action: 'parent-dashboard' });
+
+    return {
+      role: "parent",
+      userId: user.id,
+      displayName: response.parentName || "",
+      stats: {
+        children: response.summary?.totalChildren || 0,
+        totalCoursesActive: 0,
+        totalCoursesCompleted: 0,
+        avgAccuracy: 0,
+        weeklyMinutes: 0,
+        monthlyProgress: 0,
+      },
+      children: response.children?.map(c => ({
+        id: c.studentId,
+        name: c.studentName,
+        grade: 0,
+        coursesActive: 0,
+        coursesCompleted: 0,
+        currentStreak: c.metrics?.streakDays || 0,
+        avgAccuracy: 0,
+        weeklyMinutes: 0,
+      })) || [],
+      upcoming: [],
+      recent: [],
+      recommendations: [],
+    };
+  }
+  
+  // For teacher/school/admin roles, use get-dashboard with teacherId
+  const data = await callEdgeFunctionGet<Dashboard>("get-dashboard", { teacherId: user.id });
 
   logger.debug('Dashboard data received', { component: 'getDashboard', role });
 
