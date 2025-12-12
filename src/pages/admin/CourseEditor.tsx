@@ -95,7 +95,7 @@ const CourseEditor = () => {
       setLoading(true);
       setError(null);
       editorTelemetry.opened(courseId); // Track editor opened
-      const courseData = await mcp.getCourse(courseId) as Course;
+      const courseData = await mcp.getCourse(courseId) as unknown as Course;
       
       // Transform course structure: group items by groupId
       const transformedCourse = { ...courseData };

@@ -20,7 +20,7 @@ export function useStudentAchievements(
 
   return useQuery<StudentAchievementsResponse>({
     queryKey: ['student-achievements', studentId],
-    queryFn: async () => mcp.getStudentAchievements(studentId) as Promise<StudentAchievementsResponse>,
+    queryFn: async () => mcp.getStudentAchievements(studentId) as unknown as Promise<StudentAchievementsResponse>,
     enabled: !!studentId,
     staleTime: 60_000,
     refetchOnWindowFocus: false,

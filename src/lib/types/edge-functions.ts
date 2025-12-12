@@ -40,25 +40,21 @@ export interface GetClassKOSummaryResponse {
 }
 
 export interface GetDomainGrowthResponse {
-  // Array of growth data points
-  // When implemented, should return:
-  // Array<{
-  //   domain: string;
-  //   date: string;
-  //   mastery: number;
-  //   studentsCount: number;
-  // }>;
+  domains?: Array<{
+    domain: string;
+    date: string;
+    mastery: number;
+    studentsCount: number;
+  }>;
 }
 
 export interface GetRecommendedCoursesResponse {
-  // Array of recommended courses
-  // When implemented, should return:
-  // Array<{
-  //   courseId: string;
-  //   title: string;
-  //   reason: string;
-  //   matchScore: number;
-  // }>;
+  courses?: Array<{
+    courseId: string;
+    title: string;
+    reason: string;
+    matchScore: number;
+  }>;
 }
 
 export interface StudentGoalsResponse {

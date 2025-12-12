@@ -19,7 +19,7 @@ export function useParentTopics(
 
   return useQuery<ParentTopicsResponse>({
     queryKey: ["parent-topics", serializedParams],
-    queryFn: async () => mcp.getParentTopics(params?.studentId || '') as Promise<ParentTopicsResponse>,
+    queryFn: async () => mcp.getParentTopics(params?.studentId || '') as unknown as Promise<ParentTopicsResponse>,
     enabled: (options.enabled !== false) && Boolean(params?.studentId),
     staleTime: 60_000,
     refetchOnWindowFocus: false,

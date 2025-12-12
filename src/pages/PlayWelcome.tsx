@@ -27,7 +27,7 @@ export default function PlayWelcome() {
         setLoading(true);
         const c = await mcp.getCourse(courseId);
         if (!mounted) return;
-        setCourse(c as Course);
+        setCourse(c as unknown as Course);
         setError(null);
       } catch (e: any) {
         if (!mounted) return;

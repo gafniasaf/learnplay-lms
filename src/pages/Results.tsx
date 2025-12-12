@@ -32,7 +32,7 @@ const Results = () => {
     
     const loadCourse = async () => {
       try {
-        const data = await mcp.getCourse(state.courseId) as Course;
+        const data = await mcp.getCourse(state.courseId) as unknown as Course;
         setCourse(data);
       } catch (err) {
         console.error("[Results] Failed to load course:", err);

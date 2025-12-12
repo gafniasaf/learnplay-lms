@@ -311,7 +311,7 @@ const Play = () => {
     const loadCourse = async () => {
       try {
         setLoading(true);
-        const data = await mcp.getCourse(courseId) as Course;
+        const data = await mcp.getCourse(courseId) as unknown as Course;
         setCourse(data);
         
         // Get level from URL (after course is loaded)

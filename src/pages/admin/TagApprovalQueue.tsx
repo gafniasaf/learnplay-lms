@@ -58,7 +58,7 @@ export default function TagApprovalQueue() {
       setLoading(true);
       
       // Load org config for tag types
-      const config = await mcp.getOrgConfig() as OrgConfig;
+      const config = await mcp.getOrgConfig() as unknown as OrgConfig;
       setOrgConfig(config);
 
       const response = await mcp.callGet<any>('lms.listTagSuggestions', { status: filterStatus === 'all' ? undefined : filterStatus });

@@ -2,6 +2,42 @@ import { useState } from 'react';
 // supabase import removed - not used directly
 import { JOB_MODES } from '@/lib/contracts';
 import { callEdgeFunctionGet } from '@/lib/api/common';
+import type {
+  SaveRecordResponse,
+  GetRecordResponse,
+  ListRecordsResponse,
+  ListJobsResponse,
+  ListCourseJobsResponse,
+  GetJobResponse,
+  GetStudentSkillsResponse,
+  GetClassKOSummaryResponse,
+  UpdateMasteryResponse,
+  GetDomainGrowthResponse,
+  GetRecommendedCoursesResponse,
+  GetAutoAssignSettingsResponse,
+  StudentGoalsResponse,
+  StudentTimelineResponse,
+  StudentAchievementsResponse,
+  ParentChildrenResponse,
+  ParentGoalsResponse,
+  ParentSubjectsResponse,
+  ParentTimelineResponse,
+  ParentTopicsResponse,
+  ListClassesResponse,
+  GetClassRosterResponse,
+  ListConversationsResponse,
+  ListMessagesResponse,
+  ListMediaJobsResponse,
+  ListAssignmentsResponse,
+  GetAssignmentProgressResponse,
+  GetCourseResponse,
+  SearchCoursesResponse,
+  GetClassProgressResponse,
+  GetAnalyticsResponse,
+  ListStudentsResponse,
+  GetOrgConfigResponse,
+  Assignment,
+} from '@/lib/types/edge-functions';
 
 // MCP Proxy settings (for local development only)
 // Per IgniteZero rules: No fallback tokens - require explicit configuration
