@@ -17,6 +17,7 @@ const adminSupabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
 interface EnqueueBody {
   jobType?: string;
   payload?: Record<string, unknown>;
+  runSync?: boolean; // Force synchronous execution (for testing/short jobs)
 }
 
 serve(async (req: Request): Promise<Response> => {
@@ -100,34 +101,57 @@ serve(async (req: Request): Promise<Response> => {
     jobId = insertResult?.id || crypto.randomUUID();
   }
 
-  await adminSupabase
-    .from("ai_course_jobs")
-    .update({ status: "processing", started_at: new Date().toISOString() })
-    .eq("id", jobId);
-
-  try {
-    const result = await runJob(body.jobType, payload, jobId);
+  // Job is now queued with status "pending"
+  // A separate worker (pg_cron / background job) will pick it up and run it
+  // This prevents Edge Function timeouts for long-running AI tasks
+  
+  // For short jobs, we can optionally run them inline
+  // Use runSync=true in body to force sync execution
+  const SHORT_RUNNING_JOBS = ['smoke-test', 'marketing'];
+  const runInline = body.runSync === true || SHORT_RUNNING_JOBS.includes(body.jobType);
+  
+  if (runInline) {
     await adminSupabase
       .from("ai_course_jobs")
-      .update({ status: "done", completed_at: new Date().toISOString() })
+      .update({ status: "processing", started_at: new Date().toISOString() })
       .eq("id", jobId);
 
-    return new Response(JSON.stringify({ ok: true, jobId, status: "completed", result }), {
-      status: 200,
-      headers: stdHeaders(req, { "Content-Type": "application/json" }),
-    });
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    await adminSupabase
-      .from("ai_course_jobs")
-      .update({ status: "failed", error: message, completed_at: new Date().toISOString() })
-      .eq("id", jobId);
+    try {
+      const result = await runJob(body.jobType, payload, jobId);
+      await adminSupabase
+        .from("ai_course_jobs")
+        .update({ status: "done", completed_at: new Date().toISOString() })
+        .eq("id", jobId);
 
-    // Return 200 since the enqueue operation succeeded, even if the job failed
-    // This allows verification tests to confirm the function is working
-    return new Response(JSON.stringify({ ok: false, jobId, status: "failed", error: message }), {
-      status: 200,
-      headers: stdHeaders(req, { "Content-Type": "application/json" }),
-    });
+      return new Response(JSON.stringify({ ok: true, jobId, status: "completed", result }), {
+        status: 200,
+        headers: stdHeaders(req, { "Content-Type": "application/json" }),
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      await adminSupabase
+        .from("ai_course_jobs")
+        .update({ status: "failed", error: message, completed_at: new Date().toISOString() })
+        .eq("id", jobId);
+
+      return new Response(JSON.stringify({ ok: false, jobId, status: "failed", error: message }), {
+        status: 200,
+        headers: stdHeaders(req, { "Content-Type": "application/json" }),
+      });
+    }
   }
+  
+  // For long-running jobs like ai_course_generate, return immediately
+  // The job will be processed by a background worker
+  console.log(`[enqueue-job] Job ${jobId} queued for async processing: ${body.jobType}`);
+  
+  return new Response(JSON.stringify({ 
+    ok: true, 
+    jobId, 
+    status: "queued",
+    message: "Job queued for processing. Poll /list-course-jobs to track status."
+  }), {
+    status: 200,
+    headers: stdHeaders(req, { "Content-Type": "application/json" }),
+  });
 });
