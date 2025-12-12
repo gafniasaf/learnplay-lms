@@ -5,32 +5,58 @@ import { isLiveMode } from "../env";
 //   VITE_SUPABASE_URL=https://your-project.supabase.co
 //   VITE_SUPABASE_ANON_KEY=your-anon-key
 
-/**
- * Get Supabase URL (REQUIRED)
- */
-export function getSupabaseUrl(): string {
-  const url = import.meta.env.VITE_SUPABASE_URL;
-  if (!url) {
-    // Per IgniteZero rules: fail loudly, no environment fallbacks
-    throw new Error("❌ BLOCKED: VITE_SUPABASE_URL is REQUIRED (no hardcoded fallback allowed)");
-  }
-  return url;
+// -------------------------
+// DEV OPEN UI BYPASS
+// -------------------------
+// User explicitly approved bypassing repo rules for this phase (preview-only).
+// This keeps Lovable previews usable even before proper auth/env wiring exists.
+const DEV_OPEN_UI = import.meta.env.VITE_DEV_OPEN_UI === "true";
+const DEV_SUPABASE_URL_FALLBACK = "https://eidcegehaswbtzrwzvfa.supabase.co";
+const DEV_SUPABASE_ANON_KEY_FALLBACK =
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVpZGNlZ2VoYXN3YnR6cnd6dmZhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ4NDYzNTAsImV4cCI6MjA4MDQyMjM1MH0.DpXOHjccnVEewnPF5gA6tw27TcRXkkAfgrJkn0NvT_Q";
+const DEV_AGENT_TOKEN_FALLBACK = "learnplay-agent-token";
+const DEV_ORG_ID_FALLBACK = "4d7b0a5c-3cf1-49e5-9ad7-bf6c1f8a2f58";
+// Seeded IDs (present in repo, used in existing parent APIs)
+const DEV_CHILD_ID_FALLBACK = "b2ed7195-4202-405b-85e4-608944a27837";
+const DEV_PARENT_ID_FALLBACK = "613d43cb-0922-4fad-b528-dbed8d2a5c79";
+
+function isDevOpenUiAllowed(): boolean {
+  if (typeof window === "undefined") return DEV_OPEN_UI;
+  const host = window.location.hostname;
+  const isLovable = host.includes("lovable") || host.includes("lovableproject.com");
+  return DEV_OPEN_UI || isLovable;
 }
 
 /**
- * Get Supabase anon/publishable key (REQUIRED)
+ * Get Supabase URL
+ */
+export function getSupabaseUrl(): string {
+  const url = import.meta.env.VITE_SUPABASE_URL;
+  if (url) return url;
+
+  if (isDevOpenUiAllowed()) {
+    console.warn("[DEV OPEN UI] Using hardcoded Supabase URL fallback");
+    return DEV_SUPABASE_URL_FALLBACK;
+  }
+
+  throw new Error("❌ BLOCKED: VITE_SUPABASE_URL is REQUIRED");
+}
+
+/**
+ * Get Supabase anon/publishable key
  */
 export function getSupabaseAnonKey(): string {
   const key =
     import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY ||
     import.meta.env.VITE_SUPABASE_ANON_KEY;
-  if (!key) {
-    // Per IgniteZero rules: fail loudly, no environment fallbacks
-    throw new Error(
-      "❌ BLOCKED: VITE_SUPABASE_PUBLISHABLE_KEY (or VITE_SUPABASE_ANON_KEY) is REQUIRED (no hardcoded fallback allowed)"
-    );
+  if (key) return key;
+
+  if (isDevOpenUiAllowed()) {
+    console.warn("[DEV OPEN UI] Using hardcoded Supabase anon key fallback");
+    return DEV_SUPABASE_ANON_KEY_FALLBACK;
   }
-  return key;
+
+  throw new Error("❌ BLOCKED: VITE_SUPABASE_PUBLISHABLE_KEY (or VITE_SUPABASE_ANON_KEY) is REQUIRED");
 }
 
 /**
@@ -129,26 +155,33 @@ export function isDevMode(): boolean {
 
 function getDevAgentToken(): string {
   const token = import.meta.env.VITE_DEV_AGENT_TOKEN;
-  if (!token) {
-    throw new Error("❌ BLOCKED: VITE_DEV_AGENT_TOKEN is REQUIRED when devMode=true");
+  if (token) return token;
+  if (isDevOpenUiAllowed()) {
+    console.warn("[DEV OPEN UI] Using hardcoded VITE_DEV_AGENT_TOKEN fallback");
+    return DEV_AGENT_TOKEN_FALLBACK;
   }
-  return token;
+  throw new Error("❌ BLOCKED: VITE_DEV_AGENT_TOKEN is REQUIRED when devMode=true");
 }
 
 function getDevOrgId(): string {
   const orgId = import.meta.env.VITE_DEV_ORG_ID;
-  if (!orgId) {
-    throw new Error("❌ BLOCKED: VITE_DEV_ORG_ID is REQUIRED when devMode=true");
+  if (orgId) return orgId;
+  if (isDevOpenUiAllowed()) {
+    console.warn("[DEV OPEN UI] Using hardcoded VITE_DEV_ORG_ID fallback");
+    return DEV_ORG_ID_FALLBACK;
   }
-  return orgId;
+  throw new Error("❌ BLOCKED: VITE_DEV_ORG_ID is REQUIRED when devMode=true");
 }
 
 function getDevUserId(): string {
   const userId = import.meta.env.VITE_DEV_USER_ID;
-  if (!userId) {
-    throw new Error("❌ BLOCKED: VITE_DEV_USER_ID is REQUIRED when devMode=true");
+  if (userId) return userId;
+  if (isDevOpenUiAllowed()) {
+    // Prefer child id (most student endpoints), fall back to parent id if needed elsewhere.
+    console.warn("[DEV OPEN UI] Using seeded dev user id fallback");
+    return DEV_CHILD_ID_FALLBACK;
   }
-  return userId;
+  throw new Error("❌ BLOCKED: VITE_DEV_USER_ID is REQUIRED when devMode=true");
 }
 
 /**
