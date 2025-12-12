@@ -109,18 +109,22 @@ test.describe('Live AI Pipeline: Course Creation', () => {
       await page.waitForTimeout(500);
     }
 
-    // Fallback: resolve courseId from backend job list (stable + real DB evidence)
+    // Fallback: resolve courseId from backend job list (stable + real DB evidence).
+    // NOTE: ai_course_jobs.subject stores jobType; the human subject is in job.payload.subject.
     if (!selectedCourseId) {
       const { url, anonKey } = getSupabaseBase();
-      for (let i = 0; i < 15; i++) {
-        const res = await page.request.get(
-          `${url}/functions/v1/list-course-jobs?search=${encodeURIComponent(testSubject)}&limit=5`,
-          { headers: { apikey: anonKey } },
-        );
+      for (let i = 0; i < 20; i++) {
+        const res = await page.request.get(`${url}/functions/v1/list-course-jobs?limit=50&sinceHours=1`, {
+          headers: { apikey: anonKey },
+        });
         if (res.ok()) {
           const data = await res.json();
-          const job = Array.isArray(data.jobs) ? data.jobs[0] : null;
-          const backendCourseId = job?.course_id;
+          const jobs = Array.isArray(data.jobs) ? data.jobs : [];
+          const match = jobs.find((j: any) => {
+            const payloadSubject = j?.payload?.subject;
+            return typeof payloadSubject === 'string' && payloadSubject.trim() === testSubject.trim();
+          });
+          const backendCourseId = match?.course_id;
           if (typeof backendCourseId === 'string' && backendCourseId.length > 3) {
             selectedCourseId = backendCourseId;
             break;
