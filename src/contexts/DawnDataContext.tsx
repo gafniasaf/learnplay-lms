@@ -14,6 +14,7 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
 import { useMCP } from "@/hooks/useMCP";
+import { useAuth } from "@/hooks/useAuth";
 
 // Entity types from LearnPlay manifest (system-manifest.json)
 export interface LearnerProfile {
@@ -137,6 +138,7 @@ const ENTITY_SLUGS = {
 
 export function DawnDataProvider({ children }: { children: React.ReactNode }) {
   const mcp = useMCP();
+  const { user, loading: authLoading } = useAuth();
   const [state, setState] = useState<DawnDataState>({
     // Primary manifest entities
     learnerProfiles: [],
@@ -157,6 +159,16 @@ export function DawnDataProvider({ children }: { children: React.ReactNode }) {
   });
 
   const fetchEntity = useCallback(async (entity: string) => {
+    // Don't fetch if auth is still loading
+    if (authLoading) {
+      return [];
+    }
+    
+    // Don't fetch if user is not authenticated
+    if (!user) {
+      return [];
+    }
+    
     try {
       const result = await mcp.listRecords(entity, 100) as { records?: { id: string; data?: Record<string, unknown> }[] } | null;
       return (result?.records || []).map((r) => ({
@@ -164,12 +176,24 @@ export function DawnDataProvider({ children }: { children: React.ReactNode }) {
         ...r.data,
       }));
     } catch (err) {
+      // Silently handle 401 errors (user not authenticated) - don't log as runtime error
+      const error = err as any;
+      if (error?.status === 401 || error?.code === 'UNAUTHORIZED' || 
+          (error?.message && error.message.includes('Unauthorized'))) {
+        return [];
+      }
       console.error(`Failed to fetch ${entity}:`, err);
       return [];
     }
-  }, [mcp]);
+  }, [mcp, user, authLoading]);
 
   const refresh = useCallback(async () => {
+    // Don't fetch if auth is still loading or user is not authenticated
+    if (authLoading || !user) {
+      setState(s => ({ ...s, loading: false }));
+      return;
+    }
+    
     setState(s => ({ ...s, loading: true, error: null }));
     try {
       // Fetch all manifest entities
@@ -253,8 +277,19 @@ export function DawnDataProvider({ children }: { children: React.ReactNode }) {
     await refreshEntity("job-ticket");
   }, [mcp, refreshEntity]);
 
-  // Initial load - run once on mount only
+  // Initial load - wait for auth before fetching
   useEffect(() => {
+    // Don't fetch until auth is resolved
+    if (authLoading) {
+      return;
+    }
+    
+    // If user is not authenticated, don't fetch and just set loading to false
+    if (!user) {
+      setState(s => ({ ...s, loading: false }));
+      return;
+    }
+    
     // Wrap in try-catch to prevent crashes in preview/iframe environments
     const safeRefresh = async () => {
       try {
@@ -269,8 +304,7 @@ export function DawnDataProvider({ children }: { children: React.ReactNode }) {
       }
     };
     safeRefresh();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [authLoading, user, refresh]);
 
   return (
     <DawnDataContext.Provider value={{

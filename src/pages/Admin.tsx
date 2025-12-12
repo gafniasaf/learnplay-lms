@@ -69,51 +69,46 @@ const Admin = () => {
   };
 
   // Live mode stats display
+  // Note: Admin dashboard uses get-dashboard Edge Function which returns teacher stats
+  // The transformed AdminDashboard has different stats, so we show admin-specific stats instead
   const renderLiveStats = () => {
-    if (!isLive || !dashboard || !("stats" in dashboard)) return null;
+    if (!isLive || !dashboard || dashboard.role !== 'admin') return null;
 
     const stats = dashboard.stats as {
-      sessions?: number;
-      rounds?: number;
-      attempts7d?: number;
-      lastPlayedAt?: string | null;
-      lastFinalScore?: number | null;
+      totalSchools?: number;
+      totalStudents?: number;
+      totalTeachers?: number;
+      activeClasses?: number;
+      coursesPublished?: number;
+      avgSystemProgress?: number;
+      activeLicenses?: number;
+      licenseUsage?: number;
     };
 
     return (
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
         <div className="p-6 rounded-2xl bg-gradient-to-br from-role-admin/10 to-role-admin/5 border border-role-admin/20">
           <Activity className="h-8 w-8 text-role-admin mb-2" />
-          <p className="text-2xl font-bold">{stats.sessions ?? 0}</p>
-          <p className="text-sm text-muted-foreground">Sessions</p>
+          <p className="text-2xl font-bold">{stats.totalSchools ?? 0}</p>
+          <p className="text-sm text-muted-foreground">Schools</p>
         </div>
         
         <div className="p-6 rounded-2xl bg-gradient-to-br from-accent/10 to-accent/5 border border-accent/20">
           <Gamepad2 className="h-8 w-8 text-accent mb-2" />
-          <p className="text-2xl font-bold">{stats.rounds ?? 0}</p>
-          <p className="text-sm text-muted-foreground">Rounds</p>
+          <p className="text-2xl font-bold">{stats.totalStudents ?? 0}</p>
+          <p className="text-sm text-muted-foreground">Students</p>
         </div>
         
         <div className="p-6 rounded-2xl bg-gradient-to-br from-orange-500/10 to-orange-500/5 border border-orange-500/20">
           <TrendingUp className="h-8 w-8 text-orange-500 mb-2" />
-          <p className="text-2xl font-bold">{stats.attempts7d ?? 0}</p>
-          <p className="text-sm text-muted-foreground">Attempts (7d)</p>
+          <p className="text-2xl font-bold">{stats.totalTeachers ?? 0}</p>
+          <p className="text-sm text-muted-foreground">Teachers</p>
         </div>
         
         <div className="p-6 rounded-2xl bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/20">
           <BarChart3 className="h-8 w-8 text-primary mb-2" />
-          <p className="text-2xl font-bold">{stats.lastFinalScore ?? "—"}</p>
-          <p className="text-sm text-muted-foreground">Last Score</p>
-        </div>
-        
-        <div className="p-6 rounded-2xl bg-gradient-to-br from-green-500/10 to-green-500/5 border border-green-500/20">
-          <Clock className="h-8 w-8 text-green-500 mb-2" />
-          <p className="text-sm font-medium">
-            {stats.lastPlayedAt 
-              ? new Date(stats.lastPlayedAt).toLocaleDateString() 
-              : "Never"}
-          </p>
-          <p className="text-sm text-muted-foreground">Last Played</p>
+          <p className="text-2xl font-bold">{stats.coursesPublished ?? 0}</p>
+          <p className="text-sm text-muted-foreground">Courses</p>
         </div>
       </div>
     );

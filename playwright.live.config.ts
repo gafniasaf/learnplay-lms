@@ -69,15 +69,51 @@ const config: PlaywrightTestConfig = {
   },
   projects: [
     {
-      name: 'setup',
-      testMatch: /.*\.setup\.ts/,
+      name: 'setup-student',
+      testMatch: /.*student\.setup\.ts/,
+    },
+    {
+      name: 'setup-teacher',
+      testMatch: /.*teacher\.setup\.ts/,
+    },
+    {
+      name: 'setup-parent',
+      testMatch: /.*parent\.setup\.ts/,
+    },
+    {
+      name: 'setup-admin',
+      testMatch: /.*admin\.setup\.ts/,
+    },
+    {
+      name: 'student-tests',
+      use: {
+        storageState: 'playwright/.auth/student.json',
+      },
+      dependencies: ['setup-student'],
+      testMatch: /.*dashboard-loading.*student.*spec\.ts/,
+    },
+    {
+      name: 'teacher-tests',
+      use: {
+        storageState: 'playwright/.auth/teacher.json',
+      },
+      dependencies: ['setup-teacher'],
+      testMatch: /.*dashboard-loading.*teacher.*spec\.ts/,
+    },
+    {
+      name: 'parent-tests',
+      use: {
+        storageState: 'playwright/.auth/parent.json',
+      },
+      dependencies: ['setup-parent'],
+      testMatch: /.*dashboard-loading.*parent.*spec\.ts/,
     },
     {
       name: 'authenticated',
       use: {
         storageState: 'playwright/.auth/admin.json',
       },
-      dependencies: ['setup'],
+      dependencies: ['setup-admin'],
     },
   ],
 };

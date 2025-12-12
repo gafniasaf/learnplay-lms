@@ -11,9 +11,15 @@ import { test, expect } from '@playwright/test';
  * - No console errors
  * - No error boundaries triggered
  * - Loading states complete
+ * 
+ * These tests require authentication setup files:
+ * - tests/e2e/student.setup.ts
+ * - tests/e2e/teacher.setup.ts
+ * - tests/e2e/parent.setup.ts
  */
 
 test.describe('Dashboard Loading - Student', () => {
+  test.use({ storageState: 'playwright/.auth/student.json' });
   test('student dashboard loads and displays data', async ({ page }) => {
     // Track console errors
     const consoleErrors: string[] = [];
@@ -60,10 +66,27 @@ test.describe('Dashboard Loading - Student', () => {
       if (errorVisible) {
         throw new Error('Dashboard shows error - API call failed or was not made');
       }
-      // If neither loading nor error, might be using mock data
-      console.log('Warning: No API call detected - might be using mock data or cached data');
-    } else {
-      expect(studentDashboardCall.status).toBe(200);
+      // If neither loading nor error, fail the test - API should have been called
+      throw new Error('No API call detected for student-dashboard - dashboard may not be loading data correctly');
+    }
+    
+    // Verify API call succeeded
+    expect(studentDashboardCall.status).toBe(200);
+    
+    // Verify API response has correct shape
+    const response = await page.waitForResponse(
+      resp => resp.url().includes('/functions/v1/student-dashboard') && resp.status() === 200,
+      { timeout: 5000 }
+    ).catch(() => null);
+    
+    if (response) {
+      const responseBody = await response.json();
+      expect(responseBody).toHaveProperty('assignments');
+      expect(responseBody).toHaveProperty('performance');
+      expect(responseBody.performance).toHaveProperty('recentScore');
+      expect(responseBody.performance).toHaveProperty('streakDays');
+      expect(responseBody.performance).toHaveProperty('xp');
+      expect(Array.isArray(responseBody.assignments)).toBe(true);
     }
 
     // Verify no critical console errors (allow network errors in preview)
@@ -77,32 +100,40 @@ test.describe('Dashboard Loading - Student', () => {
       return lower.includes('error') || lower.includes('failed') || lower.includes('undefined');
     });
     
+    // Fail test if critical errors found
     if (criticalErrors.length > 0) {
-      console.log('Console errors:', criticalErrors);
+      throw new Error(`Critical console errors detected: ${criticalErrors.join('; ')}`);
     }
-    // Don't fail on console errors, but log them
 
     // Verify page loaded (not stuck on loading)
     const loadingVisible = await page.getByText(/loading/i).isVisible({ timeout: 1000 }).catch(() => false);
-    expect(loadingVisible).toBe(false); // Should not be stuck loading
+    if (loadingVisible) {
+      throw new Error('Dashboard stuck in loading state - data transformation may have failed');
+    }
 
     // Verify no error boundary triggered
     const errorBoundary = await page.getByText(/something went wrong|error boundary/i).isVisible({ timeout: 1000 }).catch(() => false);
-    expect(errorBoundary).toBe(false);
+    if (errorBoundary) {
+      throw new Error('Error boundary triggered - dashboard transformation likely failed');
+    }
 
-    // Verify dashboard content is present
-    // Check for either: dashboard heading, stats, or error message (if data unavailable)
+    // Verify dashboard content is present (must show actual data, not just page exists)
     const hasHeading = await page.getByRole('heading', { name: /learning|dashboard/i }).isVisible({ timeout: 5000 }).catch(() => false);
-    const hasStats = await page.getByText(/minutes|streak|accuracy|points/i).isVisible({ timeout: 5000 }).catch(() => false);
+    const hasStats = await page.getByText(/minutes|streak|accuracy|points|active|completed/i).isVisible({ timeout: 5000 }).catch(() => false);
     const hasErrorMsg = await page.getByText(/unable to load|failed to fetch|try again/i).isVisible({ timeout: 2000 }).catch(() => false);
     
-    // Dashboard should either show content OR show a clear error message
-    expect(hasHeading || hasStats || hasErrorMsg).toBe(true);
-
-    // If error message is shown, that's a failure (data didn't load)
+    // Fail if error message is shown
     if (hasErrorMsg) {
       throw new Error('Dashboard failed to load data - error message displayed');
     }
+    
+    // Must show actual content (heading or stats)
+    if (!hasHeading && !hasStats) {
+      throw new Error('Dashboard loaded but no content visible - data may not be rendering');
+    }
+    
+    // Verify at least one stat/metric is visible (proves data transformation worked)
+    expect(hasStats).toBe(true);
   });
 
   test('student dashboard API response is valid', async ({ page }) => {
@@ -120,28 +151,36 @@ test.describe('Dashboard Loading - Student', () => {
     await page.waitForLoadState('domcontentloaded');
     await page.waitForTimeout(5000); // Wait for API call
 
-    if (apiResponse) {
-      // Verify Edge Function response shape
-      expect(apiResponse).toHaveProperty('assignments');
-      expect(apiResponse).toHaveProperty('performance');
-      expect(apiResponse.performance).toHaveProperty('recentScore');
-      expect(apiResponse.performance).toHaveProperty('streakDays');
-      expect(apiResponse.performance).toHaveProperty('xp');
-      expect(apiResponse).toHaveProperty('recommendedCourses');
-      
-      // Verify assignments is an array
-      expect(Array.isArray(apiResponse.assignments)).toBe(true);
-    } else {
-      // If no API call was made, check if user is authenticated
-      const isAuthPage = page.url().includes('/auth');
-      if (!isAuthPage) {
-        throw new Error('API call was not made and user appears authenticated');
-      }
+    // Check authentication
+    const isAuthPage = page.url().includes('/auth');
+    if (isAuthPage) {
+      return; // Skip if not authenticated
     }
+
+    if (!apiResponse) {
+      throw new Error('API call was not made or did not return 200 status');
+    }
+    
+    // Verify Edge Function response shape
+    expect(apiResponse).toHaveProperty('assignments');
+    expect(apiResponse).toHaveProperty('performance');
+    expect(apiResponse.performance).toHaveProperty('recentScore');
+    expect(apiResponse.performance).toHaveProperty('streakDays');
+    expect(apiResponse.performance).toHaveProperty('xp');
+    expect(apiResponse).toHaveProperty('recommendedCourses');
+    
+    // Verify assignments is an array
+    expect(Array.isArray(apiResponse.assignments)).toBe(true);
+    
+    // Verify performance values are numbers
+    expect(typeof apiResponse.performance.recentScore).toBe('number');
+    expect(typeof apiResponse.performance.streakDays).toBe('number');
+    expect(typeof apiResponse.performance.xp).toBe('number');
   });
 });
 
 test.describe('Dashboard Loading - Parent', () => {
+  test.use({ storageState: 'playwright/.auth/parent.json' });
   test('parent dashboard loads and displays data', async ({ page }) => {
     const consoleErrors: string[] = [];
     page.on('console', msg => {
@@ -161,29 +200,63 @@ test.describe('Dashboard Loading - Parent', () => {
     await page.waitForLoadState('domcontentloaded');
     await page.waitForTimeout(3000);
 
+    // Check authentication
+    const isAuthPage = page.url().includes('/auth');
+    if (isAuthPage) {
+      return; // Skip if not authenticated
+    }
+
     const parentDashboardCall = apiCalls.find(call => call.url.includes('parent-dashboard'));
-    if (parentDashboardCall) {
-      expect(parentDashboardCall.status).toBe(200);
+    if (!parentDashboardCall) {
+      const loadingVisible = await page.getByText(/loading/i).isVisible({ timeout: 1000 }).catch(() => false);
+      const errorVisible = await page.getByText(/error|failed|unable/i).isVisible({ timeout: 1000 }).catch(() => false);
+      if (loadingVisible || errorVisible) {
+        throw new Error('Parent dashboard API call not made - dashboard may be stuck or showing error');
+      }
+      throw new Error('No API call detected for parent-dashboard');
+    }
+    
+    expect(parentDashboardCall.status).toBe(200);
+    
+    // Verify API response shape
+    const response = await page.waitForResponse(
+      resp => resp.url().includes('/functions/v1/parent-dashboard') && resp.status() === 200,
+      { timeout: 5000 }
+    ).catch(() => null);
+    
+    if (response) {
+      const responseBody = await response.json();
+      expect(responseBody).toHaveProperty('parentId');
+      expect(responseBody).toHaveProperty('children');
+      expect(responseBody).toHaveProperty('summary');
+      expect(Array.isArray(responseBody.children)).toBe(true);
     }
 
     const loadingVisible = await page.getByText(/loading/i).isVisible({ timeout: 1000 }).catch(() => false);
-    expect(loadingVisible).toBe(false);
+    if (loadingVisible) {
+      throw new Error('Parent dashboard stuck in loading state');
+    }
 
     const errorBoundary = await page.getByText(/something went wrong|error boundary/i).isVisible({ timeout: 1000 }).catch(() => false);
-    expect(errorBoundary).toBe(false);
+    if (errorBoundary) {
+      throw new Error('Error boundary triggered on parent dashboard');
+    }
 
-    const hasContent = await page.getByText(/parent|children|dashboard|hello/i).isVisible({ timeout: 5000 }).catch(() => false);
+    const hasContent = await page.getByText(/parent|children|dashboard|active|minutes|streak/i).isVisible({ timeout: 5000 }).catch(() => false);
     const hasErrorMsg = await page.getByText(/unable to load|failed to fetch/i).isVisible({ timeout: 2000 }).catch(() => false);
-    
-    expect(hasContent || hasErrorMsg).toBe(true);
     
     if (hasErrorMsg) {
       throw new Error('Parent dashboard failed to load data');
+    }
+    
+    if (!hasContent) {
+      throw new Error('Parent dashboard loaded but no content visible');
     }
   });
 });
 
 test.describe('Dashboard Loading - Teacher', () => {
+  test.use({ storageState: 'playwright/.auth/teacher.json' });
   test('teacher dashboard loads and displays data', async ({ page }) => {
     const consoleErrors: string[] = [];
     page.on('console', msg => {
@@ -203,24 +276,57 @@ test.describe('Dashboard Loading - Teacher', () => {
     await page.waitForLoadState('domcontentloaded');
     await page.waitForTimeout(3000);
 
+    // Check authentication
+    const isAuthPage = page.url().includes('/auth');
+    if (isAuthPage) {
+      return; // Skip if not authenticated
+    }
+
     const teacherDashboardCall = apiCalls.find(call => call.url.includes('get-dashboard'));
-    if (teacherDashboardCall) {
-      expect(teacherDashboardCall.status).toBe(200);
+    if (!teacherDashboardCall) {
+      const loadingVisible = await page.getByText(/loading/i).isVisible({ timeout: 1000 }).catch(() => false);
+      const errorVisible = await page.getByText(/error|failed|unable/i).isVisible({ timeout: 1000 }).catch(() => false);
+      if (loadingVisible || errorVisible) {
+        throw new Error('Teacher dashboard API call not made - dashboard may be stuck or showing error');
+      }
+      throw new Error('No API call detected for get-dashboard');
+    }
+    
+    expect(teacherDashboardCall.status).toBe(200);
+    
+    // Verify API response shape
+    const response = await page.waitForResponse(
+      resp => resp.url().includes('/functions/v1/get-dashboard') && resp.status() === 200,
+      { timeout: 5000 }
+    ).catch(() => null);
+    
+    if (response) {
+      const responseBody = await response.json();
+      expect(responseBody).toHaveProperty('role');
+      expect(responseBody).toHaveProperty('stats');
+      expect(responseBody.stats).toHaveProperty('sessions');
+      expect(responseBody.stats).toHaveProperty('rounds');
     }
 
     const loadingVisible = await page.getByText(/loading/i).isVisible({ timeout: 1000 }).catch(() => false);
-    expect(loadingVisible).toBe(false);
+    if (loadingVisible) {
+      throw new Error('Teacher dashboard stuck in loading state');
+    }
 
     const errorBoundary = await page.getByText(/something went wrong|error boundary/i).isVisible({ timeout: 1000 }).catch(() => false);
-    expect(errorBoundary).toBe(false);
+    if (errorBoundary) {
+      throw new Error('Error boundary triggered on teacher dashboard');
+    }
 
-    const hasContent = await page.getByText(/teacher|dashboard|class|student/i).isVisible({ timeout: 5000 }).catch(() => false);
+    const hasContent = await page.getByText(/teacher|dashboard|class|student|sessions|rounds/i).isVisible({ timeout: 5000 }).catch(() => false);
     const hasErrorMsg = await page.getByText(/unable to load|failed to fetch/i).isVisible({ timeout: 2000 }).catch(() => false);
-    
-    expect(hasContent || hasErrorMsg).toBe(true);
     
     if (hasErrorMsg) {
       throw new Error('Teacher dashboard failed to load data');
+    }
+    
+    if (!hasContent) {
+      throw new Error('Teacher dashboard loaded but no content visible');
     }
   });
 });

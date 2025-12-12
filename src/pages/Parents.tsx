@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { useDashboard } from "@/hooks/useDashboard";
+// import { useDashboard } from "@/hooks/useDashboard"; // Unused - this page uses mock data
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { ParentLayout } from "@/components/parent/ParentLayout";
@@ -17,7 +17,11 @@ import type { TopicRow } from "@/components/parent/TopicsHandled";
 
 const Parents = () => {
   const navigate = useNavigate();
-  const { dashboard, loading, error } = useDashboard("parent");
+  // Note: This page uses mock data, so we don't need useDashboard
+  // If you want to use real data, uncomment the line below and use the dashboard data
+  // const { dashboard, loading, error } = useDashboard("parent");
+  const loading = false; // Mock data loads instantly
+  const error = null; // Mock data doesn't error
   const [searchParams, setSearchParams] = useSearchParams();
   
   const range = (searchParams.get("range") as "day" | "week" | "month") || "week";

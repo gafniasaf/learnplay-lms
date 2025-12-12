@@ -3,6 +3,7 @@ import React, { useState, useCallback, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import { useMCP } from "@/hooks/useMCP";
+import { useAuth } from "@/hooks/useAuth";
 
 interface Student {
   id: string;
@@ -14,6 +15,7 @@ export default function TeacherControl() {
   const [searchParams] = useSearchParams();
   const id = searchParams.get("id");
   const mcp = useMCP();
+  const { user, loading: authLoading } = useAuth();
   
   const [title, setTitle] = useState("");
   const [subject, setSubject] = useState("");
@@ -27,17 +29,32 @@ export default function TeacherControl() {
   // Load students for dropdown
   useEffect(() => {
     async function loadStudents() {
+      // Don't fetch if user is not authenticated
+      if (!user && !authLoading) {
+        setStudents([{ id: "demo-1", name: "Demo Student 1" }, { id: "demo-2", name: "Demo Student 2" }]);
+        return;
+      }
+      
       try {
         const result = await mcp.listRecords("learner-profile", 100);
         const profiles = (result as { records?: { id: string; fullName?: string }[] })?.records || [];
         setStudents(profiles.map(p => ({ id: p.id, name: p.fullName || "Student" })));
-      } catch {
-        // Demo students on error
+      } catch (err) {
+        // Silently handle 401 errors (user not authenticated) - don't log as runtime error
+        const error = err as any;
+        if (error?.status === 401 || error?.code === 'UNAUTHORIZED' || 
+            (error?.message && error.message.includes('Unauthorized'))) {
+          setStudents([{ id: "demo-1", name: "Demo Student 1" }, { id: "demo-2", name: "Demo Student 2" }]);
+          return;
+        }
+        // Demo students on other errors
         setStudents([{ id: "demo-1", name: "Demo Student 1" }, { id: "demo-2", name: "Demo Student 2" }]);
       }
     }
-    loadStudents();
-  }, [mcp]);
+    if (!authLoading) {
+      loadStudents();
+    }
+  }, [mcp, user, authLoading]);
 
   const handleAIDraft = useCallback(async () => {
     if (!subject) {
