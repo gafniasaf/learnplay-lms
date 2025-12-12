@@ -17,6 +17,8 @@ function itemHasImage(course: any, item: any): boolean {
     const key = `item:${item?.id}:stem`;
     const images = course?.images?.[key];
     if (Array.isArray(images) && images.length > 0) return true;
+    // Support both modern schema (stimulus: {type:'image', url}) and legacy arrays
+    if (item?.stimulus?.type === 'image' && item?.stimulus?.url) return true;
     const media = item?.stem?.media || item?.stimulus?.media || [];
     return Array.isArray(media) && media.some((m: any) => (m?.type || '').startsWith('image'));
   } catch {
