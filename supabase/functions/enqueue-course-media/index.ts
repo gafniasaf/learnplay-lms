@@ -1,6 +1,5 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { stdHeaders, handleOptions } from "../_shared/cors.ts";
+import { withCors } from "../_shared/cors.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
@@ -22,17 +21,13 @@ type Body = {
   targetRef?: Record<string, unknown> | null;
 };
 
-serve(async (req: Request): Promise<Response> => {
+Deno.serve(withCors(async (req: Request): Promise<Response> => {
   const requestId = crypto.randomUUID();
-
-  if (req.method === "OPTIONS") {
-    return handleOptions(req, requestId);
-  }
 
   if (req.method !== "POST") {
     return new Response(JSON.stringify({ error: "Method not allowed" }), {
       status: 405,
-      headers: stdHeaders(req, { "Content-Type": "application/json" }),
+      headers: { "Content-Type": "application/json", "X-Request-Id": requestId },
     });
   }
 
@@ -40,7 +35,7 @@ serve(async (req: Request): Promise<Response> => {
   if (provided !== AGENT_TOKEN) {
     return new Response(JSON.stringify({ error: "Unauthorized" }), {
       status: 401,
-      headers: stdHeaders(req, { "Content-Type": "application/json" }),
+      headers: { "Content-Type": "application/json", "X-Request-Id": requestId },
     });
   }
 
@@ -50,7 +45,7 @@ serve(async (req: Request): Promise<Response> => {
   } catch {
     return new Response(JSON.stringify({ error: "Invalid JSON body" }), {
       status: 400,
-      headers: stdHeaders(req, { "Content-Type": "application/json" }),
+      headers: { "Content-Type": "application/json", "X-Request-Id": requestId },
     });
   }
 
@@ -64,7 +59,7 @@ serve(async (req: Request): Promise<Response> => {
   if (!courseId || !Number.isFinite(itemId) || itemId < 0 || !prompt) {
     return new Response(JSON.stringify({ error: "Invalid request: courseId, itemId, prompt are required" }), {
       status: 400,
-      headers: stdHeaders(req, { "Content-Type": "application/json" }),
+      headers: { "Content-Type": "application/json", "X-Request-Id": requestId },
     });
   }
 
@@ -100,22 +95,22 @@ serve(async (req: Request): Promise<Response> => {
       if (!existingErr && existing?.id) {
         return new Response(JSON.stringify({ ok: true, mediaJobId: existing.id, status: existing.status }), {
           status: 200,
-          headers: stdHeaders(req, { "Content-Type": "application/json", "X-Request-Id": requestId }),
+          headers: { "Content-Type": "application/json", "X-Request-Id": requestId },
         });
       }
     }
 
     return new Response(JSON.stringify({ error: { code: "invalid_request", message: error.message } }), {
       status: 400,
-      headers: stdHeaders(req, { "Content-Type": "application/json", "X-Request-Id": requestId }),
+      headers: { "Content-Type": "application/json", "X-Request-Id": requestId },
     });
   }
 
   return new Response(JSON.stringify({ ok: true, mediaJobId: data.id, status: data.status }), {
     status: 200,
-    headers: stdHeaders(req, { "Content-Type": "application/json", "X-Request-Id": requestId }),
+    headers: { "Content-Type": "application/json", "X-Request-Id": requestId },
   });
-});
+}));
 
 import { withCors } from "../_shared/cors.ts";
 import { Errors } from "../_shared/error.ts";
