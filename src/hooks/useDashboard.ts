@@ -18,14 +18,21 @@ export function useDashboard(role: DashboardRole) {
 
   useEffect(() => {
     // Wait for auth to load before fetching
-    if (authLoading) return;
+    if (authLoading) {
+      console.log('[useDashboard] Waiting for auth to load...');
+      return;
+    }
     
     // If user is not authenticated, don't try to fetch - just set loading to false
     if (!user?.id) {
+      console.log('[useDashboard] No user ID, setting dashboard to null');
       setLoading(false);
       setDashboard(null);
+      setError(new Error('Not authenticated. Please log in.'));
       return;
     }
+
+    console.log('[useDashboard] Loading dashboard for role:', role, 'user:', user.id);
 
     const loadDashboard = async () => {
       try {
@@ -423,9 +430,20 @@ export function useDashboard(role: DashboardRole) {
           setDashboard(dashboard);
         }
       } catch (err) {
-        setError(err instanceof Error ? err : new Error("Failed to load dashboard"));
-        console.error("Failed to load dashboard:", err);
+        const error = err instanceof Error ? err : new Error("Failed to load dashboard");
+        console.error("[useDashboard] Failed to load dashboard:", err);
+        
+        // Check for specific error types
+        const errMsg = error.message.toLowerCase();
+        if (errMsg.includes('cors') || errMsg.includes('blocked')) {
+          setError(new Error('Network error: Unable to reach the server. Please check your connection.'));
+        } else if (errMsg.includes('unauthorized') || errMsg.includes('not authenticated')) {
+          setError(new Error('Please log in to view your dashboard.'));
+        } else {
+          setError(error);
+        }
       } finally {
+        console.log('[useDashboard] Finished loading, setting loading to false');
         setLoading(false);
       }
     };
