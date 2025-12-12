@@ -1,26 +1,4 @@
 {
-  "courses": [
-    {
-      "id": "modals",
-      "title": "English Modals",
-      "subject": "English Language",
-      "gradeBand": "Grades 6-8",
-      "contentVersion": "1",
-      "description": "Master modal verbs like can, should, must, and might with interactive exercises.",
-      "itemCount": 48,
-      "duration": "15 min",
-      "difficulty": "Intermediate"
-    },
-    {
-      "id": "verbs",
-      "title": "English Verbs",
-      "subject": "English Language",
-      "gradeBand": "Grades 4-6",
-      "contentVersion": "1",
-      "description": "Learn verb tenses, forms, and usage with engaging practice exercises.",
-      "itemCount": 48,
-      "duration": "15 min",
-      "difficulty": "Beginner"
-    }
-  ]
+  "courses": [],
+  "_note": "Mock courses are disabled. All courses must exist in the database. Use the Admin panel to create courses."
 }

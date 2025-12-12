@@ -1224,13 +1224,31 @@ export function useMCP() {
         console.log('[MCP Mock] getCourseCatalog');
         return { courses: [], subjects: [] };
       }
-      // Fetch from static catalog.json file (not an Edge Function)
-      // This file is served from /public/catalog.json
-      const response = await fetch('/catalog.json');
-      if (!response.ok) {
-        throw new Error(`Failed to load catalog: ${response.status} ${response.statusText}`);
-      }
-      return await response.json();
+      // Fetch from list-courses Edge Function (not static file)
+      // This ensures we only show courses that exist in the database
+      console.log('[MCP] getCourseCatalog - fetching from Edge Function');
+      const response = await callEdgeFunctionGet<{ items: Array<{ id: string; title?: string; subject?: string; grade?: string; contentVersion?: string; itemCount?: number }> }>('list-courses');
+      const items = response?.items || [];
+      
+      // Transform to catalog format
+      const courses = items.map(item => ({
+        id: item.id,
+        title: item.title || item.id,
+        subject: item.subject || 'General',
+        gradeBand: item.grade || 'All Grades',
+        contentVersion: item.contentVersion || '',
+        description: `Interactive course: ${item.title || item.id}`,
+        itemCount: item.itemCount || 0,
+        duration: '15 min',
+        difficulty: 'Intermediate',
+      }));
+      
+      console.log('[MCP] getCourseCatalog - loaded', courses.length, 'courses from Edge Function');
+      return { courses, subjects: [] };
+    } catch (error) {
+      console.error('[MCP] getCourseCatalog - failed:', error);
+      // Return empty catalog on error - don't use static fallback with demo courses
+      return { courses: [], subjects: [] };
     } finally {
       setLoading(false);
     }
