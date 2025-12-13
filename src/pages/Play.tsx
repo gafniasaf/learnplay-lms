@@ -37,6 +37,7 @@ import { supabase as supabaseClient } from "@/integrations/supabase/client";
 import { PlayErrorBoundary } from "@/components/game/PlayErrorBoundary";
 import { useCoursePreloader } from "@/hooks/useCoursePreloader";
 import { getApiMode } from "@/lib/api";
+import { toPlayableCourse } from "@/lib/adapters/playableCourse";
 
 type Phase = 'idle' | 'committing' | 'feedback-correct' | 'feedback-wrong' | 'advancing';
 
@@ -312,14 +313,7 @@ const Play = () => {
       try {
         setLoading(true);
         const raw = await mcp.getCourse(courseId) as unknown as any;
-        // Some backends wrap the course in { course: ... } or { data: { course: ... } }.
-        const data: Course = (raw?.course ?? raw?.data?.course ?? raw) as Course;
-
-        // Fail loudly (but clearly) if the payload isn't playable.
-        if (!data || !Array.isArray((data as any).items)) {
-          console.error("[Play] Invalid course payload (missing items[])", { courseId, raw });
-          throw new Error("Course content is invalid (missing items). Please republish this course.");
-        }
+        const data: Course = toPlayableCourse(raw, courseId);
 
         setCourse(data);
         
