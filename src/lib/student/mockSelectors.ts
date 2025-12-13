@@ -45,45 +45,27 @@ export interface ContinuePoint {
 }
 
 export function getStudentKpiData(_window: ParentRangeWindow): StudentKpiData {
-  return {
-    activeMinutes: 45,
-    itemsCompleted: 12,
-    accuracyPct: 87,
-    streakDays: 5,
-    sparkline: [38, 42, 40, 43, 41, 44, 45],
-    deltaVsLastWeek: 12,
-  };
+  throw new Error("❌ MOCK SELECTORS FORBIDDEN: getStudentKpiData() was a mock. Implement a real data source (dashboard/analytics edge functions) and remove this call.");
 }
 
 export function getAssignmentsDue(_window: ParentRangeWindow): StudentAssignment[] {
-  return [
-    { id: 'a1', title: 'Fractions Practice', subject: 'Math', dueISO: new Date(Date.now() + 3600*1000).toISOString(), priority: 'high' },
-    { id: 'a2', title: 'Plants Worksheet', subject: 'Science', dueISO: new Date(Date.now() + 24*3600*1000).toISOString(), priority: 'medium' },
-  ];
+  throw new Error("❌ MOCK SELECTORS FORBIDDEN: getAssignmentsDue() was a mock. Implement student assignments via backend and remove this call.");
 }
 
 export function getRecentStudentSessions(_window: ParentRangeWindow): StudentSession[] {
-  const now = Date.now();
-  return [
-    { startISO: new Date(now - 60*60*1000).toISOString(), endISO: new Date(now - 30*60*1000).toISOString(), subject: 'Math', items: 12, accuracyPct: 92 },
-    { startISO: new Date(now - 3*60*60*1000).toISOString(), endISO: new Date(now - 2.5*60*60*1000).toISOString(), subject: 'Reading', items: 8, accuracyPct: 88 },
-  ];
+  throw new Error("❌ MOCK SELECTORS FORBIDDEN: getRecentStudentSessions() was a mock. Implement session history via backend and remove this call.");
 }
 
 export function getStudentGoals(): StudentGoalData {
-  return { goalMinutes: 200, actualMinutes: 90, goalItems: 80, actualItems: 34 };
+  throw new Error("❌ MOCK SELECTORS FORBIDDEN: getStudentGoals() was a mock. Implement goals via backend and remove this call.");
 }
 
 export function getStudentAchievements(_window: ParentRangeWindow): StudentAchievement[] {
-  return [
-    { id: 'ach1', name: 'Streak x3', earnedISO: new Date().toISOString() },
-    { id: 'ach2', name: 'Accuracy 90%', earnedISO: new Date(Date.now() - 86400000).toISOString() },
-    { id: 'ach3', name: 'First 100 Items', earnedISO: new Date(Date.now() - 2*86400000).toISOString() },
-  ];
+  throw new Error("❌ MOCK SELECTORS FORBIDDEN: getStudentAchievements() was a mock. Implement achievements via backend and remove this call.");
 }
 
 export function getContinuePoint(): ContinuePoint {
-  return { courseId: 'math-fractions', level: 2, title: 'Math • Fractions' };
+  throw new Error("❌ MOCK SELECTORS FORBIDDEN: getContinuePoint() was a mock. Implement continue point via backend and remove this call.");
 }
 
 

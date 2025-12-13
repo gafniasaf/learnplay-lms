@@ -34,15 +34,8 @@ export async function getUserRoles(): Promise<UserRoleRecord[]> {
     return cachedRoles;
   }
 
-  if (shouldUseMockData()) {
-    console.log('[Roles API] Using mock data');
-    // Return mock roles for testing
-    return [{
-      user_id: 'mock-user',
-      organization_id: 'mock-org',
-      role: 'editor',
-    }];
-  }
+  // Mock responses forbidden: shouldUseMockData() will throw if anything tries to enable it.
+  void shouldUseMockData;
 
   try {
     console.log('[Roles API] Fetching user roles via Edge Function');
@@ -61,7 +54,7 @@ export async function getUserRoles(): Promise<UserRoleRecord[]> {
     console.error('[Roles API] Error fetching user roles:', error);
     // Clear cache on error
     cachedRoles = null;
-    return [];
+    throw error instanceof Error ? error : new Error('Failed to fetch user roles');
   }
 }
 

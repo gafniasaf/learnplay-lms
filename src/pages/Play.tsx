@@ -37,7 +37,6 @@ import { supabase as supabaseClient } from "@/integrations/supabase/client";
 import { PlayErrorBoundary } from "@/components/game/PlayErrorBoundary";
 import { useCoursePreloader } from "@/hooks/useCoursePreloader";
 import { getApiMode } from "@/lib/api";
-import { toPlayableCourse } from "@/lib/adapters/playableCourse";
 
 type Phase = 'idle' | 'committing' | 'feedback-correct' | 'feedback-wrong' | 'advancing';
 
@@ -312,8 +311,7 @@ const Play = () => {
     const loadCourse = async () => {
       try {
         setLoading(true);
-        const raw = await mcp.getCourse(courseId) as unknown as any;
-        const data: Course = toPlayableCourse(raw, courseId);
+        const data = (await mcp.getCourse(courseId)) as unknown as Course;
 
         setCourse(data);
         

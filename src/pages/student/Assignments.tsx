@@ -6,40 +6,20 @@ import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Mail } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-// Mock data check removed - useStudentAssignments handles it
-import { getAssignmentsDue } from "@/lib/student/mockSelectors";
 import { mapStudentAssignment, type StudentAssignmentDisplay } from "@/lib/student/assignmentsMappers";
-
-const mapMockAssignments = (): StudentAssignmentDisplay[] => {
-  // Use a simple, coarse window for mock assignments; real implementation is in mockSelectors.
-  const now = new Date();
-  const startDate = new Date(now);
-  startDate.setDate(startDate.getDate() - 30);
-
-  const window = { startDate, endDate: now };
-  return getAssignmentsDue(window).map((assignment) => ({
-    id: assignment.id,
-    title: assignment.title,
-    courseId: assignment.subject,
-    dueAt: assignment.dueISO ?? null,
-  }));
-};
 
 export default function StudentAssignments() {
   const navigate = useNavigate();
-  const mockMode = (import.meta as any).env?.VITE_USE_MOCK === 'true';
-  const { data, isLoading, isError, error, refetch } = useStudentAssignments({ enabled: !mockMode });
+  const { data, isLoading, isError, error, refetch } = useStudentAssignments();
 
   const liveAssignments = useMemo(() => {
-    if (mockMode || !data?.assignments) return [];
+    if (!data?.assignments) return [];
     return data.assignments.map(mapStudentAssignment);
-  }, [mockMode, data?.assignments]);
+  }, [data?.assignments]);
 
-  const fallbackAssignments = useMemo(() => mapMockAssignments(), []);
+  const assignments = liveAssignments;
 
-  const assignments = liveAssignments.length > 0 ? liveAssignments : fallbackAssignments;
-
-  if (!mockMode && isLoading) {
+  if (isLoading) {
     return (
       <PageContainer>
         <StudentLayout>
@@ -49,7 +29,7 @@ export default function StudentAssignments() {
     );
   }
 
-  if (!mockMode && isError) {
+  if (isError) {
     const message = error instanceof Error ? error.message : "Unable to load assignments.";
 
     return (

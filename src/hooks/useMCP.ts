@@ -1187,7 +1187,30 @@ export function useMCP() {
         console.log('[MCP Mock] getCourse:', courseId);
         return { id: courseId, title: 'Mock Course', items: [] };
       }
-      return await callEdgeFunctionGet<GetCourseResponse>("get-course", { courseId });
+      const payload = await callEdgeFunctionGet<any>("get-course", { courseId });
+
+      // Dawn parity: accept envelope { format, content } and unwrap consistently.
+      const isEnvelope =
+        payload && typeof payload === "object" && "content" in payload && "format" in payload;
+      const format = isEnvelope ? String((payload as any).format ?? "practice") : "practice";
+      const course = (isEnvelope ? (payload as any).content : payload) as any;
+
+      if (format !== "practice") {
+        throw new Error(
+          `Unsupported course format '${format}'. This course is stored correctly, but Play/Editor currently only support 'practice'.`
+        );
+      }
+
+      if (!course || typeof course !== "object" || !Array.isArray(course.items)) {
+        throw new Error(
+          `Course '${courseId}' is not playable yet (missing items[]). Delete or regenerate this course.`
+        );
+      }
+
+      // Attach envelope metadata for future format-aware UIs.
+      (course as any)._metadata = { format, envelope: isEnvelope ? payload : undefined };
+
+      return course as GetCourseResponse;
     } finally {
       setLoading(false);
     }

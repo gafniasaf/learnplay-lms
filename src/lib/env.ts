@@ -1,18 +1,16 @@
 /**
  * Environment configuration and runtime overrides
- * 
- * Live mode can be toggled at runtime via:
- * - URL parameter: ?live=1 (enable live mode) or ?live=0 (enable mock mode)
- * - localStorage.useMock: 'false' (live) or 'true' (mock)
- * - Default: VITE_USE_MOCK environment variable
- * 
+ *
+ * IMPORTANT (LearnPlay/IgniteZero): **Mock mode is forbidden**.
+ * We intentionally fail loudly if anything tries to enable "mock" data paths,
+ * because mock responses hide missing backend functionality.
+ *
  * Dev mode can be toggled at runtime via:
  * - URL parameter: ?dev=1 (enable) or ?dev=0 (disable)
  * - localStorage "app.dev": "1" (enable) or "0" (disable)
  * - Default: VITE_ENABLE_DEV environment variable
  */
 
-const STORAGE_KEY = 'useMock';
 const DEV_STORAGE_KEY = 'app.dev';
 const DEV_CHANGED_EVENT = 'dev:changed';
 
@@ -37,15 +35,11 @@ function checkUrlOverride(): void {
 
   try {
     const params = new URLSearchParams(window.location.search);
-    
-    // Check live mode override
+
+    // Mock-mode override is forbidden (fail loudly).
     const liveParam = params.get('live');
-    if (liveParam === '1') {
-      safeStorage.setItem(STORAGE_KEY, 'false');
-      console.info('[Env] Runtime override: LIVE mode enabled via URL (?live=1)');
-    } else if (liveParam === '0') {
-      safeStorage.setItem(STORAGE_KEY, 'true');
-      console.info('[Env] Runtime override: MOCK mode enabled via URL (?live=0)');
+    if (liveParam === '0') {
+      throw new Error('❌ MOCK MODE FORBIDDEN: remove ?live=0 and do not use mock responses. Implement the missing backend instead.');
     }
     
     // Check dev mode override
@@ -76,36 +70,28 @@ checkUrlOverride();
  */
 export function isLiveMode(): boolean {
   if (typeof window === 'undefined') {
-    // Server-side/Jest: use process.env only
+    // Server-side/Jest: mock mode is also forbidden.
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return (typeof process !== 'undefined' && (process as any).env?.VITE_USE_MOCK === 'false');
-  }
-
-  // If env explicitly sets VITE_USE_MOCK='false', prioritize that (for dev server testing)
-  if (import.meta.env.VITE_USE_MOCK === 'false') {
+    const requestedMock = (typeof process !== 'undefined' && (process as any).env?.VITE_USE_MOCK === 'true');
+    if (requestedMock) {
+      throw new Error('❌ MOCK MODE FORBIDDEN: VITE_USE_MOCK=true is not allowed. Remove mock responses and implement backend.');
+    }
     return true;
   }
 
-  // Check localStorage override (using safe wrapper)
-  if (safeStorage) {
-    const storedValue = safeStorage.getItem(STORAGE_KEY);
-    
-    if (storedValue !== null) {
-      // localStorage is set: 'false' means live mode ON, 'true' means mock mode ON
-      return storedValue === 'false';
-    }
+  if (import.meta.env.VITE_USE_MOCK === 'true') {
+    throw new Error('❌ MOCK MODE FORBIDDEN: VITE_USE_MOCK=true is not allowed. Remove mock responses and implement backend.');
   }
 
-  // Default to live mode (production behavior)
-  // Only use mock mode if explicitly set via VITE_USE_MOCK='true'
-  return import.meta.env.VITE_USE_MOCK !== 'true';
+  // Default and only supported behavior: live mode.
+  return true;
 }
 
 /**
  * Get current API mode for display/debugging
  */
 export function getApiMode(): 'mock' | 'live' {
-  return isLiveMode() ? 'live' : 'mock';
+  return 'live';
 }
 
 /**
@@ -122,9 +108,8 @@ export function forceSameOriginPreview(): boolean {
  * Clear any runtime overrides (reset to env default)
  */
 export function clearModeOverride(): void {
-  if (typeof window === 'undefined' || !safeStorage) return;
-  safeStorage.removeItem(STORAGE_KEY);
-  console.info('[Env] Runtime override cleared, using .env default');
+  // Mock-mode overrides are not supported; keep this as a no-op for backward compatibility.
+  return;
 }
 
 /**

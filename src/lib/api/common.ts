@@ -77,7 +77,11 @@ export class ApiError extends Error {
  * @returns true if using mock data, false if using live edge functions
  */
 export const shouldUseMockData = (): boolean => {
-  return !isLiveMode();
+  // Mock responses are forbidden: fail loudly if anything tries to run in non-live mode.
+  if (!isLiveMode()) {
+    throw new Error("❌ MOCK MODE FORBIDDEN: mock responses are not allowed. Implement the missing backend instead.");
+  }
+  return false;
 };
 
 /**

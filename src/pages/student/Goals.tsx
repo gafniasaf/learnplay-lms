@@ -5,13 +5,10 @@ import { Progress } from "@/components/ui/progress";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Target } from "lucide-react";
-import { getStudentGoals } from "@/lib/student/mockSelectors";
 import { useStudentGoals } from "@/hooks/useStudentGoals";
-// useMockData removed - useStudentGoals handles mock mode internally
 import { aggregateStudentGoalProgress } from "@/lib/student/goalsMappers";
 
 export default function StudentGoals() {
-  const mockMode = (import.meta as any).env?.VITE_USE_MOCK === 'true';
   const { data, isLoading, isError, error, refetch } = useStudentGoals();
 
   if (isLoading) {
@@ -44,7 +41,7 @@ export default function StudentGoals() {
     );
   }
 
-  if (!mockMode && data && data.goals.length === 0) {
+  if (data && data.goals.length === 0) {
     return (
       <PageContainer>
         <StudentLayout>
@@ -63,8 +60,8 @@ export default function StudentGoals() {
     );
   }
 
-  const liveProgress = !mockMode ? aggregateStudentGoalProgress(data) : null;
-  const goals = liveProgress ?? getStudentGoals();
+  const liveProgress = aggregateStudentGoalProgress(data);
+  const goals = liveProgress;
   const minutesPercent = Math.min((goals.actualMinutes / goals.goalMinutes) * 100, 100);
   const itemsPercent = Math.min((goals.actualItems / goals.goalItems) * 100, 100);
   const minutesRemaining = Math.max(goals.goalMinutes - goals.actualMinutes, 0);

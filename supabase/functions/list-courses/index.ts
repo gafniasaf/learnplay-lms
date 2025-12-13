@@ -2,6 +2,17 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { withCors } from "../_shared/cors.ts";
 
+function unwrapCoursePayload(payload: any): { course: any; format: string; envelope?: any } {
+  if (payload && typeof payload === "object" && "content" in payload && "format" in payload) {
+    return {
+      course: (payload as any).content,
+      format: String((payload as any).format ?? "practice"),
+      envelope: payload,
+    };
+  }
+  return { course: payload, format: "practice" };
+}
+
 interface CourseListParams {
   page: number;
   limit: number;
@@ -192,19 +203,29 @@ serve(withCors(async (req) => {
           }
 
           const courseData = JSON.parse(text);
+          const { course: courseContent, format } = unwrapCoursePayload(courseData);
+
+          // Hide courses that aren't playable practice courses yet. This prevents "ghost" entries
+          // from breaking Play when legacy/nonstandard JSON exists in storage.
+          const itemCount = Array.isArray(courseContent?.items) ? courseContent.items.length : 0;
+          if (format === "practice" && itemCount === 0) {
+            console.warn(`[list-courses] Course ${meta.id} is not playable (practice format but missing items[])`);
+            return null;
+          }
 
           return {
             id: meta.id,
-            title: meta.title || courseData.title || meta.id,
-            description: courseData.description || '',
-            grade: meta.grade_band || courseData.grade || null,
-            subject: meta.subject || courseData.subject || null,
-            itemCount: Array.isArray(courseData.items) ? courseData.items.length : 0,
+            title: meta.title || courseContent.title || meta.id,
+            description: courseContent.description || '',
+            grade: meta.grade_band || courseContent.grade || null,
+            subject: meta.subject || courseContent.subject || null,
+            itemCount,
             tags: meta.tags || {},
             tagIds: meta.tag_ids || [],
             visibility: meta.visibility,
             organizationId: meta.organization_id,
             contentVersion: meta.content_version,
+            format,
             createdAt: meta.created_at,
             updatedAt: meta.updated_at,
             archivedAt: meta.archived_at || null

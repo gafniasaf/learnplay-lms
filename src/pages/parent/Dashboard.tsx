@@ -21,7 +21,6 @@ import { useParentTimeline } from "@/hooks/useParentTimeline";
 import { useParentGoals } from "@/hooks/useParentGoals";
 import { useParentDashboard } from "@/hooks/useParentDashboard";
 import { useParentTopics } from "@/hooks/useParentTopics";
-import { getGoalData, getRecentSessions, getRecentTopics, getSubjectTimeData } from "@/lib/parent/mockSelectors";
 import { mapTimelineEventToSession } from "@/lib/parent/timelineMappers";
 import { mapParentSubject, normalizeSubject } from "@/lib/parent/subjectsMappers";
 import type { ParentGoalRecord } from "@/lib/api/parentGoals";
@@ -31,7 +30,7 @@ import { formatDistanceToNow, parseISO } from "date-fns";
 
 const aggregateGoals = (goals: ParentGoalRecord[]) => {
   if (!goals || goals.length === 0) {
-    return getGoalData();
+    return { goalMinutes: 0, actualMinutes: 0, goalItems: 0, actualItems: 0 };
   }
 
   const goalMinutes = goals.reduce((sum, goal) => sum + (goal.targetMinutes ?? 0), 0);
@@ -93,12 +92,10 @@ export default function ParentDashboard() {
   const parentName = parentDashboard?.parentName ?? "Parent";
 
   const subjectRecords = parentSubjects.data?.subjects ?? [];
-  const subjectGlanceData = subjectRecords.length > 0
-    ? subjectRecords.map((subject) => ({
-        subject: subject.normalizedSubject ?? normalizeSubject(subject.subject),
-        minutes: subject.totalSessions ?? 0,
-      }))
-    : getSubjectTimeData(rangeWindow);
+  const subjectGlanceData = subjectRecords.map((subject) => ({
+    subject: subject.normalizedSubject ?? normalizeSubject(subject.subject),
+    minutes: subject.totalSessions ?? 0,
+  }));
 
   const subjectSummary = useMemo(() => {
     if (subjectRecords.length === 0) return null;
@@ -125,16 +122,9 @@ export default function ParentDashboard() {
   }, [subjectRecords, parentSubjects.data?.summary]);
 
   const timelineEvents = parentTimeline.data?.events ?? [];
-  const timelineSessions: SessionActivity[] = timelineEvents.length > 0
-    ? timelineEvents
-        .map(mapTimelineEventToSession)
-        .sort(
-          (a, b) =>
-            new Date(b.startISO).getTime() - new Date(a.startISO).getTime()
-        )
-    : getRecentSessions(rangeWindow);
-
-  const topicsData = getRecentTopics(rangeWindow);
+  const timelineSessions: SessionActivity[] = timelineEvents
+    .map(mapTimelineEventToSession)
+    .sort((a, b) => new Date(b.startISO).getTime() - new Date(a.startISO).getTime());
 
   const apiTopics = parentTopics.data?.topics ?? [];
   const topicSummary = parentTopics.data?.summary ?? null;
@@ -161,9 +151,20 @@ export default function ParentDashboard() {
           status,
         };
       })
-    : topicsData;
+    : [];
 
   const goalsGlance = aggregateGoals(parentGoals.data?.goals ?? []);
+
+  const missingSignals = useMemo(() => {
+    if (!allowLive || isLoading) return [];
+    const missing: string[] = [];
+    if (!primaryStudentId) missing.push("parentDashboard.children[0].studentId (getParentDashboard)");
+    if (subjectRecords.length === 0) missing.push("subjects (getParentSubjects)");
+    if (timelineEvents.length === 0) missing.push("timeline events (getParentTimeline)");
+    if ((parentGoals.data?.goals ?? []).length === 0) missing.push("goals (getParentGoals)");
+    if (apiTopics.length === 0) missing.push("topics (getParentTopics)");
+    return missing;
+  }, [allowLive, isLoading, primaryStudentId, subjectRecords.length, timelineEvents.length, parentGoals.data?.goals, apiTopics.length]);
 
   // Check if child has a teacher (blocks parent assignment)
   // Teacher presence is determined by learner profile data
@@ -247,6 +248,21 @@ export default function ParentDashboard() {
     <PageContainer>
       <ParentLayout>
         <div className="space-y-6">
+          {missingSignals.length > 0 && (
+            <Alert variant="destructive">
+              <AlertTitle>Missing live data</AlertTitle>
+              <AlertDescription>
+                <p className="mb-2">
+                  This dashboard will not fabricate data. The following inputs are empty/missing:
+                </p>
+                <ul className="list-disc pl-5 space-y-1">
+                  {missingSignals.map((m) => (
+                    <li key={m}>{m}</li>
+                  ))}
+                </ul>
+              </AlertDescription>
+            </Alert>
+          )}
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
               <h1 className="text-3xl font-bold tracking-tight">Hello, {parentName}</h1>

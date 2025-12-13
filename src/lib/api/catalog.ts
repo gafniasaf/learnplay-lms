@@ -15,10 +15,9 @@ export async function getCourseCatalog(): Promise<
 > {
   const liveMode = isLiveMode();
 
-  if (shouldUseMockData()) {
-    // Mocks removed: in mock mode we return an empty catalog.
-    return { courses: [], _metadata: { dataSource: "mock" } };
-  }
+  // Mock responses forbidden: if anything tries to run non-live, isLiveMode/shouldUseMockData will throw.
+  void liveMode;
+  void shouldUseMockData;
 
   log.info("Loading course catalog from Edge Function (LIVE mode)", {
     action: "getCourseCatalog",
