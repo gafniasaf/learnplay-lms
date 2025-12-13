@@ -121,10 +121,14 @@ export function useMCP() {
   const [loading, setLoading] = useState(false);
 
   // Call Supabase Edge Function via common helper (uses improved error handling)
-  const callEdgeFunction = async <T = unknown>(functionName: string, body: Record<string, unknown>): Promise<T> => {
+  const callEdgeFunction = async <T = unknown>(
+    functionName: string,
+    body: Record<string, unknown>,
+    options?: { maxRetries?: number; timeoutMs?: number; idempotencyKey?: string }
+  ): Promise<T> => {
     // Use the common helper which has improved error handling, CORS detection, and auth retry logic
     const { callEdgeFunction: callEdgeFn } = await import('@/lib/api/common');
-    return callEdgeFn<Record<string, unknown>, T>(functionName, body);
+    return callEdgeFn<Record<string, unknown>, T>(functionName, body, options);
   };
 
   // Call MCP proxy (for local development only)
@@ -194,7 +198,14 @@ export function useMCP() {
       }
 
       // Default: Async queue (Factory Pipeline)
-      return await callEdgeFunction<EnqueueJobResult>('enqueue-job', { jobType, payload });
+      // Use an idempotency key so transient network retries won't double-enqueue.
+      // This is especially important in Lovable preview where connections can drop mid-request.
+      const idempotencyKey = crypto.randomUUID();
+      return await callEdgeFunction<EnqueueJobResult>(
+        'enqueue-job',
+        { jobType, payload },
+        { maxRetries: 2, idempotencyKey }
+      );
     } catch (error: unknown) {
       // Improve error messages for authentication issues
       const errorObj = error as { status?: number; code?: string; message?: string; details?: { message?: string } };

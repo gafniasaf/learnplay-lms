@@ -47,6 +47,44 @@ describe('Job Edge Functions', () => {
       // Should fail without jobType
       expect([400, 422]).toContain(response.status);
     });
+
+    test.skipIf(!adminAuth)('dedupes via Idempotency-Key (safe retry)', async () => {
+      const key = crypto.randomUUID();
+      const courseId = `idem-${Date.now()}`;
+
+      const params = {
+        jobType: 'ai_course_generate',
+        payload: {
+          course_id: courseId,
+          subject: 'Idempotency Test',
+          grade: '3-5',
+          grade_band: '3-5',
+          items_per_group: 4,
+          mode: 'options',
+        },
+      };
+
+      const first = await callEdgeFunction(
+        'enqueue-job',
+        params,
+        { role: 'admin', token: adminAuth!.accessToken, headers: { 'Idempotency-Key': key } }
+      );
+      expect(first.status).toBe(200);
+      expect((first.body as any)?.ok).toBe(true);
+      const jobId1 = (first.body as any)?.jobId as string;
+      expect(typeof jobId1).toBe('string');
+      expect(jobId1.length).toBeGreaterThan(10);
+
+      const second = await callEdgeFunction(
+        'enqueue-job',
+        params,
+        { role: 'admin', token: adminAuth!.accessToken, headers: { 'Idempotency-Key': key } }
+      );
+      expect(second.status).toBe(200);
+      expect((second.body as any)?.ok).toBe(true);
+      const jobId2 = (second.body as any)?.jobId as string;
+      expect(jobId2).toBe(jobId1);
+    });
   });
   
   describe('get-job', () => {

@@ -165,13 +165,13 @@ function getDevUserId(): string {
 export async function callEdgeFunction<TRequest, TResponse>(
   functionName: string,
   payload: TRequest,
-  options: { maxRetries?: number; timeoutMs?: number } = {}
+  options: { maxRetries?: number; timeoutMs?: number; idempotencyKey?: string } = {}
 ): Promise<TResponse> {
   const { supabase } = await import("@/integrations/supabase/client");
   const { ensureSession } = await import("../supabase");
   const supabaseUrl = getSupabaseUrl();
   const anonKey = getSupabaseAnonKey();
-  const { maxRetries = 1, timeoutMs = 30000 } = options;
+  const { maxRetries = 1, timeoutMs = 30000, idempotencyKey } = options;
   const devAgentMode = shouldUseAgentTokenAuth();
 
   // In dev agent mode, use agent token auth (bypasses user session issues)
@@ -214,15 +214,20 @@ export async function callEdgeFunction<TRequest, TResponse>(
 
     for (let attempt = 0; attempt <= maxRetries; attempt++) {
       try {
+        const headers: Record<string, string> = {
+          "Content-Type": "application/json",
+          Authorization: authHeader,
+          apikey: anonKey,
+        };
+        // Idempotency-Key is used to safely retry POST operations like enqueue-job in preview environments.
+        if (idempotencyKey) {
+          headers["Idempotency-Key"] = idempotencyKey;
+        }
         return await fetchWithTimeout(
           url,
           {
             method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: authHeader,
-              apikey: anonKey,
-            },
+            headers,
             body,
           },
           timeoutMs
