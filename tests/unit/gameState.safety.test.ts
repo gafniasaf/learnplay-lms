@@ -33,6 +33,19 @@ describe('GameState Safety Guards', () => {
     resetStore();
   });
 
+  it('fails loudly with a clear error when course.items is missing', () => {
+    const badCourse = {
+      id: 'bad-course',
+      title: 'Bad Course',
+      // levels/groups present but items missing
+      levels: [{ id: 1, title: 'Level 1', start: 0, end: 0 }],
+      groups: [{ id: 0, name: 'Group 0' }],
+    } as unknown as Course;
+
+    const { initialize } = useGameStateStore.getState();
+    expect(() => initialize(badCourse, 1)).toThrow(/missing items\[\]/i);
+  });
+
   describe('Level Guard Violation', () => {
     it('blocks invalid item from entering pool on wrong answer', () => {
       // Create a course with items in different groups

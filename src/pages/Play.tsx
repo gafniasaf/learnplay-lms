@@ -311,7 +311,16 @@ const Play = () => {
     const loadCourse = async () => {
       try {
         setLoading(true);
-        const data = await mcp.getCourse(courseId) as unknown as Course;
+        const raw = await mcp.getCourse(courseId) as unknown as any;
+        // Some backends wrap the course in { course: ... } or { data: { course: ... } }.
+        const data: Course = (raw?.course ?? raw?.data?.course ?? raw) as Course;
+
+        // Fail loudly (but clearly) if the payload isn't playable.
+        if (!data || !Array.isArray((data as any).items)) {
+          console.error("[Play] Invalid course payload (missing items[])", { courseId, raw });
+          throw new Error("Course content is invalid (missing items). Please republish this course.");
+        }
+
         setCourse(data);
         
         // Get level from URL (after course is loaded)

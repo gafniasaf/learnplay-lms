@@ -96,6 +96,16 @@ export const useGameStateStore = create<GameState>((set, get) => ({
    * Initialize game state with course and level
    */
   initialize: (course: Course, level: number) => {
+    // Fail loudly with a clear message instead of crashing on undefined.map
+    const items = (course as any)?.items;
+    if (!Array.isArray(items)) {
+      const id = (course as any)?.id ?? "unknown";
+      throw new Error(
+        `[GameState] Invalid course payload for '${id}': missing items[]. ` +
+          `This course JSON is not playable yet (expected legacy course schema).`
+      );
+    }
+
     // Use course.levels directly from JSON (with fallback if missing)
     const courseLevels = course.levels && course.levels.length > 0 
       ? course.levels 
