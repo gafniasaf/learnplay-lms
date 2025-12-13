@@ -44,7 +44,15 @@ if (-not $funcDirs) {
 foreach ($d in $funcDirs) {
   $name = $d.Name
   Write-Host "Deploying $name..."
-  supabase functions deploy $name --project-ref $projectRef --no-verify-jwt
+  # Capture output so we can fail loudly on CLI bugs where non-zero exit isn't propagated.
+  $out = & supabase functions deploy $name --project-ref $projectRef --no-verify-jwt 2>&1
+  $out | ForEach-Object { Write-Host $_ }
+
+  $joined = ($out -join "`n")
+  if ($LASTEXITCODE -ne 0 -or $joined -match "unexpected deploy status" -or $joined -match "Unauthorized") {
+    Write-Error "❌ Deploy failed for function: $name"
+    exit 1
+  }
 }
 
 Write-Host "All functions deployed."
