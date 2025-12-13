@@ -118,28 +118,32 @@ serve(async (req: Request): Promise<Response> => {
     });
   }
 
-  // Use DB RPC (avoids PostgREST schema cache issues when columns were added recently).
-  // NOTE: The RPC does not currently persist organization_id/created_by; that is acceptable for now
-  // because list-course-jobs/admin processing uses service-role access.
-  const { data: jobId, error: enqueueErr } = await adminSupabase.rpc("enqueue_ai_job", {
-    p_subject: subject,
-    p_format: "practice",
-    p_course_id: courseId,
-    p_extra: {
+  // Insert using canonical base columns only.
+  // IMPORTANT: do NOT include recently-added columns (e.g. organization_id) because PostgREST schema cache
+  // may not be refreshed in production immediately after migrations.
+  const inserted = await adminSupabase
+    .from("ai_course_jobs")
+    .insert({
+      course_id: courseId,
+      subject,
+      grade_band: gradeBand,
+      grade: typeof (payload as any).grade === "string" ? (payload as any).grade : null,
       items_per_group: itemsPerGroup ?? 12,
       mode,
-      grade_band: gradeBand,
-      grade: typeof (payload as any).grade === "string" ? (payload as any).grade : undefined,
-      organization_id: organizationId, // best-effort; ignored by RPC but useful for future-proofing
-    },
-  });
+      status: "pending",
+      created_by: auth.userId ?? null,
+    })
+    .select("id")
+    .single();
 
-  if (enqueueErr || !jobId) {
-    return new Response(JSON.stringify({ error: enqueueErr?.message || "Failed to enqueue job" }), {
+  if (inserted.error || !inserted.data?.id) {
+    return new Response(JSON.stringify({ error: inserted.error?.message || "Failed to enqueue job" }), {
       status: 500,
       headers: stdHeaders(req, { "Content-Type": "application/json" }),
     });
   }
+
+  const jobId = inserted.data.id as string;
 
   // Job is now queued with status "pending"
   // A separate worker (pg_cron / background job) will pick it up and run it
