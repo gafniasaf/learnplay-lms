@@ -27,16 +27,24 @@ serve(withCors(async (req) => {
       
       if (!authError && user) {
         userId = user.id;
-        
-        // Get user's organization
-        const { data: orgData } = await supabase
-          .from('organization_users')
-          .select('org_id')
-          .eq('user_id', user.id)
-          .single();
-        
-        if (orgData) {
-          userOrgId = orgData.org_id;
+
+        // Prefer organization_id embedded in the token/user metadata (fast + consistent with other Edge auth helpers)
+        userOrgId =
+          (user.app_metadata as any)?.organization_id ??
+          (user.user_metadata as any)?.organization_id ??
+          null;
+
+        // If metadata is missing, fall back to org membership table.
+        if (!userOrgId) {
+          const { data: orgData } = await supabase
+            .from('organization_users')
+            .select('org_id')
+            .eq('user_id', user.id)
+            .single();
+
+          if (orgData) {
+            userOrgId = orgData.org_id;
+          }
         }
       }
     }

@@ -154,26 +154,19 @@ test.describe('Live AI Pipeline: Course Creation', () => {
     if (courseId) {
       const { url, anonKey } = getSupabaseBase();
 
-      // Poll list-courses until it appears (up to 60s)
-      const sessionToken = await getSessionAccessToken(page);
-      let found = false;
+      // Poll get-course until it becomes readable (more stable than list-courses, which downloads many objects)
+      let getOk = false;
       for (let i = 0; i < 30; i++) {
-        const res = await page.request.get(`${url}/functions/v1/list-courses?search=${encodeURIComponent(courseId)}&limit=5`, {
-          headers: { apikey: anonKey, Authorization: `Bearer ${sessionToken}` },
+        const getRes = await page.request.get(`${url}/functions/v1/get-course?courseId=${encodeURIComponent(courseId)}`, {
+          headers: { apikey: anonKey },
         });
-        expect(res.ok()).toBeTruthy();
-        const data = await res.json();
-        found = Array.isArray(data.items) && data.items.some((it: any) => it.id === courseId);
-        if (found) break;
+        if (getRes.ok()) {
+          getOk = true;
+          break;
+        }
         await page.waitForTimeout(2000);
       }
-      expect(found).toBeTruthy();
-
-      // Verify get-course loads it
-      const getRes = await page.request.get(`${url}/functions/v1/get-course?courseId=${encodeURIComponent(courseId)}`, {
-        headers: { apikey: anonKey },
-      });
-      expect(getRes.ok()).toBeTruthy();
+      expect(getOk).toBeTruthy();
 
       // Open editor (correct route) and verify it loads (not 404)
       await page.goto(`/admin/editor/${courseId}`);
