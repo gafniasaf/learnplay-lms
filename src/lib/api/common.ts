@@ -539,17 +539,35 @@ export async function callEdgeFunctionGet<TResponse>(
       timeoutMs
     );
   } catch (fetchError) {
-    // Handle CORS and network errors gracefully - check BEFORE auth check
-    const errMsg = fetchError instanceof Error ? fetchError.message.toLowerCase() : String(fetchError).toLowerCase();
-    if (errMsg.includes('cors') || errMsg.includes('blocked') || errMsg.includes('failed to fetch') ||
-        (fetchError instanceof TypeError && errMsg.includes('fetch'))) {
+    // Handle browser fetch failures explicitly.
+    // Important: "Failed to fetch" is ambiguous (can be CORS, offline, DNS, blocked by extensions, etc).
+    const errMsg =
+      fetchError instanceof Error ? fetchError.message.toLowerCase() : String(fetchError).toLowerCase();
+
+    const isLikelyCorsError = errMsg.includes("cors") || errMsg.includes("blocked");
+    if (isLikelyCorsError) {
       throw new ApiError(
         `CORS error: Edge function ${functionName} is not accessible from this origin. This may be expected in preview environments.`,
         "CORS_ERROR",
-        0, // No HTTP status for CORS errors
+        0,
         { functionName, url }
       );
     }
+
+    const isLikelyNetworkError =
+      errMsg.includes("failed to fetch") ||
+      errMsg.includes("network") ||
+      errMsg.includes("insufficient_resources") ||
+      (fetchError instanceof TypeError && errMsg.includes("fetch"));
+    if (isLikelyNetworkError) {
+      throw new ApiError(
+        `Network error calling Edge function ${functionName}: ${fetchError instanceof Error ? fetchError.message : String(fetchError)}`,
+        "NETWORK_ERROR",
+        0,
+        { functionName, url }
+      );
+    }
+
     throw fetchError;
   }
 

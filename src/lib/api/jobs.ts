@@ -54,13 +54,6 @@ export interface JobQuota {
   daily_limit: number;
 }
 
-// Default quota for guest/unauthenticated users
-const DEFAULT_QUOTA: JobQuota = {
-  jobs_last_hour: 0,
-  hourly_limit: 10,
-  jobs_last_day: 0,
-  daily_limit: 50,
-};
 
 // List course jobs with filtering
 export interface ListCourseJobsParams {
@@ -200,15 +193,8 @@ export async function listMediaJobs(params: ListMediaJobsParams = {}): Promise<L
   return callEdgeFunctionGet<ListMediaJobsResponse>("list-media-jobs", queryParams);
 }
 
-// Get job quota (with guest mode fallback)
 export async function getJobQuota(): Promise<JobQuota> {
-  try {
-    // Try to get from edge function or direct query
-    // For now, return default - this would be enhanced with a proper edge function
-    return DEFAULT_QUOTA;
-  } catch (err) {
-    console.warn('[jobs.getJobQuota] Using default quota due to error:', err);
-    return DEFAULT_QUOTA;
-  }
+  // IgniteZero: no silent fallbacks. This must be implemented as a real Edge function.
+  throw new Error("❌ BLOCKED: getJobQuota() is not implemented. Create an Edge function (e.g. get-job-quota) and wire it here.");
 }
 

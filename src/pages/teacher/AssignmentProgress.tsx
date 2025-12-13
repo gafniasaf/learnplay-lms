@@ -26,14 +26,14 @@ export default function AssignmentProgress() {
     
     setIsExporting(true);
     try {
-      const result = await mcp.exportGradebook(id);
-      const blob = new Blob([JSON.stringify(result)], { type: 'text/csv' });
+      const blob = await mcp.exportGradebook(id);
       
       // Create download link
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `gradebook-${data?.assignmentTitle || id}.csv`;
+      const base = (data?.assignmentTitle || id).replaceAll(/[^a-zA-Z0-9_-]+/g, "-").slice(0, 60);
+      a.download = `gradebook-${base}.csv`;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);

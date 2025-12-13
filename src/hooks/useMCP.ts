@@ -1166,14 +1166,16 @@ export function useMCP() {
     }
   };
 
-  const exportGradebook = async (assignmentId: string) => {
+  const exportGradebook = async (assignmentId: string): Promise<Blob> => {
     setLoading(true);
     try {
       if (useMockMode) {
         console.log('[MCP Mock] exportGradebook:', assignmentId);
-        return { url: 'mock-url', filename: 'gradebook.csv' };
+        throw new Error("Mock mode disabled: exportGradebook requires live Edge function");
       }
-      return await callEdgeFunctionGet<{ url: string; filename: string }>("export-gradebook", { assignmentId });
+      // export-gradebook returns raw CSV, not JSON
+      const { exportGradebook: exportGradebookBlob } = await import("@/lib/api/assignments");
+      return await exportGradebookBlob(assignmentId);
     } finally {
       setLoading(false);
     }

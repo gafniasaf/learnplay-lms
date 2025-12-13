@@ -21,181 +21,200 @@ interface EnqueueBody {
 }
 
 serve(async (req: Request): Promise<Response> => {
+  const requestId = crypto.randomUUID();
+
   if (req.method === "OPTIONS") {
-    return handleOptions(req, "enqueue-job");
+    return handleOptions(req, requestId);
   }
 
   if (req.method !== "POST") {
     return new Response("Method Not Allowed", {
       status: 405,
-      headers: stdHeaders(req),
+      headers: stdHeaders(req, { "X-Request-Id": requestId }),
     });
   }
 
-  let auth;
   try {
-    auth = await authenticateRequest(req);
-  } catch (error) {
-    const message = error instanceof Error ? error.message : "Unauthorized";
-    return new Response(
-      JSON.stringify({ error: message }),
-      { status: message === "Missing organization_id" ? 400 : 401, headers: stdHeaders(req, { "Content-Type": "application/json" }) }
-    );
-  }
-
-  let body: EnqueueBody;
-  try {
-    body = await req.json() as EnqueueBody;
-  } catch {
-    return new Response(JSON.stringify({ error: "Invalid JSON body" }), {
-      status: 400,
-      headers: stdHeaders(req, { "Content-Type": "application/json" }),
-    });
-  }
-
-  if (!body?.jobType || typeof body.jobType !== "string") {
-    return new Response(JSON.stringify({ error: "jobType is required" }), {
-      status: 400,
-      headers: stdHeaders(req, { "Content-Type": "application/json" }),
-    });
-  }
-
-  const payload = body.payload ?? {};
-  const organizationId = requireOrganizationId(auth);
-
-  // We currently support the primary factory job used by the UI: ai_course_generate.
-  // (Other job types have dedicated endpoints.)
-  if (body.jobType !== "ai_course_generate") {
-    return new Response(JSON.stringify({ error: `Unsupported jobType: ${body.jobType}` }), {
-      status: 400,
-      headers: stdHeaders(req, { "Content-Type": "application/json" }),
-    });
-  }
-
-  // Derive required fields from payload (accept a couple legacy key names)
-  const courseId =
-    (typeof (payload as any).course_id === "string" && (payload as any).course_id) ||
-    (typeof (payload as any).courseId === "string" && (payload as any).courseId) ||
-    null;
-  const subject =
-    (typeof (payload as any).subject === "string" && (payload as any).subject) || null;
-  const gradeBand =
-    (typeof (payload as any).grade_band === "string" && (payload as any).grade_band) ||
-    (typeof (payload as any).gradeBand === "string" && (payload as any).gradeBand) ||
-    (typeof (payload as any).grade === "string" && (payload as any).grade) ||
-    null;
-  const mode =
-    (payload as any).mode === "numeric" ? "numeric" : (payload as any).mode === "options" ? "options" : null;
-  const itemsPerGroup =
-    typeof (payload as any).items_per_group === "number"
-      ? (payload as any).items_per_group
-      : typeof (payload as any).itemsPerGroup === "number"
-        ? (payload as any).itemsPerGroup
-        : null;
-
-  if (!courseId) {
-    return new Response(JSON.stringify({ error: "course_id is required in payload" }), {
-      status: 400,
-      headers: stdHeaders(req, { "Content-Type": "application/json" }),
-    });
-  }
-  if (!subject) {
-    return new Response(JSON.stringify({ error: "subject is required in payload" }), {
-      status: 400,
-      headers: stdHeaders(req, { "Content-Type": "application/json" }),
-    });
-  }
-  if (!gradeBand) {
-    return new Response(JSON.stringify({ error: "grade_band (or grade) is required in payload" }), {
-      status: 400,
-      headers: stdHeaders(req, { "Content-Type": "application/json" }),
-    });
-  }
-  if (!mode) {
-    return new Response(JSON.stringify({ error: "mode is required in payload (options|numeric)" }), {
-      status: 400,
-      headers: stdHeaders(req, { "Content-Type": "application/json" }),
-    });
-  }
-
-  // Insert using canonical base columns only.
-  // IMPORTANT: do NOT include recently-added columns (e.g. organization_id) because PostgREST schema cache
-  // may not be refreshed in production immediately after migrations.
-  const inserted = await adminSupabase
-    .from("ai_course_jobs")
-    .insert({
-      course_id: courseId,
-      subject,
-      grade_band: gradeBand,
-      grade: typeof (payload as any).grade === "string" ? (payload as any).grade : null,
-      items_per_group: itemsPerGroup ?? 12,
-      mode,
-      status: "pending",
-      created_by: auth.userId ?? null,
-    })
-    .select("id")
-    .single();
-
-  if (inserted.error || !inserted.data?.id) {
-    return new Response(JSON.stringify({ error: inserted.error?.message || "Failed to enqueue job" }), {
-      status: 500,
-      headers: stdHeaders(req, { "Content-Type": "application/json" }),
-    });
-  }
-
-  const jobId = inserted.data.id as string;
-
-  // Job is now queued with status "pending"
-  // A separate worker (pg_cron / background job) will pick it up and run it
-  // This prevents Edge Function timeouts for long-running AI tasks
-  
-  // For short jobs, we can optionally run them inline
-  // Use runSync=true in body to force sync execution
-  const SHORT_RUNNING_JOBS = ['smoke-test', 'marketing'];
-  const runInline = body.runSync === true || SHORT_RUNNING_JOBS.includes(body.jobType);
-  
-  if (runInline) {
-    await adminSupabase
-      .from("ai_course_jobs")
-      .update({ status: "processing", started_at: new Date().toISOString() })
-      .eq("id", jobId);
-
+    let auth;
     try {
-      const result = await runJob(body.jobType, payload, jobId);
-      await adminSupabase
-        .from("ai_course_jobs")
-        .update({ status: "done", completed_at: new Date().toISOString() })
-        .eq("id", jobId);
-
-      return new Response(JSON.stringify({ ok: true, jobId, status: "completed", result }), {
-        status: 200,
-        headers: stdHeaders(req, { "Content-Type": "application/json" }),
-      });
+      auth = await authenticateRequest(req);
     } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      await adminSupabase
-        .from("ai_course_jobs")
-        .update({ status: "failed", error: message, completed_at: new Date().toISOString() })
-        .eq("id", jobId);
+      const message = error instanceof Error ? error.message : "Unauthorized";
+      return new Response(
+        JSON.stringify({ error: message, requestId }),
+        {
+          status: message === "Missing organization_id" ? 400 : 401,
+          headers: stdHeaders(req, { "Content-Type": "application/json", "X-Request-Id": requestId }),
+        },
+      );
+    }
 
-      return new Response(JSON.stringify({ ok: false, jobId, status: "failed", error: message }), {
-        status: 200,
-        headers: stdHeaders(req, { "Content-Type": "application/json" }),
+    let body: EnqueueBody;
+    try {
+      body = await req.json() as EnqueueBody;
+    } catch {
+      return new Response(JSON.stringify({ error: "Invalid JSON body", requestId }), {
+        status: 400,
+        headers: stdHeaders(req, { "Content-Type": "application/json", "X-Request-Id": requestId }),
       });
     }
+
+    if (!body?.jobType || typeof body.jobType !== "string") {
+      return new Response(JSON.stringify({ error: "jobType is required", requestId }), {
+        status: 400,
+        headers: stdHeaders(req, { "Content-Type": "application/json", "X-Request-Id": requestId }),
+      });
+    }
+
+    const payload = body.payload ?? {};
+    // For now, we only validate org presence (even if this function doesn't yet filter by it).
+    // This keeps the system consistent with hybrid auth expectations.
+    requireOrganizationId(auth);
+
+    // We currently support the primary factory job used by the UI: ai_course_generate.
+    // (Other job types have dedicated endpoints.)
+    if (body.jobType !== "ai_course_generate") {
+      return new Response(JSON.stringify({ error: `Unsupported jobType: ${body.jobType}`, requestId }), {
+        status: 400,
+        headers: stdHeaders(req, { "Content-Type": "application/json", "X-Request-Id": requestId }),
+      });
+    }
+
+    // Derive required fields from payload (accept a couple legacy key names)
+    const courseId =
+      (typeof (payload as any).course_id === "string" && (payload as any).course_id) ||
+      (typeof (payload as any).courseId === "string" && (payload as any).courseId) ||
+      null;
+    const subject =
+      (typeof (payload as any).subject === "string" && (payload as any).subject) || null;
+    const gradeBand =
+      (typeof (payload as any).grade_band === "string" && (payload as any).grade_band) ||
+      (typeof (payload as any).gradeBand === "string" && (payload as any).gradeBand) ||
+      (typeof (payload as any).grade === "string" && (payload as any).grade) ||
+      null;
+    const mode =
+      (payload as any).mode === "numeric"
+        ? "numeric"
+        : (payload as any).mode === "options"
+          ? "options"
+          : null;
+    const itemsPerGroup =
+      typeof (payload as any).items_per_group === "number"
+        ? (payload as any).items_per_group
+        : typeof (payload as any).itemsPerGroup === "number"
+          ? (payload as any).itemsPerGroup
+          : null;
+
+    if (!courseId) {
+      return new Response(JSON.stringify({ error: "course_id is required in payload", requestId }), {
+        status: 400,
+        headers: stdHeaders(req, { "Content-Type": "application/json", "X-Request-Id": requestId }),
+      });
+    }
+    if (!subject) {
+      return new Response(JSON.stringify({ error: "subject is required in payload", requestId }), {
+        status: 400,
+        headers: stdHeaders(req, { "Content-Type": "application/json", "X-Request-Id": requestId }),
+      });
+    }
+    if (!gradeBand) {
+      return new Response(JSON.stringify({ error: "grade_band (or grade) is required in payload", requestId }), {
+        status: 400,
+        headers: stdHeaders(req, { "Content-Type": "application/json", "X-Request-Id": requestId }),
+      });
+    }
+    if (!mode) {
+      return new Response(JSON.stringify({ error: "mode is required in payload (options|numeric)", requestId }), {
+        status: 400,
+        headers: stdHeaders(req, { "Content-Type": "application/json", "X-Request-Id": requestId }),
+      });
+    }
+
+    // Insert using canonical base columns only.
+    // IMPORTANT: do NOT include recently-added columns (e.g. organization_id) because PostgREST schema cache
+    // may not be refreshed in production immediately after migrations seen by some clients.
+    const inserted = await adminSupabase
+      .from("ai_course_jobs")
+      .insert({
+        course_id: courseId,
+        subject,
+        grade_band: gradeBand,
+        grade: typeof (payload as any).grade === "string" ? (payload as any).grade : null,
+        items_per_group: itemsPerGroup ?? 12,
+        mode,
+        status: "pending",
+        created_by: auth.userId ?? null,
+      })
+      .select("id")
+      .single();
+
+    if (inserted.error || !inserted.data?.id) {
+      return new Response(
+        JSON.stringify({ error: inserted.error?.message || "Failed to enqueue job", requestId }),
+        { status: 500, headers: stdHeaders(req, { "Content-Type": "application/json", "X-Request-Id": requestId }) },
+      );
+    }
+
+    const jobId = inserted.data.id as string;
+
+    // For short jobs, we can optionally run them inline.
+    // Use runSync=true in body to force sync execution.
+    const SHORT_RUNNING_JOBS = ["smoke-test", "marketing"];
+    const runInline = body.runSync === true || SHORT_RUNNING_JOBS.includes(body.jobType);
+
+    if (runInline) {
+      await adminSupabase
+        .from("ai_course_jobs")
+        .update({ status: "processing", started_at: new Date().toISOString() })
+        .eq("id", jobId);
+
+      try {
+        const result = await runJob(body.jobType, payload, jobId);
+        await adminSupabase
+          .from("ai_course_jobs")
+          .update({ status: "done", completed_at: new Date().toISOString() })
+          .eq("id", jobId);
+
+        return new Response(JSON.stringify({ ok: true, jobId, status: "completed", result, requestId }), {
+          status: 200,
+          headers: stdHeaders(req, { "Content-Type": "application/json", "X-Request-Id": requestId }),
+        });
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        await adminSupabase
+          .from("ai_course_jobs")
+          .update({ status: "failed", error: message, completed_at: new Date().toISOString() })
+          .eq("id", jobId);
+
+        return new Response(JSON.stringify({ ok: false, jobId, status: "failed", error: message, requestId }), {
+          status: 200,
+          headers: stdHeaders(req, { "Content-Type": "application/json", "X-Request-Id": requestId }),
+        });
+      }
+    }
+
+    // For long-running jobs like ai_course_generate, return immediately.
+    console.log(`[enqueue-job] Job ${jobId} queued for async processing: ${body.jobType} (${requestId})`);
+
+    return new Response(
+      JSON.stringify({
+        ok: true,
+        jobId,
+        status: "queued",
+        message: "Job queued for processing. Poll /list-course-jobs to track status.",
+        requestId,
+      }),
+      {
+        status: 200,
+        headers: stdHeaders(req, { "Content-Type": "application/json", "X-Request-Id": requestId }),
+      },
+    );
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.error(`[enqueue-job] Unhandled error (${requestId}):`, message);
+    return new Response(JSON.stringify({ error: message, requestId }), {
+      status: 500,
+      headers: stdHeaders(req, { "Content-Type": "application/json", "X-Request-Id": requestId }),
+    });
   }
-  
-  // For long-running jobs like ai_course_generate, return immediately
-  // The job will be processed by a background worker
-  console.log(`[enqueue-job] Job ${jobId} queued for async processing: ${body.jobType}`);
-  
-  return new Response(JSON.stringify({ 
-    ok: true, 
-    jobId, 
-    status: "queued",
-    message: "Job queued for processing. Poll /list-course-jobs to track status."
-  }), {
-    status: 200,
-    headers: stdHeaders(req, { "Content-Type": "application/json" }),
-  });
 });
