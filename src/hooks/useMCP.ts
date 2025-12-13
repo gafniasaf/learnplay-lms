@@ -204,7 +204,8 @@ export function useMCP() {
       return await callEdgeFunction<EnqueueJobResult>(
         'enqueue-job',
         { jobType, payload },
-        { maxRetries: 2, idempotencyKey }
+        // With idempotency, we can safely retry more aggressively for preview stability.
+        { maxRetries: 5, idempotencyKey }
       );
     } catch (error: unknown) {
       // Improve error messages for authentication issues
