@@ -1,16 +1,16 @@
 import { createRoot } from "react-dom/client";
-import App from "./App.tsx";
 import "./index.css";
 import "./styles/generated.css";
 import "./styles/learnplay.css";
 import { validateEnv, isLiveMode } from "./lib/env";
 import { loadRuntimeConfig } from "./lib/runtimeConfig";
 
-// IgniteZero: Validate environment at startup
-// In live mode, missing credentials will throw (fail loudly)
-// In mock mode, we log a warning but continue
-// Load runtime config first (Lovable-style hosts may not inject env vars)
-void loadRuntimeConfig().finally(() => {
+async function bootstrap() {
+  // Load runtime config first (Lovable-style hosts may not inject env vars).
+  // IMPORTANT: we must await this before rendering, otherwise modules that rely on runtime config
+  // (e.g. Supabase client bootstrapping) may throw at first use.
+  await loadRuntimeConfig();
+
   try {
     validateEnv();
   } catch (err) {
@@ -26,15 +26,19 @@ void loadRuntimeConfig().finally(() => {
           </div>
         `;
       }
-      throw err; // Re-throw to halt app
+      throw err;
     }
     // In mock mode, just log and continue
-    console.warn('[Env] Validation warning (mock mode):', err);
+    console.warn("[Env] Validation warning (mock mode):", err);
   }
-});
 
-const rootElement = document.getElementById("root");
-
-if (rootElement) {
-  createRoot(rootElement).render(<App />);
+  const rootElement = document.getElementById("root");
+  if (rootElement) {
+    // Import App AFTER runtime config is loaded so any module-scope config reads
+    // (e.g. Supabase client init) can see /app-config.json in preview environments.
+    const { default: App } = await import("./App.tsx");
+    createRoot(rootElement).render(<App />);
+  }
 }
+
+void bootstrap();

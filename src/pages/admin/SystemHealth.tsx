@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { useMCP } from "@/hooks/useMCP";
+import { getRuntimeConfigSync } from "@/lib/runtimeConfig";
 
 type HealthResponse = {
   ok?: boolean;
@@ -63,6 +64,17 @@ export default function SystemHealthPage() {
   const [loading, setLoading] = useState(false);
   const [health, setHealth] = useState<HealthResponse["data"] | null>(null);
   const [env, setEnv] = useState<EnvAuditResponse["data"] | null>(null);
+  const [authDiag, setAuthDiag] = useState<{
+    hasSession: boolean;
+    userId?: string;
+    email?: string;
+    roles?: any[];
+    orgId?: string | null;
+    tokenOrgId?: string | null;
+    blockedReason?: string;
+    edgeHealth?: any;
+    errors?: string[];
+  } | null>(null);
 
   const [courseId, setCourseId] = useState("");
   const [integrity, setIntegrity] = useState<IntegrityResponse["data"] | null>(null);
@@ -83,6 +95,75 @@ export default function SystemHealthPage() {
   const load = async () => {
     setLoading(true);
     try {
+      // Auth/Org diagnostics should not depend on MCP at all (critical for Lovable preview)
+      const diagErrors: string[] = [];
+      let hasSession = false;
+      let userId: string | undefined;
+      let email: string | undefined;
+      let roles: any[] | undefined;
+      let orgId: string | null | undefined;
+      let tokenOrgId: string | null | undefined;
+      let edgeHealth: any;
+      let blockedReason: string | undefined;
+
+      try {
+        const { supabase } = await import("@/integrations/supabase/client");
+        const { data } = await supabase.auth.getSession();
+        hasSession = !!data.session;
+        userId = data.session?.user?.id;
+        email = data.session?.user?.email ?? undefined;
+        tokenOrgId =
+          ((data.session?.user?.app_metadata as any)?.organization_id as string | undefined) ??
+          ((data.session?.user?.user_metadata as any)?.organization_id as string | undefined) ??
+          null;
+      } catch (e) {
+        diagErrors.push(`Supabase session check failed: ${e instanceof Error ? e.message : String(e)}`);
+      }
+
+      try {
+        const { callEdgeFunctionGet } = await import("@/lib/api/common");
+        // health is intentionally lightweight and helps distinguish "CORS/network" from "auth/rls"
+        edgeHealth = await callEdgeFunctionGet<any>("health");
+      } catch (e) {
+        diagErrors.push(`Edge health check failed: ${e instanceof Error ? e.message : String(e)}`);
+      }
+
+      if (hasSession) {
+        try {
+          const { callEdgeFunctionGet } = await import("@/lib/api/common");
+          const res = await callEdgeFunctionGet<{ roles: any[] }>("get-user-roles");
+          roles = res.roles;
+          const firstOrg = roles.find((r) => r.organization_id) as { organization_id?: string } | undefined;
+          orgId = firstOrg?.organization_id ?? null;
+        } catch (e) {
+          diagErrors.push(`Role/org check failed: ${e instanceof Error ? e.message : String(e)}`);
+        }
+      } else {
+        blockedReason = "BLOCKED: Not logged in (session required).";
+      }
+
+      // Prefer the orgId embedded in the session token. If it's missing, most user-auth Edge functions will block.
+      if (hasSession && !tokenOrgId) {
+        blockedReason =
+          "BLOCKED: Your account is missing organization configuration (organization_id). Fix user metadata/roles, then log out + log back in.";
+      } else if (hasSession && orgId === null) {
+        // tokenOrgId exists but role lookup found no org-specific roles; still useful signal.
+        blockedReason =
+          "WARNING: organization_id is present on the session token, but no org-scoped roles were found. Some org features may not appear.";
+      }
+
+      setAuthDiag({
+        hasSession,
+        userId,
+        email,
+        roles,
+        orgId,
+        tokenOrgId,
+        blockedReason,
+        edgeHealth,
+        errors: diagErrors.length ? diagErrors : undefined,
+      });
+
       const [h, e, u] = await Promise.all([
         callProxy("lms.health", {}).catch(err => {
           console.warn('[SystemHealth] Health check failed:', err);
@@ -144,10 +225,90 @@ export default function SystemHealthPage() {
       <div className="max-w-6xl mx-auto space-y-6">
         <div className="flex items-center justify-between">
           <h1 className="text-3xl font-bold">System Health</h1>
-          <Button onClick={load} disabled={loading}>
+          <Button data-cta-id="cta-system-health-refresh" onClick={load} disabled={loading}>
             {loading ? "Refreshing..." : "Refresh"}
           </Button>
         </div>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Auth / Org / Preview Diagnostics</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2 text-sm">
+            <div>Runtime apiMode: {getRuntimeConfigSync()?.apiMode || "edge"}</div>
+            <div>Has session: {authDiag ? String(authDiag.hasSession) : "—"}</div>
+            <div>User: {authDiag?.userId ? `${authDiag.userId}${authDiag.email ? ` (${authDiag.email})` : ""}` : "—"}</div>
+            <div>Token organization_id: {authDiag?.tokenOrgId ?? "—"}</div>
+            <div>Org roles organization_id: {authDiag?.orgId ?? "—"}</div>
+            <div className="font-medium mt-2">Edge health:</div>
+            <pre className="bg-muted p-2 rounded">{JSON.stringify(authDiag?.edgeHealth ?? null, null, 2)}</pre>
+            {authDiag?.blockedReason && (
+              <div className={authDiag.blockedReason.startsWith("WARNING") ? "text-amber-600 font-medium" : "text-red-600 font-medium"}>
+                {authDiag.blockedReason}
+              </div>
+            )}
+            {!authDiag?.hasSession && (
+              <div className="pt-2">
+                <Button
+                  data-cta-id="cta-system-health-go-login"
+                  size="sm"
+                  onClick={() => (window.location.href = "/auth")}
+                >
+                  Go to login
+                </Button>
+              </div>
+            )}
+            {authDiag?.hasSession && !authDiag?.tokenOrgId && (
+              <div className="pt-2 space-y-2">
+                <div className="text-muted-foreground">
+                  Fix once per dev user, then <b>log out + log back in</b> so the JWT includes the updated org metadata.
+                </div>
+                <div className="flex gap-2 flex-wrap">
+                  <Button
+                    data-cta-id="cta-system-health-copy-fix-admin-org"
+                    size="sm"
+                    variant="outline"
+                    onClick={async () => {
+                      const cmd = `npx tsx scripts/fix-admin-org.ts ${authDiag.email || "<your-email>"}`;
+                      try {
+                        await navigator.clipboard.writeText(cmd);
+                        toast.success("Copied fix command");
+                      } catch {
+                        toast.error("Copy failed", { description: cmd });
+                      }
+                    }}
+                  >
+                    Copy fix command
+                  </Button>
+                  <Button
+                    data-cta-id="cta-system-health-open-auth-refresh-session"
+                    size="sm"
+                    variant="outline"
+                    onClick={() => (window.location.href = "/auth")}
+                  >
+                    Re-login
+                  </Button>
+                </div>
+              </div>
+            )}
+            {authDiag?.errors?.length ? (
+              <>
+                <div className="font-medium text-amber-600">Diagnostics errors</div>
+                <ul className="list-disc list-inside text-amber-600">
+                  {authDiag.errors.map((msg, idx) => (
+                    <li key={idx}>{msg}</li>
+                  ))}
+                </ul>
+              </>
+            ) : null}
+            {Array.isArray(authDiag?.roles) && (
+              <>
+                <div className="font-medium mt-2">Roles:</div>
+                <pre className="bg-muted p-2 rounded">{JSON.stringify(authDiag.roles, null, 2)}</pre>
+              </>
+            )}
+          </CardContent>
+        </Card>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <Card>
@@ -202,6 +363,7 @@ export default function SystemHealthPage() {
                 <pre className="bg-muted p-2 rounded">{JSON.stringify(uiSummary.byType, null, 2)}</pre>
               )}
               <Button
+                data-cta-id="cta-system-health-ui-audit-run"
                 variant="outline"
                 onClick={async () => {
                   try {
@@ -243,7 +405,7 @@ export default function SystemHealthPage() {
           <CardContent className="space-y-3 text-sm">
             <div className="flex gap-2">
               <Input placeholder="courseId" value={courseId} onChange={(e) => setCourseId(e.target.value)} />
-              <Button onClick={runIntegrity}>Check</Button>
+              <Button data-cta-id="cta-system-health-storage-integrity-check" onClick={runIntegrity}>Check</Button>
             </div>
             {integrity && (
               <div className="space-y-2">

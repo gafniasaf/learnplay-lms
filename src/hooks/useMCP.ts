@@ -2,6 +2,7 @@ import { useState } from 'react';
 // supabase import removed - not used directly
 import { JOB_MODES } from '@/lib/contracts';
 import { callEdgeFunctionGet } from '@/lib/api/common';
+import { getRuntimeConfigSync } from '@/lib/runtimeConfig';
 import type {
   SaveRecordResponse,
   GetRecordResponse,
@@ -39,36 +40,18 @@ import type {
   Assignment,
 } from '@/lib/types/edge-functions';
 
-// MCP Proxy settings (for local development only)
-// Per IgniteZero rules: No fallback tokens - require explicit configuration
-const MCP_BASE_URL = import.meta.env.VITE_MCP_BASE_URL;
-const MCP_TOKEN = import.meta.env.VITE_MCP_AUTH_TOKEN; // REQUIRED - no fallback
-
-// Validate MCP configuration when using MCP proxy
-if (import.meta.env.VITE_USE_MCP_PROXY === 'true' || import.meta.env.VITE_USE_MCP_PROXY === '1') {
-  if (!MCP_BASE_URL) {
-    console.error('❌ VITE_MCP_BASE_URL is REQUIRED when VITE_USE_MCP_PROXY=true');
-    throw new Error('VITE_MCP_BASE_URL environment variable is required for MCP proxy mode');
-  }
-  if (!MCP_TOKEN) {
-    console.error('❌ VITE_MCP_AUTH_TOKEN is REQUIRED when VITE_USE_MCP_PROXY=true');
-    throw new Error('VITE_MCP_AUTH_TOKEN environment variable is required for MCP proxy mode');
-  }
-}
-
 // Mock mode for E2E testing - returns demo data without network calls
 const useMockMode = import.meta.env.VITE_USE_MOCK === 'true' || import.meta.env.VITE_USE_MOCK === '1';
 
-// Determine if we should use MCP proxy (local) or Supabase Edge Functions (production)
-// 
-// Environment detection logic:
-// 1. VITE_USE_MCP_PROXY=true → Use local MCP proxy (for local dev with MCP server running)
-// 2. Otherwise → Use Supabase Edge Functions (production, Lovable, or local without MCP)
-//
-// This defaults to Edge Functions, which is the safer choice for deployed environments.
-// Developers who want to use the local MCP proxy should set VITE_USE_MCP_PROXY=true
-const useMCPProxy = import.meta.env.VITE_USE_MCP_PROXY === 'true' || import.meta.env.VITE_USE_MCP_PROXY === '1';
-const isLocalDev = useMCPProxy;
+function shouldUseMCPProxy(): boolean {
+  // Runtime config wins (Lovable preview / deployed environments without env injection)
+  const apiMode = getRuntimeConfigSync()?.apiMode;
+  if (apiMode === 'mcp') return true;
+  if (apiMode === 'edge') return false;
+
+  // Otherwise fall back to explicit env flag (local dev only)
+  return import.meta.env.VITE_USE_MCP_PROXY === 'true' || import.meta.env.VITE_USE_MCP_PROXY === '1';
+}
 
 // Mock data for E2E testing
 const MOCK_DATA: Record<string, unknown> = {
@@ -146,17 +129,20 @@ export function useMCP() {
 
   // Call MCP proxy (for local development only)
   const callMCP = async <T = unknown>(method: string, params: Record<string, unknown> = {}): Promise<T> => {
-    if (!MCP_BASE_URL) {
-      throw new Error('MCP_BASE_URL is not configured. Set VITE_MCP_BASE_URL env var or disable MCP proxy mode.');
+    const mcpBaseUrl = import.meta.env.VITE_MCP_BASE_URL as string | undefined;
+    const mcpToken = import.meta.env.VITE_MCP_AUTH_TOKEN as string | undefined;
+
+    if (!mcpBaseUrl) {
+      throw new Error('❌ BLOCKED: VITE_MCP_BASE_URL is REQUIRED when apiMode=mcp (or VITE_USE_MCP_PROXY=true)');
     }
-    if (!MCP_TOKEN) {
-      throw new Error('MCP_AUTH_TOKEN is not configured. Set VITE_MCP_AUTH_TOKEN env var or disable MCP proxy mode.');
+    if (!mcpToken) {
+      throw new Error('❌ BLOCKED: VITE_MCP_AUTH_TOKEN is REQUIRED when apiMode=mcp (or VITE_USE_MCP_PROXY=true)');
     }
     
-    const response = await fetch(MCP_BASE_URL, {
+    const response = await fetch(mcpBaseUrl, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${MCP_TOKEN}`,
+        'Authorization': `Bearer ${mcpToken}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
@@ -195,7 +181,7 @@ export function useMCP() {
         return { ok: true, jobId: 'mock-job-id' };
       }
 
-      if (isLocalDev) {
+      if (shouldUseMCPProxy()) {
         return await callMCP<EnqueueJobResult>('lms.enqueueJob', { jobType, payload });
       }
 
@@ -259,7 +245,7 @@ export function useMCP() {
         return { ok: true, id: values.id || 'mock-saved-id' };
       }
 
-      if (isLocalDev) {
+      if (shouldUseMCPProxy()) {
         return await callMCP('lms.saveRecord', { entity, values });
       }
       // Use Supabase Edge Function in production
@@ -279,7 +265,7 @@ export function useMCP() {
         return { record: mockRecords?.records?.[0] || null };
       }
 
-      if (isLocalDev) {
+      if (shouldUseMCPProxy()) {
         return await callMCP('lms.getRecord', { entity, id });
       }
       // Use Supabase Edge Function in production
@@ -298,7 +284,7 @@ export function useMCP() {
         return MOCK_DATA[entity] || { records: [] };
       }
 
-      if (isLocalDev) {
+      if (shouldUseMCPProxy()) {
         return await callMCP<ListRecordsResponse>('lms.listRecords', { entity, limit });
       }
       // Use Supabase Edge Function in production
@@ -324,7 +310,7 @@ export function useMCP() {
         return { jobs: [] };
       }
 
-      if (isLocalDev) {
+      if (shouldUseMCPProxy()) {
         return await callMCP<ListJobsResponse>('lms.listJobs', { limit });
       }
       // Use Supabase Edge Function in production
@@ -425,7 +411,7 @@ export function useMCP() {
       }
       
       // Pre-flight auth check for non-local
-      if (!isLocalDev) {
+      if (!shouldUseMCPProxy()) {
         const token = await checkAuth();
         if (!token) {
           // Return empty result for unauthenticated requests
@@ -433,7 +419,7 @@ export function useMCP() {
         }
       }
       
-      if (isLocalDev) {
+      if (shouldUseMCPProxy()) {
         // MCP protocol doesn't strictly distinguish GET/POST at transport, 
         // but we map it to our internal proxy helper
         return await callMCP<T>(method, params);
@@ -476,14 +462,14 @@ export function useMCP() {
       }
 
       // Pre-flight auth check for non-local
-      if (!isLocalDev) {
+      if (!shouldUseMCPProxy()) {
         const token = await checkAuth();
         if (!token) {
           return { ok: false, error: 'Not authenticated' } as T;
         }
       }
 
-      if (isLocalDev) {
+      if (shouldUseMCPProxy()) {
         return await callMCP<T>(method, params);
       }
       // Map MCP method names to Edge Function names

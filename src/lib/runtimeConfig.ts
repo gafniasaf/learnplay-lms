@@ -1,4 +1,10 @@
 export type RuntimeConfig = {
+  /**
+   * Controls how the frontend talks to backend APIs in deployed environments.
+   * - "edge": call Supabase Edge Functions directly (recommended for Lovable preview)
+   * - "mcp": use MCP JSON-RPC proxy (local development only; requires env vars)
+   */
+  apiMode?: "edge" | "mcp";
   supabase?: {
     url?: string;
     publishableKey?: string;
