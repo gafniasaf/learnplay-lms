@@ -16,8 +16,11 @@ jest.mock('@/components/courses/CourseCard', () => ({ CourseCard: ({ course }: a
   <div data-testid='course-card'>{course.title}</div>
 )}));
 
-// Ensure live mode off so realtime isn’t used in test
-process.env.VITE_USE_MOCK = 'true';
+// Avoid realtime setup in unit tests
+jest.mock('@/lib/env', () => {
+  const actual = jest.requireActual('@/lib/env');
+  return { ...actual, isLiveMode: () => false };
+});
 
 function renderWithProviders(ui: React.ReactElement) {
   const qc = new QueryClient();

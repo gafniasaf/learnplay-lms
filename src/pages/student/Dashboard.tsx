@@ -11,49 +11,8 @@ import { useDashboard } from "@/hooks/useDashboard";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { useDawnData } from "@/contexts/DawnDataContext";
 import { SummaryCardsStudent } from "@/components/student/SummaryCardsStudent";
-import { WeeklyGoalRing } from "@/components/student/WeeklyGoalRing";
-import { NextUpCard } from "@/components/student/NextUpCard";
-import { ContinueCard } from "@/components/student/ContinueCard";
-import { RecentSessionsStudent } from "@/components/student/RecentSessionsStudent";
-import { AchievementsGlance } from "@/components/student/AchievementsGlance";
-import { SkillCards } from "@/components/student/SkillCards";
-import { StudentAssignments } from "@/components/student/StudentAssignments";
-import {
-  getStudentKpiData,
-  getAssignmentsDue,
-  getRecentStudentSessions,
-  getStudentGoals,
-  getStudentAchievements,
-  getContinuePoint,
-  type StudentAssignment,
-} from "@/lib/student/mockSelectors";
-import type { UpcomingItem } from "@/lib/types/dashboard";
-
-const formatSubjectLabel = (type?: string | null) => {
-  if (!type) return "Course";
-  return type
-    .replace(/[-_]/g, " ")
-    .replace(/\b\w/g, (char) => char.toUpperCase());
-};
-
-const priorityFromProgress = (progress?: number | null): "high" | "medium" | "low" => {
-  if (progress === undefined || progress === null) return "high";
-  if (progress >= 75) return "low";
-  if (progress >= 40) return "medium";
-  return "high";
-};
-
-const mapUpcomingToAssignment = (item: UpcomingItem): StudentAssignment => {
-  const dueISO = item.dueDate ? new Date(item.dueDate).toISOString() : new Date().toISOString();
-
-  return {
-    id: item.id || `upcoming-${Math.random().toString(36).slice(2)}`,
-    title: item.title || "Upcoming Assignment",
-    subject: formatSubjectLabel(item.type),
-    dueISO,
-    priority: priorityFromProgress(item.progress),
-  };
-};
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import type { StudentDashboard as StudentDashboardType } from "@/lib/types/dashboard";
 
 export default function StudentDashboard() {
   const navigate = useNavigate();
@@ -151,54 +110,29 @@ export default function StudentDashboard() {
     );
   }
 
-  const assignmentsFromDashboard =
-    dashboard?.upcoming?.map(mapUpcomingToAssignment)?.filter(Boolean) ?? [];
+  const studentDashboard: StudentDashboardType | null =
+    dashboard && dashboard.role === "student" ? (dashboard as StudentDashboardType) : null;
 
-  const assignmentsDue = assignmentsFromDashboard.length > 0
-    ? assignmentsFromDashboard
-    : getAssignmentsDue(rangeWindow);
-
-  const kpiData = getStudentKpiData(rangeWindow);
-  const sessions = getRecentStudentSessions(rangeWindow);
-  const goals = getStudentGoals();
-  const achievements = dashboard && 'achievements' in dashboard && dashboard.achievements && dashboard.achievements.length > 0
-    ? dashboard.achievements.map((achievement) => ({
-        id: achievement.id,
-        name: achievement.title,
-        earnedISO: achievement.earnedAt,
-        }))
-      : getStudentAchievements(rangeWindow);
-  const continuePoint = getContinuePoint();
-
-  const nextUpAssignment = assignmentsDue.find((a) => a.priority === 'high') || assignmentsDue[0] || null;
-  const hasDueToday = assignmentsDue.some((a) => {
-    const dueDate = new Date(a.dueISO);
+  const hasDueToday = (dashboard?.upcoming ?? []).some((a) => {
+    const dueDate = new Date(a.dueDate);
     const today = new Date();
     return dueDate.toDateString() === today.toDateString();
   });
 
   const summaryData = {
-    todayMinutes: kpiData.activeMinutes,
-    weekMinutes: range === 'day' ? kpiData.activeMinutes * 4 : range === 'week' ? 180 : 720,
-    monthMinutes: range === 'month' ? 720 : 180 * 4,
-    todayItems: kpiData.itemsCompleted,
-    weekItems: range === 'day' ? kpiData.itemsCompleted * 4 : range === 'week' ? 58 : 245,
-    monthItems: range === 'month' ? 245 : 58 * 4,
-    todayAccuracyPct: kpiData.accuracyPct,
-    streakDays: kpiData.streakDays,
-    minutesSparkline: kpiData.sparkline,
-    itemsSparkline: kpiData.sparkline.map((v) => Math.round(v * 0.5)),
-    minutesDeltaVsLastWeek: kpiData.deltaVsLastWeek,
-    itemsDeltaVsLastWeek: kpiData.deltaVsLastWeek - 3,
+    // These are not available from the current live student dashboard payload yet.
+    // We intentionally show zeros and a blocking warning below (no mock data).
+    todayMinutes: 0,
+    weekMinutes: 0,
+    monthMinutes: 0,
+    todayItems: 0,
+    weekItems: 0,
+    monthItems: 0,
+    todayAccuracyPct: studentDashboard?.stats?.accuracyRate ?? 0,
+    streakDays: studentDashboard?.stats?.currentStreak ?? 0,
   };
 
-  const _recommendations = [
-    { id: 'r1', title: 'Practice multiplication tables for 10 minutes', courseId: 'math-multiplication', level: 2 },
-    { id: 'r2', title: 'Review fractions concepts', courseId: 'math-fractions', level: 1 },
-  ];
-
-  const overallPercent = ((goals.actualMinutes / goals.goalMinutes + goals.actualItems / goals.goalItems) / 2) * 100;
-  const onTrack = overallPercent >= 80;
+  const onTrack = (studentDashboard?.stats?.accuracyRate ?? 0) >= 80;
 
   return (
     <PageContainer>
@@ -270,25 +204,65 @@ export default function StudentDashboard() {
           {/* Row 1: KPI Cards */}
           <SummaryCardsStudent {...summaryData} />
 
-          {/* Row 2: Goal Ring + Next Up */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <WeeklyGoalRing {...goals} />
-            <NextUpCard assignment={nextUpAssignment} />
-          </div>
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              This dashboard no longer uses mock selectors. The live student dashboard payload currently lacks:
+              <ul className="list-disc pl-5 mt-2 space-y-1">
+                <li>Minutes/items time series</li>
+                <li>Weekly goals (minutes/items)</li>
+                <li>Recent sessions feed</li>
+                <li>Achievements</li>
+                <li>Continue point</li>
+                <li>Skill map summary</li>
+              </ul>
+              <p className="mt-3">
+                Fix by extending the backend (MCP method <code>lms.student-dashboard</code> / edge functions) and updating <code>useDashboard("student")</code> mapping.
+              </p>
+            </AlertDescription>
+          </Alert>
 
-          {/* Row 3: Knowledge Map Assignments (if any) */}
-          <StudentAssignments studentId={studentId} />
-
-          {/* Row 4: Continue + Skills Focus */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <ContinueCard continuePoint={continuePoint} />
-            <SkillCards studentId={studentId} />
-          </div>
+            <Card>
+              <CardHeader>
+                <CardTitle>Upcoming</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                {(dashboard?.upcoming ?? []).length === 0 ? (
+                  <p className="text-sm text-muted-foreground">No upcoming items returned.</p>
+                ) : (
+                  (dashboard?.upcoming ?? []).slice(0, 5).map((u) => (
+                    <div key={u.id} className="text-sm flex items-center justify-between gap-3">
+                      <span className="font-medium">{u.title}</span>
+                      <span className="text-muted-foreground">{new Date(u.dueDate).toLocaleDateString()}</span>
+                    </div>
+                  ))
+                )}
+                <div className="pt-2">
+                  <Button variant="outline" size="sm" onClick={() => navigate("/student/assignments")}>
+                    View assignments
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
 
-          {/* Row 5: Recent Sessions + Achievements */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <RecentSessionsStudent sessions={sessions.slice(0, 3)} />
-            <AchievementsGlance achievements={achievements} />
+            <Card>
+              <CardHeader>
+                <CardTitle>Recent</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                {(dashboard?.recent ?? []).length === 0 ? (
+                  <p className="text-sm text-muted-foreground">No recent items returned.</p>
+                ) : (
+                  (dashboard?.recent ?? []).slice(0, 5).map((r) => (
+                    <div key={r.id} className="text-sm flex items-center justify-between gap-3">
+                      <span className="font-medium">{r.title}</span>
+                      <span className="text-muted-foreground">{new Date(r.completedAt).toLocaleDateString()}</span>
+                    </div>
+                  ))
+                )}
+              </CardContent>
+            </Card>
           </div>
         </div>
       </StudentLayout>

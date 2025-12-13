@@ -1,4 +1,4 @@
-import { useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { TopicsHandled, type TopicRow } from "@/components/parent/TopicsHandled";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { ParentLayout } from "@/components/parent/ParentLayout";
@@ -116,7 +116,7 @@ const bucketTopics = (rows: TopicRow[]) => {
 };
 
 export default function Topics() {
-  const mockMode = (import.meta as any).env?.VITE_USE_MOCK === 'true';
+  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const selectedFromParams = searchParams.get("studentId");
 
@@ -140,10 +140,10 @@ export default function Topics() {
     refetch,
   } = useParentTopics(
     selectedStudentId ? { studentId: selectedStudentId } : null,
-    { enabled: !mockMode && Boolean(selectedStudentId) }
+    { enabled: Boolean(selectedStudentId) }
   );
 
-  const loading = !mockMode && (dashboardLoading || topicsLoading);
+  const loading = dashboardLoading || topicsLoading;
 
   if (loading) {
     return (
@@ -159,7 +159,7 @@ export default function Topics() {
     );
   }
 
-  if (!mockMode && (dashboardError || topicsError)) {
+  if (dashboardError || topicsError) {
     const message = dashboardErrorObj instanceof Error ? dashboardErrorObj.message : topicsErrorObj instanceof Error ? topicsErrorObj.message : "Unable to load topics.";
     return (
       <PageContainer>
@@ -184,33 +184,54 @@ export default function Topics() {
     );
   }
 
-  // Mock data fallbacks
-  let dayTopics: TopicRow[] = mockTopicsDaily;
-  let weekTopics: TopicRow[] = mockTopicsWeekly;
-  let monthTopics: TopicRow[] = mockTopicsMonthly;
-  let summary = computeSummary([...mockTopicsWeekly, ...mockTopicsMonthly]);
-  let emptyState = false;
-  let emptyMessage: string | null = null;
-
-  if (!mockMode && topicsData) {
-    emptyState = topicsData.emptyState;
-    emptyMessage = topicsData.message ?? null;
-
-    const rows = topicsData.topics?.map(mapTopicRecordToRow) ?? [];
-
-    if (rows.length > 0) {
-      const buckets = bucketTopics(rows);
-      dayTopics = buckets.day.length > 0 ? buckets.day : rows.slice(0, 5);
-      weekTopics = buckets.week.length > 0 ? buckets.week : rows;
-      monthTopics = buckets.month.length > 0 ? buckets.month : rows;
-    } else {
-      dayTopics = [];
-      weekTopics = [];
-      monthTopics = [];
-    }
-
-    summary = topicsData.summary ?? computeSummary(rows);
+  if (!selectedStudentId) {
+    return (
+      <PageContainer>
+        <ParentLayout>
+          <Alert className="border-warning bg-warning/10">
+            <AlertTitle>Student required</AlertTitle>
+            <AlertDescription>
+              Link a child or pass <code>?studentId=&lt;id&gt;</code> to view topics.
+              <div className="mt-4">
+                <Badge variant="outline" className="cursor-pointer" onClick={() => navigate("/parent/link-child")}>
+                  Link Child
+                </Badge>
+              </div>
+            </AlertDescription>
+          </Alert>
+        </ParentLayout>
+      </PageContainer>
+    );
   }
+
+  if (!topicsData) {
+    return (
+      <PageContainer>
+        <ParentLayout>
+          <Alert variant="destructive">
+            <AlertTitle>Unable to load topics</AlertTitle>
+            <AlertDescription>
+              No data was returned. This app will not fabricate mock topics—implement/fix the backend for <code>getParentTopics</code>.
+              <div className="mt-4">
+                <Badge variant="outline" className="cursor-pointer" onClick={() => refetch?.()}>
+                  Retry
+                </Badge>
+              </div>
+            </AlertDescription>
+          </Alert>
+        </ParentLayout>
+      </PageContainer>
+    );
+  }
+
+  const emptyState = Boolean(topicsData.emptyState);
+  const emptyMessage: string | null = topicsData.message ?? null;
+  const rows = topicsData.topics?.map(mapTopicRecordToRow) ?? [];
+  const buckets = bucketTopics(rows);
+  const dayTopics: TopicRow[] = buckets.day.length > 0 ? buckets.day : rows.slice(0, 5);
+  const weekTopics: TopicRow[] = buckets.week.length > 0 ? buckets.week : rows;
+  const monthTopics: TopicRow[] = buckets.month.length > 0 ? buckets.month : rows;
+  const summary = topicsData.summary ?? computeSummary(rows);
 
   const handleStudentChange = (value: string) => {
     const params = new URLSearchParams(searchParams);

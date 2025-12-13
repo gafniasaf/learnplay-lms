@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { formatDistanceToNow, parseISO } from "date-fns";
 import { SubjectTimeChart } from "@/components/parent/SubjectTimeChart";
 import { PageContainer } from "@/components/layout/PageContainer";
@@ -132,17 +132,13 @@ const MOCK_SUBJECTS: ParentSubjectRecord[] = [
   },
 ];
 
-const MOCK_RESPONSE: SubjectsQueryData = {
-  subjects: MOCK_SUBJECTS.map(mapParentSubject),
-  summary: computeSummary(MOCK_SUBJECTS),
-  emptyState: false,
-};
+// Mock responses are forbidden: this file must not fabricate subject data.
 
 export default function Subjects() {
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const studentIdParam = searchParams.get("studentId") ?? undefined;
-  const mockMode = (import.meta as any).env?.VITE_USE_MOCK === 'true';
 
   const {
     data,
@@ -153,7 +149,6 @@ export default function Subjects() {
   } = useParentSubjects<SubjectsQueryData>(
     { studentId: studentIdParam },
     {
-      enabled: !mockMode,
       select: (response) =>
         ({
           ...response,
@@ -163,9 +158,7 @@ export default function Subjects() {
   );
 
   const response = useMemo<SubjectsQueryData>(() => {
-    if (mockMode || !data) {
-      return MOCK_RESPONSE;
-    }
+    if (!data) return { subjects: [], summary: null, emptyState: false } as unknown as SubjectsQueryData;
 
     const subjects = data.subjects ?? [];
     const summary = data.summary ?? computeSummary(subjects);
@@ -176,7 +169,7 @@ export default function Subjects() {
       emptyState: Boolean(data.emptyState),
       message: data.message,
     } satisfies SubjectsQueryData;
-  }, [mockMode, data]);
+  }, [data]);
 
   const displaySubjects = useMemo<DisplaySubject[]>(
     () =>
@@ -295,11 +288,9 @@ export default function Subjects() {
     });
   };
 
-  const emptyStateMessage = !mockMode && response.emptyState
-    ? response.message ?? "No activity recorded yet."
-    : null;
+  const emptyStateMessage = response.emptyState ? (response.message ?? "No activity recorded yet.") : null;
 
-  if (!mockMode && isLoading) {
+  if (isLoading) {
     return (
       <PageContainer>
         <ParentLayout>
@@ -313,7 +304,7 @@ export default function Subjects() {
     );
   }
 
-  if (!mockMode && isError) {
+  if (isError) {
     return (
       <PageContainer>
         <ParentLayout>
@@ -333,7 +324,7 @@ export default function Subjects() {
 
   const hasSubjects = displaySubjects.length > 0;
 
-  if (!mockMode && !hasSubjects) {
+  if (!hasSubjects) {
     return (
       <PageContainer>
         <ParentLayout>
@@ -355,6 +346,29 @@ export default function Subjects() {
   }
 
   const filtersYieldNoResults = filteredSubjects.length === 0 && displaySubjects.length > 0;
+
+  if (!studentIdParam) {
+    return (
+      <PageContainer>
+        <ParentLayout>
+          <Alert className="border-warning bg-warning/10">
+            <AlertTitle>Student required</AlertTitle>
+            <AlertDescription>
+              This page needs <code>?studentId=&lt;id&gt;</code>.
+              <div className="mt-4 flex flex-wrap gap-2">
+                <Button variant="outline" size="sm" onClick={() => navigate("/parent/link-child")}>
+                  Link Child
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => navigate("/parent/dashboard")}>
+                  Back to Parent Dashboard
+                </Button>
+              </div>
+            </AlertDescription>
+          </Alert>
+        </ParentLayout>
+      </PageContainer>
+    );
+  }
 
   return (
     <PageContainer>

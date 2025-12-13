@@ -2,15 +2,11 @@
  * Tests for organization ID extraction and validation
  */
 
-import { getUserOrganizationId, getUserRoles } from '@/lib/api/roles';
-
 // Mock the API common module BEFORE imports
 const mockCallEdgeFunctionGet = jest.fn();
-const mockShouldUseMockData = jest.fn(() => false);
 
 jest.mock('@/lib/api/common', () => ({
   callEdgeFunctionGet: (...args: any[]) => mockCallEdgeFunctionGet(...args),
-  shouldUseMockData: () => mockShouldUseMockData(),
 }));
 
 describe('getUserOrganizationId', () => {
@@ -70,9 +66,8 @@ describe('getUserOrganizationId', () => {
     
     mockCallEdgeFunctionGet.mockRejectedValue(new Error('API error'));
 
-    // getUserRoles catches errors and returns empty array, so getUserOrganizationId returns null
-    const orgId = await freshGetUserOrganizationId();
-    expect(orgId).toBeNull();
+    // Fail loudly: do not swallow backend errors.
+    await expect(freshGetUserOrganizationId()).rejects.toThrow('API error');
   });
 
   it('uses cached roles when available', async () => {
@@ -98,24 +93,8 @@ describe('getUserOrganizationId', () => {
 });
 
 describe('getUserRoles', () => {
-  it('returns mock roles in mock mode', async () => {
-    jest.resetModules();
-    mockShouldUseMockData.mockReturnValue(true);
-    const { getUserRoles: freshGetUserRoles } = await import('@/lib/api/roles');
-
-    const roles = await freshGetUserRoles();
-    expect(roles).toEqual([
-      {
-        user_id: 'mock-user',
-        organization_id: 'mock-org',
-        role: 'editor',
-      },
-    ]);
-  });
-
   it('calls Edge Function in live mode', async () => {
     jest.resetModules();
-    mockShouldUseMockData.mockReturnValue(false);
     mockCallEdgeFunctionGet.mockResolvedValue({
       roles: [{ user_id: 'user-1', organization_id: 'org-123', role: 'admin' }],
     });

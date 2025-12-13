@@ -28,79 +28,7 @@ import { useParentTimeline } from "@/hooks/useParentTimeline";
 import { mapTimelineEventToSession } from "@/lib/parent/timelineMappers";
 
 type FilterType = "all" | "mistakes" | "mastered";
-
-const MOCK_ACTIVITIES: SessionActivity[] = [
-  {
-    startISO: "2025-01-15T14:30:00Z",
-    endISO: "2025-01-15T15:15:00Z",
-    subject: "Mathematics",
-    level: "Grade 4",
-    items: 12,
-    accuracyPct: 85,
-    mastered: false,
-    mistakes: 2,
-  },
-  {
-    startISO: "2025-01-15T10:15:00Z",
-    endISO: "2025-01-15T10:45:00Z",
-    subject: "Science",
-    level: "Grade 4",
-    items: 8,
-    accuracyPct: 92,
-    mastered: true,
-    mistakes: 0,
-  },
-  {
-    startISO: "2025-01-15T08:30:00Z",
-    endISO: "2025-01-15T09:00:00Z",
-    subject: "English",
-    level: "Grade 4",
-    items: 10,
-    accuracyPct: 78,
-    mastered: false,
-    mistakes: 3,
-  },
-  {
-    startISO: "2025-01-14T16:45:00Z",
-    endISO: "2025-01-14T17:35:00Z",
-    subject: "English",
-    level: "Grade 4",
-    items: 15,
-    accuracyPct: 88,
-    mastered: false,
-    mistakes: 2,
-  },
-  {
-    startISO: "2025-01-14T11:00:00Z",
-    endISO: "2025-01-14T11:35:00Z",
-    subject: "History",
-    level: "Grade 4",
-    items: 10,
-    accuracyPct: 95,
-    mastered: true,
-    mistakes: 0,
-  },
-  {
-    startISO: "2025-01-13T15:20:00Z",
-    endISO: "2025-01-13T16:00:00Z",
-    subject: "Geography",
-    level: "Grade 4",
-    items: 12,
-    accuracyPct: 82,
-    mastered: false,
-    mistakes: 2,
-  },
-  {
-    startISO: "2025-01-13T10:00:00Z",
-    endISO: "2025-01-13T10:40:00Z",
-    subject: "Science",
-    level: "Grade 4",
-    items: 14,
-    accuracyPct: 71,
-    mastered: false,
-    mistakes: 5,
-  },
-];
+// Mock timeline activities removed: this page must not fabricate session history.
 
 export default function Timeline() {
   const navigate = useNavigate();
@@ -130,7 +58,6 @@ export default function Timeline() {
     }
   }, [searchParams]);
 
-  const mockMode = (import.meta as any).env?.VITE_USE_MOCK === 'true';
   const studentIdParam = searchParams.get("studentId") ?? undefined;
 
   const {
@@ -144,7 +71,7 @@ export default function Timeline() {
       studentId: studentIdParam,
       limit: 100,
     },
-    { enabled: !mockMode }
+    { enabled: Boolean(studentIdParam) }
   );
 
   const timelineEvents = data?.events ?? [];
@@ -161,14 +88,14 @@ export default function Timeline() {
   }, [timelineEvents]);
 
   useEffect(() => {
-    if (!mockMode && !dateInitialized && apiActivities.length > 0) {
+    if (!dateInitialized && apiActivities.length > 0) {
       const firstDate = parseISO(apiActivities[0].startISO);
       setSelectedDate(firstDate);
       setDateInitialized(true);
     }
-  }, [mockMode, apiActivities, dateInitialized]);
+  }, [apiActivities, dateInitialized]);
 
-  const allActivities = mockMode ? MOCK_ACTIVITIES : apiActivities;
+  const allActivities = apiActivities;
 
   const sessionsForDate = useMemo(() => {
     return allActivities.filter((session) =>
@@ -248,11 +175,11 @@ export default function Timeline() {
       : "Failed to load timeline data.";
 
   const emptyStateMessage =
-    !mockMode && !isLoading && apiActivities.length === 0
+    !isLoading && apiActivities.length === 0
       ? data?.message || "No activity found for the selected filters."
       : null;
 
-  if (!mockMode && isLoading) {
+  if (isLoading) {
     return (
       <PageContainer>
         <ParentLayout>
@@ -266,7 +193,7 @@ export default function Timeline() {
     );
   }
 
-  if (!mockMode && isError) {
+  if (isError) {
     return (
       <PageContainer>
         <ParentLayout>

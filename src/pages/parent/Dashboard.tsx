@@ -6,6 +6,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { UserPlus, Mail, AlertTriangle, CalendarDays, CheckCircle2 } from "lucide-react";
 import { ParentSummaryCards } from "@/components/parent/ParentSummaryCards";
 import { SubjectTimeGlance } from "@/components/parent/SubjectTimeGlance";

@@ -51,7 +51,6 @@ export {
   getAssignmentProgress,
   assignAssignees,
   exportGradebook,
-  clearMockAssignments,
 } from "./api/assignments";
 export type {
   CreateAssignmentRequest,

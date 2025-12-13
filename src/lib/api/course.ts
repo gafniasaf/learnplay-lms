@@ -3,9 +3,6 @@ import type { Course } from "../types/course";
 import { shouldUseMockData, fetchWithTimeout, ApiError, getSupabaseUrl, getSupabaseAnonKey } from "./common";
 import { createLogger } from "../logger";
 
-// Conditional import for mocks (tree-shaken in production)
-const getMocks = () => import("../mocks");
-
 const log = createLogger("api/course");
 
 /**
@@ -18,17 +15,9 @@ export async function getCourse(
 > {
   const liveMode = isLiveMode();
 
-  if (shouldUseMockData()) {
-    if (liveMode) {
-      log.warn("Mock data used in LIVE mode - this should not happen!", {
-        action: "getCourse",
-        courseId,
-      });
-    }
-    const { fetchCourse } = await getMocks();
-    const mockCourse = await fetchCourse(courseId);
-    return { ...mockCourse, _metadata: { dataSource: "mock" } };
-  }
+  // Mock responses forbidden: shouldUseMockData() will throw if anything tries to enable it.
+  void shouldUseMockData;
+  void liveMode;
 
   const supabaseUrl = getSupabaseUrl();
   const anonKey = getSupabaseAnonKey();

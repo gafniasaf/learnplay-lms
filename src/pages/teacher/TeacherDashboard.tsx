@@ -23,47 +23,6 @@ interface AssignmentWithProgress extends Assignment {
   progress?: number;
 }
 
-const MOCK_DASHBOARD = {
-  assignments: [
-    {
-      id: "mock-assign-1",
-      course_id: "algebra-101",
-      title: "Mock Algebra Assignment",
-      due_at: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString(),
-      created_at: new Date().toISOString(),
-    },
-    {
-      id: "mock-assign-2",
-      course_id: "reading-201",
-      title: "Mock Reading Assignment",
-      due_at: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString(),
-      created_at: new Date().toISOString(),
-    },
-  ] satisfies Assignment[],
-  classes: [
-    {
-      id: "mock-class-1",
-      name: "Algebra 101",
-      description: "Mock class",
-      owner: "teacher-1",
-      org_id: "org-1",
-      created_at: new Date().toISOString(),
-    },
-  ] satisfies Class[],
-  students: [
-    {
-      id: "mock-student-1",
-      name: "Alice Johnson",
-      classIds: ["mock-class-1"],
-    },
-    {
-      id: "mock-student-2",
-      name: "Ben Lee",
-      classIds: ["mock-class-1"],
-    },
-  ] satisfies Student[],
-};
-
 const TeacherDashboard = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -72,7 +31,6 @@ const TeacherDashboard = () => {
   const [showKOAssignmentModal, setShowKOAssignmentModal] = useState(false);
   const [selectedKOId, setSelectedKOId] = useState<string | null>(null);
   const [activeJobId, setActiveJobId] = useState<string | null>(null);
-  const mockMode = (import.meta as any).env?.VITE_USE_MOCK === 'true';
   const mcp = useMCP();
 
   const {
@@ -80,18 +38,15 @@ const TeacherDashboard = () => {
     isLoading,
     isError,
     refetch,
-  } = useTeacherDashboard({ enabled: !mockMode });
+  } = useTeacherDashboard();
 
   const dashboardData = useMemo(() => {
-    if (mockMode) {
-      return MOCK_DASHBOARD;
-    }
     return {
       assignments: data?.assignments ?? [],
       classes: data?.classes ?? [],
       students: data?.students ?? [],
     };
-  }, [mockMode, data]);
+  }, [data]);
 
   const assignments: AssignmentWithProgress[] = useMemo(
     () =>
@@ -131,7 +86,7 @@ const TeacherDashboard = () => {
     toast.success("Skill assignment created successfully");
   };
 
-  if (!mockMode && isLoading) {
+  if (isLoading) {
     return (
       <PageContainer>
         <div className="max-w-7xl mx-auto space-y-6">
@@ -158,7 +113,7 @@ const TeacherDashboard = () => {
     );
   }
 
-  if (!mockMode && isError) {
+  if (isError) {
     const message = "Unable to load teacher dashboard.";
     return (
       <PageContainer>
@@ -175,7 +130,7 @@ const TeacherDashboard = () => {
     );
   }
 
-  if (!mockMode && !user) {
+  if (!user) {
     return (
       <PageContainer>
         <Alert variant="destructive" className="max-w-xl">

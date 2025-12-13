@@ -49,11 +49,20 @@ import { callEdgeFunction } from "@/lib/api/common";
 // =====================================================
 
 /**
- * Check if using mock data - controlled by environment variable
- * Set VITE_USE_MOCK=true for mock mode, otherwise uses live backend
- * Per IgniteZero rules: No silent mocks - fail loudly if backend unavailable
+ * Mock responses are forbidden. If anything attempts to enable mock mode, fail loudly.
  */
-const USE_MOCK_DATA = (import.meta as any).env?.VITE_USE_MOCK === 'true';
+const MOCK_MODE_REQUESTED =
+  (import.meta as any).env?.VITE_USE_MOCK === "true" ||
+  (import.meta as any).env?.VITE_USE_MOCK === "1";
+
+if (MOCK_MODE_REQUESTED) {
+  throw new Error(
+    "❌ MOCK MODE FORBIDDEN: Knowledge Map mock responses are disabled. Remove VITE_USE_MOCK and implement the backend Edge functions instead."
+  );
+}
+
+// Kept for legacy branching; always false.
+const USE_MOCK_DATA = false as const;
 
 // =====================================================
 // STUDENT SKILLS

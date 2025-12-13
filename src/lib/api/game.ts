@@ -81,20 +81,8 @@ export async function startSession(
   userId: string,
   courseId: string
 ): Promise<StartSessionResponse> {
-  if (shouldUseMockData()) {
-    log.info("Using mock data for startSession", {
-      action: "startSession",
-      userId,
-      courseId,
-    });
-    // Mock: generate session data
-    return {
-      sessionId: `session-${Date.now()}`,
-      userId,
-      courseId,
-      startedAt: new Date().toISOString(),
-    };
-  }
+  // Mock responses forbidden: shouldUseMockData() will throw if anything tries to enable it.
+  void shouldUseMockData;
 
   log.info("Using Supabase for startSession", {
     action: "startSession",
@@ -121,19 +109,8 @@ export async function startRound(
   contentVersion?: string,
   assignmentId?: string
 ): Promise<RoundStartResponse> {
-  if (shouldUseMockData()) {
-    log.info("Using mock data for startRound", {
-      action: "startRound",
-      courseId,
-      level,
-    });
-    // Generate mock round data
-    return {
-      roundId: `round-${Date.now()}`,
-      sessionId: `session-${Date.now()}`,
-      startedAt: new Date().toISOString(),
-    };
-  }
+  // Mock responses forbidden: shouldUseMockData() will throw if anything tries to enable it.
+  void shouldUseMockData;
 
   const payload = { courseId, level, contentVersion, assignmentId };
   log.debug("startRound payload", { action: "startRound", payload });
@@ -166,44 +143,12 @@ export async function startRound(
 export async function logAttemptLive(
   payload: LogAttemptPayload
 ): Promise<LogAttemptResult> {
-  if (shouldUseMockData()) {
-    log.info("Using mock data for logAttempt", {
-      action: "logAttemptLive",
-      payload,
-    });
-    // Mock: just return success
-    return {
-      attemptId: `attempt-${Date.now()}`,
-      roundId: payload.roundId,
-      final: payload.endRound
-        ? {
-            finalScore: payload.endRound.baseScore,
-            endedAt: new Date().toISOString(),
-          }
-        : undefined,
-    };
-  }
+  // Mock responses forbidden: shouldUseMockData() will throw if anything tries to enable it.
+  void shouldUseMockData;
 
-  // Check if offline
+  // Offline queueing previously returned synthetic success; we now fail loudly instead.
   if (typeof navigator !== "undefined" && !navigator.onLine) {
-    log.warn("Offline - enqueueing attempt", {
-      action: "logAttemptLive",
-      reason: "offline",
-    });
-    const { enqueueAttempt } = await import("../offlineQueue");
-    enqueueAttempt(payload);
-
-    // Return mock response for offline
-    return {
-      attemptId: `offline-${Date.now()}`,
-      roundId: payload.roundId,
-      final: payload.endRound
-        ? {
-            finalScore: payload.endRound.baseScore,
-            endedAt: new Date().toISOString(),
-          }
-        : undefined,
-    };
+    throw new Error("❌ OFFLINE_UNSUPPORTED: cannot log attempts while offline. Restore connectivity and retry.");
   }
 
   log.debug("logAttempt", { action: "logAttemptLive", payload });
@@ -247,20 +192,7 @@ export async function logAttemptLive(
         action: "logAttemptLive",
         error: err instanceof Error ? err.message : String(err),
       });
-      const { enqueueAttempt } = await import("../offlineQueue");
-      enqueueAttempt(payload);
-
-      // Return mock response for network error
-      return {
-        attemptId: `queued-${Date.now()}`,
-        roundId: payload.roundId,
-        final: payload.endRound
-          ? {
-              finalScore: payload.endRound.baseScore,
-              endedAt: new Date().toISOString(),
-            }
-          : undefined,
-      };
+      throw new Error("❌ NETWORK_ERROR: failed to log attempt. No synthetic success is returned; retry after restoring connectivity.");
     }
 
     // Re-throw non-network errors

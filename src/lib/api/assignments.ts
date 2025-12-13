@@ -1,17 +1,5 @@
 import { callEdgeFunctionGet, shouldUseMockData, ApiError, getSupabaseUrl } from "./common";
 
-// Mock assignment store (in-memory for testing)
-const mockAssignmentStore: Assignment[] = [];
-let mockAssignmentIdCounter = 1;
-
-/**
- * Clear mock assignment store (for testing)
- */
-export function clearMockAssignments(): void {
-  mockAssignmentStore.length = 0;
-  mockAssignmentIdCounter = 1;
-}
-
 export interface CreateAssignmentRequest {
   orgId?: string; // Optional - derived from user's auth context by edge function
   courseId: string;
@@ -64,28 +52,8 @@ export interface AssignmentProgressResponse {
 export async function createAssignment(
   request: CreateAssignmentRequest
 ): Promise<CreateAssignmentResponse> {
-  if (shouldUseMockData()) {
-    console.log("[API] Using mock data for createAssignment");
-
-    // Create mock assignment
-    const assignmentId = `mock-assignment-${mockAssignmentIdCounter++}`;
-    const mockAssignment: Assignment = {
-      id: assignmentId,
-      org_id: request.orgId,
-      course_id: request.courseId,
-      title: request.title || `Assignment for ${request.courseId}`,
-      due_at: request.dueAt || null,
-      created_at: new Date().toISOString(),
-      created_by: "mock-teacher-id",
-    };
-
-    mockAssignmentStore.push(mockAssignment);
-
-    return {
-      assignmentId,
-      message: "Assignment created successfully (mock)",
-    };
-  }
+  // Mock responses forbidden: shouldUseMockData() will throw if anything tries to enable it.
+  void shouldUseMockData;
 
   console.info("[createAssignment]", request);
 
@@ -139,15 +107,8 @@ export async function listAssignmentsForTeacher(): Promise<ListAssignmentsRespon
  * List assignments for students (calls student-specific endpoint)
  */
 export async function listAssignmentsForStudent(): Promise<ListAssignmentsResponse> {
-  if (shouldUseMockData()) {
-    console.log("[API] Using mock data for listAssignmentsForStudent");
-
-    // Return mock assignments
-    return {
-      assignments: [...mockAssignmentStore],
-      scope: "student",
-    };
-  }
+  // Mock responses forbidden: shouldUseMockData() will throw if anything tries to enable it.
+  void shouldUseMockData;
 
   console.info("[listAssignmentsForStudent]");
 
@@ -156,27 +117,8 @@ export async function listAssignmentsForStudent(): Promise<ListAssignmentsRespon
       "list-assignments-student"
     );
   } catch (error) {
-    // Log 500 errors to Sentry but return empty array for graceful degradation
-    if (error instanceof ApiError && error.status === 500) {
-      console.error("[listAssignmentsForStudent] Backend error, returning empty array", error);
-      
-      // Dynamically import Sentry to avoid issues if not configured
-      try {
-        const { captureError } = await import("../sentry");
-        captureError(error, { 
-          context: "listAssignmentsForStudent",
-          fallback: "empty_array"
-        });
-      } catch (sentryError) {
-        console.warn("[listAssignmentsForStudent] Could not log to Sentry", sentryError);
-      }
-
-      return {
-        assignments: [],
-        scope: "student",
-      };
-    }
-    // Re-throw other errors (auth, network, etc.)
+    // Fail loudly: returning empty arrays hides missing backend functionality.
+    console.error("[listAssignmentsForStudent] Backend error", error);
     throw error;
   }
 }
@@ -185,15 +127,8 @@ export async function listAssignmentsForStudent(): Promise<ListAssignmentsRespon
  * List assignments (automatically filtered by RLS)
  */
 export async function listAssignments(): Promise<ListAssignmentsResponse> {
-  if (shouldUseMockData()) {
-    console.log("[API] Using mock data for listAssignments");
-
-    // Return mock assignments
-    return {
-      assignments: [...mockAssignmentStore],
-      scope: "teacher",
-    };
-  }
+  // Mock responses forbidden: shouldUseMockData() will throw if anything tries to enable it.
+  void shouldUseMockData;
 
   console.info("[listAssignments]");
 

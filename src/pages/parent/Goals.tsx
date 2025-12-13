@@ -134,59 +134,12 @@ const deriveAlerts = (goals: ParentGoalRecord[]): ParentAlert[] => {
   return alerts.slice(0, 4);
 };
 
-const MOCK_GOALS: ParentGoalRecord[] = [
-  {
-    id: "mock-1",
-    studentId: "mock-student-1",
-    studentName: "Alex",
-    title: "Complete 5 math sessions",
-    targetMinutes: 150,
-    progressMinutes: 110,
-    progressPct: 73,
-    dueAt: new Date(Date.now() + 1000 * 60 * 60 * 24 * 3).toISOString(),
-    status: "on_track",
-    teacherNote: null,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    daysRemaining: 3,
-    isOverdue: false,
-  },
-  {
-    id: "mock-2",
-    studentId: "mock-student-1",
-    studentName: "Alex",
-    title: "Practice reading for 80 minutes",
-    targetMinutes: 80,
-    progressMinutes: 32,
-    progressPct: 40,
-    dueAt: new Date(Date.now() + 1000 * 60 * 60 * 24 * 1).toISOString(),
-    status: "behind",
-    teacherNote: null,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    daysRemaining: 1,
-    isOverdue: false,
-  },
-];
-
-const MOCK_RESPONSE: ParentGoalsResponse = {
-  goals: MOCK_GOALS,
-  summary: {
-    totalGoals: MOCK_GOALS.length,
-    onTrack: 1,
-    behind: 1,
-    completed: 0,
-    overdue: 0,
-    averageProgress: 57,
-  },
-  emptyState: false,
-};
+// Mock responses removed: this page must not fabricate parent goals.
 
 export default function Goals() {
   const { toast } = useToast();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const mockMode = (import.meta as any).env?.VITE_USE_MOCK === 'true';
   const studentIdParam = searchParams.get("studentId") ?? undefined;
 
   const {
@@ -197,14 +150,10 @@ export default function Goals() {
     refetch,
   } = useParentGoals(
     { studentId: studentIdParam },
-    { enabled: !mockMode }
+    {}
   );
 
   const response = useMemo(() => {
-    if (mockMode) {
-      return MOCK_RESPONSE;
-    }
-
     if (!data) {
       return null;
     }
@@ -230,7 +179,7 @@ export default function Goals() {
       emptyState: Boolean(data.emptyState),
       message: data.message,
     } satisfies ParentGoalsResponse;
-  }, [mockMode, data]);
+  }, [data]);
 
   const aggregated = useMemo(() => aggregateGoals(response?.goals ?? []), [response?.goals]);
 
@@ -247,7 +196,7 @@ export default function Goals() {
 
   const derivedAlerts = useMemo(() => deriveAlerts(response?.goals ?? []), [response?.goals]);
 
-  if (!mockMode && !studentIdParam) {
+  if (!studentIdParam) {
     return (
       <PageContainer>
         <ParentLayout>
@@ -283,7 +232,7 @@ export default function Goals() {
     });
   };
 
-  if (!mockMode && isLoading) {
+  if (isLoading) {
     return (
       <PageContainer>
         <ParentLayout>
@@ -297,7 +246,7 @@ export default function Goals() {
     );
   }
 
-  if (!mockMode && isError) {
+  if (isError) {
     return (
       <PageContainer>
         <ParentLayout>
@@ -315,7 +264,7 @@ export default function Goals() {
     );
   }
 
-  if (!mockMode && !response) {
+  if (!response) {
     return (
       <PageContainer>
         <ParentLayout>
@@ -333,7 +282,7 @@ export default function Goals() {
     );
   }
 
-  if (!mockMode && response.emptyState) {
+  if (response.emptyState) {
     return (
       <PageContainer>
         <ParentLayout>

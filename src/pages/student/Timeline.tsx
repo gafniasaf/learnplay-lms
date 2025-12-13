@@ -4,8 +4,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Calendar, Clock } from "lucide-react";
-import { getRecentStudentSessions, type StudentSession } from "@/lib/student/mockSelectors";
-import { useStudentRange } from "@/hooks/useStudentRange";
 import { format, parseISO, differenceInMinutes } from "date-fns";
 import { useMemo, useState } from "react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -14,7 +12,6 @@ import { useStudentTimeline } from "@/hooks/useStudentTimeline";
 import { mapStudentTimelineEventToSession } from "@/lib/student/timelineMappers";
 
 export default function StudentTimeline() {
-  const { window } = useStudentRange();
   const [filter, setFilter] = useState<'all' | 'mistakes' | 'mastered'>('all');
   const {
     data,
@@ -24,7 +21,7 @@ export default function StudentTimeline() {
     refetch,
   } = useStudentTimeline({ limit: 100 });
 
-  const liveSessions = useMemo<StudentSession[]>(() => {
+  const liveSessions = useMemo(() => {
     if (!data?.events) return [];
     return data.events
       .map(mapStudentTimelineEventToSession)
@@ -80,11 +77,7 @@ export default function StudentTimeline() {
     );
   }
 
-  const allSessions = liveSessions.length > 0
-    ? liveSessions
-    : getRecentStudentSessions(window);
-
-  const filteredSessions = allSessions.filter((s) => {
+  const filteredSessions = liveSessions.filter((s) => {
     if (filter === 'mistakes') return s.accuracyPct < 100;
     if (filter === 'mastered') return s.accuracyPct >= 90;
     return true;
