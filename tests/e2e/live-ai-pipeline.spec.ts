@@ -131,6 +131,7 @@ test.describe('Live AI Pipeline: Course Creation', () => {
     const kickRes = await page.request.post(`${url}/functions/v1/process-pending-jobs?jobId=${encodeURIComponent(jobId)}`, {
       headers: { 'Content-Type': 'application/json', 'x-agent-token': agentToken },
       data: {},
+      timeout: 180000,
     });
     expect(kickRes.ok()).toBeTruthy();
 
@@ -359,6 +360,7 @@ test.describe('Live AI Pipeline: Image Generation', () => {
     const runRes = await page.request.post(`${url}/functions/v1/media-runner?n=1`, {
       headers: { 'Content-Type': 'application/json', 'x-agent-token': agentToken },
       data: {},
+      timeout: 180000,
     });
     expect(runRes.ok()).toBeTruthy();
 
