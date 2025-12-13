@@ -70,7 +70,6 @@ interface AssignCourseModalProps {
   open: boolean;
   onClose: () => void;
   onSuccess?: () => void;
-  orgId: string;
   classes?: Array<{ id: string; name: string }>;
   students?: Array<{ id: string; name: string }>;
 }
@@ -79,7 +78,6 @@ export function AssignCourseModal({
   open,
   onClose,
   onSuccess,
-  orgId,
   classes = [],
   students = [],
 }: AssignCourseModalProps) {

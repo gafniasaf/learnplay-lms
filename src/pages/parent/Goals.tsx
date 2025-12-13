@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { format, formatDistanceToNow, parseISO } from "date-fns";
 import { EditableGoalsPanel } from "@/components/parent/EditableGoalsPanel";
 import { AlertsPanel, type Alert as ParentAlert } from "@/components/parent/AlertsPanel";
@@ -137,7 +137,7 @@ const deriveAlerts = (goals: ParentGoalRecord[]): ParentAlert[] => {
 const MOCK_GOALS: ParentGoalRecord[] = [
   {
     id: "mock-1",
-    studentId: "student-1",
+    studentId: "mock-student-1",
     studentName: "Alex",
     title: "Complete 5 math sessions",
     targetMinutes: 150,
@@ -153,7 +153,7 @@ const MOCK_GOALS: ParentGoalRecord[] = [
   },
   {
     id: "mock-2",
-    studentId: "student-1",
+    studentId: "mock-student-1",
     studentName: "Alex",
     title: "Practice reading for 80 minutes",
     targetMinutes: 80,
@@ -184,6 +184,7 @@ const MOCK_RESPONSE: ParentGoalsResponse = {
 
 export default function Goals() {
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const mockMode = (import.meta as any).env?.VITE_USE_MOCK === 'true';
   const studentIdParam = searchParams.get("studentId") ?? undefined;
@@ -200,8 +201,12 @@ export default function Goals() {
   );
 
   const response = useMemo(() => {
-    if (mockMode || !data) {
+    if (mockMode) {
       return MOCK_RESPONSE;
+    }
+
+    if (!data) {
+      return null;
     }
 
     const goals = data.goals ?? [];
@@ -227,7 +232,7 @@ export default function Goals() {
     } satisfies ParentGoalsResponse;
   }, [mockMode, data]);
 
-  const aggregated = useMemo(() => aggregateGoals(response.goals ?? []), [response.goals]);
+  const aggregated = useMemo(() => aggregateGoals(response?.goals ?? []), [response?.goals]);
 
   const [editableGoals, setEditableGoals] = useState<AggregatedGoals>(aggregated);
 
@@ -236,11 +241,34 @@ export default function Goals() {
   }, [aggregated.goalMinutes, aggregated.goalItems, aggregated.actualMinutes, aggregated.actualItems]);
 
   const weeklyComparison = useMemo(
-    () => buildWeeklyComparison(response.goals ?? [], response.summary ?? null),
-    [response.goals, response.summary]
+    () => buildWeeklyComparison(response?.goals ?? [], response?.summary ?? null),
+    [response?.goals, response?.summary]
   );
 
-  const derivedAlerts = useMemo(() => deriveAlerts(response.goals ?? []), [response.goals]);
+  const derivedAlerts = useMemo(() => deriveAlerts(response?.goals ?? []), [response?.goals]);
+
+  if (!mockMode && !studentIdParam) {
+    return (
+      <PageContainer>
+        <ParentLayout>
+          <Alert className="border-warning bg-warning/10">
+            <AlertTitle>Student required</AlertTitle>
+            <AlertDescription>
+              This page needs a learner id. Add <code>?studentId=&lt;id&gt;</code> to the URL, or link a child first.
+              <div className="mt-4 flex flex-wrap gap-2">
+                <Button variant="outline" size="sm" onClick={() => navigate("/parent/link-child")}>
+                  Link Child
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => navigate("/parent/dashboard")}>
+                  Back to Parent Dashboard
+                </Button>
+              </div>
+            </AlertDescription>
+          </Alert>
+        </ParentLayout>
+      </PageContainer>
+    );
+  }
 
   const handleGoalsUpdate = (updates: { goalMinutes: number; goalItems: number }) => {
     setEditableGoals((prev) => ({
@@ -277,6 +305,24 @@ export default function Goals() {
             <AlertTitle>Unable to load goals</AlertTitle>
             <AlertDescription>
               {error instanceof Error ? error.message : "Please try again shortly."}
+              <Button className="mt-4" variant="outline" onClick={() => refetch()}>
+                Retry
+              </Button>
+            </AlertDescription>
+          </Alert>
+        </ParentLayout>
+      </PageContainer>
+    );
+  }
+
+  if (!mockMode && !response) {
+    return (
+      <PageContainer>
+        <ParentLayout>
+          <Alert variant="destructive">
+            <AlertTitle>Unable to load goals</AlertTitle>
+            <AlertDescription>
+              No data was returned. Please try again.
               <Button className="mt-4" variant="outline" onClick={() => refetch()}>
                 Retry
               </Button>
@@ -409,7 +455,7 @@ export default function Goals() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {response.goals.map((goal) => {
+                {(response.goals ?? []).map((goal) => {
                   const dueLabel = goal.dueAt
                     ? formatDistanceToNow(parseISO(goal.dueAt), { addSuffix: true })
                     : "No due date";

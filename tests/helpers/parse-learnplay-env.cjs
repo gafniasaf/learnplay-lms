@@ -15,6 +15,44 @@ function parseLearnPlayEnv() {
 
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i].trim();
+      if (!line || line.startsWith('#')) continue;
+
+      // Support KEY=VALUE style, plus legacy heading-style
+      const eqIdx = line.indexOf('=');
+      if (eqIdx > 0) {
+        const rawKey = line.slice(0, eqIdx).trim();
+        const rawVal = line.slice(eqIdx + 1).trim();
+        const key = rawKey.toUpperCase();
+        const value = rawVal.replace(/^"(.*)"$/, '$1').replace(/^'(.*)'$/, '$1').trim();
+
+        const map = {
+          SUPABASE_URL: 'SUPABASE_URL',
+          VITE_SUPABASE_URL: 'SUPABASE_URL',
+          SUPABASE_ANON_KEY: 'SUPABASE_ANON_KEY',
+          VITE_SUPABASE_ANON_KEY: 'SUPABASE_ANON_KEY',
+          VITE_SUPABASE_PUBLISHABLE_KEY: 'SUPABASE_ANON_KEY',
+          SUPABASE_SERVICE_ROLE_KEY: 'SUPABASE_SERVICE_ROLE_KEY',
+          SUPABASE_ACCESS_TOKEN: 'SUPABASE_ACCESS_TOKEN',
+          OPENAI_API_KEY: 'OPENAI_API_KEY',
+          VITE_OPENAI_API_KEY: 'OPENAI_API_KEY',
+          ANTHROPIC_API_KEY: 'ANTHROPIC_API_KEY',
+          VITE_ANTHROPIC_API_KEY: 'ANTHROPIC_API_KEY',
+          AGENT_TOKEN: 'AGENT_TOKEN',
+          ORGANIZATION_ID: 'ORGANIZATION_ID',
+          VITE_ORGANIZATION_ID: 'ORGANIZATION_ID',
+          PROJECT_ID: 'PROJECT_ID',
+          USER_ID: 'USER_ID',
+          STUDENT_ID: 'STUDENT_ID',
+          PARENT_ID: 'PARENT_ID',
+          VERIFY_USER_ID: 'USER_ID',
+          VERIFY_STUDENT_ID: 'STUDENT_ID',
+          VERIFY_PARENT_ID: 'PARENT_ID',
+        };
+
+        const mapped = map[key];
+        if (mapped) result[mapped] = value;
+        continue;
+      }
       
       if (line.includes('Project url') && i + 1 < lines.length) {
         result.SUPABASE_URL = lines[i + 1].trim();
@@ -33,6 +71,21 @@ function parseLearnPlayEnv() {
       }
       if (line.includes('anthropic api key') && i + 1 < lines.length) {
         result.ANTHROPIC_API_KEY = lines[i + 1].trim();
+      }
+      if (line.includes('agent token') && i + 1 < lines.length) {
+        result.AGENT_TOKEN = lines[i + 1].trim();
+      }
+      if (line.includes('organization id') && i + 1 < lines.length) {
+        result.ORGANIZATION_ID = lines[i + 1].trim();
+      }
+      if ((line.includes('user id') || line.includes('test user id')) && i + 1 < lines.length) {
+        result.USER_ID = lines[i + 1].trim();
+      }
+      if (line.includes('student id') && i + 1 < lines.length) {
+        result.STUDENT_ID = lines[i + 1].trim();
+      }
+      if (line.includes('parent id') && i + 1 < lines.length) {
+        result.PARENT_ID = lines[i + 1].trim();
       }
       if (line.includes('project id') && i + 1 < lines.length) {
         result.PROJECT_ID = lines[i + 1].trim();
@@ -79,6 +132,28 @@ function loadLearnPlayEnv() {
   
   if (env.PROJECT_ID && !process.env.PROJECT_ID) {
     process.env.PROJECT_ID = env.PROJECT_ID;
+  }
+
+  if (env.AGENT_TOKEN && !process.env.AGENT_TOKEN) {
+    process.env.AGENT_TOKEN = env.AGENT_TOKEN;
+  }
+
+  if (env.ORGANIZATION_ID && !process.env.ORGANIZATION_ID && !process.env.VITE_ORGANIZATION_ID) {
+    process.env.ORGANIZATION_ID = env.ORGANIZATION_ID;
+    process.env.VITE_ORGANIZATION_ID = env.ORGANIZATION_ID;
+  }
+
+  if (env.USER_ID && !process.env.VERIFY_USER_ID) {
+    process.env.VERIFY_USER_ID = env.USER_ID;
+  }
+  if (env.STUDENT_ID && !process.env.VERIFY_USER_ID) {
+    process.env.VERIFY_USER_ID = env.STUDENT_ID;
+  }
+  if (env.STUDENT_ID && !process.env.VERIFY_STUDENT_ID) {
+    process.env.VERIFY_STUDENT_ID = env.STUDENT_ID;
+  }
+  if (env.PARENT_ID && !process.env.VERIFY_PARENT_ID) {
+    process.env.VERIFY_PARENT_ID = env.PARENT_ID;
   }
 }
 

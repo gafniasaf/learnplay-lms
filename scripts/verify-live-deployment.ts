@@ -1,14 +1,52 @@
 import { createClient } from '@supabase/supabase-js';
+import { loadLearnPlayEnv } from '../tests/helpers/parse-learnplay-env';
+import { randomUUID } from 'crypto';
+import { existsSync, readFileSync } from 'fs';
+import path from 'path';
 
-// Config - must be provided via env vars (no hardcoded project)
-const SUPABASE_URL = process.env.SUPABASE_URL;
-const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY;
+// Load learnplay.env (if present) before reading process.env.
+// This file is intentionally gitignored; env vars still win if already set.
+function loadDeployEnv(): void {
+  // Local-only deployment env (gitignored) used for function deploy + live verification.
+  // Do NOT print values.
+  try {
+    const deployEnvPath = path.resolve(process.cwd(), 'supabase', '.deploy.env');
+    if (!existsSync(deployEnvPath)) return;
+    const content = readFileSync(deployEnvPath, 'utf-8');
+    const lines = content.split('\n');
+    for (const raw of lines) {
+      const line = raw.trim();
+      if (!line || line.startsWith('#')) continue;
+      const idx = line.indexOf('=');
+      if (idx <= 0) continue;
+      const key = line.slice(0, idx).trim();
+      const value = line.slice(idx + 1).trim().replace(/^"(.*)"$/, '$1').replace(/^'(.*)'$/, '$1');
+      if (!key) continue;
+      // Only set if not already set (process env wins)
+      if (!process.env[key] && value) process.env[key] = value;
+    }
+  } catch {
+    // ignore; verifier will fail loudly if required vars are missing
+  }
+}
 
-// REQUIRED: Set via env var: AGENT_TOKEN=... npx tsx scripts/verify-live-deployment.ts
-// Per IgniteZero rules: No fallbacks - fail loudly if not configured
+loadDeployEnv();
+loadLearnPlayEnv();
+
+// Config - must be provided via env vars or learnplay.env (no hardcoded project)
+const SUPABASE_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+const SUPABASE_ANON_KEY =
+  process.env.SUPABASE_ANON_KEY ||
+  process.env.VITE_SUPABASE_ANON_KEY ||
+  process.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+
+// REQUIRED: Set via env var or learnplay.env: AGENT_TOKEN=...
+// Per IgniteZero rules: No fallback tokens - fail loudly if not configured
 const AGENT_TOKEN = process.env.AGENT_TOKEN;
 if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
   console.error("❌ SUPABASE_URL and SUPABASE_ANON_KEY environment variables are REQUIRED");
+  console.error("   Note: Node live verification does not read public/app-config.json");
+  console.error("   Provide via process env, or add them to learnplay.env (gitignored).");
   process.exit(1);
 }
 
@@ -18,6 +56,10 @@ if (!AGENT_TOKEN) {
   console.error("   Or get it from Supabase secrets");
   process.exit(1);
 }
+
+// Some Edge functions require a concrete acting user id when using agent auth.
+// Provide via learnplay.env: "user id" (or "student id") or via env: VERIFY_USER_ID=...
+const VERIFY_USER_ID = process.env.VERIFY_USER_ID;
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
@@ -68,14 +110,17 @@ async function testFunction(
     expectOk?: boolean;
     method?: 'GET' | 'POST';
     validateResponse?: (data: any) => string | null; // Return error message or null
+    extraHeaders?: Record<string, string>;
   } = {}
 ): Promise<any> {
-  const { useAuth = true, expectOk = true, method = 'POST', validateResponse } = options;
+  const { useAuth = true, expectOk = true, method = 'POST', validateResponse, extraHeaders } = options;
   
   // Include organization ID with agent token for multi-tenant functions
   const authHeaders = useAuth ? { 
     'x-agent-token': AGENT_TOKEN,
-    'x-organization-id': ORGANIZATION_ID
+    'x-organization-id': ORGANIZATION_ID,
+    ...(VERIFY_USER_ID ? { 'x-user-id': VERIFY_USER_ID } : {}),
+    ...(extraHeaders || {})
   } : {};
   
   try {
@@ -163,7 +208,7 @@ async function testFunction(
 }
 
 // Organization ID must be explicitly provided
-const ORGANIZATION_ID = process.env.ORGANIZATION_ID;
+const ORGANIZATION_ID = process.env.ORGANIZATION_ID || process.env.VITE_ORGANIZATION_ID;
 if (!ORGANIZATION_ID) {
   console.error("❌ ORGANIZATION_ID is REQUIRED - set env var before running");
   process.exit(1);
@@ -173,6 +218,7 @@ async function main() {
   console.log("🔍 Verifying ALL Live Edge Functions...\n");
   console.log(`   AGENT_TOKEN: ${AGENT_TOKEN?.slice(0, 8)}...`);
   console.log(`   ORGANIZATION_ID: ${ORGANIZATION_ID}`);
+  console.log(`   VERIFY_USER_ID: ${VERIFY_USER_ID ?? "—"}`);
   console.log(`   SUPABASE_URL: ${SUPABASE_URL}\n`);
 
   // Store IDs for cross-referencing tests
@@ -182,6 +228,11 @@ async function main() {
   let testStudentId: string | null = null;
   let testParentId: string | null = null;
   let testClassId: string | null = null;
+  const smokeCourseId = `verify-live-${randomUUID()}`;
+
+  // Seeded test parent (used only to discover a real child/student id for verification).
+  // If your org doesn't have this parent, set VERIFY_PARENT_ID in env.
+  testParentId = (process.env.VERIFY_PARENT_ID as string | undefined) || '613d43cb-0922-4fad-b528-dbed8d2a5c79';
 
   // ============================================
   // SECTION 1: JOBS & AI PIPELINE (10 functions)
@@ -231,13 +282,21 @@ async function main() {
   });
 
   // 1.7 enqueue-job
-  // Note: smoke-test is not a registered job type, so the job will fail,
-  // but getting a jobId back means the function is working correctly
+  // enqueue-job only supports ai_course_generate in this deployment.
+  // We only assert it returns a jobId (queueing works); the job may fail later if workers aren't running.
   const enqueueData = await testFunction('enqueue-job', {
-    jobType: 'smoke-test',
-    payload: { test: true, source: 'verify-live', timestamp: Date.now() }
+    jobType: 'ai_course_generate',
+    payload: {
+      course_id: smokeCourseId,
+      subject: 'Verify Live Smoke Test',
+      grade_band: 'grade_6',
+      mode: 'options',
+      items_per_group: 3,
+      source: 'verify-live-deployment',
+      timestamp: Date.now()
+    }
   }, {
-    expectOk: false, // We expect ok=false since smoke-test isn't registered
+    expectOk: true,
     validateResponse: (d) => d?.jobId ? null : 'Expected jobId in response'
   });
   if (enqueueData?.jobId) {
@@ -383,28 +442,64 @@ async function main() {
     }
   }
 
-  // Use a known test student if none found
-  if (!testStudentId) {
-    testStudentId = 'b2ed7195-4202-405b-85e4-608944a27837'; // Seeded test student
+  // Prefer explicit test IDs; fall back to acting user id if provided.
+  const explicitStudentId = (process.env.VERIFY_STUDENT_ID as string | undefined) || null;
+  if (!testStudentId) testStudentId = explicitStudentId || VERIFY_USER_ID || null;
+
+  // If still missing, derive a real student id from parent-children (seeded parent).
+  if (!testStudentId && testParentId) {
+    const pc = await testFunction('parent-children', { parentId: testParentId }, { method: 'GET', expectOk: false });
+    const firstChild = pc?.children?.[0];
+    if (firstChild?.studentId && typeof firstChild.studentId === 'string') {
+      testStudentId = firstChild.studentId;
+    }
   }
 
   // 5.1 student-dashboard
-  await testFunction('student-dashboard', { studentId: testStudentId }, { method: 'GET', expectOk: false });
+  if (!VERIFY_USER_ID) {
+    skip('student-dashboard', 'Missing VERIFY_USER_ID (optional). Add "user id" to learnplay.env to validate this endpoint.');
+  } else {
+    await testFunction('student-dashboard', {}, {
+      method: 'GET',
+      expectOk: false,
+      validateResponse: (d) => d?.data?.studentId || d?.studentId ? null : 'Expected dashboard payload'
+    });
+  }
 
   // 5.2 get-student-assignments
-  await testFunction('get-student-assignments', { studentId: testStudentId }, { expectOk: false });
+  if (testStudentId) {
+    await testFunction('get-student-assignments', { studentId: testStudentId }, { expectOk: false });
+  } else {
+    skip('get-student-assignments', 'No studentId available (set VERIFY_STUDENT_ID or VERIFY_PARENT_ID)');
+  }
 
   // 5.3 get-student-skills
-  await testFunction('get-student-skills', { studentId: testStudentId }, { expectOk: false });
+  if (testStudentId) {
+    await testFunction('get-student-skills', { studentId: testStudentId }, { expectOk: false });
+  } else {
+    skip('get-student-skills', 'No studentId available (set VERIFY_STUDENT_ID or VERIFY_PARENT_ID)');
+  }
 
   // 5.4 student-achievements
-  await testFunction('student-achievements', { studentId: testStudentId }, { method: 'GET', expectOk: false });
+  if (testStudentId) {
+    await testFunction('student-achievements', { studentId: testStudentId }, { method: 'GET', expectOk: false });
+  } else {
+    skip('student-achievements', 'No studentId available (set VERIFY_STUDENT_ID or VERIFY_PARENT_ID)');
+  }
 
   // 5.5 student-goals
-  await testFunction('student-goals', { studentId: testStudentId }, { method: 'GET', expectOk: false });
+  if (testStudentId) {
+    await testFunction('student-goals', { studentId: testStudentId }, { method: 'GET', expectOk: false });
+  } else {
+    skip('student-goals', 'No studentId available (set VERIFY_STUDENT_ID or VERIFY_PARENT_ID)');
+  }
 
   // 5.6 student-timeline
-  await testFunction('student-timeline', { studentId: testStudentId }, { method: 'GET', expectOk: false });
+  if (testStudentId) {
+    await testFunction('student-timeline', { studentId: testStudentId }, { method: 'GET', expectOk: false });
+  } else {
+    skip('student-timeline', 'No studentId available (set VERIFY_STUDENT_ID or VERIFY_PARENT_ID)');
+  }
 
   // ============================================
   // SECTION 6: PARENT (6 functions)
@@ -413,9 +508,6 @@ async function main() {
   console.log("👨‍👩‍👧 SECTION 6: Parent");
   console.log("═══════════════════════════════════════════════════");
 
-  // Use known test parent if none found
-  testParentId = '613d43cb-0922-4fad-b528-dbed8d2a5c79'; // Seeded test parent
-
   // 6.1 parent-dashboard
   await testFunction('parent-dashboard', { parentId: testParentId }, { method: 'GET', expectOk: false });
 
@@ -423,16 +515,32 @@ async function main() {
   await testFunction('parent-children', { parentId: testParentId }, { method: 'GET', expectOk: false });
 
   // 6.3 parent-subjects
-  await testFunction('parent-subjects', { childId: testStudentId }, { method: 'GET', expectOk: false });
+  if (testStudentId) {
+    await testFunction('parent-subjects', { childId: testStudentId }, { method: 'GET', expectOk: false });
+  } else {
+    skip('parent-subjects', 'No childId available (set VERIFY_STUDENT_ID or VERIFY_PARENT_ID)');
+  }
 
   // 6.4 parent-goals
-  await testFunction('parent-goals', { childId: testStudentId }, { method: 'GET', expectOk: false });
+  if (testStudentId) {
+    await testFunction('parent-goals', { childId: testStudentId }, { method: 'GET', expectOk: false });
+  } else {
+    skip('parent-goals', 'No childId available (set VERIFY_STUDENT_ID or VERIFY_PARENT_ID)');
+  }
 
   // 6.5 parent-timeline
-  await testFunction('parent-timeline', { childId: testStudentId }, { method: 'GET', expectOk: false });
+  if (testStudentId) {
+    await testFunction('parent-timeline', { childId: testStudentId }, { method: 'GET', expectOk: false });
+  } else {
+    skip('parent-timeline', 'No childId available (set VERIFY_STUDENT_ID or VERIFY_PARENT_ID)');
+  }
 
   // 6.6 parent-topics
-  await testFunction('parent-topics', { childId: testStudentId }, { method: 'GET', expectOk: false });
+  if (testStudentId) {
+    await testFunction('parent-topics', { childId: testStudentId }, { method: 'GET', expectOk: false });
+  } else {
+    skip('parent-topics', 'No childId available (set VERIFY_STUDENT_ID or VERIFY_PARENT_ID)');
+  }
 
   // ============================================
   // SECTION 7: AUTH & ADMIN (3 functions)
@@ -445,11 +553,15 @@ async function main() {
   await testFunction('get-user-roles', {}, { expectOk: false });
 
   // 7.2 get-dashboard (requires teacherId)
-  await testFunction('get-dashboard', { teacherId: testStudentId }, {
-    method: 'GET',
-    expectOk: false,
-    validateResponse: (d) => d?.role || d?.stats ? null : 'Expected dashboard data'
-  });
+  if (testStudentId) {
+    await testFunction('get-dashboard', { teacherId: testStudentId }, {
+      method: 'GET',
+      expectOk: false,
+      validateResponse: (d) => d?.role || d?.stats ? null : 'Expected dashboard data'
+    });
+  } else {
+    skip('get-dashboard', 'No teacherId available (set VERIFY_STUDENT_ID or VERIFY_PARENT_ID)');
+  }
 
   // 7.3 create-tag (skip to avoid creating test data)
   skip('create-tag', 'Skipped to avoid creating test data');

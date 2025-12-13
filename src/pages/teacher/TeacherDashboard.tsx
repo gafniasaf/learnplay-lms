@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { GraduationCap, Plus, BookOpen, Users, Calendar, TrendingUp, List, BarChart3, UserCheck, Mail } from "lucide-react";
@@ -17,6 +17,7 @@ import { toast } from "sonner";
 import { JobProgress } from "@/components/shared/JobProgress";
 import { format } from "date-fns";
 import { useMCP } from "@/hooks/useMCP";
+import { useAuth } from "@/hooks/useAuth";
 
 interface AssignmentWithProgress extends Assignment {
   progress?: number;
@@ -65,6 +66,7 @@ const MOCK_DASHBOARD = {
 
 const TeacherDashboard = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [showKOTableModal, setShowKOTableModal] = useState(false);
   const [showKOAssignmentModal, setShowKOAssignmentModal] = useState(false);
@@ -81,7 +83,7 @@ const TeacherDashboard = () => {
   } = useTeacherDashboard({ enabled: !mockMode });
 
   const dashboardData = useMemo(() => {
-    if (mockMode || isError) {
+    if (mockMode) {
       return MOCK_DASHBOARD;
     }
     return {
@@ -89,7 +91,7 @@ const TeacherDashboard = () => {
       classes: data?.classes ?? [],
       students: data?.students ?? [],
     };
-  }, [mockMode, isError, data]);
+  }, [mockMode, data]);
 
   const assignments: AssignmentWithProgress[] = useMemo(
     () =>
@@ -102,6 +104,7 @@ const TeacherDashboard = () => {
 
   const classes = dashboardData.classes;
   const students = dashboardData.students;
+  const activeClassId = classes[0]?.id ?? null;
 
   const totalAssignments = assignments.length;
   const activeAssignments = assignments.filter(
@@ -166,6 +169,24 @@ const TeacherDashboard = () => {
             <Button variant="outline" size="sm" onClick={() => refetch()}>
               Retry
             </Button>
+          </AlertDescription>
+        </Alert>
+      </PageContainer>
+    );
+  }
+
+  if (!mockMode && !user) {
+    return (
+      <PageContainer>
+        <Alert variant="destructive" className="max-w-xl">
+          <AlertTitle>Authentication required</AlertTitle>
+          <AlertDescription>
+            Please sign in to view the Teacher dashboard.
+            <div className="mt-3">
+              <Button variant="outline" size="sm" onClick={() => navigate("/auth")}>
+                Go to Login
+              </Button>
+            </div>
           </AlertDescription>
         </Alert>
       </PageContainer>
@@ -245,11 +266,25 @@ const TeacherDashboard = () => {
 
         {/* Class Focus (Knowledge Map) */}
         <div className="mb-8">
-          <ClassFocusWidget
-            classId="class-1"
-            onCreateAssignment={handleAssignKO}
-            onViewAll={() => setShowKOTableModal(true)}
-          />
+          {activeClassId ? (
+            <ClassFocusWidget
+              classId={activeClassId}
+              onCreateAssignment={handleAssignKO}
+              onViewAll={() => setShowKOTableModal(true)}
+            />
+          ) : (
+            <Alert className="border-warning bg-warning/10">
+              <AlertTitle>Class required</AlertTitle>
+              <AlertDescription>
+                Create a class to view the Knowledge Map and assign skill practice.
+                <div className="mt-3">
+                  <Button variant="outline" size="sm" onClick={() => navigate("/teacher/classes")}>
+                    Go to Classes
+                  </Button>
+                </div>
+              </AlertDescription>
+            </Alert>
+          )}
 
           {/* Remediation CTA */}
           <div className="mt-4 p-4 border rounded-lg bg-primary/5 flex items-center justify-between">
@@ -381,20 +416,21 @@ const TeacherDashboard = () => {
           open={showAssignModal}
           onClose={() => setShowAssignModal(false)}
           onSuccess={handleAssignmentCreated}
-          orgId="mock-org-id"
           classes={classes}
           students={students}
         />
 
         {/* Knowledge Map Modals */}
-        <TeacherKOTable
-          isOpen={showKOTableModal}
-          onClose={() => setShowKOTableModal(false)}
-          classId="class-1"
-          onAssignKO={handleAssignKO}
-        />
+        {activeClassId && (
+          <TeacherKOTable
+            isOpen={showKOTableModal}
+            onClose={() => setShowKOTableModal(false)}
+            classId={activeClassId}
+            onAssignKO={handleAssignKO}
+          />
+        )}
 
-        {showKOAssignmentModal && selectedKOId && (
+        {showKOAssignmentModal && selectedKOId && activeClassId && user?.id && (
           <AssignmentModal
             isOpen={showKOAssignmentModal}
             onClose={() => {
@@ -402,9 +438,9 @@ const TeacherDashboard = () => {
               setSelectedKOId(null);
             }}
             koId={selectedKOId}
-            assignerId="teacher-1"
+            assignerId={user.id}
             assignerRole="teacher"
-            contextId="class-1"
+            contextId={activeClassId}
             onCreateAssignment={handleKOAssignmentCreated}
           />
         )}

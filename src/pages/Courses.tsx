@@ -1,5 +1,5 @@
-import { useEffect, useState, useCallback, useRef } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useEffect, useMemo, useState, useCallback, useRef } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { BookOpen, Search, RefreshCw, Target, X } from "lucide-react";
 import { CourseCard } from "@/components/courses/CourseCard";
@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useMCP } from "@/hooks/useMCP";
+import { useDawnData } from "@/contexts/DawnDataContext";
 import type { CourseCatalogItem } from "@/lib/types/courseCatalog";
 import { useCatalogVersionListener } from "@/hooks/useCatalogVersionListener";
 import { isLiveMode } from "@/lib/env";
@@ -17,12 +18,20 @@ import { supabase } from "@/integrations/supabase/client";
 
 const Courses = () => {
   const mcp = useMCP();
+  const navigate = useNavigate();
+  const { learnerProfiles, authRequired } = useDawnData();
   // Use ref to prevent mcp from triggering re-renders (useMCP returns new object each render)
   const mcpRef = useRef(mcp);
   mcpRef.current = mcp;
   const [searchParams, setSearchParams] = useSearchParams();
   const recommendedFor = searchParams.get('recommendedFor');
-  const studentId = searchParams.get('studentId') || 'student-1';
+
+  const studentId = useMemo(() => {
+    const explicit = searchParams.get("studentId") ?? searchParams.get("learnerId");
+    if (explicit) return explicit;
+    if (learnerProfiles.length === 1) return learnerProfiles[0]!.id;
+    return null;
+  }, [searchParams, learnerProfiles]);
   
   const [courses, setCourses] = useState<CourseCatalogItem[]>([]);
   const [filteredCourses, setFilteredCourses] = useState<CourseCatalogItem[]>([]);
@@ -34,6 +43,23 @@ const Courses = () => {
 
   // Listen for catalog version changes and trigger re-load
   useCatalogVersionListener();
+
+  // Explicit auth gate (avoid “works but empty” in live mode)
+  useEffect(() => {
+    if (authRequired) {
+      setError("AUTH_REQUIRED");
+      setLoading(false);
+    }
+  }, [authRequired]);
+
+  // If caller is asking for recommendations, we must have a studentId
+  useEffect(() => {
+    if (!recommendedFor) return;
+    if (!studentId) {
+      setError("STUDENT_ID_REQUIRED");
+      setLoading(false);
+    }
+  }, [recommendedFor, studentId]);
 
   // Realtime subscription to catalog_updates for instant catalog updates
   useEffect(() => {
@@ -95,6 +121,9 @@ const Courses = () => {
         // If filtering by KO, load recommended courses
         if (recommendedFor) {
           console.log("[Courses] Loading recommended courses for KO:", recommendedFor);
+          if (!studentId) {
+            throw new Error("STUDENT_ID_REQUIRED");
+          }
           
           // Get KO name for display
           const ko = MOCK_KNOWLEDGE_OBJECTIVES.find(k => k.id === recommendedFor);
@@ -274,15 +303,32 @@ const Courses = () => {
   }
 
   if (error) {
+    const message =
+      error === "AUTH_REQUIRED"
+        ? "You must be logged in to load courses."
+        : error === "STUDENT_ID_REQUIRED"
+          ? "Recommendations require a learner id. Add ?studentId=<id> (or create a learner profile)."
+          : error;
     return (
       <PageContainer>
         <div className="text-center py-12">
           <h2 className="text-2xl font-bold mb-2">Error Loading Courses</h2>
-          <p className="text-muted-foreground mb-6">{error}</p>
-          <Button onClick={loadCatalog} data-cta-id="courses-retry" data-action="click">
-            <RefreshCw className="h-4 w-4 mr-2" />
-            Try Again
-          </Button>
+          <p className="text-muted-foreground mb-6">{message}</p>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-2">
+            {error === "AUTH_REQUIRED" ? (
+              <Button onClick={() => navigate("/auth")} data-cta-id="courses-login" data-action="navigate" data-target="/auth">
+                Go to Login
+              </Button>
+            ) : error === "STUDENT_ID_REQUIRED" ? (
+              <Button onClick={() => navigate("/workspace/learner-profile/new")} data-cta-id="courses-create-learner" data-action="navigate" data-target="/workspace/learner-profile/new">
+                Create Learner Profile
+              </Button>
+            ) : null}
+            <Button variant="outline" onClick={loadCatalog} data-cta-id="courses-retry" data-action="click">
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Try Again
+            </Button>
+          </div>
         </div>
       </PageContainer>
     );

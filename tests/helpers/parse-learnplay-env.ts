@@ -17,7 +17,15 @@ export interface LearnPlayEnv {
   SUPABASE_ACCESS_TOKEN?: string;
   OPENAI_API_KEY?: string;
   ANTHROPIC_API_KEY?: string;
+  AGENT_TOKEN?: string;
   ORGANIZATION_ID?: string;
+  /**
+   * Optional IDs used by live verification scripts.
+   * These are NOT secrets but still should not be committed if they point to real users.
+   */
+  USER_ID?: string;
+  STUDENT_ID?: string;
+  PARENT_ID?: string;
   PROJECT_ID?: string;
 }
 
@@ -31,6 +39,47 @@ export function parseLearnPlayEnv(): LearnPlayEnv {
 
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i].trim();
+      if (!line || line.startsWith("#")) continue;
+
+      // Support KEY=VALUE style (preferred for local dev); keep heading-style support for backwards compatibility.
+      const eqIdx = line.indexOf("=");
+      if (eqIdx > 0) {
+        const rawKey = line.slice(0, eqIdx).trim();
+        const rawVal = line.slice(eqIdx + 1).trim();
+        const key = rawKey.toUpperCase();
+        const value = rawVal.replace(/^"(.*)"$/, "$1").replace(/^'(.*)'$/, "$1").trim();
+
+        // Accept both canonical and VITE_* variants
+        const map: Record<string, keyof LearnPlayEnv> = {
+          SUPABASE_URL: "SUPABASE_URL",
+          VITE_SUPABASE_URL: "SUPABASE_URL",
+          SUPABASE_ANON_KEY: "SUPABASE_ANON_KEY",
+          VITE_SUPABASE_ANON_KEY: "SUPABASE_ANON_KEY",
+          VITE_SUPABASE_PUBLISHABLE_KEY: "SUPABASE_ANON_KEY",
+          SUPABASE_SERVICE_ROLE_KEY: "SUPABASE_SERVICE_ROLE_KEY",
+          SUPABASE_ACCESS_TOKEN: "SUPABASE_ACCESS_TOKEN",
+          OPENAI_API_KEY: "OPENAI_API_KEY",
+          VITE_OPENAI_API_KEY: "OPENAI_API_KEY",
+          ANTHROPIC_API_KEY: "ANTHROPIC_API_KEY",
+          VITE_ANTHROPIC_API_KEY: "ANTHROPIC_API_KEY",
+          AGENT_TOKEN: "AGENT_TOKEN",
+          ORGANIZATION_ID: "ORGANIZATION_ID",
+          VITE_ORGANIZATION_ID: "ORGANIZATION_ID",
+          PROJECT_ID: "PROJECT_ID",
+          USER_ID: "USER_ID",
+          STUDENT_ID: "STUDENT_ID",
+          PARENT_ID: "PARENT_ID",
+          VERIFY_USER_ID: "USER_ID",
+          VERIFY_STUDENT_ID: "STUDENT_ID",
+          VERIFY_PARENT_ID: "PARENT_ID",
+        };
+
+        const mapped = map[key];
+        if (mapped) {
+          (result as any)[mapped] = value;
+        }
+        continue;
+      }
       
       // Project URL -> SUPABASE_URL
       if (line.includes('Project url') && i + 1 < lines.length) {
@@ -60,6 +109,31 @@ export function parseLearnPlayEnv(): LearnPlayEnv {
       // anthropic api key -> ANTHROPIC_API_KEY
       if (line.includes('anthropic api key') && i + 1 < lines.length) {
         result.ANTHROPIC_API_KEY = lines[i + 1].trim();
+      }
+
+      // agent token -> AGENT_TOKEN
+      if (line.includes('agent token') && i + 1 < lines.length) {
+        result.AGENT_TOKEN = lines[i + 1].trim();
+      }
+
+      // organization id -> ORGANIZATION_ID
+      if (line.includes('organization id') && i + 1 < lines.length) {
+        result.ORGANIZATION_ID = lines[i + 1].trim();
+      }
+
+      // user id -> USER_ID
+      if ((line.includes('user id') || line.includes('test user id')) && i + 1 < lines.length) {
+        result.USER_ID = lines[i + 1].trim();
+      }
+
+      // student id -> STUDENT_ID
+      if (line.includes('student id') && i + 1 < lines.length) {
+        result.STUDENT_ID = lines[i + 1].trim();
+      }
+
+      // parent id -> PARENT_ID
+      if (line.includes('parent id') && i + 1 < lines.length) {
+        result.PARENT_ID = lines[i + 1].trim();
       }
       
       // project id -> PROJECT_ID
@@ -112,6 +186,30 @@ export function loadLearnPlayEnv(): void {
   
   if (env.PROJECT_ID && !process.env.PROJECT_ID) {
     process.env.PROJECT_ID = env.PROJECT_ID;
+  }
+
+  if (env.AGENT_TOKEN && !process.env.AGENT_TOKEN) {
+    process.env.AGENT_TOKEN = env.AGENT_TOKEN;
+  }
+
+  if (env.ORGANIZATION_ID && !process.env.ORGANIZATION_ID && !process.env.VITE_ORGANIZATION_ID) {
+    process.env.ORGANIZATION_ID = env.ORGANIZATION_ID;
+    process.env.VITE_ORGANIZATION_ID = env.ORGANIZATION_ID;
+  }
+
+  // IDs used by scripts (env vars take precedence)
+  if (env.USER_ID && !process.env.VERIFY_USER_ID) {
+    process.env.VERIFY_USER_ID = env.USER_ID;
+  }
+  // Back-compat: accept student id as user id for endpoints that resolve from auth.userId
+  if (env.STUDENT_ID && !process.env.VERIFY_USER_ID) {
+    process.env.VERIFY_USER_ID = env.STUDENT_ID;
+  }
+  if (env.STUDENT_ID && !process.env.VERIFY_STUDENT_ID) {
+    process.env.VERIFY_STUDENT_ID = env.STUDENT_ID;
+  }
+  if (env.PARENT_ID && !process.env.VERIFY_PARENT_ID) {
+    process.env.VERIFY_PARENT_ID = env.PARENT_ID;
   }
 }
 

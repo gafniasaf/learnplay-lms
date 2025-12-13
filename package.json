@@ -100,7 +100,8 @@
     "guard:all": "node scripts/guard-all.mjs",
     "docs:autogen": "node scripts/docs-autogen.mjs",
     "audit": "knip",
-    "plans:matrix": "npx tsx scripts/plan-matrix.ts"
+    "plans:matrix": "npx tsx scripts/plan-matrix.ts",
+    "parity:matrix": "npx tsx scripts/parity-matrix.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",

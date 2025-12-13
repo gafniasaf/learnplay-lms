@@ -15,6 +15,7 @@ const NotFound = lazy(() => import("./pages/NotFound"));
 const Kids = lazy(() => import("./pages/Kids"));
 const Schools = lazy(() => import("./pages/Schools"));
 const Parents = lazy(() => import("./pages/Parents"));
+const EmbedThanks = lazy(() => import("./pages/embed/Thanks"));
 const CrmDashboard = lazy(() => import("./pages/crm-demo/dashboard/Dashboard"));
 const CrmContacts = lazy(() => import("./pages/crm-demo/contacts/ContactList"));
 const GenericList = lazy(() => import("./pages/generic/GenericList"));
@@ -83,6 +84,7 @@ const App = () => {
                       <Route path="/kids" element={<Kids />} />
                       <Route path="/schools" element={<Schools />} />
                       <Route path="/parents" element={<Parents />} />
+                      <Route path="/embed/thanks" element={<EmbedThanks />} />
                       <Route path="/crm/dashboard" element={<CrmDashboard />} />
                       <Route path="/teacher" element={<Navigate to="/teacher/dashboard" replace />} />
                       <Route path="/crm/contacts" element={<CrmContacts />} />

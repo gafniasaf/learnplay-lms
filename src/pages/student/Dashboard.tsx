@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { StudentLayout } from "@/components/student/StudentLayout";
 import { Button } from "@/components/ui/button";
@@ -8,6 +8,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { X, AlertCircle } from "lucide-react";
 import { useStudentRange } from "@/hooks/useStudentRange";
 import { useDashboard } from "@/hooks/useDashboard";
+import { useSearchParams, useNavigate } from "react-router-dom";
+import { useDawnData } from "@/contexts/DawnDataContext";
 import { SummaryCardsStudent } from "@/components/student/SummaryCardsStudent";
 import { WeeklyGoalRing } from "@/components/student/WeeklyGoalRing";
 import { NextUpCard } from "@/components/student/NextUpCard";
@@ -54,9 +56,34 @@ const mapUpcomingToAssignment = (item: UpcomingItem): StudentAssignment => {
 };
 
 export default function StudentDashboard() {
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const { learnerProfiles, authRequired } = useDawnData();
   const { range, setRange, window: rangeWindow } = useStudentRange();
   const [bannerDismissed, setBannerDismissed] = useState(false);
   const { dashboard, loading, error } = useDashboard("student");
+
+  const studentId = useMemo(() => {
+    const explicit = searchParams.get("studentId") ?? searchParams.get("learnerId");
+    if (explicit) return explicit;
+    if (learnerProfiles.length === 1) return learnerProfiles[0]!.id;
+    return null;
+  }, [searchParams, learnerProfiles]);
+
+  if (authRequired) {
+    return (
+      <PageContainer>
+        <StudentLayout>
+          <Alert className="border-warning bg-warning/10">
+            <AlertCircle className="h-4 w-4 text-warning" />
+            <AlertDescription>
+              You must be logged in to view the Student dashboard.
+            </AlertDescription>
+          </Alert>
+        </StudentLayout>
+      </PageContainer>
+    );
+  }
 
   if (loading) {
     return (
@@ -92,6 +119,32 @@ export default function StudentDashboard() {
             <Button variant="outline" onClick={() => globalThis.location.reload()}>
               Retry
             </Button>
+          </div>
+        </StudentLayout>
+      </PageContainer>
+    );
+  }
+
+  if (!studentId) {
+    return (
+      <PageContainer>
+        <StudentLayout>
+          <div className="space-y-4">
+            <Alert className="border-warning bg-warning/10">
+              <AlertCircle className="h-4 w-4 text-warning" />
+              <AlertDescription>
+                This dashboard needs a learner id. Add <code>?studentId=&lt;id&gt;</code> (or{" "}
+                <code>?learnerId=&lt;id&gt;</code>) to the URL, or create a learner profile.
+              </AlertDescription>
+            </Alert>
+            <div className="flex flex-wrap gap-2">
+              <Button variant="default" onClick={() => navigate("/workspace/learner-profile/new")}>
+                Create Learner Profile
+              </Button>
+              <Button variant="outline" onClick={() => navigate("/admin/system-health")}>
+                Check System Health
+              </Button>
+            </div>
           </div>
         </StudentLayout>
       </PageContainer>
@@ -143,9 +196,6 @@ export default function StudentDashboard() {
     { id: 'r1', title: 'Practice multiplication tables for 10 minutes', courseId: 'math-multiplication', level: 2 },
     { id: 'r2', title: 'Review fractions concepts', courseId: 'math-fractions', level: 1 },
   ];
-
-  // Mock student ID - in real app, get from auth context
-  const studentId = 'student-2'; // Bailey (teacher-assigned student with active assignments)
 
   const overallPercent = ((goals.actualMinutes / goals.goalMinutes + goals.actualItems / goals.goalItems) / 2) * 100;
   const onTrack = overallPercent >= 80;

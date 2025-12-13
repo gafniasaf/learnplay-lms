@@ -14,6 +14,7 @@ import { ActivityGlance } from "@/components/parent/ActivityGlance";
 import { GoalsGlance } from "@/components/parent/GoalsGlance";
 import { GrowthTracker } from "@/components/parent/GrowthTracker";
 import { AssignmentModal } from "@/components/shared/AssignmentModal";
+import { useAuth } from "@/hooks/useAuth";
 import { useParentRange } from "@/hooks/useParentRange";
 import { useParentSubjects } from "@/hooks/useParentSubjects";
 import { useParentTimeline } from "@/hooks/useParentTimeline";
@@ -47,6 +48,7 @@ const aggregateGoals = (goals: ParentGoalRecord[]) => {
 };
 
 export default function ParentDashboard() {
+  const { user } = useAuth();
   const navigate = useNavigate();
   const { window: rangeWindow } = useParentRange();
   const [showKOAssignmentModal, setShowKOAssignmentModal] = useState(false);
@@ -253,11 +255,11 @@ export default function ParentDashboard() {
               </p>
             </div>
             <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm" onClick={() => navigate("/parent/children")} data-cta-id="parent-link-child" data-action="navigate" data-target="/parent/children">
+              <Button variant="outline" size="sm" onClick={() => navigate("/parent/link-child")} data-cta-id="parent-link-child" data-action="navigate" data-target="/parent/link-child">
                 <UserPlus className="h-4 w-4 mr-2" />
                 Link Child
               </Button>
-              <Button variant="default" size="sm" onClick={() => navigate("/parent/messages")} data-cta-id="parent-messages" data-action="navigate" data-target="/parent/messages">
+              <Button variant="default" size="sm" onClick={() => navigate("/messages")} data-cta-id="parent-messages" data-action="navigate" data-target="/messages">
                 <Mail className="h-4 w-4 mr-2" />
                 Messages
               </Button>
@@ -429,7 +431,7 @@ export default function ParentDashboard() {
         </div>
 
         {/* Knowledge Map Assignment Modal */}
-        {primaryStudentId && showKOAssignmentModal && (
+        {primaryStudentId && showKOAssignmentModal && user?.id && (
           <AssignmentModal
             isOpen={showKOAssignmentModal}
             onClose={() => {
@@ -437,7 +439,7 @@ export default function ParentDashboard() {
               setSelectedDomain(undefined);
             }}
             koId=""
-            assignerId="parent-1"
+            assignerId={user.id}
             assignerRole="parent"
             contextId={primaryStudentId}
             onCreateAssignment={handleKOAssignmentCreated}
