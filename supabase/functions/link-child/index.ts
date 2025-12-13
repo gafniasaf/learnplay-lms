@@ -53,7 +53,8 @@ serve(async (req: Request): Promise<Response> => {
     });
   }
 
-  const organizationId = requireOrganizationId(auth);
+  // Keep org requirement explicit (system invariant)
+  requireOrganizationId(auth);
   const userId = auth.userId;
 
   if (!userId) {
@@ -64,12 +65,89 @@ serve(async (req: Request): Promise<Response> => {
   }
 
   try {
-    // Find child by code (assuming parent_child_codes table exists)
-    // For now, return success with mock childId
-    return new Response(
-      JSON.stringify({ success: true, childId: `child-${Date.now()}` }),
-      { status: 200, headers: stdHeaders(req, { "Content-Type": "application/json" }) }
-    );
+    const code = body.code.trim().toUpperCase();
+    if (code.length !== 6) {
+      return new Response(JSON.stringify({ error: "Invalid code: must be 6 characters" }), {
+        status: 400,
+        headers: stdHeaders(req, { "Content-Type": "application/json" }),
+      });
+    }
+
+    const { data: codeRow, error: codeErr } = await adminSupabase
+      .from("child_codes")
+      .select("id, student_id, expires_at, used")
+      .eq("code", code)
+      .maybeSingle();
+
+    if (codeErr) {
+      console.error("[link-child] lookup error:", codeErr);
+      return new Response(JSON.stringify({ error: codeErr.message }), {
+        status: 500,
+        headers: stdHeaders(req, { "Content-Type": "application/json" }),
+      });
+    }
+
+    if (!codeRow) {
+      return new Response(JSON.stringify({ error: "Invalid code" }), {
+        status: 400,
+        headers: stdHeaders(req, { "Content-Type": "application/json" }),
+      });
+    }
+
+    if (codeRow.used) {
+      return new Response(JSON.stringify({ error: "This code has already been used" }), {
+        status: 400,
+        headers: stdHeaders(req, { "Content-Type": "application/json" }),
+      });
+    }
+
+    const expiresAt = new Date(codeRow.expires_at);
+    if (Number.isNaN(expiresAt.getTime()) || expiresAt.getTime() <= Date.now()) {
+      return new Response(JSON.stringify({ error: "This code has expired" }), {
+        status: 400,
+        headers: stdHeaders(req, { "Content-Type": "application/json" }),
+      });
+    }
+
+    const studentId = String(codeRow.student_id);
+
+    // Create parent-child link (idempotent)
+    const { error: linkErr } = await adminSupabase.from("parent_children").insert({
+      parent_id: userId,
+      child_id: studentId,
+    });
+
+    if (linkErr) {
+      const errCode = (linkErr as any)?.code;
+      if (errCode !== "23505") {
+        console.error("[link-child] insert error:", linkErr);
+        return new Response(JSON.stringify({ error: linkErr.message }), {
+          status: 500,
+          headers: stdHeaders(req, { "Content-Type": "application/json" }),
+        });
+      }
+    }
+
+    // Mark code as used (best-effort, but should succeed)
+    const { error: usedErr } = await adminSupabase
+      .from("child_codes")
+      .update({ used: true })
+      .eq("id", codeRow.id);
+
+    if (usedErr) {
+      console.error("[link-child] failed to mark code used:", usedErr);
+    }
+
+    const alreadyLinked = (linkErr as any)?.code === "23505";
+    return new Response(JSON.stringify({
+      success: true,
+      childId: studentId,
+      alreadyLinked,
+      message: alreadyLinked ? "Child already linked" : "Child linked successfully",
+    }), {
+      status: 200,
+      headers: stdHeaders(req, { "Content-Type": "application/json" }),
+    });
   } catch (error) {
     console.error("link-child error:", error);
     return new Response(
