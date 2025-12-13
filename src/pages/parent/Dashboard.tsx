@@ -76,10 +76,17 @@ export default function ParentDashboard() {
     }
   );
   const parentTimeline = useParentTimeline({ limit: 5 }, { enabled: allowLive && !isLoading });
-  const parentGoals = useParentGoals({ status: "on_track" }, { enabled: allowLive && !isLoading });
+  const parentTimeline = useParentTimeline(
+    primaryStudentId ? { studentId: primaryStudentId, limit: 5 } : {},
+    { enabled: allowLive && !isLoading && !!primaryStudentId }
+  );
+  const parentGoals = useParentGoals(
+    primaryStudentId ? { studentId: primaryStudentId, status: "on_track" } : {},
+    { enabled: allowLive && !isLoading && !!primaryStudentId }
+  );
   const parentTopics = useParentTopics(
     primaryStudentId ? { studentId: primaryStudentId } : null,
-    { enabled: allowLive && !isLoading }
+    { enabled: allowLive && !isLoading && !!primaryStudentId }
   );
 
   const summary = parentDashboard?.summary ?? {
