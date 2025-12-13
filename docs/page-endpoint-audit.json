@@ -1,0 +1,555 @@
+[
+  {
+    "route": "*",
+    "file": "src/pages/NotFound.tsx",
+    "edgeCalls": [],
+    "guaranteedMissingEdgeFunctions": [],
+    "unknownMcpMethods": []
+  },
+  {
+    "route": "/",
+    "file": "src/pages/generated/pages/landing.tsx",
+    "edgeCalls": [],
+    "guaranteedMissingEdgeFunctions": [],
+    "unknownMcpMethods": []
+  },
+  {
+    "route": "/about",
+    "file": "src/pages/About.tsx",
+    "edgeCalls": [],
+    "guaranteedMissingEdgeFunctions": [],
+    "unknownMcpMethods": []
+  },
+  {
+    "route": "/admin/ai-pipeline",
+    "file": "src/pages/admin/AIPipelineV2.tsx",
+    "edgeCalls": [],
+    "guaranteedMissingEdgeFunctions": [],
+    "unknownMcpMethods": []
+  },
+  {
+    "route": "/admin/console",
+    "file": "src/pages/Admin.tsx",
+    "edgeCalls": [],
+    "guaranteedMissingEdgeFunctions": [],
+    "unknownMcpMethods": []
+  },
+  {
+    "route": "/admin/courses/:courseId/versions",
+    "file": "src/pages/admin/CourseVersionHistory.tsx",
+    "edgeCalls": [
+      "get-course-version-snapshot",
+      "get-dashboard",
+      "list-course-versions"
+    ],
+    "guaranteedMissingEdgeFunctions": [],
+    "unknownMcpMethods": []
+  },
+  {
+    "route": "/admin/courses/select",
+    "file": "src/pages/admin/CourseSelector.tsx",
+    "edgeCalls": [
+      "get-dashboard",
+      "get-org-config",
+      "search-courses"
+    ],
+    "guaranteedMissingEdgeFunctions": [],
+    "unknownMcpMethods": []
+  },
+  {
+    "route": "/admin/editor/:courseId",
+    "file": "src/pages/admin/CourseEditor.tsx",
+    "edgeCalls": [
+      "apply-job-result",
+      "editor-repair-course",
+      "editor-variants-audit",
+      "editor-variants-missing",
+      "enqueue-course-media",
+      "enqueue-course-missing-images",
+      "get-course",
+      "get-job",
+      "job-status",
+      "update-course"
+    ],
+    "guaranteedMissingEdgeFunctions": [],
+    "unknownMcpMethods": [
+      "uploadMediaFile"
+    ]
+  },
+  {
+    "route": "/admin/jobs",
+    "file": "src/pages/admin/JobsDashboard.tsx",
+    "edgeCalls": [
+      "ai-job-batch-runner",
+      "delete-job",
+      "jobs-reconciler",
+      "list-course-jobs",
+      "list-media-jobs",
+      "requeue-job"
+    ],
+    "guaranteedMissingEdgeFunctions": [],
+    "unknownMcpMethods": [
+      "call",
+      "getJobMetrics"
+    ]
+  },
+  {
+    "route": "/admin/logs",
+    "file": "src/pages/admin/Logs.tsx",
+    "edgeCalls": [],
+    "guaranteedMissingEdgeFunctions": [],
+    "unknownMcpMethods": []
+  },
+  {
+    "route": "/admin/performance",
+    "file": "src/pages/admin/PerformanceMonitoring.tsx",
+    "edgeCalls": [],
+    "guaranteedMissingEdgeFunctions": [],
+    "unknownMcpMethods": []
+  },
+  {
+    "route": "/admin/system-health",
+    "file": "src/pages/admin/SystemHealth.tsx",
+    "edgeCalls": [
+      "get-user-roles",
+      "health"
+    ],
+    "guaranteedMissingEdgeFunctions": [],
+    "unknownMcpMethods": [
+      "call",
+      "callGet"
+    ]
+  },
+  {
+    "route": "/admin/tags",
+    "file": "src/pages/admin/TagManagement.tsx",
+    "edgeCalls": [
+      "get-org-config"
+    ],
+    "guaranteedMissingEdgeFunctions": [],
+    "unknownMcpMethods": []
+  },
+  {
+    "route": "/admin/tags/approve",
+    "file": "src/pages/admin/TagApprovalQueue.tsx",
+    "edgeCalls": [
+      "approve-tag-suggestion",
+      "get-org-config",
+      "list-tag-suggestions",
+      "reject-tag-suggestion"
+    ],
+    "guaranteedMissingEdgeFunctions": [],
+    "unknownMcpMethods": [
+      "call"
+    ]
+  },
+  {
+    "route": "/admin/tools/media",
+    "file": "src/pages/admin/MediaManager.tsx",
+    "edgeCalls": [],
+    "guaranteedMissingEdgeFunctions": [],
+    "unknownMcpMethods": []
+  },
+  {
+    "route": "/auth",
+    "file": "src/pages/Auth.tsx",
+    "edgeCalls": [],
+    "guaranteedMissingEdgeFunctions": [],
+    "unknownMcpMethods": []
+  },
+  {
+    "route": "/auth",
+    "file": "src/pages/Auth.tsx",
+    "edgeCalls": [],
+    "guaranteedMissingEdgeFunctions": [],
+    "unknownMcpMethods": []
+  },
+  {
+    "route": "/auth/reset-password",
+    "file": "src/pages/auth/ResetPassword.tsx",
+    "edgeCalls": [],
+    "guaranteedMissingEdgeFunctions": [],
+    "unknownMcpMethods": []
+  },
+  {
+    "route": "/catalog-builder",
+    "file": "src/pages/generated/pages/catalog-builder.tsx",
+    "edgeCalls": [
+      "save-record"
+    ],
+    "guaranteedMissingEdgeFunctions": [],
+    "unknownMcpMethods": [
+      "enqueueJob"
+    ]
+  },
+  {
+    "route": "/catalog-builder/media",
+    "file": "src/pages/generated/pages/catalog-builder-media.tsx",
+    "edgeCalls": [
+      "get-record",
+      "save-record"
+    ],
+    "guaranteedMissingEdgeFunctions": [],
+    "unknownMcpMethods": [
+      "enqueueJob"
+    ]
+  },
+  {
+    "route": "/courses",
+    "file": "src/pages/Courses.tsx",
+    "edgeCalls": [
+      "enqueue-course-media",
+      "get-recommended-courses",
+      "search-courses"
+    ],
+    "guaranteedMissingEdgeFunctions": [],
+    "unknownMcpMethods": [
+      "call"
+    ]
+  },
+  {
+    "route": "/crm/contacts",
+    "file": "src/pages/crm-demo/contacts/ContactList.tsx",
+    "edgeCalls": [],
+    "guaranteedMissingEdgeFunctions": [],
+    "unknownMcpMethods": []
+  },
+  {
+    "route": "/crm/dashboard",
+    "file": "src/pages/crm-demo/dashboard/Dashboard.tsx",
+    "edgeCalls": [],
+    "guaranteedMissingEdgeFunctions": [],
+    "unknownMcpMethods": []
+  },
+  {
+    "route": "/demo/generic",
+    "file": "src/pages/generic/GenericList.tsx",
+    "edgeCalls": [],
+    "guaranteedMissingEdgeFunctions": [],
+    "unknownMcpMethods": []
+  },
+  {
+    "route": "/demo/generic/board",
+    "file": "src/pages/generic/GenericBoard.tsx",
+    "edgeCalls": [],
+    "guaranteedMissingEdgeFunctions": [],
+    "unknownMcpMethods": []
+  },
+  {
+    "route": "/embed/thanks",
+    "file": "src/pages/embed/Thanks.tsx",
+    "edgeCalls": [],
+    "guaranteedMissingEdgeFunctions": [],
+    "unknownMcpMethods": []
+  },
+  {
+    "route": "/help",
+    "file": "src/pages/Help.tsx",
+    "edgeCalls": [],
+    "guaranteedMissingEdgeFunctions": [],
+    "unknownMcpMethods": []
+  },
+  {
+    "route": "/kids",
+    "file": "src/pages/Kids.tsx",
+    "edgeCalls": [
+      "list-assignments-student"
+    ],
+    "guaranteedMissingEdgeFunctions": [],
+    "unknownMcpMethods": []
+  },
+  {
+    "route": "/messages",
+    "file": "src/pages/messages/Inbox.tsx",
+    "edgeCalls": [
+      "list-messages",
+      "list-org-students"
+    ],
+    "guaranteedMissingEdgeFunctions": [],
+    "unknownMcpMethods": []
+  },
+  {
+    "route": "/parent/dashboard",
+    "file": "src/pages/parent/Dashboard.tsx",
+    "edgeCalls": [],
+    "guaranteedMissingEdgeFunctions": [],
+    "unknownMcpMethods": []
+  },
+  {
+    "route": "/parent/goals",
+    "file": "src/pages/parent/Goals.tsx",
+    "edgeCalls": [],
+    "guaranteedMissingEdgeFunctions": [],
+    "unknownMcpMethods": []
+  },
+  {
+    "route": "/parent/link-child",
+    "file": "src/pages/parent/LinkChild.tsx",
+    "edgeCalls": [
+      "list-conversations"
+    ],
+    "guaranteedMissingEdgeFunctions": [],
+    "unknownMcpMethods": []
+  },
+  {
+    "route": "/parent/subjects",
+    "file": "src/pages/parent/Subjects.tsx",
+    "edgeCalls": [],
+    "guaranteedMissingEdgeFunctions": [],
+    "unknownMcpMethods": []
+  },
+  {
+    "route": "/parent/timeline",
+    "file": "src/pages/parent/Timeline.tsx",
+    "edgeCalls": [],
+    "guaranteedMissingEdgeFunctions": [],
+    "unknownMcpMethods": []
+  },
+  {
+    "route": "/parent/topics",
+    "file": "src/pages/parent/Topics.tsx",
+    "edgeCalls": [],
+    "guaranteedMissingEdgeFunctions": [],
+    "unknownMcpMethods": []
+  },
+  {
+    "route": "/parents",
+    "file": "src/pages/Parents.tsx",
+    "edgeCalls": [],
+    "guaranteedMissingEdgeFunctions": [],
+    "unknownMcpMethods": []
+  },
+  {
+    "route": "/play",
+    "file": "src/pages/Play.tsx",
+    "edgeCalls": [
+      "game-log-attempt",
+      "game-start-round",
+      "generate-hint",
+      "get-course",
+      "get-knowledge-objective",
+      "get-recommended-courses"
+    ],
+    "guaranteedMissingEdgeFunctions": [],
+    "unknownMcpMethods": []
+  },
+  {
+    "route": "/play/:courseId",
+    "file": "src/pages/Play.tsx",
+    "edgeCalls": [
+      "game-log-attempt",
+      "game-start-round",
+      "generate-hint",
+      "get-course",
+      "get-knowledge-objective",
+      "get-recommended-courses"
+    ],
+    "guaranteedMissingEdgeFunctions": [],
+    "unknownMcpMethods": []
+  },
+  {
+    "route": "/play/:courseId/welcome",
+    "file": "src/pages/PlayWelcome.tsx",
+    "edgeCalls": [
+      "get-course"
+    ],
+    "guaranteedMissingEdgeFunctions": [],
+    "unknownMcpMethods": []
+  },
+  {
+    "route": "/play/media",
+    "file": "src/pages/generated/pages/play-session-media.tsx",
+    "edgeCalls": [],
+    "guaranteedMissingEdgeFunctions": [],
+    "unknownMcpMethods": []
+  },
+  {
+    "route": "/results",
+    "file": "src/pages/Results.tsx",
+    "edgeCalls": [
+      "get-course"
+    ],
+    "guaranteedMissingEdgeFunctions": [],
+    "unknownMcpMethods": []
+  },
+  {
+    "route": "/schools",
+    "file": "src/pages/Schools.tsx",
+    "edgeCalls": [
+      "get-dashboard"
+    ],
+    "guaranteedMissingEdgeFunctions": [],
+    "unknownMcpMethods": []
+  },
+  {
+    "route": "/settings",
+    "file": "src/pages/generated/pages/settings.tsx",
+    "edgeCalls": [
+      "save-record"
+    ],
+    "guaranteedMissingEdgeFunctions": [],
+    "unknownMcpMethods": []
+  },
+  {
+    "route": "/student/achievements",
+    "file": "src/pages/student/Achievements.tsx",
+    "edgeCalls": [],
+    "guaranteedMissingEdgeFunctions": [],
+    "unknownMcpMethods": []
+  },
+  {
+    "route": "/student/assignments",
+    "file": "src/pages/student/Assignments.tsx",
+    "edgeCalls": [],
+    "guaranteedMissingEdgeFunctions": [],
+    "unknownMcpMethods": []
+  },
+  {
+    "route": "/student/dashboard",
+    "file": "src/pages/student/Dashboard.tsx",
+    "edgeCalls": [],
+    "guaranteedMissingEdgeFunctions": [],
+    "unknownMcpMethods": []
+  },
+  {
+    "route": "/student/goals",
+    "file": "src/pages/student/Goals.tsx",
+    "edgeCalls": [],
+    "guaranteedMissingEdgeFunctions": [],
+    "unknownMcpMethods": []
+  },
+  {
+    "route": "/student/join-class",
+    "file": "src/pages/student/JoinClass.tsx",
+    "edgeCalls": [
+      "list-classes"
+    ],
+    "guaranteedMissingEdgeFunctions": [],
+    "unknownMcpMethods": []
+  },
+  {
+    "route": "/student/timeline",
+    "file": "src/pages/student/Timeline.tsx",
+    "edgeCalls": [],
+    "guaranteedMissingEdgeFunctions": [],
+    "unknownMcpMethods": []
+  },
+  {
+    "route": "/teacher/analytics",
+    "file": "src/pages/teacher/Analytics.tsx",
+    "edgeCalls": [
+      "get-analytics",
+      "search-courses"
+    ],
+    "guaranteedMissingEdgeFunctions": [],
+    "unknownMcpMethods": []
+  },
+  {
+    "route": "/teacher/assignments",
+    "file": "src/pages/teacher/Assignments.tsx",
+    "edgeCalls": [
+      "get-assignment-progress",
+      "get-course-job",
+      "list-assignments",
+      "list-course-jobs"
+    ],
+    "guaranteedMissingEdgeFunctions": [],
+    "unknownMcpMethods": []
+  },
+  {
+    "route": "/teacher/assignments/:id/progress",
+    "file": "src/pages/teacher/AssignmentProgress.tsx",
+    "edgeCalls": [
+      "export-gradebook",
+      "get-assignment-progress"
+    ],
+    "guaranteedMissingEdgeFunctions": [],
+    "unknownMcpMethods": []
+  },
+  {
+    "route": "/teacher/class-progress",
+    "file": "src/pages/teacher/ClassProgress.tsx",
+    "edgeCalls": [
+      "generate-remediation",
+      "get-class-progress",
+      "search-courses"
+    ],
+    "guaranteedMissingEdgeFunctions": [],
+    "unknownMcpMethods": []
+  },
+  {
+    "route": "/teacher/classes",
+    "file": "src/pages/teacher/Classes.tsx",
+    "edgeCalls": [
+      "get-class-roster"
+    ],
+    "guaranteedMissingEdgeFunctions": [],
+    "unknownMcpMethods": []
+  },
+  {
+    "route": "/teacher/control",
+    "file": "src/pages/generated/pages/teacher-control.tsx",
+    "edgeCalls": [
+      "list-records",
+      "save-record"
+    ],
+    "guaranteedMissingEdgeFunctions": [],
+    "unknownMcpMethods": [
+      "enqueueJob"
+    ]
+  },
+  {
+    "route": "/teacher/dashboard",
+    "file": "src/pages/teacher/TeacherDashboard.tsx",
+    "edgeCalls": [
+      "generate-assignment",
+      "generate-remediation"
+    ],
+    "guaranteedMissingEdgeFunctions": [],
+    "unknownMcpMethods": []
+  },
+  {
+    "route": "/teacher/students",
+    "file": "src/pages/teacher/Students.tsx",
+    "edgeCalls": [
+      "list-org-students"
+    ],
+    "guaranteedMissingEdgeFunctions": [],
+    "unknownMcpMethods": []
+  },
+  {
+    "route": "/workspace/assignment/:id",
+    "file": "src/pages/workspace/AssignmentEditor.tsx",
+    "edgeCalls": [],
+    "guaranteedMissingEdgeFunctions": [],
+    "unknownMcpMethods": []
+  },
+  {
+    "route": "/workspace/course-blueprint/:id",
+    "file": "src/pages/workspace/CourseBlueprintEditor.tsx",
+    "edgeCalls": [],
+    "guaranteedMissingEdgeFunctions": [],
+    "unknownMcpMethods": []
+  },
+  {
+    "route": "/workspace/job-ticket/:id",
+    "file": "src/pages/workspace/JobTicketEditor.tsx",
+    "edgeCalls": [],
+    "guaranteedMissingEdgeFunctions": [],
+    "unknownMcpMethods": []
+  },
+  {
+    "route": "/workspace/learner-profile/:id",
+    "file": "src/pages/workspace/LearnerProfileEditor.tsx",
+    "edgeCalls": [],
+    "guaranteedMissingEdgeFunctions": [],
+    "unknownMcpMethods": []
+  },
+  {
+    "route": "/workspace/message-thread/:id",
+    "file": "src/pages/workspace/MessageThreadEditor.tsx",
+    "edgeCalls": [],
+    "guaranteedMissingEdgeFunctions": [],
+    "unknownMcpMethods": []
+  }
+]
