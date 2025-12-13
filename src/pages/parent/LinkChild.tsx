@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
-import { useClassManagement } from "@/hooks/useClassManagement";
+import { useMCP } from "@/hooks/useMCP";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { ParentLayout } from "@/components/parent/ParentLayout";
 import { Button } from "@/components/ui/button";
@@ -14,10 +14,14 @@ import { toast } from "sonner";
 export default function LinkChild() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const classMgmt = useClassManagement();
+  const mcp = useMCP();
   const [code, setCode] = useState("");
 
-  const linkMutation = classMgmt.linkChild;
+  // IMPORTANT: Parent linking should NOT trigger teacher-only queries (like list-classes).
+  // Use a dedicated mutation instead of the shared useClassManagement hook.
+  const linkMutation = useMutation({
+    mutationFn: (trimmedCode: string) => mcp.linkChild(trimmedCode),
+  });
   
   // Override onSuccess/onError for this component
   const handleLinkSuccess = (data: unknown) => {
