@@ -493,13 +493,13 @@ async function callEdgeFunctionWithAgentToken<TRequest, TResponse>(
 export async function callEdgeFunctionGet<TResponse>(
   functionName: string,
   params?: Record<string, string>,
-  options: { timeoutMs?: number } = {}
+  options: { timeoutMs?: number; maxRetries?: number } = {}
 ): Promise<TResponse> {
   const { getAccessToken } = await import("../supabase");
   const { supabase } = await import("@/integrations/supabase/client");
   const supabaseUrl = getSupabaseUrl();
   const anonKey = getSupabaseAnonKey();
-  const { timeoutMs = 30000 } = options;
+  const { timeoutMs = 30000, maxRetries = 1 } = options;
   const devAgentMode = shouldUseAgentTokenAuth();
 
   const queryString = params
@@ -532,47 +532,99 @@ export async function callEdgeFunctionGet<TResponse>(
     }
   }
 
-  let res: Response;
-  try {
-    res = await fetchWithTimeout(
-      url,
-      {
-        method: "GET",
-        headers,
-      },
-      timeoutMs
+  const isLikelyCorsError = (msg: string) => msg.includes("cors") || msg.includes("blocked");
+  const isLikelyNetworkError = (err: unknown): boolean => {
+    const msg = err instanceof Error ? err.message.toLowerCase() : String(err).toLowerCase();
+    return (
+      msg.includes("failed to fetch") ||
+      msg.includes("network") ||
+      msg.includes("connection lost") ||
+      msg.includes("connection reset") ||
+      msg.includes("insufficient_resources") ||
+      (err instanceof TypeError && msg.includes("fetch"))
     );
-  } catch (fetchError) {
-    // Handle browser fetch failures explicitly.
-    // Important: "Failed to fetch" is ambiguous (can be CORS, offline, DNS, blocked by extensions, etc).
-    const errMsg =
-      fetchError instanceof Error ? fetchError.message.toLowerCase() : String(fetchError).toLowerCase();
+  };
 
-    const isLikelyCorsError = errMsg.includes("cors") || errMsg.includes("blocked");
-    if (isLikelyCorsError) {
-      throw new ApiError(
-        `CORS error: Edge function ${functionName} is not accessible from this origin. This may be expected in preview environments.`,
-        "CORS_ERROR",
-        0,
-        { functionName, url }
-      );
+  const isRetryableStatus = (status: number, bodyText?: string): boolean => {
+    if (status === 502 || status === 503 || status === 504) return true;
+    // Lovable preview sometimes surfaces transient connection issues as 500 with this string.
+    if (status === 500 && bodyText) {
+      const t = bodyText.toLowerCase();
+      return t.includes("network connection lost") || t.includes("connection lost") || t.includes("connection reset");
     }
+    return false;
+  };
 
-    const isLikelyNetworkError =
-      errMsg.includes("failed to fetch") ||
-      errMsg.includes("network") ||
-      errMsg.includes("insufficient_resources") ||
-      (fetchError instanceof TypeError && errMsg.includes("fetch"));
-    if (isLikelyNetworkError) {
-      throw new ApiError(
-        `Network error calling Edge function ${functionName}: ${fetchError instanceof Error ? fetchError.message : String(fetchError)}`,
-        "NETWORK_ERROR",
-        0,
-        { functionName, url }
+  let res: Response | null = null;
+  let lastErr: unknown = null;
+
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      res = await fetchWithTimeout(
+        url,
+        {
+          method: "GET",
+          headers,
+        },
+        timeoutMs
       );
-    }
 
-    throw fetchError;
+      if (!res.ok && attempt < maxRetries) {
+        const bodyText = await res.clone().text();
+        if (isRetryableStatus(res.status, bodyText)) {
+          const backoffMs = 250 * Math.pow(2, attempt);
+          console.warn(
+            `[callEdgeFunctionGet:${functionName}] transient error ${res.status} (attempt ${attempt + 1}/${maxRetries + 1}), retrying in ${backoffMs}ms`
+          );
+          await new Promise((r) => setTimeout(r, backoffMs));
+          continue;
+        }
+      }
+
+      break;
+    } catch (fetchError) {
+      lastErr = fetchError;
+      const msg = fetchError instanceof Error ? fetchError.message.toLowerCase() : String(fetchError).toLowerCase();
+
+      if (attempt < maxRetries && isLikelyNetworkError(fetchError)) {
+        const backoffMs = 250 * Math.pow(2, attempt);
+        console.warn(
+          `[callEdgeFunctionGet:${functionName}] transient network error (attempt ${attempt + 1}/${maxRetries + 1}), retrying in ${backoffMs}ms`,
+          fetchError
+        );
+        await new Promise((r) => setTimeout(r, backoffMs));
+        continue;
+      }
+
+      if (isLikelyCorsError(msg)) {
+        throw new ApiError(
+          `CORS error: Edge function ${functionName} is not accessible from this origin. This may be expected in preview environments.`,
+          "CORS_ERROR",
+          0,
+          { functionName, url }
+        );
+      }
+
+      if (isLikelyNetworkError(fetchError)) {
+        throw new ApiError(
+          `Network error calling Edge function ${functionName}: ${fetchError instanceof Error ? fetchError.message : String(fetchError)}`,
+          "NETWORK_ERROR",
+          0,
+          { functionName, url }
+        );
+      }
+
+      throw fetchError;
+    }
+  }
+
+  if (!res) {
+    throw new ApiError(
+      `Network error calling Edge function ${functionName}: ${lastErr instanceof Error ? lastErr.message : String(lastErr)}`,
+      "NETWORK_ERROR",
+      0,
+      { functionName, url }
+    );
   }
 
   if (!res.ok && res.status === 401 && !token) {

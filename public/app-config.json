@@ -3,9 +3,6 @@
   "supabase": {
     "url": "https://eidcegehaswbtzrwzvfa.supabase.co",
     "publishableKey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVpZGNlZ2VoYXN3YnR6cnd6dmZhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ4NDYzNTAsImV4cCI6MjA4MDQyMjM1MH0.DpXOHjccnVEewnPF5gA6tw27TcRXkkAfgrJkn0NvT_Q"
-  },
-  "devAgent": {
-    "enabled": true
   }
 }
 
