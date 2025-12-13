@@ -21,6 +21,24 @@ interface ListParams {
   jobId?: string;
 }
 
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function isTransientNetworkError(err: unknown): boolean {
+  const msg = (err instanceof Error ? err.message : String(err)).toLowerCase();
+  return (
+    msg.includes("connection reset") ||
+    msg.includes("sendrequest") ||
+    msg.includes("error sending request") ||
+    msg.includes("tls") ||
+    msg.includes("timed out") ||
+    msg.includes("timeout") ||
+    msg.includes("network") ||
+    msg.includes("failed to fetch")
+  );
+}
+
 serve(async (req: Request): Promise<Response> => {
   const requestId = crypto.randomUUID();
   
@@ -31,7 +49,7 @@ serve(async (req: Request): Promise<Response> => {
   if (req.method !== "GET" && req.method !== "POST") {
     return new Response(JSON.stringify({ error: "Method not allowed" }), {
       status: 405,
-      headers: stdHeaders(req, { "Content-Type": "application/json" }),
+      headers: stdHeaders(req, { "Content-Type": "application/json", "X-Request-Id": requestId }),
     });
   }
 
@@ -59,66 +77,95 @@ serve(async (req: Request): Promise<Response> => {
 
     const { status, sinceHours, limit = 50, offset = 0, search, jobId } = params;
 
-    // Build query
-    let query = supabase
-      .from("ai_course_jobs")
-      .select("*", { count: "exact" });
+    // Retry transient network failures (Cloudflare/egress connection resets) with bounded backoff.
+    const MAX_ATTEMPTS = 3;
+    let lastErr: unknown = null;
+    for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+      try {
+        // Build query fresh each attempt (query builder is not guaranteed reusable after a thrown fetch)
+        let query = supabase
+          .from("ai_course_jobs")
+          .select("*", { count: "exact" });
 
-    // Filter by status
-    if (status) {
-      query = query.eq("status", status);
-    }
+        // Filter by status
+        if (status) {
+          query = query.eq("status", status);
+        }
 
-    // Filter by time range
-    if (sinceHours && sinceHours > 0) {
-      const sinceIso = new Date(Date.now() - sinceHours * 3600_000).toISOString();
-      query = query.gte("created_at", sinceIso);
-    }
+        // Filter by time range
+        if (sinceHours && sinceHours > 0) {
+          const sinceIso = new Date(Date.now() - sinceHours * 3600_000).toISOString();
+          query = query.gte("created_at", sinceIso);
+        }
 
-    // Filter by job ID (exact match)
-    if (jobId) {
-      query = query.eq("id", jobId);
-    }
+        // Filter by job ID (exact match)
+        if (jobId) {
+          query = query.eq("id", jobId);
+        }
 
-    // Search in subject or prompt
-    if (search && !jobId) {
-      query = query.or(`subject.ilike.%${search}%,prompt.ilike.%${search}%`);
-    }
+        // Search in subject or prompt
+        if (search && !jobId) {
+          query = query.or(`subject.ilike.%${search}%,prompt.ilike.%${search}%`);
+        }
 
-    // Pagination and ordering
-    query = query
-      .order("created_at", { ascending: false })
-      .range(offset, offset + Math.min(limit, 100) - 1);
+        // Pagination and ordering
+        query = query
+          .order("created_at", { ascending: false })
+          .range(offset, offset + Math.min(limit, 100) - 1);
 
-    const { data, error, count } = await query;
+        const { data, error, count } = await query;
 
-    if (error) {
-      console.error("[list-course-jobs] Query error:", error);
-      return new Response(JSON.stringify({ error: error.message }), {
-        status: 500,
-        headers: stdHeaders(req, { "Content-Type": "application/json" }),
-      });
-    }
+        if (error) {
+          console.error("[list-course-jobs] Query error:", error, { requestId, attempt: attempt + 1 });
+          return new Response(JSON.stringify({ error: error.message, requestId }), {
+            status: 500,
+            headers: stdHeaders(req, { "Content-Type": "application/json", "X-Request-Id": requestId }),
+          });
+        }
 
-    return new Response(
-      JSON.stringify({
-        ok: true,
-        jobs: data ?? [],
-        total: count ?? 0,
-        limit,
-        offset,
-      }),
-      {
-        status: 200,
-        headers: stdHeaders(req, { "Content-Type": "application/json" }),
+        return new Response(
+          JSON.stringify({
+            ok: true,
+            jobs: data ?? [],
+            total: count ?? 0,
+            limit,
+            offset,
+            requestId,
+          }),
+          {
+            status: 200,
+            headers: stdHeaders(req, { "Content-Type": "application/json", "X-Request-Id": requestId }),
+          }
+        );
+      } catch (err) {
+        lastErr = err;
+        const retryable = isTransientNetworkError(err);
+        console.error("[list-course-jobs] Fetch error:", err instanceof Error ? err.message : String(err), {
+          requestId,
+          attempt: attempt + 1,
+          retryable,
+        });
+
+        if (!retryable || attempt === MAX_ATTEMPTS - 1) {
+          break;
+        }
+        const backoffMs = 150 * Math.pow(2, attempt);
+        await sleep(backoffMs);
       }
-    );
+    }
+
+    const lastMsg = lastErr instanceof Error ? lastErr.message : String(lastErr);
+    return new Response(JSON.stringify({ error: lastMsg, requestId }), {
+      // 503 indicates a transient upstream failure; clients can retry.
+      status: 503,
+      headers: stdHeaders(req, { "Content-Type": "application/json", "X-Request-Id": requestId }),
+    });
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     console.error("[list-course-jobs] Error:", message);
-    return new Response(JSON.stringify({ error: message }), {
+    return new Response(JSON.stringify({ error: message, requestId }), {
       status: 500,
-      headers: stdHeaders(req, { "Content-Type": "application/json" }),
+      headers: stdHeaders(req, { "Content-Type": "application/json", "X-Request-Id": requestId }),
     });
   }
 });
