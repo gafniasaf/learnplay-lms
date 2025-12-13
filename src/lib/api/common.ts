@@ -245,7 +245,12 @@ export async function callEdgeFunction<TRequest, TResponse>(
         // Retry transient browser/network failures (Playwright can hit net::ERR_INSUFFICIENT_RESOURCES).
         if (isLikelyNetworkError && attempt < maxRetries) {
           const backoffMs = 250 * Math.pow(2, attempt);
-          console.warn(`[callEdgeFunction:${functionName}] transient network error (attempt ${attempt + 1}/${maxRetries + 1}), retrying in ${backoffMs}ms`, fetchError);
+          console.warn(`[callEdgeFunction:${functionName}] transient network error (attempt ${attempt + 1}/${maxRetries + 1}), retrying in ${backoffMs}ms`, {
+            error: fetchError,
+            errorMessage: errMsg,
+            url,
+            hasToken: !!authToken,
+          });
           await new Promise((r) => setTimeout(r, backoffMs));
           continue;
         }
@@ -262,6 +267,13 @@ export async function callEdgeFunction<TRequest, TResponse>(
         }
 
         if (isLikelyNetworkError) {
+          console.error(`[callEdgeFunction:${functionName}] All ${maxRetries + 1} attempts failed. Network diagnostics:`, {
+            url,
+            hasToken: !!authToken,
+            isLovable: typeof window !== 'undefined' && window.location.hostname.includes('lovable'),
+            origin: typeof window !== 'undefined' ? window.location.origin : 'N/A',
+            errorMessage: errMsg,
+          });
           throw new ApiError(
             `Network error calling Edge function ${functionName}: ${fetchError instanceof Error ? fetchError.message : String(fetchError)}`,
             "NETWORK_ERROR",
