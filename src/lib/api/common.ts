@@ -14,7 +14,11 @@ const FORCE_LIVE = import.meta.env.VITE_FORCE_LIVE === "true";
  * This is intended for development-only stability when user auth/metadata is not ready.
  */
 export function isDevAgentMode(): boolean {
-  return import.meta.env.VITE_DEV_AGENT_MODE === "true";
+  // Env var wins (local dev / CI)
+  if (import.meta.env.VITE_DEV_AGENT_MODE === "true") return true;
+
+  // Runtime config can enable the mode (e.g. Lovable), but credentials must still come from env.
+  return getRuntimeConfigSync()?.devAgent?.enabled === true;
 }
 
 /**
@@ -130,7 +134,7 @@ function shouldUseAgentTokenAuth(): boolean {
 function getDevAgentToken(): string {
   const token = import.meta.env.VITE_DEV_AGENT_TOKEN as string | undefined;
   if (!token) {
-    throw new Error("❌ BLOCKED: VITE_DEV_AGENT_TOKEN is REQUIRED when VITE_DEV_AGENT_MODE=true");
+    throw new Error("❌ BLOCKED: VITE_DEV_AGENT_TOKEN is REQUIRED when dev agent mode is enabled");
   }
   return token;
 }
@@ -138,7 +142,7 @@ function getDevAgentToken(): string {
 function getDevOrgId(): string {
   const orgId = import.meta.env.VITE_DEV_ORG_ID as string | undefined;
   if (!orgId) {
-    throw new Error("❌ BLOCKED: VITE_DEV_ORG_ID is REQUIRED when VITE_DEV_AGENT_MODE=true");
+    throw new Error("❌ BLOCKED: VITE_DEV_ORG_ID is REQUIRED when dev agent mode is enabled");
   }
   return orgId;
 }
@@ -146,7 +150,7 @@ function getDevOrgId(): string {
 function getDevUserId(): string {
   const userId = import.meta.env.VITE_DEV_USER_ID as string | undefined;
   if (!userId) {
-    throw new Error("❌ BLOCKED: VITE_DEV_USER_ID is REQUIRED when VITE_DEV_AGENT_MODE=true (or provide a logged-in session)");
+    throw new Error("❌ BLOCKED: VITE_DEV_USER_ID is REQUIRED when dev agent mode is enabled (or provide a logged-in session)");
   }
   return userId;
 }

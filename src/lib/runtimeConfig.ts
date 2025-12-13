@@ -9,6 +9,13 @@ export type RuntimeConfig = {
     url?: string;
     publishableKey?: string;
   };
+  /**
+   * Optional: enable dev-agent auth mode via runtime config (e.g. Lovable).
+   * Note: credentials MUST still come from environment variables; never store tokens in app-config.json.
+   */
+  devAgent?: {
+    enabled?: boolean;
+  };
 };
 
 let cached: RuntimeConfig | null = null;
