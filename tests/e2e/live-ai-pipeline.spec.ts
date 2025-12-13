@@ -126,7 +126,15 @@ test.describe('Live AI Pipeline: Course Creation', () => {
     const jobId: string = enqueueJson.jobId;
     expect(typeof jobId).toBe('string');
 
-    // Step 4-6: Poll job status via list-course-jobs (real DB), up to 5 minutes
+    // Step 4: Trigger the worker to process THIS job (pg_cron may not run in test window)
+    const agentToken = requireEnv('AGENT_TOKEN');
+    const kickRes = await page.request.post(`${url}/functions/v1/process-pending-jobs?jobId=${encodeURIComponent(jobId)}`, {
+      headers: { 'Content-Type': 'application/json', 'x-agent-token': agentToken },
+      data: {},
+    });
+    expect(kickRes.ok()).toBeTruthy();
+
+    // Step 5-6: Poll job status via list-course-jobs (real DB), up to 5 minutes
     const maxWaitTime = 300000;
     const startTime = Date.now();
     let lastStatus = '';
