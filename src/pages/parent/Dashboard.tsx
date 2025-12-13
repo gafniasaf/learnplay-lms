@@ -75,7 +75,6 @@ export default function ParentDashboard() {
       }),
     }
   );
-  const parentTimeline = useParentTimeline({ limit: 5 }, { enabled: allowLive && !isLoading });
   const parentTimeline = useParentTimeline(
     primaryStudentId ? { studentId: primaryStudentId, limit: 5 } : {},
     { enabled: allowLive && !isLoading && !!primaryStudentId }
