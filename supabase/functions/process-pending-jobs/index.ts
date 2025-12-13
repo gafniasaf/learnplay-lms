@@ -43,13 +43,22 @@ serve(async (req: Request): Promise<Response> => {
   }
 
   try {
+    const url = new URL(req.url);
+    const jobIdParam = url.searchParams.get("jobId") || undefined;
+
     // Fetch pending jobs (limit to 5 to prevent timeout)
-    const { data: pendingJobs, error: fetchError } = await adminSupabase
+    let query = adminSupabase
       .from("ai_course_jobs")
       .select("*")
       .eq("status", "pending")
       .order("created_at", { ascending: true })
       .limit(5);
+
+    if (jobIdParam) {
+      query = query.eq("id", jobIdParam);
+    }
+
+    const { data: pendingJobs, error: fetchError } = await query;
 
     if (fetchError) {
       throw new Error(`Failed to fetch pending jobs: ${fetchError.message}`);
@@ -73,7 +82,9 @@ serve(async (req: Request): Promise<Response> => {
     for (const job of pendingJobs) {
       const jobId = job.id;
       // Reconstruct jobType and payload from stored data
-      const jobType = job.subject || "ai_course_generate"; // subject was used as job_type proxy
+      // In this system, ai_course_jobs rows represent course-generation work.
+      // The human-readable subject lives in job.subject; the job type is constant.
+      const jobType = "ai_course_generate";
       const payload = {
         course_id: job.course_id,
         subject: job.subject,

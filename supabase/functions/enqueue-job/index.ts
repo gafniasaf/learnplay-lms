@@ -62,44 +62,87 @@ serve(async (req: Request): Promise<Response> => {
 
   const payload = body.payload ?? {};
   const organizationId = requireOrganizationId(auth);
-  
-  // Use raw SQL to insert into ai_course_jobs, bypassing schema cache issues
-  const { data: insertResult, error: insertError } = await adminSupabase.rpc('enqueue_ai_job_raw', {
-    p_job_type: body.jobType,
-    p_payload: payload,
-    p_created_by: auth.userId || null
-  });
 
-  // Fallback: if RPC doesn't exist, use the original ai_course_jobs with existing columns
-  let jobId: string;
-  if (insertError) {
-    // Try direct insert with columns that exist in original schema
-    const courseId = (payload as any).courseId || body.jobType; // Use payload.courseId or jobType as proxy
-    const inserted = await adminSupabase
-      .from("ai_course_jobs")
-      .insert({ 
-        course_id: courseId,
-        subject: body.jobType,  // Use subject as job_type proxy
-        grade: 'smoke-test',
-        grade_band: 'K-2',
-        items_per_group: 1,
-        mode: 'options',
-        status: "pending", 
-        created_by: auth.userId 
-      })
-      .select()
-      .single();
-
-    if (inserted.error || !inserted.data) {
-      return new Response(JSON.stringify({ error: inserted.error?.message || "Failed to enqueue job" }), {
-        status: 500,
-        headers: stdHeaders(req, { "Content-Type": "application/json" }),
-      });
-    }
-    jobId = inserted.data.id as string;
-  } else {
-    jobId = insertResult?.id || crypto.randomUUID();
+  // We currently support the primary factory job used by the UI: ai_course_generate.
+  // (Other job types have dedicated endpoints.)
+  if (body.jobType !== "ai_course_generate") {
+    return new Response(JSON.stringify({ error: `Unsupported jobType: ${body.jobType}` }), {
+      status: 400,
+      headers: stdHeaders(req, { "Content-Type": "application/json" }),
+    });
   }
+
+  // Derive required fields from payload (accept a couple legacy key names)
+  const courseId =
+    (typeof (payload as any).course_id === "string" && (payload as any).course_id) ||
+    (typeof (payload as any).courseId === "string" && (payload as any).courseId) ||
+    null;
+  const subject =
+    (typeof (payload as any).subject === "string" && (payload as any).subject) || null;
+  const gradeBand =
+    (typeof (payload as any).grade_band === "string" && (payload as any).grade_band) ||
+    (typeof (payload as any).gradeBand === "string" && (payload as any).gradeBand) ||
+    (typeof (payload as any).grade === "string" && (payload as any).grade) ||
+    null;
+  const mode =
+    (payload as any).mode === "numeric" ? "numeric" : (payload as any).mode === "options" ? "options" : null;
+  const itemsPerGroup =
+    typeof (payload as any).items_per_group === "number"
+      ? (payload as any).items_per_group
+      : typeof (payload as any).itemsPerGroup === "number"
+        ? (payload as any).itemsPerGroup
+        : null;
+
+  if (!courseId) {
+    return new Response(JSON.stringify({ error: "course_id is required in payload" }), {
+      status: 400,
+      headers: stdHeaders(req, { "Content-Type": "application/json" }),
+    });
+  }
+  if (!subject) {
+    return new Response(JSON.stringify({ error: "subject is required in payload" }), {
+      status: 400,
+      headers: stdHeaders(req, { "Content-Type": "application/json" }),
+    });
+  }
+  if (!gradeBand) {
+    return new Response(JSON.stringify({ error: "grade_band (or grade) is required in payload" }), {
+      status: 400,
+      headers: stdHeaders(req, { "Content-Type": "application/json" }),
+    });
+  }
+  if (!mode) {
+    return new Response(JSON.stringify({ error: "mode is required in payload (options|numeric)" }), {
+      status: 400,
+      headers: stdHeaders(req, { "Content-Type": "application/json" }),
+    });
+  }
+
+  // Insert into ai_course_jobs using canonical columns (service role bypasses RLS)
+  const inserted = await adminSupabase
+    .from("ai_course_jobs")
+    .insert({
+      course_id: courseId,
+      subject,
+      grade_band: gradeBand,
+      grade: typeof (payload as any).grade === "string" ? (payload as any).grade : null,
+      items_per_group: itemsPerGroup ?? 12,
+      mode,
+      status: "pending",
+      created_by: auth.userId ?? null,
+      organization_id: organizationId,
+    })
+    .select()
+    .single();
+
+  if (inserted.error || !inserted.data) {
+    return new Response(JSON.stringify({ error: inserted.error?.message || "Failed to enqueue job" }), {
+      status: 500,
+      headers: stdHeaders(req, { "Content-Type": "application/json" }),
+    });
+  }
+
+  const jobId = inserted.data.id as string;
 
   // Job is now queued with status "pending"
   // A separate worker (pg_cron / background job) will pick it up and run it
