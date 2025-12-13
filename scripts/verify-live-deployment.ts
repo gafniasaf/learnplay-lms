@@ -587,7 +587,8 @@ async function main() {
   console.log("═══════════════════════════════════════════════════");
 
   // 9.1 download-release
-  await testFunction('download-release', {}, { expectOk: false });
+  // download-release is a GET endpoint; 404 is acceptable if the release file is not uploaded yet.
+  await testFunction('download-release', {}, { method: 'GET', expectOk: false });
 
   // 9.2 resume-session
   await testFunction('resume-session', { studentId: testStudentId }, { expectOk: false });
