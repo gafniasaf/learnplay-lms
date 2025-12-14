@@ -297,9 +297,8 @@ function createJobHelpers(supabase: any) {
       completed_at: new Date().toISOString(),
       fallback_reason: payload.fallbackReason,
     };
-    if (payload.summary) {
-      updates.summary = payload.summary;
-    }
+    // NOTE: Some deployments do not have a `summary` column on ai_course_jobs.
+    // The canonical summary is stored in storage by saveJobSummary(); do NOT write it into the DB row.
     try {
       await supabase.from("ai_course_jobs").update(updates).eq("id", jobId);
     } catch (error) {
