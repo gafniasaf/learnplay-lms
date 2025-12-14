@@ -10,6 +10,41 @@ import { getRuntimeConfigSync } from "@/lib/runtimeConfig";
 const FORCE_LIVE = import.meta.env.VITE_FORCE_LIVE === "true";
 
 /**
+ * Debug toggles (client-side).
+ *
+ * IMPORTANT: avoid spamming console in production/preview environments.
+ * Enable explicitly with either:
+ * - URL: ?debugEdgeAuth=1
+ * - localStorage: iz_debug_edge_auth=1
+ */
+function isEdgeAuthDebugEnabled(): boolean {
+  if (typeof window === "undefined") return false;
+  try {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("debugEdgeAuth") === "1") return true;
+  } catch {
+    // ignore
+  }
+  try {
+    return window.localStorage.getItem("iz_debug_edge_auth") === "1";
+  } catch {
+    return false;
+  }
+}
+
+const lastAuthDebugAtByFn = new Map<string, number>();
+function maybeLogEdgeAuthDebug(functionName: string, data: Record<string, unknown>) {
+  if (!isEdgeAuthDebugEnabled()) return;
+  const now = Date.now();
+  const last = lastAuthDebugAtByFn.get(functionName) ?? 0;
+  // Rate limit to once per 30s per function to avoid runaway console spam.
+  if (now - last < 30_000) return;
+  lastAuthDebugAtByFn.set(functionName, now);
+  // Use debug so it’s filterable.
+  console.debug(`[callEdgeFunction:${functionName}] Auth debug @ ${new Date().toISOString()}:`, data);
+}
+
+/**
  * Explicit dev bypass mode that uses agent-token auth for Edge functions.
  * This is intended for development-only stability when user auth/metadata is not ready.
  */
@@ -176,7 +211,9 @@ export async function callEdgeFunction<TRequest, TResponse>(
 
   // In dev agent mode, use agent token auth (bypasses user session issues)
   if (devAgentMode) {
-    console.log(`[callEdgeFunction:${functionName}] 🔧 DEV AGENT MODE - using agent token auth`);
+    if (isEdgeAuthDebugEnabled()) {
+      console.debug(`[callEdgeFunction:${functionName}] 🔧 DEV AGENT MODE - using agent token auth`);
+    }
     return await callEdgeFunctionWithAgentToken<TRequest, TResponse>(
       functionName, 
       payload, 
@@ -188,7 +225,7 @@ export async function callEdgeFunction<TRequest, TResponse>(
   const { data: { session }, error: sessionError } = await supabase.auth.getSession();
   let token = session?.access_token || null;
   
-  console.log(`[callEdgeFunction:${functionName}] Auth debug @ ${new Date().toISOString()}:`, {
+  maybeLogEdgeAuthDebug(functionName, {
     hasSession: !!session,
     hasToken: !!token,
     tokenLength: token?.length || 0,
@@ -440,7 +477,9 @@ async function callEdgeFunctionWithAgentToken<TRequest, TResponse>(
 
   const url = `${supabaseUrl}/functions/v1/${functionName}`;
 
-  console.log(`[callEdgeFunctionWithAgentToken:${functionName}] Making request with agent token`);
+  if (isEdgeAuthDebugEnabled()) {
+    console.debug(`[callEdgeFunctionWithAgentToken:${functionName}] Making request with agent token`);
+  }
 
   let res: Response;
   try {
@@ -500,7 +539,9 @@ async function callEdgeFunctionWithAgentToken<TRequest, TResponse>(
   }
 
   const data = await res.json();
-  console.log(`[callEdgeFunctionWithAgentToken:${functionName}] ✅ Success`);
+  if (isEdgeAuthDebugEnabled()) {
+    console.debug(`[callEdgeFunctionWithAgentToken:${functionName}] ✅ Success`);
+  }
   return data as TResponse;
 }
 
