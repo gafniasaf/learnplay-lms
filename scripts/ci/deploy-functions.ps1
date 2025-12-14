@@ -45,7 +45,10 @@ foreach ($d in $funcDirs) {
   $name = $d.Name
   Write-Host "Deploying $name..."
   # Capture output so we can fail loudly on CLI bugs where non-zero exit isn't propagated.
-  $out = & supabase functions deploy $name --project-ref $projectRef --no-verify-jwt 2>&1
+  # IMPORTANT: Supabase CLI writes warnings to stderr (e.g. "Docker is not running").
+  # In PowerShell, stderr from native commands can become a terminating error when $ErrorActionPreference = "Stop".
+  # Use cmd.exe to capture combined output without aborting.
+  $out = & cmd /c "supabase functions deploy $name --project-ref $projectRef --no-verify-jwt 2>&1"
   $out | ForEach-Object { Write-Host $_ }
 
   $joined = ($out -join "`n")
