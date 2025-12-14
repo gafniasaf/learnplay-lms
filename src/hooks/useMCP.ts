@@ -201,13 +201,18 @@ export function useMCP() {
       // Use an idempotency key so transient network retries won't double-enqueue.
       // This is especially important in Lovable preview where connections can drop mid-request.
       const idempotencyKey = crypto.randomUUID();
-      return await callEdgeFunction<EnqueueJobResult>(
+      console.log('[enqueueJob] Starting request with idempotencyKey:', idempotencyKey);
+      const result = await callEdgeFunction<EnqueueJobResult>(
         'enqueue-job',
         { jobType, payload },
         // With idempotency, we can safely retry more aggressively for preview stability.
-        { maxRetries: 5, idempotencyKey }
+        // Increase timeout to 60s for slow Lovable preview environments.
+        { maxRetries: 5, idempotencyKey, timeoutMs: 60000 }
       );
+      console.log('[enqueueJob] Success:', result);
+      return result;
     } catch (error: unknown) {
+      console.error('[enqueueJob] Error caught:', error);
       // Improve error messages for authentication issues
       const errorObj = error as { status?: number; code?: string; message?: string; details?: { message?: string } };
       if (errorObj?.status === 401 || errorObj?.code === 'UNAUTHORIZED' || errorObj?.code === 'SESSION_STALE' || (errorObj?.message || '').includes('401') || (errorObj?.message || '').includes('Unauthorized')) {
