@@ -100,9 +100,24 @@ const DevAgentSetupGate = ({ children }: { children: React.ReactNode }) => {
 
       if (!token && !org && !user) return;
 
-      if (token) window.sessionStorage.setItem("iz_dev_agent_token", token);
-      if (org) window.sessionStorage.setItem("iz_dev_org_id", org);
-      if (user) window.sessionStorage.setItem("iz_dev_user_id", user);
+      // Persist to BOTH storages (best-effort):
+      // - sessionStorage: per-tab stability
+      // - localStorage: survives refresh/new tab (if allowed in this iframe)
+      const setBoth = (k: string, v: string) => {
+        try {
+          window.sessionStorage.setItem(k, v);
+        } catch {
+          // ignore
+        }
+        try {
+          window.localStorage.setItem(k, v);
+        } catch {
+          // ignore
+        }
+      };
+      if (token) setBoth("iz_dev_agent_token", token);
+      if (org) setBoth("iz_dev_org_id", org);
+      if (user) setBoth("iz_dev_user_id", user);
 
       // Remove sensitive params from URL so they don't stick in history/referrer.
       ["iz_dev_agent_token", "devAgentToken", "agentToken", "iz_dev_org_id", "devOrgId", "orgId", "iz_dev_user_id", "devUserId", "userId"].forEach(
