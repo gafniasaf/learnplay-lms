@@ -353,12 +353,32 @@ function createPersistenceHelpers(supabase: any) {
     }
   }
 
+  function isCourseMetadataSchemaMismatch(err: unknown): boolean {
+    const msg = (err instanceof Error ? err.message : String(err)).toLowerCase();
+    // Typical Postgres message when course_metadata.id is INTEGER but we pass a string id like "skeleton-...".
+    return msg.includes("course_metadata") && msg.includes("invalid input syntax for type integer");
+  }
+
   async function persistCourse(
     course: any,
     _context: { jobId: string | null; deterministicPack: unknown },
   ) {
     await uploadCourseJson(course.id, course);
-    await upsertCourseMetadata(supabase as any, course.id, course);
+    try {
+      await upsertCourseMetadata(supabase as any, course.id, course);
+    } catch (err) {
+      // IMPORTANT: Don't fail the whole generation if the relational metadata layer is misconfigured.
+      // The canonical artifact is the JSON stored at courses/{courseId}/course.json.
+      // This makes Lovable/dev usable immediately; the proper fix is the DB migration.
+      if (isCourseMetadataSchemaMismatch(err)) {
+        console.warn("[generate-course] Skipping course_metadata upsert due to schema mismatch. Course JSON was saved.", {
+          courseId: course.id,
+          error: err instanceof Error ? err.message : String(err),
+        });
+        return;
+      }
+      throw err;
+    }
   }
 
   async function persistPlaceholder(
@@ -366,7 +386,18 @@ function createPersistenceHelpers(supabase: any) {
     _context: { jobId: string | null; reason: string },
   ) {
     await uploadCourseJson(course.id, course);
-    await upsertCourseMetadata(supabase as any, course.id, course);
+    try {
+      await upsertCourseMetadata(supabase as any, course.id, course);
+    } catch (err) {
+      if (isCourseMetadataSchemaMismatch(err)) {
+        console.warn("[generate-course] Skipping course_metadata upsert for placeholder due to schema mismatch. Course JSON was saved.", {
+          courseId: course.id,
+          error: err instanceof Error ? err.message : String(err),
+        });
+        return;
+      }
+      throw err;
+    }
   }
 
   return {
