@@ -14,7 +14,7 @@ const QuerySchema = z.object({
   jobId: z.string().uuid(),
 });
 
-async function courseReality(admin: ReturnType<typeof createClient>, courseId: string) {
+async function courseReality(admin: any, courseId: string) {
   let courseJsonExists: boolean | null = null;
   let catalogEntryExists: boolean | null = null;
   let storagePath: string | null = null;
