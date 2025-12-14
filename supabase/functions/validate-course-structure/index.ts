@@ -40,12 +40,16 @@ Deno.serve(withCors(async (req: Request) => {
       return new Response(JSON.stringify({ ok: false, issues: ["course_not_found"] }), { status: 200, headers: { "Content-Type": "application/json" } });
     }
     const course = await resp.json();
+    const payload =
+      course && typeof course === "object" && "content" in course && "format" in course
+        ? (course as any).content
+        : course;
 
     const issues: string[] = [];
-    if (!course?.title) issues.push("missing_title");
-    if (!Array.isArray(course?.items) || course.items.length === 0) issues.push("no_items");
+    if (!payload?.title) issues.push("missing_title");
+    if (!Array.isArray(payload?.items) || payload.items.length === 0) issues.push("no_items");
 
-    const items: any[] = Array.isArray(course?.items) ? course.items : [];
+    const items: any[] = Array.isArray(payload?.items) ? payload.items : [];
     items.forEach((it, idx) => {
       const mode = it?.mode || 'options';
       if (mode === 'options') {
