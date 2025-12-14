@@ -12,6 +12,19 @@ interface SupabaseClientLike {
   rpc(functionName: string): Promise<{ data: any; error: any }>;
 }
 
+function coerceIntVersion(value: unknown): number {
+  if (typeof value === "number" && Number.isFinite(value)) return Math.max(1, Math.floor(value));
+  if (typeof value === "string") {
+    const s = value.trim();
+    // Only accept plain integers; reject things like "skeleton-..." / "placeholder-..."
+    if (/^\d+$/.test(s)) {
+      const n = Number(s);
+      if (Number.isFinite(n)) return Math.max(1, Math.floor(n));
+    }
+  }
+  return 1;
+}
+
 export async function upsertCourseMetadata(
   supabase: SupabaseClientLike,
   courseId: string,
@@ -55,6 +68,13 @@ export async function upsertCourseMetadata(
     throw new Error(`Invalid visibility '${rawVisibility}'. Expected 'org' or 'global'.`);
   }
 
+  // course_metadata.content_version is an INT in Postgres, but CourseSchema uses contentVersion as a STRING.
+  // We only store numeric versions here. Non-numeric contentVersion strings must NOT be written into INT fields.
+  const numericContentVersion = coerceIntVersion(
+    // Prefer envelope version when present (can be string or number)
+    isEnvelope ? (courseJson as any)?.version : undefined,
+  );
+
   const { error: metadataErr } = await supabase
     .from("course_metadata")
     .upsert({
@@ -62,7 +82,7 @@ export async function upsertCourseMetadata(
       organization_id: orgId,
       tag_ids: content.tag_ids ?? [],
       visibility,
-      content_version: content.contentVersion ?? courseJson?.version ?? 1,
+      content_version: numericContentVersion,
       tags,
       updated_at: new Date().toISOString(),
     }, { onConflict: "id" });
