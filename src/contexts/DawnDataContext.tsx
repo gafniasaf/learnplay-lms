@@ -12,7 +12,7 @@
  * - GoalUpdate (goal-update)
  */
 
-import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from "react";
 import { useMCP } from "@/hooks/useMCP";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -140,6 +140,7 @@ const ENTITY_SLUGS = {
 export function DawnDataProvider({ children }: { children: React.ReactNode }) {
   const mcp = useMCP();
   const { user, loading: authLoading } = useAuth();
+  const userId = user?.id ?? null;
   const [state, setState] = useState<DawnDataState>({
     // Primary manifest entities
     learnerProfiles: [],
@@ -160,6 +161,9 @@ export function DawnDataProvider({ children }: { children: React.ReactNode }) {
     authRequired: false,
   });
 
+  // Prevent runaway refetch loops if `useAuth()` returns a new object identity frequently.
+  const lastLoadedUserIdRef = useRef<string | null>(null);
+
   const fetchEntity = useCallback(async (entity: string) => {
     // Don't fetch if auth is still loading
     if (authLoading) {
@@ -167,7 +171,7 @@ export function DawnDataProvider({ children }: { children: React.ReactNode }) {
     }
     
     // Don't fetch if user is not authenticated
-    if (!user) {
+    if (!userId) {
       // Explicit state: avoid “silent empty” behavior
       setState(s => ({ ...s, authRequired: true, error: "AUTH_REQUIRED" }));
       return [];
@@ -189,16 +193,16 @@ export function DawnDataProvider({ children }: { children: React.ReactNode }) {
       console.error(`Failed to fetch ${entity}:`, err);
       return [];
     }
-  }, [mcp, user, authLoading]);
+  }, [mcp, userId, authLoading]);
 
   const refresh = useCallback(async () => {
     // Don't fetch if auth is still loading or user is not authenticated
-    if (authLoading || !user) {
+    if (authLoading || !userId) {
       setState(s => ({
         ...s,
         loading: false,
-        authRequired: !user && !authLoading,
-        error: !user && !authLoading ? "AUTH_REQUIRED" : s.error,
+        authRequired: !userId && !authLoading,
+        error: !userId && !authLoading ? "AUTH_REQUIRED" : s.error,
       }));
       return;
     }
@@ -250,7 +254,7 @@ export function DawnDataProvider({ children }: { children: React.ReactNode }) {
         error: err instanceof Error ? err.message : "Unknown error",
       }));
     }
-  }, [fetchEntity]);
+  }, [fetchEntity, authLoading, userId]);
 
   const refreshEntity = useCallback(async (entity: string) => {
     const data = await fetchEntity(entity);
@@ -295,10 +299,15 @@ export function DawnDataProvider({ children }: { children: React.ReactNode }) {
     }
     
     // If user is not authenticated, don't fetch and just set loading to false
-    if (!user) {
+    if (!userId) {
+      lastLoadedUserIdRef.current = null;
       setState(s => ({ ...s, loading: false, authRequired: true, error: "AUTH_REQUIRED" }));
       return;
     }
+
+    // Only load once per authenticated user id to avoid infinite fetch loops.
+    if (lastLoadedUserIdRef.current === userId) return;
+    lastLoadedUserIdRef.current = userId;
     
     // Wrap in try-catch to prevent crashes in preview/iframe environments
     const safeRefresh = async () => {
@@ -314,8 +323,7 @@ export function DawnDataProvider({ children }: { children: React.ReactNode }) {
       }
     };
     safeRefresh();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [authLoading, user]);
+  }, [authLoading, userId, refresh]);
 
   return (
     <DawnDataContext.Provider value={{
