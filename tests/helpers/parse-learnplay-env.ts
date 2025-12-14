@@ -27,6 +27,9 @@ export interface LearnPlayEnv {
   STUDENT_ID?: string;
   PARENT_ID?: string;
   PROJECT_ID?: string;
+  // Playwright E2E credentials (local-only)
+  E2E_ADMIN_EMAIL?: string;
+  E2E_ADMIN_PASSWORD?: string;
 }
 
 export function parseLearnPlayEnv(): LearnPlayEnv {
@@ -72,6 +75,8 @@ export function parseLearnPlayEnv(): LearnPlayEnv {
           VERIFY_USER_ID: "USER_ID",
           VERIFY_STUDENT_ID: "STUDENT_ID",
           VERIFY_PARENT_ID: "PARENT_ID",
+          E2E_ADMIN_EMAIL: "E2E_ADMIN_EMAIL",
+          E2E_ADMIN_PASSWORD: "E2E_ADMIN_PASSWORD",
         };
 
         const mapped = map[key];
@@ -139,6 +144,14 @@ export function parseLearnPlayEnv(): LearnPlayEnv {
       // project id -> PROJECT_ID
       if (line.includes('project id') && i + 1 < lines.length) {
         result.PROJECT_ID = lines[i + 1].trim();
+      }
+
+      // e2e admin email/password (heading-style)
+      if (line.includes('e2e admin email') && i + 1 < lines.length) {
+        result.E2E_ADMIN_EMAIL = lines[i + 1].trim();
+      }
+      if (line.includes('e2e admin password') && i + 1 < lines.length) {
+        result.E2E_ADMIN_PASSWORD = lines[i + 1].trim();
       }
     }
   } catch (error) {
@@ -210,6 +223,14 @@ export function loadLearnPlayEnv(): void {
   }
   if (env.PARENT_ID && !process.env.VERIFY_PARENT_ID) {
     process.env.VERIFY_PARENT_ID = env.PARENT_ID;
+  }
+
+  // Playwright E2E credentials
+  if (env.E2E_ADMIN_EMAIL && !process.env.E2E_ADMIN_EMAIL) {
+    process.env.E2E_ADMIN_EMAIL = env.E2E_ADMIN_EMAIL;
+  }
+  if (env.E2E_ADMIN_PASSWORD && !process.env.E2E_ADMIN_PASSWORD) {
+    process.env.E2E_ADMIN_PASSWORD = env.E2E_ADMIN_PASSWORD;
   }
 }
 

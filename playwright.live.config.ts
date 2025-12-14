@@ -15,6 +15,12 @@ const anthropicKey = process.env.VITE_ANTHROPIC_API_KEY ||
                      process.env.ANTHROPIC_API_KEY || 
                      env.ANTHROPIC_API_KEY;
 
+// Admin credentials for Playwright auth setup (prefer process env; fall back to learnplay.env)
+const e2eAdminEmail = process.env.E2E_ADMIN_EMAIL || env.E2E_ADMIN_EMAIL;
+const e2eAdminPassword = process.env.E2E_ADMIN_PASSWORD || env.E2E_ADMIN_PASSWORD;
+if (e2eAdminEmail && !process.env.E2E_ADMIN_EMAIL) process.env.E2E_ADMIN_EMAIL = e2eAdminEmail;
+if (e2eAdminPassword && !process.env.E2E_ADMIN_PASSWORD) process.env.E2E_ADMIN_PASSWORD = e2eAdminPassword;
+
 if (!supabaseUrl || !supabaseKey) {
   throw new Error('Missing Supabase credentials. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY or ensure learnplay.env exists.');
 }
@@ -67,6 +73,9 @@ const config: PlaywrightTestConfig = {
       VITE_OPENAI_API_KEY: openaiKey || '',
       VITE_ANTHROPIC_API_KEY: anthropicKey || '',
       OPENAI_API_KEY: openaiKey || '',
+      // Provide credentials to the dev server too (some flows might read them client-side in the future)
+      E2E_ADMIN_EMAIL: e2eAdminEmail || '',
+      E2E_ADMIN_PASSWORD: e2eAdminPassword || '',
     },
   },
   projects: [
