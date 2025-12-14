@@ -71,7 +71,14 @@ export function useJobContext(jobId: string | null, pollInterval = 2000): JobCon
     try {
       const response = await mcp.getCourseJob(jobId, true);
 
-      if ((response as { ok: boolean }).ok) {
+      const ok = (response as { ok: boolean }).ok;
+      const errCode = (response as any)?.error?.code as string | undefined;
+      if (!ok && errCode === "transient_network") {
+        // Retryable upstream blip (Edge ↔ PostgREST). Keep polling; don't flip UI into hard error.
+        return;
+      }
+
+      if (ok) {
         setJob((response as { job: Job }).job);
         setEvents(((response as { events?: JobEvent[] }).events || []) as JobEvent[]);
         setError(null);
