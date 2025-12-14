@@ -3,12 +3,11 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { lazy, Suspense, Component, ReactNode, useMemo, useState } from "react";
+import { lazy, Suspense, Component, ReactNode, useEffect, useMemo, useState } from "react";
 import { generatedRouteElements, GeneratedFallback } from "./routes.generated";
 import { useSentryUser } from "./hooks/useSentryUser";
 import { DawnDataProvider } from "./contexts/DawnDataContext";
 import { Layout } from "./components/layout/Layout";
-import { getRuntimeConfigSync } from "@/lib/runtimeConfig";
 import { isDevAgentMode } from "@/lib/api/common";
 
 const Auth = lazy(() => import("./pages/Auth"));
@@ -78,6 +77,47 @@ const DevAgentSetupGate = ({ children }: { children: React.ReactNode }) => {
   const [agentToken, setAgentToken] = useState("");
   const [orgId, setOrgId] = useState("");
   const [userId, setUserId] = useState("");
+
+  // Allow "no-modal" setup via URL query params. This is useful in iframe preview environments
+  // where input focus/typing can be flaky. Values are persisted to sessionStorage and then
+  // removed from the URL immediately.
+  useEffect(() => {
+    if (!enabled || typeof window === "undefined") return;
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const token =
+        params.get("iz_dev_agent_token") ||
+        params.get("devAgentToken") ||
+        params.get("agentToken");
+      const org =
+        params.get("iz_dev_org_id") ||
+        params.get("devOrgId") ||
+        params.get("orgId");
+      const user =
+        params.get("iz_dev_user_id") ||
+        params.get("devUserId") ||
+        params.get("userId");
+
+      if (!token && !org && !user) return;
+
+      if (token) window.sessionStorage.setItem("iz_dev_agent_token", token);
+      if (org) window.sessionStorage.setItem("iz_dev_org_id", org);
+      if (user) window.sessionStorage.setItem("iz_dev_user_id", user);
+
+      // Remove sensitive params from URL so they don't stick in history/referrer.
+      ["iz_dev_agent_token", "devAgentToken", "agentToken", "iz_dev_org_id", "devOrgId", "orgId", "iz_dev_user_id", "devUserId", "userId"].forEach(
+        (k) => params.delete(k)
+      );
+      const newQs = params.toString();
+      const newUrl = `${window.location.pathname}${newQs ? `?${newQs}` : ""}${window.location.hash}`;
+      window.history.replaceState({}, "", newUrl);
+
+      // Reload so all API calls pick up the new storage values.
+      window.location.reload();
+    } catch {
+      // ignore
+    }
+  }, [enabled]);
 
   const missing = useMemo(() => {
     if (!enabled || typeof window === "undefined") return false;
