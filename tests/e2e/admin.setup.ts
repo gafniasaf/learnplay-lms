@@ -1,4 +1,5 @@
 import { test as setup, expect } from '@playwright/test';
+import { createClient } from '@supabase/supabase-js';
 
 /**
  * Setup: Authenticate as Admin
@@ -29,6 +30,16 @@ setup('authenticate as admin', async ({ page }) => {
   // Read admin credentials - REQUIRED env vars per NO-FALLBACK policy
   const adminEmail = requireEnvVar('E2E_ADMIN_EMAIL');
   const adminPassword = requireEnvVar('E2E_ADMIN_PASSWORD');
+  const supabaseUrl = requireEnvVar('VITE_SUPABASE_URL');
+  const supabaseAnonKey =
+    process.env.VITE_SUPABASE_PUBLISHABLE_KEY ||
+    process.env.VITE_SUPABASE_ANON_KEY ||
+    process.env.SUPABASE_ANON_KEY ||
+    '';
+  if (!supabaseAnonKey) {
+    console.error(`❌ VITE_SUPABASE_ANON_KEY (or VITE_SUPABASE_PUBLISHABLE_KEY / SUPABASE_ANON_KEY) is REQUIRED - set env var before running tests`);
+    throw new Error('Supabase anon key environment variable is required');
+  }
 
   // Live/localhost runs should use real Supabase session auth (NOT dev-agent mode).
   // Disable dev-agent overlays before any navigation.
@@ -37,41 +48,36 @@ setup('authenticate as admin', async ({ page }) => {
     try { window.sessionStorage.setItem('iz_dev_agent_disabled', '1'); } catch {}
   });
 
-  // Navigate to auth page (Playwright config provides baseURL)
-  await page.goto('/auth');
-  
-  // Wait for login form
-  await page.waitForSelector('input[type="email"]', { timeout: LOGIN_FORM_TIMEOUT_MS });
-  
-  // Fill credentials
-  await page.fill('input[type="email"]', adminEmail);
-  await page.fill('input[type="password"]', adminPassword);
-  
-  // Submit login form
-  await page.click('button[type="submit"]');
-  
-  // Wait for successful login (redirect away from /auth)
-  // Could redirect to /, /dashboard, /admin, or /courses
-  try {
-    await page.waitForURL(/\/(dashboard|admin|courses|\?|$)/, { timeout: LOGIN_REDIRECT_TIMEOUT_MS });
-  } catch (error: unknown) {
-    // Capture page state for debugging if login fails
-    const failedUrl = page.url();
-    const errorMessage = await page.locator('[role="alert"], .error, .alert-error').first().textContent().catch(() => null);
-    
-    const errorDetails = error instanceof Error ? error.message : String(error);
-    throw new Error(
-      `Login failed. Current URL: ${failedUrl}. ` +
-      (errorMessage ? `Error message: ${errorMessage}. ` : '') +
-      `Original error: ${errorDetails}`
-    );
+  // Programmatic login (avoids UI flake / loading hangs on /auth).
+  const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  });
+  const { data, error } = await supabase.auth.signInWithPassword({
+    email: adminEmail,
+    password: adminPassword,
+  });
+  if (error || !data?.session) {
+    throw new Error(`Admin programmatic login failed: ${error?.message || 'no session returned'}`);
   }
-  
-  // Avoid waiting for `networkidle` (admin pages poll/realtime and may never idle).
-  await page.waitForLoadState('domcontentloaded');
+  const session = data.session;
+  const projectRef = new URL(supabaseUrl).hostname.split('.')[0];
+  const storageKey = `sb-${projectRef}-auth-token`;
 
-  // Verify we're logged in (not on auth page)
-  expect(page.url()).not.toContain('/auth');
+  // Visit any page on our origin so localStorage is available, then inject session.
+  await page.goto('/');
+  await page.waitForLoadState('domcontentloaded');
+  await page.evaluate(
+    ({ k, s }) => {
+      try {
+        window.localStorage.setItem(k, JSON.stringify({ currentSession: s }));
+      } catch {
+        // ignore
+      }
+    },
+    { k: storageKey, s: session }
+  );
+  await page.reload();
+  await page.waitForLoadState('domcontentloaded');
 
   // Verify auth works by loading a stable admin page and waiting for a stable selector.
   await page.goto('/admin/ai-pipeline');
