@@ -3,6 +3,9 @@ import type { ValidationResult } from "../_shared/course-validator.ts";
 import type { FillerContext } from "../_shared/filler.ts";
 import type { BasicKnowledgePack } from "../_shared/gates.ts";
 import { enforceCourseId } from "../_shared/course-identity.ts";
+import { generateJson } from "../_shared/ai.ts";
+import { buildRepairPrompt, SYSTEM_PROMPT } from "../_shared/prompts.ts";
+import { extractJsonFromText, normalizeOptionsItem, normalizeNumericItem } from "../_shared/generation-utils.ts";
 
 type DeterministicPackInfo = {
   packId?: string;
@@ -43,6 +46,10 @@ export interface GenerationRunnerDeps {
   updateJobProgress: (jobId: string | null, stage: string, percent: number, message: string) => Promise<void>;
   markJobDone: (jobId: string | null, payload: { status: "done" | "needs_attention"; fallbackReason: string | null; summary?: any }) => Promise<void>;
   saveJobSummary: (jobId: string | null, summary: any) => Promise<void>;
+  saveRepairArtifact?: (
+    jobId: string | null,
+    artifact: { original: any[]; repaired: any[]; failedIds: number[]; metrics?: unknown; reason: string }
+  ) => Promise<void>;
   now: () => Date;
 }
 
@@ -91,6 +98,85 @@ function summarizeValidationErrors(result: ValidationResult, max = 5): string {
   }
   const suffix = errs.length > max ? ` (+${errs.length - max} more)` : "";
   return parts.join(",") + suffix;
+}
+
+function tryDeterministicNormalizeCourse(course: any): { changed: boolean; failedIds: number[] } {
+  const items: any[] = Array.isArray(course?.items) ? course.items : [];
+  let changed = false;
+  const failedIds: number[] = [];
+  for (let i = 0; i < items.length; i++) {
+    const it = items[i];
+    if (!it || typeof it !== "object") continue;
+    try {
+      const before = JSON.stringify(it);
+      if (it.mode === "numeric") {
+        normalizeNumericItem(it);
+      } else {
+        normalizeOptionsItem(it);
+      }
+      const after = JSON.stringify(it);
+      if (after !== before) changed = true;
+    } catch {
+      if (typeof it?.id === "number") failedIds.push(it.id);
+    }
+  }
+  return { changed, failedIds };
+}
+
+async function batchRepairItemsWithLLM(args: {
+  items: any[];
+  courseContext: { subject: string; grade: string; mode: "options" | "numeric" };
+  reason: string;
+  timeoutMs?: number;
+}): Promise<{ repaired: any[]; failedIds: number[]; metrics?: unknown }> {
+  const { items, courseContext, reason, timeoutMs = 110000 } = args;
+  const prompt = buildRepairPrompt({ items, courseContext, reason });
+  const res = await generateJson({
+    system: SYSTEM_PROMPT,
+    prompt,
+    maxTokens: 3500,
+    temperature: 0.2,
+    prefillJson: false,
+    timeoutMs,
+  });
+  if (!res.ok) {
+    return { repaired: [], failedIds: items.map((it) => it?.id).filter((x) => typeof x === "number"), metrics: res.metrics };
+  }
+  let parsed: any;
+  try {
+    parsed = extractJsonFromText(res.text);
+  } catch {
+    return { repaired: [], failedIds: items.map((it) => it?.id).filter((x) => typeof x === "number"), metrics: res.metrics };
+  }
+  if (!Array.isArray(parsed)) {
+    return { repaired: [], failedIds: items.map((it) => it?.id).filter((x) => typeof x === "number"), metrics: res.metrics };
+  }
+  // Preserve identity fields strictly: id/groupId/clusterId/variant/mode from original
+  const byId = new Map<number, any>();
+  for (const it of items) {
+    if (typeof it?.id === "number") byId.set(it.id, it);
+  }
+  const repaired: any[] = [];
+  const failedIds: number[] = [];
+  for (const cand of parsed) {
+    const id = cand?.id;
+    if (typeof id !== "number") continue;
+    const orig = byId.get(id);
+    if (!orig) continue;
+    const merged = { ...orig, ...cand, id: orig.id, groupId: orig.groupId, clusterId: orig.clusterId, variant: orig.variant, mode: orig.mode };
+    try {
+      if (merged.mode === "numeric") normalizeNumericItem(merged);
+      else normalizeOptionsItem(merged);
+      repaired.push(merged);
+    } catch {
+      failedIds.push(id);
+    }
+  }
+  // Any missing ids are failed
+  for (const id of byId.keys()) {
+    if (!repaired.some((r) => r.id === id)) failedIds.push(id);
+  }
+  return { repaired, failedIds: Array.from(new Set(failedIds)), metrics: res.metrics };
 }
 
 function toDeterministicInfo(selection: GenerationSelection | null): DeterministicPackInfo | null {
@@ -201,14 +287,70 @@ export function createGenerationRunner(deps: GenerationRunnerDeps) {
 
     await deps.updateJobProgress(jobId, "validating", 70, "Validating course...");
 
-    const validationResult = deps.validateCourse(course, validationOptions);
+    let validationResult = deps.validateCourse(course, validationOptions);
     if (hasValidationErrors(validationResult)) {
-      const errorCount = validationResult.issues.filter((issue) => issue.severity === "error").length;
-      // NO PLACEHOLDERS POLICY: fail loud with summary of validation failures.
-      throw new Error(
-        `validation_failed: ${errorCount} errors (${validationResult.issues.length} issues) | ` +
-          `codes=${summarizeValidationErrors(validationResult)}`
-      );
+      // Dawn-style stability: attempt bounded repairs (NO placeholders).
+      await deps.updateJobProgress(jobId, "repairing", 75, "Repairing validation issues...");
+
+      // Pass 1: deterministic normalization (cheap + reliable)
+      const norm = tryDeterministicNormalizeCourse(course);
+      if (norm.changed) {
+        validationResult = deps.validateCourse(course, validationOptions);
+      }
+
+      // Pass 2: LLM batched repair of a small set of failing items (if still failing)
+      if (hasValidationErrors(validationResult)) {
+        const badIds = Array.from(
+          new Set(
+            validationResult.issues
+              .filter((i) => i.severity === "error" && typeof i.itemId === "number")
+              .map((i) => i.itemId as number)
+          )
+        ).slice(0, 5);
+
+        const items = Array.isArray(course?.items) ? course.items : [];
+        const originals = items.filter((it: any) => typeof it?.id === "number" && badIds.includes(it.id));
+        if (originals.length > 0) {
+          const repairRes = await batchRepairItemsWithLLM({
+            items: originals,
+            courseContext: { subject: input.subject, grade: input.gradeBand, mode: input.mode },
+            reason: "validation_failed",
+          });
+
+          // Apply repaired items back into course
+          const byId = new Map<number, any>();
+          for (const it of repairRes.repaired) byId.set(it.id, it);
+          for (let i = 0; i < items.length; i++) {
+            const id = items[i]?.id;
+            if (typeof id === "number" && byId.has(id)) {
+              items[i] = byId.get(id);
+            }
+          }
+          course.items = items;
+
+          try {
+            await deps.saveRepairArtifact?.(jobId, {
+              original: originals,
+              repaired: repairRes.repaired,
+              failedIds: repairRes.failedIds,
+              metrics: repairRes.metrics,
+              reason: "validation_failed",
+            });
+          } catch {
+            // best-effort
+          }
+
+          validationResult = deps.validateCourse(course, validationOptions);
+        }
+      }
+
+      if (hasValidationErrors(validationResult)) {
+        const errorCount = validationResult.issues.filter((issue) => issue.severity === "error").length;
+        throw new Error(
+          `validation_failed: ${errorCount} errors (${validationResult.issues.length} issues) | ` +
+            `codes=${summarizeValidationErrors(validationResult)}`
+        );
+      }
     }
 
     await deps.updateJobProgress(jobId, "persisting", 85, "Saving course to storage...");

@@ -285,6 +285,23 @@ function createJobHelpers(supabase: any) {
     }
   }
 
+  async function saveRepairArtifact(
+    jobId: string | null,
+    artifact: { original: any[]; repaired: any[]; failedIds: number[]; metrics?: unknown; reason: string }
+  ) {
+    if (!jobId) return;
+    try {
+      const ts = Date.now();
+      const path = `debug/jobs/${jobId}/repair_${ts}.json`;
+      const blob = new Blob([JSON.stringify({ ...artifact, jobId, timestamp: new Date().toISOString() }, null, 2)], {
+        type: "application/json",
+      });
+      await supabase.storage.from("courses").upload(path, blob, { upsert: true, contentType: "application/json" });
+    } catch (error) {
+      console.warn("[generate-course] Failed to store repair artifact", error);
+    }
+  }
+
   async function markJobDone(
     jobId: string | null,
     payload: { status: "done" | "needs_attention"; fallbackReason: string | null; summary?: any },
@@ -327,6 +344,7 @@ function createJobHelpers(supabase: any) {
   return {
     updateJobProgress,
     saveJobSummary,
+    saveRepairArtifact,
     markJobDone,
     markJobFailed,
   };
@@ -438,6 +456,7 @@ Deno.serve(
       updateJobProgress: jobHelpers.updateJobProgress,
       markJobDone: jobHelpers.markJobDone,
       saveJobSummary: jobHelpers.saveJobSummary,
+      saveRepairArtifact: jobHelpers.saveRepairArtifact,
       now: () => new Date(),
     });
 
