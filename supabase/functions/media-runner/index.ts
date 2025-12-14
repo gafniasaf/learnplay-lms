@@ -50,7 +50,7 @@ async function pickNextPending(): Promise<MediaJobRow | null> {
 async function uploadToMediaLibrary(courseId: string, itemId: number, bytes: Uint8Array, contentType: string) {
   const ext = contentType.includes("webp") ? "webp" : contentType.includes("png") ? "png" : "bin";
   const path = `courses/${courseId}/items/${itemId}/${crypto.randomUUID()}.${ext}`;
-  const blob = new Blob([bytes], { type: contentType });
+  const blob = new Blob([bytes.slice().buffer as ArrayBuffer], { type: contentType });
   const { error } = await adminSupabase.storage.from("media-library").upload(path, blob, {
     upsert: true,
     contentType,
