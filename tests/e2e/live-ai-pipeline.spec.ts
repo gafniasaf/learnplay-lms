@@ -227,7 +227,6 @@ test.describe('Live AI Pipeline: Course Creation', () => {
       expect(courseContent?.length).toBeGreaterThan(500); // Course has content
       
       // Step 9: Trigger ONE real image generation via enqueue-course-media + media-runner, then confirm stimulus exists
-      const agentToken = requireEnv('AGENT_TOKEN');
       const enqueueRes = await page.request.post(`${url}/functions/v1/enqueue-course-media`, {
         headers: { 'Content-Type': 'application/json', 'x-agent-token': agentToken, apikey: anonKey, Authorization: `Bearer ${anonKey}` },
         data: { courseId, itemId: 0, prompt: 'A simple kid-friendly illustration for the first question', provider: 'openai-dalle3' },
