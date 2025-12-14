@@ -6,7 +6,6 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { lazy, Suspense, Component, ReactNode } from "react";
 import { generatedRouteElements, GeneratedFallback } from "./routes.generated";
 import { useSentryUser } from "./hooks/useSentryUser";
-import { useLovableAutoLogin } from "./hooks/useLovableAutoLogin";
 import { DawnDataProvider } from "./contexts/DawnDataContext";
 import { Layout } from "./components/layout/Layout";
 
@@ -66,25 +65,6 @@ const SentryUserProvider = ({ children }: { children: React.ReactNode }) => {
   return <>{children}</>;
 };
 
-// Component to handle Lovable preview auto-login
-const LovableAutoLoginProvider = ({ children }: { children: React.ReactNode }) => {
-  const { isAutoLoggingIn, autoLoginComplete } = useLovableAutoLogin();
-  
-  // Show loading state while auto-login is in progress
-  if (isAutoLoggingIn || !autoLoginComplete) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Setting up preview session...</p>
-        </div>
-      </div>
-    );
-  }
-  
-  return <>{children}</>;
-};
-
 const App = () => {
   return (
     <ErrorBoundary>
@@ -94,9 +74,8 @@ const App = () => {
             <Toaster />
             <Sonner />
             <BrowserRouter>
-              <LovableAutoLoginProvider>
-                <SentryUserProvider>
-                  <Layout>
+              <SentryUserProvider>
+                <Layout>
                   <Suspense fallback={<div className="flex items-center justify-center min-h-screen">Loading...</div>}>
                     <Routes>
                       <Route path="/admin" element={<Navigate to="/admin/ai-pipeline" replace />} />
@@ -116,9 +95,8 @@ const App = () => {
                     </Routes>
                     <GeneratedFallback />
                   </Suspense>
-                  </Layout>
-                </SentryUserProvider>
-              </LovableAutoLoginProvider>
+                </Layout>
+              </SentryUserProvider>
             </BrowserRouter>
           </DawnDataProvider>
         </TooltipProvider>
