@@ -143,7 +143,8 @@ const DevAgentSetupGate = ({ children }: { children: React.ReactNode }) => {
         return null;
       }
     };
-    return !get("iz_dev_agent_token") || !get("iz_dev_org_id") || !get("iz_dev_user_id");
+    // user id is optional (auto-generated in dev-agent mode)
+    return !get("iz_dev_agent_token") || !get("iz_dev_org_id");
   }, [enabled]);
 
   if (!enabled || !missing) return <>{children}</>;
@@ -183,12 +184,12 @@ const DevAgentSetupGate = ({ children }: { children: React.ReactNode }) => {
                 />
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-medium">User ID</label>
+                <label className="text-sm font-medium">User ID (optional)</label>
                 <input
                   className="w-full rounded-md border px-3 py-2 text-sm bg-background"
                   value={userId}
                   onChange={(e) => setUserId(e.target.value)}
-                  placeholder="user UUID"
+                  placeholder="leave blank to auto-generate"
                   autoComplete="off"
                 />
               </div>
@@ -223,13 +224,16 @@ const DevAgentSetupGate = ({ children }: { children: React.ReactNode }) => {
                       window.sessionStorage.removeItem("iz_dev_agent_disabled");
                       window.sessionStorage.setItem("iz_dev_agent_token", agentToken.trim());
                       window.sessionStorage.setItem("iz_dev_org_id", orgId.trim());
-                      window.sessionStorage.setItem("iz_dev_user_id", userId.trim());
+                      // user id is optional; if omitted it will be generated automatically.
+                      if (userId.trim()) {
+                        window.sessionStorage.setItem("iz_dev_user_id", userId.trim());
+                      }
                     } catch {
                       // ignore
                     }
                     window.location.reload();
                   }}
-                  disabled={!agentToken.trim() || !orgId.trim() || !userId.trim()}
+                  disabled={!agentToken.trim() || !orgId.trim()}
                 >
                   Save + Reload
                 </button>
