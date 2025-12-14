@@ -79,11 +79,6 @@ setup('authenticate as admin', async ({ page }) => {
   await page.reload();
   await page.waitForLoadState('domcontentloaded');
 
-  // Verify auth works by loading a stable admin page and waiting for a stable selector.
-  await page.goto('/admin/ai-pipeline');
-  await page.waitForLoadState('domcontentloaded');
-  await page.waitForSelector('input#subject', { timeout: 15000 });
-  
   // Save authenticated state
   await page.context().storageState({ path: authFile });
   

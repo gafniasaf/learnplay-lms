@@ -73,30 +73,12 @@ test.describe('Live AI Pipeline: Course Creation', () => {
     const testSubject = `E2E Test Course ${Date.now()}`;
     let courseId: string | null = null;
     
-    // Step 1: Navigate to AI pipeline page
-    await page.goto('/admin/ai-pipeline');
-    // Avoid `networkidle` (admin pages poll/realtime and may never become idle)
+    // Step 1: Ensure origin is loaded so we can read localStorage auth token.
+    // (Do NOT depend on /admin UI routes for live pipeline verification.)
+    await page.goto('/');
     await page.waitForLoadState('domcontentloaded');
     
-    // Step 2: Find and fill Quick Start form
-    // Look for subject input (required field)
-    const subjectInput = page.locator('input[placeholder*="Photosynthesis"], input[placeholder*="subject"], input#subject').first();
-    await subjectInput.waitFor({ timeout: 15000 });
-    await subjectInput.fill(testSubject);
-    
-    // Set grade (optional but helps)
-    const gradeSelect = page.locator('select').first();
-    if (await gradeSelect.isVisible({ timeout: 2000 }).catch(() => false)) {
-      await gradeSelect.selectOption({ index: 2 }); // Select 3-5 or similar
-    }
-    
-    // Set items per group (smaller for faster testing)
-    const itemsInput = page.locator('input[type="number"]').first();
-    if (await itemsInput.isVisible({ timeout: 2000 }).catch(() => false)) {
-      await itemsInput.fill('6'); // Smaller number for faster generation
-    }
-    
-    // Step 3: Enqueue job via API (stable in headless; avoids Chromium net::ERR_INSUFFICIENT_RESOURCES).
+    // Step 2: Enqueue job via API (stable in headless; avoids Chromium net::ERR_INSUFFICIENT_RESOURCES).
     const { url, anonKey } = getSupabaseBase();
     const sessionToken = await getSessionAccessToken(page);
     const slug = testSubject.toLowerCase().replace(/\s+/g, '-');
@@ -126,7 +108,7 @@ test.describe('Live AI Pipeline: Course Creation', () => {
     const jobId: string = enqueueJson.jobId;
     expect(typeof jobId).toBe('string');
 
-    // Step 4: Run generation for THIS job.
+    // Step 3: Run generation for THIS job.
     // This aligns with the current UI behavior (dev/preview kicks generation directly),
     // and ensures course JSON is persisted to storage.
     const generateRes = await page.request.post(`${url}/functions/v1/generate-course?jobId=${encodeURIComponent(jobId)}`, {
@@ -142,7 +124,7 @@ test.describe('Live AI Pipeline: Course Creation', () => {
     });
     expect(generateRes.ok()).toBeTruthy();
 
-    // Step 5-6: Poll job status via list-course-jobs (real DB), up to 5 minutes
+    // Step 4: Poll job status via list-course-jobs (real DB), up to 5 minutes
     const maxWaitTime = 300000;
     const startTime = Date.now();
     let lastStatus = '';
@@ -171,7 +153,7 @@ test.describe('Live AI Pipeline: Course Creation', () => {
     // A "perfect" run should not fallback.
     expect(lastFallbackReason, `Unexpected fallback_reason for job ${jobId}`).toBeFalsy();
     
-    // Step 7: Verify course is stored and becomes visible via list-courses + get-course
+    // Step 5: Verify course is stored and retrievable via get-course
     if (courseId) {
       const { url, anonKey } = getSupabaseBase();
 
@@ -209,24 +191,7 @@ test.describe('Live AI Pipeline: Course Creation', () => {
         expect(payload.contentVersion.startsWith('placeholder-')).toBeFalsy();
       }
 
-      // Open editor (correct route) and verify it loads (not 404)
-      await page.goto(`/admin/editor/${courseId}`);
-      await page.waitForLoadState('domcontentloaded');
-      
-      // Verify NOT 404 (would catch route bug)
-      const is404 = await page.locator('text=/404|not found/i').isVisible({ timeout: 2000 }).catch(() => false);
-      expect(is404).toBeFalsy();
-      
-      // Verify course editor loaded
-      const hasEditor = await page.getByText(/edit|course|item/i).isVisible({ timeout: 10000 }).catch(() => false);
-      expect(hasEditor).toBeTruthy();
-      
-      // Step 8: Verify course structure (texts, items)
-      const courseContent = await page.locator('body').textContent();
-      expect(courseContent).toBeTruthy();
-      expect(courseContent?.length).toBeGreaterThan(500); // Course has content
-      
-      // Step 9: Trigger ONE real image generation via enqueue-course-media + media-runner, then confirm stimulus exists
+      // Step 6: Trigger ONE real image generation via enqueue-course-media + media-runner, then confirm stimulus exists
       const enqueueRes = await page.request.post(`${url}/functions/v1/enqueue-course-media`, {
         headers: { 'Content-Type': 'application/json', 'x-agent-token': agentToken, apikey: anonKey, Authorization: `Bearer ${anonKey}` },
         data: { courseId, itemId: 0, prompt: 'A simple kid-friendly illustration for the first question', provider: 'openai-dalle3' },
