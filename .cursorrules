@@ -51,8 +51,8 @@ const API_URL = import.meta.env.VITE_API_URL;
 ```
 
 If something doesn't work locally:
-1. Document the required env var
-2. Tell the user to configure it
+1. FIRST: auto-discover required secrets from local env files (see "Secrets & Env Resolution")
+2. If still missing: FAIL LOUD (BLOCKED) with the exact env var name(s) required
 3. DON'T hardcode a bypass
 
 ## 🚨 ABSOLUTE NO-FALLBACK POLICY (PRIORITY ZERO)
@@ -86,6 +86,61 @@ if (!TOKEN) {
 - Multi-tenant data can get mixed
 
 **When you see a fallback pattern in existing code: REMOVE IT.**
+
+---
+
+## 🔐 Secrets & Env Resolution (MANDATORY, NO USER NAGGING)
+
+**Rule:** When a secret/credential is required, **do not ask the user first**. Attempt to resolve it from local env files **silently** (never print secret values). If not found, **report BLOCKED** and list the exact env var(s) required.
+
+**Search order (highest priority first):**
+1. `process.env.*` (already set in the current shell)
+2. `supabase/.deploy.env` (local-only, gitignored)
+3. `learnplay.env` (local-only, gitignored)
+4. `.env`, `.env.local`, `.env.development`, `.env.production` (if present)
+
+**Hard rules:**
+- NEVER print secrets to the console/logs.
+- NEVER commit secrets (tokens, service-role keys, DB passwords, API keys).
+- If a required secret is missing after checking the env files: **BLOCKED** (no “best effort”).
+
+---
+
+## 🗃️ Database Migrations (ALWAYS APPLY OR BLOCK)
+
+**Rule:** If we add/change anything that implies a DB schema change (migrations, RLS, types, tables, columns), we must **apply migrations to the target Supabase project immediately**.
+
+**Allowed ways to apply:**
+- Supabase CLI (linked project) or repo deploy scripts
+- Supabase Management API (requires `SUPABASE_ACCESS_TOKEN` / PAT)
+
+**If credentials are missing:** do NOT “half-fix” in code. Report **BLOCKED** and specify:
+- `SUPABASE_ACCESS_TOKEN` (PAT) and/or
+- `SUPABASE_PROJECT_REF` (if not derivable from `SUPABASE_URL`)
+
+**Verification is mandatory after applying:**
+- Run `npx tsx scripts/verify-live-deployment.ts`
+- Validate the specific schema expectation (e.g. column type) before proceeding.
+
+---
+
+## 🚫 NO PLACEHOLDERS / NO MOCKS IN THE APP (PRODUCTION BEHAVIOR)
+
+**Rule:** Do not implement or rely on “temporary placeholders” or “mock API data” in runtime app flows.
+
+- **Course generation must be real**: if LLM fill/validation/persistence fails, the job must **FAIL LOUD** with a precise error. Do NOT return placeholder courses.
+- **No mocked app behavior** behind flags for production flows (e.g. `VITE_USE_MOCK`) unless the user explicitly asks for a mock-only local dev mode.
+- When failure happens, surface: **what is missing**, **where**, and **how to fix** (env var name, migration, missing function deploy, etc.).
+
+---
+
+## ✅ E2E Truth Policy (REAL DB + REAL LLM ONLY)
+
+**Rule:** E2E tests are only considered “passing” if they hit:
+- a **real database** (Supabase project), and
+- **real LLM providers** (no mocked responses)
+
+**Hard rule:** Never present mock test results as “success”. If any part is mocked, label it explicitly as **MOCKED** and do not claim the system works end-to-end.
 
 ---
 

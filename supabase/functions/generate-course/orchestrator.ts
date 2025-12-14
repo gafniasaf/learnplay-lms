@@ -138,17 +138,8 @@ export function createGenerationRunner(deps: GenerationRunnerDeps) {
         } as any);
       }
       if (!fillResult.ok) {
-        return await handlePlaceholder({
-          reason: fillResult.error,
-          provider: "placeholder",
-          source: "placeholder",
-          deps,
-          input,
-          jobId,
-          requestId,
-          deterministicErrors,
-          expectedCourseId,
-        });
+        // NO PLACEHOLDERS POLICY: fail loud so callers can see the real error and retry.
+        throw new Error(`llm_fill_failed: ${fillResult.error}`);
       }
       course = fillResult.course;
     }
@@ -202,19 +193,8 @@ export function createGenerationRunner(deps: GenerationRunnerDeps) {
     const validationResult = deps.validateCourse(course, validationOptions);
     if (hasValidationErrors(validationResult)) {
       const errorCount = validationResult.issues.filter((issue) => issue.severity === "error").length;
-      return await handlePlaceholder({
-        reason: "validation_failed",
-        provider: "placeholder",
-        source: "placeholder",
-        deps,
-        input,
-        jobId,
-        requestId,
-        deterministicErrors,
-        validationIssues: validationResult.issues.length,
-        validationErrorCount: errorCount,
-        expectedCourseId,
-      });
+      // NO PLACEHOLDERS POLICY: fail loud with summary of validation failures.
+      throw new Error(`validation_failed: ${errorCount} errors (${validationResult.issues.length} issues)`);
     }
 
     await deps.updateJobProgress(jobId, "persisting", 85, "Saving course to storage...");
