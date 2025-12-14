@@ -19,6 +19,7 @@ import { useJobContext } from '@/hooks/useJobContext';
 import { useJobsList } from '@/hooks/useJobsList';
 import { useAuth } from '@/hooks/useAuth';
 import { createLogger } from '@/lib/logger';
+import { getCourseJob } from '@/lib/api/jobs';
 
 const logger = createLogger('AIPipelineV2');
 import { useNavigate } from 'react-router-dom';
@@ -45,6 +46,10 @@ const MODE_OPTIONS = [
   { value: 'numeric', label: 'Numeric', icon: '🔢' }
 ] as const;
 
+// UX: AI pipeline should open clean by default.
+// Only resume a job automatically if it's *recent* and still running.
+const AUTO_RESUME_MAX_AGE_MS = 15 * 60 * 1000; // 15 minutes
+
 export default function AIPipelineV2() {
   const [state, setState] = useState<GeneratorState>('idle');
   const [currentJobId, setCurrentJobId] = useState<string | null>(null);
@@ -64,31 +69,49 @@ export default function AIPipelineV2() {
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
 
-  // Check for in-progress jobs on mount (only restore if job is still running)
+  // Check for in-progress jobs on mount (only restore if job is still running AND recent)
   useEffect(() => {
     const storedJobId = localStorage.getItem('selectedJobId');
     const storedCourseId = localStorage.getItem('selectedCourseId');
-    
-    // Only restore job context if there's an in-progress job
-    // Completed jobs should NOT be shown - user should see creation form
-    if (storedJobId) {
-      // We'll check the job status and only restore if it's still running
-      const checkJobStatus = async () => {
-        try {
-          // Temporarily set the job ID to trigger the job context hook
-          setCurrentJobId(storedJobId);
-          if (storedCourseId) {
-            setCurrentCourseId(storedCourseId);
-          }
-        } catch {
-          // If we can't load the job, clear localStorage and show creation form
-          localStorage.removeItem('selectedJobId');
-          localStorage.removeItem('selectedCourseId');
+
+    if (!storedJobId) return;
+
+    const clearStored = () => {
+      localStorage.removeItem('selectedJobId');
+      localStorage.removeItem('selectedCourseId');
+    };
+
+    const checkJobStatus = async () => {
+      try {
+        const res = await getCourseJob(storedJobId, false);
+        const job = (res as any)?.job as { status?: string; created_at?: string; course_id?: string } | undefined;
+        if (!res?.ok || !job?.status || !job?.created_at) {
+          clearStored();
+          return;
         }
-      };
-      checkJobStatus();
-    }
-    // If no stored job, stay in 'idle' state (creation form) - this is the default
+
+        const createdAt = new Date(job.created_at).getTime();
+        const ageMs = Date.now() - createdAt;
+        const isRunning = ['pending', 'processing', 'running'].includes(job.status);
+
+        // Only auto-resume if it's running and recent.
+        if (isRunning && ageMs <= AUTO_RESUME_MAX_AGE_MS) {
+          setCurrentJobId(storedJobId);
+          const courseId = storedCourseId || job.course_id || null;
+          if (courseId) setCurrentCourseId(courseId);
+          setState('creating');
+          return;
+        }
+
+        // Otherwise, always open clean.
+        clearStored();
+      } catch {
+        // If we can't load the job, clear and open clean.
+        clearStored();
+      }
+    };
+
+    void checkJobStatus();
   }, []);
 
   // Auto-detect state from job status
@@ -212,8 +235,12 @@ export default function AIPipelineV2() {
     if (!currentJobId || !job) return;
     if (confirm('Cancel course generation? This cannot be undone.')) {
       setCurrentJobId(null);
+      setCurrentCourseId(null);
       setState('idle');
       toast.info('Generation cancelled');
+      // Ensure refresh/opening returns to clean start page
+      localStorage.removeItem('selectedJobId');
+      localStorage.removeItem('selectedCourseId');
     }
   };
 
