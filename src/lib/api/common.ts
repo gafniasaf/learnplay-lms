@@ -49,6 +49,16 @@ function maybeLogEdgeAuthDebug(functionName: string, data: Record<string, unknow
  * This is intended for development-only stability when user auth/metadata is not ready.
  */
 export function isDevAgentMode(): boolean {
+  // Allow disabling dev-agent for the current tab without changing app-config.json
+  // (useful when you want to test real Supabase session auth).
+  if (typeof window !== "undefined") {
+    try {
+      if (window.sessionStorage.getItem("iz_dev_agent_disabled") === "1") return false;
+    } catch {
+      // ignore
+    }
+  }
+
   // Env var wins (local dev / CI)
   if (import.meta.env.VITE_DEV_AGENT_MODE === "true") return true;
 

@@ -3,11 +3,13 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { lazy, Suspense, Component, ReactNode } from "react";
+import { lazy, Suspense, Component, ReactNode, useMemo, useState } from "react";
 import { generatedRouteElements, GeneratedFallback } from "./routes.generated";
 import { useSentryUser } from "./hooks/useSentryUser";
 import { DawnDataProvider } from "./contexts/DawnDataContext";
 import { Layout } from "./components/layout/Layout";
+import { getRuntimeConfigSync } from "@/lib/runtimeConfig";
+import { isDevAgentMode } from "@/lib/api/common";
 
 const Auth = lazy(() => import("./pages/Auth"));
 const ResetPassword = lazy(() => import("./pages/auth/ResetPassword"));
@@ -65,6 +67,136 @@ const SentryUserProvider = ({ children }: { children: React.ReactNode }) => {
   return <>{children}</>;
 };
 
+function isLovableHost(): boolean {
+  if (typeof window === "undefined") return false;
+  const h = window.location.hostname;
+  return h.includes("lovable.app") || h.includes("lovableproject.com") || h.includes("lovable.dev");
+}
+
+const DevAgentSetupGate = ({ children }: { children: React.ReactNode }) => {
+  const enabled = useMemo(() => isLovableHost() && isDevAgentMode(), []);
+  const [agentToken, setAgentToken] = useState("");
+  const [orgId, setOrgId] = useState("");
+  const [userId, setUserId] = useState("");
+
+  const missing = useMemo(() => {
+    if (!enabled || typeof window === "undefined") return false;
+    const get = (k: string) => {
+      try {
+        return window.sessionStorage.getItem(k) || window.localStorage.getItem(k);
+      } catch {
+        return null;
+      }
+    };
+    return !get("iz_dev_agent_token") || !get("iz_dev_org_id") || !get("iz_dev_user_id");
+  }, [enabled]);
+
+  if (!enabled || !missing) return <>{children}</>;
+
+  return (
+    <div className="min-h-screen">
+      <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50" />
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div className="w-full max-w-xl rounded-lg border bg-background shadow-lg">
+          <div className="p-6 space-y-4">
+            <h2 className="text-lg font-semibold">Dev Agent Setup (Preview)</h2>
+            <p className="text-sm text-muted-foreground">
+              Lovable preview runs in an iframe where Supabase auth persistence can be unreliable. To keep you unblocked,
+              paste your dev-agent credentials (stored in <code>sessionStorage</code> for this tab).
+            </p>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Agent token</label>
+              <input
+                className="w-full rounded-md border px-3 py-2 text-sm bg-background"
+                value={agentToken}
+                onChange={(e) => setAgentToken(e.target.value)}
+                placeholder="AGENT_TOKEN"
+                autoComplete="off"
+              />
+            </div>
+
+            <div className="grid gap-3 md:grid-cols-2">
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Organization ID</label>
+                <input
+                  className="w-full rounded-md border px-3 py-2 text-sm bg-background"
+                  value={orgId}
+                  onChange={(e) => setOrgId(e.target.value)}
+                  placeholder="org UUID"
+                  autoComplete="off"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">User ID</label>
+                <input
+                  className="w-full rounded-md border px-3 py-2 text-sm bg-background"
+                  value={userId}
+                  onChange={(e) => setUserId(e.target.value)}
+                  placeholder="user UUID"
+                  autoComplete="off"
+                />
+              </div>
+            </div>
+
+            <div className="flex flex-col md:flex-row gap-2 md:items-center md:justify-between pt-2">
+              <button
+                className="rounded-md border px-3 py-2 text-sm"
+                onClick={() => {
+                  try {
+                    window.sessionStorage.setItem("iz_dev_agent_disabled", "1");
+                  } catch {
+                    // ignore
+                  }
+                  window.location.reload();
+                }}
+              >
+                Use normal auth (disable for this tab)
+              </button>
+
+              <div className="flex gap-2">
+                <button
+                  className="rounded-md border px-3 py-2 text-sm"
+                  onClick={() => window.location.reload()}
+                >
+                  Refresh
+                </button>
+                <button
+                  className="rounded-md bg-primary text-primary-foreground px-3 py-2 text-sm"
+                  onClick={() => {
+                    try {
+                      window.sessionStorage.removeItem("iz_dev_agent_disabled");
+                      window.sessionStorage.setItem("iz_dev_agent_token", agentToken.trim());
+                      window.sessionStorage.setItem("iz_dev_org_id", orgId.trim());
+                      window.sessionStorage.setItem("iz_dev_user_id", userId.trim());
+                    } catch {
+                      // ignore
+                    }
+                    window.location.reload();
+                  }}
+                  disabled={!agentToken.trim() || !orgId.trim() || !userId.trim()}
+                >
+                  Save + Reload
+                </button>
+              </div>
+            </div>
+
+            <p className="text-xs text-muted-foreground">
+              Tip: you can also set these in DevTools console:
+              <br />
+              <code>
+                sessionStorage.setItem('iz_dev_agent_token','...'); sessionStorage.setItem('iz_dev_org_id','...');
+                sessionStorage.setItem('iz_dev_user_id','...'); location.reload();
+              </code>
+            </p>
+          </div>
+        </div>
+      </div>
+      {children}
+    </div>
+  );
+};
+
 const App = () => {
   return (
     <ErrorBoundary>
@@ -75,7 +207,8 @@ const App = () => {
             <Sonner />
             <BrowserRouter>
               <SentryUserProvider>
-                <Layout>
+                <DevAgentSetupGate>
+                  <Layout>
                   <Suspense fallback={<div className="flex items-center justify-center min-h-screen">Loading...</div>}>
                     <Routes>
                       <Route path="/admin" element={<Navigate to="/admin/ai-pipeline" replace />} />
@@ -95,7 +228,8 @@ const App = () => {
                     </Routes>
                     <GeneratedFallback />
                   </Suspense>
-                </Layout>
+                  </Layout>
+                </DevAgentSetupGate>
               </SentryUserProvider>
             </BrowserRouter>
           </DawnDataProvider>
