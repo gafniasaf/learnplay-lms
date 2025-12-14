@@ -30,6 +30,13 @@ setup('authenticate as admin', async ({ page }) => {
   const adminEmail = requireEnvVar('E2E_ADMIN_EMAIL');
   const adminPassword = requireEnvVar('E2E_ADMIN_PASSWORD');
 
+  // Live/localhost runs should use real Supabase session auth (NOT dev-agent mode).
+  // Disable dev-agent overlays before any navigation.
+  await page.addInitScript(() => {
+    try { window.localStorage.setItem('iz_dev_agent_disabled', '1'); } catch {}
+    try { window.sessionStorage.setItem('iz_dev_agent_disabled', '1'); } catch {}
+  });
+
   // Navigate to auth page (Playwright config provides baseURL)
   await page.goto('/auth');
   
