@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { stdHeaders, handleOptions } from "../_shared/cors.ts";
+import { withCors } from "../_shared/cors.ts";
+import { Errors } from "../_shared/error.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
@@ -11,19 +12,36 @@ if (!SUPABASE_URL || !SERVICE_ROLE_KEY) {
 
 const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
 
-serve(async (req: Request): Promise<Response> => {
-  const requestId = crypto.randomUUID();
-  
-  if (req.method === "OPTIONS") {
-    return handleOptions(req, requestId);
+function formatUnknownError(err: unknown): { message: string; details?: unknown } {
+  if (err instanceof Error) return { message: err.message };
+  if (err && typeof err === "object") {
+    const anyErr = err as { message?: unknown; code?: unknown; details?: unknown; hint?: unknown };
+    const msg =
+      typeof anyErr.message === "string"
+        ? anyErr.message
+        : (() => {
+            try {
+              return JSON.stringify(err);
+            } catch {
+              return String(err);
+            }
+          })();
+    const code = typeof anyErr.code === "string" ? anyErr.code : undefined;
+    const hint = typeof anyErr.hint === "string" ? anyErr.hint : undefined;
+    const details = anyErr.details;
+    const full = [msg, code ? `code=${code}` : null, hint ? `hint=${hint}` : null].filter(Boolean).join(" | ");
+    return { message: full, details };
   }
+  return { message: String(err) };
+}
 
-  if (req.method !== "GET") {
-    return new Response(JSON.stringify({ error: "Method not allowed" }), {
-      status: 405,
-      headers: stdHeaders(req, { "Content-Type": "application/json" }),
-    });
-  }
+serve(
+  withCors(async (req: Request): Promise<Response | Record<string, unknown>> => {
+    const requestId = crypto.randomUUID();
+
+    if (req.method !== "GET") {
+      return Errors.methodNotAllowed(req.method, requestId, req);
+    }
 
   try {
     const url = new URL(req.url);
@@ -31,10 +49,7 @@ serve(async (req: Request): Promise<Response> => {
     const includeEvents = url.searchParams.get("includeEvents") === "true";
 
     if (!jobId) {
-      return new Response(JSON.stringify({ error: "Job ID is required" }), {
-        status: 400,
-        headers: stdHeaders(req, { "Content-Type": "application/json" }),
-      });
+      return Errors.invalidRequest("Job ID is required", requestId, req);
     }
 
     // Get the job
@@ -46,10 +61,7 @@ serve(async (req: Request): Promise<Response> => {
 
     if (jobError) {
       if (jobError.code === "PGRST116") {
-        return new Response(JSON.stringify({ error: "Job not found" }), {
-          status: 404,
-          headers: stdHeaders(req, { "Content-Type": "application/json" }),
-        });
+        return Errors.notFound("Job", requestId, req);
       }
       throw jobError;
     }
@@ -68,24 +80,12 @@ serve(async (req: Request): Promise<Response> => {
       }
     }
 
-    return new Response(
-      JSON.stringify({
-        ok: true,
-        job,
-        events,
-      }),
-      {
-        status: 200,
-        headers: stdHeaders(req, { "Content-Type": "application/json" }),
-      }
-    );
+    return { ok: true, job, events, requestId };
   } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    console.error("[get-course-job] Error:", message);
-    return new Response(JSON.stringify({ error: message }), {
-      status: 500,
-      headers: stdHeaders(req, { "Content-Type": "application/json" }),
-    });
+    const { message, details } = formatUnknownError(err);
+    console.error("[get-course-job] Error:", { requestId, message, details });
+    return Errors.internal(message, requestId, req);
   }
-});
+  }),
+);
 
