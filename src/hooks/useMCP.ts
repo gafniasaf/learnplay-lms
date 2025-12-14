@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { JOB_MODES } from '@/lib/contracts';
 import { callEdgeFunctionGet } from '@/lib/api/common';
 import { getRuntimeConfigSync } from '@/lib/runtimeConfig';
+import { isDevAgentMode } from '@/lib/api/common';
 import type {
   SaveRecordResponse,
   GetRecordResponse,
@@ -210,6 +211,30 @@ export function useMCP() {
         { maxRetries: 5, idempotencyKey, timeoutMs: 60000 }
       );
       console.log('[enqueueJob] Success:', result);
+
+      // Dev/Preview safety net:
+      // In some environments (Lovable iframe), there may be no separate queue worker to process pending jobs.
+      // If dev-agent mode is enabled and we just queued ai_course_generate, immediately kick generation by
+      // calling the job-aware `generate-course` endpoint (it updates job progress/status and persists output).
+      if (result?.ok && result.jobId && jobType === "ai_course_generate" && isDevAgentMode()) {
+        const jobId = result.jobId;
+        const p: any = payload ?? {};
+        const generateBody: Record<string, unknown> = {
+          subject: typeof p.subject === "string" ? p.subject : "",
+          title: typeof p.title === "string" ? p.title : undefined,
+          gradeBand: typeof p.grade_band === "string" ? p.grade_band : (typeof p.gradeBand === "string" ? p.gradeBand : (typeof p.grade === "string" ? p.grade : "All Grades")),
+          grade: typeof p.grade === "string" ? p.grade : null,
+          itemsPerGroup: typeof p.items_per_group === "number" ? p.items_per_group : (typeof p.itemsPerGroup === "number" ? p.itemsPerGroup : 12),
+          mode: p.mode === "numeric" ? "numeric" : "options",
+          levelsCount: typeof p.levels_count === "number" ? p.levels_count : (typeof p.levelsCount === "number" ? p.levelsCount : undefined),
+        };
+
+        // Fire-and-forget so the UI can immediately start polling job status.
+        void callEdgeFunction("generate-course?jobId=" + encodeURIComponent(jobId), generateBody, { timeoutMs: 600000, maxRetries: 0 })
+          .then(() => console.log("[enqueueJob] generate-course kicked for jobId:", jobId))
+          .catch((e) => console.warn("[enqueueJob] generate-course kick failed:", e));
+      }
+
       return result;
     } catch (error: unknown) {
       console.error('[enqueueJob] Error caught:', error);
