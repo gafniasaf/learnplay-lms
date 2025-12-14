@@ -76,15 +76,27 @@ serve(
     if (jobErr) return Errors.internal(jobErr.message, requestId, req);
     if (!job) return Errors.notFound("Job", requestId, req);
 
-    const { data: events, error: evErr } = await admin
-      .from("job_events")
-      .select("*")
-      .eq("job_id", jobId)
-      .order("created_at", { ascending: false })
-      .limit(1);
-    if (evErr) return Errors.internal(evErr.message, requestId, req);
-
-    const last = events?.[0] ?? null;
+    // job_events is optional in some deployments. When missing, job-status should still work.
+    let last: any = null;
+    try {
+      const { data: events, error: evErr } = await admin
+        .from("job_events")
+        .select("*")
+        .eq("job_id", jobId)
+        .order("created_at", { ascending: false })
+        .limit(1);
+      if (evErr) {
+        const msg = (evErr as any)?.message ?? String(evErr);
+        const isMissingTable =
+          typeof msg === "string" &&
+          (msg.includes("Could not find the table") || msg.includes("job_events"));
+        if (!isMissingTable) return Errors.internal(msg, requestId, req);
+      } else {
+        last = events?.[0] ?? null;
+      }
+    } catch {
+      // ignore; keep last = null
+    }
     let state = (job as any).status ?? last?.status ?? "unknown";
     let step = last?.step ?? (state === "done" ? "done" : "generating");
     let progress = typeof last?.progress === "number" ? last.progress : state === "done" ? 100 : state === "failed" ? 100 : 10;

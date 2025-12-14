@@ -49,6 +49,9 @@ foreach ($d in $funcDirs) {
   $out | ForEach-Object { Write-Host $_ }
 
   $joined = ($out -join "`n")
+  # Supabase CLI prints "WARNING: Docker is not running" even for remote deploys.
+  # That warning must not fail CI/local deployment.
+  $joined = $joined -replace "WARNING: Docker is not running(\r?\n)?", ""
   if ($LASTEXITCODE -ne 0 -or $joined -match "unexpected deploy status" -or $joined -match "Unauthorized") {
     Write-Error "❌ Deploy failed for function: $name"
     exit 1
