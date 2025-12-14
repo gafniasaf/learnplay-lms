@@ -166,26 +166,65 @@ function shouldUseAgentTokenAuth(): boolean {
   return isDevAgentMode();
 }
 
+function getStorageValue(key: string): string | null {
+  if (typeof window === "undefined") return null;
+  // Prefer sessionStorage for iframe/preview stability.
+  try {
+    const v = window.sessionStorage.getItem(key);
+    if (v) return v;
+  } catch {
+    // ignore
+  }
+  try {
+    const v = window.localStorage.getItem(key);
+    if (v) return v;
+  } catch {
+    // ignore
+  }
+  return null;
+}
+
 function getDevAgentToken(): string {
-  const token = import.meta.env.VITE_DEV_AGENT_TOKEN as string | undefined;
+  const token =
+    (import.meta.env.VITE_DEV_AGENT_TOKEN as string | undefined) ||
+    getStorageValue("iz_dev_agent_token") ||
+    undefined;
   if (!token) {
-    throw new Error("❌ BLOCKED: VITE_DEV_AGENT_TOKEN is REQUIRED when dev agent mode is enabled");
+    throw new Error(
+      "❌ BLOCKED: Dev-agent token missing.\n" +
+        "Set VITE_DEV_AGENT_TOKEN (preferred) or in the browser console:\n" +
+        "  sessionStorage.setItem('iz_dev_agent_token','<token>')"
+    );
   }
   return token;
 }
 
 function getDevOrgId(): string {
-  const orgId = import.meta.env.VITE_DEV_ORG_ID as string | undefined;
+  const orgId =
+    (import.meta.env.VITE_DEV_ORG_ID as string | undefined) ||
+    getStorageValue("iz_dev_org_id") ||
+    undefined;
   if (!orgId) {
-    throw new Error("❌ BLOCKED: VITE_DEV_ORG_ID is REQUIRED when dev agent mode is enabled");
+    throw new Error(
+      "❌ BLOCKED: Dev-org id missing.\n" +
+        "Set VITE_DEV_ORG_ID (preferred) or in the browser console:\n" +
+        "  sessionStorage.setItem('iz_dev_org_id','<org_uuid>')"
+    );
   }
   return orgId;
 }
 
 function getDevUserId(): string {
-  const userId = import.meta.env.VITE_DEV_USER_ID as string | undefined;
+  const userId =
+    (import.meta.env.VITE_DEV_USER_ID as string | undefined) ||
+    getStorageValue("iz_dev_user_id") ||
+    undefined;
   if (!userId) {
-    throw new Error("❌ BLOCKED: VITE_DEV_USER_ID is REQUIRED when dev agent mode is enabled (or provide a logged-in session)");
+    throw new Error(
+      "❌ BLOCKED: Dev-user id missing.\n" +
+        "Set VITE_DEV_USER_ID (preferred) or in the browser console:\n" +
+        "  sessionStorage.setItem('iz_dev_user_id','<user_uuid>')"
+    );
   }
   return userId;
 }
