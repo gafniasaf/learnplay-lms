@@ -231,7 +231,13 @@ export function useMCP() {
 
         // Fire-and-forget so the UI can immediately start polling job status.
         void callEdgeFunction("generate-course?jobId=" + encodeURIComponent(jobId), generateBody, { timeoutMs: 600000, maxRetries: 0 })
-          .then(() => console.log("[enqueueJob] generate-course kicked for jobId:", jobId))
+          .then((resp: any) => {
+            if (resp?.success === false) {
+              console.warn("[enqueueJob] generate-course failed quickly", { jobId, error: resp?.error });
+              return;
+            }
+            console.log("[enqueueJob] generate-course kicked for jobId:", jobId);
+          })
           .catch((e) => console.warn("[enqueueJob] generate-course kick failed:", e));
       }
 

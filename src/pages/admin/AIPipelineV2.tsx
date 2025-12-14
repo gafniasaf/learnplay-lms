@@ -50,6 +50,15 @@ const MODE_OPTIONS = [
 // Only resume a job automatically if it's *recent* and still running.
 const AUTO_RESUME_MAX_AGE_MS = 15 * 60 * 1000; // 15 minutes
 
+function slugifyCourseId(input: string): string {
+  return input
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 80) || `course`;
+}
+
 export default function AIPipelineV2() {
   const [state, setState] = useState<GeneratorState>('idle');
   const [currentJobId, setCurrentJobId] = useState<string | null>(null);
@@ -185,7 +194,7 @@ export default function AIPipelineV2() {
     setAuthError(null);
     setCreating(true);
     try {
-      const courseId = `${subject.toLowerCase().replace(/\s+/g, '-')}-${Date.now()}`;
+      const courseId = `${slugifyCourseId(subject)}-${Date.now()}`;
       const result = await enqueueJob('ai_course_generate', {
         course_id: courseId,
         subject: subject.trim(),

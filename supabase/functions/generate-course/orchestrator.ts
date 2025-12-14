@@ -82,6 +82,17 @@ function hasValidationErrors(result: ValidationResult): boolean {
   return result.issues.some((issue) => issue.severity === "error");
 }
 
+function summarizeValidationErrors(result: ValidationResult, max = 5): string {
+  const errs = result.issues.filter((i) => i.severity === "error");
+  const parts: string[] = [];
+  for (const i of errs.slice(0, max)) {
+    const loc = typeof i.itemId === "number" ? `item:${i.itemId}` : i.field ? `field:${i.field}` : null;
+    parts.push([i.code, loc].filter(Boolean).join("@"));
+  }
+  const suffix = errs.length > max ? ` (+${errs.length - max} more)` : "";
+  return parts.join(",") + suffix;
+}
+
 function toDeterministicInfo(selection: GenerationSelection | null): DeterministicPackInfo | null {
   if (!selection || selection.kind !== "deterministic") return null;
   return {
@@ -194,7 +205,10 @@ export function createGenerationRunner(deps: GenerationRunnerDeps) {
     if (hasValidationErrors(validationResult)) {
       const errorCount = validationResult.issues.filter((issue) => issue.severity === "error").length;
       // NO PLACEHOLDERS POLICY: fail loud with summary of validation failures.
-      throw new Error(`validation_failed: ${errorCount} errors (${validationResult.issues.length} issues)`);
+      throw new Error(
+        `validation_failed: ${errorCount} errors (${validationResult.issues.length} issues) | ` +
+          `codes=${summarizeValidationErrors(validationResult)}`
+      );
     }
 
     await deps.updateJobProgress(jobId, "persisting", 85, "Saving course to storage...");

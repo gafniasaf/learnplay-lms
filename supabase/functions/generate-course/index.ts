@@ -352,32 +352,14 @@ function createPersistenceHelpers(supabase: any) {
     }
   }
 
-  function isCourseMetadataSchemaMismatch(err: unknown): boolean {
-    const msg = (err instanceof Error ? err.message : String(err)).toLowerCase();
-    // Typical Postgres message when course_metadata.id is INTEGER but we pass a string id like "skeleton-...".
-    return msg.includes("course_metadata") && msg.includes("invalid input syntax for type integer");
-  }
-
   async function persistCourse(
     course: any,
     _context: { jobId: string | null; deterministicPack: unknown },
   ) {
     await uploadCourseJson(course.id, course);
-    try {
-      await upsertCourseMetadata(supabase as any, course.id, course);
-    } catch (err) {
-      // IMPORTANT: Don't fail the whole generation if the relational metadata layer is misconfigured.
-      // The canonical artifact is the JSON stored at courses/{courseId}/course.json.
-      // This makes Lovable/dev usable immediately; the proper fix is the DB migration.
-      if (isCourseMetadataSchemaMismatch(err)) {
-        console.warn("[generate-course] Skipping course_metadata upsert due to schema mismatch. Course JSON was saved.", {
-          courseId: course.id,
-          error: err instanceof Error ? err.message : String(err),
-        });
-        return;
-      }
-      throw err;
-    }
+    // NO PLACEHOLDERS / NO SILENT BYPASSES:
+    // If metadata upsert fails, the job must fail loudly so the real issue is visible and fixed (migrations, RLS, etc).
+    await upsertCourseMetadata(supabase as any, course.id, course);
   }
 
   async function persistPlaceholder(
@@ -385,18 +367,7 @@ function createPersistenceHelpers(supabase: any) {
     _context: { jobId: string | null; reason: string },
   ) {
     await uploadCourseJson(course.id, course);
-    try {
-      await upsertCourseMetadata(supabase as any, course.id, course);
-    } catch (err) {
-      if (isCourseMetadataSchemaMismatch(err)) {
-        console.warn("[generate-course] Skipping course_metadata upsert for placeholder due to schema mismatch. Course JSON was saved.", {
-          courseId: course.id,
-          error: err instanceof Error ? err.message : String(err),
-        });
-        return;
-      }
-      throw err;
-    }
+    await upsertCourseMetadata(supabase as any, course.id, course);
   }
 
   return {
@@ -489,10 +460,23 @@ Deno.serve(
       const logContext = jobId ? { requestId, jobId } : { requestId };
       logError("generate-course failed", error as Error, logContext);
       await jobHelpers.markJobFailed(jobId, message);
-      return jsonError(
-        "internal_error",
-        "Course generation failed. Please retry.",
-        500,
+
+      // Lovable preview will blank-screen on 500s. Return 200 with structured failure instead.
+      // This still "fails loud" because:
+      // - the job is marked failed with the real message
+      // - the response contains the real message + code
+      const code =
+        message.startsWith("validation_failed:") ? "validation_failed" :
+        message.startsWith("llm_fill_failed:") ? "llm_fill_failed" :
+        message.startsWith("deterministic_failed:") ? "deterministic_failed" :
+        "generation_failed";
+
+      return jsonOk(
+        {
+          success: false,
+          error: { code, message },
+          jobId,
+        },
         requestId,
         req,
       );
