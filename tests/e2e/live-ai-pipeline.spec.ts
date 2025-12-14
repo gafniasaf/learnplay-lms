@@ -126,19 +126,27 @@ test.describe('Live AI Pipeline: Course Creation', () => {
     const jobId: string = enqueueJson.jobId;
     expect(typeof jobId).toBe('string');
 
-    // Step 4: Trigger the worker to process THIS job (pg_cron may not run in test window)
-    const agentToken = requireEnv('AGENT_TOKEN');
-    const kickRes = await page.request.post(`${url}/functions/v1/process-pending-jobs?jobId=${encodeURIComponent(jobId)}`, {
-      headers: { 'Content-Type': 'application/json', 'x-agent-token': agentToken },
-      data: {},
-      timeout: 180000,
+    // Step 4: Run generation for THIS job.
+    // This aligns with the current UI behavior (dev/preview kicks generation directly),
+    // and ensures course JSON is persisted to storage.
+    const generateRes = await page.request.post(`${url}/functions/v1/generate-course?jobId=${encodeURIComponent(jobId)}`, {
+      headers: { 'Content-Type': 'application/json', apikey: anonKey, Authorization: `Bearer ${anonKey}` },
+      data: {
+        subject: testSubject.trim(),
+        gradeBand: '6-8',
+        grade: '6-8',
+        itemsPerGroup: 6,
+        mode: 'options',
+      },
+      timeout: 600000, // allow long generation
     });
-    expect(kickRes.ok()).toBeTruthy();
+    expect(generateRes.ok()).toBeTruthy();
 
     // Step 5-6: Poll job status via list-course-jobs (real DB), up to 5 minutes
     const maxWaitTime = 300000;
     const startTime = Date.now();
     let lastStatus = '';
+    let lastFallbackReason: string | null = null;
     while ((Date.now() - startTime) < maxWaitTime) {
       const statusRes = await page.request.get(`${url}/functions/v1/list-course-jobs?jobId=${encodeURIComponent(jobId)}`, {
         headers: { apikey: anonKey },
@@ -148,6 +156,7 @@ test.describe('Live AI Pipeline: Course Creation', () => {
       const job = Array.isArray(statusJson.jobs) ? statusJson.jobs[0] : null;
       const status = job?.status as string | undefined;
       lastStatus = status || '';
+      lastFallbackReason = (job?.fallback_reason ?? job?.fallbackReason ?? null) as string | null;
       if (status === 'done') break;
       if (status === 'failed') {
         throw new Error(`Job failed: ${job?.error || 'unknown error'}`);
@@ -158,6 +167,9 @@ test.describe('Live AI Pipeline: Course Creation', () => {
     if (lastStatus !== 'done') {
       console.warn(`Job did not reach done within ${maxWaitTime / 1000}s. Last status: ${lastStatus}`);
     }
+    expect(lastStatus).toBe('done');
+    // A "perfect" run should not fallback.
+    expect(lastFallbackReason, `Unexpected fallback_reason for job ${jobId}`).toBeFalsy();
     
     // Step 7: Verify course is stored and becomes visible via list-courses + get-course
     if (courseId) {
@@ -165,17 +177,37 @@ test.describe('Live AI Pipeline: Course Creation', () => {
 
       // Poll get-course until it becomes readable (more stable than list-courses, which downloads many objects)
       let getOk = false;
+      let courseJson: any = null;
       for (let i = 0; i < 30; i++) {
         const getRes = await page.request.get(`${url}/functions/v1/get-course?courseId=${encodeURIComponent(courseId)}`, {
           headers: { apikey: anonKey },
         });
         if (getRes.ok()) {
           getOk = true;
+          courseJson = await getRes.json().catch(() => null);
           break;
         }
         await page.waitForTimeout(2000);
       }
       expect(getOk).toBeTruthy();
+
+      // Validate structural integrity of the stored course pack (server-side validation)
+      const agentToken = requireEnv('AGENT_TOKEN');
+      const validateRes = await page.request.post(`${url}/functions/v1/validate-course-structure`, {
+        headers: { 'Content-Type': 'application/json', 'X-Agent-Token': agentToken },
+        data: { courseId },
+      });
+      expect(validateRes.ok()).toBeTruthy();
+      const validateJson = await validateRes.json();
+      expect(validateJson?.ok, `validate-course-structure issues: ${JSON.stringify(validateJson?.issues || [])}`).toBeTruthy();
+
+      // Basic non-placeholder checks on retrieved payload
+      const payload = courseJson?.content ?? courseJson;
+      expect(payload?.id).toBe(courseId);
+      expect(Array.isArray(payload?.items) && payload.items.length > 0).toBeTruthy();
+      if (typeof payload?.contentVersion === 'string') {
+        expect(payload.contentVersion.startsWith('placeholder-')).toBeFalsy();
+      }
 
       // Open editor (correct route) and verify it loads (not 404)
       await page.goto(`/admin/editor/${courseId}`);
