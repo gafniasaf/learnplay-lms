@@ -229,14 +229,36 @@ function getDevUserId(): string {
     (import.meta.env.VITE_DEV_USER_ID as string | undefined) ||
     getStorageValue("iz_dev_user_id") ||
     undefined;
-  if (!userId) {
-    throw new Error(
-      "❌ BLOCKED: Dev-user id missing.\n" +
-        "Set VITE_DEV_USER_ID (preferred) or in the browser console:\n" +
-        "  sessionStorage.setItem('iz_dev_user_id','<user_uuid>')"
-    );
+  if (userId) return userId;
+
+  // In preview/dev-agent mode, the user id is used for auditing and some endpoints.
+  // If the developer hasn't provided one, generate a stable per-browser UUID and persist it.
+  // This avoids requiring Supabase Auth (which can fail to persist in iframes).
+  if (typeof window !== "undefined") {
+    try {
+      const generated = crypto.randomUUID();
+      try {
+        window.sessionStorage.setItem("iz_dev_user_id", generated);
+      } catch {
+        // ignore
+      }
+      try {
+        window.localStorage.setItem("iz_dev_user_id", generated);
+      } catch {
+        // ignore
+      }
+      return generated;
+    } catch {
+      // ignore
+    }
   }
-  return userId;
+
+  // Last resort: keep existing behavior (explicit failure) when we cannot generate/persist.
+  throw new Error(
+    "❌ BLOCKED: Dev-user id missing.\n" +
+      "Set VITE_DEV_USER_ID (preferred) or in the browser console:\n" +
+      "  sessionStorage.setItem('iz_dev_user_id','<user_uuid>')"
+  );
 }
 
 /**
