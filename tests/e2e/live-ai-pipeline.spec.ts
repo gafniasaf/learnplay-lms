@@ -185,12 +185,38 @@ test.describe('Live AI Pipeline: Course Creation', () => {
         data: { courseId, itemId: 0, prompt: 'A simple kid-friendly illustration for the first question', provider: 'openai-dalle3' },
       });
       expect(enqueueRes.ok()).toBeTruthy();
+      const enqueueMediaJson = await enqueueRes.json().catch(() => null);
+      expect(enqueueMediaJson?.ok).toBeTruthy();
+      const mediaJobId: string = enqueueMediaJson?.mediaJobId;
+      expect(typeof mediaJobId).toBe('string');
 
-      const runRes = await page.request.post(`${url}/functions/v1/media-runner?n=1`, {
-        headers: { 'Content-Type': 'application/json', 'x-agent-token': agentToken },
-        data: {},
-      });
-      expect(runRes.ok()).toBeTruthy();
+      // media-runner processes the next pending job globally; there may be other pending jobs.
+      // Poll until OUR job is done (or failed), invoking the runner in small batches.
+      const mediaStart = Date.now();
+      let mediaStatus: string | null = null;
+      let mediaError: string | null = null;
+      while (Date.now() - mediaStart < 240000) {
+        const runRes = await page.request.post(`${url}/functions/v1/media-runner?n=5`, {
+          headers: { 'Content-Type': 'application/json', 'x-agent-token': agentToken },
+          data: {},
+          timeout: 180000,
+        });
+        expect(runRes.ok()).toBeTruthy();
+
+        const listRes = await page.request.get(`${url}/functions/v1/list-media-jobs?courseId=${encodeURIComponent(courseId)}&limit=50`, {
+          headers: { apikey: anonKey },
+        });
+        expect(listRes.ok()).toBeTruthy();
+        const listJson = await listRes.json().catch(() => null);
+        const jobs: any[] = Array.isArray(listJson?.jobs) ? listJson.jobs : [];
+        const mine = jobs.find((j: any) => j?.id === mediaJobId) || null;
+        mediaStatus = mine?.status ?? null;
+        mediaError = mine?.error ?? null;
+        if (mediaStatus === 'done') break;
+        if (mediaStatus === 'failed') throw new Error(`Media job failed: ${mediaError || 'unknown error'}`);
+        await page.waitForTimeout(3000);
+      }
+      expect(mediaStatus).toBe('done');
 
       const after = await page.request.get(`${url}/functions/v1/get-course?courseId=${encodeURIComponent(courseId)}`, {
         headers: { apikey: anonKey },
