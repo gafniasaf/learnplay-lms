@@ -1,6 +1,9 @@
 import { Client } from 'pg';
 
-const connectionString = "postgresql://postgres.eidcegehaswbtzrwzvfa:D!kkelul123@aws-0-us-east-1.pooler.supabase.com:6543/postgres";
+const connectionString = process.env.SUPABASE_DB_CONNECTION_STRING;
+if (!connectionString) {
+  throw new Error("Missing env: SUPABASE_DB_CONNECTION_STRING");
+}
 
 async function runMigration() {
   const client = new Client({

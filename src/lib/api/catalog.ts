@@ -88,7 +88,7 @@ export async function getCourseCatalog(): Promise<
     }
     log.debug("Cached courses", {
       action: "getCourseCatalog",
-      courseIds: cached.courses.map((c) => c.id),
+      courseIds: (cached.courses ?? []).map((c) => c.id),
     });
 
     // Background revalidation with contentVersion checking (fire-and-forget)
@@ -386,7 +386,7 @@ async function fetchFreshCatalog(
     });
 
     // In LIVE mode, return empty catalog rather than falling back to mock
-    if (!catalog.courses || catalog.courses.length === 0) {
+    if (!catalog.courses || (catalog.courses?.length ?? 0) === 0) {
       if (liveMode) {
         log.warn("API returned 0 courses in LIVE mode", {
           action: "fetchFreshCatalog",
@@ -409,8 +409,8 @@ async function fetchFreshCatalog(
 
     log.info("Loaded courses from API (dataSource: live)", {
       action: "fetchFreshCatalog",
-      count: catalog.courses.length,
-      courseIds: catalog.courses.map((c) => c.id),
+      count: (catalog.courses?.length ?? 0),
+      courseIds: (catalog.courses ?? []).map((c) => c.id),
     });
     return {
       ...catalog,
@@ -532,5 +532,5 @@ export async function fetchCatalog(): Promise<
   Array<{ id: string; title: string }>
 > {
   const catalog = await getCourseCatalog();
-  return catalog.courses.map((c) => ({ id: c.id, title: c.title }));
+  return (catalog.courses ?? []).map((c) => ({ id: c.id, title: c.title }));
 }

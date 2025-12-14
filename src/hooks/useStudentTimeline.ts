@@ -19,7 +19,14 @@ export function useStudentTimeline(
 
   return useQuery({
     queryKey: ['student-timeline', serializedParams],
-    queryFn: () => mcp.getStudentTimeline(params),
+    queryFn: async (): Promise<StudentTimelineResponse> => {
+      const result = await mcp.getStudentTimeline(params);
+      return {
+        events: (result.events ?? []) as StudentTimelineResponse['events'],
+        nextCursor: result.nextCursor ?? null,
+        hasMore: (result as { hasMore?: boolean })?.hasMore ?? false,
+      };
+    },
     enabled: options.enabled !== false,
     staleTime: 60_000,
     refetchOnWindowFocus: false,

@@ -104,14 +104,14 @@ export function filterNav(options: {
   return navSections
     .map((section) => ({
       ...section,
-      items: section.items.filter((item) => {
+      items: (section.items ?? []).filter((item) => {
         // Filter out dev-only items if dev mode not enabled
         if (item.devOnly && !devEnabled) {
           return false;
         }
 
         // If item has role restrictions, check if current role matches
-        if (item.roles && item.roles.length > 0) {
+        if (item.roles && (item.roles?.length ?? 0) > 0) {
           // If no role provided, hide restricted items
           if (!role) {
             return false;
@@ -125,7 +125,7 @@ export function filterNav(options: {
         return true;
       }),
     }))
-    .filter((section) => section.items.length > 0); // Remove empty sections
+    .filter((section) => (section.items?.length ?? 0) > 0); // Remove empty sections
 }
 
 /**

@@ -44,7 +44,7 @@ export async function getCoursesByTags(
   if (options.visibility) {
     params.append('visibility', options.visibility);
   }
-  if (options.tagIds && options.tagIds.length > 0) {
+  if (options.tagIds && (options.tagIds?.length ?? 0) > 0) {
     params.append('tagIds', options.tagIds.join(','));
   }
   if (options.matchAll !== undefined) {

@@ -645,7 +645,7 @@ export function useMCP() {
     try {
       if (useMockMode) {
         console.log('[MCP Mock] createAssignment:', params);
-        return { assignmentIds: params.studentIds.map(id => `assign-${Date.now()}-${id}`), success: true };
+        return { assignmentIds: (params.studentIds ?? []).map(id => `assign-${Date.now()}-${id}`), success: true };
       }
       return await callEdgeFunction<{ assignmentIds: string[]; success: boolean }>('create-assignment', params);
     } finally {
@@ -678,9 +678,9 @@ export function useMCP() {
         return { id: goalId, ...updates, updated_at: new Date().toISOString() };
       }
       // Use direct fetch for PATCH since callEdgeFunction only supports POST
-      const { getAccessToken } = await import("../supabase");
-      const supabaseUrl = (await import("../api/common")).getSupabaseUrl();
-      const anonKey = (await import("../api/common")).getSupabaseAnonKey();
+      const { getAccessToken } = await import("../lib/supabase");
+      const supabaseUrl = (await import("../lib/api/common")).getSupabaseUrl();
+      const anonKey = (await import("../lib/api/common")).getSupabaseAnonKey();
       const token = await getAccessToken();
       const authHeader = token ? `Bearer ${token}` : `Bearer ${anonKey}`;
       const url = `${supabaseUrl}/functions/v1/student-goals/${goalId}`;
@@ -823,7 +823,7 @@ export function useMCP() {
         console.log('[MCP Mock] listClasses');
         return { classes: [] };
       }
-      return await callEdgeFunctionGet<{ classes: unknown[] }>('list-classes');
+      return await callEdgeFunctionGet<{ classes: Array<{ id: string; name: string; description?: string; created_at: string; student_count?: number; class_members?: unknown[] }> }>('list-classes');
     } finally {
       setLoading(false);
     }
@@ -836,7 +836,7 @@ export function useMCP() {
         console.log('[MCP Mock] getClassRoster:', classId);
         return { members: [], pendingInvites: [] };
       }
-      return await callEdgeFunctionGet<{ members: unknown[]; pendingInvites: unknown[] }>(`get-class-roster?classId=${classId}`);
+      return await callEdgeFunctionGet<{ roster: Array<{ user_id: string; email?: string; profiles?: { full_name: string } }>; pendingInvites: unknown[] }>(`get-class-roster?classId=${classId}`);
     } finally {
       setLoading(false);
     }
@@ -1221,7 +1221,7 @@ export function useMCP() {
         console.log('[MCP Mock] listOrgStudents');
         return { students: [] };
       }
-      return await callEdgeFunctionGet<{ students: unknown[] }>('list-org-students');
+      return await callEdgeFunctionGet<{ students: Array<{ id: string; name: string; classIds: string[] }> }>('list-org-students');
     } finally {
       setLoading(false);
     }
@@ -1280,9 +1280,9 @@ export function useMCP() {
       formData.append('file', file);
       formData.append('path', path);
       
-      const { getAccessToken } = await import("../supabase");
-      const supabaseUrl = (await import("../api/common")).getSupabaseUrl();
-      const anonKey = (await import("../api/common")).getSupabaseAnonKey();
+      const { getAccessToken } = await import("../lib/supabase");
+      const supabaseUrl = (await import("../lib/api/common")).getSupabaseUrl();
+      const anonKey = (await import("../lib/api/common")).getSupabaseAnonKey();
       const token = await getAccessToken();
       const authHeader = token ? `Bearer ${token}` : `Bearer ${anonKey}`;
       

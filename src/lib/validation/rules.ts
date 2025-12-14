@@ -126,7 +126,7 @@ export type GoalUpdateInput = z.infer<typeof goalUpdateSchema>;
  * Format Zod validation errors for display
  */
 export function formatValidationError(error: z.ZodError): string {
-  return error.errors.map(e => `${e.path.join('.')}: ${e.message}`).join(', ');
+  return (error.errors ?? []).map(e => `${e.path.join('.')}: ${e.message}`).join(', ');
 }
 
 /**

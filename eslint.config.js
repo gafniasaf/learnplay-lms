@@ -20,6 +20,7 @@ export default tseslint.config(
       "scripts/**",
       "public/**/*.zip",
       "_archive/**",
+      "dawn-react-starter/**", // Reference codebase, not part of IgniteZero
     ],
   },
   {
@@ -83,6 +84,12 @@ export default tseslint.config(
     },
     rules: {
       "@typescript-eslint/no-explicit-any": "off",
+      "@typescript-eslint/ban-ts-comment": "off", // Allow @ts-ignore in MCP handlers
+      "no-empty": "off", // Allow empty catch blocks in MCP handlers
+      "no-useless-escape": "off", // Allow escape characters in regex patterns
+      "ignite-zero/no-direct-supabase-ui": "off", // MCP handlers can access Supabase directly
+      "ignite-zero/no-direct-edge-calls": "off", // MCP handlers can call Edge Functions
+      "react-hooks/rules-of-hooks": "off", // MCP handlers don't use React hooks
     },
   },
 );

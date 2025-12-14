@@ -3,7 +3,7 @@
  * Uses edge functions instead of direct Supabase calls
  */
 
-import { callEdgeFunctionGet, callEdgeFunction, ApiError } from "./common";
+import { callEdgeFunctionGet, callEdgeFunction } from "./common";
 
 // Types
 export interface CourseJob {

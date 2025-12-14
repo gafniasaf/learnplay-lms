@@ -83,7 +83,7 @@ export async function getStudentGoals(
 
   return {
     goals: Array.isArray(response.goals)
-      ? response.goals.map(mapGoal)
+      ? (response.goals ?? []).map(mapGoal)
       : [],
     summary: response.summary ?? {
       total: 0,

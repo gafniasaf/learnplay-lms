@@ -80,8 +80,8 @@ export function useStudentSkills(params: GetStudentSkillsParams): UseStudentSkil
   });
 
   return {
-    skills: data?.skills ?? [],
-    totalCount: data?.totalCount ?? 0,
+    skills: (data as { skills?: MasteryStateWithKO[]; totalCount?: number })?.skills ?? [],
+    totalCount: (data as { totalCount?: number })?.totalCount ?? 0,
     isLoading,
     isError,
     error: error as Error | null,
@@ -117,7 +117,7 @@ export function useDomainGrowth(studentId: string): UseDomainGrowthResult {
   });
 
   return {
-    domains: data ?? [],
+    domains: (data as DomainGrowthSummary[] | undefined) ?? [],
     isLoading,
     isError,
     error: error as Error | null,
@@ -157,7 +157,7 @@ export function useClassKOSummary(params: GetClassKOSummaryParams): UseClassKOSu
   });
 
   return {
-    summaries: data ?? [],
+    summaries: (data as ClassKOSummary[] | undefined) ?? [],
     isLoading,
     isError,
     error: error as Error | null,
@@ -198,7 +198,7 @@ export function useStudentAssignments(
   });
 
   return {
-    assignments: data ?? [],
+    assignments: (data as AssignmentWithDetails[] | undefined) ?? [],
     isLoading,
     isError,
     error: error as Error | null,
@@ -240,7 +240,7 @@ export function useRecommendedCourses(
   });
 
   return {
-    courses: data ?? [],
+    courses: (data as RecommendedCourse[] | undefined) ?? [],
     isLoading,
     isError,
     error: error as Error | null,
@@ -294,7 +294,7 @@ export function useAutoAssignSettings(studentId: string): UseAutoAssignSettingsR
   });
 
   return {
-    settings: data ?? null,
+    settings: (data as AutoAssignSettings | undefined) ?? null,
     isLoading,
     isError,
     error: error as Error | null,
@@ -337,7 +337,10 @@ export function useCreateAssignment(): UseCreateAssignmentResult {
   const queryClient = useQueryClient();
 
   const mutation = useMutation({
-    mutationFn: (params: CreateAssignmentParams) => mcp.createAssignment(params),
+    mutationFn: (params: CreateAssignmentParams) => mcp.createAssignment({
+      ...params,
+      completionCriteria: params.completionCriteria as unknown as Record<string, unknown>,
+    }),
     onSuccess: (_, variables) => {
       // Invalidate assignments for all affected students
       variables.studentIds.forEach((studentId) => {

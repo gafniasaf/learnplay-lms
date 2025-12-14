@@ -54,7 +54,7 @@ export const useGameState = (course: Course | null, initialLevel: number = 1): [
   }, [store.currentItem, store.isComplete]);
 
   // Calculate progress
-  const progress = store.poolSize > 0 ? 1 - store.pool.length / store.poolSize : 0;
+  const progress = store.poolSize > 0 ? 1 - (store.pool?.length ?? 0) / store.poolSize : 0;
 
   const state: GameState = {
     level: store.level,

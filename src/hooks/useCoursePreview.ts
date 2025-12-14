@@ -93,7 +93,7 @@ export function useCoursePreview() {
       updates.forEach((update) => {
         switch (update.type) {
           case 'item_modified':
-            updated.items = updated.items.map(item =>
+            updated.items = (updated.items ?? []).map(item =>
               item.id === parseInt(update.targetId)
                 ? { ...item, ...update.changes }
                 : item
@@ -105,7 +105,7 @@ export function useCoursePreview() {
             break;
 
           case 'item_deleted':
-            updated.items = updated.items.filter(item =>
+            updated.items = (updated.items ?? []).filter(item =>
               item.id !== parseInt(update.targetId)
             );
             break;
@@ -195,13 +195,13 @@ export function useCoursePreview() {
     if (!preview) return null;
 
     return {
-      exerciseCount: preview.items.length,
+      exerciseCount: (preview.items?.length ?? 0),
       studyTextCount: preview.studyTexts?.length || 0,
-      imageCount: preview.items.filter(i => i.stimulus?.type === 'image').length +
+      imageCount: (preview.items ?? []).filter(i => i.stimulus?.type === 'image').length +
                   (preview.studyTexts?.reduce((sum, st) => 
                     sum + (st.content?.match(/\[IMAGE:/g) || []).length, 0) || 0),
-      audioCount: preview.items.filter(i => i.stimulus?.type === 'audio').length,
-      videoCount: preview.items.filter(i => i.stimulus?.type === 'video').length,
+      audioCount: (preview.items ?? []).filter(i => i.stimulus?.type === 'audio').length,
+      videoCount: (preview.items ?? []).filter(i => i.stimulus?.type === 'video').length,
       totalCost: preview.totalCost,
       costBreakdown: preview.costBreakdown,
       isPublishable: preview.publishable,

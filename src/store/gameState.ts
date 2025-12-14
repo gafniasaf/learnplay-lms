@@ -97,13 +97,13 @@ export const useGameStateStore = create<GameState>((set, get) => ({
    */
   initialize: (course: Course, level: number) => {
     // Use course.levels directly from JSON (with fallback if missing)
-    const courseLevels = course.levels && course.levels.length > 0 
+    const courseLevels = course.levels && (course.levels?.length ?? 0) > 0 
       ? course.levels 
       : [{
           id: 1,
           title: "All Content",
           start: 0,
-          end: Math.max(...course.items.map(item => item.groupId), 0),
+          end: Math.max(...(course.items ?? []).map(item => item.groupId), 0),
           description: "Complete course (fallback level)",
         }];
 
@@ -120,7 +120,7 @@ export const useGameStateStore = create<GameState>((set, get) => ({
     }
 
     // Filter items by group range
-    const levelItems = course.items.filter((item) => 
+    const levelItems = (course.items ?? []).filter((item) => 
       allowedGroupIds.has(item.groupId)
     );
 

@@ -332,6 +332,8 @@ async function main() {
 // ------------------------------------------------------------------
 // ⚠️ AUTO-GENERATED FROM system-manifest.json
 // ------------------------------------------------------------------
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { z } from 'zod';
 
 ${entitySchemas}

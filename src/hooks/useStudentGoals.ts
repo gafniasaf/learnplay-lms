@@ -19,7 +19,13 @@ export function useStudentGoals(
 
   return useQuery({
     queryKey: ['student-goals', serializedParams],
-    queryFn: () => mcp.getStudentGoals(params),
+    queryFn: async (): Promise<StudentGoalsResponse> => {
+      const result = await mcp.getStudentGoals(params);
+      return {
+        goals: (result.goals ?? []) as StudentGoalsResponse['goals'],
+        summary: result.summary ?? { total: 0, onTrack: 0, behind: 0, completed: 0 },
+      };
+    },
     enabled: options.enabled !== false,
     staleTime: 60_000,
     refetchOnWindowFocus: false,

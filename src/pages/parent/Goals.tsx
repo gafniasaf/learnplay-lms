@@ -185,7 +185,7 @@ const MOCK_RESPONSE: ParentGoalsResponse = {
 export default function Goals() {
   const { toast } = useToast();
   const [searchParams] = useSearchParams();
-  const mockMode = useMockData();
+  const mockMode = (import.meta as any).env?.VITE_USE_MOCK === 'true';
   const studentIdParam = searchParams.get("studentId") ?? undefined;
 
   const {

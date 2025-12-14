@@ -1,36 +1,26 @@
 /**
  * useJobStatus Hook Tests
- * Tests React hook for real-time job status updates
+ * Tests job status polling and state management
  */
+
+// Mock useMCP before any imports
+jest.mock('@/hooks/useMCP', () => ({
+  useMCP: jest.fn(),
+}));
 
 import { renderHook, waitFor, act } from '@testing-library/react';
 import { useJobStatus } from '@/hooks/useJobStatus';
-import { supabase } from '@/integrations/supabase/client';
-
-// Mock Supabase client
-jest.mock('@/integrations/supabase/client', () => {
-  const mockRemoveChannel = jest.fn();
-  return {
-    supabase: {
-      channel: jest.fn(),
-      removeChannel: mockRemoveChannel,
-      functions: {
-        invoke: jest.fn(),
-      },
-    },
-  };
-});
+import { useMCP } from '@/hooks/useMCP';
 
 describe('useJobStatus', () => {
-  const mockChannel = {
-    on: jest.fn().mockReturnThis(),
-    subscribe: jest.fn(),
-  };
-
+  const mockGetJobStatus = jest.fn();
+  
   beforeEach(() => {
     jest.clearAllMocks();
-    (supabase.channel as jest.Mock).mockReturnValue(mockChannel);
     jest.useFakeTimers();
+    (useMCP as jest.Mock).mockReturnValue({
+      getJobStatus: mockGetJobStatus,
+    });
   });
 
   afterEach(() => {
@@ -40,180 +30,206 @@ describe('useJobStatus', () => {
   it('returns null status when jobId is null', () => {
     const { result } = renderHook(() => useJobStatus(null));
     expect(result.current.status).toBeNull();
-    expect(supabase.channel).not.toHaveBeenCalled();
+    expect(mockGetJobStatus).not.toHaveBeenCalled();
   });
 
-  it('subscribes to job_events channel when jobId is provided', () => {
-    renderHook(() => useJobStatus('job-123'));
-
-    expect(supabase.channel).toHaveBeenCalledWith('job_events:job-123');
-    expect(mockChannel.on).toHaveBeenCalledWith(
-      'postgres_changes',
-      expect.objectContaining({
-        event: 'INSERT',
-        schema: 'public',
-        table: 'job_events',
-        filter: 'job_id=eq.job-123',
-      }),
-      expect.any(Function)
-    );
-    expect(mockChannel.subscribe).toHaveBeenCalled();
-  });
-
-  it('updates status when receiving job event', () => {
-    const { result } = renderHook(() => useJobStatus('job-123'));
-
-    // Get the callback passed to channel.on
-    const callback = (mockChannel.on as jest.Mock).mock.calls[0][2];
-
-    // Simulate job event wrapped in act
-    act(() => {
-      callback({
-        new: {
-          step: 'generating',
-          status: 'processing',
-          progress: 50,
-          message: 'Generating course content',
-          created_at: '2025-01-15T10:00:00Z',
-        },
-      });
-    });
-
-    expect(result.current.status).toEqual({
-      jobId: 'job-123',
-      state: 'processing',
+  it('polls for job status when jobId is provided', async () => {
+    mockGetJobStatus.mockResolvedValue({
+      state: 'running',
       step: 'generating',
       progress: 50,
       message: 'Generating course content',
-      lastEventTime: '2025-01-15T10:00:00Z',
     });
-  });
 
-  it('ignores heartbeat events for step', () => {
     const { result } = renderHook(() => useJobStatus('job-123'));
 
-    const callback = (mockChannel.on as jest.Mock).mock.calls[0][2];
-
-    // First event sets step
-    act(() => {
-      callback({
-        new: {
-          step: 'generating',
-          status: 'processing',
-          progress: 30,
-        },
-      });
+    await waitFor(() => {
+      expect(mockGetJobStatus).toHaveBeenCalledWith('job-123');
     });
 
-    expect(result.current.status?.step).toBe('generating');
-
-    // Heartbeat event should not change step
-    act(() => {
-      callback({
-        new: {
-          step: 'heartbeat',
-          status: 'processing',
-          progress: 40,
-        },
+    await waitFor(() => {
+      expect(result.current.status).toEqual({
+        jobId: 'job-123',
+        state: 'running',
+        step: 'generating',
+        progress: 50,
+        message: 'Generating course content',
+        lastEventTime: expect.any(String),
       });
     });
-
-    expect(result.current.status?.step).toBe('generating'); // Unchanged
-    expect(result.current.status?.progress).toBe(40); // But progress updates
   });
 
-  it('polls job status when no events received in 15s', async () => {
-    const mockInvoke = supabase.functions.invoke as jest.Mock;
-    mockInvoke.mockResolvedValue({
-      data: {
-        jobId: 'job-123',
-        state: 'processing',
-        step: 'validating',
-        progress: 60,
-      },
+  it('continues polling while job is in progress', async () => {
+    mockGetJobStatus.mockResolvedValue({
+      state: 'running',
+      step: 'generating',
+      progress: 30,
     });
 
     renderHook(() => useJobStatus('job-123'));
 
-    // Advance time past 15s threshold
-    jest.advanceTimersByTime(16000);
+    // Wait for initial poll
+    await waitFor(() => {
+      expect(mockGetJobStatus).toHaveBeenCalled();
+    });
+
+    const initialCallCount = mockGetJobStatus.mock.calls.length;
+
+    // Advance time to trigger next poll
+    await act(async () => {
+      jest.advanceTimersByTime(2000);
+    });
 
     await waitFor(() => {
-      expect(mockInvoke).toHaveBeenCalledWith('job-status', {
-        body: { jobId: 'job-123' },
-      });
+      // Verify at least one additional poll occurred
+      expect(mockGetJobStatus.mock.calls.length).toBeGreaterThan(initialCallCount);
     });
   });
 
-  it('does not poll if events received recently', () => {
-    const mockInvoke = supabase.functions.invoke as jest.Mock;
+  it('stops polling when job is done', async () => {
+    mockGetJobStatus.mockResolvedValue({
+      state: 'done',
+      step: 'complete',
+      progress: 100,
+    });
+
     const { result } = renderHook(() => useJobStatus('job-123'));
 
-    const callback = (mockChannel.on as jest.Mock).mock.calls[0][2];
-
-    // Receive event
-    act(() => {
-      callback({
-        new: {
-          step: 'generating',
-          status: 'processing',
-          progress: 50,
-          created_at: new Date().toISOString(),
-        },
-      });
+    await waitFor(() => {
+      expect(result.current.status?.state).toBe('done');
     });
 
-    // Advance time but not past 15s
-    act(() => {
-      jest.advanceTimersByTime(10000);
+    const callCountAfterDone = mockGetJobStatus.mock.calls.length;
+
+    // Advance time - should not poll again
+    await act(async () => {
+      jest.advanceTimersByTime(5000);
     });
 
-    // Should not poll yet
-    expect(mockInvoke).not.toHaveBeenCalled();
+    expect(mockGetJobStatus.mock.calls.length).toBe(callCountAfterDone);
   });
 
-  it('handles missing fields in job event gracefully', () => {
+  it('stops polling when job has failed', async () => {
+    mockGetJobStatus.mockResolvedValue({
+      state: 'failed',
+      step: 'error',
+      progress: 0,
+      message: 'Generation failed',
+    });
+
     const { result } = renderHook(() => useJobStatus('job-123'));
 
-    const callback = (mockChannel.on as jest.Mock).mock.calls[0][2];
-
-    act(() => {
-      callback({
-        new: {
-          // Minimal event
-          step: 'done',
-        },
-      });
+    await waitFor(() => {
+      expect(result.current.status?.state).toBe('failed');
     });
 
-    expect(result.current.status).toMatchObject({
-      jobId: 'job-123',
-      step: 'done',
-      progress: 10, // Default progress
-      message: '', // Default message
+    const callCountAfterFail = mockGetJobStatus.mock.calls.length;
+
+    // Advance time - should not poll again
+    await act(async () => {
+      jest.advanceTimersByTime(5000);
     });
+
+    expect(mockGetJobStatus.mock.calls.length).toBe(callCountAfterFail);
   });
 
-  it('cleans up subscription on unmount', () => {
+  it('handles poll errors gracefully', async () => {
+    const consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation();
+    mockGetJobStatus.mockRejectedValue(new Error('Network error'));
+
+    renderHook(() => useJobStatus('job-123'));
+
+    await waitFor(() => {
+      expect(consoleWarnSpy).toHaveBeenCalledWith(
+        '[useJobStatus] poll error',
+        'job-123',
+        expect.any(Error)
+      );
+    });
+
+    consoleWarnSpy.mockRestore();
+  });
+
+  it('cancels polling on unmount', async () => {
+    mockGetJobStatus.mockResolvedValue({
+      state: 'running',
+      step: 'generating',
+      progress: 50,
+    });
+
     const { unmount } = renderHook(() => useJobStatus('job-123'));
 
-    // Verify channel was created
-    expect(supabase.channel).toHaveBeenCalled();
+    await waitFor(() => {
+      expect(mockGetJobStatus).toHaveBeenCalledTimes(1);
+    });
 
     unmount();
 
-    // Verify removeChannel was called (with any channel instance)
-    expect(supabase.removeChannel).toHaveBeenCalled();
+    // Advance time - polling should be cancelled
+    await act(async () => {
+      jest.advanceTimersByTime(5000);
+    });
+
+    // Should not have polled after unmount
+    expect(mockGetJobStatus.mock.calls.length).toBe(1);
   });
 
-  it('cleans up polling timeout on unmount', () => {
-    const { unmount } = renderHook(() => useJobStatus('job-123'));
+  it('resets status when jobId changes to null', async () => {
+    mockGetJobStatus.mockResolvedValue({
+      state: 'running',
+      step: 'generating',
+      progress: 50,
+    });
 
-    const timeoutId = setTimeout(() => {}, 10000);
-    unmount();
+    const { result, rerender } = renderHook(
+      ({ jobId }) => useJobStatus(jobId),
+      { initialProps: { jobId: 'job-123' as string | null } }
+    );
 
-    // Timeout should be cleared (no error thrown)
-    expect(() => clearTimeout(timeoutId)).not.toThrow();
+    await waitFor(() => {
+      expect(result.current.status?.jobId).toBe('job-123');
+    });
+
+    rerender({ jobId: null });
+
+    await waitFor(() => {
+      expect(result.current.status).toBeNull();
+    });
+  });
+
+  it('handles missing data in response', async () => {
+    mockGetJobStatus.mockResolvedValue(null);
+
+    const { result } = renderHook(() => useJobStatus('job-123'));
+
+    // Wait for poll attempt
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    // Status should remain null when response has no data
+    expect(result.current.status).toBeNull();
+  });
+
+  it('stops polling on dead_letter state', async () => {
+    mockGetJobStatus.mockResolvedValue({
+      state: 'dead_letter',
+      step: 'error',
+      progress: 0,
+    });
+
+    const { result } = renderHook(() => useJobStatus('job-123'));
+
+    await waitFor(() => {
+      expect(result.current.status?.state).toBe('dead_letter');
+    });
+
+    const callCountAfterDeadLetter = mockGetJobStatus.mock.calls.length;
+
+    await act(async () => {
+      jest.advanceTimersByTime(5000);
+    });
+
+    expect(mockGetJobStatus.mock.calls.length).toBe(callCountAfterDeadLetter);
   });
 });
-

@@ -384,7 +384,7 @@ class EventBatchQueue {
         this.queue = JSON.parse(stored);
         log.debug("Loaded events from storage", {
           action: "eventQueue.loadFromStorage",
-          count: this.queue.length,
+          count: (this.queue?.length ?? 0),
         });
       }
     } catch (err) {
@@ -416,7 +416,7 @@ class EventBatchQueue {
     this.saveToStorage();
 
     // Auto-flush if batch size reached
-    if (this.queue.length >= this.BATCH_SIZE) {
+    if ((this.queue?.length ?? 0) >= this.BATCH_SIZE) {
       this.flush();
     } else {
       // Schedule flush
@@ -446,7 +446,7 @@ class EventBatchQueue {
       this.flushTimer = null;
     }
 
-    if (this.queue.length === 0) {
+    if ((this.queue?.length ?? 0) === 0) {
       return;
     }
 
@@ -517,7 +517,7 @@ class EventBatchQueue {
    * Synchronous flush (for beforeunload)
    */
   flushSync() {
-    if (this.queue.length === 0) {
+    if ((this.queue?.length ?? 0) === 0) {
       return;
     }
 
@@ -525,7 +525,7 @@ class EventBatchQueue {
     this.saveToStorage();
     log.debug("Saved events for next session", {
       action: "eventQueue.flushSync",
-      count: this.queue.length,
+      count: (this.queue?.length ?? 0),
     });
   }
 }

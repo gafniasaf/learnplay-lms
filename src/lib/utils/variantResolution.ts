@@ -96,14 +96,14 @@ export function resolveItemContent(
   if (item.mode !== 'numeric' && item.options) {
     if (Array.isArray(item.options) && typeof item.options[0] === 'string') {
       // Legacy format: string array
-      options = item.options.map((text: string, index: number) => ({
+      options = (item.options ?? []).map((text: string, index: number) => ({
         id: index.toString(),
         text,
         media: item.optionMedia?.[index] ? [item.optionMedia[index]] : undefined,
       }));
     } else if (Array.isArray(item.options) && item.options[0]?.variants) {
       // New format: array of objects with variants
-      options = item.options.map((option: any) => {
+      options = (item.options ?? []).map((option: any) => {
         const text = resolveVariant(option.variants, userLevel, defaultLevel) || '';
         const media = option.media?.variants
           ? resolveVariant(option.media.variants, userLevel, defaultLevel)

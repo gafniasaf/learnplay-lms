@@ -34,15 +34,15 @@ export interface ParentTopicsResponse {
   message?: string | null;
 }
 
-// Dev bypass child ID (seeded in database)
-const DEV_CHILD_ID = "b2ed7195-4202-405b-85e4-608944a27837";
-
 export async function getParentTopics(
   params: ParentTopicsParams
 ): Promise<ParentTopicsResponse> {
-  const studentId = params.studentId || DEV_CHILD_ID;
+  if (!params.studentId) {
+    throw new Error("studentId is required - no fallback allowed per IgniteZero rules");
+  }
+  
   const queryParams: Record<string, string> = {
-    childId: studentId,
+    childId: params.studentId,
   };
 
   if (params.subject) {

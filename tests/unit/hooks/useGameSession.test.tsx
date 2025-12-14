@@ -1,331 +1,452 @@
 /**
  * Tests for useGameSession hook
- * Tests session state, answer handling, progress tracking
+ * Tests game round management, answer submission, and scoring
  */
 
 // Mock dependencies BEFORE imports
 jest.mock('@/hooks/useMCP', () => ({
   useMCP: jest.fn(),
 }));
-jest.mock('@/store/gameState', () => ({
-  useGameStateStore: jest.fn(),
+
+jest.mock('@/lib/offlineQueue', () => ({
+  enqueueAttempt: jest.fn(),
+  flushAttempts: jest.fn(),
+  setupAutoFlush: jest.fn(() => jest.fn()),
 }));
 
 import { renderHook, act, waitFor } from '@testing-library/react';
 import { useGameSession } from '@/hooks/useGameSession';
 import { useMCP } from '@/hooks/useMCP';
-import { useGameStateStore } from '@/store/gameState';
+import { enqueueAttempt, flushAttempts, setupAutoFlush } from '@/lib/offlineQueue';
 
-const mockMCP = {
+const createMockMCP = () => ({
+  startGameRound: jest.fn(),
+  logGameAttempt: jest.fn(),
   getRecord: jest.fn(),
   saveRecord: jest.fn(),
-};
-
-// Create a mock store that returns values dynamically
-const createMockGameStore = () => ({
-  initialize: jest.fn(),
-  processAnswer: jest.fn(),
-  advanceToNext: jest.fn(),
-  reset: jest.fn(),
-  incrementTime: jest.fn(),
-  currentItem: null,
-  score: 0,
-  mistakes: 0,
-  elapsedTime: 0,
-  isComplete: false,
-  pool: [],
-  poolSize: 0,
 });
 
-let mockGameStore = createMockGameStore();
+let mockMCP: ReturnType<typeof createMockMCP>;
 
 beforeEach(() => {
   jest.clearAllMocks();
-  mockGameStore = createMockGameStore();
+  mockMCP = createMockMCP();
   (useMCP as jest.Mock).mockReturnValue(mockMCP);
-  (useGameStateStore as jest.Mock).mockReturnValue(mockGameStore);
+  
+  // Mock navigator.onLine
+  Object.defineProperty(navigator, 'onLine', {
+    value: true,
+    writable: true,
+    configurable: true,
+  });
 });
 
 describe('useGameSession', () => {
-  const mockCourse = {
-    id: 'course-123',
-    title: 'Test Course',
-    levels: [{ id: 1, start: 1, end: 10 }],
-    groups: [{ id: 1, name: 'Group 1' }],
-    items: [],
+  const defaultOptions = {
+    courseId: 'course-123',
+    level: 1,
+    assignmentId: 'assignment-456',
+    contentVersion: 'v1',
   };
 
-  it('loads course on mount', async () => {
-    mockMCP.getRecord.mockResolvedValue({ record: mockCourse });
-    mockMCP.saveRecord.mockResolvedValue({ id: 'session-123' });
+  describe('initialization', () => {
+    it('initializes with default state when autoStart is false', () => {
+      const { result } = renderHook(() =>
+        useGameSession({ ...defaultOptions, autoStart: false })
+      );
 
-    const { result } = renderHook(() =>
-      useGameSession({ courseId: 'course-123', autoStart: false })
-    );
-
-    await waitFor(() => {
+      expect(result.current.sessionId).toBeNull();
+      expect(result.current.roundId).toBeNull();
+      expect(result.current.score).toBe(0);
+      expect(result.current.mistakes).toBe(0);
+      expect(result.current.accuracy).toBe(0);
+      expect(result.current.isActive).toBe(false);
       expect(result.current.isLoading).toBe(false);
+      expect(result.current.error).toBeNull();
     });
 
-    expect(mockMCP.getRecord).toHaveBeenCalledWith('course-blueprint', 'course-123');
-    expect(result.current.course).toEqual(mockCourse);
-    expect(result.current.sessionId).toBeTruthy();
-  });
+    it('sets up auto-flush on mount', () => {
+      renderHook(() =>
+        useGameSession({ ...defaultOptions, autoStart: false })
+      );
 
-  it('initializes game store when autoStart is true', async () => {
-    mockMCP.getRecord.mockResolvedValue({ record: mockCourse });
-    mockMCP.saveRecord.mockResolvedValue({ id: 'session-123' });
-
-    renderHook(() =>
-      useGameSession({ courseId: 'course-123', autoStart: true, level: 1 })
-    );
-
-    await waitFor(() => {
-      expect(mockGameStore.initialize).toHaveBeenCalledWith(mockCourse, 1);
-    });
-  });
-
-  it('handles course not found error', async () => {
-    mockMCP.getRecord.mockResolvedValue({ record: null });
-
-    const { result } = renderHook(() =>
-      useGameSession({ courseId: 'course-123', autoStart: false })
-    );
-
-    await waitFor(() => {
-      expect(result.current.isLoading).toBe(false);
+      expect(setupAutoFlush).toHaveBeenCalledWith(expect.any(Function));
     });
 
-    expect(result.current.error).toContain('not found');
-    expect(result.current.course).toBeNull();
-  });
+    it('flushes attempts on mount when online', () => {
+      renderHook(() =>
+        useGameSession({ ...defaultOptions, autoStart: false })
+      );
 
-  it('handles load errors gracefully', async () => {
-    mockMCP.getRecord.mockRejectedValue(new Error('Network error'));
-
-    const { result } = renderHook(() =>
-      useGameSession({ courseId: 'course-123', autoStart: false })
-    );
-
-    await waitFor(() => {
-      expect(result.current.isLoading).toBe(false);
+      expect(flushAttempts).toHaveBeenCalledWith(expect.any(Function));
     });
 
-    expect(result.current.error).toBe('Network error');
-    expect(result.current.course).toBeNull();
-  });
+    it('does not flush attempts when offline', () => {
+      Object.defineProperty(navigator, 'onLine', { value: false });
 
-  it('startGame initializes store with course', async () => {
-    mockMCP.getRecord.mockResolvedValue({ record: mockCourse });
-    mockMCP.saveRecord.mockResolvedValue({ id: 'session-123' });
+      renderHook(() =>
+        useGameSession({ ...defaultOptions, autoStart: false })
+      );
 
-    const { result } = renderHook(() =>
-      useGameSession({ courseId: 'course-123', autoStart: false })
-    );
-
-    await waitFor(() => {
-      expect(result.current.course).toBeTruthy();
-    });
-
-    act(() => {
-      result.current.startGame(2);
-    });
-
-    expect(mockGameStore.initialize).toHaveBeenCalledWith(mockCourse, 2);
-  });
-
-  it('startGame warns when course not loaded', async () => {
-    const consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation();
-    mockMCP.getRecord.mockResolvedValue({ record: null });
-
-    const { result } = renderHook(() =>
-      useGameSession({ courseId: 'course-123', autoStart: false })
-    );
-
-    await waitFor(() => {
-      expect(result.current.course).toBeNull();
-    });
-
-    act(() => {
-      result.current.startGame();
-    });
-
-    expect(consoleWarnSpy).toHaveBeenCalledWith(
-      '[useGameSession] Cannot start game: course not loaded'
-    );
-
-    consoleWarnSpy.mockRestore();
-  });
-
-  it('saveResults saves session results', async () => {
-    mockMCP.getRecord.mockResolvedValue({ record: mockCourse });
-    mockMCP.saveRecord.mockResolvedValue({ id: 'session-123' });
-
-    const storeWithResults = createMockGameStore();
-    // score represents number of correct answers for accuracy calculation
-    // With 10 items total and 2 mistakes, 8 are correct
-    storeWithResults.score = 8; // 8 correct answers
-    storeWithResults.mistakes = 2;
-    storeWithResults.elapsedTime = 120;
-    storeWithResults.poolSize = 10;
-    storeWithResults.isComplete = true;
-    (useGameStateStore as jest.Mock).mockReturnValue(storeWithResults);
-
-    const { result } = renderHook(() =>
-      useGameSession({ courseId: 'course-123', autoStart: false })
-    );
-
-    await waitFor(() => {
-      expect(result.current.sessionId).toBeTruthy();
-    });
-
-    await act(async () => {
-      await result.current.saveResults();
-    });
-
-    // saveRecord is called twice: once to create session, once to save results
-    // Check the last call (completion data)
-    const calls = mockMCP.saveRecord.mock.calls;
-    const lastCall = calls[calls.length - 1];
-    expect(lastCall[0]).toBe('session-event');
-    expect(lastCall[1]).toMatchObject({
-      id: 'session-123',
-      completed_at: expect.any(String),
-      status: 'completed',
-      score: 8, // number of correct answers
-      mistakes: 2,
-      elapsed_seconds: 120,
-      total_items: 10,
-      accuracy: 80, // (8/10)*100 = 80%
+      expect(flushAttempts).not.toHaveBeenCalled();
     });
   });
 
-  it('saveResults warns when no session ID', async () => {
-    mockMCP.getRecord.mockResolvedValue({ record: mockCourse });
-    mockMCP.saveRecord.mockResolvedValue({ id: null });
+  describe('startRound', () => {
+    it('starts round automatically when autoStart is true', async () => {
+      mockMCP.startGameRound.mockResolvedValue({
+        sessionId: 'session-123',
+        roundId: 'round-456',
+      });
 
-    const { result } = renderHook(() =>
-      useGameSession({ courseId: 'course-123', autoStart: false })
-    );
+      renderHook(() => useGameSession({ ...defaultOptions, autoStart: true }));
 
-    await waitFor(() => {
-      expect(result.current.sessionId).toBeTruthy();
+      await waitFor(() => {
+        expect(mockMCP.startGameRound).toHaveBeenCalledWith(
+          'course-123',
+          1,
+          'assignment-456',
+          'v1'
+        );
+      });
     });
 
-    // Manually set sessionId to null to test warning
-    const consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation();
+    it('does not auto-start when autoStart is false', async () => {
+      renderHook(() =>
+        useGameSession({ ...defaultOptions, autoStart: false })
+      );
 
-    // Mock the state to have null sessionId
-    mockMCP.saveRecord.mockResolvedValue({ id: null });
+      // Wait a bit to ensure no call is made
+      await act(async () => {
+        await new Promise(resolve => setTimeout(resolve, 50));
+      });
 
-    await act(async () => {
-      // This will trigger the warning path if sessionId is null
-      await result.current.saveResults();
+      expect(mockMCP.startGameRound).not.toHaveBeenCalled();
     });
 
-    // Should still attempt to save (implementation may vary)
-    expect(mockMCP.saveRecord).toHaveBeenCalled();
+    it('updates state on successful round start', async () => {
+      mockMCP.startGameRound.mockResolvedValue({
+        sessionId: 'session-123',
+        roundId: 'round-456',
+      });
 
-    consoleWarnSpy.mockRestore();
+      const { result } = renderHook(() =>
+        useGameSession({ ...defaultOptions, autoStart: true })
+      );
+
+      await waitFor(() => {
+        expect(result.current.sessionId).toBe('session-123');
+        expect(result.current.roundId).toBe('round-456');
+        expect(result.current.isActive).toBe(true);
+        expect(result.current.isLoading).toBe(false);
+      });
+    });
+
+    it('sets error on failed round start', async () => {
+      mockMCP.startGameRound.mockRejectedValue(new Error('Network error'));
+
+      const { result } = renderHook(() =>
+        useGameSession({ ...defaultOptions, autoStart: true })
+      );
+
+      await waitFor(() => {
+        expect(result.current.error).toBe('Network error');
+        expect(result.current.isLoading).toBe(false);
+      });
+    });
+
+    it('handles non-Error exceptions', async () => {
+      mockMCP.startGameRound.mockRejectedValue('String error');
+
+      const { result } = renderHook(() =>
+        useGameSession({ ...defaultOptions, autoStart: true })
+      );
+
+      await waitFor(() => {
+        expect(result.current.error).toBe('Failed to start game round');
+      });
+    });
+
+    it('can manually start round', async () => {
+      mockMCP.startGameRound.mockResolvedValue({
+        sessionId: 'session-123',
+        roundId: 'round-456',
+      });
+
+      const { result } = renderHook(() =>
+        useGameSession({ ...defaultOptions, autoStart: false })
+      );
+
+      await act(async () => {
+        await result.current.startRound();
+      });
+
+      expect(result.current.sessionId).toBe('session-123');
+      expect(result.current.roundId).toBe('round-456');
+      expect(result.current.isActive).toBe(true);
+    });
   });
 
-  it('logAttempt logs individual attempts', async () => {
-    mockMCP.getRecord.mockResolvedValue({ record: mockCourse });
-    mockMCP.saveRecord.mockResolvedValue({ id: 'session-123' });
-
-    const { result } = renderHook(() =>
-      useGameSession({ courseId: 'course-123', autoStart: false })
-    );
-
-    await waitFor(() => {
-      expect(result.current.sessionId).toBeTruthy();
+  describe('submitAnswer', () => {
+    beforeEach(async () => {
+      mockMCP.startGameRound.mockResolvedValue({
+        sessionId: 'session-123',
+        roundId: 'round-456',
+      });
     });
 
-    await act(async () => {
-      await result.current.logAttempt(1, 0, true);
+    it('updates score on correct answer', async () => {
+      const { result } = renderHook(() =>
+        useGameSession({ ...defaultOptions, autoStart: true })
+      );
+
+      await waitFor(() => {
+        expect(result.current.roundId).toBe('round-456');
+      });
+
+      await act(async () => {
+        await result.current.submitAnswer(1, true, 500);
+      });
+
+      expect(result.current.score).toBe(1);
+      expect(result.current.mistakes).toBe(0);
+      expect(result.current.accuracy).toBe(100);
     });
 
-    expect(mockMCP.saveRecord).toHaveBeenCalledWith('session-event', {
-      parent_session_id: 'session-123',
-      type: 'attempt',
-      item_id: 1,
-      selected_index: 0,
-      is_correct: true,
-      timestamp: expect.any(String),
+    it('updates mistakes on incorrect answer', async () => {
+      const { result } = renderHook(() =>
+        useGameSession({ ...defaultOptions, autoStart: true })
+      );
+
+      await waitFor(() => {
+        expect(result.current.roundId).toBe('round-456');
+      });
+
+      await act(async () => {
+        await result.current.submitAnswer(1, false, 500);
+      });
+
+      expect(result.current.score).toBe(0);
+      expect(result.current.mistakes).toBe(1);
+      expect(result.current.accuracy).toBe(0);
+    });
+
+    it('calculates accuracy correctly', async () => {
+      const { result } = renderHook(() =>
+        useGameSession({ ...defaultOptions, autoStart: true })
+      );
+
+      await waitFor(() => {
+        expect(result.current.roundId).toBe('round-456');
+      });
+
+      // 3 correct, 1 wrong = 75% accuracy
+      await act(async () => {
+        await result.current.submitAnswer(1, true, 500);
+        await result.current.submitAnswer(2, true, 500);
+        await result.current.submitAnswer(3, false, 500);
+        await result.current.submitAnswer(4, true, 500);
+      });
+
+      expect(result.current.score).toBe(3);
+      expect(result.current.mistakes).toBe(1);
+      expect(result.current.accuracy).toBe(75);
+    });
+
+    it('logs attempt via MCP when online', async () => {
+      const { result } = renderHook(() =>
+        useGameSession({ ...defaultOptions, autoStart: true })
+      );
+
+      await waitFor(() => {
+        expect(result.current.roundId).toBe('round-456');
+      });
+
+      await act(async () => {
+        await result.current.submitAnswer(1, true, 500, 0, 'item-key');
+      });
+
+      expect(mockMCP.logGameAttempt).toHaveBeenCalledWith(
+        'round-456',
+        1,
+        true,
+        500,
+        false,
+        0,
+        'item-key',
+        expect.any(String)
+      );
+    });
+
+    it('queues attempt when offline', async () => {
+      Object.defineProperty(navigator, 'onLine', { value: false });
+
+      const { result } = renderHook(() =>
+        useGameSession({ ...defaultOptions, autoStart: true })
+      );
+
+      await waitFor(() => {
+        expect(result.current.roundId).toBe('round-456');
+      });
+
+      await act(async () => {
+        await result.current.submitAnswer(1, true, 500, 0, 'item-key');
+      });
+
+      expect(enqueueAttempt).toHaveBeenCalledWith({
+        roundId: 'round-456',
+        itemId: 1,
+        isCorrect: true,
+        latencyMs: 500,
+        finalize: false,
+        selectedIndex: 0,
+        itemKey: 'item-key',
+      });
+    });
+
+    it('queues attempt on MCP error', async () => {
+      mockMCP.logGameAttempt.mockRejectedValue(new Error('Network error'));
+
+      const { result } = renderHook(() =>
+        useGameSession({ ...defaultOptions, autoStart: true })
+      );
+
+      await waitFor(() => {
+        expect(result.current.roundId).toBe('round-456');
+      });
+
+      await act(async () => {
+        await result.current.submitAnswer(1, true, 500);
+      });
+
+      expect(enqueueAttempt).toHaveBeenCalled();
+    });
+
+    it('does nothing when round not started', async () => {
+      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
+
+      const { result } = renderHook(() =>
+        useGameSession({ ...defaultOptions, autoStart: false })
+      );
+
+      await act(async () => {
+        await result.current.submitAnswer(1, true, 500);
+      });
+
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        '[useGameSession] Cannot submit answer: round not started'
+      );
+      expect(mockMCP.logGameAttempt).not.toHaveBeenCalled();
+
+      consoleErrorSpy.mockRestore();
     });
   });
 
-  it('logAttempt does nothing when no session ID', async () => {
-    mockMCP.getRecord.mockResolvedValue({ record: mockCourse });
-    mockMCP.saveRecord.mockResolvedValue({ id: null });
-
-    const { result } = renderHook(() =>
-      useGameSession({ courseId: 'course-123', autoStart: false })
-    );
-
-    await waitFor(() => {
-      expect(result.current.sessionId).toBeTruthy();
+  describe('endRound', () => {
+    beforeEach(async () => {
+      mockMCP.startGameRound.mockResolvedValue({
+        sessionId: 'session-123',
+        roundId: 'round-456',
+      });
     });
 
-    const saveCallCount = mockMCP.saveRecord.mock.calls.length;
+    it('finalizes round and updates state', async () => {
+      mockMCP.logGameAttempt.mockResolvedValue({
+        final: { finalScore: 8 },
+      });
 
-    await act(async () => {
-      await result.current.logAttempt(1, 0, true);
+      const { result } = renderHook(() =>
+        useGameSession({ ...defaultOptions, autoStart: true })
+      );
+
+      await waitFor(() => {
+        expect(result.current.roundId).toBe('round-456');
+      });
+
+      await act(async () => {
+        await result.current.endRound();
+      });
+
+      expect(mockMCP.logGameAttempt).toHaveBeenCalledWith(
+        'round-456',
+        0,
+        false,
+        0,
+        true
+      );
+      expect(result.current.isActive).toBe(false);
+      expect(result.current.score).toBe(8);
     });
 
-    // Should not add additional save calls if sessionId is null
-    // (Implementation may vary - this tests the guard clause)
-    expect(mockMCP.saveRecord.mock.calls.length).toBeGreaterThanOrEqual(saveCallCount);
+    it('handles error when ending round', async () => {
+      mockMCP.logGameAttempt.mockRejectedValue(new Error('Finalize failed'));
+
+      const { result } = renderHook(() =>
+        useGameSession({ ...defaultOptions, autoStart: true })
+      );
+
+      await waitFor(() => {
+        expect(result.current.roundId).toBe('round-456');
+      });
+
+      await act(async () => {
+        await result.current.endRound();
+      });
+
+      expect(result.current.isActive).toBe(false);
+      expect(result.current.error).toBe('Finalize failed');
+    });
+
+    it('handles non-Error exceptions when ending round', async () => {
+      mockMCP.logGameAttempt.mockRejectedValue('String error');
+
+      const { result } = renderHook(() =>
+        useGameSession({ ...defaultOptions, autoStart: true })
+      );
+
+      await waitFor(() => {
+        expect(result.current.roundId).toBe('round-456');
+      });
+
+      await act(async () => {
+        await result.current.endRound();
+      });
+
+      expect(result.current.error).toBe('Failed to end round');
+    });
+
+    it('does nothing when round not started', async () => {
+      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
+
+      const { result } = renderHook(() =>
+        useGameSession({ ...defaultOptions, autoStart: false })
+      );
+
+      await act(async () => {
+        await result.current.endRound();
+      });
+
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        '[useGameSession] Cannot end round: round not started'
+      );
+      expect(mockMCP.logGameAttempt).not.toHaveBeenCalled();
+
+      consoleErrorSpy.mockRestore();
+    });
   });
 
-  it('returns game state from store', async () => {
-    const storeWithState = createMockGameStore();
-    storeWithState.currentItem = { id: 1 } as any;
-    storeWithState.score = 50;
-    storeWithState.mistakes = 1;
-    storeWithState.elapsedTime = 60;
-    storeWithState.isComplete = false;
-    storeWithState.pool = [1, 2, 3] as any;
-    storeWithState.poolSize = 10;
-    (useGameStateStore as jest.Mock).mockReturnValue(storeWithState);
+  describe('cleanup', () => {
+    it('cleans up auto-flush on unmount', () => {
+      const cleanupFn = jest.fn();
+      (setupAutoFlush as jest.Mock).mockReturnValue(cleanupFn);
 
-    mockMCP.getRecord.mockResolvedValue({ record: mockCourse });
-    mockMCP.saveRecord.mockResolvedValue({ id: 'session-123' });
+      const { unmount } = renderHook(() =>
+        useGameSession({ ...defaultOptions, autoStart: false })
+      );
 
-    const { result } = renderHook(() =>
-      useGameSession({ courseId: 'course-123', autoStart: false })
-    );
+      unmount();
 
-    await waitFor(() => {
-      expect(result.current.course).toBeTruthy();
+      expect(cleanupFn).toHaveBeenCalled();
     });
-
-    expect(result.current.currentItem).toEqual({ id: 1 });
-    expect(result.current.score).toBe(50);
-    expect(result.current.mistakes).toBe(1);
-    expect(result.current.elapsedTime).toBe(60);
-    expect(result.current.isComplete).toBe(false);
-    expect(result.current.remainingItems).toBe(3);
-    expect(result.current.totalItems).toBe(10);
-    expect(result.current.progress).toBe(70); // (10 - 3) / 10 * 100
-  });
-
-  it('exposes store actions', async () => {
-    mockMCP.getRecord.mockResolvedValue({ record: mockCourse });
-    mockMCP.saveRecord.mockResolvedValue({ id: 'session-123' });
-
-    const { result } = renderHook(() =>
-      useGameSession({ courseId: 'course-123', autoStart: false })
-    );
-
-    await waitFor(() => {
-      expect(result.current.course).toBeTruthy();
-    });
-
-    expect(result.current.processAnswer).toBe(mockGameStore.processAnswer);
-    expect(result.current.advanceToNext).toBe(mockGameStore.advanceToNext);
-    expect(result.current.reset).toBe(mockGameStore.reset);
-    expect(result.current.incrementTime).toBe(mockGameStore.incrementTime);
   });
 });
-

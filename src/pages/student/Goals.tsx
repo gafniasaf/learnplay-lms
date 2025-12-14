@@ -11,6 +11,7 @@ import { useStudentGoals } from "@/hooks/useStudentGoals";
 import { aggregateStudentGoalProgress } from "@/lib/student/goalsMappers";
 
 export default function StudentGoals() {
+  const mockMode = (import.meta as any).env?.VITE_USE_MOCK === 'true';
   const { data, isLoading, isError, error, refetch } = useStudentGoals();
 
   if (isLoading) {

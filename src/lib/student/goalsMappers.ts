@@ -19,8 +19,8 @@ export function aggregateStudentGoalProgress(
     return null;
   }
 
-  const activeGoals = response.goals.filter((goal) => goal.status !== 'completed');
-  const completedGoals = response.goals.filter((goal) => goal.status === 'completed');
+  const activeGoals = (response.goals ?? []).filter((goal) => goal.status !== 'completed');
+  const completedGoals = (response.goals ?? []).filter((goal) => goal.status === 'completed');
 
   const minutesSource = activeGoals.length > 0 ? activeGoals : response.goals;
 
@@ -35,7 +35,7 @@ export function aggregateStudentGoalProgress(
   );
 
   const summary = response.summary ?? {
-    total: response.goals.length,
+    total: (response.goals?.length ?? 0),
     onTrack: 0,
     behind: 0,
     completed: completedGoals.length,
@@ -44,7 +44,7 @@ export function aggregateStudentGoalProgress(
   const goalMinutes = rawGoalMinutes > 0 ? rawGoalMinutes : 1;
   const actualMinutes = Math.min(rawActualMinutes, goalMinutes);
 
-  const goalItems = summary.total > 0 ? summary.total : Math.max(response.goals.length, 1);
+  const goalItems = summary.total > 0 ? summary.total : Math.max((response.goals?.length ?? 0), 1);
   const actualItems = Math.min(summary.completed ?? completedGoals.length, goalItems);
 
   return {

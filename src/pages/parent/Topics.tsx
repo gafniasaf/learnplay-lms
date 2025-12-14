@@ -116,7 +116,7 @@ const bucketTopics = (rows: TopicRow[]) => {
 };
 
 export default function Topics() {
-  const mockMode = useMockData();
+  const mockMode = (import.meta as any).env?.VITE_USE_MOCK === 'true';
   const [searchParams, setSearchParams] = useSearchParams();
   const selectedFromParams = searchParams.get("studentId");
 

@@ -70,7 +70,7 @@ const TeacherDashboard = () => {
   const [showKOAssignmentModal, setShowKOAssignmentModal] = useState(false);
   const [selectedKOId, setSelectedKOId] = useState<string | null>(null);
   const [activeJobId, setActiveJobId] = useState<string | null>(null);
-  const mockMode = useMockData();
+  const mockMode = (import.meta as any).env?.VITE_USE_MOCK === 'true';
   const mcp = useMCP();
 
   const {

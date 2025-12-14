@@ -1,6 +1,13 @@
 // Seed minimal parent/child/student data for live parent endpoints.
 // Requires auth users already created (parent@example.com, child@example.com).
 
+const SUPABASE_PROJECT_REF = process.env.SUPABASE_PROJECT_REF;
+const SUPABASE_ACCESS_TOKEN = process.env.SUPABASE_ACCESS_TOKEN;
+if (!SUPABASE_PROJECT_REF || !SUPABASE_ACCESS_TOKEN) {
+  console.error("Missing env: SUPABASE_PROJECT_REF and/or SUPABASE_ACCESS_TOKEN");
+  process.exit(1);
+}
+
 const sql = `
 DO $$
 DECLARE
@@ -64,11 +71,11 @@ BEGIN
 END $$;
 `;
 
-const response = await fetch('https://api.supabase.com/v1/projects/eidcegehaswbtzrwzvfa/database/query', {
+const response = await fetch(`https://api.supabase.com/v1/projects/${SUPABASE_PROJECT_REF}/database/query`, {
   method: 'POST',
   headers: {
     'Content-Type': 'application/json',
-    'Authorization': 'Bearer sbp_26da40b93963c303358083b9131f5febe0950f16'
+    'Authorization': `Bearer ${SUPABASE_ACCESS_TOKEN}`
   },
   body: JSON.stringify({ query: sql })
 });

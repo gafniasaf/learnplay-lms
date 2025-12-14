@@ -20,7 +20,7 @@ function generateFallbackLevels(course: Course): CourseLevel[] {
   );
 
   // Find min/max group IDs from items
-  const groupIds = course.items.map(item => item.groupId);
+  const groupIds = (course.items ?? []).map(item => item.groupId);
   const minGroup = Math.min(...groupIds, 0);
   const maxGroup = Math.max(...groupIds, 0);
 
@@ -42,7 +42,7 @@ function generateFallbackLevels(course: Course): CourseLevel[] {
  * @returns Course levels (from JSON or generated fallback)
  */
 export function getCourseLevels(course: Course): CourseLevel[] {
-  if (!course.levels || course.levels.length === 0) {
+  if (!course.levels || (course.levels?.length ?? 0) === 0) {
     return generateFallbackLevels(course);
   }
   return course.levels;
@@ -75,7 +75,7 @@ export function getItemsForLevel(
   }
 
   // Filter items by group range
-  const levelItems = course.items.filter((item) =>
+  const levelItems = (course.items ?? []).filter((item) =>
     allowedGroupIds.has(item.groupId)
   );
 

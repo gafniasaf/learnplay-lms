@@ -21,12 +21,12 @@ export function useMessaging() {
     mutationFn: (params: { recipientId: string; content: string }) =>
       mcp.sendMessage(params.recipientId, params.content),
     onSuccess: (_, vars) => {
-      queryClient.invalidateQueries(['conversations']);
-      queryClient.invalidateQueries(['messages', vars.recipientId]);
+      queryClient.invalidateQueries({ queryKey: ['conversations'] });
+      queryClient.invalidateQueries({ queryKey: ['messages', vars.recipientId] });
     },
   });
   
-  const getMessages = (conversationWith: string) =>
+  const useMessages = (conversationWith: string) =>
     useQuery({
       queryKey: ['messages', conversationWith],
       queryFn: () => mcp.listMessages(conversationWith),
@@ -34,6 +34,6 @@ export function useMessaging() {
       staleTime: 10_000, // 10 seconds
     });
   
-  return { conversations, sendMessage, getMessages };
+  return { conversations, sendMessage, useMessages };
 }
 

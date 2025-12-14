@@ -33,6 +33,8 @@
     "test:all": "npm run test && npm run test:integration && npm run e2e",
     "typecheck": "tsc -p tsconfig.app.json --noEmit",
     "verify": "npx tsx scripts/verify.ts",
+    "verify:cta": "npx tsx scripts/verify-cta-coverage.ts",
+    "verify:cta:strict": "npx cross-env CTA_STRICT=1 npx tsx scripts/verify-cta-coverage.ts",
     "verify:live": "npx cross-env VERIFY_LIVE=1 npx tsx scripts/verify.ts",
     "mock:validate": "npx tsx scripts/validate-mockups.ts",
     "mockup:local": "deno run --allow-net --allow-env --allow-read --allow-write scripts/run-mockup-polish-local.ts",
@@ -87,6 +89,14 @@
     "guard:all": "node scripts/guard-all.mjs",
     "docs:autogen": "node scripts/docs-autogen.mjs",
     "audit": "knip",
+    "audit:null-safety": "npx tsx scripts/audit-null-safety.ts",
+    "audit:error-visibility": "npx tsx scripts/audit-error-visibility.ts",
+    "audit:all": "npm run audit:null-safety && npm run audit:error-visibility",
+    "generate:cta-tests": "npx tsx scripts/generate-cta-tests.ts",
+    "e2e:health": "playwright test tests/e2e/health-gate.setup.ts --config=playwright.debug.config.ts",
+    "e2e:cta": "playwright test tests/e2e/cta-coverage.generated.spec.ts --config=playwright.debug.config.ts",
+    "e2e:real-world": "playwright test tests/e2e/real-world-failures.spec.ts --config=playwright.debug.config.ts",
+    "stability:check": "npm run typecheck && npm run verify:cta:strict && npm run audit:all && npm run e2e:health",
     "plans:matrix": "npx tsx scripts/plan-matrix.ts"
   },
   "dependencies": {

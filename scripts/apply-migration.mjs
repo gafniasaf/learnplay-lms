@@ -20,11 +20,18 @@ if (!fs.existsSync(migrationPath)) {
 const sql = fs.readFileSync(migrationPath, 'utf-8');
 console.log(`Applying: ${path.basename(migrationPath)} (${sql.length} chars)`);
 
-const response = await fetch('https://api.supabase.com/v1/projects/eidcegehaswbtzrwzvfa/database/query', {
+const SUPABASE_PROJECT_REF = process.env.SUPABASE_PROJECT_REF;
+const SUPABASE_ACCESS_TOKEN = process.env.SUPABASE_ACCESS_TOKEN;
+if (!SUPABASE_PROJECT_REF || !SUPABASE_ACCESS_TOKEN) {
+  console.error("Missing env: SUPABASE_PROJECT_REF and/or SUPABASE_ACCESS_TOKEN");
+  process.exit(1);
+}
+
+const response = await fetch(`https://api.supabase.com/v1/projects/${SUPABASE_PROJECT_REF}/database/query`, {
   method: 'POST',
   headers: {
     'Content-Type': 'application/json',
-    'Authorization': 'Bearer sbp_26da40b93963c303358083b9131f5febe0950f16'
+    'Authorization': `Bearer ${SUPABASE_ACCESS_TOKEN}`
   },
   body: JSON.stringify({ query: sql })
 });

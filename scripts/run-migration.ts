@@ -61,13 +61,20 @@ async function main() {
     console.log("exec_sql RPC not available, trying alternative...");
     
     // Alternative: use the management API
+    const mgmtProjectRef = process.env.SUPABASE_PROJECT_REF;
+    const mgmtToken = process.env.SUPABASE_ACCESS_TOKEN;
+    if (!mgmtProjectRef || !mgmtToken) {
+      console.error("Missing env for Management API fallback: SUPABASE_PROJECT_REF and/or SUPABASE_ACCESS_TOKEN");
+      process.exit(1);
+    }
+
     const mgmtResponse = await fetch(
-      `https://api.supabase.com/v1/projects/eidcegehaswbtzrwzvfa/database/query`,
+      `https://api.supabase.com/v1/projects/${mgmtProjectRef}/database/query`,
       {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer sbp_26da40b93963c303358083b9131f5febe0950f16`,
+          "Authorization": `Bearer ${mgmtToken}`,
         },
         body: JSON.stringify({ query: sql }),
       }

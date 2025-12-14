@@ -104,7 +104,7 @@ export async function fetchAnalytics(
   const data = await getAnalytics(courseId, rangeNum);
 
   // Transform dailyData to match expected format
-  const analytics = data.dailyData.map((d) => ({
+  const analytics = (data.dailyData ?? []).map((d) => ({
     date: d.date,
     submissions_count: d.attempts,
     average_grade: d.accuracy,
@@ -115,7 +115,7 @@ export async function fetchAnalytics(
     course: { id: courseId },
     analytics,
     summary: {
-      totalStudents: data.topStudents.length,
+      totalStudents: (data.topStudents?.length ?? 0),
       totalAssignments: 0, // Not available in current backend
       averageGrade: data.summary.overallAccuracy,
       totalSubmissions: data.summary.totalAttempts,

@@ -192,6 +192,16 @@ export async function flushAttempts(
 /**
  * Set up online event listener to auto-flush
  */
+/**
+ * Alias for enqueueAttempt (backwards compatibility)
+ */
+export const enqueue = enqueueAttempt;
+
+/**
+ * Alias for flushAttempts (backwards compatibility)
+ */
+export const flush = flushAttempts;
+
 export function setupAutoFlush(
   logGameAttemptFn: (
     roundId: string,

@@ -142,7 +142,20 @@ async function main() {
      }
   }
 
-  // 8. Live Edge Function Verification (optional - requires deployed functions)
+  // 8. 100% CTA Coverage Verification (AI-MANAGED SYSTEMS)
+  if (fs.existsSync('scripts/verify-cta-coverage.ts')) {
+     console.log("🎯 Running 100% CTA Coverage Verification...");
+     try {
+       // Run in reporting mode (non-strict) during verify
+       execSync('npx tsx scripts/verify-cta-coverage.ts', { stdio: 'inherit' });
+       console.log("✅ CTA COVERAGE REPORT GENERATED");
+     } catch (e) {
+       console.warn("⚠️ CTA coverage verification encountered issues");
+       // Non-fatal in standard verify, use CTA_STRICT=1 for strict mode
+     }
+  }
+
+  // 9. Live Edge Function Verification (optional - requires deployed functions)
   if (process.env.VERIFY_LIVE === '1') {
     console.log("🌐 Running Live Edge Function Verification...");
     try {

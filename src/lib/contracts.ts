@@ -2,6 +2,8 @@
 // ------------------------------------------------------------------
 // ⚠️ AUTO-GENERATED FROM system-manifest.json
 // ------------------------------------------------------------------
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { z } from 'zod';
 
 
@@ -114,6 +116,54 @@ export const JobTicketSchema = z.object({
   target_id: z.string().optional()
 });
 export type JobTicket = z.infer<typeof JobTicketSchema>;
+
+
+export const MasteryStateSchema = z.object({
+  id: z.string().uuid(),
+  organization_id: z.string().uuid(),
+  created_at: z.string().datetime().optional(),
+  updated_at: z.string().datetime().optional(),
+  version: z.number().int().default(1),
+  format: z.string().default('v1'),
+  student_id: z.string().optional(),
+  ko_id: z.string().optional(),
+  mastery: z.number().optional(),
+  status: z.enum(['locked', 'in-progress', 'mastered']),
+  evidence_count: z.number().optional(),
+  last_practiced: z.string().datetime().optional()
+});
+export type MasteryState = z.infer<typeof MasteryStateSchema>;
+
+
+export const StudentGoalSchema = z.object({
+  id: z.string().uuid(),
+  organization_id: z.string().uuid(),
+  created_at: z.string().datetime().optional(),
+  updated_at: z.string().datetime().optional(),
+  version: z.number().int().default(1),
+  format: z.string().default('v1'),
+  student_id: z.string().optional(),
+  title: z.string().optional(),
+  target_minutes: z.number().optional(),
+  progress_minutes: z.number().optional(),
+  status: z.enum(['on_track', 'behind', 'completed']),
+  due_at: z.string().datetime().optional()
+});
+export type StudentGoal = z.infer<typeof StudentGoalSchema>;
+
+
+export const ClassMembershipSchema = z.object({
+  id: z.string().uuid(),
+  organization_id: z.string().uuid(),
+  created_at: z.string().datetime().optional(),
+  updated_at: z.string().datetime().optional(),
+  version: z.number().int().default(1),
+  format: z.string().default('v1'),
+  class_id: z.string().optional(),
+  user_id: z.string().optional(),
+  role: z.enum(['student', 'teacher'])
+});
+export type ClassMembership = z.infer<typeof ClassMembershipSchema>;
 
 
 export const SessionEventSchema = z.object({
@@ -419,6 +469,86 @@ export const ENTITY_FIELDS = {
       "type": "string"
     }
   ],
+  "MasteryState": [
+    {
+      "key": "student_id",
+      "type": "string"
+    },
+    {
+      "key": "ko_id",
+      "type": "string"
+    },
+    {
+      "key": "mastery",
+      "type": "number"
+    },
+    {
+      "key": "status",
+      "type": "enum",
+      "options": [
+        "locked",
+        "in-progress",
+        "mastered"
+      ]
+    },
+    {
+      "key": "evidence_count",
+      "type": "number"
+    },
+    {
+      "key": "last_practiced",
+      "type": "date"
+    }
+  ],
+  "StudentGoal": [
+    {
+      "key": "student_id",
+      "type": "string"
+    },
+    {
+      "key": "title",
+      "type": "string"
+    },
+    {
+      "key": "target_minutes",
+      "type": "number"
+    },
+    {
+      "key": "progress_minutes",
+      "type": "number"
+    },
+    {
+      "key": "status",
+      "type": "enum",
+      "options": [
+        "on_track",
+        "behind",
+        "completed"
+      ]
+    },
+    {
+      "key": "due_at",
+      "type": "date"
+    }
+  ],
+  "ClassMembership": [
+    {
+      "key": "class_id",
+      "type": "string"
+    },
+    {
+      "key": "user_id",
+      "type": "string"
+    },
+    {
+      "key": "role",
+      "type": "enum",
+      "options": [
+        "student",
+        "teacher"
+      ]
+    }
+  ],
   "SessionEvent": [
     {
       "key": "assignment_id",
@@ -483,55 +613,132 @@ export const JOB_MODES = {
 // --- Edge Function Schemas (for MCP typing) ---
 export const EDGE_FUNCTION_SCHEMAS = [
   {
+    "id": "get-course",
+    "input": {
+      "courseId": "string"
+    },
+    "output": {
+      "envelope": "json"
+    },
+    "description": "Retrieve course JSON from storage with ETag caching"
+  },
+  {
+    "id": "save-course",
+    "input": {
+      "envelope": "json"
+    },
+    "output": {
+      "ok": "boolean",
+      "etag": "number"
+    },
+    "description": "Save course JSON to storage and update metadata"
+  },
+  {
+    "id": "publish-course",
+    "input": {
+      "courseId": "string",
+      "changelog": "string"
+    },
+    "output": {
+      "version": "number",
+      "snapshotId": "string",
+      "contentVersion": "number",
+      "etag": "number",
+      "publishedAt": "string"
+    },
+    "description": "Publish course, create version snapshot, trigger embeddings"
+  },
+  {
+    "id": "generate-course",
+    "input": {
+      "subject": "string",
+      "difficulty": "string",
+      "format": "string",
+      "locale": "string"
+    },
+    "output": {
+      "jobId": "string"
+    },
+    "description": "Generate a new course using AI strategies"
+  },
+  {
+    "id": "update-course",
+    "input": {
+      "courseId": "string",
+      "patch": "json",
+      "etag": "number"
+    },
+    "output": {
+      "ok": "boolean",
+      "etag": "number"
+    },
+    "description": "Apply JSON Patch to course with optimistic concurrency"
+  },
+  {
+    "id": "delete-course",
+    "input": {
+      "courseId": "string",
+      "backup": "boolean"
+    },
+    "output": {
+      "ok": "boolean"
+    },
+    "description": "Soft delete course, optionally backup JSON"
+  },
+  {
+    "id": "archive-course",
+    "input": {
+      "courseId": "string"
+    },
+    "output": {
+      "ok": "boolean"
+    },
+    "description": "Archive course in metadata"
+  },
+  {
+    "id": "restore-course-version",
+    "input": {
+      "courseId": "string",
+      "version": "number"
+    },
+    "output": {
+      "ok": "boolean"
+    },
+    "description": "Restore course to a previous version"
+  },
+  {
+    "id": "apply-course-patch",
+    "input": {
+      "courseId": "string",
+      "patch": "json"
+    },
+    "output": {
+      "ok": "boolean",
+      "etag": "number"
+    },
+    "description": "Apply JSON Patch and create version snapshot"
+  },
+  {
     "id": "validate-course-structure",
     "input": {
       "courseId": "string"
     },
     "output": {
-      "ok": "boolean"
-    }
-  },
-  {
-    "id": "generate-variants-audit",
-    "input": {
-      "courseId": "string"
-    },
-    "output": {
       "ok": "boolean",
-      "coverage": "number"
-    }
+      "errors": "json"
+    },
+    "description": "Validate course structure against invariants"
   },
   {
-    "id": "editor-repair-course",
+    "id": "fix-catalog-entry",
     "input": {
       "courseId": "string",
-      "apply": "boolean"
-    },
-    "output": {
-      "ok": "boolean",
-      "preview": "json"
-    }
-  },
-  {
-    "id": "editor-variants-missing",
-    "input": {
-      "courseId": "string",
-      "apply": "boolean"
-    },
-    "output": {
-      "ok": "boolean",
-      "preview": "json"
-    }
-  },
-  {
-    "id": "editor-auto-fix",
-    "input": {
-      "courseId": "string",
-      "apply": "boolean"
+      "newId": "string"
     },
     "output": {
       "ok": "boolean"
-    }
+    },
+    "description": "Fix broken catalog entry by updating ID"
   },
   {
     "id": "editor-co-pilot",
@@ -544,17 +751,355 @@ export const EDGE_FUNCTION_SCHEMAS = [
     },
     "output": {
       "jobId": "string"
-    }
+    },
+    "description": "Co-pilot orchestrator for editor actions"
+  },
+  {
+    "id": "editor-auto-fix",
+    "input": {
+      "courseId": "string",
+      "apply": "boolean"
+    },
+    "output": {
+      "ok": "boolean",
+      "preview": "json"
+    },
+    "description": "Automated course fixes: repair, variants audit, generate missing"
+  },
+  {
+    "id": "editor-repair-course",
+    "input": {
+      "courseId": "string",
+      "jobId": "string",
+      "dryRun": "boolean"
+    },
+    "output": {
+      "ok": "boolean"
+    },
+    "description": "Repair course using generate-repair job"
+  },
+  {
+    "id": "editor-variants-audit",
+    "input": {
+      "courseId": "string"
+    },
+    "output": {
+      "ok": "boolean",
+      "coverage": "number"
+    },
+    "description": "Audit course variant coverage"
+  },
+  {
+    "id": "editor-variants-missing",
+    "input": {
+      "courseId": "string",
+      "axes": "json",
+      "dryRun": "boolean",
+      "jobId": "string"
+    },
+    "output": {
+      "ok": "boolean",
+      "preview": "json"
+    },
+    "description": "Generate and apply missing variants"
+  },
+  {
+    "id": "chat-course-assistant",
+    "input": {
+      "message": "string",
+      "courseId": "string",
+      "history": "json"
+    },
+    "output": {
+      "response": "string",
+      "suggestions": "json"
+    },
+    "description": "Conversational AI assistant for course authoring"
+  },
+  {
+    "id": "generate-image",
+    "input": {
+      "courseId": "string",
+      "itemId": "number",
+      "prompt": "string",
+      "style": "string"
+    },
+    "output": {
+      "jobId": "string"
+    },
+    "description": "Enqueue image generation job"
   },
   {
     "id": "generate-hint",
     "input": {
       "courseId": "string",
-      "itemId": "string"
+      "itemId": "number"
     },
     "output": {
       "hint": "string"
-    }
+    },
+    "description": "Generate and apply hint to course item"
+  },
+  {
+    "id": "media-runner",
+    "input": {},
+    "output": {
+      "processed": "number"
+    },
+    "description": "Process pending media jobs (images)"
+  },
+  {
+    "id": "enqueue-course-media",
+    "input": {
+      "courseId": "string",
+      "itemId": "number",
+      "prompt": "string"
+    },
+    "output": {
+      "jobId": "string"
+    },
+    "description": "Enqueue media job for course item"
+  },
+  {
+    "id": "enqueue-course-missing-images",
+    "input": {
+      "courseId": "string",
+      "limit": "number",
+      "dryRun": "boolean",
+      "promptTemplate": "string"
+    },
+    "output": {
+      "enqueued": "number"
+    },
+    "description": "Enqueue media jobs for items missing images"
+  },
+  {
+    "id": "apply-job-result",
+    "input": {
+      "jobId": "string",
+      "courseId": "string",
+      "mergePlan": "json",
+      "attachments": "json",
+      "dryRun": "boolean"
+    },
+    "output": {
+      "ok": "boolean",
+      "etag": "number"
+    },
+    "description": "Apply job result (patch + attachments) to course"
+  },
+  {
+    "id": "enqueue-job",
+    "input": {
+      "jobType": "string",
+      "payload": "json"
+    },
+    "output": {
+      "jobId": "string"
+    },
+    "description": "Enqueue AI job for processing"
+  },
+  {
+    "id": "get-job",
+    "input": {
+      "id": "string"
+    },
+    "output": {
+      "job": "json",
+      "events": "json"
+    },
+    "description": "Get job status and events"
+  },
+  {
+    "id": "list-jobs",
+    "input": {
+      "page": "number",
+      "limit": "number"
+    },
+    "output": {
+      "items": "json",
+      "total": "number"
+    },
+    "description": "List AI jobs with pagination"
+  },
+  {
+    "id": "list-courses",
+    "input": {
+      "includeArchived": "boolean",
+      "limit": "number"
+    },
+    "output": {
+      "items": "json"
+    },
+    "description": "List courses from catalog"
+  },
+  {
+    "id": "list-media-jobs",
+    "input": {
+      "courseId": "string",
+      "status": "string",
+      "limit": "number"
+    },
+    "output": {
+      "items": "json"
+    },
+    "description": "List media generation jobs"
+  },
+  {
+    "id": "get-format-registry",
+    "input": {},
+    "output": {
+      "registry": "json"
+    },
+    "description": "Get course format registry with schemas and merge rules"
+  },
+  {
+    "id": "generate-variants-audit",
+    "input": {
+      "courseId": "string"
+    },
+    "output": {
+      "ok": "boolean",
+      "coverage": "number"
+    },
+    "description": "Generate variants audit job"
+  },
+  {
+    "id": "generate-variants-missing",
+    "input": {
+      "courseId": "string",
+      "axes": "json"
+    },
+    "output": {
+      "jobId": "string"
+    },
+    "description": "Generate missing variants job"
+  },
+  {
+    "id": "generate-repair",
+    "input": {
+      "courseId": "string"
+    },
+    "output": {
+      "jobId": "string"
+    },
+    "description": "Generate repair job for course"
+  },
+  {
+    "id": "generate-localize",
+    "input": {
+      "courseId": "string",
+      "target_lang": "string"
+    },
+    "output": {
+      "jobId": "string",
+      "mergePlan": "json"
+    },
+    "description": "Generate localization job"
+  },
+  {
+    "id": "item-generate-more",
+    "input": {
+      "courseId": "string",
+      "count": "number"
+    },
+    "output": {
+      "jobId": "string"
+    },
+    "description": "Generate more items for course"
+  },
+  {
+    "id": "item-rewrite-quality",
+    "input": {
+      "courseId": "string",
+      "itemId": "number"
+    },
+    "output": {
+      "jobId": "string"
+    },
+    "description": "Rewrite item for quality improvement"
+  },
+  {
+    "id": "item-cluster-audit",
+    "input": {
+      "courseId": "string"
+    },
+    "output": {
+      "ok": "boolean"
+    },
+    "description": "Audit item clustering"
+  },
+  {
+    "id": "studytext-rewrite",
+    "input": {
+      "courseId": "string",
+      "index": "number"
+    },
+    "output": {
+      "jobId": "string"
+    },
+    "description": "Rewrite study text"
+  },
+  {
+    "id": "studytext-expand",
+    "input": {
+      "courseId": "string",
+      "index": "number"
+    },
+    "output": {
+      "jobId": "string"
+    },
+    "description": "Expand study text"
+  },
+  {
+    "id": "studytext-visualize",
+    "input": {
+      "courseId": "string",
+      "index": "number"
+    },
+    "output": {
+      "jobId": "string"
+    },
+    "description": "Generate visualization for study text"
+  },
+  {
+    "id": "list-templates",
+    "input": {},
+    "output": {
+      "items": "json"
+    },
+    "description": "List job templates"
+  },
+  {
+    "id": "get-template",
+    "input": {
+      "id": "string"
+    },
+    "output": {
+      "template": "json"
+    },
+    "description": "Get job template by ID"
+  },
+  {
+    "id": "get-org-settings",
+    "input": {
+      "orgId": "string"
+    },
+    "output": {
+      "settings": "json"
+    },
+    "description": "Get organization settings"
+  },
+  {
+    "id": "save-org-settings",
+    "input": {
+      "orgId": "string",
+      "thresholds": "json"
+    },
+    "output": {
+      "ok": "boolean"
+    },
+    "description": "Save organization settings"
   },
   {
     "id": "generate-assignment",
@@ -618,6 +1163,191 @@ export const EDGE_FUNCTION_SCHEMAS = [
     "output": {
       "dailyData": "json",
       "summary": "json"
+    }
+  },
+  {
+    "id": "get-student-skills",
+    "input": {
+      "studentId": "string",
+      "domain": "string",
+      "status": "string"
+    },
+    "output": {
+      "skills": "json",
+      "totalCount": "number"
+    }
+  },
+  {
+    "id": "update-mastery",
+    "input": {
+      "studentId": "string",
+      "koId": "string",
+      "exerciseScore": "number"
+    },
+    "output": {
+      "oldMastery": "number",
+      "newMastery": "number"
+    }
+  },
+  {
+    "id": "get-domain-growth",
+    "input": {
+      "studentId": "string"
+    },
+    "output": {
+      "domains": "json"
+    }
+  },
+  {
+    "id": "get-recommended-courses",
+    "input": {
+      "koId": "string",
+      "studentId": "string"
+    },
+    "output": {
+      "courses": "json"
+    }
+  },
+  {
+    "id": "create-class",
+    "input": {
+      "name": "string",
+      "description": "string"
+    },
+    "output": {
+      "class": "json"
+    }
+  },
+  {
+    "id": "add-class-member",
+    "input": {
+      "classId": "string",
+      "studentEmail": "string"
+    },
+    "output": {
+      "ok": "boolean"
+    }
+  },
+  {
+    "id": "remove-class-member",
+    "input": {
+      "classId": "string",
+      "studentId": "string"
+    },
+    "output": {
+      "ok": "boolean"
+    }
+  },
+  {
+    "id": "invite-student",
+    "input": {
+      "orgId": "string",
+      "classId": "string",
+      "email": "string"
+    },
+    "output": {
+      "inviteId": "string",
+      "success": "boolean"
+    }
+  },
+  {
+    "id": "generate-class-code",
+    "input": {
+      "classId": "string",
+      "refreshCode": "boolean"
+    },
+    "output": {
+      "code": "string",
+      "expiresAt": "string"
+    }
+  },
+  {
+    "id": "join-class",
+    "input": {
+      "code": "string"
+    },
+    "output": {
+      "success": "boolean",
+      "classId": "string"
+    }
+  },
+  {
+    "id": "create-child-code",
+    "input": {
+      "studentId": "string"
+    },
+    "output": {
+      "code": "string",
+      "expiresAt": "string"
+    }
+  },
+  {
+    "id": "link-child",
+    "input": {
+      "code": "string"
+    },
+    "output": {
+      "success": "boolean",
+      "childId": "string"
+    }
+  },
+  {
+    "id": "send-message",
+    "input": {
+      "recipientId": "string",
+      "content": "string"
+    },
+    "output": {
+      "messageId": "string",
+      "success": "boolean"
+    }
+  },
+  {
+    "id": "list-conversations",
+    "input": {},
+    "output": {
+      "conversations": "json"
+    }
+  },
+  {
+    "id": "list-messages",
+    "input": {
+      "conversationWith": "string",
+      "limit": "number"
+    },
+    "output": {
+      "messages": "json",
+      "nextCursor": "string"
+    }
+  },
+  {
+    "id": "save-record",
+    "input": {
+      "entity": "string",
+      "values": "json"
+    },
+    "output": {
+      "ok": "boolean"
+    }
+  },
+  {
+    "id": "get-record",
+    "input": {
+      "entity": "string",
+      "id": "string"
+    },
+    "output": {
+      "record": "json"
+    }
+  },
+  {
+    "id": "list-records",
+    "input": {
+      "entity": "string",
+      "limit": "number"
+    },
+    "output": {
+      "items": "json"
     }
   }
 ] as const;

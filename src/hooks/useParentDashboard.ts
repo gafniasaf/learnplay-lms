@@ -19,7 +19,10 @@ export function useParentDashboard(
 
   return useQuery({
     queryKey: ["parent-dashboard", serializedParams],
-    queryFn: () => mcp.getParentDashboard(params.parentId),
+    queryFn: async (): Promise<ParentDashboardResponse> => {
+      const result = await mcp.getParentDashboard(params.parentId);
+      return result as ParentDashboardResponse;
+    },
     enabled: options.enabled !== false,
     staleTime: 60_000,
     refetchOnWindowFocus: false,

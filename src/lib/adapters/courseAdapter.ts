@@ -96,14 +96,14 @@ export function parseMedJson(raw: RawCourseJson, courseId?: string): Course {
   const description = raw.description || `Learn ${title.toLowerCase()} through interactive exercises.`;
 
   // Parse groups - add default colors if not provided
-  const groups: CourseGroup[] = raw.groups.map((group, index) => ({
+  const groups: CourseGroup[] = (raw.groups ?? []).map((group, index) => ({
     id: group.id,
     name: group.name,
     color: group.color || getDefaultColor(index),
   }));
 
   // Parse levels - add descriptions if not provided
-  const levels: CourseLevel[] = raw.levels.map((level) => ({
+  const levels: CourseLevel[] = (raw.levels ?? []).map((level) => ({
     id: level.id,
     start: level.start,
     end: level.end,
@@ -113,21 +113,21 @@ export function parseMedJson(raw: RawCourseJson, courseId?: string): Course {
   }));
 
   // Parse items - normalize placeholders and add wrong explanations
-  const items: CourseItem[] = raw.items.map((item) => {
+  const items: CourseItem[] = (raw.items ?? []).map((item) => {
     const text = normalizePlaceholder(item.text);
     
     // Validate correctIndex is within bounds
-    if (item.correctIndex < 0 || item.correctIndex >= item.options.length) {
+    if (item.correctIndex < 0 || item.correctIndex >= (item.options?.length ?? 0)) {
       console.warn(
-        `[Course ${id}] Item ${item.id}: correctIndex ${item.correctIndex} is out of bounds (options length: ${item.options.length}). Defaulting to 0.`
+        `[Course ${id}] Item ${item.id}: correctIndex ${item.correctIndex} is out of bounds (options length: ${(item.options?.length ?? 0)}). Defaulting to 0.`
       );
       item.correctIndex = 0;
     }
     
     // Validate options array has 3-4 items (or warn if outside typical range)
-    if (item.options.length < 3 || item.options.length > 4) {
+    if ((item.options?.length ?? 0) < 3 || (item.options?.length ?? 0) > 4) {
       console.warn(
-        `[Course ${id}] Item ${item.id}: has ${item.options.length} options (typical: 3-4)`
+        `[Course ${id}] Item ${item.id}: has ${(item.options?.length ?? 0)} options (typical: 3-4)`
       );
     }
     

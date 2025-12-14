@@ -48,7 +48,7 @@ export async function getUserRoles(): Promise<UserRoleRecord[]> {
     console.log('[Roles API] Fetching user roles via Edge Function');
     const response = await callEdgeFunctionGet<GetUserRolesResponse>('get-user-roles');
     
-    cachedRoles = response.roles.map(r => ({
+    cachedRoles = (response.roles ?? []).map(r => ({
       user_id: r.user_id,
       organization_id: r.organization_id,
       role: r.role as UserRole,

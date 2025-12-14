@@ -22,6 +22,15 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Audit null safety
+        run: npm run audit:null-safety || echo "::warning::Null safety issues found"
+
+      - name: Audit error visibility
+        run: npm run audit:error-visibility || echo "::warning::Error visibility issues found"
+
+      - name: Verify CTA coverage (strict)
+        run: npm run verify:cta:strict
+
       - name: Run verification suite (typecheck + Jest + architect crucible)
         env:
           VITE_SUPABASE_URL: https://xlslksprdjsxawvcikfk.supabase.co

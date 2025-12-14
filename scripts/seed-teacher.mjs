@@ -1,9 +1,23 @@
 // Create teacher auth user and seed teacher/class data
 import { createClient } from "@supabase/supabase-js";
 
+const SUPABASE_URL = process.env.SUPABASE_URL;
+const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const SUPABASE_PROJECT_REF = process.env.SUPABASE_PROJECT_REF;
+const SUPABASE_ACCESS_TOKEN = process.env.SUPABASE_ACCESS_TOKEN;
+
+if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+  console.error("Missing env: SUPABASE_URL and/or SUPABASE_SERVICE_ROLE_KEY");
+  process.exit(1);
+}
+if (!SUPABASE_PROJECT_REF || !SUPABASE_ACCESS_TOKEN) {
+  console.error("Missing env: SUPABASE_PROJECT_REF and/or SUPABASE_ACCESS_TOKEN");
+  process.exit(1);
+}
+
 const supabase = createClient(
-  "https://eidcegehaswbtzrwzvfa.supabase.co",
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVpZGNlZ2VoYXN3YnR6cnd6dmZhIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2NDg0NjM1MCwiZXhwIjoyMDgwNDIyMzUwfQ.A6k908P5YTfg6NdKOx0fsDWpROWTDMfFDtWtn3MEti0"
+  SUPABASE_URL,
+  SUPABASE_SERVICE_ROLE_KEY
 );
 
 // Create teacher user
@@ -55,11 +69,11 @@ if (teacherError && !teacherError.message.includes("already been registered")) {
     ON CONFLICT (class_id, user_id) DO UPDATE SET role = EXCLUDED.role;
   `;
 
-  const response = await fetch('https://api.supabase.com/v1/projects/eidcegehaswbtzrwzvfa/database/query', {
+  const response = await fetch(`https://api.supabase.com/v1/projects/${SUPABASE_PROJECT_REF}/database/query`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': 'Bearer sbp_26da40b93963c303358083b9131f5febe0950f16'
+      'Authorization': `Bearer ${SUPABASE_ACCESS_TOKEN}`
     },
     body: JSON.stringify({ query: sql })
   });

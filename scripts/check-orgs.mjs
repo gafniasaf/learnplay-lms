@@ -1,5 +1,9 @@
-const SUPABASE_PROJECT_REF = 'eidcegehaswbtzrwzvfa';
-const SUPABASE_ACCESS_TOKEN = 'sbp_26da40b93963c303358083b9131f5febe0950f16';
+const SUPABASE_PROJECT_REF = process.env.SUPABASE_PROJECT_REF;
+const SUPABASE_ACCESS_TOKEN = process.env.SUPABASE_ACCESS_TOKEN;
+if (!SUPABASE_PROJECT_REF || !SUPABASE_ACCESS_TOKEN) {
+  console.error("Missing env: SUPABASE_PROJECT_REF and/or SUPABASE_ACCESS_TOKEN");
+  process.exit(1);
+}
 
 const sql = `SELECT id, name FROM organizations LIMIT 5`;
 

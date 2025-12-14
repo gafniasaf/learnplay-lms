@@ -63,7 +63,7 @@ export function extractPhaseDetails(
     duration: summary?.phases?.validation?.duration,
     aiCalls: 0,
     summary: summary?.phases?.validation?.errors?.length
-      ? `Found ${summary.phases.validation.errors.length} validation errors`
+      ? `Found ${summary.phases.validation.errors?.length ?? 0} validation errors`
       : 'Schema validation complete',
     details: {
       errors: summary?.phases?.validation?.errors || [],
@@ -79,7 +79,7 @@ export function extractPhaseDetails(
     duration: summary?.phases?.repair?.duration,
     aiCalls: summary?.phases?.repair?.aiCalls || 0,
     summary: summary?.phases?.repair?.repairs?.length
-      ? `Repaired ${summary.phases.repair.repairs.length} items`
+      ? `Repaired ${summary.phases.repair.repairs?.length ?? 0} items`
       : 'No repairs needed',
     details: {
       repairs: summary?.phases?.repair?.repairs || [],
@@ -95,7 +95,7 @@ export function extractPhaseDetails(
     duration: summary?.phases?.review?.duration,
     aiCalls: summary?.phases?.review?.aiCalls || 0,
     summary: summary?.phases?.review?.issues?.length
-      ? `Found ${summary.phases.review.issues.length} quality issues`
+      ? `Found ${summary.phases.review.issues?.length ?? 0} quality issues`
       : 'Review complete',
     details: {
       issues: summary?.phases?.review?.issues || [],

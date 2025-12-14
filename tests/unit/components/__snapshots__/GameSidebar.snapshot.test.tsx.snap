@@ -142,6 +142,8 @@ exports[`GameSidebar Snapshot Tests matches snapshot when sidebar is closed 1`] 
     >
       <button
         class="inline-flex items-center gap-2 whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2 w-full justify-start"
+        data-action="action"
+        data-cta-id="cta-game-sidebar-toggle-tts"
       >
         <svg
           class="lucide lucide-volume-x h-4 w-4 mr-2"
@@ -176,6 +178,8 @@ exports[`GameSidebar Snapshot Tests matches snapshot when sidebar is closed 1`] 
       </button>
       <button
         class="inline-flex items-center gap-2 whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2 w-full justify-start"
+        data-action="action"
+        data-cta-id="cta-game-sidebar-toggle-category-mode"
       >
         <svg
           class="lucide lucide-grid3x3 h-4 w-4 mr-2"
@@ -213,6 +217,8 @@ exports[`GameSidebar Snapshot Tests matches snapshot when sidebar is closed 1`] 
       </button>
       <button
         class="inline-flex items-center gap-2 whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2 w-full justify-start"
+        data-action="action"
+        data-cta-id="cta-game-sidebar-exit"
       >
         <svg
           class="lucide lucide-house h-4 w-4 mr-2"

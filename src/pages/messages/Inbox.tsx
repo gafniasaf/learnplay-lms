@@ -59,6 +59,9 @@ export default function Inbox() {
   const [showNewMessageDialog, setShowNewMessageDialog] = useState(false);
   const [availableUsers, setAvailableUsers] = useState<Array<{id: string; name: string; role: string}>>([]);
   const [searchTerm, setSearchTerm] = useState("");
+  const [sending, setSending] = useState(false);
+  const [messageOffset, setMessageOffset] = useState(0);
+  const [hasMoreMessages, setHasMoreMessages] = useState(false);
 
   // Use local role system instead of direct DB query
   const userRole = getRole();
@@ -68,7 +71,7 @@ export default function Inbox() {
   const conversations = (conversationsData.data as { conversations?: Conversation[] })?.conversations ?? [];
 
   // Get messages for selected conversation
-  const messagesQuery = selectedConversation ? messaging.getMessages(selectedConversation) : null;
+  const messagesQuery = selectedConversation ? messaging.useMessages(selectedConversation) : null;
   const messages = (messagesQuery?.data as { messages?: Message[] })?.messages ?? [];
 
   const loadConversationMessages = useCallback(async (conversationId: string) => {
@@ -134,7 +137,7 @@ export default function Inbox() {
     if (selectedConversation && hasMoreMessages) {
       const newOffset = messageOffset + 20;
       setMessageOffset(newOffset);
-      loadConversationMessages(selectedConversation, newOffset);
+      loadConversationMessages(selectedConversation);
     }
   };
 
@@ -143,11 +146,14 @@ export default function Inbox() {
     
     setSending(true);
     try {
-      await sendMessage(selectedConversation, messageContent.trim());
+      await messaging.sendMessage.mutateAsync({ 
+        recipientId: selectedConversation, 
+        content: messageContent.trim() 
+      });
       
       setMessageContent("");
       loadConversationMessages(selectedConversation);
-      loadConversations(); // Update conversation list
+      messaging.conversations.refetch(); // Update conversation list
       toast({ title: "Sent", description: "Message sent successfully" });
     } catch (error) {
       logger.error('Error sending message', error instanceof Error ? error : new Error(String(error)), { action: 'sendMessage' });

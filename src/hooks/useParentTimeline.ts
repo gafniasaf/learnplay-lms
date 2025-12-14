@@ -19,8 +19,15 @@ export function useParentTimeline(
 
   return useQuery({
     queryKey: ["parent-timeline", serializedParams],
-    queryFn: () => mcp.getParentTimeline(params.childId || '', params.limit),
-    enabled: (options.enabled !== false) && !!params.childId,
+    queryFn: async (): Promise<ParentTimelineResponse> => {
+      const result = await mcp.getParentTimeline(params.studentId || '', params.limit) as { events?: unknown[]; nextCursor?: string | null; hasMore?: boolean };
+      return {
+        events: (result.events ?? []) as ParentTimelineResponse['events'],
+        nextCursor: result.nextCursor ?? null,
+        hasMore: result.hasMore ?? (result.nextCursor !== null),
+      };
+    },
+    enabled: (options.enabled !== false) && !!params.studentId,
     staleTime: 60_000,
     refetchOnWindowFocus: false,
   });

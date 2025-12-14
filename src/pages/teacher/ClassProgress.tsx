@@ -10,6 +10,9 @@ import { toast } from "sonner";
 
 export default function ClassProgress() {
   const [classId, setClassId] = useState<string>("");
+  const [courseId, setCourseId] = useState<string>("");
+  const [rangeDays, setRangeDays] = useState<number>(30);
+  const [jobId, setJobId] = useState<string | null>(null);
   const mcp = useMCP();
   
   const { data, isLoading, refetch, isFetching } = useQuery({

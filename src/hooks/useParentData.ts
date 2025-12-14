@@ -23,7 +23,7 @@ export function useParentData() {
     staleTime: 60_000,
   });
   
-  const getChildData = (childId: string) => ({
+  const useChildData = (childId: string) => ({
     goals: useQuery({
       queryKey: ['parent-goals', childId],
       queryFn: () => mcp.getParentGoals(childId),
@@ -50,6 +50,6 @@ export function useParentData() {
     }),
   });
   
-  return { dashboard, children, getChildData };
+  return { dashboard, children, useChildData };
 }
 

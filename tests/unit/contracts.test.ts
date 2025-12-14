@@ -111,6 +111,7 @@ describe('CourseBlueprintSchema', () => {
     organization_id: '123e4567-e89b-12d3-a456-426614174001',
     difficulty: 'middle' as const,
     guard_status: 'pending' as const,
+    game_type: 'mcq' as const,
   };
 
   it('accepts valid course blueprint', () => {
@@ -134,8 +135,22 @@ describe('CourseBlueprintSchema', () => {
     });
   });
 
+  it('accepts all valid game_type values', () => {
+    const gameTypes = ['mcq', 'audio_mcq', 'visual_mcq', 'drag_drop', 'matching', 'ordering', 'timed_fluency', 'numeric', 'diagram'];
+    gameTypes.forEach(game_type => {
+      const result = CourseBlueprintSchema.safeParse({ ...validBlueprint, game_type });
+      expect(result.success).toBe(true);
+    });
+  });
+
   it('rejects invalid difficulty', () => {
     const invalid = { ...validBlueprint, difficulty: 'expert' };
+    const result = CourseBlueprintSchema.safeParse(invalid);
+    expect(result.success).toBe(false);
+  });
+
+  it('rejects missing game_type', () => {
+    const { game_type, ...invalid } = validBlueprint;
     const result = CourseBlueprintSchema.safeParse(invalid);
     expect(result.success).toBe(false);
   });

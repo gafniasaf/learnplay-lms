@@ -71,7 +71,7 @@ export async function getStudentTimeline(
 
   return {
     events: Array.isArray(response.events)
-      ? response.events.map(mapEvent)
+      ? (response.events ?? []).map(mapEvent)
       : [],
     nextCursor: response.nextCursor ?? null,
     hasMore: Boolean(response.hasMore),

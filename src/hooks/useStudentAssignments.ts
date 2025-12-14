@@ -16,7 +16,13 @@ export function useStudentAssignments(
 
   return useQuery({
     queryKey,
-    queryFn: () => mcp.listAssignmentsForStudent(),
+    queryFn: async (): Promise<ListAssignmentsResponse> => {
+      const result = await mcp.listAssignmentsForStudent();
+      return {
+        assignments: (result.assignments ?? []) as ListAssignmentsResponse['assignments'],
+        scope: result.scope ?? 'student',
+      };
+    },
     enabled: options.enabled !== false,
     staleTime: 60_000,
     refetchOnWindowFocus: false,

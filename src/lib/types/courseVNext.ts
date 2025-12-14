@@ -232,7 +232,7 @@ export function migrateCourseToVNext(legacyCourse: any): CourseVNext {
       if (item.options && item.mode !== 'numeric') {
         if (typeof item.options[0] === 'string') {
           // Legacy string array
-          migratedItem.options = item.options.map((text: string, idx: number) => ({
+          migratedItem.options = (item.options ?? []).map((text: string, idx: number) => ({
             id: idx.toString(),
             variants: {
               intermediate: text,

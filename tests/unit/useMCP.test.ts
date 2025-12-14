@@ -29,14 +29,18 @@ describe('JOB_MODES configuration', () => {
 });
 
 describe('ENTITY_FIELDS configuration', () => {
-  it('has all 7 entities defined', () => {
+  it('has all 11 entities defined', () => {
     const entities = Object.keys(ENTITY_FIELDS);
-    expect(entities).toHaveLength(7);
+    expect(entities).toHaveLength(11);
     expect(entities).toContain('LearnerProfile');
     expect(entities).toContain('Assignment');
     expect(entities).toContain('CourseBlueprint');
+    expect(entities).toContain('GameSession');
     expect(entities).toContain('MessageThread');
     expect(entities).toContain('JobTicket');
+    expect(entities).toContain('MasteryState');
+    expect(entities).toContain('StudentGoal');
+    expect(entities).toContain('ClassMembership');
     expect(entities).toContain('SessionEvent');
     expect(entities).toContain('GoalUpdate');
   });

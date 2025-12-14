@@ -36,17 +36,15 @@ export interface ParentSubjectsResponse {
   message?: string;
 }
 
-// Dev bypass child ID (seeded in database)
-const DEV_CHILD_ID = "b2ed7195-4202-405b-85e4-608944a27837";
-
 export async function getParentSubjects(
   params: ParentSubjectsParams = {}
 ): Promise<ParentSubjectsResponse> {
+  if (!params.studentId) {
+    throw new Error("studentId is required - no fallback allowed per IgniteZero rules");
+  }
+  
   const queryParams: Record<string, string> = {};
-
-  // In dev mode without explicit studentId, use the seeded dev child
-  const studentId = params.studentId || DEV_CHILD_ID;
-  queryParams.childId = studentId;
+  queryParams.childId = params.studentId;
 
   return callEdgeFunctionGet<ParentSubjectsResponse>(
     "parent-subjects",

@@ -467,16 +467,6 @@
     },
     {
       "path": "/teacher/analytics",
-      "requiredCTAs": [
-        {
-          "id": "cta-view-analytics",
-          "target": "action"
-        },
-        {
-          "id": "cta-export-analytics",
-          "target": "action"
-        }
-      ],
       "name": "Analytics",
       "description": "Analytics",
       "states": [
@@ -488,6 +478,14 @@
         }
       ],
       "requiredCTAs": [
+        {
+          "id": "cta-view-analytics",
+          "target": "action"
+        },
+        {
+          "id": "cta-export-analytics",
+          "target": "action"
+        },
         {
           "id": "nav-kids",
           "target": "/kids"
@@ -1039,9 +1037,7 @@
         {
           "id": "cta-end-round",
           "target": "action"
-        }
-      ],
-      "requiredCTAs": [
+        },
         {
           "id": "nav-kids",
           "target": "/kids"

@@ -114,3 +114,77 @@ npx tsx scripts/verify-live-deployment.ts  # ALWAYS verify after deploy
 - `docs/mockups/coverage.json` is the source of truth for every route/state/CTA. Do **not** add or edit mock HTML without updating the matrix.
 - Before generating React pages (`scripts/compile-mockups.ts`) you must run `npm run mock:validate` and `npm run test:cta-smoke`. The compile step now halts if required CTAs are missing or miswired, so fix the mock instead of bypassing the check.
 - Every CTA must have a visible behavior (toast, BLOCKED banner, navigation, or job). If you temporarily disable a CTA, mark it `data-cta-id="cta-blocked"` and surface a BLOCKED message explaining why.
+
+## 🎯 100% CTA TRACKING MANDATE (AI-MANAGED SYSTEMS)
+
+**This system is managed 100% by AI agents. Complete CTA tracking is REQUIRED.**
+
+### Why 100%?
+- AI agents need guardrails to prevent UI drift
+- Every button must be auditable and testable
+- No "invisible" or undocumented interactive elements
+- Complete regression detection in CI
+
+### MANDATORY: Every Interactive Element Must Have data-cta-id
+
+```typescript
+// ❌ FORBIDDEN - Untracked button
+<Button onClick={handleSave}>Save</Button>
+
+// ✅ REQUIRED - Tracked button
+<Button 
+  data-cta-id="cta-editor-save"
+  data-action="action"
+  onClick={handleSave}
+>
+  Save
+</Button>
+```
+
+### CTA ID Naming Convention
+
+```
+data-cta-id="cta-{page}-{action}"
+
+Examples:
+- cta-editor-save
+- cta-classes-create
+- cta-play-submit-answer
+- cta-parent-view-goals
+- nav-kids (navigation CTAs use nav- prefix)
+```
+
+### Elements That MUST Have data-cta-id
+
+| Element | Example |
+|---------|---------|
+| `<Button>` | `<Button data-cta-id="cta-save">` |
+| `<button>` | `<button data-cta-id="cta-close">` |
+| `<Link>` | `<Link data-cta-id="nav-home">` |
+| `<a>` | `<a data-cta-id="cta-download">` |
+| `role="button"` | `<div role="button" data-cta-id="cta-toggle">` |
+
+### Exceptions (NO tracking needed)
+
+- UI library internals: `DialogClose`, `SheetClose`, `DropdownMenuTrigger`
+- Accessibility wrappers: `asChild`, `TabsTrigger`, `AccordionTrigger`
+- Form submits: `type="submit"` (tracked via form)
+- Disabled elements: `disabled` attribute present
+- Hidden elements: `aria-hidden="true"`
+
+### Verification
+
+```bash
+# Check CTA coverage
+npm run verify:cta
+
+# Strict mode (fails CI if not 100%)
+CTA_STRICT=1 npm run verify:cta
+```
+
+### When Adding ANY Button
+
+1. Add `data-cta-id` attribute with semantic name
+2. Add `data-action="action"` or `data-action="navigate"`
+3. Update `coverage.json` if it's a required user journey CTA
+4. Run `npm run verify:cta` to confirm tracking

@@ -96,10 +96,10 @@ export const CourseItemSchemaV2 = z.object({
     (item) => {
       if (item.mode === "options") {
         // Options mode: must have options array (3-4 items) and valid correctIndex
-        if (!item.options || item.options.length < 3 || item.options.length > 4) {
+        if (!item.options || (item.options?.length ?? 0) < 3 || (item.options?.length ?? 0) > 4) {
           return false;
         }
-        if (item.correctIndex === undefined || item.correctIndex < 0 || item.correctIndex >= item.options.length) {
+        if (item.correctIndex === undefined || item.correctIndex < 0 || item.correctIndex >= (item.options?.length ?? 0)) {
           return false;
         }
         return true;

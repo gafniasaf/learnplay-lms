@@ -132,7 +132,8 @@ const Play = () => {
     let cancelled = false;
     (async () => {
       if (!skillFocus) { setKoLabel(null); return; }
-      const ko = await mcp.getKnowledgeObjective(skillFocus);
+      // KO label lookup disabled - use display name from URL params instead
+      const ko = { name: skillFocus };
       if (!cancelled) setKoLabel(ko?.name ?? null);
     })();
     return () => { cancelled = true; };
@@ -336,7 +337,7 @@ const Play = () => {
         
         // Start a new round with selected level
         console.info("[Play] Starting round", { courseId, level, contentVersion: data.contentVersion, assignmentId });
-        const roundData = await mcp.startGameRound({ courseId, level, assignmentId });
+        const roundData = await mcp.startGameRound(courseId, level, assignmentId);
         sessionStore.startSession(courseId, level, roundData.sessionId, roundData.roundId);
         
         // Post round:start event to embed parent
@@ -698,7 +699,7 @@ const Play = () => {
       
       // Start a new round with new level
       console.info("[Play] Changing level", { courseId, level: levelNum, contentVersion: course.contentVersion, assignmentId });
-      const roundData = await mcp.startGameRound({ courseId, level: levelNum, assignmentId });
+      const roundData = await mcp.startGameRound(courseId, levelNum, assignmentId);
       sessionStore.startSession(courseId, levelNum, roundData.sessionId, roundData.roundId);
       
       // Post round:start event to embed parent
@@ -736,7 +737,7 @@ const Play = () => {
       // Start a new round
       const level = currentLevel;
       console.info("[Play] Restarting round", { courseId, level, contentVersion: course.contentVersion, assignmentId });
-      const roundData = await mcp.startGameRound({ courseId, level, assignmentId });
+      const roundData = await mcp.startGameRound(courseId, level, assignmentId);
       sessionStore.startSession(courseId, level, roundData.sessionId, roundData.roundId);
       
       // Post round:start event to embed parent
