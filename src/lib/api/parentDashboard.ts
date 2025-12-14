@@ -50,7 +50,7 @@ export interface ParentDashboardResponse {
 }
 
 // Dev bypass parent ID (seeded in database)
-const DEV_PARENT_ID = "613d43cb-0922-4fad-b528-dbed8d2a5c79";
+export const DEV_PARENT_ID = "613d43cb-0922-4fad-b528-dbed8d2a5c79";
 
 export async function getParentDashboard(
   params: ParentDashboardParams = {}

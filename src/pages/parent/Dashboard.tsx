@@ -28,6 +28,8 @@ import type { ParentGoalRecord } from "@/lib/api/parentGoals";
 import type { SessionActivity } from "@/components/parent/ActivityTimeline";
 import type { TopicRow } from "@/components/parent/TopicsHandled";
 import { formatDistanceToNow, parseISO } from "date-fns";
+import { isDevAgentMode } from "@/lib/api/common";
+import { DEV_PARENT_ID } from "@/lib/api/parentDashboard";
 
 const aggregateGoals = (goals: ParentGoalRecord[]) => {
   if (!goals || goals.length === 0) {
@@ -173,6 +175,12 @@ export default function ParentDashboard() {
     return missing;
   }, [allowLive, isLoading, primaryStudentId, subjectRecords.length, timelineEvents.length, parentGoals.data?.goals, apiTopics.length]);
 
+  const canUseSeededDemoParent =
+    isDevAgentMode() &&
+    !isLoading &&
+    !!parentDashboard &&
+    (parentDashboard?.children?.length ?? 0) === 0;
+
   // Check if child has a teacher (blocks parent assignment)
   // Teacher presence is determined by learner profile data
   const hasTeacher = false;
@@ -267,6 +275,29 @@ export default function ParentDashboard() {
                     <li key={m}>{m}</li>
                   ))}
                 </ul>
+                {canUseSeededDemoParent && (
+                  <div className="mt-4 flex flex-col gap-2">
+                    <p className="text-xs opacity-90">
+                      In Lovable preview/dev-agent mode, you may be authenticated as a parent with <strong>no linked children</strong>.
+                      You can switch to the seeded demo parent (real DB rows) to confirm the portal is working.
+                    </p>
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => {
+                        try {
+                          window.sessionStorage.setItem("iz_dev_user_id", DEV_PARENT_ID);
+                          window.localStorage.setItem("iz_dev_user_id", DEV_PARENT_ID);
+                        } catch {
+                          // ignore
+                        }
+                        window.location.reload();
+                      }}
+                    >
+                      Use seeded demo parent
+                    </Button>
+                  </div>
+                )}
               </AlertDescription>
             </Alert>
           )}

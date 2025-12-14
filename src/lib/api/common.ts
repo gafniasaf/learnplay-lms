@@ -539,6 +539,14 @@ async function callEdgeFunctionWithAgentToken<TRequest, TResponse>(
   // In devMode, x-user-id MUST be available (some endpoints require it).
   let effectiveUserId = userId;
   if (!effectiveUserId) {
+    // Prefer explicit dev identity (URL/sessionStorage/localStorage/env) over Supabase session user.
+    // This makes Lovable preview stable even when a stale/incorrect Supabase session exists.
+    const explicit = getStorageValue("iz_dev_user_id") || (import.meta.env.VITE_DEV_USER_ID as string | undefined);
+    if (explicit) {
+      effectiveUserId = explicit;
+    }
+  }
+  if (!effectiveUserId) {
     try {
       const { supabase } = await import("@/integrations/supabase/client");
       const { data: { session } } = await supabase.auth.getSession();
@@ -658,11 +666,14 @@ export async function callEdgeFunctionGet<TResponse>(
     headers["x-agent-token"] = getDevAgentToken();
     headers["x-organization-id"] = getDevOrgId();
     // In devMode, x-user-id MUST be available (some endpoints require it).
+    // Prefer explicit dev identity (URL/sessionStorage/localStorage/env) over Supabase session user.
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      headers["x-user-id"] = session?.user?.id || getDevUserId();
+      const explicit = getStorageValue("iz_dev_user_id") || (import.meta.env.VITE_DEV_USER_ID as string | undefined);
+      headers["x-user-id"] = explicit || session?.user?.id || getDevUserId();
     } catch {
-      headers["x-user-id"] = getDevUserId();
+      const explicit = getStorageValue("iz_dev_user_id") || (import.meta.env.VITE_DEV_USER_ID as string | undefined);
+      headers["x-user-id"] = explicit || getDevUserId();
     }
   }
 
