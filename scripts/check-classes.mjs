@@ -14,3 +14,4 @@ const data = await response.json();
 console.log('Classes table columns:');
 data.forEach(col => console.log(` - ${col.column_name}: ${col.data_type}`));
 
+

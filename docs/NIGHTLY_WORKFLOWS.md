@@ -66,3 +66,4 @@ Option 1: Comment out the `schedule` section in each workflow file
 Option 2: Delete the workflow files (can restore from git if needed)
 Option 3: Add a condition to skip if secrets are missing
 
+

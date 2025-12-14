@@ -40,3 +40,4 @@ async function ensureUser(email, password, role) {
 await ensureUser("parent@example.com", "Temp1234!", "parent");
 await ensureUser("child@example.com", "Temp1234!", "student");
 
+

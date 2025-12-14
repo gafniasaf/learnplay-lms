@@ -176,3 +176,4 @@ npm run scripts/setup-admin-org.ts admin@learnplay.dev
 4. **Monitor API costs** if running frequently
 5. **Keep admin credentials secure** (use secrets in CI/CD)
 
+

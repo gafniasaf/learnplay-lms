@@ -7,3 +7,4 @@ DROP TRIGGER IF EXISTS set_updated_at ON ai_course_jobs;
 DROP TRIGGER IF EXISTS set_updated_at ON ai_media_jobs;
 DROP TRIGGER IF EXISTS update_ai_course_jobs_modtime ON ai_course_jobs;
 
+

@@ -16,3 +16,4 @@ console.log('Tables in public schema:');
 data.forEach(row => console.log(' -', row.table_name));
 console.log(`\nTotal: ${data.length} tables`);
 
+

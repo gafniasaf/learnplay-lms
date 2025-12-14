@@ -540,3 +540,4 @@ If you have questions about this workflow:
 
 The goal is: **Fast MVP in Lovable → Clean handoff → Production-quality Ignite Zero rebuild**
 
+

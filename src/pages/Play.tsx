@@ -1,8 +1,7 @@
 import { useEffect, useState, useRef, useMemo } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { Trophy, Menu, Home, Target } from "lucide-react";
-import { useMCP } from "@/hooks/useMCP";
-import { useGameSession } from "@/hooks/useGameSession";
+import { getCourse, startRound, logAttemptLive, getApiMode } from "@/lib/api";
 import { isDevEnabled } from "@/lib/env";
 import { speak, stop as stopTTS, isTTSAvailable, getTTSPreference, setTTSPreference } from "@/lib/tts";
 import { setupAutoFlush, getQueueSize } from "@/lib/offlineQueue";
@@ -33,10 +32,10 @@ import { SkipLink } from "@/components/game/SkipLink";
 import { Button } from "@/components/ui/button";
 import type { Course } from "@/lib/types/course";
 import { isEmbed, postToHost, listenHost } from "@/lib/embed";
-import { supabase as supabaseClient } from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/supabase/client";
 import { PlayErrorBoundary } from "@/components/game/PlayErrorBoundary";
 import { useCoursePreloader } from "@/hooks/useCoursePreloader";
-import { getApiMode } from "@/lib/api";
+import { updateMastery as kmUpdateMastery, getKnowledgeObjective } from "@/lib/api/knowledgeMap";
 
 type Phase = 'idle' | 'committing' | 'feedback-correct' | 'feedback-wrong' | 'advancing';
 
@@ -59,9 +58,7 @@ const Play = () => {
         const u = new URL(document.referrer);
         refParam = u.searchParams.get('admin') === '1';
       }
-    } catch {
-      // Ignore URL parsing errors (invalid referrer)
-    }
+    } catch {}
     return urlParam || envParam || lsParam || refParam;
   })();
   
@@ -73,7 +70,6 @@ const Play = () => {
   const [showVersionBanner, setShowVersionBanner] = useState(false);
   const itemStartTime = useRef<number>(Date.now());
   const [koLabel, setKoLabel] = useState<string | null>(null);
-  const mcp = useMCP();
   
   // Parse level from URL, default to 1
   const getLevelFromUrl = (course: Course | null): number => {
@@ -132,7 +128,7 @@ const Play = () => {
     let cancelled = false;
     (async () => {
       if (!skillFocus) { setKoLabel(null); return; }
-      const ko = await mcp.call<{ name?: string }>('getKnowledgeObjective', { id: skillFocus });
+      const ko = await getKnowledgeObjective(skillFocus);
       if (!cancelled) setKoLabel(ko?.name ?? null);
     })();
     return () => { cancelled = true; };
@@ -202,7 +198,7 @@ const Play = () => {
         try {
           const { access_token, refresh_token } = e.data.payload;
           if (access_token && refresh_token) {
-            await supabaseClient.auth.setSession({
+            await supabase.auth.setSession({
               access_token,
               refresh_token,
             });
@@ -289,7 +285,7 @@ const Play = () => {
   // Subscribe to catalog_updates for this course and show refresh banner
   useEffect(() => {
     if (!courseId) return;
-    const channel = supabaseClient
+    const channel = supabase
       .channel('catalog-updates-play')
       .on(
         'postgres_changes',
@@ -301,7 +297,7 @@ const Play = () => {
         }
       )
       .subscribe();
-    return () => { supabaseClient.removeChannel(channel); };
+    return () => { supabase.removeChannel(channel); };
   }, [courseId]);
 
   // Load course data and start session
@@ -311,8 +307,7 @@ const Play = () => {
     const loadCourse = async () => {
       try {
         setLoading(true);
-        const data = (await mcp.getCourse(courseId)) as unknown as Course;
-
+        const data = await getCourse(courseId);
         setCourse(data);
         
         // Get level from URL (after course is loaded)
@@ -337,7 +332,7 @@ const Play = () => {
         
         // Start a new round with selected level
         console.info("[Play] Starting round", { courseId, level, contentVersion: data.contentVersion, assignmentId });
-        const roundData = await mcp.startGameRound(courseId, level, assignmentId, data.contentVersion);
+        const roundData = await startRound(courseId, level, data.contentVersion, assignmentId);
         sessionStore.startSession(courseId, level, roundData.sessionId, roundData.roundId);
         
         // Post round:start event to embed parent
@@ -356,7 +351,7 @@ const Play = () => {
         distinctItemsRef.current.clear();
         itemStartTime.current = Date.now();
         
-        console.info(`[Play] Round started: ${roundData.roundId}`);
+        console.info(`[Play] Round started: ${roundData.roundId}, API mode: ${getApiMode()}`);
         setError(null);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to load course");
@@ -371,7 +366,7 @@ const Play = () => {
 
   // Set up offline queue auto-flush
   useEffect(() => {
-    const cleanup = setupAutoFlush(mcp.logGameAttempt);
+    const cleanup = setupAutoFlush(logAttemptLive);
     
     // Update queue size on load
     setQueuedAttempts(getQueueSize());
@@ -531,24 +526,28 @@ const Play = () => {
           latencyMs 
         });
         
-        const attemptResult = await mcp.logGameAttempt(
-          sessionStore.roundId!,
-          frozenItem.id,
+        const attemptResult = await logAttemptLive({
+          roundId: sessionStore.roundId,
+          itemId: frozenItem.id,
+          itemKey: `${frozenItem.id}:${frozenItem.clusterId}:${frozenItem.variant}`,
+          selectedIndex: isNumericMode ? 0 : selectedIndex, // Numeric mode uses 0 as placeholder
           isCorrect,
           latencyMs,
-          isLastItem, // finalize
-          isNumericMode ? 0 : selectedIndex,
-          `${frozenItem.id}:${frozenItem.clusterId}:${frozenItem.variant}`,
-          undefined // idempotencyKey
-        );
+          endRound: isLastItem ? {
+            baseScore: gameState.score,
+            mistakes: gameState.mistakes,
+            elapsedSeconds: gameState.elapsedTime,
+            distinctItems: distinctItemsRef.current.size,
+          } : undefined,
+        });
 
         // If correct and we have a skill focus + user, update mastery (fire-and-forget)
         if (isCorrect && skillFocus) {
           try {
-            const { data } = await supabaseClient.auth.getUser();
+            const { data } = await supabase.auth.getUser();
             const studentId = data.user?.id;
             if (studentId) {
-              await mcp.updateMastery({
+              await kmUpdateMastery({
                 studentId,
                 koId: skillFocus,
                 exerciseScore: 1.0,
@@ -675,7 +674,7 @@ const Play = () => {
         replace: true,
       });
     }
-  }, [gameState.isComplete, course, courseId, gameState.level, gameState.score, gameState.mistakes, gameState.elapsedTime, gameState.poolSize, sessionStore.roundId, navigate, sessionStore]);
+  }, [gameState.isComplete, course, courseId, gameState.level, gameState.score, gameState.mistakes, gameState.elapsedTime, gameState.poolSize, sessionStore.roundId, navigate]);
 
   // Handle level change
   const handleLevelChange = async (newLevel: string) => {
@@ -695,7 +694,7 @@ const Play = () => {
       
       // Start a new round with new level
       console.info("[Play] Changing level", { courseId, level: levelNum, contentVersion: course.contentVersion, assignmentId });
-      const roundData = await mcp.startGameRound(courseId, levelNum, assignmentId, course?.contentVersion);
+      const roundData = await startRound(courseId, levelNum, course.contentVersion, assignmentId);
       sessionStore.startSession(courseId, levelNum, roundData.sessionId, roundData.roundId);
       
       // Post round:start event to embed parent
@@ -733,7 +732,7 @@ const Play = () => {
       // Start a new round
       const level = currentLevel;
       console.info("[Play] Restarting round", { courseId, level, contentVersion: course.contentVersion, assignmentId });
-      const roundData = await mcp.startGameRound(courseId, level, assignmentId, course?.contentVersion);
+      const roundData = await startRound(courseId, level, course.contentVersion, assignmentId);
       sessionStore.startSession(courseId, level, roundData.sessionId, roundData.roundId);
       
       // Post round:start event to embed parent
@@ -925,23 +924,47 @@ const Play = () => {
                       setShowHint(true);
                       return;
                     }
-                    const json = await mcp.call<any>('lms.generateHint', { courseId, itemId: frozenItem.id });
-                    const hintText = String(json?.hint || '');
-                    setCurrentHint(hintText);
-                    setShowHint(true);
-                    console.info('[Play] Hint generated');
-                    // Best-effort cache invalidation; log instead of silent swallow
-                    try {
-                      if (courseId) {
-                        const mod = await import("@/lib/utils/cacheInvalidation");
-                        await mod.invalidateCourseCache(courseId);
+                      // Try MCP proxy first (observability), then fallback to direct Edge
+                      let hintText: string | undefined;
+                      try {
+                        const invoke = await import("@/integrations/supabase/client");
+                        const { data, error } = await invoke.supabase.functions.invoke('mcp-metrics-proxy', {
+                          body: { method: 'lms.generateHint', params: { courseId, itemId: frozenItem.id } },
+                        });
+                        if (!error && (data?.ok ?? true)) {
+                          hintText = String(data?.data?.hint ?? data?.hint ?? '');
+                        } else {
+                          throw new Error('mcp-proxy-failed');
+                        }
+                      } catch {
+                        // @ui-audit-ignore: courseId and itemId are runtime-available from closure
+                        const resp = await fetch('/functions/v1/generate-hint', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ courseId, itemId: frozenItem.id }),
+                        });
+                        const json = await resp.json();
+                        if (!resp.ok) throw new Error('edge-failed');
+                        hintText = String(json?.hint || '');
                       }
-                    } catch (cacheError) {
-                      console.warn('[Play] Cache invalidation skipped', cacheError);
-                    }
+                      console.info('[Play] Hint generated');
+                      // Invalidate CDN cache and reload current course item to reflect hint
+                      try {
+                        if (courseId) {
+                          const mod = await import("@/lib/utils/cacheInvalidation");
+                          await mod.invalidateCourseCache(courseId);
+                        }
+                      } catch {}
+                      await loadCourse();
+                      // optional toast (if global toast bridge exists)
+                      // @ts-ignore
+                      window?.__toast?.success?.('Hint added');
+                      setCurrentHint(String(hintText || ''));
+                      setShowHint(true);
                     } catch (e) {
                       console.warn('[Play] Hint error', e);
-                    (window as any)?.__toast?.error?.('Hint error');
+                      // @ts-ignore
+                      window?.__toast?.error?.('Hint error');
                     }
                   }}
                 >

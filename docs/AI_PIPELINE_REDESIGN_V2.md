@@ -131,3 +131,4 @@
 - **Focused**: No distractions from current task
 - **Mobile-friendly**: Single column, scrollable
 
+

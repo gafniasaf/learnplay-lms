@@ -17,3 +17,4 @@ if (data.length > 0) {
   console.log('❌ update_updated_at_column function MISSING - need to create it first');
 }
 
+

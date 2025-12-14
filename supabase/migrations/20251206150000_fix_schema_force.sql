@@ -9,3 +9,4 @@ ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW();
 DROP TRIGGER IF EXISTS handle_updated_at ON public.ai_course_jobs;
 DROP TRIGGER IF EXISTS set_updated_at ON public.ai_course_jobs;
 
+

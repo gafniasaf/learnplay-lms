@@ -6,20 +6,40 @@ import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Mail } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { shouldUseMockData } from "@/lib/api/common";
+import { getAssignmentsDue } from "@/lib/student/mockSelectors";
 import { mapStudentAssignment, type StudentAssignmentDisplay } from "@/lib/student/assignmentsMappers";
+
+const mapMockAssignments = (): StudentAssignmentDisplay[] => {
+  // Use a simple, coarse window for mock assignments; real implementation is in mockSelectors.
+  const now = new Date();
+  const start = new Date(now);
+  start.setDate(start.getDate() - 30);
+
+  const window = { start, end: now };
+  return getAssignmentsDue(window).map((assignment) => ({
+    id: assignment.id,
+    title: assignment.title,
+    courseId: assignment.subject,
+    dueAt: assignment.dueISO ?? null,
+  }));
+};
 
 export default function StudentAssignments() {
   const navigate = useNavigate();
-  const { data, isLoading, isError, error, refetch } = useStudentAssignments();
+  const mockMode = shouldUseMockData();
+  const { data, isLoading, isError, error, refetch } = useStudentAssignments({ enabled: !mockMode });
 
   const liveAssignments = useMemo(() => {
-    if (!data?.assignments) return [];
+    if (mockMode || !data?.assignments) return [];
     return data.assignments.map(mapStudentAssignment);
-  }, [data?.assignments]);
+  }, [mockMode, data?.assignments]);
 
-  const assignments = liveAssignments;
+  const fallbackAssignments = useMemo(() => mapMockAssignments(), []);
 
-  if (isLoading) {
+  const assignments = liveAssignments.length > 0 ? liveAssignments : fallbackAssignments;
+
+  if (!mockMode && isLoading) {
     return (
       <PageContainer>
         <StudentLayout>
@@ -29,7 +49,7 @@ export default function StudentAssignments() {
     );
   }
 
-  if (isError) {
+  if (!mockMode && isError) {
     const message = error instanceof Error ? error.message : "Unable to load assignments.";
 
     return (

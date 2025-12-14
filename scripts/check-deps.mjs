@@ -22,3 +22,4 @@ const existing = data.map(r => r.table_name);
 console.log('Existing:', existing);
 console.log('Missing:', tables.filter(t => !existing.includes(t)));
 
+

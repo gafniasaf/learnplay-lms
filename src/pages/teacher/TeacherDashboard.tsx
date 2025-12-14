@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { GraduationCap, Plus, BookOpen, Users, Calendar, TrendingUp, List, BarChart3, UserCheck, Mail } from "lucide-react";
@@ -12,41 +12,84 @@ import { AssignmentModal } from "@/components/shared/AssignmentModal";
 import type { Assignment } from "@/lib/api/assignments";
 import type { Class, Student } from "@/lib/api/classes";
 import { useTeacherDashboard } from "@/hooks/useTeacherDashboard";
+import { useMockData } from "@/lib/api";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { toast } from "sonner";
 import { JobProgress } from "@/components/shared/JobProgress";
 import { format } from "date-fns";
-import { useMCP } from "@/hooks/useMCP";
-import { useAuth } from "@/hooks/useAuth";
 
 interface AssignmentWithProgress extends Assignment {
   progress?: number;
 }
 
+const MOCK_DASHBOARD = {
+  assignments: [
+    {
+      id: "mock-assign-1",
+      course_id: "algebra-101",
+      title: "Mock Algebra Assignment",
+      due_at: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString(),
+      created_at: new Date().toISOString(),
+    },
+    {
+      id: "mock-assign-2",
+      course_id: "reading-201",
+      title: "Mock Reading Assignment",
+      due_at: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString(),
+      created_at: new Date().toISOString(),
+    },
+  ] satisfies Assignment[],
+  classes: [
+    {
+      id: "mock-class-1",
+      name: "Algebra 101",
+      description: "Mock class",
+      owner: "teacher-1",
+      org_id: "org-1",
+      created_at: new Date().toISOString(),
+    },
+  ] satisfies Class[],
+  students: [
+    {
+      id: "mock-student-1",
+      name: "Alice Johnson",
+      classIds: ["mock-class-1"],
+    },
+    {
+      id: "mock-student-2",
+      name: "Ben Lee",
+      classIds: ["mock-class-1"],
+    },
+  ] satisfies Student[],
+};
+
 const TeacherDashboard = () => {
   const navigate = useNavigate();
-  const { user } = useAuth();
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [showKOTableModal, setShowKOTableModal] = useState(false);
   const [showKOAssignmentModal, setShowKOAssignmentModal] = useState(false);
   const [selectedKOId, setSelectedKOId] = useState<string | null>(null);
   const [activeJobId, setActiveJobId] = useState<string | null>(null);
-  const mcp = useMCP();
+  const mockMode = useMockData();
 
   const {
     data,
     isLoading,
     isError,
+    error,
     refetch,
-  } = useTeacherDashboard();
+  } = useTeacherDashboard({ enabled: !mockMode });
 
   const dashboardData = useMemo(() => {
+    if (mockMode) {
+      return MOCK_DASHBOARD;
+    }
     return {
       assignments: data?.assignments ?? [],
       classes: data?.classes ?? [],
       students: data?.students ?? [],
     };
-  }, [data]);
+  }, [mockMode, data]);
 
   const assignments: AssignmentWithProgress[] = useMemo(
     () =>
@@ -59,14 +102,13 @@ const TeacherDashboard = () => {
 
   const classes = dashboardData.classes;
   const students = dashboardData.students;
-  const activeClassId = classes[0]?.id ?? null;
 
   const totalAssignments = assignments.length;
   const activeAssignments = assignments.filter(
     (a) => !a.due_at || new Date(a.due_at) >= new Date()
   ).length;
   const totalClasses = classes.length;
-  const _totalStudents = students.length;
+  const totalStudents = students.length;
 
   const handleAssignmentCreated = () => {
     setShowAssignModal(false);
@@ -86,7 +128,7 @@ const TeacherDashboard = () => {
     toast.success("Skill assignment created successfully");
   };
 
-  if (isLoading) {
+  if (!mockMode && isLoading) {
     return (
       <PageContainer>
         <div className="max-w-7xl mx-auto space-y-6">
@@ -113,8 +155,8 @@ const TeacherDashboard = () => {
     );
   }
 
-  if (isError) {
-    const message = "Unable to load teacher dashboard.";
+  if (!mockMode && isError) {
+    const message = error instanceof Error ? error.message : "Unable to load teacher dashboard.";
     return (
       <PageContainer>
         <Alert variant="destructive" className="max-w-xl">
@@ -124,24 +166,6 @@ const TeacherDashboard = () => {
             <Button variant="outline" size="sm" onClick={() => refetch()}>
               Retry
             </Button>
-          </AlertDescription>
-        </Alert>
-      </PageContainer>
-    );
-  }
-
-  if (!user) {
-    return (
-      <PageContainer>
-        <Alert variant="destructive" className="max-w-xl">
-          <AlertTitle>Authentication required</AlertTitle>
-          <AlertDescription>
-            Please sign in to view the Teacher dashboard.
-            <div className="mt-3">
-              <Button variant="outline" size="sm" onClick={() => navigate("/auth")}>
-                Go to Login
-              </Button>
-            </div>
           </AlertDescription>
         </Alert>
       </PageContainer>
@@ -163,23 +187,23 @@ const TeacherDashboard = () => {
             </div>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" onClick={() => navigate("/teacher/students")} size="lg" data-cta-id="teacher-students" data-action="navigate" data-target="/teacher/students">
+            <Button variant="outline" onClick={() => navigate("/teacher/students")} size="lg">
               <UserCheck className="h-5 w-5 mr-2" />
               Students
             </Button>
-            <Button variant="outline" onClick={() => navigate("/teacher/classes")} size="lg" data-cta-id="teacher-classes" data-action="navigate" data-target="/teacher/classes">
+            <Button variant="outline" onClick={() => navigate("/teacher/classes")} size="lg">
               <Users className="h-5 w-5 mr-2" />
               Classes
             </Button>
-            <Button variant="outline" onClick={() => navigate("/teacher/analytics")} size="lg" data-cta-id="teacher-analytics" data-action="navigate" data-target="/teacher/analytics">
+            <Button variant="outline" onClick={() => navigate("/teacher/analytics")} size="lg">
               <BarChart3 className="h-5 w-5 mr-2" />
               Analytics
             </Button>
-            <Button variant="outline" onClick={() => navigate("/messages")} size="lg" data-cta-id="teacher-messages" data-action="navigate" data-target="/messages">
+            <Button variant="outline" onClick={() => navigate("/messages")} size="lg">
               <Mail className="h-5 w-5 mr-2" />
               Messages
             </Button>
-            <Button variant="outline" onClick={() => navigate("/teacher/assignments")} size="lg" data-cta-id="teacher-assignments" data-action="navigate" data-target="/teacher/assignments">
+            <Button variant="outline" onClick={() => navigate("/teacher/assignments")} size="lg">
               <List className="h-5 w-5 mr-2" />
               All Assignments
             </Button>
@@ -190,8 +214,13 @@ const TeacherDashboard = () => {
                 const topic = prompt("Generate assignment for topic:");
                 if (!topic) return;
                 try {
-                  const json = await mcp.call<any>('lms.generateAssignment', { topic });
-                  if (json.jobId) {
+                  const resp = await fetch("/functions/v1/generate-assignment", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ topic }),
+                  });
+                  const json = await resp.json();
+                  if (resp.ok) {
                     toast.success(`Generating assignment… Job: ${json.jobId}`);
                     setActiveJobId(json.jobId);
                   } else {
@@ -221,25 +250,12 @@ const TeacherDashboard = () => {
 
         {/* Class Focus (Knowledge Map) */}
         <div className="mb-8">
-          {activeClassId ? (
-            <ClassFocusWidget
-              classId={activeClassId}
-              onCreateAssignment={handleAssignKO}
-              onViewAll={() => setShowKOTableModal(true)}
-            />
-          ) : (
-            <Alert className="border-warning bg-warning/10">
-              <AlertTitle>Class required</AlertTitle>
-              <AlertDescription>
-                Create a class to view the Knowledge Map and assign skill practice.
-                <div className="mt-3">
-                  <Button variant="outline" size="sm" onClick={() => navigate("/teacher/classes")}>
-                    Go to Classes
-                  </Button>
-                </div>
-              </AlertDescription>
-            </Alert>
-          )}
+          <ClassFocusWidget
+            teacherId="teacher-1"
+            onViewAll={() => setShowKOTableModal(true)}
+            onAssignKO={handleAssignKO}
+            useMockData={true}
+          />
 
           {/* Remediation CTA */}
           <div className="mt-4 p-4 border rounded-lg bg-primary/5 flex items-center justify-between">
@@ -255,8 +271,13 @@ const TeacherDashboard = () => {
                 try {
                   const ko = prompt("Enter skill/KO id or subject");
                   if (!ko) return;
-                  const json = await mcp.call<any>('lms.generateRemediation', { subject: ko, itemsPerGroup: 8 });
-                  if (json.jobId) {
+                  const resp = await fetch("/functions/v1/generate-remediation", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ subject: ko, itemsPerGroup: 8 }),
+                  });
+                  const json = await resp.json();
+                  if (resp.ok) {
                     toast.success(`Generating remediation set… Job: ${json.jobId}`);
                     setActiveJobId(json.jobId);
                   } else {
@@ -371,34 +392,33 @@ const TeacherDashboard = () => {
           open={showAssignModal}
           onClose={() => setShowAssignModal(false)}
           onSuccess={handleAssignmentCreated}
+          orgId="mock-org-id"
           classes={classes}
           students={students}
         />
 
         {/* Knowledge Map Modals */}
-        {activeClassId && (
-          <TeacherKOTable
-            isOpen={showKOTableModal}
-            onClose={() => setShowKOTableModal(false)}
-            classId={activeClassId}
-            onAssignKO={handleAssignKO}
-          />
-        )}
+        <TeacherKOTable
+          isOpen={showKOTableModal}
+          onClose={() => setShowKOTableModal(false)}
+          teacherId="teacher-1"
+          onAssignKO={handleAssignKO}
+          useMockData={true}
+        />
 
-        {showKOAssignmentModal && selectedKOId && activeClassId && user?.id && (
-          <AssignmentModal
-            isOpen={showKOAssignmentModal}
-            onClose={() => {
-              setShowKOAssignmentModal(false);
-              setSelectedKOId(null);
-            }}
-            koId={selectedKOId}
-            assignerId={user.id}
-            assignerRole="teacher"
-            contextId={activeClassId}
-            onCreateAssignment={handleKOAssignmentCreated}
-          />
-        )}
+        <AssignmentModal
+          isOpen={showKOAssignmentModal}
+          onClose={() => {
+            setShowKOAssignmentModal(false);
+            setSelectedKOId(null);
+          }}
+          koId={selectedKOId || undefined}
+          assignedBy="teacher-1"
+          assignedByRole="teacher"
+          studentIds={students.map((s) => s.id)}
+          onSuccess={handleKOAssignmentCreated}
+          useMockData={true}
+        />
       </div>
     </PageContainer>
   );

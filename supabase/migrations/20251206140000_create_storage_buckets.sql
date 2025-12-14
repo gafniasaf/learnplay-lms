@@ -22,3 +22,4 @@ CREATE POLICY "Service Role Manage Releases" ON storage.objects
 USING ( bucket_id = 'releases' AND auth.role() = 'service_role' )
 WITH CHECK ( bucket_id = 'releases' AND auth.role() = 'service_role' );
 
+

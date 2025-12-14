@@ -10,3 +10,4 @@ ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW();
 -- checking if trigger exists and dropping/recreating is complex in pure SQL without PL/pgSQL block, 
 -- but adding the column should fix the 'record "new" has no field "updated_at"' error.
 
+

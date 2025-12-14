@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { useMCP } from "@/hooks/useMCP";
+import { getClassProgress } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -9,24 +9,13 @@ import { JobProgress } from "@/components/shared/JobProgress";
 import { toast } from "sonner";
 
 export default function ClassProgress() {
-  const [classId, setClassId] = useState<string>("");
-  const [courseId, setCourseId] = useState<string>("");
+  const [courseId, setCourseId] = useState<string>("modals");
   const [rangeDays, setRangeDays] = useState<number>(30);
   const [jobId, setJobId] = useState<string | null>(null);
-  const mcp = useMCP();
-  
-  // Fetch available courses from catalog
-  const { data: catalogData } = useQuery({
-    queryKey: ["course-catalog"],
-    queryFn: () => mcp.getCourseCatalog(),
-  });
-  
-  const courses = (catalogData as { courses?: Array<{ id: string; title: string }> })?.courses || [];
   
   const { data, isLoading, refetch, isFetching } = useQuery({
-    queryKey: ["class-progress", classId],
-    queryFn: () => classId ? mcp.getClassProgress(classId) : Promise.resolve(null),
-    enabled: !!classId,
+    queryKey: ["class-progress", courseId, rangeDays],
+    queryFn: () => getClassProgress(courseId, rangeDays),
   });
 
   return (
@@ -55,18 +44,11 @@ export default function ClassProgress() {
               <label className="text-sm font-medium mb-2 block">Course</label>
               <Select value={courseId} onValueChange={setCourseId}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Select a course" />
+                  <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {courses.length > 0 ? (
-                    courses.map((course) => (
-                      <SelectItem key={course.id} value={course.id}>
-                        {course.title}
-                      </SelectItem>
-                    ))
-                  ) : (
-                    <SelectItem value="" disabled>No courses available</SelectItem>
-                  )}
+                  <SelectItem value="modals">English Modals</SelectItem>
+                  <SelectItem value="verbs">English Verbs</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -161,8 +143,13 @@ export default function ClassProgress() {
                 const ko = prompt("Enter weak skill (e.g., Fractions basics):");
                 if (!ko) return;
                 try {
-                  const json = await mcp.call<any>('lms.generateRemediation', { subject: ko, itemsPerGroup: 8 });
-                  if (json.jobId) {
+                  const resp = await fetch("/functions/v1/generate-remediation", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ subject: ko, itemsPerGroup: 8 }),
+                  });
+                  const json = await resp.json();
+                  if (resp.ok) {
                     setJobId(json.jobId);
                     toast.success(`Started remediation job: ${json.jobId}`);
                   } else {

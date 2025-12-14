@@ -1,4 +1,4 @@
-import { callEdgeFunction, shouldUseMockData, getSupabaseUrl, getSupabaseAnonKey } from "./common";
+import { callEdgeFunction, shouldUseMockData } from "./common";
 import { EDGE_FUNCTIONS } from "../types/api";
 import { createLogger } from "../logger";
 import type {
@@ -400,10 +400,10 @@ class EventBatchQueue {
       });
 
       const { getAccessToken } = await import("../supabase");
-      const supabaseUrl = getSupabaseUrl();
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
       const token = await getAccessToken();
 
-      if (!token) {
+      if (!supabaseUrl || !token) {
         log.warn("No Supabase URL or token, re-queueing events", {
           action: "eventQueue.flush",
         });

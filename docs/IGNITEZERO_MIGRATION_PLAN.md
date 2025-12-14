@@ -128,3 +128,4 @@ const { jobs, loading } = useJobsRealtime({ status: 'pending' });
 
 Would you like me to proceed with Phase 1?
 
+

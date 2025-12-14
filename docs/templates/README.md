@@ -25,3 +25,4 @@ This folder contains templates for the Lovable-to-Ignite Zero handoff workflow.
 
 See `docs/LOVABLE_TO_IGNITEZERO_GUIDE.md` for the complete workflow documentation.
 
+

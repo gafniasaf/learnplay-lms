@@ -16,3 +16,4 @@ fetch(`https://api.supabase.com/v1/projects/${SUPABASE_PROJECT_REF}/database/que
   console.log('Columns:', JSON.stringify(data, null, 2));
 }).catch(e => console.log('Error:', e.message));
 
+

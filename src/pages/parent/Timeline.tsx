@@ -24,7 +24,7 @@ import { CalendarIcon, ExternalLink, AlertCircle } from "lucide-react";
 import { format, parseISO, isSameDay } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useParentTimeline } from "@/hooks/useParentTimeline";
-// useMockData removed - useParentTimeline handles mock mode internally
+import { useMockData } from "@/lib/api/common";
 import { mapTimelineEventToSession } from "@/lib/parent/timelineMappers";
 
 type FilterType = "all" | "mistakes" | "mastered";
@@ -201,7 +201,7 @@ export default function Timeline() {
             <AlertTitle>Unable to load timeline</AlertTitle>
             <AlertDescription>
               {errorMessage}
-              <Button
+              <Button data-cta-id="cta-timeline-action-77" data-action="action"
                 className="mt-4"
                 variant="outline"
                 onClick={() => refetch()}
@@ -243,7 +243,7 @@ export default function Timeline() {
                   <span className="text-sm font-medium">Select Date:</span>
                   <Popover>
                     <PopoverTrigger asChild>
-                      <Button
+                      <Button data-cta-id="cta-timeline-action-20" data-action="action"
                         variant="outline"
                         className={cn(
                           "w-[240px] justify-start text-left font-normal",
@@ -370,7 +370,9 @@ export default function Timeline() {
 
                     {/* Actions */}
                     <div className="space-y-2 pt-4 border-t">
-                      <Button 
+                      <Button data-cta-id="cta-timeline-action-48" data-action="action" 
+                        data-cta-id={`cta-parent-timeline-open-topics-${selectedSession ? `${selectedSession.subject}-${selectedSession.startISO}` : 'session'}`}
+                        
                         className="w-full" 
                         onClick={handleOpenInTopics}
                       >

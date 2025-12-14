@@ -23,3 +23,4 @@ END $$;
 
 COMMENT ON COLUMN public.ai_agent_jobs.organization_id IS 'Organization this job belongs to for multi-tenant filtering';
 
+

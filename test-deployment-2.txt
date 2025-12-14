@@ -2,3 +2,4 @@ Second test file for Lovable deployment verification
 Created: 2025-12-06
 This confirms the deployment pipeline is working correctly.
 
+

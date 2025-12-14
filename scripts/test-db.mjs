@@ -14,3 +14,4 @@ console.log('Status:', response.status);
 const data = await response.json();
 console.log('Result:', JSON.stringify(data, null, 2));
 
+

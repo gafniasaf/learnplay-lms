@@ -193,3 +193,4 @@ ALTER TABLE [entities] ENABLE ROW LEVEL SECURITY;
 
 **Goal: Fast MVP in Lovable → Clean handoff → Production Ignite Zero**
 
+

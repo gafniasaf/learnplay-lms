@@ -87,7 +87,7 @@ export default function TeacherAssignments() {
   const handleImportFromAI = async () => {
     try {
       const response = await mcp.listCourseJobs({ status: 'done', limit: 1 });
-      if (response.ok && response.jobs.length > 0) {
+      if (response.ok && (response.jobs?.length ?? 0) > 0) {
         const job = response.jobs[0] as { course_id?: string; subject?: string };
         if (job.course_id) {
           setCourseId(job.course_id);
@@ -111,19 +111,19 @@ export default function TeacherAssignments() {
         <h1 className="text-xl font-semibold">Assignments</h1>
         <div className="flex items-center gap-2">
           <button 
+            data-cta-id="cta-assignments-new"
+            data-action="action"
             className="px-3 py-2 bg-primary text-primary-foreground rounded hover:bg-primary/90" 
             onClick={() => setOpen(true)}
-            data-cta-id="new-assignment"
-            data-action="click"
           >
             New
           </button>
           <button
+            data-cta-id="cta-assignments-import-ai"
+            data-action="action"
             className="px-3 py-2 border rounded hover:bg-muted"
             onClick={handleImportFromAI}
             title="Import from latest AI job"
-            data-cta-id="import-from-ai"
-            data-action="click"
           >
             Import from AI
           </button>
@@ -135,7 +135,7 @@ export default function TeacherAssignments() {
       ) : assignments.length === 0 ? (
         <div className="text-center py-12">
           <p className="text-muted-foreground mb-4">No assignments yet</p>
-          <Button onClick={() => setOpen(true)} data-cta-id="create-first-assignment" data-action="click">
+          <Button data-cta-id="cta-assignments-create-first" data-action="action" onClick={() => setOpen(true)}>
             Create your first assignment
           </Button>
         </div>
@@ -151,22 +151,22 @@ export default function TeacherAssignments() {
               </div>
               <div className="flex items-center gap-2">
                 <Button
+                  data-cta-id={`cta-assignments-assign-${a.id}`}
+                  data-action="action"
                   variant="outline"
                   size="sm"
                   onClick={() => handleOpenAssignModal(a.id, a.course_id)}
-                  data-cta-id="assign-students"
-                  data-action="click"
                 >
                   <Users className="h-4 w-4 mr-1" />
                   Assign
                 </Button>
                 <Button
+                  data-cta-id={`cta-assignments-analytics-${a.id}`}
+                  data-action="navigate"
+                  data-target={`/teacher/analytics?assignmentId=${a.id}`}
                   variant="outline"
                   size="sm"
                   onClick={() => navigate(`/teacher/analytics?assignmentId=${a.id}`)}
-                  data-cta-id="view-analytics"
-                  data-action="navigate"
-                  data-target="/teacher/analytics"
                 >
                   <BarChart3 className="h-4 w-4 mr-1" />
                   Analytics
@@ -212,10 +212,12 @@ export default function TeacherAssignments() {
               </div>
             </div>
             <div className="flex gap-2 justify-end">
-              <Button variant="outline" onClick={() => setOpen(false)}>
+              <Button data-cta-id="cta-assignments-create-cancel" data-action="action" variant="outline" onClick={() => setOpen(false)}>
                 Cancel
               </Button>
               <Button
+                data-cta-id="cta-assignments-create-submit"
+                data-action="action"
                 onClick={() => {
                   if (!courseId) {
                     toast({ title: 'Course ID required', variant: 'destructive' });
@@ -231,8 +233,6 @@ export default function TeacherAssignments() {
                   });
                 }}
                 disabled={m.isPending}
-                data-cta-id="confirm-create-assignment"
-                data-action="click"
               >
                 {m.isPending ? 'Creating...' : 'Create'}
               </Button>
