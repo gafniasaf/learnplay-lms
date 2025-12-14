@@ -21,6 +21,12 @@ const e2eAdminPassword = process.env.E2E_ADMIN_PASSWORD || env.E2E_ADMIN_PASSWOR
 if (e2eAdminEmail && !process.env.E2E_ADMIN_EMAIL) process.env.E2E_ADMIN_EMAIL = e2eAdminEmail;
 if (e2eAdminPassword && !process.env.E2E_ADMIN_PASSWORD) process.env.E2E_ADMIN_PASSWORD = e2eAdminPassword;
 
+// Agent-token auth for server-side validation / media runner
+const agentToken = process.env.AGENT_TOKEN || env.AGENT_TOKEN;
+const orgId = process.env.ORGANIZATION_ID || env.ORGANIZATION_ID;
+if (agentToken && !process.env.AGENT_TOKEN) process.env.AGENT_TOKEN = agentToken;
+if (orgId && !process.env.ORGANIZATION_ID) process.env.ORGANIZATION_ID = orgId;
+
 if (!supabaseUrl || !supabaseKey) {
   throw new Error('Missing Supabase credentials. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY or ensure learnplay.env exists.');
 }
@@ -83,6 +89,8 @@ const config: PlaywrightTestConfig = {
       // Provide credentials to the dev server too (some flows might read them client-side in the future)
       E2E_ADMIN_EMAIL: e2eAdminEmail || '',
       E2E_ADMIN_PASSWORD: e2eAdminPassword || '',
+      AGENT_TOKEN: agentToken || '',
+      ORGANIZATION_ID: orgId || '',
     },
   },
   projects: [

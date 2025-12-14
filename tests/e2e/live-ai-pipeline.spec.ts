@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { createClient } from '@supabase/supabase-js';
 
 /**
  * Live E2E Tests: AI Pipeline - Full Course Creation & Editor
@@ -36,34 +37,21 @@ function getSupabaseBase(): { url: string; anonKey: string } {
   return { url, anonKey };
 }
 
-async function getSessionAccessToken(page: import('@playwright/test').Page): Promise<string> {
-  const token = await page.evaluate(() => {
-    try {
-      for (let i = 0; i < localStorage.length; i++) {
-        const k = localStorage.key(i);
-        if (!k) continue;
-        if (!k.includes('auth-token')) continue;
-        const raw = localStorage.getItem(k);
-        if (!raw) continue;
-        try {
-          const parsed = JSON.parse(raw);
-          const access =
-            parsed?.currentSession?.access_token ||
-            parsed?.access_token ||
-            parsed?.currentSession?.accessToken ||
-            null;
-          if (typeof access === 'string' && access.length > 20) return access;
-        } catch {
-          // ignore
-        }
-      }
-      return null;
-    } catch {
-      return null;
-    }
+async function getSessionAccessTokenViaPassword(): Promise<string> {
+  const adminEmail = requireEnv('E2E_ADMIN_EMAIL');
+  const adminPassword = requireEnv('E2E_ADMIN_PASSWORD');
+  const { url, anonKey } = getSupabaseBase();
+  const supabase = createClient(url, anonKey, {
+    auth: { autoRefreshToken: false, persistSession: false },
   });
-  if (!token) throw new Error('Could not extract Supabase session access token from localStorage');
-  return token;
+  const { data, error } = await supabase.auth.signInWithPassword({
+    email: adminEmail,
+    password: adminPassword,
+  });
+  if (error || !data?.session?.access_token) {
+    throw new Error(`Could not create Supabase session via password: ${error?.message || 'missing access_token'}`);
+  }
+  return data.session.access_token;
 }
 
 test.describe('Live AI Pipeline: Course Creation', () => {
@@ -80,7 +68,7 @@ test.describe('Live AI Pipeline: Course Creation', () => {
     
     // Step 2: Enqueue job via API (stable in headless; avoids Chromium net::ERR_INSUFFICIENT_RESOURCES).
     const { url, anonKey } = getSupabaseBase();
-    const sessionToken = await getSessionAccessToken(page);
+    const sessionToken = await getSessionAccessTokenViaPassword();
     const slug = testSubject.toLowerCase().replace(/\s+/g, '-');
     courseId = `${slug}-${Date.now()}`;
 
