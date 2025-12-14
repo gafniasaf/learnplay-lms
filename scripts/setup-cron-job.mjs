@@ -1,11 +1,43 @@
 // Setup pg_cron job for processing pending AI jobs
-const projectRef = 'eidcegehaswbtzrwzvfa';
+// NOTE: This script must NOT hardcode any keys/tokens.
 const accessToken = process.env.SUPABASE_ACCESS_TOKEN;
+const SUPABASE_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+const SUPABASE_ANON_KEY =
+  process.env.SUPABASE_ANON_KEY ||
+  process.env.VITE_SUPABASE_ANON_KEY ||
+  process.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+const AGENT_TOKEN = process.env.AGENT_TOKEN;
+const ORGANIZATION_ID = process.env.ORGANIZATION_ID;
+
+if (!SUPABASE_URL) {
+  console.error('❌ Set SUPABASE_URL (or VITE_SUPABASE_URL)');
+  process.exit(1);
+}
+
+const projectRef = process.env.SUPABASE_PROJECT_REF || new URL(SUPABASE_URL).hostname.split('.')[0];
 
 if (!accessToken) {
   console.error('❌ Set SUPABASE_ACCESS_TOKEN env var');
   process.exit(1);
 }
+
+if (!SUPABASE_ANON_KEY) {
+  console.error('❌ Set SUPABASE_ANON_KEY (or VITE_SUPABASE_ANON_KEY / VITE_SUPABASE_PUBLISHABLE_KEY)');
+  process.exit(1);
+}
+
+if (!AGENT_TOKEN) {
+  console.error('❌ Set AGENT_TOKEN env var');
+  process.exit(1);
+}
+
+const functionUrl = `${SUPABASE_URL}/functions/v1/process-pending-jobs`;
+const headersJson = JSON.stringify({
+  'Content-Type': 'application/json',
+  Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+  'x-agent-token': AGENT_TOKEN,
+  ...(ORGANIZATION_ID ? { 'x-organization-id': ORGANIZATION_ID } : {}),
+});
 
 const queries = [
   // Enable pg_cron extension
@@ -23,8 +55,8 @@ const queries = [
     '*/2 * * * *',
     $$
     SELECT net.http_post(
-      url := 'https://eidcegehaswbtzrwzvfa.supabase.co/functions/v1/process-pending-jobs',
-      headers := '{"Content-Type": "application/json", "Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVpZGNlZ2VoYXN3YnR6cnd6dmZhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ4NDYzNTAsImV4cCI6MjA4MDQyMjM1MH0.DpXOHjccnVEewnPF5gA6tw27TcRXkkAfgrJkn0NvT_Q", "x-agent-token": "learnplay-agent-token"}'::jsonb,
+      url := '${functionUrl}',
+      headers := '${headersJson.replaceAll("'", "''")}'::jsonb,
       body := '{}'::jsonb
     ) AS request_id;
     $$
@@ -32,7 +64,8 @@ const queries = [
 ];
 
 for (const query of queries) {
-  console.log('Executing:', query.substring(0, 60) + '...');
+  // Avoid printing full SQL since it can contain sensitive headers.
+  console.log('Executing query...');
   
   const res = await fetch(`https://api.supabase.com/v1/projects/${projectRef}/database/query`, {
     method: 'POST',
