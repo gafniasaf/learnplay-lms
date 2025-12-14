@@ -57,6 +57,11 @@ export function isDevAgentMode(): boolean {
     } catch {
       // ignore
     }
+    try {
+      if (window.localStorage.getItem("iz_dev_agent_disabled") === "1") return false;
+    } catch {
+      // ignore
+    }
   }
 
   // Env var wins (local dev / CI)

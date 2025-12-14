@@ -26,6 +26,15 @@ const SUPABASE_URL = process.env.VITE_SUPABASE_URL ||
                      'https://eidcegehaswbtzrwzvfa.supabase.co';
 
 setup.describe('Backend Health Gate', () => {
+
+  setup.beforeEach(async ({ page }) => {
+    // E2E runs should exercise normal session auth, not dev-agent bypass.
+    // Persist in localStorage so it applies across navigations in this context.
+    await page.addInitScript(() => {
+      try { localStorage.setItem('iz_dev_agent_disabled', '1'); } catch {}
+      try { sessionStorage.setItem('iz_dev_agent_disabled', '1'); } catch {}
+    });
+  });
   
   setup('Supabase URL is reachable', async ({ request }) => {
     // Just check that Supabase responds at all
