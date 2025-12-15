@@ -45,8 +45,18 @@ const config: PlaywrightTestConfig = {
   projects: [
     {
       name: 'setup',
-      // Only collect setup files from the e2e suite (avoid tests/integration and legacy snapshots).
-      testMatch: /tests[\\/](e2e)[\\/].*\.setup\.ts/,
+      /**
+       * Real-DB setup is intentionally scoped.
+       *
+       * We only run the setup files required for admin + legacy parity + health-gate flows.
+       * Role-specific setups (student/teacher/parent) are covered by the Live config (playwright.live.config.ts),
+       * because Real-DB runs are often used for targeted admin debugging and shouldn't be blocked by missing role creds.
+       */
+      testMatch: [
+        /tests[\\/]e2e[\\/]health-gate\.setup\.ts/,
+        /tests[\\/]e2e[\\/]admin\.setup\.ts/,
+        /tests[\\/]e2e[\\/]legacy-parity[\\/]legacy-parity\.setup\.ts/,
+      ],
     },
     {
       name: 'authenticated',
