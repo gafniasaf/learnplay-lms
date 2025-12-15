@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { PageContainer } from '@/components/layout/PageContainer';
 import { Button } from '@/components/ui/button';
@@ -35,6 +35,12 @@ const CourseEditor = () => {
   const navigate = useNavigate();
   const { user, role, loading: authLoading } = useAuth();
   const mcp = useMCP();
+  // useMCP can change identity across renders in some environments.
+  // Keep stable refs to the methods we use in effects to avoid render loops.
+  const getCourseRef = useRef(mcp.getCourse);
+  useEffect(() => {
+    getCourseRef.current = mcp.getCourse;
+  }, [mcp]);
   const publishing = useCoursePublishing();
   const variants = useCourseVariants();
   const copilot = useCourseCoPilot();
@@ -102,7 +108,7 @@ const CourseEditor = () => {
       setLoading(true);
       setError(null);
       editorTelemetry.opened(courseId); // Track editor opened
-      const courseData = await mcp.getCourse(courseId) as unknown as Course;
+      const courseData = await getCourseRef.current(courseId) as unknown as Course;
       
       // Transform course structure: group items by groupId
       const transformedCourse = { ...courseData };
@@ -132,7 +138,7 @@ const CourseEditor = () => {
     } finally {
       setLoading(false);
     }
-  }, [courseId, mcp]);
+  }, [courseId]);
 
   // Load course on mount / when route changes.
   // IMPORTANT: include authLoading in deps; otherwise we can early-return while auth is loading
