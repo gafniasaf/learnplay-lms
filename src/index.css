@@ -24,7 +24,7 @@ All colors MUST be HSL.
     --secondary-foreground: 0 0% 0%; /* Black text */
 
     --muted: 220 15% 96%;
-    --muted-foreground: 0 0% 20%; /* Very dark gray - high contrast */
+    --muted-foreground: 0 0% 0%; /* Black - no more light gray */
 
     --accent: 340 80% 55%;
     --accent-foreground: 0 0% 100%;
@@ -80,7 +80,7 @@ All colors MUST be HSL.
     --secondary-foreground: 0 0% 0%; /* Black text */
 
     --muted: 220 15% 96%;
-    --muted-foreground: 0 0% 20%; /* Very dark gray - high contrast */
+    --muted-foreground: 0 0% 0%; /* Black - no more light gray */
 
     --accent: 340 80% 55%;
     --accent-foreground: 0 0% 100%;
@@ -123,11 +123,46 @@ All colors MUST be HSL.
     @apply bg-background text-foreground;
   }
 
-  /* Ensure placeholder text is visible */
+  /* GLOBAL TEXT COLOR OVERRIDE - Force all text to be black */
+  h1, h2, h3, h4, h5, h6,
+  p, span, div, a, li, td, th,
+  label, input, textarea, select, button,
+  article, section, header, footer, nav, main, aside {
+    color: hsl(0 0% 0%) !important;
+  }
+
+  /* Override any gray text utility classes to black */
+  [class*="text-gray-"],
+  [class*="text-slate-"],
+  [class*="text-zinc-"],
+  [class*="text-neutral-"],
+  [class*="text-stone-"],
+  [class*="text-muted"],
+  [class*="opacity-"],
+  .text-muted-foreground {
+    color: hsl(0 0% 0%) !important;
+  }
+
+  /* Keep white text on colored backgrounds - these need white text */
+  .text-white,
+  .text-primary-foreground,
+  .text-destructive-foreground,
+  .text-success-foreground,
+  .text-warning-foreground,
+  [class*="bg-primary"]:not([class*="bg-primary/"]) *,
+  [class*="bg-destructive"]:not([class*="bg-destructive/"]) *,
+  [class*="bg-success"]:not([class*="bg-success/"]) *,
+  [class*="bg-warning"]:not([class*="bg-warning/"]) *,
+  button[class*="bg-primary"],
+  button[class*="bg-destructive"] {
+    color: hsl(0 0% 100%) !important;
+  }
+
+  /* Ensure placeholder text is dark and visible */
   ::placeholder,
   input::placeholder,
   textarea::placeholder {
-    color: hsl(var(--muted-foreground));
+    color: hsl(0 0% 30%) !important;
   }
 
   /* Screen reader only utility */
