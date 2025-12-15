@@ -331,15 +331,45 @@ export default function AIPipelineV2() {
     setState('idle');
   };
 
+  const jobProgressPercent = (() => {
+    const raw = (job as any)?.progress_percent;
+    const n = typeof raw === 'number' ? raw : Number(raw);
+    if (!Number.isFinite(n)) return null;
+    return Math.max(0, Math.min(100, Math.round(n)));
+  })();
+
   // Calculate progress
   const progress = (() => {
+    if (jobProgressPercent != null) return jobProgressPercent;
     if (!job || !events) return 0;
+    // Fallback: derive from coarse event steps (when progress fields aren't available).
     const phases = ['generating', 'validating', 'repairing', 'reviewing', 'images', 'enriching'];
     const completed = phases.filter(p => events.some(e => e.step === p)).length;
     return Math.round((completed / phases.length) * 100);
   })();
 
   const currentPhase = (() => {
+    const msg = (job as any)?.progress_message;
+    if (typeof msg === 'string' && msg.trim()) return msg.trim();
+    const stage = (job as any)?.progress_stage;
+    if (typeof stage === 'string' && stage.trim()) {
+      const s = stage.trim();
+      const stageNames: Record<string, string> = {
+        planning: 'Initializing…',
+        deterministic: 'Generating Content',
+        building_skeleton: 'Generating Content',
+        filling_content: 'Generating Content',
+        validating: 'Validating Structure',
+        repairing: 'Fixing Issues',
+        reviewing: 'Quality Review',
+        images: 'Creating Images',
+        enriching: 'Enriching Content',
+        persisting: 'Saving Course',
+        completed: 'Done',
+        failed: 'Failed',
+      };
+      return stageNames[s] || s.replace(/_/g, ' ');
+    }
     if (!events || events.length === 0) return 'Initializing...';
     const lastEvent = events[events.length - 1];
     const phaseNames: Record<string, string> = {

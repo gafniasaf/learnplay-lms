@@ -16,6 +16,9 @@ export interface Job {
   levels_count?: number | null;
   mode?: string;
   status: string;
+  progress_stage?: string | null;
+  progress_percent?: number | null;
+  progress_message?: string | null;
   result_path?: string | null;
   error?: string | null;
   summary?: string | Record<string, unknown> | null;
