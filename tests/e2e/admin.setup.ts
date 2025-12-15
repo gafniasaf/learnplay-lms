@@ -83,16 +83,20 @@ setup('authenticate as admin', async ({ page }) => {
       auth: { autoRefreshToken: false, persistSession: false },
     });
 
-    const { data: orgRow, error: orgErr } = await (adminClient as any)
-      .from('organizations')
-      .select('id')
-      .order('created_at', { ascending: true })
-      .limit(1)
-      .maybeSingle();
-    if (orgErr || !orgRow?.id) {
-      throw new Error(orgErr?.message || 'No organizations found');
+    // Prefer explicit ORGANIZATION_ID (seeded/test canonical org), fallback to first org in DB.
+    let orgId = process.env.ORGANIZATION_ID;
+    if (!orgId) {
+      const { data: orgRow, error: orgErr } = await (adminClient as any)
+        .from('organizations')
+        .select('id')
+        .order('created_at', { ascending: true })
+        .limit(1)
+        .maybeSingle();
+      if (orgErr || !orgRow?.id) {
+        throw new Error(orgErr?.message || 'No organizations found');
+      }
+      orgId = String(orgRow.id);
     }
-    const orgId = String(orgRow.id);
 
     const { data: existingRoles, error: rolesErr } = await (adminClient as any)
       .from('user_roles')
