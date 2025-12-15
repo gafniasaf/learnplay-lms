@@ -21,7 +21,7 @@ type Body = {
   targetRef?: Record<string, unknown> | null;
 };
 
-Deno.serve(withCors(async (req: Request): Promise<Response> => {
+Deno.serve(withCors(async (req: Request) => {
   const requestId = crypto.randomUUID();
 
   if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY || !AGENT_TOKEN || !adminSupabase) {
