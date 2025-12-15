@@ -6,6 +6,73 @@
  */
 
 import { test, expect } from '@playwright/test';
+import { existsSync } from 'node:fs';
+
+function installFailLoudGuards(page: import('@playwright/test').Page) {
+  const consoleErrors: string[] = [];
+  const pageErrors: string[] = [];
+  const requestFailures: string[] = [];
+  const http5xx: string[] = [];
+
+  page.on('console', (msg) => {
+    // Ignore noisy/unactionable errors.
+    const text = msg.text();
+    if (msg.type() === 'error' && !text.includes('favicon') && !text.includes('ERR_BLOCKED_BY_CLIENT')) {
+      consoleErrors.push(text);
+    }
+  });
+  page.on('pageerror', (err) => {
+    pageErrors.push(err?.message || String(err));
+  });
+  page.on('requestfailed', (req) => {
+    requestFailures.push(`${req.method()} ${req.url()} :: ${req.failure()?.errorText || 'requestfailed'}`);
+  });
+  page.on('response', (res) => {
+    const status = res.status();
+    if (status >= 500) {
+      const url = res.url();
+      // Ignore known non-fatal telemetry endpoints if any.
+      if (!url.includes('rudderstack') && !url.includes('sentry')) {
+        http5xx.push(`${status} ${url}`);
+      }
+    }
+  });
+
+  return async function assertNoFatalErrors(routePath: string) {
+    if (pageErrors.length > 0) {
+      throw new Error(`[${routePath}] pageerror: ${pageErrors[0]}`);
+    }
+    const criticalConsole = consoleErrors.filter((e) =>
+      e.includes('TypeError') ||
+      e.includes('ReferenceError') ||
+      e.includes('Maximum update depth exceeded') ||
+      e.includes('Cannot read properties of undefined') ||
+      e.includes('ChunkLoadError') ||
+      e.includes('Failed to fetch dynamically imported module')
+    );
+    if (criticalConsole.length > 0) {
+      throw new Error(`[${routePath}] console errors: ${criticalConsole.slice(0, 2).join(' | ')}`);
+    }
+    if (http5xx.length > 0) {
+      throw new Error(`[${routePath}] 5xx responses: ${http5xx.slice(0, 2).join(' | ')}`);
+    }
+    // Allow some request failures (extensions, aborted), but fail on localhost connection errors.
+    const fatalReq = requestFailures.find((t) => t.includes('ERR_CONNECTION_REFUSED') || t.includes('net::ERR_CONNECTION_REFUSED'));
+    if (fatalReq) {
+      throw new Error(`[${routePath}] requestfailed: ${fatalReq}`);
+    }
+  };
+}
+
+async function gotoStable(page: import('@playwright/test').Page, path: string) {
+  await page.goto(path, { waitUntil: 'domcontentloaded' });
+  await page.waitForLoadState('networkidle', { timeout: 5000 }).catch(() => undefined);
+  // Wait for common Suspense fallback to clear.
+  const suspenseFallback = page.getByText('Loading...').first();
+  if (await suspenseFallback.isVisible().catch(() => false)) {
+    await suspenseFallback.waitFor({ state: 'hidden', timeout: 30_000 }).catch(() => undefined);
+  }
+}
 
 const ALL_ROUTES = [
   // Public/Landing
@@ -82,11 +149,13 @@ const ALL_ROUTES = [
 test.describe('Smoke Tests: All Routes Load', () => {
   for (const route of ALL_ROUTES) {
     test(`${route.name} (${route.path}) loads without crashing`, async ({ page }) => {
-      await page.goto(route.path);
-      
-      // Wait for page to stabilize
-      await page.waitForLoadState('domcontentloaded');
-      await page.waitForTimeout(500);
+      // Skip role routes if their auth states are not present.
+      if (route.path.startsWith('/student/') && !existsSync('playwright/.auth/student.json')) test.skip(true, 'student auth state missing');
+      if (route.path.startsWith('/teacher/') && !existsSync('playwright/.auth/teacher.json')) test.skip(true, 'teacher auth state missing');
+      if (route.path.startsWith('/parent/') && !existsSync('playwright/.auth/parent.json')) test.skip(true, 'parent auth state missing');
+
+      const assertNoFatal = installFailLoudGuards(page);
+      await gotoStable(page, route.path);
       
       // Page should not show React error boundary
       const errorBoundary = page.locator('text=Something went wrong');
@@ -101,23 +170,8 @@ test.describe('Smoke Tests: All Routes Load', () => {
       // Page should have content (not blank)
       const body = await page.locator('body').textContent();
       expect(body?.length).toBeGreaterThan(10);
-      
-      // No unhandled JS errors
-      const consoleErrors: string[] = [];
-      page.on('console', msg => {
-        if (msg.type() === 'error' && !msg.text().includes('favicon')) {
-          consoleErrors.push(msg.text());
-        }
-      });
-      
-      // Check for critical console errors (but allow some expected ones)
-      const criticalErrors = consoleErrors.filter(e => 
-        e.includes('TypeError') || 
-        e.includes('ReferenceError') ||
-        e.includes('Cannot read properties of undefined')
-      );
-      
-      expect(criticalErrors).toHaveLength(0);
+
+      await assertNoFatal(route.path);
     });
   }
 });

@@ -115,7 +115,16 @@ export async function generateMedia(
     const status = (error as any)?.context?.response?.status ?? (error as any)?.status;
     // Extract detailed error message from the response
     const errorDetail = (error as any)?.context?.body?.error?.message || error.message;
-    throw new Error(`Failed to generate media${status ? ` (${status})` : ''}: ${errorDetail}`);
+    const maybeNotDeployed =
+      status === 404 ||
+      /Failed to send a request to the Edge Function/i.test(String(errorDetail)) ||
+      /404/i.test(String(errorDetail));
+
+    const hint = maybeNotDeployed
+      ? ' (Edge Function ai-generate-media may not be deployed to this Supabase project)'
+      : '';
+
+    throw new Error(`Failed to generate media${status ? ` (${status})` : ''}: ${errorDetail}${hint}`);
   }
 
   if (!data) {

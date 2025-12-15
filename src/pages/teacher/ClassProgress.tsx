@@ -65,7 +65,8 @@ export default function ClassProgress() {
                       </SelectItem>
                     ))
                   ) : (
-                    <SelectItem value="" disabled>No courses available</SelectItem>
+                    // Radix Select disallows empty-string values (empty string clears selection).
+                    <SelectItem value="__no_courses__" disabled>No courses available</SelectItem>
                   )}
                 </SelectContent>
               </Select>
