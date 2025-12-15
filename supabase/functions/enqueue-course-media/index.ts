@@ -1,5 +1,6 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { withCors } from "../_shared/cors.ts";
+import { Errors } from "../_shared/error.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") || null;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || null;
@@ -24,42 +25,27 @@ Deno.serve(withCors(async (req: Request): Promise<Response> => {
   const requestId = crypto.randomUUID();
 
   if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY || !AGENT_TOKEN || !adminSupabase) {
-    return new Response(JSON.stringify({
-      error: {
-        code: "blocked",
-        message: "BLOCKED: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, and AGENT_TOKEN are required",
-      },
+    return Errors.internal(
+      "BLOCKED: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, and AGENT_TOKEN are required",
       requestId,
-      timestamp: new Date().toISOString(),
-    }), {
-      status: 500,
-      headers: { "Content-Type": "application/json", "X-Request-Id": requestId },
-    });
+      req
+    );
   }
 
   if (req.method !== "POST") {
-    return new Response(JSON.stringify({ error: "Method not allowed" }), {
-      status: 405,
-      headers: { "Content-Type": "application/json", "X-Request-Id": requestId },
-    });
+    return Errors.methodNotAllowed(req.method, requestId, req);
   }
 
   const provided = req.headers.get("x-agent-token") ?? req.headers.get("X-Agent-Token");
   if (provided !== AGENT_TOKEN) {
-    return new Response(JSON.stringify({ error: "Unauthorized" }), {
-      status: 401,
-      headers: { "Content-Type": "application/json", "X-Request-Id": requestId },
-    });
+    return Errors.invalidAuth(requestId, req);
   }
 
   let body: Body;
   try {
     body = (await req.json()) as Body;
   } catch {
-    return new Response(JSON.stringify({ error: "Invalid JSON body" }), {
-      status: 400,
-      headers: { "Content-Type": "application/json", "X-Request-Id": requestId },
-    });
+    return Errors.invalidRequest("Invalid JSON body", requestId, req);
   }
 
   const courseId = String(body?.courseId || "").trim();
@@ -74,10 +60,7 @@ Deno.serve(withCors(async (req: Request): Promise<Response> => {
   const idempotencyKey = body?.idempotencyKey ? String(body.idempotencyKey) : undefined;
 
   if (!courseId || !Number.isFinite(itemId) || itemId < 0 || !prompt) {
-    return new Response(JSON.stringify({ error: "Invalid request: courseId, itemId, prompt are required" }), {
-      status: 400,
-      headers: { "Content-Type": "application/json", "X-Request-Id": requestId },
-    });
+    return Errors.invalidRequest("Invalid request: courseId, itemId, prompt are required", requestId, req);
   }
 
   const insert = {
@@ -118,10 +101,7 @@ Deno.serve(withCors(async (req: Request): Promise<Response> => {
       }
     }
 
-    return new Response(JSON.stringify({ error: { code: "invalid_request", message: error.message } }), {
-      status: 400,
-      headers: { "Content-Type": "application/json", "X-Request-Id": requestId },
-    });
+    return Errors.invalidRequest(error.message, requestId, req);
   }
 
   return new Response(JSON.stringify({ ok: true, mediaJobId: data.id, status: data.status }), {

@@ -15,6 +15,7 @@
 
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { withCors } from '../_shared/cors.ts';
+import { Errors } from '../_shared/error.ts';
 
 const supabaseUrl = Deno.env.get('SUPABASE_URL');
 const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
@@ -27,19 +28,14 @@ if (!supabaseServiceKey) {
 }
 
 const handler = async (req: Request) => {
+  const requestId = crypto.randomUUID();
   if (req.method !== 'POST') {
-    return new Response(
-      JSON.stringify({ error: 'Method not allowed' }),
-      { status: 405, headers: { 'Content-Type': 'application/json' } }
-    );
+    return Errors.methodNotAllowed(req.method, requestId, req);
   }
 
   const authHeader = req.headers.get('Authorization');
   if (!authHeader) {
-    return new Response(
-      JSON.stringify({ error: 'Missing authorization header' }),
-      { status: 401, headers: { 'Content-Type': 'application/json' } }
-    );
+    return Errors.noAuth(requestId, req);
   }
 
   const supabase = createClient(supabaseUrl, supabaseServiceKey, {
@@ -50,21 +46,20 @@ const handler = async (req: Request) => {
 
   const { data: { user }, error: userError } = await supabase.auth.getUser();
   if (userError || !user) {
-    return new Response(
-      JSON.stringify({ error: 'Invalid token' }),
-      { status: 401, headers: { 'Content-Type': 'application/json' } }
-    );
+    return Errors.invalidAuth(requestId, req);
   }
 
   // Parse request body
-  const body = await req.json();
+  let body: any = null;
+  try {
+    body = await req.json();
+  } catch {
+    return Errors.invalidRequest("Invalid JSON body", requestId, req);
+  }
   const { courseId, version, changelog } = body;
 
   if (!courseId || version === undefined) {
-    return new Response(
-      JSON.stringify({ error: 'Missing courseId or version' }),
-      { status: 400, headers: { 'Content-Type': 'application/json' } }
-    );
+    return Errors.invalidRequest("Missing courseId or version", requestId, req);
   }
 
   // Fetch course metadata
@@ -75,10 +70,7 @@ const handler = async (req: Request) => {
     .single();
 
   if (metadataError || !metadata) {
-    return new Response(
-      JSON.stringify({ error: 'Course not found' }),
-      { status: 404, headers: { 'Content-Type': 'application/json' } }
-    );
+    return Errors.notFound("Course", requestId, req);
   }
 
   // Check user has editor or org_admin role
@@ -91,10 +83,7 @@ const handler = async (req: Request) => {
     .single();
 
   if (!userRole) {
-    return new Response(
-      JSON.stringify({ error: 'Not authorized to restore this course' }),
-      { status: 403, headers: { 'Content-Type': 'application/json' } }
-    );
+    return Errors.forbidden("Not authorized to restore this course", requestId, req);
   }
 
   // Call restore_course_version function

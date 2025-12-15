@@ -65,8 +65,9 @@ serve(async (req: Request): Promise<Response> => {
     const message = error instanceof Error ? error.message : String(error);
     
     if (message === "Unauthorized" || message.includes("Unauthorized")) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
+      // IMPORTANT: avoid non-200 to prevent Lovable blank screens.
+      return new Response(JSON.stringify({ ok: false, error: { code: "unauthorized", message: "Unauthorized" }, httpStatus: 401, requestId }), {
+        status: 200,
         headers: stdHeaders(req, { "Content-Type": "application/json" }),
       });
     }
@@ -77,7 +78,8 @@ serve(async (req: Request): Promise<Response> => {
       logs: [],
       records: [],
     }), {
-      status: 500,
+      status: 200,
+      // Include original status semantics in body.
       headers: stdHeaders(req, { "Content-Type": "application/json", "X-Request-Id": requestId }),
     });
   }

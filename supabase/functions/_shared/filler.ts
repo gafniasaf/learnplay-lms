@@ -47,6 +47,15 @@ function buildFillPrompt(skeleton: SkeletonCourse): string {
   
   let prompt = `You are filling in content for an educational course skeleton.
 
+TOPIC (MUST FOLLOW):
+- Subject/topic: ${subject}
+- Grade band: ${gradeBand}
+
+TOPIC RULES (CRITICAL):
+- ALL studyTexts and ALL items MUST be about "${subject}".
+- Do NOT default to math (e.g., multiplication tables) unless the subject/topic is explicitly math-related.
+- Use the group names as topical anchors; questions must match the group’s theme.
+
 IMMUTABLE STRUCTURE (DO NOT CHANGE):
 - ${groups.length} groups: ${groups.map(g => g.name).join(", ")}
 - ${items.length} items total

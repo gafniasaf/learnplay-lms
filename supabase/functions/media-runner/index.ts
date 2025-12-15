@@ -110,8 +110,9 @@ serve(async (req: Request): Promise<Response> => {
 
   const provided = req.headers.get("x-agent-token") ?? req.headers.get("X-Agent-Token");
   if (provided !== AGENT_TOKEN) {
-    return new Response(JSON.stringify({ error: "Unauthorized" }), {
-      status: 401,
+    // IMPORTANT: avoid non-200 to prevent Lovable blank screens.
+    return new Response(JSON.stringify({ ok: false, error: { code: "unauthorized", message: "Unauthorized" }, httpStatus: 401, requestId }), {
+      status: 200,
       headers: stdHeaders(req, { "Content-Type": "application/json" }),
     });
   }

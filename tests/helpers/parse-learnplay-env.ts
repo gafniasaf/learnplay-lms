@@ -30,6 +30,12 @@ export interface LearnPlayEnv {
   // Playwright E2E credentials (local-only)
   E2E_ADMIN_EMAIL?: string;
   E2E_ADMIN_PASSWORD?: string;
+  E2E_TEACHER_EMAIL?: string;
+  E2E_TEACHER_PASSWORD?: string;
+  E2E_STUDENT_EMAIL?: string;
+  E2E_STUDENT_PASSWORD?: string;
+  E2E_PARENT_EMAIL?: string;
+  E2E_PARENT_PASSWORD?: string;
 }
 
 export function parseLearnPlayEnv(): LearnPlayEnv {
@@ -77,6 +83,12 @@ export function parseLearnPlayEnv(): LearnPlayEnv {
           VERIFY_PARENT_ID: "PARENT_ID",
           E2E_ADMIN_EMAIL: "E2E_ADMIN_EMAIL",
           E2E_ADMIN_PASSWORD: "E2E_ADMIN_PASSWORD",
+          E2E_TEACHER_EMAIL: "E2E_TEACHER_EMAIL",
+          E2E_TEACHER_PASSWORD: "E2E_TEACHER_PASSWORD",
+          E2E_STUDENT_EMAIL: "E2E_STUDENT_EMAIL",
+          E2E_STUDENT_PASSWORD: "E2E_STUDENT_PASSWORD",
+          E2E_PARENT_EMAIL: "E2E_PARENT_EMAIL",
+          E2E_PARENT_PASSWORD: "E2E_PARENT_PASSWORD",
         };
 
         const mapped = map[key];
@@ -152,6 +164,26 @@ export function parseLearnPlayEnv(): LearnPlayEnv {
       }
       if (line.includes('e2e admin password') && i + 1 < lines.length) {
         result.E2E_ADMIN_PASSWORD = lines[i + 1].trim();
+      }
+
+      // e2e teacher/student/parent credentials (heading-style)
+      if (line.includes('e2e teacher email') && i + 1 < lines.length) {
+        result.E2E_TEACHER_EMAIL = lines[i + 1].trim();
+      }
+      if (line.includes('e2e teacher password') && i + 1 < lines.length) {
+        result.E2E_TEACHER_PASSWORD = lines[i + 1].trim();
+      }
+      if (line.includes('e2e student email') && i + 1 < lines.length) {
+        result.E2E_STUDENT_EMAIL = lines[i + 1].trim();
+      }
+      if (line.includes('e2e student password') && i + 1 < lines.length) {
+        result.E2E_STUDENT_PASSWORD = lines[i + 1].trim();
+      }
+      if (line.includes('e2e parent email') && i + 1 < lines.length) {
+        result.E2E_PARENT_EMAIL = lines[i + 1].trim();
+      }
+      if (line.includes('e2e parent password') && i + 1 < lines.length) {
+        result.E2E_PARENT_PASSWORD = lines[i + 1].trim();
       }
     }
   } catch (error) {
@@ -231,6 +263,27 @@ export function loadLearnPlayEnv(): void {
   }
   if (env.E2E_ADMIN_PASSWORD && !process.env.E2E_ADMIN_PASSWORD) {
     process.env.E2E_ADMIN_PASSWORD = env.E2E_ADMIN_PASSWORD;
+  }
+
+  if (env.E2E_TEACHER_EMAIL && !process.env.E2E_TEACHER_EMAIL) {
+    process.env.E2E_TEACHER_EMAIL = env.E2E_TEACHER_EMAIL;
+  }
+  if (env.E2E_TEACHER_PASSWORD && !process.env.E2E_TEACHER_PASSWORD) {
+    process.env.E2E_TEACHER_PASSWORD = env.E2E_TEACHER_PASSWORD;
+  }
+
+  if (env.E2E_STUDENT_EMAIL && !process.env.E2E_STUDENT_EMAIL) {
+    process.env.E2E_STUDENT_EMAIL = env.E2E_STUDENT_EMAIL;
+  }
+  if (env.E2E_STUDENT_PASSWORD && !process.env.E2E_STUDENT_PASSWORD) {
+    process.env.E2E_STUDENT_PASSWORD = env.E2E_STUDENT_PASSWORD;
+  }
+
+  if (env.E2E_PARENT_EMAIL && !process.env.E2E_PARENT_EMAIL) {
+    process.env.E2E_PARENT_EMAIL = env.E2E_PARENT_EMAIL;
+  }
+  if (env.E2E_PARENT_PASSWORD && !process.env.E2E_PARENT_PASSWORD) {
+    process.env.E2E_PARENT_PASSWORD = env.E2E_PARENT_PASSWORD;
   }
 }
 

@@ -12,6 +12,13 @@ if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
+function json(req: Request, status: number, body: unknown): Response {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: stdHeaders(req, { "Content-Type": "application/json" }),
+  });
+}
+
 serve(async (req: Request): Promise<Response> => {
   if (req.method === "OPTIONS") {
     return handleOptions(req, "list-records");
@@ -22,10 +29,13 @@ serve(async (req: Request): Promise<Response> => {
     auth = await authenticateRequest(req);
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unauthorized";
-    return new Response(
-      JSON.stringify({ error: message }),
-      { status: message === "Missing organization_id" ? 400 : 401, headers: stdHeaders(req, { "Content-Type": "application/json" }) }
-    );
+    // IMPORTANT: Lovable preview can blank-screen on non-200 responses.
+    // Return a structured failure (still "fails loud" via payload).
+    const code =
+      message === "Missing organization_id" ? "missing_organization_id" :
+      message.toLowerCase().includes("unauthorized") ? "unauthorized" :
+      "unauthorized";
+    return json(req, 200, { ok: false, error: { code, message } });
   }
 
   try {
@@ -56,10 +66,7 @@ serve(async (req: Request): Promise<Response> => {
     }
 
     if (!entity) {
-      return new Response(
-        JSON.stringify({ error: "Missing entity param" }), 
-        { status: 400, headers: stdHeaders(req, { "Content-Type": "application/json" }) }
-      );
+      return json(req, 200, { ok: false, error: { code: "invalid_request", message: "Missing entity param" } });
     }
 
     const organizationId = requireOrganizationId(auth);
@@ -76,10 +83,7 @@ serve(async (req: Request): Promise<Response> => {
 
     if (dbError) {
       console.error(`list-records query failed for entity ${normalizedEntity}:`, dbError);
-      return new Response(
-        JSON.stringify({ error: dbError.message }), 
-        { status: 500, headers: stdHeaders(req, { "Content-Type": "application/json" }) }
-      );
+      return json(req, 200, { ok: false, error: { code: "db_error", message: dbError.message } });
     }
 
     const records = (data || []).map((row) => ({
@@ -91,15 +95,9 @@ serve(async (req: Request): Promise<Response> => {
       updated_at: row.updated_at,
     }));
 
-    return new Response(
-      JSON.stringify({ ok: true, records }), 
-      { status: 200, headers: stdHeaders(req, { "Content-Type": "application/json" }) }
-    );
+    return json(req, 200, { ok: true, records });
 
   } catch (err) {
-    return new Response(
-      JSON.stringify({ error: err instanceof Error ? err.message : "Unknown error" }), 
-      { status: 500, headers: stdHeaders(req, { "Content-Type": "application/json" }) }
-    );
+    return json(req, 200, { ok: false, error: { code: "internal_error", message: err instanceof Error ? err.message : "Unknown error" } });
   }
 });

@@ -2,6 +2,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import { withCors } from "../_shared/cors.ts";
 import { rateLimit } from "../_shared/rateLimit.ts";
 import { checkOrigin } from "../_shared/origins.ts";
+import { Errors } from "../_shared/error.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
@@ -62,10 +63,7 @@ Deno.serve(withCors(async (req) => {
     const token = authHeader?.replace(/^Bearer\s+/i, "") || "";
     const { data: userData, error: userErr } = await supabase.auth.getUser(token);
     if (userErr || !userData?.user?.id) {
-      return new Response(JSON.stringify({ error: "unauthorized", requestId: reqId }), {
-        status: 401,
-        headers: { "Content-Type": "application/json" },
-      });
+      return Errors.invalidAuth(reqId, req);
     }
     const userId = userData.user.id as string;
     const userEmail = userData.user.email || userId;
@@ -74,10 +72,7 @@ Deno.serve(withCors(async (req) => {
     const roles = await getUserRoles(supabase, userId);
     const isAdmin = roles.some(r => r.role === "superadmin" || r.role === "org_admin");
     if (!isAdmin) {
-      return new Response(JSON.stringify({ error: "forbidden", requestId: reqId }), {
-        status: 403,
-        headers: { "Content-Type": "application/json" },
-      });
+      return Errors.forbidden("forbidden", reqId, req);
     }
 
     // Parse body

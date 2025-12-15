@@ -26,7 +26,7 @@ interface UsePipelineJobOptions {
 }
 
 export function usePipelineJob(jobId: string | null, options?: UsePipelineJobOptions) {
-  const mcp = useMCP();
+  const { getCourseJob } = useMCP();
   const { enabled = true, pollInterval = 2000 } = options || {};
   const [job, setJob] = useState<Job | null>(null);
   const [events, setEvents] = useState<JobEvent[]>([]);
@@ -39,7 +39,7 @@ export function usePipelineJob(jobId: string | null, options?: UsePipelineJobOpt
     }
 
     try {
-      const response = await mcp.getCourseJob(jobId, true);
+      const response = await getCourseJob(jobId, true);
 
       const ok = (response as { ok: boolean }).ok;
       const errCode = (response as any)?.error?.code as string | undefined;
@@ -61,7 +61,7 @@ export function usePipelineJob(jobId: string | null, options?: UsePipelineJobOpt
     } finally {
       setLoading(false);
     }
-  }, [jobId, enabled, mcp]);
+  }, [jobId, enabled, getCourseJob]);
 
   useEffect(() => {
     if (!jobId || !enabled) {

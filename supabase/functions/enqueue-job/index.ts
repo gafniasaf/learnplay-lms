@@ -79,6 +79,13 @@ serve(async (req: Request): Promise<Response> => {
     return handleOptions(req, requestId);
   }
 
+  function json(body: any, status: number = 200): Response {
+    return new Response(JSON.stringify(body), {
+      status,
+      headers: stdHeaders(req, { "Content-Type": "application/json", "X-Request-Id": requestId }),
+    });
+  }
+
   if (req.method !== "POST") {
     return new Response("Method Not Allowed", {
       status: 405,
@@ -92,30 +99,25 @@ serve(async (req: Request): Promise<Response> => {
       auth = await authenticateRequest(req);
     } catch (error) {
       const message = error instanceof Error ? error.message : "Unauthorized";
-      return new Response(
-        JSON.stringify({ error: message, requestId }),
-        {
-          status: message === "Missing organization_id" ? 400 : 401,
-          headers: stdHeaders(req, { "Content-Type": "application/json", "X-Request-Id": requestId }),
-        },
-      );
+      // IMPORTANT: Lovable preview can blank-screen on non-200 responses.
+      // Return HTTP 200 with a structured failure payload.
+      const httpStatus = message === "Missing organization_id" ? 400 : 401;
+      const code =
+        message === "Missing organization_id" ? "missing_organization_id" :
+        message.toLowerCase().includes("unauthorized") ? "unauthorized" :
+        "unauthorized";
+      return json({ ok: false, error: { code, message }, httpStatus, requestId }, 200);
     }
 
     let body: EnqueueBody;
     try {
       body = await req.json() as EnqueueBody;
     } catch {
-      return new Response(JSON.stringify({ error: "Invalid JSON body", requestId }), {
-        status: 400,
-        headers: stdHeaders(req, { "Content-Type": "application/json", "X-Request-Id": requestId }),
-      });
+      return json({ ok: false, error: { code: "invalid_request", message: "Invalid JSON body" }, httpStatus: 400, requestId }, 200);
     }
 
     if (!body?.jobType || typeof body.jobType !== "string") {
-      return new Response(JSON.stringify({ error: "jobType is required", requestId }), {
-        status: 400,
-        headers: stdHeaders(req, { "Content-Type": "application/json", "X-Request-Id": requestId }),
-      });
+      return json({ ok: false, error: { code: "invalid_request", message: "jobType is required" }, httpStatus: 400, requestId }, 200);
     }
 
     const payload = body.payload ?? {};
@@ -126,10 +128,7 @@ serve(async (req: Request): Promise<Response> => {
     // We currently support the primary factory job used by the UI: ai_course_generate.
     // (Other job types have dedicated endpoints.)
     if (body.jobType !== "ai_course_generate") {
-      return new Response(JSON.stringify({ error: `Unsupported jobType: ${body.jobType}`, requestId }), {
-        status: 400,
-        headers: stdHeaders(req, { "Content-Type": "application/json", "X-Request-Id": requestId }),
-      });
+      return json({ ok: false, error: { code: "invalid_request", message: `Unsupported jobType: ${body.jobType}` }, httpStatus: 400, requestId }, 200);
     }
 
     // Derive required fields from payload (accept a couple legacy key names)
@@ -158,28 +157,16 @@ serve(async (req: Request): Promise<Response> => {
           : null;
 
     if (!courseId) {
-      return new Response(JSON.stringify({ error: "course_id is required in payload", requestId }), {
-        status: 400,
-        headers: stdHeaders(req, { "Content-Type": "application/json", "X-Request-Id": requestId }),
-      });
+      return json({ ok: false, error: { code: "invalid_request", message: "course_id is required in payload" }, httpStatus: 400, requestId }, 200);
     }
     if (!subject) {
-      return new Response(JSON.stringify({ error: "subject is required in payload", requestId }), {
-        status: 400,
-        headers: stdHeaders(req, { "Content-Type": "application/json", "X-Request-Id": requestId }),
-      });
+      return json({ ok: false, error: { code: "invalid_request", message: "subject is required in payload" }, httpStatus: 400, requestId }, 200);
     }
     if (!gradeBand) {
-      return new Response(JSON.stringify({ error: "grade_band (or grade) is required in payload", requestId }), {
-        status: 400,
-        headers: stdHeaders(req, { "Content-Type": "application/json", "X-Request-Id": requestId }),
-      });
+      return json({ ok: false, error: { code: "invalid_request", message: "grade_band (or grade) is required in payload" }, httpStatus: 400, requestId }, 200);
     }
     if (!mode) {
-      return new Response(JSON.stringify({ error: "mode is required in payload (options|numeric)", requestId }), {
-        status: 400,
-        headers: stdHeaders(req, { "Content-Type": "application/json", "X-Request-Id": requestId }),
-      });
+      return json({ ok: false, error: { code: "invalid_request", message: "mode is required in payload (options|numeric)" }, httpStatus: 400, requestId }, 200);
     }
 
     // Optional idempotency: client can send Idempotency-Key to allow safe retries.
@@ -215,22 +202,16 @@ serve(async (req: Request): Promise<Response> => {
       if (stableJobId && inserted.error && isDuplicateKeyError(inserted.error)) {
         // Idempotent replay: job already exists, return the stable id.
         console.log(`[enqueue-job] Idempotent replay for job ${stableJobId} (${requestId})`);
-        return new Response(
-          JSON.stringify({
-            ok: true,
-            jobId: stableJobId,
-            status: "queued",
-            message: "Job already queued (idempotent replay). Poll /list-course-jobs to track status.",
-            requestId,
-          }),
-          { status: 200, headers: stdHeaders(req, { "Content-Type": "application/json", "X-Request-Id": requestId }) },
-        );
+        return json({
+          ok: true,
+          jobId: stableJobId,
+          status: "queued",
+          message: "Job already queued (idempotent replay). Poll /list-course-jobs to track status.",
+          requestId,
+        }, 200);
       }
 
-      return new Response(
-        JSON.stringify({ error: inserted.error?.message || "Failed to enqueue job", requestId }),
-        { status: 500, headers: stdHeaders(req, { "Content-Type": "application/json", "X-Request-Id": requestId }) },
-      );
+      return json({ ok: false, error: { code: "internal_error", message: inserted.error?.message || "Failed to enqueue job" }, httpStatus: 500, requestId }, 200);
     }
 
     const jobId = (stableJobId ?? (inserted.data.id as string)) as string;
@@ -264,10 +245,7 @@ serve(async (req: Request): Promise<Response> => {
           .update({ status: "failed", error: message, completed_at: new Date().toISOString() })
           .eq("id", jobId);
 
-        return new Response(JSON.stringify({ ok: false, jobId, status: "failed", error: message, requestId }), {
-          status: 200,
-          headers: stdHeaders(req, { "Content-Type": "application/json", "X-Request-Id": requestId }),
-        });
+        return json({ ok: false, jobId, status: "failed", error: message, requestId }, 200);
       }
     }
 
@@ -290,9 +268,6 @@ serve(async (req: Request): Promise<Response> => {
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     console.error(`[enqueue-job] Unhandled error (${requestId}):`, message);
-    return new Response(JSON.stringify({ error: message, requestId }), {
-      status: 500,
-      headers: stdHeaders(req, { "Content-Type": "application/json", "X-Request-Id": requestId }),
-    });
+    return json({ ok: false, error: { code: "internal_error", message }, httpStatus: 500, requestId }, 200);
   }
 });

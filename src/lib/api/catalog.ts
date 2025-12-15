@@ -1,6 +1,6 @@
 import { isLiveMode } from "../env";
 import type { CourseCatalog } from "../types/courseCatalog";
-import { shouldUseMockData, fetchWithTimeout, ApiError, getSupabaseUrl, getSupabaseAnonKey } from "./common";
+import { shouldUseMockData, fetchWithTimeout, ApiError, getSupabaseUrl, callEdgeFunctionGetRaw } from "./common";
 import { createLogger } from "../logger";
 
 const log = createLogger("api/catalog");
@@ -105,7 +105,8 @@ async function revalidateCatalogWithVersionCheck(
   storedEtag: string,
   cachedJson: string
 ): Promise<void> {
-  const url = `${supabaseUrl}/functions/v1/list-courses`;
+  void storedEtag;
+  void cachedJson;
 
   // Get cached versions for comparison
   const cachedVersionsJson = localStorage.getItem("catalogVersions");
@@ -113,12 +114,7 @@ async function revalidateCatalogWithVersionCheck(
     ? (JSON.parse(cachedVersionsJson) as Record<string, string>)
     : {};
 
-  const res = await fetchWithTimeout(url, {
-    method: "GET",
-    headers: {
-      "Content-Type": "application/json",
-    },
-  });
+  const res = await callEdgeFunctionGetRaw("list-courses", undefined, { timeoutMs: 30000, maxRetries: 1 });
 
     if (res.status === 304) {
       log.debug("Background revalidation: cache still valid (304)", {
@@ -216,7 +212,7 @@ async function fetchFreshCatalog(
 ): Promise<
   CourseCatalog & { _metadata?: { dataSource: "live" | "mock"; etag?: string } }
 > {
-  const url = `${supabaseUrl}/functions/v1/list-courses?limit=1000`;
+  void supabaseUrl;
   const liveMode = isLiveMode();
 
   // Check for cached fallback data
@@ -225,30 +221,10 @@ async function fetchFreshCatalog(
   const storedEtag = localStorage.getItem("catalogEtag") || "";
 
   try {
-    const headers: Record<string, string> = {
-      "Content-Type": "application/json",
-    };
-
     // Build URL with cache-busting parameter if needed
-    let fetchUrl = url;
-    if (noCache) {
-      const ts = Date.now();
-      fetchUrl = `${url}&t=${ts}`;
-    }
-
-    // Add cache-busting headers if requested
-    if (noCache) {
-      headers["Cache-Control"] = "no-cache";
-      headers["Pragma"] = "no-cache";
-      log.debug("Sending cache-busting headers", {
-        action: "fetchFreshCatalog",
-      });
-    }
-
-    const res = await fetchWithTimeout(fetchUrl, {
-      method: "GET",
-      headers,
-    });
+    const params: Record<string, string> = { limit: "1000" };
+    if (noCache) params.t = String(Date.now());
+    const res = await callEdgeFunctionGetRaw("list-courses", params, { timeoutMs: 30000, maxRetries: 1 });
 
     // 304 - cache is still valid
     if (res.status === 304) {
@@ -442,21 +418,15 @@ export async function searchCourses({
   pageSize: number;
   totalPages: number;
 }> {
-  const supabaseUrl = getSupabaseUrl();
-
   const params = new URLSearchParams();
   if (search) params.append('search', search);
   params.append('page', page.toString());
   params.append('limit', limit.toString());
   params.append('sort', sort);
 
-  const url = `${supabaseUrl}/functions/v1/list-courses?${params}`;
-  
-  const res = await fetchWithTimeout(url, {
-    method: 'GET',
-    headers: {
-      'Content-Type': 'application/json',
-    },
+  const res = await callEdgeFunctionGetRaw("list-courses", Object.fromEntries(params.entries()), {
+    timeoutMs: 30000,
+    maxRetries: 1,
   });
 
   if (!res.ok) {

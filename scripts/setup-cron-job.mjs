@@ -32,6 +32,8 @@ if (!AGENT_TOKEN) {
 }
 
 const functionUrl = `${SUPABASE_URL}/functions/v1/process-pending-jobs`;
+const reconcilerUrl = `${SUPABASE_URL}/functions/v1/jobs-reconciler`;
+
 const headersJson = JSON.stringify({
   'Content-Type': 'application/json',
   Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
@@ -48,6 +50,7 @@ const queries = [
   
   // Remove old cron job if exists
   "SELECT cron.unschedule('process-pending-jobs') WHERE EXISTS (SELECT 1 FROM cron.job WHERE jobname = 'process-pending-jobs');",
+  "SELECT cron.unschedule('jobs-reconciler') WHERE EXISTS (SELECT 1 FROM cron.job WHERE jobname = 'jobs-reconciler');",
   
   // Schedule new cron job - every 2 minutes to avoid overload
   `SELECT cron.schedule(
@@ -56,6 +59,21 @@ const queries = [
     $$
     SELECT net.http_post(
       url := '${functionUrl}',
+      headers := '${headersJson.replaceAll("'", "''")}'::jsonb,
+      body := '{}'::jsonb
+    ) AS request_id;
+    $$
+  );`
+  ,
+
+  // Schedule reconciler to heal stuck jobs (every 5 minutes)
+  // This marks jobs done when the course artifact exists, or fails stalled jobs.
+  `SELECT cron.schedule(
+    'jobs-reconciler',
+    '*/5 * * * *',
+    $$
+    SELECT net.http_post(
+      url := '${reconcilerUrl}',
       headers := '${headersJson.replaceAll("'", "''")}'::jsonb,
       body := '{}'::jsonb
     ) AS request_id;

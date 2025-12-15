@@ -1,4 +1,4 @@
-import { } from 'react';
+import { useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { OverviewTab } from './OverviewTab';
@@ -18,7 +18,17 @@ interface MainCanvasProps {
 export function MainCanvas({ jobId }: MainCanvasProps) {
   const [searchParams, setSearchParams] = useSearchParams();
   const activeTab = searchParams.get('tab') || 'overview';
-  const { job } = useJobContext(jobId);
+  const { job, events } = useJobContext(jobId);
+
+  const showPendingWarning = useMemo(() => {
+    if (!job) return false;
+    if (job.status !== 'pending') return false;
+    if ((events || []).length > 0) return false;
+    const createdAtMs = job.created_at ? new Date(job.created_at).getTime() : NaN;
+    const ageMs = Date.now() - createdAtMs;
+    // Grace period: don't warn until it's actually stuck.
+    return Number.isFinite(ageMs) && ageMs > 90_000;
+  }, [job, events]);
 
   const handleTabChange = (value: string) => {
     setSearchParams({ jobId: jobId || '', tab: value }, { replace: true });
@@ -70,7 +80,7 @@ export function MainCanvas({ jobId }: MainCanvasProps) {
           </div>
 
           {/* Job Warnings */}
-          {job.status === 'pending' && (
+          {showPendingWarning && (
             <Alert className="mt-4 border-amber-200 bg-amber-50 dark:bg-amber-950/20">
               <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400" />
               <AlertDescription className="text-sm">

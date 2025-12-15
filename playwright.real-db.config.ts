@@ -1,10 +1,18 @@
 import type { PlaywrightTestConfig } from '@playwright/test';
+import { loadLearnPlayEnv } from './tests/helpers/parse-learnplay-env';
+import { loadLocalEnvForTests } from './tests/helpers/load-local-env';
+
+// Attempt to auto-resolve required env vars from local env files (learnplay.env), without printing secrets.
+loadLocalEnvForTests();
+loadLearnPlayEnv();
 
 const PORT = process.env.PORT ? Number(process.env.PORT) : 8081; // Different port to avoid conflicts
 
 const config: PlaywrightTestConfig = {
   testDir: '.',
   testMatch: ['tests/e2e/**/*.spec.ts', 'src/e2e/**/*.spec.ts'],
+  // Never collect tests from legacy snapshots / nested apps (they may carry their own Playwright dependency).
+  testIgnore: ['**/dawn-react-starter/**', '**/_archive/**'],
   timeout: 180_000, // 3 minutes for tests that create real jobs
   retries: 0, // No retries for real DB tests
   reporter: [
@@ -37,12 +45,14 @@ const config: PlaywrightTestConfig = {
   projects: [
     {
       name: 'setup',
-      testMatch: /.*\.setup\.ts/,
+      // Only collect setup files from the e2e suite (avoid tests/integration and legacy snapshots).
+      testMatch: /tests[\\/](e2e)[\\/].*\.setup\.ts/,
     },
     {
       name: 'authenticated',
       use: {
-        storageState: 'playwright/.auth/user.json',
+        // Default authenticated state for real-db runs (tests may override per-file).
+        storageState: 'playwright/.auth/admin.json',
       },
       dependencies: ['setup'],
     },

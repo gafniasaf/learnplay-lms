@@ -30,11 +30,11 @@ export function OverviewTab({ jobId }: OverviewTabProps) {
     return parseJobSummary(job.summary);
   }, [job?.summary]);
 
-  // Check if job is stuck (pending for > 1 minute with no events)
+  // Check if job is stuck (pending for a grace period with no events)
   const isStuck = useMemo(() => {
     if (!job || job.status !== 'pending') return false;
     const age = Date.now() - new Date(job.created_at).getTime();
-    return age > 60000 && events.length === 0;
+    return age > 90_000 && events.length === 0;
   }, [job, events]);
 
   const triggerJobRunner = async () => {

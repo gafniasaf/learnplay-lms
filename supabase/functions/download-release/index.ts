@@ -37,9 +37,10 @@ serve(async (req) => {
     // User auth - require Authorization header with valid JWT
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
+      // IMPORTANT: avoid non-200 to prevent Lovable blank screens.
       return new Response(
-        JSON.stringify({ error: "Unauthorized" }),
-        { status: 401, headers: stdHeaders(req, { "Content-Type": "application/json", "X-Request-Id": reqId }) }
+        JSON.stringify({ ok: false, error: { code: "unauthorized", message: "Unauthorized" }, httpStatus: 401 }),
+        { status: 200, headers: stdHeaders(req, { "Content-Type": "application/json", "X-Request-Id": reqId }) }
       );
     }
 
@@ -55,9 +56,10 @@ serve(async (req) => {
     } = await userClient.auth.getUser();
 
     if (authError || !user) {
+      // IMPORTANT: avoid non-200 to prevent Lovable blank screens.
       return new Response(
-        JSON.stringify({ error: "Unauthorized" }),
-        { status: 401, headers: stdHeaders(req, { "Content-Type": "application/json", "X-Request-Id": reqId }) }
+        JSON.stringify({ ok: false, error: { code: "unauthorized", message: "Unauthorized" }, httpStatus: 401 }),
+        { status: 200, headers: stdHeaders(req, { "Content-Type": "application/json", "X-Request-Id": reqId }) }
       );
     }
   }
@@ -76,12 +78,15 @@ serve(async (req) => {
   
   const bucketExists = buckets?.some(b => b.name === bucket);
   if (!bucketExists) {
+    // IMPORTANT: avoid non-200 to prevent Lovable blank screens.
     return new Response(
       JSON.stringify({ 
-        error: `Release bucket '${bucket}' not configured`, 
-        hint: `Create storage bucket '${bucket}' in Supabase Dashboard`
+        ok: false,
+        error: { code: "not_found", message: `Release bucket '${bucket}' not configured` },
+        hint: `Create storage bucket '${bucket}' in Supabase Dashboard`,
+        httpStatus: 404,
       }),
-      { status: 404, headers: stdHeaders(req, { "Content-Type": "application/json", "X-Request-Id": reqId }) }
+      { status: 200, headers: stdHeaders(req, { "Content-Type": "application/json", "X-Request-Id": reqId }) }
     );
   }
 
@@ -92,12 +97,15 @@ serve(async (req) => {
   if (error || !data?.signedUrl) {
     // Check if it's a "not found" error for the object
     if (error?.message?.includes('not found') || error?.message?.includes('Object not found')) {
+      // IMPORTANT: avoid non-200 to prevent Lovable blank screens.
       return new Response(
         JSON.stringify({ 
-          error: `Release file '${objectPath}' not found in bucket '${bucket}'`,
-          hint: 'Upload the release file to the storage bucket'
+          ok: false,
+          error: { code: "not_found", message: `Release file '${objectPath}' not found in bucket '${bucket}'` },
+          hint: 'Upload the release file to the storage bucket',
+          httpStatus: 404,
         }),
-        { status: 404, headers: stdHeaders(req, { "Content-Type": "application/json", "X-Request-Id": reqId }) }
+        { status: 200, headers: stdHeaders(req, { "Content-Type": "application/json", "X-Request-Id": reqId }) }
       );
     }
     return new Response(

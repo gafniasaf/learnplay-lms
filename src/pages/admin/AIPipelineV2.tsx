@@ -5,7 +5,7 @@
  * States: idle (create) | creating (progress) | complete (result)
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { PageContainer } from '@/components/layout/PageContainer';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -20,6 +20,7 @@ import { useJobsList } from '@/hooks/useJobsList';
 import { useAuth } from '@/hooks/useAuth';
 import { createLogger } from '@/lib/logger';
 import { getCourseJob } from '@/lib/api/jobs';
+import { isDevAgentMode } from '@/lib/api/common';
 
 const logger = createLogger('AIPipelineV2');
 import { useNavigate } from 'react-router-dom';
@@ -63,6 +64,7 @@ export default function AIPipelineV2() {
   const [state, setState] = useState<GeneratorState>('idle');
   const [currentJobId, setCurrentJobId] = useState<string | null>(null);
   const [currentCourseId, setCurrentCourseId] = useState<string | null>(null); // Store courseId locally
+  const [resumeCandidate, setResumeCandidate] = useState<{ jobId: string; courseId: string | null } | null>(null);
   const [subject, setSubject] = useState('');
   const [grade, setGrade] = useState('3-5');
   const [itemsPerGroup, setItemsPerGroup] = useState(12);
@@ -77,17 +79,49 @@ export default function AIPipelineV2() {
   const { jobs: recentJobs } = useJobsList({ limit: 5, status: 'done' });
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
+  const devAgent = isDevAgentMode();
 
-  // Check for in-progress jobs on mount (only restore if job is still running AND recent)
+  // Track when the user started watching the current job.
+  // We use this (not job.created_at) to avoid false "pending for a while" warnings
+  // caused by timestamp parsing, stale job snapshots, or eventual-consistency delays.
+  const pendingSinceRef = useRef<{ jobId: string | null; startedAtMs: number }>({
+    jobId: null,
+    startedAtMs: Date.now(),
+  });
+
   useEffect(() => {
-    const storedJobId = localStorage.getItem('selectedJobId');
-    const storedCourseId = localStorage.getItem('selectedCourseId');
+    if (!currentJobId) return;
+    if (pendingSinceRef.current.jobId !== currentJobId) {
+      pendingSinceRef.current = { jobId: currentJobId, startedAtMs: Date.now() };
+    }
+  }, [currentJobId]);
+
+  // Check for in-progress jobs on mount.
+  // UX: always open clean. If a recent running job exists, offer an explicit "Resume" button.
+  useEffect(() => {
+    const storedJobId =
+      (() => {
+        try { return window.sessionStorage.getItem('selectedJobId'); } catch { return null; }
+      })() ??
+      (() => {
+        try { return window.localStorage.getItem('selectedJobId'); } catch { return null; }
+      })();
+
+    const storedCourseId =
+      (() => {
+        try { return window.sessionStorage.getItem('selectedCourseId'); } catch { return null; }
+      })() ??
+      (() => {
+        try { return window.localStorage.getItem('selectedCourseId'); } catch { return null; }
+      })();
 
     if (!storedJobId) return;
 
     const clearStored = () => {
-      localStorage.removeItem('selectedJobId');
-      localStorage.removeItem('selectedCourseId');
+      try { window.sessionStorage.removeItem('selectedJobId'); } catch {}
+      try { window.sessionStorage.removeItem('selectedCourseId'); } catch {}
+      try { window.localStorage.removeItem('selectedJobId'); } catch {}
+      try { window.localStorage.removeItem('selectedCourseId'); } catch {}
     };
 
     const checkJobStatus = async () => {
@@ -103,12 +137,12 @@ export default function AIPipelineV2() {
         const ageMs = Date.now() - createdAt;
         const isRunning = ['pending', 'processing', 'running'].includes(job.status);
 
-        // Only auto-resume if it's running and recent.
+        // Only offer resume if it's running and recent.
         if (isRunning && ageMs <= AUTO_RESUME_MAX_AGE_MS) {
-          setCurrentJobId(storedJobId);
           const courseId = storedCourseId || job.course_id || null;
-          if (courseId) setCurrentCourseId(courseId);
-          setState('creating');
+          setResumeCandidate({ jobId: storedJobId, courseId });
+          // Clean start page: don't keep auto-restoring forever.
+          clearStored();
           return;
         }
 
@@ -135,7 +169,8 @@ export default function AIPipelineV2() {
       // Update courseId from job if available
       if (job.course_id && !currentCourseId) {
         setCurrentCourseId(job.course_id);
-        localStorage.setItem('selectedCourseId', job.course_id);
+        // Persist in-session only (avoid surprising auto-resume on a fresh load).
+        try { sessionStorage.setItem('selectedCourseId', job.course_id); } catch {}
       }
       
       if (job.status === 'done') {
@@ -150,8 +185,10 @@ export default function AIPipelineV2() {
         } else {
           // This is a restored completed job from localStorage on page load
           // Clear it and show the creation form instead
-          localStorage.removeItem('selectedJobId');
-          localStorage.removeItem('selectedCourseId');
+          try { sessionStorage.removeItem('selectedJobId'); } catch {}
+          try { sessionStorage.removeItem('selectedCourseId'); } catch {}
+          try { localStorage.removeItem('selectedJobId'); } catch {}
+          try { localStorage.removeItem('selectedCourseId'); } catch {}
           setCurrentJobId(null);
           setCurrentCourseId(null);
           setState('idle');
@@ -163,8 +200,10 @@ export default function AIPipelineV2() {
         toast.error('Course generation failed. Please try again.');
         setCurrentJobId(null);
         setCurrentCourseId(null);
-        localStorage.removeItem('selectedJobId');
-        localStorage.removeItem('selectedCourseId');
+        try { sessionStorage.removeItem('selectedJobId'); } catch {}
+        try { sessionStorage.removeItem('selectedCourseId'); } catch {}
+        try { localStorage.removeItem('selectedJobId'); } catch {}
+        try { localStorage.removeItem('selectedCourseId'); } catch {}
       }
     } else if (currentJobId) {
       // Job ID exists but job data not loaded yet - stay in creating state
@@ -179,7 +218,7 @@ export default function AIPipelineV2() {
     }
 
     // Check authentication before attempting to create
-    if (!user && !authLoading) {
+    if (!devAgent && !user && !authLoading) {
       setAuthError('Please log in to create courses');
       toast.error('Authentication required', {
         description: 'Please log in to create courses',
@@ -209,8 +248,9 @@ export default function AIPipelineV2() {
         const jobId = result.jobId as string;
         setCurrentJobId(jobId);
         setCurrentCourseId(courseId); // Store courseId for later use
-        localStorage.setItem('selectedJobId', jobId);
-        localStorage.setItem('selectedCourseId', courseId);
+        // Persist in-session only (avoid surprising auto-resume on a fresh load).
+        try { sessionStorage.setItem('selectedJobId', jobId); } catch {}
+        try { sessionStorage.setItem('selectedCourseId', courseId); } catch {}
         setState('creating');
         setSubject('');
         setSpecialRequests('');
@@ -248,8 +288,10 @@ export default function AIPipelineV2() {
       setState('idle');
       toast.info('Generation cancelled');
       // Ensure refresh/opening returns to clean start page
-      localStorage.removeItem('selectedJobId');
-      localStorage.removeItem('selectedCourseId');
+      try { sessionStorage.removeItem('selectedJobId'); } catch {}
+      try { sessionStorage.removeItem('selectedCourseId'); } catch {}
+      try { localStorage.removeItem('selectedJobId'); } catch {}
+      try { localStorage.removeItem('selectedCourseId'); } catch {}
     }
   };
 
@@ -282,8 +324,10 @@ export default function AIPipelineV2() {
   const handleCreateAnother = () => {
     setCurrentJobId(null);
     setCurrentCourseId(null);
-    localStorage.removeItem('selectedJobId');
-    localStorage.removeItem('selectedCourseId');
+    try { sessionStorage.removeItem('selectedJobId'); } catch {}
+    try { sessionStorage.removeItem('selectedCourseId'); } catch {}
+    try { localStorage.removeItem('selectedJobId'); } catch {}
+    try { localStorage.removeItem('selectedCourseId'); } catch {}
     setState('idle');
   };
 
@@ -309,6 +353,17 @@ export default function AIPipelineV2() {
     return phaseNames[lastEvent.step] || 'Processing...';
   })();
 
+  // Only show "runner may not be active" when it's *actually* stuck.
+  // There is a normal short gap right after enqueue where status can be 'pending' and events can be empty.
+  const showPendingStuckWarning = (() => {
+    if (!job) return false;
+    if (job.status !== 'pending') return false;
+    if (events.length > 0) return false;
+    const ageMs = Date.now() - pendingSinceRef.current.startedAtMs;
+    // Grace period: don't warn unless we've observed "pending with no events" for > 90s.
+    return Number.isFinite(ageMs) && ageMs > 90_000;
+  })();
+
   return (
     <PageContainer className="max-w-4xl mx-auto py-8">
       {/* Header */}
@@ -322,8 +377,30 @@ export default function AIPipelineV2() {
       {/* State: Idle - Creation Form */}
       {state === 'idle' && (
         <div className="space-y-6">
+          {/* Resume Candidate (explicit; no silent auto-resume) */}
+          {resumeCandidate && (
+            <Alert>
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription className="flex items-center justify-between gap-3">
+                <span>A recent course generation is still running. Resume it?</span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setCurrentJobId(resumeCandidate.jobId);
+                    if (resumeCandidate.courseId) setCurrentCourseId(resumeCandidate.courseId);
+                    setResumeCandidate(null);
+                    setState('creating');
+                  }}
+                >
+                  Resume
+                </Button>
+              </AlertDescription>
+            </Alert>
+          )}
+
           {/* Authentication Warning */}
-          {!user && !authLoading && (
+          {!devAgent && !user && !authLoading && (
             <Alert variant="destructive">
               <AlertCircle className="h-4 w-4" />
               <AlertDescription className="flex items-center justify-between">
@@ -373,6 +450,7 @@ export default function AIPipelineV2() {
                   onKeyDown={(e) => e.key === 'Enter' && handleCreate()}
                   className="mt-1"
                   autoFocus
+                  data-cta-id="ai-course-subject"
                 />
               </div>
 
@@ -427,21 +505,23 @@ export default function AIPipelineV2() {
                   value={specialRequests}
                   onChange={(e) => setSpecialRequests(e.target.value)}
                   className="mt-1"
+                  data-cta-id="ai-course-notes"
                 />
               </div>
 
               <Button
                 onClick={handleCreate}
-                disabled={creating || !subject.trim() || (!user && !authLoading)}
+                disabled={creating || !subject.trim() || (!devAgent && !user && !authLoading)}
                 size="lg"
                 className="w-full"
+                data-cta-id="ai-course-generate"
               >
                 {creating ? (
                   <>
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                     Creating...
                   </>
-                ) : !user && !authLoading ? (
+                ) : !devAgent && !user && !authLoading ? (
                   <>
                     <AlertCircle className="h-4 w-4 mr-2" />
                     Log In Required
@@ -572,7 +652,7 @@ export default function AIPipelineV2() {
               </div>
 
               {/* Stuck Warning */}
-              {job.status === 'pending' && events.length === 0 && (
+              {showPendingStuckWarning && (
                 <Alert variant="destructive">
                   <AlertCircle className="h-4 w-4" />
                   <AlertDescription>

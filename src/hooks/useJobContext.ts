@@ -53,7 +53,7 @@ export interface JobContext {
  * Single source of truth for all pipeline panels.
  */
 export function useJobContext(jobId: string | null, pollInterval = 2000): JobContext {
-  const mcp = useMCP();
+  const { getCourseJob } = useMCP();
   const [job, setJob] = useState<Job | null>(null);
   const [events, setEvents] = useState<JobEvent[]>([]);
   const [loading, setLoading] = useState(true);
@@ -69,7 +69,7 @@ export function useJobContext(jobId: string | null, pollInterval = 2000): JobCon
     }
 
     try {
-      const response = await mcp.getCourseJob(jobId, true);
+      const response = await getCourseJob(jobId, true);
 
       const ok = (response as { ok: boolean }).ok;
       const errCode = (response as any)?.error?.code as string | undefined;
@@ -91,7 +91,7 @@ export function useJobContext(jobId: string | null, pollInterval = 2000): JobCon
     } finally {
       setLoading(false);
     }
-  }, [jobId, mcp]);
+  }, [jobId, getCourseJob]);
 
   useEffect(() => {
     if (!jobId) {

@@ -21,6 +21,7 @@
 
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { withCors } from '../_shared/cors.ts';
+import { Errors } from '../_shared/error.ts';
 
 const supabaseUrl = Deno.env.get('SUPABASE_URL');
 const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
@@ -33,19 +34,14 @@ if (!supabaseServiceKey) {
 }
 
 const handler = async (req: Request) => {
+  const requestId = crypto.randomUUID();
   if (req.method !== 'POST') {
-    return new Response(
-      JSON.stringify({ error: 'Method not allowed' }),
-      { status: 405, headers: { 'Content-Type': 'application/json' } }
-    );
+    return Errors.methodNotAllowed(req.method, requestId, req);
   }
 
   const authHeader = req.headers.get('Authorization');
   if (!authHeader) {
-    return new Response(
-      JSON.stringify({ error: 'Missing authorization header' }),
-      { status: 401, headers: { 'Content-Type': 'application/json' } }
-    );
+    return Errors.noAuth(requestId, req);
   }
 
   const supabase = createClient(supabaseUrl, supabaseServiceKey, {
@@ -56,21 +52,20 @@ const handler = async (req: Request) => {
 
   const { data: { user }, error: userError } = await supabase.auth.getUser();
   if (userError || !user) {
-    return new Response(
-      JSON.stringify({ error: 'Invalid token' }),
-      { status: 401, headers: { 'Content-Type': 'application/json' } }
-    );
+    return Errors.invalidAuth(requestId, req);
   }
 
   // Parse request body
-  const body = await req.json();
-  const { courseId, changelog } = body;
+  let body: any = null;
+  try {
+    body = await req.json();
+  } catch {
+    return Errors.invalidRequest("Invalid JSON body", requestId, req);
+  }
+  const { courseId, changelog } = body || {};
 
   if (!courseId) {
-    return new Response(
-      JSON.stringify({ error: 'Missing courseId' }),
-      { status: 400, headers: { 'Content-Type': 'application/json' } }
-    );
+    return Errors.invalidRequest("Missing courseId", requestId, req);
   }
 
   // Fetch course metadata
@@ -81,10 +76,7 @@ const handler = async (req: Request) => {
     .single();
 
   if (metadataError || !metadata) {
-    return new Response(
-      JSON.stringify({ error: 'Course not found' }),
-      { status: 404, headers: { 'Content-Type': 'application/json' } }
-    );
+    return Errors.notFound("Course", requestId, req);
   }
 
   // Check user has editor or org_admin role
@@ -97,10 +89,7 @@ const handler = async (req: Request) => {
     .single();
 
   if (!userRole) {
-    return new Response(
-      JSON.stringify({ error: 'Not authorized to publish this course' }),
-      { status: 403, headers: { 'Content-Type': 'application/json' } }
-    );
+    return Errors.forbidden("Not authorized to publish this course", requestId, req);
   }
 
   // Load course JSON from storage
@@ -111,10 +100,7 @@ const handler = async (req: Request) => {
 
   if (storageError) {
     console.error('Error loading course from storage:', storageError);
-    return new Response(
-      JSON.stringify({ error: 'Failed to load course from storage' }),
-      { status: 500, headers: { 'Content-Type': 'application/json' } }
-    );
+    return Errors.internal('Failed to load course from storage', requestId, req);
   }
 
   const courseText = await courseFile.text();
@@ -129,22 +115,17 @@ const handler = async (req: Request) => {
 
     if (tagsError) {
       console.error('Error validating tags:', tagsError);
-      return new Response(
-        JSON.stringify({ error: 'Failed to validate tags' }),
-        { status: 500, headers: { 'Content-Type': 'application/json' } }
-      );
+      return Errors.internal('Failed to validate tags', requestId, req);
     }
 
     const existingTagIds = (existingTags || []).map(t => t.id);
     const invalidTags = metadata.tag_ids.filter((id: string) => !existingTagIds.includes(id));
 
     if (invalidTags.length > 0) {
-      return new Response(
-        JSON.stringify({
-          error: 'Invalid tag IDs. Please approve all tags before publishing.',
-          invalidTags
-        }),
-        { status: 400, headers: { 'Content-Type': 'application/json' } }
+      return Errors.invalidRequest(
+        `Invalid tag IDs. Please approve all tags before publishing. invalidTags=${invalidTags.join(",")}`,
+        requestId,
+        req
       );
     }
   }
@@ -164,10 +145,7 @@ const handler = async (req: Request) => {
 
   if (updateError) {
     console.error('Error updating course_metadata:', updateError);
-    return new Response(
-      JSON.stringify({ error: 'Failed to update course metadata' }),
-      { status: 500, headers: { 'Content-Type': 'application/json' } }
-    );
+    return Errors.internal('Failed to update course metadata', requestId, req);
   }
 
   // Create course_versions snapshot
@@ -185,10 +163,7 @@ const handler = async (req: Request) => {
 
   if (versionError) {
     console.error('Error creating course version:', versionError);
-    return new Response(
-      JSON.stringify({ error: 'Failed to create version snapshot' }),
-      { status: 500, headers: { 'Content-Type': 'application/json' } }
-    );
+    return Errors.internal('Failed to create version snapshot', requestId, req);
   }
 
   // Emit realtime event for clients to refresh course content/caches

@@ -31,8 +31,20 @@ serve(withCors(async (req) => {
     let userId: string | null = null;
     let userOrgId: string | null = null;
 
+    // Dev-agent / preview mode: allow org-scoped catalog reads via agent token.
+    // This is REQUIRED for Lovable preview where Supabase sessions may not persist.
+    const agentHeader = req.headers.get("x-agent-token") ?? req.headers.get("X-Agent-Token");
+    const expectedAgent = Deno.env.get("AGENT_TOKEN") || null;
+    const agentOrgId = req.headers.get("x-organization-id") ?? req.headers.get("X-Organization-Id");
+    const agentUserId = req.headers.get("x-user-id") ?? req.headers.get("X-User-Id");
+
+    if (expectedAgent && agentHeader === expectedAgent && agentOrgId) {
+      userOrgId = agentOrgId;
+      userId = agentUserId || null;
+    }
+
     // Try to authenticate user (optional for public courses)
-    if (authHeader) {
+    if (!userOrgId && authHeader) {
       const token = authHeader.replace('Bearer ', '');
       const { data: { user }, error: authError } = await supabase.auth.getUser(token);
       

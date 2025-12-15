@@ -1,4 +1,5 @@
 import { withCors } from "../_shared/cors.ts";
+import { Errors } from "../_shared/error.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
 const AGENT_TOKEN = Deno.env.get("AGENT_TOKEN");
@@ -29,12 +30,12 @@ function itemHasImage(course: any, item: any): boolean {
 Deno.serve(withCors(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response(null, { status: 204 });
   if (req.method !== "POST") {
-    return new Response(JSON.stringify({ error: "method_not_allowed" }), { status: 405, headers: { "Content-Type": "application/json" } });
+    return Errors.methodNotAllowed(req.method, crypto.randomUUID(), req);
   }
   const token = req.headers.get("X-Agent-Token") || "";
   const expected = Deno.env.get("AGENT_TOKEN") || "";
   if (!token || token !== expected) {
-    return new Response(JSON.stringify({ error: "unauthorized" }), { status: 401, headers: { "Content-Type": "application/json" } });
+    return Errors.invalidAuth(crypto.randomUUID(), req);
   }
   try {
     const body = await req.json();
@@ -43,7 +44,7 @@ Deno.serve(withCors(async (req: Request) => {
     const limit = Math.min(+(body?.limit ?? 25), 200);
     const promptTemplate = String(body?.promptTemplate || 'Generate an illustrative image for: {{stem}}');
     if (!courseId) {
-      return new Response(JSON.stringify({ error: "invalid_courseId" }), { status: 400, headers: { "Content-Type": "application/json" } });
+      return Errors.invalidRequest("invalid_courseId", crypto.randomUUID(), req);
     }
     const baseUrl = SUPABASE_URL;
     const sr = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
@@ -86,7 +87,7 @@ Deno.serve(withCors(async (req: Request) => {
 
     return new Response(JSON.stringify({ ok: true, jobIds, count: enqueued, missingTotal: missing.length }), { status: 200, headers: { "Content-Type": "application/json" } });
   } catch (e) {
-    return new Response(JSON.stringify({ error: String((e as any)?.message || e) }), { status: 400, headers: { "Content-Type": "application/json" } });
+    return Errors.invalidRequest(String((e as any)?.message || e), crypto.randomUUID(), req);
   }
 }));
 

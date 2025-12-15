@@ -13,8 +13,9 @@ export async function handleRequest(req: Request): Promise<Response> {
   const provided = (req.headers as any)?.get?.('X-Agent-Token') || (req as any).headers?.get?.('X-Agent-Token') || (req as any).headers?.get?.('x-agent-token');
   const expected = Deno.env.get("AGENT_TOKEN") || '';
   if (!provided || provided !== expected) {
-    return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-      status: 401,
+    // IMPORTANT: avoid non-200 to prevent Lovable blank screens.
+    return new Response(JSON.stringify({ ok: false, error: { code: "unauthorized", message: "Unauthorized" }, httpStatus: 401 }), {
+      status: 200,
       headers: { 'Content-Type': 'application/json' },
     });
   }

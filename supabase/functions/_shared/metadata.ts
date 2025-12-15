@@ -1,6 +1,10 @@
 // supabase/functions/_shared/metadata.ts
 // Helper to upsert course metadata consistently.
 
+// Minimal Deno shim for local TypeScript tooling
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+declare const Deno: { env: { get(key: string): string | undefined } } | any;
+
 interface SupabaseClientLike {
   from(table: string): SupabaseClientLike;
   select(columns?: string): SupabaseClientLike;
@@ -10,6 +14,11 @@ interface SupabaseClientLike {
   upsert(values: any, options?: any): Promise<{ data: any; error: any }>;
   insert(values: any): Promise<{ data: any; error: any }>;
   rpc(functionName: string): Promise<{ data: any; error: any }>;
+}
+
+function isUuid(value: unknown): value is string {
+  if (typeof value !== "string") return false;
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
 }
 
 function coerceIntVersion(value: unknown): number {
@@ -38,14 +47,28 @@ export async function upsertCourseMetadata(
   const content = isEnvelope ? (courseJson.content ?? {}) : courseJson;
   const format = isEnvelope ? String(courseJson.format ?? "practice") : "practice";
 
-  const orgResult = await supabase
-    .from("organizations")
-    .select("id")
-    .order("created_at", { ascending: true })
-    .limit(1)
-    .maybeSingle();
+  // Prefer explicit org identity when available.
+  // - In live deployments, ORGANIZATION_ID should be set as an Edge secret.
+  // - Some callsites may include organization_id / organizationId in the payload.
+  const explicitOrg =
+    (isUuid((content as any)?.organization_id) ? (content as any).organization_id : null) ??
+    (isUuid((content as any)?.organizationId) ? (content as any).organizationId : null) ??
+    (isUuid((courseJson as any)?.organization_id) ? (courseJson as any).organization_id : null) ??
+    (isUuid((courseJson as any)?.organizationId) ? (courseJson as any).organizationId : null) ??
+    (isUuid(Deno?.env?.get?.("ORGANIZATION_ID")) ? Deno.env.get("ORGANIZATION_ID") : null) ??
+    null;
 
-  const orgId = orgResult?.data?.id;
+  let orgId: string | null = explicitOrg;
+  if (!orgId) {
+    const orgResult = await supabase
+      .from("organizations")
+      .select("id")
+      .order("created_at", { ascending: true })
+      .limit(1)
+      .maybeSingle();
+    orgId = orgResult?.data?.id ?? null;
+  }
+
   if (!orgId) {
     throw new Error("No organizations found; cannot upsert course metadata");
   }

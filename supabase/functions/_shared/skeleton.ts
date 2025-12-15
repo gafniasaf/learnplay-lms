@@ -150,18 +150,13 @@ function buildGroups(subject: string): SkeletonGroup[] {
     }));
   }
   
-  // Non-math: create 2-3 generic groups based on subject
-  const words = subject.split(/\s+/).filter(w => w.length > 2);
-  if (words.length >= 2) {
-    return [
-      { id: 0, name: capitalize(words[0]) },
-      { id: 1, name: capitalize(words[1]) }
-    ];
-  }
-  
+  // Non-math: always create 3 subject-specific groups so the LLM has strong topical anchors.
+  // This avoids the model defaulting to generic math content for "Basics/Practice".
+  const topic = capitalize(subject.trim()) || "Topic";
   return [
-    { id: 0, name: "Basics" },
-    { id: 1, name: "Practice" }
+    { id: 0, name: `${topic}: Foundations` },
+    { id: 1, name: `${topic}: Key Concepts` },
+    { id: 2, name: `${topic}: Applications` },
   ];
 }
 

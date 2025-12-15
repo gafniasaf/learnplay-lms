@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 // supabase import removed - not used directly
 import { JOB_MODES } from '@/lib/contracts';
 import { callEdgeFunctionGet } from '@/lib/api/common';
@@ -369,40 +369,48 @@ export function useMCP() {
   };
 
   // List course jobs (IgniteZero compliant)
-  const listCourseJobs = async (params: { status?: string; sinceHours?: number; limit?: number; search?: string } = {}) => {
-    setLoading(true);
-    try {
-      if (useMockMode) {
-        console.log('[MCP Mock] listCourseJobs:', params);
-        return { ok: true, jobs: [], total: 0 };
+  // NOTE: This must be referentially stable because polling hooks depend on it.
+  const listCourseJobs = useCallback(
+    async (params: { status?: string; sinceHours?: number; limit?: number; search?: string } = {}) => {
+      setLoading(true);
+      try {
+        if (useMockMode) {
+          console.log('[MCP Mock] listCourseJobs:', params);
+          return { ok: true, jobs: [], total: 0 };
+        }
+        const queryParams: Record<string, string> = {};
+        if (params.status) queryParams.status = params.status;
+        if (params.sinceHours !== undefined) queryParams.sinceHours = String(params.sinceHours);
+        if (params.limit !== undefined) queryParams.limit = String(params.limit);
+        if (params.search) queryParams.search = params.search;
+        return await callEdgeFunctionGet<ListCourseJobsResponse>('list-course-jobs', queryParams);
+      } finally {
+        setLoading(false);
       }
-      const queryParams: Record<string, string> = {};
-      if (params.status) queryParams.status = params.status;
-      if (params.sinceHours !== undefined) queryParams.sinceHours = String(params.sinceHours);
-      if (params.limit !== undefined) queryParams.limit = String(params.limit);
-      if (params.search) queryParams.search = params.search;
-      return await callEdgeFunctionGet<ListCourseJobsResponse>("list-course-jobs", queryParams);
-    } finally {
-      setLoading(false);
-    }
-  };
+    },
+    [setLoading]
+  );
 
   // Get single course job
-  const getCourseJob = async (jobId: string, includeEvents = false) => {
-    setLoading(true);
-    try {
-      if (useMockMode) {
-        console.log('[MCP Mock] getCourseJob:', jobId);
-        return { ok: true, job: null, events: [] };
+  // NOTE: This must be referentially stable because polling hooks depend on it.
+  const getCourseJob = useCallback(
+    async (jobId: string, includeEvents = false) => {
+      setLoading(true);
+      try {
+        if (useMockMode) {
+          console.log('[MCP Mock] getCourseJob:', jobId);
+          return { ok: true, job: null, events: [] };
+        }
+        return await callEdgeFunctionGet<GetJobResponse>('get-course-job', {
+          id: jobId,
+          includeEvents: includeEvents ? 'true' : 'false',
+        });
+      } finally {
+        setLoading(false);
       }
-      return await callEdgeFunctionGet<GetJobResponse>("get-course-job", {
-        id: jobId,
-        includeEvents: includeEvents ? "true" : "false",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
+    },
+    [setLoading]
+  );
 
   // Requeue a job
   const requeueJob = async (jobId: string, jobTable: 'ai_course_jobs' | 'ai_media_jobs' = 'ai_course_jobs') => {
@@ -1237,7 +1245,8 @@ export function useMCP() {
         console.log('[MCP Mock] getCourse:', courseId);
         return { id: courseId, title: 'Mock Course', items: [] };
       }
-      const payload = await callEdgeFunctionGet<any>("get-course", { courseId });
+      // get-course reads from Storage; allow a bit more time in preview environments.
+      const payload = await callEdgeFunctionGet<any>("get-course", { courseId }, { timeoutMs: 60000, maxRetries: 1 });
 
       // Dawn parity: accept envelope { format, content } and unwrap consistently.
       const isEnvelope =
@@ -1462,7 +1471,21 @@ export function useMCP() {
         console.log('[MCP Mock] getOrgConfig');
         return { orgId: 'mock-org', settings: {} };
       }
-      return await callEdgeFunctionGet<GetOrgConfigResponse>('get-org-config');
+      const resp = await callEdgeFunctionGet<any>('get-org-config');
+
+      // get-org-config returns HTTP 200 even on logical errors (preview safety).
+      // Convert those into exceptions so UI can handle gracefully.
+      if (resp && typeof resp === 'object' && 'ok' in resp && (resp as any).ok === false) {
+        const err = (resp as any).error;
+        const code = typeof err?.code === 'string' ? err.code : 'org_config_failed';
+        const message =
+          code === 'unauthorized'
+            ? 'NOT_AUTHENTICATED'
+            : (typeof err?.message === 'string' ? err.message : 'Failed to load organization config');
+        throw new Error(message);
+      }
+
+      return resp as GetOrgConfigResponse;
     } finally {
       setLoading(false);
     }

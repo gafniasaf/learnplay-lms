@@ -57,9 +57,10 @@ serve(async (req: Request): Promise<Response> => {
     // User auth - require Authorization header
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) {
+      // IMPORTANT: avoid non-200 to prevent Lovable blank screens.
       return new Response(
-        JSON.stringify({ error: "Unauthorized" }),
-        { status: 401, headers: stdHeaders(req, { "Content-Type": "application/json" }) }
+        JSON.stringify({ ok: false, error: { code: "unauthorized", message: "Unauthorized" }, httpStatus: 401 }),
+        { status: 200, headers: stdHeaders(req, { "Content-Type": "application/json" }) }
       );
     }
 
@@ -70,9 +71,10 @@ serve(async (req: Request): Promise<Response> => {
 
     const { data: { user }, error: userError } = await client.auth.getUser();
     if (userError || !user) {
+      // IMPORTANT: avoid non-200 to prevent Lovable blank screens.
       return new Response(
-        JSON.stringify({ error: "Unauthorized" }),
-        { status: 401, headers: stdHeaders(req, { "Content-Type": "application/json" }) }
+        JSON.stringify({ ok: false, error: { code: "unauthorized", message: "Unauthorized" }, httpStatus: 401 }),
+        { status: 200, headers: stdHeaders(req, { "Content-Type": "application/json" }) }
       );
     }
     userId = user.id;

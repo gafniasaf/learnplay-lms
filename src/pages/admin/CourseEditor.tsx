@@ -28,15 +28,17 @@ import { logger } from '@/lib/logging';
 import { useCoursePublishing } from './editor/hooks/useCoursePublishing';
 import { useCourseVariants } from './editor/hooks/useCourseVariants';
 import { useCourseCoPilot } from './editor/hooks/useCourseCoPilot';
+import { isDevAgentMode } from '@/lib/api/common';
 
 const CourseEditor = () => {
   const { courseId } = useParams<{ courseId: string }>();
   const navigate = useNavigate();
-  const { user, role } = useAuth();
+  const { user, role, loading: authLoading } = useAuth();
   const mcp = useMCP();
   const publishing = useCoursePublishing();
   const variants = useCourseVariants();
   const copilot = useCourseCoPilot();
+  const devAgent = isDevAgentMode();
   
   const [course, setCourse] = useState<Course | null>(null);
   const [loading, setLoading] = useState(true);
@@ -72,8 +74,13 @@ const CourseEditor = () => {
 
   // Admin guard
   const devOverrideRole = typeof window !== 'undefined' ? localStorage.getItem('role') : null;
-  const isAdmin = role === 'admin' || devOverrideRole === 'admin' || 
-                  user?.app_metadata?.role === 'admin' || user?.user_metadata?.role === 'admin';
+  // In dev-agent mode (Lovable preview), allow editor access without a Supabase session.
+  const isAdmin =
+    devAgent ||
+    role === 'admin' ||
+    devOverrideRole === 'admin' ||
+    user?.app_metadata?.role === 'admin' ||
+    user?.user_metadata?.role === 'admin';
 
   const hasUnsavedChanges = unsavedItems.size > 0;
 
@@ -125,7 +132,31 @@ const CourseEditor = () => {
     } finally {
       setLoading(false);
     }
-  }, [courseId]);
+  }, [courseId, mcp]);
+
+  // Load course on mount / when route changes.
+  // IMPORTANT: include authLoading in deps; otherwise we can early-return while auth is loading
+  // and never retry, leaving the editor stuck on "Loading course..." forever.
+  useEffect(() => {
+    if (!courseId) {
+      setError('Missing courseId');
+      setLoading(false);
+      return;
+    }
+
+    // Admin guard: if user is not admin, bounce out quickly.
+    // In dev-agent mode we treat the user as admin for preview stability.
+    // IMPORTANT: don't redirect while auth is still loading.
+    if (!isAdmin) {
+      if (authLoading) return;
+      setError('Admin access required');
+      setLoading(false);
+      navigate('/admin');
+      return;
+    }
+
+    void loadCourse();
+  }, [courseId, isAdmin, authLoading, navigate, loadCourse]);
 
   const getCurrentItem = (): CourseItem | null => {
     if (!course) return null;

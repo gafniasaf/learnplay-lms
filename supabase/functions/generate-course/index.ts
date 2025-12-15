@@ -39,6 +39,33 @@ const InputSchema = z.object({
   mode: z.enum(["options", "numeric"]).default("options"),
 });
 
+function normalizeSubjectForSafety(subject: string, gradeBand: string): string {
+  const raw = String(subject || "").trim();
+  const s = raw.toLowerCase();
+  const band = String(gradeBand || "").toLowerCase();
+
+  // Minimal safety normalization:
+  // - We don't generate explicit sexual content from slang inputs.
+  // - For older students, we can reframe into medically accurate anatomy.
+  const containsSexualSlang =
+    /\b(boobs?|testicles?|tits?|porn|sex|blowjob|anal)\b/i.test(raw);
+
+  if (!containsSexualSlang) return raw;
+
+  const allowedForOlder =
+    band.includes("9-12") || band.includes("high") || band.includes("college") || band === "all";
+
+  if (!allowedForOlder) {
+    throw new Error(
+      "invalid_request: Subject contains adult content not suitable for this grade band. " +
+        "Use a school-appropriate topic or choose an older grade band."
+    );
+  }
+
+  // Reframe slang into a legitimate educational topic.
+  return "Human reproductive anatomy";
+}
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function fetchJobCourseId(supabase: any, jobId: string): Promise<string | null> {
   const { data, error } = await supabase
@@ -307,37 +334,64 @@ function createJobHelpers(supabase: any) {
     payload: { status: "done" | "needs_attention"; fallbackReason: string | null; summary?: any },
   ) {
     if (!jobId) return;
-    const updates: Record<string, unknown> = {
-      status: payload.status,
-      progress_stage: "completed",
-      progress_percent: 100,
-      completed_at: new Date().toISOString(),
-      fallback_reason: payload.fallbackReason,
-    };
-    // NOTE: Some deployments do not have a `summary` column on ai_course_jobs.
-    // The canonical summary is stored in storage by saveJobSummary(); do NOT write it into the DB row.
+    const completedAt = new Date().toISOString();
+
+    // Always update the minimal columns that MUST exist.
+    // Extra progress fields are best-effort because some deployments may not have them yet.
     try {
-      await supabase.from("ai_course_jobs").update(updates).eq("id", jobId);
+      await supabase
+        .from("ai_course_jobs")
+        .update({
+          status: payload.status,
+          completed_at: completedAt,
+        })
+        .eq("id", jobId);
     } catch (error) {
-      console.warn("[generate-course] Failed to finalize job", error);
+      console.warn("[generate-course] Failed to set job status/completed_at", error);
+    }
+
+    // Best-effort progress decoration (may fail if columns don't exist).
+    try {
+      await supabase
+        .from("ai_course_jobs")
+        .update({
+          progress_stage: "completed",
+          progress_percent: 100,
+          fallback_reason: payload.fallbackReason,
+        })
+        .eq("id", jobId);
+    } catch (error) {
+      console.warn("[generate-course] Failed to finalize job progress fields (non-fatal)", error);
     }
   }
 
   async function markJobFailed(jobId: string | null, message: string) {
     if (!jobId) return;
+    const completedAt = new Date().toISOString();
     try {
       await supabase
         .from("ai_course_jobs")
         .update({
           status: "failed",
-          progress_stage: "failed",
-          progress_percent: 100,
-          completed_at: new Date().toISOString(),
+          completed_at: completedAt,
           error: message,
         })
         .eq("id", jobId);
     } catch (error) {
-      console.warn("[generate-course] Failed to mark job as failed", error);
+      console.warn("[generate-course] Failed to mark job as failed (status/error/completed_at)", error);
+    }
+
+    // Best-effort progress decoration (may fail if columns don't exist).
+    try {
+      await supabase
+        .from("ai_course_jobs")
+        .update({
+          progress_stage: "failed",
+          progress_percent: 100,
+        })
+        .eq("id", jobId);
+    } catch (error) {
+      console.warn("[generate-course] Failed to mark job progress fields as failed (non-fatal)", error);
     }
   }
 
@@ -425,8 +479,9 @@ Deno.serve(
     }
 
     const jobId = url.searchParams.get("jobId") || null;
-    const title = input.title || `${input.subject} Course`;
     const gradeBand = input.grade || input.gradeBand;
+    const subject = normalizeSubjectForSafety(input.subject, gradeBand);
+    const title = input.title || `${subject} Course`;
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
     const jobHelpers = createJobHelpers(supabase);
@@ -464,6 +519,7 @@ Deno.serve(
       const outcome = await runGeneration({
         input: {
           ...input,
+          subject,
           title,
           gradeBand,
           format: 'practice',

@@ -36,8 +36,9 @@ serve(async (req: Request): Promise<Response> => {
     });
   }
   if (agentToken !== expectedToken) {
-    return new Response(JSON.stringify({ error: "Unauthorized" }), { 
-      status: 401, 
+    // IMPORTANT: avoid non-200 to prevent Lovable blank screens.
+    return new Response(JSON.stringify({ ok: false, error: { code: "unauthorized", message: "Unauthorized" }, httpStatus: 401 }), { 
+      status: 200, 
       headers: stdHeaders(req, { "Content-Type": "application/json" }) 
     });
   }

@@ -173,7 +173,10 @@ export function DawnDataProvider({ children }: { children: React.ReactNode }) {
     // Don't fetch if user is not authenticated
     if (!userId) {
       // Explicit state: avoid “silent empty” behavior
-      setState(s => ({ ...s, authRequired: true, error: "AUTH_REQUIRED" }));
+      setState((s) => {
+        if (s.authRequired && s.error === "AUTH_REQUIRED") return s;
+        return { ...s, authRequired: true, error: "AUTH_REQUIRED" };
+      });
       return [];
     }
     
@@ -198,12 +201,17 @@ export function DawnDataProvider({ children }: { children: React.ReactNode }) {
   const refresh = useCallback(async () => {
     // Don't fetch if auth is still loading or user is not authenticated
     if (authLoading || !userId) {
-      setState(s => ({
-        ...s,
-        loading: false,
-        authRequired: !userId && !authLoading,
-        error: !userId && !authLoading ? "AUTH_REQUIRED" : s.error,
-      }));
+      setState((s) => {
+        const authRequired = !userId && !authLoading;
+        const nextError = !userId && !authLoading ? "AUTH_REQUIRED" : s.error;
+        if (s.loading === false && s.authRequired === authRequired && s.error === nextError) return s;
+        return {
+          ...s,
+          loading: false,
+          authRequired,
+          error: nextError,
+        };
+      });
       return;
     }
     
@@ -301,7 +309,10 @@ export function DawnDataProvider({ children }: { children: React.ReactNode }) {
     // If user is not authenticated, don't fetch and just set loading to false
     if (!userId) {
       lastLoadedUserIdRef.current = null;
-      setState(s => ({ ...s, loading: false, authRequired: true, error: "AUTH_REQUIRED" }));
+      setState((s) => {
+        if (s.loading === false && s.authRequired && s.error === "AUTH_REQUIRED") return s;
+        return { ...s, loading: false, authRequired: true, error: "AUTH_REQUIRED" };
+      });
       return;
     }
 

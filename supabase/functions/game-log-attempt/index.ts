@@ -41,9 +41,11 @@ serve(async (req: Request): Promise<Response> => {
     auth = await authenticateRequest(req);
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unauthorized";
+    // IMPORTANT: avoid non-200 to prevent Lovable blank screens.
+    const httpStatus = message === "Missing organization_id" ? 400 : 401;
     return new Response(
-      JSON.stringify({ error: message }),
-      { status: message === "Missing organization_id" ? 400 : 401, headers: stdHeaders(req, { "Content-Type": "application/json" }) }
+      JSON.stringify({ ok: false, error: { code: "unauthorized", message }, httpStatus }),
+      { status: 200, headers: stdHeaders(req, { "Content-Type": "application/json" }) }
     );
   }
 
@@ -111,8 +113,12 @@ serve(async (req: Request): Promise<Response> => {
 
     const session = (round as any).game_sessions;
     if (session.user_id !== userId) {
-      return new Response(JSON.stringify({ error: "Unauthorized: Round does not belong to user" }), {
-        status: 403,
+      return new Response(JSON.stringify({
+        ok: false,
+        error: { code: "forbidden", message: "Unauthorized: Round does not belong to user" },
+        httpStatus: 403,
+      }), {
+        status: 200,
         headers: stdHeaders(req, { "Content-Type": "application/json" }),
       });
     }

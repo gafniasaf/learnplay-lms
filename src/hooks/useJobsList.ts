@@ -43,7 +43,7 @@ function isPageVisible(): boolean {
 }
 
 export function useJobsList(options?: UseJobsListOptions) {
-  const mcp = useMCP();
+  const { listCourseJobs } = useMCP();
   const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
@@ -77,7 +77,7 @@ export function useJobsList(options?: UseJobsListOptions) {
     },
     // fetchJobs is defined below; included via function hoisting in JS runtime.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [enabled, shouldPoll, clearTimer, pollInterval, status, limit, mcp]
+    [enabled, shouldPoll, clearTimer, pollInterval, status, limit]
   );
 
   const fetchJobs = useCallback(
@@ -92,7 +92,7 @@ export function useJobsList(options?: UseJobsListOptions) {
       try {
         if (showLoading) setLoading(true);
 
-        const response = await mcp.listCourseJobs({
+        const response = await listCourseJobs({
           status,
           limit,
         });
@@ -155,7 +155,7 @@ export function useJobsList(options?: UseJobsListOptions) {
         if (showLoading) setLoading(false);
       }
     },
-    [enabled, shouldPoll, status, limit, mcp, pollInterval, scheduleNext, clearTimer]
+    [enabled, shouldPoll, status, limit, listCourseJobs, pollInterval, scheduleNext, clearTimer]
   );
 
   useEffect(() => {

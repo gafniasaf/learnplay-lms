@@ -107,6 +107,19 @@ serve(async (req: Request): Promise<Response> => {
 
       if (!genResp.ok || genJson?.success === false) {
         const msg = genJson?.error?.message || genJson?.error || `generate-course failed (${genResp.status})`;
+        // Ensure job row is not left stuck in "processing"
+        try {
+          await admin
+            .from("ai_course_jobs")
+            .update({
+              status: "failed",
+              error: msg,
+              completed_at: new Date().toISOString(),
+            })
+            .eq("id", jobId);
+        } catch {
+          // best-effort
+        }
         try { await emitJobEvent(jobId, "failed", 100, msg, { ...ctx, status: genResp.status }); } catch {}
         return new Response(JSON.stringify({ ok: false, processed: true, jobId, status: "failed", error: msg }), {
           status: 200,
@@ -114,6 +127,22 @@ serve(async (req: Request): Promise<Response> => {
         });
       }
 
+      // Successful completion: mark job done and set a reasonable result_path
+      try {
+        const courseId = String(job.course_id || "");
+        const resultPath =
+          typeof genJson?.result_path === "string"
+            ? genJson.result_path
+            : (courseId ? `${courseId}/course.json` : null);
+        const update: Record<string, unknown> = {
+          status: "done",
+          completed_at: new Date().toISOString(),
+        };
+        if (resultPath) update.result_path = resultPath;
+        await admin.from("ai_course_jobs").update(update).eq("id", jobId);
+      } catch {
+        // best-effort
+      }
       try { await emitJobEvent(jobId, "done", 100, "Job complete", ctx); } catch {}
       return new Response(JSON.stringify({ ok: true, processed: true, jobId, status: "done" }), {
         status: 200,
@@ -121,6 +150,19 @@ serve(async (req: Request): Promise<Response> => {
       });
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
+      // Ensure job row is not left stuck in "processing"
+      try {
+        await admin
+          .from("ai_course_jobs")
+          .update({
+            status: "failed",
+            error: msg,
+            completed_at: new Date().toISOString(),
+          })
+          .eq("id", jobId);
+      } catch {
+        // best-effort
+      }
       try { await emitJobEvent(jobId, "failed", 100, msg, ctx); } catch {}
       return new Response(JSON.stringify({ ok: false, processed: true, jobId, status: "failed", error: msg }), {
         status: 200,

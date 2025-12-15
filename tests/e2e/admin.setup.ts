@@ -1,5 +1,7 @@
 import { test as setup, expect } from '@playwright/test';
 import { createClient } from '@supabase/supabase-js';
+import { loadLearnPlayEnv } from '../helpers/parse-learnplay-env';
+import { loadLocalEnvForTests } from '../helpers/load-local-env';
 
 /**
  * Setup: Authenticate as Admin
@@ -12,6 +14,10 @@ const authFile = 'playwright/.auth/admin.json';
 // Timeout constants for E2E tests
 const LOGIN_FORM_TIMEOUT_MS = 10000; // 10 seconds
 const LOGIN_REDIRECT_TIMEOUT_MS = 20000; // 20 seconds
+
+// Attempt to auto-resolve required env vars from local env files (learnplay.env), without printing secrets.
+loadLocalEnvForTests();
+loadLearnPlayEnv();
 
 /**
  * Validates that a required environment variable is set
@@ -46,6 +52,8 @@ setup('authenticate as admin', async ({ page }) => {
   await page.addInitScript(() => {
     try { window.localStorage.setItem('iz_dev_agent_disabled', '1'); } catch {}
     try { window.sessionStorage.setItem('iz_dev_agent_disabled', '1'); } catch {}
+    // Role is used by some admin pages as a guard (devOverrideRole).
+    try { window.localStorage.setItem('role', 'admin'); } catch {}
   });
 
   // Programmatic login (avoids UI flake / loading hangs on /auth).
@@ -69,7 +77,8 @@ setup('authenticate as admin', async ({ page }) => {
   await page.evaluate(
     ({ k, s }) => {
       try {
-        window.localStorage.setItem(k, JSON.stringify({ currentSession: s }));
+        // Supabase Auth (auth-js) stores the Session directly under storageKey.
+        window.localStorage.setItem(k, JSON.stringify(s));
       } catch {
         // ignore
       }

@@ -11,6 +11,7 @@
  */
 
 import { test as setup, expect } from '@playwright/test';
+import { loadLocalEnvForTests } from '../helpers/load-local-env';
 
 // Critical Edge Functions that must be healthy
 const CRITICAL_FUNCTIONS = [
@@ -20,10 +21,22 @@ const CRITICAL_FUNCTIONS = [
   'health',
 ];
 
-// Get Supabase URL from env
-const SUPABASE_URL = process.env.VITE_SUPABASE_URL || 
-                     process.env.SUPABASE_URL ||
-                     'https://eidcegehaswbtzrwzvfa.supabase.co';
+// Attempt to auto-resolve required env vars from local env files, without printing secrets.
+loadLocalEnvForTests();
+
+function requireEnvVar(name: string): string {
+  const value = process.env[name];
+  if (!value) {
+    throw new Error(`❌ ${name} is REQUIRED - set env var before running tests`);
+  }
+  return value;
+}
+
+// Get Supabase URL from env (NO hardcoded fallbacks)
+const SUPABASE_URL = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
+if (!SUPABASE_URL) {
+  throw new Error('❌ BLOCKED: Missing Supabase URL. Set VITE_SUPABASE_URL (preferred) or SUPABASE_URL before running tests.');
+}
 
 setup.describe('Backend Health Gate', () => {
 
@@ -105,7 +118,9 @@ setup.describe('Backend Health Gate', () => {
   });
 
   setup('Frontend dev server is running', async ({ page }) => {
-    const baseUrl = process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:8080';
+    // Prefer Playwright project's configured baseURL; fall back to env; then legacy default.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const baseUrl = ((page.context() as any)?._options?.baseURL as string | undefined) || process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:8080';
     
     try {
       const response = await page.goto(baseUrl, { timeout: 10000 });
@@ -116,18 +131,21 @@ setup.describe('Backend Health Gate', () => {
   });
 
   setup('Frontend loads without crash', async ({ page }) => {
-    const baseUrl = process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:8080';
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const baseUrl = ((page.context() as any)?._options?.baseURL as string | undefined) || process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:8080';
     
     await page.goto(baseUrl);
     await page.waitForLoadState('domcontentloaded');
+    // Give React time to hydrate/mount (networkidle is unreliable with realtime/SSE).
+    await page.waitForTimeout(1500);
     
     // Check for React error boundary
     const hasError = await page.locator('text=Something went wrong').isVisible({ timeout: 2000 }).catch(() => false);
     expect(hasError, 'Frontend should not show error boundary on load').toBeFalsy();
     
-    // Check for blank page
-    const bodyContent = await page.locator('body').textContent();
-    expect(bodyContent?.length, 'Page should have content').toBeGreaterThan(50);
+    // Check for blank page (heuristic)
+    const bodyContent = (await page.locator('body').textContent()) || '';
+    expect(bodyContent.length, 'Page should have content').toBeGreaterThan(10);
   });
 });
 

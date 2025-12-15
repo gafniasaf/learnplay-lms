@@ -129,8 +129,16 @@ export function withCors(
         // Check if it's an error object with _error and _status
         if ('_error' in result && '_status' in result) {
           const { _error, _status, ...body } = result as any;
-          return new Response(JSON.stringify(body), {
-            status: _status,
+          // IMPORTANT: Lovable preview can blank-screen on non-200 responses.
+          // We always return HTTP 200 with a structured failure payload.
+          // Callers should treat `ok:false` as a failure and use `httpStatus` for semantics.
+          const payload = {
+            ok: false,
+            httpStatus: _status,
+            ...body,
+          };
+          return new Response(JSON.stringify(payload), {
+            status: 200,
             headers: stdHeaders(req, {
               "Content-Type": "application/json",
               "X-Request-Id": reqId,

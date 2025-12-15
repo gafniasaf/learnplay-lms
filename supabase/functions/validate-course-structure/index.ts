@@ -1,5 +1,6 @@
 import { withCors } from "../_shared/cors.ts";
 import { rateLimit } from "../_shared/rateLimit.ts";
+import { Errors } from "../_shared/error.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
 const AGENT_TOKEN = Deno.env.get("AGENT_TOKEN");
@@ -15,22 +16,19 @@ Deno.serve(withCors(async (req: Request) => {
   const reqId = crypto.randomUUID();
   if (req.method === "OPTIONS") return new Response(null, { status: 204 });
   if (req.method !== "POST") {
-    return new Response(JSON.stringify({ error: "Method Not Allowed" }), {
-      status: 405,
-      headers: { "Content-Type": "application/json" },
-    });
+    return Errors.methodNotAllowed(req.method, reqId, req);
   }
   const rl = rateLimit(req); if (rl) return rl;
 
   try {
     const provided = req.headers.get("X-Agent-Token") || "";
     if (!provided || provided !== AGENT_TOKEN) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { "Content-Type": "application/json" } });
+      return Errors.invalidAuth(reqId, req);
     }
     const body = await req.json() as { courseId: string };
     const courseId = body?.courseId;
     if (!courseId) {
-      return new Response(JSON.stringify({ error: "Invalid courseId" }), { status: 400, headers: { "Content-Type": "application/json" } });
+      return Errors.invalidRequest("Invalid courseId", reqId, req);
     }
 
     // Load course from storage (public path acceptable)

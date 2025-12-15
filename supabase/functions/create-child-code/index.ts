@@ -40,8 +40,10 @@ serve(async (req: Request): Promise<Response> => {
     auth = await authenticateRequest(req);
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unauthorized";
-    return new Response(JSON.stringify({ error: message }), {
-      status: message === "Missing organization_id" ? 400 : 401,
+    // IMPORTANT: avoid non-200 to prevent Lovable blank screens.
+    const httpStatus = message === "Missing organization_id" ? 400 : 401;
+    return new Response(JSON.stringify({ ok: false, error: { code: "unauthorized", message }, httpStatus }), {
+      status: 200,
       headers: stdHeaders(req, { "Content-Type": "application/json" }),
     });
   }
@@ -72,8 +74,12 @@ serve(async (req: Request): Promise<Response> => {
     // Authorization: for now, only the student can generate their own code.
     // (Teacher tooling can be added later once org teacher roles are fully wired.)
     if (auth.type === "user" && auth.userId && auth.userId !== body.studentId) {
-      return new Response(JSON.stringify({ error: "Forbidden: can only generate code for your own student account" }), {
-        status: 403,
+      return new Response(JSON.stringify({
+        ok: false,
+        error: { code: "forbidden", message: "Forbidden: can only generate code for your own student account" },
+        httpStatus: 403,
+      }), {
+        status: 200,
         headers: stdHeaders(req, { "Content-Type": "application/json" }),
       });
     }

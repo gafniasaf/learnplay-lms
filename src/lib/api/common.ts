@@ -120,6 +120,41 @@ export class ApiError extends Error {
   }
 }
 
+function extractStructuredFailure(data: unknown):
+  | { code: string; message: string; httpStatus?: number; details?: unknown }
+  | null {
+  if (!data || typeof data !== "object") return null;
+  const d: any = data as any;
+
+  // Common edge shape: { ok:false, error:{ code, message }, httpStatus? }
+  if (d.ok === false) {
+    const err = d.error;
+    const code = typeof err?.code === "string" ? err.code : "error";
+    const message =
+      typeof err?.message === "string"
+        ? err.message
+        : typeof d.error === "string"
+          ? d.error
+          : "Request failed";
+    const httpStatus = typeof d.httpStatus === "number" ? d.httpStatus : undefined;
+    return { code, message, httpStatus, details: d };
+  }
+
+  // Some handlers use: { success:false, error:{ code, message } }
+  if (d.success === false) {
+    const err = d.error;
+    const code = typeof err?.code === "string" ? err.code : "error";
+    const message =
+      typeof err?.message === "string"
+        ? err.message
+        : "Request failed";
+    const httpStatus = typeof d.httpStatus === "number" ? d.httpStatus : undefined;
+    return { code, message, httpStatus, details: d };
+  }
+
+  return null;
+}
+
 /**
  * Check if mock mode is enabled (non-hook helper)
  *
@@ -153,17 +188,39 @@ export async function fetchWithTimeout(
   timeoutMs: number = 30000
 ): Promise<Response> {
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+  // In some preview/iframe environments AbortController may not reliably abort
+  // an in-flight fetch. We therefore ALSO race the fetch against a timer that
+  // rejects regardless, and attempt abort as best-effort.
+  let timeoutId: ReturnType<typeof setTimeout> | null = null;
+
+  const timeoutPromise = new Promise<Response>((_, reject) => {
+    timeoutId = setTimeout(() => {
+      try {
+        controller.abort();
+      } catch {
+        // ignore
+      }
+      reject(
+        new ApiError(
+          "Request timeout",
+          "TIMEOUT",
+          408,
+          { url, timeoutMs }
+        )
+      );
+    }, timeoutMs);
+  });
 
   try {
-    const response = await fetch(url, {
+    const fetchPromise = fetch(url, {
       ...options,
       signal: controller.signal,
     });
-    clearTimeout(timeoutId);
-    return response;
+
+    // Whichever completes first (fetch or timeout) wins.
+    return await Promise.race([fetchPromise, timeoutPromise]);
   } catch (error) {
-    clearTimeout(timeoutId);
+    // If abort propagates as AbortError, normalize to our ApiError.
     if (error instanceof Error && error.name === "AbortError") {
       throw new ApiError(
         "Request timeout",
@@ -173,6 +230,8 @@ export async function fetchWithTimeout(
       );
     }
     throw error;
+  } finally {
+    if (timeoutId) clearTimeout(timeoutId);
   }
 }
 
@@ -512,7 +571,22 @@ export async function callEdgeFunction<TRequest, TResponse>(
     );
   }
 
-  return res.json() as Promise<TResponse>;
+  const data = await res.json().catch(() => null) as any;
+  const failure = extractStructuredFailure(data);
+  // Some endpoints intentionally return ok:false for transient network blips; callers handle this.
+  if (failure?.code === "transient_network") {
+    return data as TResponse;
+  }
+  if (failure) {
+    throw new ApiError(
+      failure.message,
+      failure.code,
+      failure.httpStatus ?? 400,
+      failure.details,
+      data?.requestId
+    );
+  }
+  return data as TResponse;
 }
 
 /**
@@ -622,7 +696,19 @@ async function callEdgeFunctionWithAgentToken<TRequest, TResponse>(
     );
   }
 
-  const data = await res.json();
+  const data = await res.json().catch(() => null) as any;
+  const failure = extractStructuredFailure(data);
+  if (failure?.code === "transient_network") {
+    return data as TResponse;
+  }
+  if (failure) {
+    throw new ApiError(
+      failure.message,
+      failure.code,
+      failure.httpStatus ?? 400,
+      failure.details
+    );
+  }
   if (isEdgeAuthDebugEnabled()) {
     console.debug(`[callEdgeFunctionWithAgentToken:${functionName}] ✅ Success`);
   }
@@ -820,5 +906,159 @@ export async function callEdgeFunctionGet<TResponse>(
     );
   }
 
-  return res.json() as Promise<TResponse>;
+  const data = await res.json().catch(() => null) as any;
+  const failure = extractStructuredFailure(data);
+  if (failure?.code === "transient_network") {
+    return data as TResponse;
+  }
+  if (failure) {
+    throw new ApiError(
+      failure.message,
+      failure.code,
+      failure.httpStatus ?? 400,
+      failure.details,
+      data?.requestId
+    );
+  }
+  return data as TResponse;
+}
+
+/**
+ * Call an edge function with GET method and return the raw Response.
+ *
+ * This is used when callers need access to headers/status (e.g. ETag/304 handling)
+ * but still want consistent auth/dev-agent headers and transient retry behavior.
+ */
+export async function callEdgeFunctionGetRaw(
+  functionName: string,
+  params?: Record<string, string>,
+  options: { timeoutMs?: number; maxRetries?: number } = {}
+): Promise<Response> {
+  const { getAccessToken } = await import("../supabase");
+  const { supabase } = await import("@/integrations/supabase/client");
+  const supabaseUrl = getSupabaseUrl();
+  const anonKey = getSupabaseAnonKey();
+  const { timeoutMs = 30000, maxRetries = 1 } = options;
+  const devAgentMode = shouldUseAgentTokenAuth();
+
+  const queryString = params ? `?${new URLSearchParams(params).toString()}` : "";
+  const url = `${supabaseUrl}/functions/v1/${functionName}${queryString}`;
+
+  const token = devAgentMode ? null : await getAccessToken();
+
+  const headers: Record<string, string> = {
+    Authorization: token ? `Bearer ${token}` : `Bearer ${anonKey}`,
+    apikey: anonKey,
+  };
+
+  if (devAgentMode) {
+    headers["x-agent-token"] = getDevAgentToken();
+    headers["x-organization-id"] = getDevOrgId();
+    // In devMode, x-user-id MUST be available (some endpoints require it).
+    // Prefer explicit dev identity (URL/sessionStorage/localStorage/env) over Supabase session user.
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const explicit = getStorageValue("iz_dev_user_id") || (import.meta.env.VITE_DEV_USER_ID as string | undefined);
+      headers["x-user-id"] = explicit || session?.user?.id || getDevUserId();
+    } catch {
+      const explicit = getStorageValue("iz_dev_user_id") || (import.meta.env.VITE_DEV_USER_ID as string | undefined);
+      headers["x-user-id"] = explicit || getDevUserId();
+    }
+  }
+
+  const isLikelyCorsError = (msg: string) => msg.includes("cors") || msg.includes("blocked");
+  const isLikelyNetworkError = (err: unknown): boolean => {
+    const msg = err instanceof Error ? err.message.toLowerCase() : String(err).toLowerCase();
+    return (
+      msg.includes("failed to fetch") ||
+      msg.includes("network") ||
+      msg.includes("connection lost") ||
+      msg.includes("connection reset") ||
+      msg.includes("insufficient_resources") ||
+      (err instanceof TypeError && msg.includes("fetch"))
+    );
+  };
+
+  const isRetryableStatus = (status: number, bodyText?: string): boolean => {
+    if (status === 502 || status === 503 || status === 504) return true;
+    if (status === 500 && bodyText) {
+      const t = bodyText.toLowerCase();
+      return t.includes("network connection lost") || t.includes("connection lost") || t.includes("connection reset");
+    }
+    return false;
+  };
+
+  let res: Response | null = null;
+  let lastErr: unknown = null;
+
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      res = await fetchWithTimeout(
+        url,
+        {
+          method: "GET",
+          headers,
+        },
+        timeoutMs
+      );
+
+      if (!res.ok && attempt < maxRetries) {
+        const bodyText = await res.clone().text();
+        if (isRetryableStatus(res.status, bodyText)) {
+          const backoffMs = 250 * Math.pow(2, attempt);
+          console.warn(
+            `[callEdgeFunctionGetRaw:${functionName}] transient error ${res.status} (attempt ${attempt + 1}/${maxRetries + 1}), retrying in ${backoffMs}ms`
+          );
+          await new Promise((r) => setTimeout(r, backoffMs));
+          continue;
+        }
+      }
+
+      break;
+    } catch (fetchError) {
+      lastErr = fetchError;
+      const msg = fetchError instanceof Error ? fetchError.message.toLowerCase() : String(fetchError).toLowerCase();
+
+      if (attempt < maxRetries && isLikelyNetworkError(fetchError)) {
+        const backoffMs = 250 * Math.pow(2, attempt);
+        console.warn(
+          `[callEdgeFunctionGetRaw:${functionName}] transient network error (attempt ${attempt + 1}/${maxRetries + 1}), retrying in ${backoffMs}ms`,
+          fetchError
+        );
+        await new Promise((r) => setTimeout(r, backoffMs));
+        continue;
+      }
+
+      if (isLikelyCorsError(msg)) {
+        throw new ApiError(
+          `CORS error: Edge function ${functionName} is not accessible from this origin. This may be expected in preview environments.`,
+          "CORS_ERROR",
+          0,
+          { functionName, url }
+        );
+      }
+
+      if (isLikelyNetworkError(fetchError)) {
+        throw new ApiError(
+          `Network error calling Edge function ${functionName}: ${fetchError instanceof Error ? fetchError.message : String(fetchError)}`,
+          "NETWORK_ERROR",
+          0,
+          { functionName, url }
+        );
+      }
+
+      throw fetchError;
+    }
+  }
+
+  if (!res) {
+    throw new ApiError(
+      `Network error calling Edge function ${functionName}: ${lastErr instanceof Error ? lastErr.message : String(lastErr)}`,
+      "NETWORK_ERROR",
+      0,
+      { functionName, url }
+    );
+  }
+
+  return res;
 }
