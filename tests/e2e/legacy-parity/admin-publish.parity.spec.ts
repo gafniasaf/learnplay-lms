@@ -82,10 +82,9 @@ test.describe('legacy parity: admin publish flow', () => {
     await installPromptStub(page, `E2E publish parity ${new Date().toISOString()}`);
     await publishBtn.click();
 
-    // Success can be either a toast or a redirect back to course selector.
-    await expect(
-      page.getByText(/Course published/i).or(page.getByText(/Publishing course/i)).or(page.locator('text=/admin/courses/select/'))
-    ).toBeVisible({ timeout: 60_000 });
+    // Success: the app navigates back to course selector after a successful publish.
+    // (We intentionally assert on navigation, not toast text, since toasts can be transient.)
+    await page.waitForURL(/\/admin\/courses\/select/, { timeout: 60_000 });
 
     // Cleanup: delete the test course so we don't pollute real DB/storage.
     if (shouldCleanup) {
