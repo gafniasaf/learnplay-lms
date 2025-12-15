@@ -23,6 +23,7 @@ Deno.serve(withCors(async (req: Request) => {
   try {
     const body = await req.json() as { courseId: string; apply?: boolean; axes?: string[]; jobId?: string };
     const { courseId, apply = false, axes = ['difficulty'], jobId } = body || {} as any;
+    const effectiveJobId = (typeof jobId === "string" && jobId.trim()) ? jobId.trim() : "__editor_variants_missing__";
     if (!courseId || typeof courseId !== 'string') {
       return Errors.invalidRequest("Invalid courseId", reqId, req) as any;
     }
@@ -31,7 +32,7 @@ Deno.serve(withCors(async (req: Request) => {
     const genRes = await fetch(`${SUPABASE_URL}/functions/v1/generate-variants-missing`, {
       method: 'POST',
       headers: { 'X-Agent-Token': AGENT_TOKEN, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ courseId, axes, jobId }),
+      body: JSON.stringify({ courseId, axes, jobId: effectiveJobId }),
     });
     const genJson = await genRes.json().catch(() => ({}));
     if (!genRes.ok) return Errors.internal(`variants-missing failed (${genRes.status}): ${genJson?.error || ''}`, reqId, req) as any;
@@ -41,7 +42,7 @@ Deno.serve(withCors(async (req: Request) => {
     const applyRes = await fetch(`${SUPABASE_URL}/functions/v1/apply-job-result`, {
       method: 'POST',
       headers: { 'X-Agent-Token': AGENT_TOKEN, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ jobId, courseId, mergePlan, description: 'Editor Variants Generate Missing', dryRun: !apply }),
+      body: JSON.stringify({ jobId: effectiveJobId, courseId, mergePlan, description: 'Editor Variants Generate Missing', dryRun: !apply }),
     });
     const applyJson = await applyRes.json().catch(() => ({}));
     if (!applyRes.ok) return Errors.internal(`apply-job-result failed (${applyRes.status}): ${applyJson?.error || ''}`, reqId, req) as any;

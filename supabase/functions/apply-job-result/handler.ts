@@ -138,7 +138,18 @@ export async function handleRequest(req: Request): Promise<Response> {
       if (downloadError || !fileData) {
         return new Response(JSON.stringify({ error: 'Course not found' }), { status: 404, headers: { 'Content-Type': 'application/json' } });
       }
-      const currentCourse = JSON.parse(await fileData.text());
+      const rawStored = JSON.parse(await fileData.text());
+
+      // Support Dawn-style envelope storage: { id, format, version, content }
+      const isEnvelope =
+        rawStored &&
+        typeof rawStored === "object" &&
+        "content" in rawStored &&
+        "format" in rawStored;
+
+      const storedEnvelope = isEnvelope ? (rawStored as any) : null;
+      const currentCourse = storedEnvelope ? storedEnvelope.content : rawStored;
+      const storedFormat = storedEnvelope ? String(storedEnvelope.format || "practice") : "practice";
 
       // Compute merged course
       let nextCourse = structuredClone(currentCourse);
@@ -171,7 +182,7 @@ export async function handleRequest(req: Request): Promise<Response> {
         }
       }
 
-      const formatForMerge = String((nextCourse as any)?.format || 'practice');
+      const formatForMerge = storedFormat;
 
       if (mergePlan?.patch && Array.isArray(mergePlan.patch)) {
         const policy = checkMergePolicy(formatForMerge, mergePlan.patch);
@@ -201,11 +212,10 @@ export async function handleRequest(req: Request): Promise<Response> {
             headers: { 'Content-Type': 'application/json' },
           });
         }
-        // Best-effort: if original course had an envelope wrapper we can't see; validate content by format if available
-        if (nextCourse && typeof nextCourse === 'object') {
-          const format = (nextCourse as any).format || 'practice';
-          const envelopeCandidate = { id: (nextCourse as any).id || courseId, format, content: nextCourse };
-          const envRes = validateEnvelopeContent?.(envelopeCandidate);
+        // Validate content by format (envelope-level) when available.
+        if (validateEnvelopeContent && nextCourse && typeof nextCourse === 'object') {
+          const envelopeCandidate = { id: (nextCourse as any).id || courseId, format: formatForMerge, content: nextCourse };
+          const envRes = validateEnvelopeContent(envelopeCandidate);
           if (envRes && !envRes.ok) {
             return new Response(JSON.stringify({ error: 'format_validation_failed', details: envRes.error }), {
               status: 422,
@@ -236,6 +246,10 @@ export async function handleRequest(req: Request): Promise<Response> {
         });
       }
 
+      const persistDoc = storedEnvelope
+        ? { ...storedEnvelope, format: storedFormat, content: nextCourse }
+        : nextCourse;
+
       // Version & save
       const timestamp = Date.now();
       const versionPath = `${courseId}/versions/${timestamp}.json`;
@@ -243,7 +257,7 @@ export async function handleRequest(req: Request): Promise<Response> {
 
       const { error: versionError } = await supabase.storage
         .from('courses')
-        .upload(versionPath, JSON.stringify(nextCourse, null, 2), {
+        .upload(versionPath, JSON.stringify(persistDoc, null, 2), {
           contentType: 'application/json',
           upsert: false,
         });
@@ -253,7 +267,7 @@ export async function handleRequest(req: Request): Promise<Response> {
 
       const { error: updateError } = await supabase.storage
         .from('courses')
-        .upload(`${courseId}/course.json`, JSON.stringify(nextCourse, null, 2), {
+        .upload(`${courseId}/course.json`, JSON.stringify(persistDoc, null, 2), {
           contentType: 'application/json',
           upsert: true,
         });

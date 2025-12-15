@@ -25,6 +25,7 @@ Deno.serve(withCors(async (req: Request) => {
   try {
     const body = await req.json() as { courseId: string; apply?: boolean; jobId?: string };
     const { courseId, apply = false, jobId } = body || {} as any;
+    const effectiveJobId = (typeof jobId === "string" && jobId.trim()) ? jobId.trim() : "__editor_autofix__";
     if (!courseId || typeof courseId !== 'string') {
       return Errors.invalidRequest("Invalid courseId", reqId, req) as any;
     }
@@ -33,7 +34,7 @@ Deno.serve(withCors(async (req: Request) => {
     const repRes = await fetch(`${SUPABASE_URL}/functions/v1/generate-repair`, {
       method: 'POST',
       headers: { 'X-Agent-Token': AGENT_TOKEN, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ courseId, jobId }),
+      body: JSON.stringify({ courseId, jobId: effectiveJobId }),
     });
     const repJson = await repRes.json().catch(() => ({}));
     if (!repRes.ok) return Errors.internal(`generate-repair failed (${repRes.status}): ${repJson?.error || ''}`, reqId, req) as any;
@@ -42,7 +43,7 @@ Deno.serve(withCors(async (req: Request) => {
     const audRes = await fetch(`${SUPABASE_URL}/functions/v1/generate-variants-audit`, {
       method: 'POST',
       headers: { 'X-Agent-Token': AGENT_TOKEN, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ courseId, jobId }),
+      body: JSON.stringify({ courseId, jobId: effectiveJobId }),
     });
     const audJson = await audRes.json().catch(() => ({}));
     if (!audRes.ok) return Errors.internal(`variants-audit failed (${audRes.status}): ${audJson?.error || ''}`, reqId, req) as any;
@@ -51,7 +52,7 @@ Deno.serve(withCors(async (req: Request) => {
     const misRes = await fetch(`${SUPABASE_URL}/functions/v1/generate-variants-missing`, {
       method: 'POST',
       headers: { 'X-Agent-Token': AGENT_TOKEN, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ courseId, jobId }),
+      body: JSON.stringify({ courseId, jobId: effectiveJobId }),
     });
     const misJson = await misRes.json().catch(() => ({}));
     if (!misRes.ok) return Errors.internal(`variants-missing failed (${misRes.status}): ${misJson?.error || ''}`, reqId, req) as any;
@@ -65,7 +66,7 @@ Deno.serve(withCors(async (req: Request) => {
     const applyRes = await fetch(`${SUPABASE_URL}/functions/v1/apply-job-result`, {
       method: 'POST',
       headers: { 'X-Agent-Token': AGENT_TOKEN, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ jobId, courseId, mergePlan: combined, description: 'Editor Auto-Fix', dryRun: !apply }),
+      body: JSON.stringify({ jobId: effectiveJobId, courseId, mergePlan: combined, description: 'Editor Auto-Fix', dryRun: !apply }),
     });
     const applyJson = await applyRes.json().catch(() => ({}));
     if (!applyRes.ok) return Errors.internal(`apply-job-result failed (${applyRes.status}): ${applyJson?.error || ''}`, reqId, req) as any;
