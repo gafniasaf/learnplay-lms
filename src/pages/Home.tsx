@@ -37,10 +37,10 @@ const Home = () => {
   return (
     <PageContainer>
       <div className="max-w-4xl mx-auto text-center mb-16">
-        <h1 className="text-4xl md:text-5xl font-bold mb-4">
+        <h1 className="text-4xl md:text-5xl font-bold mb-4 text-foreground">
           Welcome to LearnPlay
         </h1>
-        <p className="text-xl text-muted-foreground">
+        <p className="text-xl text-foreground/70">
           Choose your portal to get started
         </p>
       </div>
@@ -75,8 +75,8 @@ const Home = () => {
                 />
               </div>
               
-              <h2 className="text-2xl font-bold mb-2">{label}</h2>
-              <p className="text-muted-foreground">{description}</p>
+              <h2 className="text-2xl font-bold mb-2 text-foreground">{label}</h2>
+              <p className="text-foreground/70">{description}</p>
             </div>
           </Link>
         ))}

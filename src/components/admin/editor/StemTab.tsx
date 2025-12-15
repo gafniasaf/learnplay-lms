@@ -74,11 +74,11 @@ export const StemTab = ({ item, onChange, onAIRewrite, onOpenAIChat, onAddMedia,
   return (
     <div className="space-y-6">
       {/* Stem Text Section */}
-      <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
-        <div className="flex items-center justify-between px-6 py-4 bg-gradient-to-r from-gray-50 to-white border-b border-gray-200">
+      <div className="bg-background border border-border rounded-xl shadow-sm overflow-hidden">
+        <div className="flex items-center justify-between px-6 py-4 bg-muted border-b border-border">
           <div>
-            <h3 className="text-sm font-semibold text-gray-900">Question Text</h3>
-            <p className="text-xs text-gray-700 mt-0.5">Write the question or instruction in HTML format</p>
+            <h3 className="text-sm font-semibold text-foreground">Question Text</h3>
+            <p className="text-xs text-foreground/70 mt-0.5">Write the question or instruction in HTML format</p>
           </div>
           <div className="flex gap-2">
             <Button
@@ -102,11 +102,11 @@ export const StemTab = ({ item, onChange, onAIRewrite, onOpenAIChat, onAddMedia,
             <Textarea
               value={stemText}
               onChange={handleTextChange}
-              className="min-h-[140px] font-mono text-sm leading-relaxed resize-y border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+              className="min-h-[140px] font-mono text-sm leading-relaxed resize-y"
               placeholder="<p>Enter the question or instruction...</p>"
             />
           ) : (
-            <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 min-h-[140px] bg-gradient-to-br from-gray-50 to-white">
+            <div className="border-2 border-dashed border-border rounded-lg p-6 min-h-[140px] bg-muted/50">
               <div
                 className="prose prose-sm max-w-none"
                 dangerouslySetInnerHTML={{ __html: sanitizedHtml }}
@@ -114,7 +114,7 @@ export const StemTab = ({ item, onChange, onAIRewrite, onOpenAIChat, onAddMedia,
             </div>
           )}
           
-          <div className="flex items-center gap-2 mt-3 text-xs text-gray-700">
+          <div className="flex items-center gap-2 mt-3 text-xs text-foreground/70">
             <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
             </svg>
@@ -124,11 +124,11 @@ export const StemTab = ({ item, onChange, onAIRewrite, onOpenAIChat, onAddMedia,
       </div>
 
       {/* Media Section */}
-      <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
-        <div className="flex items-center justify-between px-6 py-4 bg-gradient-to-r from-gray-50 to-white border-b border-gray-200">
+      <div className="bg-background border border-border rounded-xl shadow-sm overflow-hidden">
+        <div className="flex items-center justify-between px-6 py-4 bg-muted border-b border-border">
           <div>
-            <h3 className="text-sm font-semibold text-gray-900">Media Assets</h3>
-            <p className="text-xs text-gray-700 mt-0.5">Add images, audio, or video to enrich the question</p>
+            <h3 className="text-sm font-semibold text-foreground">Media Assets</h3>
+            <p className="text-xs text-foreground/70 mt-0.5">Add images, audio, or video to enrich the question</p>
           </div>
           <div className="flex gap-2">
             <Button variant="outline" size="sm" onClick={onAddMedia} className="shadow-sm">
@@ -215,9 +215,9 @@ export const StemTab = ({ item, onChange, onAIRewrite, onOpenAIChat, onAddMedia,
             {media.map((mediaItem: any) => (
               <div
                 key={mediaItem.id}
-                className="group bg-white border-2 border-gray-200 rounded-xl overflow-hidden hover:border-blue-400 hover:shadow-lg transition-all duration-200"
+                className="group bg-background border-2 border-border rounded-xl overflow-hidden hover:border-primary hover:shadow-lg transition-all duration-200"
               >
-                <div className="aspect-video bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center relative overflow-hidden">
+                <div className="aspect-video bg-muted flex items-center justify-center relative overflow-hidden">
                   {mediaItem.type === 'image' && mediaItem.url && (
                     <img
                       src={mediaItem.url}
@@ -228,21 +228,21 @@ export const StemTab = ({ item, onChange, onAIRewrite, onOpenAIChat, onAddMedia,
                   {mediaItem.type === 'audio' && (
                     <div className="flex flex-col items-center">
                       <div className="text-4xl mb-2">🔊</div>
-                      <div className="text-xs text-gray-600 font-medium">Audio File</div>
+                      <div className="text-xs text-foreground/70 font-medium">Audio File</div>
                     </div>
                   )}
                   {mediaItem.type === 'video' && (
                     <div className="flex flex-col items-center">
                       <div className="text-4xl mb-2">🎥</div>
-                      <div className="text-xs text-gray-600 font-medium">Video File</div>
+                      <div className="text-xs text-foreground/70 font-medium">Video File</div>
                     </div>
                   )}
-                  <div className="absolute top-2 right-2 bg-black/70 text-white text-xs px-2 py-0.5 rounded-full">
+                  <div className="absolute top-2 right-2 bg-foreground/70 text-background text-xs px-2 py-0.5 rounded-full">
                     {mediaItem.type}
                   </div>
                 </div>
-                <div className="p-3 bg-white border-t border-gray-200">
-                  <div className="text-xs text-gray-700 font-medium mb-2 truncate" title={mediaItem.alt || mediaItem.url?.split('/').pop() || 'Media'}>
+                <div className="p-3 bg-background border-t border-border">
+                  <div className="text-xs text-foreground/70 font-medium mb-2 truncate" title={mediaItem.alt || mediaItem.url?.split('/').pop() || 'Media'}>
                     {mediaItem.alt || mediaItem.url?.split('/').pop() || 'Media'}
                   </div>
                   <div className="flex gap-1">

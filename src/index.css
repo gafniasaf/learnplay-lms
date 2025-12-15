@@ -24,7 +24,7 @@ All colors MUST be HSL.
     --secondary-foreground: 0 0% 0%; /* Black text */
 
     --muted: 220 15% 96%;
-    --muted-foreground: 0 0% 30%; /* Dark gray instead of light gray */
+    --muted-foreground: 0 0% 20%; /* Very dark gray - high contrast */
 
     --accent: 340 80% 55%;
     --accent-foreground: 0 0% 100%;
@@ -80,7 +80,7 @@ All colors MUST be HSL.
     --secondary-foreground: 0 0% 0%; /* Black text */
 
     --muted: 220 15% 96%;
-    --muted-foreground: 0 0% 30%; /* Dark gray */
+    --muted-foreground: 0 0% 20%; /* Very dark gray - high contrast */
 
     --accent: 340 80% 55%;
     --accent-foreground: 0 0% 100%;
