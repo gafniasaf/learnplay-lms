@@ -148,16 +148,19 @@ const StudyText = z.object({
 
 const Item = z.object({
   id: idNum,
-  text: z.string().min(1).max(400),
+  // NOTE: Items can be HTML (editor supports rich text) and can exceed 400 chars.
+  // Keep a reasonable upper bound to avoid runaway payloads, but don't block real content.
+  text: z.string().min(1).max(2000),
   groupId: idNum,
   clusterId: z.string().min(1).max(64),
   variant: z.enum(["1","2","3"]),
   mode: z.enum(["options", "numeric"]),
-  options: z.array(z.string().min(1).max(40)).optional(),
+  // Options can be short phrases/sentences; 40 chars was too strict for real content.
+  options: z.array(z.string().min(1).max(200)).optional(),
   correctIndex: z.number().int().nonnegative().optional(),
   answer: z.number().optional(),
   hint: z.string().max(200).optional(),
-  explain: z.string().max(200).optional(),
+  explain: z.string().max(1000).optional(),
   wrongExplanations: z.array(z.string()).optional(),
   relatedStudyTextIds: z.array(z.string()).optional(),
   learningObjectiveId: z.string().optional(),
