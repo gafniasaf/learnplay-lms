@@ -1118,7 +1118,8 @@ const result = await mcp.rewriteText({
               <>💾 Save Draft</>
             )}
           </Button>
-          <Button onClick={handlePublish} disabled={!hasUnsavedChanges || saving} data-testid="btn-publish">
+          {/* Publish should only be possible when everything is saved (no unsaved changes). */}
+          <Button onClick={handlePublish} disabled={hasUnsavedChanges || saving} data-testid="btn-publish">
             🚀 Publish
           </Button>
           {/* Self-heal / Variants Automation */}
