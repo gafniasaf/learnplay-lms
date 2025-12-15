@@ -38,6 +38,21 @@ Deno.serve(withCors(async (req: Request) => {
     if (!genRes.ok) return Errors.internal(`variants-audit failed (${genRes.status}): ${genJson?.error || ''}`, reqId, req) as any;
     const mergePlan = genJson?.mergePlan || { patch: [] };
 
+    // Audit is a no-op by design. If there's nothing to apply, don't call apply-job-result.
+    const patch = Array.isArray((mergePlan as any)?.patch) ? (mergePlan as any).patch : [];
+    if (patch.length === 0) {
+      return new Response(JSON.stringify({
+        ok: true,
+        courseId,
+        preview: { diff: [], patchApplied: 0, attachmentsApplied: 0 },
+        applied: apply === true,
+        report: genJson?.report,
+      }), {
+        status: 200,
+        headers: { "Content-Type": "application/json", "X-Request-Id": reqId },
+      });
+    }
+
     // 2) apply-job-result (dryRun or persist)
     const applyRes = await fetch(`${SUPABASE_URL}/functions/v1/apply-job-result`, {
       method: 'POST',
