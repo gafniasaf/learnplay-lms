@@ -5,10 +5,54 @@ test.describe('legacy parity: admin publish flow', () => {
   test.use({ storageState: 'playwright/.auth/admin.json' });
 
   test('publish is possible after saving draft (no contradictory gating)', async ({ page }) => {
-    test.skip(!process.env.E2E_ALLOW_PUBLISH_MUTATION, 'Set E2E_ALLOW_PUBLISH_MUTATION=1 to run (publishing mutates real DB).');
-    const courseId = process.env.E2E_PUBLISH_COURSE_ID;
-    if (!courseId) {
-      throw new Error('❌ E2E_PUBLISH_COURSE_ID is REQUIRED when E2E_ALLOW_PUBLISH_MUTATION=1');
+    const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
+    if (!supabaseUrl) throw new Error('❌ VITE_SUPABASE_URL is REQUIRED for publish parity');
+
+    const agentToken = process.env.AGENT_TOKEN;
+    if (!agentToken) throw new Error('❌ AGENT_TOKEN is REQUIRED for publish parity (used to provision/cleanup fixtures)');
+
+    const providedCourseId = process.env.E2E_PUBLISH_COURSE_ID;
+    const courseId = providedCourseId || `e2e-publish-${Date.now()}`;
+    const shouldCleanup = !providedCourseId;
+
+    // Provision a minimal, playable course fixture if none is provided.
+    // This DOES write to real storage + metadata, and then the test cleans it up at the end.
+    if (shouldCleanup) {
+      const seed = {
+        id: courseId,
+        title: `E2E Publish Parity ${courseId}`,
+        visibility: 'org',
+        contentVersion: '1',
+        groups: [{ id: 0, name: 'Group 1' }],
+        levels: [{ id: 1, title: 'Level 1', start: 0, end: 0 }],
+        items: [
+          {
+            id: 1,
+            groupId: 0,
+            clusterId: `${courseId}-cluster-1`,
+            variant: '1',
+            mode: 'options',
+            text: 'Choose _.',
+            options: ['A', 'B', 'C'],
+            correctIndex: 0,
+            explain: 'Because A is correct.',
+          },
+        ],
+        studyTexts: [],
+      };
+
+      const seedResp = await page.request.post(`${supabaseUrl}/functions/v1/save-course`, {
+        headers: { 'X-Agent-Token': agentToken, 'Content-Type': 'application/json' },
+        data: { id: courseId, format: 'practice', version: 1, content: seed },
+      });
+      if (seedResp.status() !== 200) {
+        const body = await seedResp.text().catch(() => '');
+        throw new Error(`BLOCKED: failed to provision publish fixture via save-course (${seedResp.status()}). Body: ${body.slice(0, 400)}`);
+      }
+      const seedJson = await seedResp.json().catch(() => null);
+      if (!seedJson || (seedJson as any).ok !== true) {
+        throw new Error(`BLOCKED: save-course returned ok=false. Body: ${JSON.stringify(seedJson).slice(0, 500)}`);
+      }
     }
 
     await gotoStable(page, `/admin/editor/${courseId}`);
@@ -42,6 +86,36 @@ test.describe('legacy parity: admin publish flow', () => {
     await expect(
       page.getByText(/Course published/i).or(page.getByText(/Publishing course/i)).or(page.locator('text=/admin/courses/select/'))
     ).toBeVisible({ timeout: 60_000 });
+
+    // Cleanup: delete the test course so we don't pollute real DB/storage.
+    if (shouldCleanup) {
+      const ok = await page.evaluate(async ({ supabaseUrl, courseId }) => {
+        try {
+          const projectRef = new URL(supabaseUrl).hostname.split('.')[0];
+          const storageKey = `sb-${projectRef}-auth-token`;
+          const raw = window.localStorage.getItem(storageKey);
+          if (!raw) return { ok: false, error: 'missing_admin_session' };
+          const session = JSON.parse(raw);
+          const token = session?.access_token;
+          if (!token) return { ok: false, error: 'missing_access_token' };
+
+          const resp = await fetch(`${supabaseUrl}/functions/v1/delete-course`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+            body: JSON.stringify({ courseId, confirm: courseId }),
+          });
+          const text = await resp.text().catch(() => '');
+          if (!resp.ok) return { ok: false, error: `delete-course ${resp.status}: ${text.slice(0, 300)}` };
+          return { ok: true };
+        } catch (e: any) {
+          return { ok: false, error: String(e?.message || e) };
+        }
+      }, { supabaseUrl, courseId });
+
+      if (!ok || (ok as any).ok !== true) {
+        throw new Error(`BLOCKED: cleanup failed for ${courseId}: ${JSON.stringify(ok).slice(0, 400)}`);
+      }
+    }
   });
 });
 
