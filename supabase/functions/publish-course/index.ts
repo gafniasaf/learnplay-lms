@@ -158,22 +158,51 @@ const handler = async (req: Request) => {
     return Errors.internal('Failed to update course metadata', requestId, req);
   }
 
-  // Create course_versions snapshot
+  // Create course_versions snapshot (hybrid storage):
+  // - course snapshot JSON stored in Storage
+  // - relational row stores version + storage_path + metadata snapshot
+  const versionPath = `${courseId}/versions/${newContentVersion}.json`;
+  try {
+    const { error: verUploadErr } = await supabase.storage
+      .from('courses')
+      .upload(
+        versionPath,
+        new Blob([JSON.stringify(courseJSON, null, 2)], { type: 'application/json' }),
+        { contentType: 'application/json', upsert: false }
+      );
+    if (verUploadErr) {
+      console.error('Error uploading course version snapshot:', verUploadErr);
+      return Errors.internal(`Failed to upload version snapshot: ${verUploadErr.message}`, requestId, req);
+    }
+  } catch (e) {
+    console.error('Error uploading course version snapshot:', e);
+    return Errors.internal('Failed to upload version snapshot', requestId, req);
+  }
+
   const { data: versionData, error: versionError } = await supabase
     .from('course_versions')
     .insert({
       course_id: courseId,
-      snapshot: courseJSON,
+      version: newContentVersion,
+      storage_path: versionPath,
       published_by: user.id,
-      changelog: changelog || `Published version ${newContentVersion}`,
-      etag: newEtag
+      change_summary: changelog || `Published version ${newContentVersion}`,
+      metadata_snapshot: {
+        course_id: courseId,
+        organization_id: metadata.organization_id,
+        visibility: metadata.visibility,
+        tag_ids: metadata.tag_ids ?? [],
+        tags: metadata.tags ?? {},
+        content_version: newContentVersion,
+        etag: newEtag,
+      },
     })
     .select('id, version')
     .single();
 
   if (versionError) {
     console.error('Error creating course version:', versionError);
-    return Errors.internal('Failed to create version snapshot', requestId, req);
+    return Errors.internal(`Failed to create version snapshot: ${versionError.message}`, requestId, req);
   }
 
   // Emit realtime event for clients to refresh course content/caches
