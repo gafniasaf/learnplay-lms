@@ -52,19 +52,19 @@ export const AIRewriteChatPanel: React.FC<AIRewriteChatPanelProps> = ({ open, on
     return (
       <div className="space-y-3 text-sm">
         <div>
-          <div className="font-semibold">Course</div>
+          <div className="font-semibold text-foreground">Course</div>
           <div className="text-muted-foreground">{course?.title}</div>
         </div>
         <div>
-          <div className="font-semibold">Stem</div>
+          <div className="font-semibold text-foreground">Stem</div>
           <div
-            className="border rounded p-2 bg-white max-h-32 overflow-auto text-xs"
+            className="border border-input rounded p-2 bg-background max-h-32 overflow-auto text-xs text-foreground"
             dangerouslySetInnerHTML={{ __html: safeStem }}
           />
         </div>
         {safeOptions?.length > 0 && (
           <div>
-            <div className="font-semibold">Options</div>
+            <div className="font-semibold text-foreground">Options</div>
             <ul className="list-disc ml-4 text-xs text-muted-foreground">
               {safeOptions.map((t, i) => (
                 <li key={i} dangerouslySetInnerHTML={{ __html: t }} />
@@ -74,9 +74,9 @@ export const AIRewriteChatPanel: React.FC<AIRewriteChatPanelProps> = ({ open, on
         )}
         {!!safeReference && (
           <div>
-            <div className="font-semibold">Explanation</div>
+            <div className="font-semibold text-foreground">Explanation</div>
             <div
-              className="border rounded p-2 bg-white max-h-32 overflow-auto text-xs"
+              className="border border-input rounded p-2 bg-background max-h-32 overflow-auto text-xs text-foreground"
               dangerouslySetInnerHTML={{ __html: safeReference }}
             />
           </div>
@@ -123,22 +123,30 @@ export const AIRewriteChatPanel: React.FC<AIRewriteChatPanelProps> = ({ open, on
 
   return (
     <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center">
-      <div className="bg-white w-full max-w-5xl h-[80vh] rounded-lg overflow-hidden shadow-2xl flex">
+      <div className="bg-background w-full max-w-5xl h-[80vh] rounded-lg overflow-hidden shadow-2xl flex">
         {/* Left: context */}
-        <div className="w-1/3 border-r p-4 bg-gray-50">{contextPreview}</div>
+        <div className="w-1/3 border-r p-4 bg-muted">{contextPreview}</div>
         {/* Right: chat */}
         <div className="flex-1 flex flex-col">
-          <div className="flex items-center justify-between border-b p-4">
+          <div className="flex items-center justify-between border-b p-4 bg-background">
             <div className="flex items-center gap-3">
-              <h3 className="font-semibold">AI Rewrite Assistant</h3>
+              <h3 className="font-semibold text-foreground">AI Rewrite Assistant</h3>
               <div className="flex items-center gap-2">
-                <select value={segment} onChange={(e)=>setSegment(e.target.value as any)} className="border rounded p-1 text-sm">
+                <select 
+                  value={segment} 
+                  onChange={(e)=>setSegment(e.target.value as any)} 
+                  className="border border-input rounded px-2 py-1 text-sm bg-background text-foreground"
+                >
                   <option value="stem">Target: Stem</option>
                   <option value="reference">Target: Explanation</option>
                   <option value="option">Target: Option</option>
                 </select>
                 {segment === 'option' && (
-                  <select value={optionIndex} onChange={(e)=>setOptionIndex(Number(e.target.value))} className="border rounded p-1 text-sm">
+                  <select 
+                    value={optionIndex} 
+                    onChange={(e)=>setOptionIndex(Number(e.target.value))} 
+                    className="border border-input rounded px-2 py-1 text-sm bg-background text-foreground"
+                  >
                     {optionsTexts.map((_, i) => (
                       <option key={i} value={i}>{optionLabel(i)}</option>
                     ))}
@@ -148,10 +156,10 @@ export const AIRewriteChatPanel: React.FC<AIRewriteChatPanelProps> = ({ open, on
             </div>
             <Button variant="ghost" onClick={onClose}>Close</Button>
           </div>
-          <div className="flex-1 overflow-auto p-4 space-y-3 bg-white">
+          <div className="flex-1 overflow-auto p-4 space-y-3 bg-background">
             {messages.map((m, i) => (
               <div key={i} className={m.role==='user' ? 'text-right' : ''}>
-                <div className={`inline-block max-w-[80%] px-3 py-2 rounded ${m.role==='user' ? 'bg-blue-50' : 'bg-gray-100'}`}>
+                <div className={`inline-block max-w-[80%] px-3 py-2 rounded text-foreground ${m.role==='user' ? 'bg-primary/10' : 'bg-muted'}`}>
                   {m.role==='assistant' ? (
                     <div dangerouslySetInnerHTML={{ __html: sanitizeHtml(m.content) }} />
                   ) : (
@@ -161,7 +169,7 @@ export const AIRewriteChatPanel: React.FC<AIRewriteChatPanelProps> = ({ open, on
               </div>
             ))}
           </div>
-          <div className="border-t p-3 flex gap-2">
+          <div className="border-t p-3 flex gap-2 bg-background">
             <Textarea value={prompt} onChange={(e)=>setPrompt(e.target.value)} placeholder="Tell the assistant how to improve the text…" className="flex-1" rows={3} />
             <Button onClick={send} disabled={loading || !prompt.trim()}>{loading ? 'Thinking…' : 'Send'}</Button>
           </div>
