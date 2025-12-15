@@ -1,7 +1,9 @@
 import { test, expect } from '@playwright/test';
 import { gotoStable, assertNotAuthRedirect, getDemoCourseId } from './journeyAdapter';
+import { existsSync } from 'fs';
 
 test.describe('legacy parity: student play flow', () => {
+  test.skip(!existsSync('playwright/.auth/student.json'), 'Student auth state missing. Run tests/e2e/student.setup.ts with E2E_STUDENT_* envs to generate it.');
   test.use({ storageState: 'playwright/.auth/student.json' });
 
   test('can load a play session and answer at least one item', async ({ page }) => {

@@ -33,8 +33,13 @@ test.describe('legacy parity: agent API smoke (Edge Functions)', () => {
     const resp = await request.get(`${supabaseUrl}/functions/v1/list-jobs`, {
       headers: { 'X-Agent-Token': process.env.AGENT_TOKEN! },
     });
-    expect(resp.status()).toBe(200);
-    const json = await resp.json();
+    if (resp.status() !== 200) {
+      const body = await resp.text().catch(() => '');
+      throw new Error(`BLOCKED: list-jobs failed with status ${resp.status()}. Body: ${body.slice(0, 400)}`);
+    }
+    const json = await resp.json().catch(() => null);
+    expect(json).toBeTruthy();
+    expect((json as any).ok).toBe(true);
     expect(json).toHaveProperty('jobs');
   });
 
@@ -53,8 +58,13 @@ test.describe('legacy parity: agent API smoke (Edge Functions)', () => {
         },
       },
     });
+    // enqueue-job returns HTTP 200 even on logical failures; validate the payload.
     expect(resp.status()).toBe(200);
-    const json = await resp.json();
+    const json = await resp.json().catch(() => null);
+    expect(json).toBeTruthy();
+    if ((json as any).ok !== true) {
+      throw new Error(`BLOCKED: enqueue-job returned ok=false. Body: ${JSON.stringify(json).slice(0, 400)}`);
+    }
     expect(json).toHaveProperty('jobId');
   });
 });

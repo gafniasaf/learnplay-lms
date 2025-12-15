@@ -23,9 +23,10 @@ const config: PlaywrightTestConfig = {
   use: {
     baseURL: `http://localhost:${PORT}`,
     headless: false, // Run headed to see what's happening
-    screenshot: 'on',
-    video: 'on',
-    trace: 'on',
+    // Avoid Windows artifact flakiness (retain artifacts only when needed)
+    screenshot: 'only-on-failure',
+    video: 'retain-on-failure',
+    trace: 'retain-on-failure',
     actionTimeout: 15_000,
   },
   webServer: {
@@ -48,9 +49,10 @@ const config: PlaywrightTestConfig = {
       /**
        * Real-DB setup is intentionally scoped.
        *
-       * We only run the setup files required for admin + legacy parity + health-gate flows.
-       * Role-specific setups (student/teacher/parent) are covered by the Live config (playwright.live.config.ts),
-       * because Real-DB runs are often used for targeted admin debugging and shouldn't be blocked by missing role creds.
+       * NOTE: legacy-parity includes parent/student portal journeys.
+       * We do NOT force role-specific setup here to avoid blocking targeted admin real-db runs
+       * when role credentials are not configured. Role-based parity specs will self-skip if the
+       * corresponding `playwright/.auth/*.json` file is missing.
        */
       testMatch: [
         /tests[\\/]e2e[\\/]health-gate\.setup\.ts/,

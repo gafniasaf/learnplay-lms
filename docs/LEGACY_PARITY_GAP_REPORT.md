@@ -16,36 +16,32 @@ npm run e2e:real-db -- tests/e2e/legacy-parity --project=authenticated --workers
 - `E2E_TEACHER_EMAIL`, `E2E_TEACHER_PASSWORD`
 - `E2E_PARENT_EMAIL`, `E2E_PARENT_PASSWORD`
 
-### Current status (2025-12-14)
+### Current status (2025-12-15)
 
-- **17 passing / 1 failing**
+- **21 passing / 1 skipped**
 
-### Remaining failing journey
+### Coverage (legacy parity journeys)
 
-#### 1) Admin Editor → Audit Variants → Approve
+- **Portals**: `tests/e2e/legacy-parity/portals.parity.spec.ts`
+- **Admin AI pipeline (V2)**: `tests/e2e/legacy-parity/admin-ai-pipeline.parity.spec.ts`
+- **Admin course editor load**: `tests/e2e/legacy-parity/admin-course-editor.parity.spec.ts`
+- **Admin variants audit + approve**: `tests/e2e/legacy-parity/admin-editor-diff-approve.parity.spec.ts`
+- **Admin tag management**: `tests/e2e/legacy-parity/admin-tag-management.parity.spec.ts`
+- **Student assignments**: `tests/e2e/legacy-parity/student-assignments.parity.spec.ts`
+- **Student play loop**: `tests/e2e/legacy-parity/student-play-flow.parity.spec.ts`
+- **Parent dashboard**: `tests/e2e/legacy-parity/parent-portal.parity.spec.ts`
+- **MCP metrics proxy (browser CORS)**: `tests/e2e/legacy-parity/mcp-proxy.parity.spec.ts`
+- **Agent API smoke**: `tests/e2e/legacy-parity/agent-api.parity.spec.ts`
 
-- **Spec**: `tests/e2e/legacy-parity/admin-editor-diff-approve.parity.spec.ts`
-- **Observed**: `POST /functions/v1/editor-variants-audit` returns **500**
-- **Error body** (truncated):
-  - `{"error":{"code":"internal_error","message":"variants-audit failed (404): "}, ... }`
-- **Additional evidence (trace console)**:
-  - CORS/preflight blocked for `GET /functions/v1/mcp-metrics-proxy?type=summary` from `http://localhost:8081`
+### Skipped journey (opt-in because it mutates Real DB)
 
-**Impact**: Variants diff viewer never opens, so the approve/apply flow cannot be exercised.
+#### Admin publish flow
 
-**Likely root causes** (backend):
-
-- `editor-variants-audit` is calling an upstream `variants-audit` capability that is **missing (404)** in the linked Supabase project.
-- `mcp-metrics-proxy` does not allow CORS from local dev origins (e.g. `http://localhost:8081`), blocking UI metrics calls.
-
-**Fix targets**:
-
-- **Edge**: `supabase/functions/editor-variants-audit` should not depend on a missing `variants-audit` endpoint. Either:
-  - deploy the missing function/route it expects, or
-  - update it to call the correct MCP handler / job type for variants audit.
-- **CORS**: ensure `supabase/functions/mcp-metrics-proxy` responds to preflight and includes allowed origins for local dev.
+- **Spec**: `tests/e2e/legacy-parity/admin-publish.parity.spec.ts`
+- **How to enable**:
+  - `E2E_ALLOW_PUBLISH_MUTATION=1`
+  - `E2E_PUBLISH_COURSE_ID=<a throwaway course id>`
 
 ### Notes
 
-- Admin pages currently use a `localStorage.role` override as part of their guard logic. The E2E setup scripts now set this value explicitly so admin journeys can run deterministically.
-- The UI displays an in-app banner: **"Observability proxy unavailable…"** indicating the proxy layer is not active in this environment; parity tests still exercise real Edge functions, but metrics/proxy behaviors are reduced.
+- Some parity journeys require existing `storageState` files (e.g. `playwright/.auth/student.json`). If those are missing/expired, re-run the corresponding setup in `tests/e2e/*.setup.ts`.
