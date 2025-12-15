@@ -155,6 +155,39 @@ test.describe('legacy parity: admin publish flow', () => {
       if (!pJson || typeof (pJson as any).version === 'undefined') {
         throw new Error(`BLOCKED: publish-course returned unexpected payload. Body: ${JSON.stringify(pJson).slice(0, 500)}`);
       }
+      const publishedVersion = Number((pJson as any).version);
+      if (!Number.isFinite(publishedVersion) || publishedVersion <= 0) {
+        throw new Error(`BLOCKED: publish-course returned invalid version: ${String((pJson as any).version)}`);
+      }
+
+      // Extra verification: ensure the published snapshot is actually available (storage-backed via course_versions.storage_path).
+      // This hits the backend endpoint which authorizes via user session + org, and downloads from Storage when needed.
+      const snap = await page.evaluate(async ({ supabaseUrl, courseId, version }) => {
+        try {
+          const projectRef = new URL(supabaseUrl).hostname.split('.')[0];
+          const storageKey = `sb-${projectRef}-auth-token`;
+          const raw = window.localStorage.getItem(storageKey);
+          if (!raw) return { ok: false, error: 'missing_admin_session' };
+          const session = JSON.parse(raw);
+          const token = session?.access_token;
+          if (!token) return { ok: false, error: 'missing_access_token' };
+
+          const url = `${supabaseUrl}/functions/v1/get-course-version-snapshot?courseId=${encodeURIComponent(courseId)}&version=${encodeURIComponent(String(version))}`;
+          const resp = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+          const json = await resp.json().catch(() => null);
+          return { ok: resp.ok, status: resp.status, json };
+        } catch (e: any) {
+          return { ok: false, error: String(e?.message || e) };
+        }
+      }, { supabaseUrl, courseId, version: publishedVersion });
+
+      if (!snap || (snap as any).ok !== true) {
+        throw new Error(`BLOCKED: get-course-version-snapshot failed. Details: ${JSON.stringify(snap).slice(0, 600)}`);
+      }
+      const snapshot = (snap as any).json?.snapshot;
+      if (!snapshot || typeof snapshot !== 'object') {
+        throw new Error(`BLOCKED: missing snapshot in get-course-version-snapshot response. Body: ${JSON.stringify((snap as any).json).slice(0, 600)}`);
+      }
 
       // Success: app should redirect after publishing (best-effort; don't block success if SPA routing doesn't emit a load event).
       await page.waitForURL(/\/admin\/courses\/select/, { timeout: 10_000 }).catch(() => undefined);
