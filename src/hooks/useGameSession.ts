@@ -24,6 +24,8 @@ interface GameSessionState {
 export function useGameSession(options: UseGameSessionOptions) {
   const { courseId, level, assignmentId, contentVersion, autoStart = true } = options;
   const mcp = useMCP();
+  const mcpRef = useRef(mcp);
+  mcpRef.current = mcp;
   const [state, setState] = useState<GameSessionState>({
     sessionId: null,
     roundId: null,
@@ -45,13 +47,13 @@ export function useGameSession(options: UseGameSessionOptions) {
 
     // Setup auto-flush for offline queue
     cleanupAutoFlushRef.current = setupAutoFlush((roundId, itemId, isCorrect, latencyMs, finalize, selectedIndex, itemKey, idempotencyKey) => {
-      return mcp.logGameAttempt(roundId, itemId, isCorrect, latencyMs, finalize, selectedIndex, itemKey, idempotencyKey);
+      return mcpRef.current.logGameAttempt(roundId, itemId, isCorrect, latencyMs, finalize, selectedIndex, itemKey, idempotencyKey);
     });
 
     // Flush queue on mount if online
     if (navigator.onLine) {
       flushAttempts((roundId, itemId, isCorrect, latencyMs, finalize, selectedIndex, itemKey, idempotencyKey) => {
-        return mcp.logGameAttempt(roundId, itemId, isCorrect, latencyMs, finalize, selectedIndex, itemKey, idempotencyKey);
+        return mcpRef.current.logGameAttempt(roundId, itemId, isCorrect, latencyMs, finalize, selectedIndex, itemKey, idempotencyKey);
       });
     }
 
@@ -65,7 +67,7 @@ export function useGameSession(options: UseGameSessionOptions) {
   const startRound = useCallback(async () => {
     setState(prev => ({ ...prev, isLoading: true, error: null }));
     try {
-      const result = await mcp.startGameRound(courseId, level, assignmentId, contentVersion);
+      const result = await mcpRef.current.startGameRound(courseId, level, assignmentId, contentVersion);
       setState(prev => ({
         ...prev,
         sessionId: result.sessionId,
@@ -85,7 +87,7 @@ export function useGameSession(options: UseGameSessionOptions) {
       }));
       console.error('[useGameSession] Failed to start round:', error);
     }
-  }, [courseId, level, assignmentId, contentVersion, mcp]);
+  }, [courseId, level, assignmentId, contentVersion]);
 
   const submitAnswer = useCallback(async (
     itemId: number,

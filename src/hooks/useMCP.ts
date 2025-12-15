@@ -1,4 +1,4 @@
-import { useCallback, useState, useMemo } from 'react';
+import { useCallback, useEffect, useRef, useState, useMemo } from 'react';
 // supabase import removed - not used directly
 import { JOB_MODES } from '@/lib/contracts';
 import { callEdgeFunctionGet } from '@/lib/api/common';
@@ -120,6 +120,11 @@ async function checkAuth(): Promise<string | null> {
 
 export function useMCP() {
   const [loading, setLoading] = useState(false);
+  // Keep loading readable without making the returned object identity change on every request.
+  const loadingRef = useRef(loading);
+  useEffect(() => {
+    loadingRef.current = loading;
+  }, [loading]);
 
   // Call Supabase Edge Function via common helper (uses improved error handling)
   const callEdgeFunction = async <T = unknown>(
@@ -1644,6 +1649,9 @@ export function useMCP() {
     rewriteText,
     // Job Status
     getJobStatus,
-    loading 
-  }), [loading, listCourseJobs, getCourseJob]);
+    // Expose live loading without changing object identity.
+    get loading() {
+      return loadingRef.current;
+    },
+  }), [listCourseJobs, getCourseJob]);
 }

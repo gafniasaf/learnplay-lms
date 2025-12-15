@@ -33,6 +33,8 @@ export function useMediaJobRealtime({
   onJobFailed,
 }: UseMediaJobRealtimeOptions = {}) {
   const mcp = useMCP();
+  const mcpRef = useRef(mcp);
+  mcpRef.current = mcp;
   const [jobs, setJobs] = useState<MediaJob[]>([]);
   const [isSubscribed, setIsSubscribed] = useState(false);
   const { toast } = useToast();
@@ -43,7 +45,7 @@ export function useMediaJobRealtime({
     if (!courseId) return;
 
     try {
-      const response = await mcp.listMediaJobsFiltered({
+      const response = await mcpRef.current.listMediaJobsFiltered({
         courseId,
         limit: 20,
       });
@@ -90,7 +92,7 @@ export function useMediaJobRealtime({
     } catch (error) {
       console.error('Error fetching media jobs:', error);
     }
-  }, [courseId, toast, onJobComplete, onJobFailed, mcp]);
+  }, [courseId, toast, onJobComplete, onJobFailed]);
 
   // Poll for updates
   useEffect(() => {

@@ -17,6 +17,8 @@ export type JobStatus = {
 
 export function useJobStatus(jobId: string | null) {
   const mcp = useMCP();
+  const mcpRef = useRef(mcp);
+  mcpRef.current = mcp;
   const [status, setStatus] = useState<JobStatus | null>(null);
   const lastUpdate = useRef<number>(0);
 
@@ -34,25 +36,28 @@ export function useJobStatus(jobId: string | null) {
       if (cancelled) return;
       
       try {
-        const data = await mcp.getJobStatus(jobId);
+        const data = await mcpRef.current.getJobStatus(jobId);
         if (data) {
-          setStatus({
+          const next = {
             jobId,
             state: data.state,
             step: data.step,
             progress: data.progress,
             message: data.message,
             lastEventTime: new Date().toISOString(),
+          } as JobStatus;
+          setStatus({
+            ...next,
           });
           lastUpdate.current = Date.now();
+
+          // Stop polling on terminal state based on freshest value.
+          if (['done', 'failed', 'dead_letter'].includes(next.state)) {
+            return;
+          }
         }
       } catch (err) {
         console.warn('[useJobStatus] poll error', jobId, err);
-      }
-      
-      // Only poll if job is not in terminal state
-      if (status && ['done', 'failed', 'dead_letter'].includes(status.state)) {
-        return;
       }
       
       timeoutId = setTimeout(poll, 2000); // Poll every 2 seconds
@@ -67,7 +72,7 @@ export function useJobStatus(jobId: string | null) {
         clearTimeout(timeoutId);
       }
     };
-  }, [jobId, mcp, status?.state]);
+  }, [jobId]);
 
   return useMemo(() => ({ status }), [status]);
 }
