@@ -79,17 +79,27 @@ const handler = async (req: Request) => {
     return Errors.notFound("Course", requestId, req);
   }
 
-  // Check user has editor or org_admin role
-  const { data: userRole } = await supabase
+  // Check user has editor/org_admin for this org, OR is superadmin.
+  // NOTE: Other admin actions (e.g. delete-course) already treat superadmin as privileged.
+  const { data: superRole } = await supabase
     .from('user_roles')
     .select('role')
     .eq('user_id', user.id)
-    .eq('organization_id', metadata.organization_id)
-    .in('role', ['org_admin', 'editor'])
-    .single();
+    .eq('role', 'superadmin')
+    .maybeSingle();
 
-  if (!userRole) {
-    return Errors.forbidden("Not authorized to publish this course", requestId, req);
+  if (!superRole) {
+    const { data: userRole } = await supabase
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', user.id)
+      .eq('organization_id', metadata.organization_id)
+      .in('role', ['org_admin', 'editor'])
+      .single();
+
+    if (!userRole) {
+      return Errors.forbidden("Not authorized to publish this course", requestId, req);
+    }
   }
 
   // Load course JSON from storage
