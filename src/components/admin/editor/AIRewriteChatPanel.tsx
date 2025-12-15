@@ -1,7 +1,8 @@
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useMemo, useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { sanitizeHtml } from '@/lib/utils/sanitizeHtml';
+import { toast } from 'sonner';
 
 interface ChatTarget {
   segment: 'stem' | 'reference' | 'option';
@@ -23,6 +24,7 @@ export const AIRewriteChatPanel: React.FC<AIRewriteChatPanelProps> = ({ open, on
   const [prompt, setPrompt] = useState('Make it clearer and age-appropriate.');
   const [loading, setLoading] = useState(false);
   const [messages, setMessages] = useState<Array<{ role: 'user' | 'assistant'; content: string }>>([]);
+  const autoSentRef = useRef(false);
   const stemText = (item?.stem?.text ?? item?.text ?? '') as string;
   const optionsTexts = ((item?.options ?? []) as any[]).map(o => typeof o === 'string' ? o : (o?.text ?? ''));
   const referenceHtml = (item?.reference?.html ?? item?.referenceHtml ?? item?.explain ?? '') as string;
@@ -31,6 +33,16 @@ export const AIRewriteChatPanel: React.FC<AIRewriteChatPanelProps> = ({ open, on
     setSegment(target.segment);
     setOptionIndex(target.optionIndex ?? 0);
   }, [target.segment, target.optionIndex]);
+
+  // Auto-run once on open so "AI Rewrite" immediately produces output.
+  useEffect(() => {
+    if (!open) return;
+    autoSentRef.current = false;
+    // Reset for a fresh chat per open.
+    setMessages([]);
+    // Keep default prompt if user hasn't typed anything.
+    setPrompt((p) => (p && p.trim().length > 0 ? p : 'Make it clearer and age-appropriate.'));
+  }, [open]);
 
   const contextPreview = useMemo(() => {
     const safeStem = stemText ? sanitizeHtml(stemText) : '<em>Empty</em>';
@@ -85,11 +97,27 @@ export const AIRewriteChatPanel: React.FC<AIRewriteChatPanelProps> = ({ open, on
       const res = await onRewrite({ segment, optionIndex: segment === 'option' ? optionIndex : undefined }, aggregatePrompt);
       if (res) {
         setMessages(m => [...m, { role: 'assistant', content: res.proposed }]);
+      } else {
+        toast.error('AI rewrite failed');
       }
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'AI rewrite failed');
     } finally {
       setLoading(false);
     }
   };
+
+  // Fire the first request automatically (only once per open).
+  useEffect(() => {
+    if (!open) return;
+    if (loading) return;
+    if (autoSentRef.current) return;
+    if (!prompt?.trim()) return;
+    if (messages.length > 0) return;
+    autoSentRef.current = true;
+    void send();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
 
   const optionLabel = (i: number) => `Option ${String.fromCharCode(65 + i)}`;
 
