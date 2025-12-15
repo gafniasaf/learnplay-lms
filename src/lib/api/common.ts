@@ -237,7 +237,35 @@ export async function fetchWithTimeout(
 
 function shouldUseAgentTokenAuth(): boolean {
   if (FORCE_LIVE) return false;
-  return isDevAgentMode();
+  if (isDevAgentMode()) return true;
+
+  // Extra Lovable safety net:
+  // In iframe/preview environments Supabase auth persistence can be unreliable and sessions can go stale.
+  // If the developer provided dev-agent credentials via URL/sessionStorage, prefer agent auth for stability.
+  if (typeof window !== "undefined") {
+    const h = window.location.hostname || "";
+    const isLovable =
+      h.includes("lovable.app") || h.includes("lovableproject.com") || h.includes("lovable.dev");
+    if (isLovable) {
+      // Respect explicit opt-out for this tab.
+      try {
+        if (window.sessionStorage.getItem("iz_dev_agent_disabled") === "1") return false;
+      } catch {
+        // ignore
+      }
+      try {
+        if (window.localStorage.getItem("iz_dev_agent_disabled") === "1") return false;
+      } catch {
+        // ignore
+      }
+
+      const token = getStorageValue("iz_dev_agent_token");
+      const orgId = getStorageValue("iz_dev_org_id");
+      if (token && orgId) return true;
+    }
+  }
+
+  return false;
 }
 
 function getStorageValue(key: string): string | null {
