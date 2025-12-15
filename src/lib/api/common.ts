@@ -68,7 +68,24 @@ export function isDevAgentMode(): boolean {
   if (import.meta.env.VITE_DEV_AGENT_MODE === "true") return true;
 
   // Runtime config can enable the mode (e.g. Lovable), but credentials must still come from env.
-  return getRuntimeConfigSync()?.devAgent?.enabled === true;
+  if (getRuntimeConfigSync()?.devAgent?.enabled === true) return true;
+
+  // Lovable safety net:
+  // Some preview hosts may provide agentToken/orgId via URL params which we persist into storage.
+  // In that case, treat dev-agent mode as enabled so UI gates (e.g. AI Pipeline) don't incorrectly
+  // force a Supabase login.
+  if (typeof window !== "undefined") {
+    const h = window.location.hostname || "";
+    const isLovable =
+      h.includes("lovable.app") || h.includes("lovableproject.com") || h.includes("lovable.dev");
+    if (isLovable) {
+      const token = getStorageValue("iz_dev_agent_token");
+      const orgId = getStorageValue("iz_dev_org_id");
+      if (token && orgId) return true;
+    }
+  }
+
+  return false;
 }
 
 /**

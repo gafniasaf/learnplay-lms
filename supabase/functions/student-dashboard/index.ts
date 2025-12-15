@@ -3,7 +3,7 @@
 
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { withCors } from "../_shared/cors.ts";
-import { jsonOk, jsonError, Errors } from "../_shared/error.ts";
+import { jsonOk, Errors } from "../_shared/error.ts";
 import { authenticateRequest } from "../_shared/auth.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
@@ -13,6 +13,7 @@ Deno.serve(withCors(async (req: Request) => {
   const requestId = crypto.randomUUID();
 
   if (req.method === "OPTIONS") {
+    // withCors will handle OPTIONS and inject CORS headers.
     return new Response(null, { status: 204 });
   }
 
@@ -26,13 +27,14 @@ Deno.serve(withCors(async (req: Request) => {
     try {
       auth = await authenticateRequest(req);
     } catch (e) {
-      const msg = e instanceof Error ? e.message : "Unauthorized";
-      return jsonError("unauthorized", msg, 401, requestId, req);
+      // IMPORTANT: Lovable preview can blank-screen on non-200 responses.
+      // Return a structured failure (withCors converts Errors.* into HTTP 200 + ok:false).
+      return Errors.invalidAuth(requestId, req);
     }
 
     const resolvedStudentId = auth.userId || null;
     if (!resolvedStudentId) {
-      return jsonError("invalid_request", "studentId is required", 400, requestId, req);
+      return Errors.invalidRequest("studentId is required", requestId, req);
     }
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
@@ -110,6 +112,6 @@ Deno.serve(withCors(async (req: Request) => {
     return jsonOk(dashboardData, requestId, req);
   } catch (e) {
     console.error("[student-dashboard] Error:", e);
-    return jsonError("internal_error", e instanceof Error ? e.message : String(e), 500, crypto.randomUUID(), req);
+    return Errors.internal(e instanceof Error ? e.message : String(e), requestId, req);
   }
 }));
