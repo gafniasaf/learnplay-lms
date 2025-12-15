@@ -103,7 +103,7 @@ export const CourseCard = ({ course, skillFocus }: CourseCardProps) => {
               <Button 
                 variant="outline" 
                 size="lg"
-                onClick={() => navigate(`/admin/courses/ai?edit=${course.id}`)}
+                onClick={() => navigate(`/admin/editor/${course.id}`)}
                 title="Edit this course"
               >
                 <Edit className="h-4 w-4" />

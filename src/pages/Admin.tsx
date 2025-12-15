@@ -216,7 +216,7 @@ const Admin = () => {
                 </div>
 
                 <div className="flex items-center gap-2">
-                  <Link to={`/admin/courses/ai?edit=${course.id}`} aria-label={`Edit Course ${course.title}`} data-cta-id="admin-edit-course">
+                  <Link to={`/admin/editor/${course.id}`} aria-label={`Edit Course ${course.title}`} data-cta-id="admin-edit-course">
                     <Button variant="ghost" size="sm" title="Edit Course">
                       <Pencil className="h-4 w-4" />
                     </Button>
