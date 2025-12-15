@@ -1,6 +1,7 @@
 import React, { useMemo, useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { sanitizeHtml } from '@/lib/utils/sanitizeHtml';
 import { toast } from 'sonner';
 
@@ -132,25 +133,27 @@ export const AIRewriteChatPanel: React.FC<AIRewriteChatPanelProps> = ({ open, on
             <div className="flex items-center gap-3">
               <h3 className="font-semibold text-foreground">AI Rewrite Assistant</h3>
               <div className="flex items-center gap-2">
-                <select 
-                  value={segment} 
-                  onChange={(e)=>setSegment(e.target.value as any)} 
-                  className="border border-input rounded px-2 py-1 text-sm bg-background text-foreground"
-                >
-                  <option value="stem">Target: Stem</option>
-                  <option value="reference">Target: Explanation</option>
-                  <option value="option">Target: Option</option>
-                </select>
+                <Select value={segment} onValueChange={(val) => setSegment(val as any)}>
+                  <SelectTrigger className="w-[180px] bg-background text-foreground border-input">
+                    <SelectValue placeholder="Select target" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-background border-input">
+                    <SelectItem value="stem">Target: Stem</SelectItem>
+                    <SelectItem value="reference">Target: Explanation</SelectItem>
+                    <SelectItem value="option">Target: Option</SelectItem>
+                  </SelectContent>
+                </Select>
                 {segment === 'option' && (
-                  <select 
-                    value={optionIndex} 
-                    onChange={(e)=>setOptionIndex(Number(e.target.value))} 
-                    className="border border-input rounded px-2 py-1 text-sm bg-background text-foreground"
-                  >
-                    {optionsTexts.map((_, i) => (
-                      <option key={i} value={i}>{optionLabel(i)}</option>
-                    ))}
-                  </select>
+                  <Select value={String(optionIndex)} onValueChange={(val) => setOptionIndex(Number(val))}>
+                    <SelectTrigger className="w-[140px] bg-background text-foreground border-input">
+                      <SelectValue placeholder="Select option" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-background border-input">
+                      {optionsTexts.map((_, i) => (
+                        <SelectItem key={i} value={String(i)}>{optionLabel(i)}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 )}
               </div>
             </div>
