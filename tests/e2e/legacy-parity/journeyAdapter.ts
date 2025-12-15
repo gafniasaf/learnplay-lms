@@ -25,7 +25,18 @@ export function getDemoCourseId(): string {
  * Must be called before navigation to pages that call prompt().
  */
 export async function installPromptStub(page: Page, responseText: string): Promise<void> {
+  // Ensure future navigations inherit the stub...
   await page.addInitScript(({ responseText }) => {
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (window as any).prompt = () => responseText;
+    } catch {
+      // ignore
+    }
+  }, { responseText });
+
+  // ...and also patch the current document (addInitScript only applies on next navigation).
+  await page.evaluate(({ responseText }) => {
     try {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (window as any).prompt = () => responseText;
