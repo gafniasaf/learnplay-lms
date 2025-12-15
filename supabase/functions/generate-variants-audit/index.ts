@@ -1,6 +1,7 @@
 import { withCors, getRequestId } from "../_shared/cors.ts";
 import { Errors } from "../_shared/error.ts";
 import { idStr } from "../_shared/validation.ts";
+import { authenticateRequest } from "../_shared/auth.ts";
 
 type CourseEnvelope = {
   id?: string;
@@ -46,12 +47,9 @@ Deno.serve(
     const reqId = getRequestId(req);
 
     if (req.method !== "POST") return Errors.methodNotAllowed(req.method, reqId, req);
-
-    const provided = req.headers.get("X-Agent-Token") || req.headers.get("x-agent-token") || "";
-    const expected = Deno.env.get("AGENT_TOKEN") || "";
-    if (!provided || !expected || provided !== expected) {
-      return Errors.invalidAuth(reqId, req);
-    }
+    // Allow either agent token OR user session.
+    // This endpoint is used by the Course Editor publish preflight.
+    await authenticateRequest(req);
 
     let body: any;
     try {

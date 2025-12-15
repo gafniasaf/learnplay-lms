@@ -1344,14 +1344,14 @@ export function useMCP() {
     }
   };
 
-  const publishCourse = async (courseId: string) => {
+  const publishCourse = async (courseId: string, changelog?: string) => {
     setLoading(true);
     try {
       if (useMockMode) {
         console.log('[MCP Mock] publishCourse:', courseId);
         return { ok: true, courseId };
       }
-      return await callEdgeFunction<{ ok: boolean; courseId: string }>('publish-course', { courseId });
+      return await callEdgeFunction<{ ok: boolean; courseId: string }>('publish-course', { courseId, changelog });
     } finally {
       setLoading(false);
     }

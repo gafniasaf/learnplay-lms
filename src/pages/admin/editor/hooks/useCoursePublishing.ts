@@ -33,7 +33,7 @@ export function useCoursePublishing() {
     threshold: number
   ): Promise<PublishResult> => {
     await validateAndAudit(courseId, threshold);
-    const result = await mcp.publishCourse(courseId);
+    const result = await mcp.publishCourse(courseId, changelog);
     await invalidateCourseCache(courseId);
     return { version: (result as { version?: string | number }).version || '1.0' };
   };

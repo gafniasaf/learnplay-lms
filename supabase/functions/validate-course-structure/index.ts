@@ -1,15 +1,12 @@
 import { withCors } from "../_shared/cors.ts";
 import { rateLimit } from "../_shared/rateLimit.ts";
 import { Errors } from "../_shared/error.ts";
+import { authenticateRequest } from "../_shared/auth.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
-const AGENT_TOKEN = Deno.env.get("AGENT_TOKEN");
 
 if (!SUPABASE_URL) {
   throw new Error("SUPABASE_URL is required");
-}
-if (!AGENT_TOKEN) {
-  throw new Error("AGENT_TOKEN is required");
 }
 
 Deno.serve(withCors(async (req: Request) => {
@@ -21,10 +18,9 @@ Deno.serve(withCors(async (req: Request) => {
   const rl = rateLimit(req); if (rl) return rl;
 
   try {
-    const provided = req.headers.get("X-Agent-Token") || "";
-    if (!provided || provided !== AGENT_TOKEN) {
-      return Errors.invalidAuth(reqId, req);
-    }
+    // Allow either agent token OR user session.
+    // This endpoint is used by the Course Editor publish preflight.
+    await authenticateRequest(req);
     const body = await req.json() as { courseId: string };
     const courseId = body?.courseId;
     if (!courseId) {
