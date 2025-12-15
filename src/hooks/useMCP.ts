@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useState, useMemo } from 'react';
 // supabase import removed - not used directly
 import { JOB_MODES } from '@/lib/contracts';
 import { callEdgeFunctionGet } from '@/lib/api/common';
@@ -1558,7 +1558,7 @@ export function useMCP() {
     }
   };
 
-  return { 
+  return useMemo(() => ({ 
     call,
     callGet, 
     enqueueJob, 
@@ -1645,5 +1645,5 @@ export function useMCP() {
     // Job Status
     getJobStatus,
     loading 
-  };
+  }), [loading, listCourseJobs, getCourseJob]);
 }
