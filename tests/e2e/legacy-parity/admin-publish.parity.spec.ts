@@ -18,10 +18,40 @@ test.describe('legacy parity: admin publish flow', () => {
     // Provision a minimal, publishable course fixture if none is provided.
     // This DOES write to real storage + metadata, and then the test cleans it up in a finally block.
     if (shouldCleanup) {
+      // Ensure we're on the app origin so localStorage/session are accessible.
+      await page.goto('/');
+      await page.waitForLoadState('domcontentloaded');
+
+      // Resolve the admin user's org (publish-course enforces org_admin/editor role for the course org).
+      const adminOrgId = await page.evaluate(async ({ supabaseUrl }) => {
+        const projectRef = new URL(supabaseUrl).hostname.split('.')[0];
+        const storageKey = `sb-${projectRef}-auth-token`;
+        const raw = window.localStorage.getItem(storageKey);
+        if (!raw) throw new Error('missing admin session in localStorage');
+        const session = JSON.parse(raw);
+        const token = session?.access_token;
+        if (!token) throw new Error('missing access_token');
+
+        const resp = await fetch(`${supabaseUrl}/functions/v1/get-user-roles`, {
+          method: 'GET',
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const json = await resp.json().catch(() => null);
+        const roles = (json as any)?.roles;
+        if (!Array.isArray(roles) || roles.length === 0) throw new Error('no user_roles returned');
+
+        const preferred = roles.find((r: any) => r?.role === 'org_admin' || r?.role === 'editor');
+        const anyRole = roles[0];
+        const orgId = String((preferred || anyRole)?.organization_id || '');
+        if (!orgId) throw new Error('no organization_id found in user_roles');
+        return orgId;
+      }, { supabaseUrl });
+
       const clusterId = `${courseId}-cluster-1`;
       const seed = {
         id: courseId,
         title: `E2E Publish Parity ${courseId}`,
+        organization_id: adminOrgId,
         visibility: 'org',
         contentVersion: '1',
         groups: [{ id: 0, name: 'Group 1' }],
