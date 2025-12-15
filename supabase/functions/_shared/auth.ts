@@ -18,13 +18,34 @@ export type AuthContext = {
 };
 
 export async function authenticateRequest(req: Request): Promise<AuthContext> {
-  // Check for agent token first
-  const agentHeader = req.headers.get("x-agent-token") ?? req.headers.get("X-Agent-Token");
-  if (AGENT_TOKEN && agentHeader === AGENT_TOKEN) {
-    const organizationId = req.headers.get("x-organization-id") ?? req.headers.get("X-Organization-Id") ?? undefined;
-    // Allow passing user ID for agent token auth (DEV MODE or background workers)
-    const userId = req.headers.get("x-user-id") ?? req.headers.get("X-User-Id") ?? undefined;
-    return { type: "agent", organizationId, userId };
+  // Agent-token auth (preferred via headers; optional via query params for preview/iframe environments)
+  if (AGENT_TOKEN) {
+    const agentHeader = req.headers.get("x-agent-token") ?? req.headers.get("X-Agent-Token");
+    const url = new URL(req.url);
+    const agentQuery =
+      url.searchParams.get("iz_dev_agent_token") ||
+      url.searchParams.get("devAgentToken") ||
+      url.searchParams.get("agentToken");
+    const agentToken = agentHeader || agentQuery;
+
+    if (agentToken && agentToken === AGENT_TOKEN) {
+      const organizationId =
+        req.headers.get("x-organization-id") ??
+        req.headers.get("X-Organization-Id") ??
+        url.searchParams.get("iz_dev_org_id") ??
+        url.searchParams.get("devOrgId") ??
+        url.searchParams.get("orgId") ??
+        undefined;
+      // Allow passing user ID for agent token auth (DEV MODE or background workers)
+      const userId =
+        req.headers.get("x-user-id") ??
+        req.headers.get("X-User-Id") ??
+        url.searchParams.get("iz_dev_user_id") ??
+        url.searchParams.get("devUserId") ??
+        url.searchParams.get("userId") ??
+        undefined;
+      return { type: "agent", organizationId, userId };
+    }
   }
 
   const authHeader = req.headers.get("Authorization");
