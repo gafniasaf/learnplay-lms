@@ -112,7 +112,7 @@ const CourseEditor = () => {
     // Avoid duplicate concurrent loads
     if (inFlightLoadRef.current) return;
     // If we already loaded this course and aren't forcing, don't refetch.
-    if (!force && lastLoadedCourseIdRef.current === courseId && course) return;
+    if (!force && lastLoadedCourseIdRef.current === courseId) return;
 
     try {
       inFlightLoadRef.current = true;
