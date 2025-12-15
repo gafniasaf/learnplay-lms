@@ -1149,12 +1149,15 @@ const result = await mcp.rewriteText({
             data-testid="btn-variants-audit"
             onClick={async () => {
               if (!courseId) return;
+              // Open the diff viewer immediately so the user sees feedback even if the backend is slow.
+              setDiffOps([]);
+              setAuditInfo(null);
+              setShowDiffViewer(true);
+              setCoPilotJobId('__editor_variants_audit__');
               try {
                 const result = await variants.variantsAudit(courseId);
                 setDiffOps(result.diff);
                 setAuditInfo(result.report || null);
-                setShowDiffViewer(true);
-                setCoPilotJobId('__editor_variants_audit__');
                 if (result.report) console.log('[Variants Audit] report:', result.report);
               } catch (e) {
                 toast.error(e instanceof Error ? e.message : 'Variants audit failed');
