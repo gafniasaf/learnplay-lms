@@ -1337,7 +1337,8 @@ export function useMCP() {
         console.log('[MCP Mock] updateCourse:', courseId, operations);
         return { ok: true, courseId };
       }
-      return await callEdgeFunction<{ ok: boolean; courseId: string }>('update-course', { courseId, operations });
+      // Edge function expects JSON Patch ops under `ops` (not `operations`).
+      return await callEdgeFunction<{ ok: boolean; courseId: string }>('update-course', { courseId, ops: operations });
     } finally {
       setLoading(false);
     }

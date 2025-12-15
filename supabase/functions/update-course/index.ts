@@ -29,6 +29,31 @@ interface UpdateCourseRequest {
   expectedEtag?: string;
 }
 
+type CourseEnvelope = {
+  id?: string;
+  format?: string;
+  version?: string | number;
+  content: any;
+};
+
+function isEnvelope(x: any): x is CourseEnvelope {
+  return !!x && typeof x === 'object' && 'content' in x && 'format' in x;
+}
+
+function bumpContentVersion(course: any): void {
+  // Prefer ISO contentVersion (used by editor/storage), but tolerate legacy numeric versions.
+  const cv = course?.contentVersion;
+  if (typeof cv === 'number' && Number.isFinite(cv)) {
+    course.contentVersion = cv + 1;
+    return;
+  }
+  if (typeof cv === 'string' && cv.trim().length > 0) {
+    course.contentVersion = new Date().toISOString();
+    return;
+  }
+  course.contentVersion = new Date().toISOString();
+}
+
 Deno.serve(withCors(async (req) => {
   const reqId = getRequestId(req);
 
@@ -77,7 +102,11 @@ Deno.serve(withCors(async (req) => {
     }
 
     const courseText = await fileData.text();
-    const course = JSON.parse(courseText);
+    const stored = JSON.parse(courseText);
+
+    // Support Dawn-style envelope storage: { id, format, version, content }.
+    const envelope = isEnvelope(stored) ? (stored as CourseEnvelope) : null;
+    const course = envelope ? envelope.content : stored;
 
     // Check etag if provided (optimistic concurrency control)
     if (expectedEtag) {
@@ -101,11 +130,15 @@ Deno.serve(withCors(async (req) => {
     const updatedCourse = applyPatches(course, ops);
 
     // Bump contentVersion
-    updatedCourse.contentVersion = (updatedCourse.contentVersion || 0) + 1;
+    bumpContentVersion(updatedCourse);
     updatedCourse.updatedAt = new Date().toISOString();
 
+    const persist = envelope
+      ? { ...envelope, content: updatedCourse }
+      : updatedCourse;
+
     // Write updated course to storage
-    const updatedContent = JSON.stringify(updatedCourse, null, 2);
+    const updatedContent = JSON.stringify(persist, null, 2);
     const { error: uploadError } = await supabase.storage
       .from('courses')
       .upload(coursePath, new Blob([updatedContent], { type: 'application/json' }), {
@@ -125,10 +158,10 @@ Deno.serve(withCors(async (req) => {
     const updatedFile = newMetadata?.find(f => f.name === `course.json`);
     const newEtag = updatedFile?.metadata?.etag || '';
 
-    console.log(`[update-course] Course ${courseId} updated to version ${updatedCourse.contentVersion}`);
+    console.log(`[update-course] Course ${courseId} updated (contentVersion=${updatedCourse.contentVersion})`);
 
     return jsonOk({
-      course: updatedCourse,
+      course: persist,
       contentVersion: updatedCourse.contentVersion,
       etag: newEtag,
       opsApplied: ops.length,
