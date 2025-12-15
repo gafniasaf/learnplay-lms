@@ -1,6 +1,5 @@
 import { ReactNode } from "react";
 import { Header } from "./Header";
-import { Footer } from "./Footer";
 import { isCourseFullscreen, isEmbed } from "@/lib/embed";
 import { FallbackBanner } from "@/components/system/FallbackBanner";
 import { ModeBanner } from "@/components/system/ModeBanner";
@@ -24,7 +23,6 @@ export const Layout = ({ children }: LayoutProps) => {
       <main className={`flex-1 ${embedMode ? "p-2 md:p-3" : ""}`}>
         {fullscreen ? <CourseFrame>{children}</CourseFrame> : children}
       </main>
-      {!embedMode && !fullscreen && <Footer />}
     </div>
   );
 };
