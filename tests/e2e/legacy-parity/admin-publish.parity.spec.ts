@@ -15,24 +15,47 @@ test.describe('legacy parity: admin publish flow', () => {
     const courseId = providedCourseId || `e2e-publish-${Date.now()}`;
     const shouldCleanup = !providedCourseId;
 
-    // Provision a minimal, playable course fixture if none is provided.
-    // This DOES write to real storage + metadata, and then the test cleans it up at the end.
+    // Provision a minimal, publishable course fixture if none is provided.
+    // This DOES write to real storage + metadata, and then the test cleans it up in a finally block.
     if (shouldCleanup) {
+      const clusterId = `${courseId}-cluster-1`;
       const seed = {
         id: courseId,
         title: `E2E Publish Parity ${courseId}`,
         visibility: 'org',
         contentVersion: '1',
         groups: [{ id: 0, name: 'Group 1' }],
-        levels: [{ id: 1, title: 'Level 1', start: 0, end: 0 }],
+        levels: [{ id: 1, title: 'Level 1', start: 0, end: 2 }],
         items: [
           {
             id: 1,
             groupId: 0,
-            clusterId: `${courseId}-cluster-1`,
+            clusterId,
             variant: '1',
             mode: 'options',
             text: 'Choose _.',
+            options: ['A', 'B', 'C'],
+            correctIndex: 0,
+            explain: 'Because A is correct.',
+          },
+          {
+            id: 2,
+            groupId: 0,
+            clusterId,
+            variant: '2',
+            mode: 'options',
+            text: 'Pick _.',
+            options: ['A', 'B', 'C'],
+            correctIndex: 0,
+            explain: 'Because A is correct.',
+          },
+          {
+            id: 3,
+            groupId: 0,
+            clusterId,
+            variant: '3',
+            mode: 'options',
+            text: 'Select _.',
             options: ['A', 'B', 'C'],
             correctIndex: 0,
             explain: 'Because A is correct.',
@@ -55,64 +78,65 @@ test.describe('legacy parity: admin publish flow', () => {
       }
     }
 
-    await gotoStable(page, `/admin/editor/${courseId}`);
-    await assertNotAuthRedirect(page);
+    try {
+      await gotoStable(page, `/admin/editor/${courseId}`);
+      await assertNotAuthRedirect(page);
 
-    // Make a tiny edit to create an unsaved change, then save.
-    const stemTab = page.getByRole('tab', { name: 'Stem' }).first();
-    await stemTab.click().catch(() => undefined);
+      // Make a tiny edit to create an unsaved change, then save.
+      const stemTab = page.getByRole('tab', { name: 'Stem' }).first();
+      await stemTab.click().catch(() => undefined);
 
-    const stemPanel = page.getByRole('tabpanel', { name: 'Stem' }).first();
-    const editorBox = stemPanel.getByRole('textbox').first();
-    await expect(editorBox).toBeVisible({ timeout: 20_000 });
-    await editorBox.fill(`E2E publish parity edit ${Date.now()}`);
+      const stemPanel = page.getByRole('tabpanel', { name: 'Stem' }).first();
+      const editorBox = stemPanel.getByRole('textbox').first();
+      await expect(editorBox).toBeVisible({ timeout: 20_000 });
+      await editorBox.fill(`E2E publish parity edit ${Date.now()}`);
 
-    const saveDraft = page.getByRole('button', { name: /Save Draft/i });
-    await expect(saveDraft).toBeEnabled({ timeout: 20_000 });
-    await saveDraft.click();
+      const saveDraft = page.getByRole('button', { name: /Save Draft/i });
+      await expect(saveDraft).toBeEnabled({ timeout: 20_000 });
+      await saveDraft.click();
 
-    // Expect a save confirmation toast.
-    await expect(page.getByText(/Draft saved/i)).toBeVisible({ timeout: 30_000 });
+      // Expect a save confirmation toast.
+      await expect(page.getByText(/Draft saved/i)).toBeVisible({ timeout: 30_000 });
 
-    // After saving, publish should be enabled and should proceed.
-    const publishBtn = page.getByTestId('btn-publish');
-    await expect(publishBtn).toBeEnabled({ timeout: 10_000 });
+      // After saving, publish should be enabled and should proceed.
+      const publishBtn = page.getByTestId('btn-publish');
+      await expect(publishBtn).toBeEnabled({ timeout: 10_000 });
 
-    // Stub prompt for changelog (Publish asks for it).
-    await installPromptStub(page, `E2E publish parity ${new Date().toISOString()}`);
-    await publishBtn.click();
+      // Stub prompt for changelog (Publish asks for it).
+      await installPromptStub(page, `E2E publish parity ${new Date().toISOString()}`);
+      await publishBtn.click();
 
-    // Success: the app navigates back to course selector after a successful publish.
-    // (We intentionally assert on navigation, not toast text, since toasts can be transient.)
-    await page.waitForURL(/\/admin\/courses\/select/, { timeout: 60_000 });
+      // Success: the app navigates back to course selector after a successful publish.
+      await page.waitForURL(/\/admin\/courses\/select/, { timeout: 60_000 });
+    } finally {
+      // Cleanup: delete the test course so we don't pollute real DB/storage.
+      if (shouldCleanup) {
+        const ok = await page.evaluate(async ({ supabaseUrl, courseId }) => {
+          try {
+            const projectRef = new URL(supabaseUrl).hostname.split('.')[0];
+            const storageKey = `sb-${projectRef}-auth-token`;
+            const raw = window.localStorage.getItem(storageKey);
+            if (!raw) return { ok: false, error: 'missing_admin_session' };
+            const session = JSON.parse(raw);
+            const token = session?.access_token;
+            if (!token) return { ok: false, error: 'missing_access_token' };
 
-    // Cleanup: delete the test course so we don't pollute real DB/storage.
-    if (shouldCleanup) {
-      const ok = await page.evaluate(async ({ supabaseUrl, courseId }) => {
-        try {
-          const projectRef = new URL(supabaseUrl).hostname.split('.')[0];
-          const storageKey = `sb-${projectRef}-auth-token`;
-          const raw = window.localStorage.getItem(storageKey);
-          if (!raw) return { ok: false, error: 'missing_admin_session' };
-          const session = JSON.parse(raw);
-          const token = session?.access_token;
-          if (!token) return { ok: false, error: 'missing_access_token' };
+            const resp = await fetch(`${supabaseUrl}/functions/v1/delete-course`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+              body: JSON.stringify({ courseId, confirm: courseId }),
+            });
+            const text = await resp.text().catch(() => '');
+            if (!resp.ok) return { ok: false, error: `delete-course ${resp.status}: ${text.slice(0, 300)}` };
+            return { ok: true };
+          } catch (e: any) {
+            return { ok: false, error: String(e?.message || e) };
+          }
+        }, { supabaseUrl, courseId });
 
-          const resp = await fetch(`${supabaseUrl}/functions/v1/delete-course`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-            body: JSON.stringify({ courseId, confirm: courseId }),
-          });
-          const text = await resp.text().catch(() => '');
-          if (!resp.ok) return { ok: false, error: `delete-course ${resp.status}: ${text.slice(0, 300)}` };
-          return { ok: true };
-        } catch (e: any) {
-          return { ok: false, error: String(e?.message || e) };
+        if (!ok || (ok as any).ok !== true) {
+          throw new Error(`BLOCKED: cleanup failed for ${courseId}: ${JSON.stringify(ok).slice(0, 400)}`);
         }
-      }, { supabaseUrl, courseId });
-
-      if (!ok || (ok as any).ok !== true) {
-        throw new Error(`BLOCKED: cleanup failed for ${courseId}: ${JSON.stringify(ok).slice(0, 400)}`);
       }
     }
   });
