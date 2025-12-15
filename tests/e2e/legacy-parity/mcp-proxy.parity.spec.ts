@@ -6,18 +6,16 @@ test.describe('legacy parity: MCP metrics proxy wiring', () => {
 
   test('admin pages can call mcp-metrics-proxy from the browser (no CORS block)', async ({ page }) => {
     const courseId = getDemoCourseId();
+    const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
+    if (!supabaseUrl) {
+      throw new Error('BLOCKED: missing VITE_SUPABASE_URL for mcp-metrics-proxy parity');
+    }
 
     await gotoStable(page, `/admin/editor/${courseId}`);
     await assertNotAuthRedirect(page);
 
     // Explicitly fetch from the browser context (don't rely on any route to auto-call it).
-    const res = await page.evaluate(async () => {
-      const supabaseUrl =
-        (window as any)?.__runtimeConfig?.supabase?.url ||
-        (window as any)?.runtimeConfig?.supabase?.url ||
-        null;
-      // Fallback: scrape from env banner logs is not reliable; this should be present in real-db runs.
-      if (!supabaseUrl) return { ok: false, reason: 'missing_supabase_url' as const };
+    const res = await page.evaluate(async ({ supabaseUrl }) => {
       try {
         const r = await fetch(`${supabaseUrl}/functions/v1/mcp-metrics-proxy?type=summary`, { method: 'GET' });
         const json = await r.json().catch(() => null);
@@ -25,7 +23,7 @@ test.describe('legacy parity: MCP metrics proxy wiring', () => {
       } catch (e: any) {
         return { ok: false, reason: 'fetch_failed' as const, message: String(e?.message || e) };
       }
-    });
+    }, { supabaseUrl });
 
     if (!res.ok) {
       throw new Error(`BLOCKED: browser fetch to mcp-metrics-proxy failed (${res.reason})${(res as any).message ? `: ${(res as any).message}` : ''}`);
