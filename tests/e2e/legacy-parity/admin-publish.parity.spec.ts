@@ -104,10 +104,53 @@ test.describe('legacy parity: admin publish flow', () => {
 
       // Stub prompt for changelog (Publish asks for it).
       await installPromptStub(page, `E2E publish parity ${new Date().toISOString()}`);
-      await publishBtn.click();
 
-      // Success: the app navigates back to course selector after a successful publish.
-      await page.waitForURL(/\/admin\/courses\/select/, { timeout: 60_000 });
+      // Publish triggers a preflight:
+      // - validate-course-structure
+      // - generate-variants-audit
+      // - publish-course
+      const [vResp, aResp, pResp] = await Promise.all([
+        page.waitForResponse(
+          (r) => r.url().includes('/functions/v1/validate-course-structure') && r.request().method() === 'POST',
+          { timeout: 60_000 }
+        ),
+        page.waitForResponse(
+          (r) => r.url().includes('/functions/v1/generate-variants-audit') && r.request().method() === 'POST',
+          { timeout: 60_000 }
+        ),
+        page.waitForResponse(
+          (r) => r.url().includes('/functions/v1/publish-course') && r.request().method() === 'POST',
+          { timeout: 60_000 }
+        ),
+        publishBtn.click(),
+      ]);
+
+      if (vResp.status() !== 200) {
+        throw new Error(`BLOCKED: validate-course-structure failed (${vResp.status()}). Body: ${(await vResp.text().catch(() => '')).slice(0, 400)}`);
+      }
+      const vJson = await vResp.json().catch(() => null);
+      if (!vJson || (vJson as any).ok !== true) {
+        throw new Error(`BLOCKED: validate-course-structure returned ok=false. Body: ${JSON.stringify(vJson).slice(0, 500)}`);
+      }
+
+      if (aResp.status() !== 200) {
+        throw new Error(`BLOCKED: generate-variants-audit failed (${aResp.status()}). Body: ${(await aResp.text().catch(() => '')).slice(0, 400)}`);
+      }
+      const aJson = await aResp.json().catch(() => null);
+      if (!aJson || (aJson as any).ok !== true) {
+        throw new Error(`BLOCKED: generate-variants-audit returned ok=false. Body: ${JSON.stringify(aJson).slice(0, 500)}`);
+      }
+
+      if (pResp.status() !== 200) {
+        throw new Error(`BLOCKED: publish-course failed (${pResp.status()}). Body: ${(await pResp.text().catch(() => '')).slice(0, 400)}`);
+      }
+      const pJson = await pResp.json().catch(() => null);
+      if (!pJson || typeof (pJson as any).version === 'undefined') {
+        throw new Error(`BLOCKED: publish-course returned unexpected payload. Body: ${JSON.stringify(pJson).slice(0, 500)}`);
+      }
+
+      // Success: app should redirect after publishing (best-effort; don't block success if SPA routing doesn't emit a load event).
+      await page.waitForURL(/\/admin\/courses\/select/, { timeout: 10_000 }).catch(() => undefined);
     } finally {
       // Cleanup: delete the test course so we don't pollute real DB/storage.
       if (shouldCleanup) {
