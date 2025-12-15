@@ -28,6 +28,8 @@ test.describe('legacy parity: admin publish flow', () => {
       const seed = {
         id: courseId,
         title: `E2E Publish Parity ${courseId}`,
+        subject: 'English Grammar',
+        gradeBand: 'All Grades',
         organization_id: adminOrgId,
         visibility: 'org',
         contentVersion: '1',
@@ -40,10 +42,10 @@ test.describe('legacy parity: admin publish flow', () => {
             clusterId,
             variant: '1',
             mode: 'options',
-            text: 'Choose _.',
-            options: ['A', 'B', 'C'],
+            text: 'In the sentence "The cat slept.", the noun is _.',
+            options: ['cat', 'slept', 'the'],
             correctIndex: 0,
-            explain: 'Because A is correct.',
+            explain: '"Cat" is a noun (a person/place/thing).',
           },
           {
             id: 2,
@@ -51,10 +53,10 @@ test.describe('legacy parity: admin publish flow', () => {
             clusterId,
             variant: '2',
             mode: 'options',
-            text: 'Pick _.',
-            options: ['A', 'B', 'C'],
+            text: 'In the sentence "A dog ran.", the noun is _.',
+            options: ['dog', 'ran', 'a'],
             correctIndex: 0,
-            explain: 'Because A is correct.',
+            explain: '"Dog" is a noun (a person/place/thing).',
           },
           {
             id: 3,
@@ -62,10 +64,10 @@ test.describe('legacy parity: admin publish flow', () => {
             clusterId,
             variant: '3',
             mode: 'options',
-            text: 'Select _.',
-            options: ['A', 'B', 'C'],
+            text: 'In the sentence "My friend laughed.", the noun is _.',
+            options: ['friend', 'laughed', 'my'],
             correctIndex: 0,
-            explain: 'Because A is correct.',
+            explain: '"Friend" is a noun (a person/place/thing).',
           },
         ],
         studyTexts: [],
@@ -96,7 +98,7 @@ test.describe('legacy parity: admin publish flow', () => {
       const stemPanel = page.getByRole('tabpanel', { name: 'Stem' }).first();
       const editorBox = stemPanel.getByRole('textbox').first();
       await expect(editorBox).toBeVisible({ timeout: 20_000 });
-      await editorBox.fill(`E2E publish parity edit ${Date.now()}`);
+      await editorBox.fill(`In the sentence "The bird sings.", the noun is _.`);
 
       const saveDraft = page.getByRole('button', { name: /Save Draft/i });
       await expect(saveDraft).toBeEnabled({ timeout: 20_000 });
