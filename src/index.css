@@ -319,6 +319,16 @@ All colors MUST be HSL.
   }
 }
 
+/* ============================================================================
+   Global UI: remove site footer
+   ----------------------------------------------------------------------------
+   The app should not render the marketing/footer strip across pages.
+   We keep functional in-app footers (e.g. the play session controls).
+============================================================================ */
+footer:not(.play-footer) {
+  display: none !important;
+}
+
 /* Sonner Toast Styles - Ensure visibility */
 [data-sonner-toaster] {
   position: fixed !important;
