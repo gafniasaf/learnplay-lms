@@ -78,6 +78,10 @@ const CourseEditor = () => {
   const [auditInfo, setAuditInfo] = useState<{ coverage?: number; axes?: string[] } | null>(null);
   const [orgThresholds, setOrgThresholds] = useState<{ variantsCoverageMin: number }>({ variantsCoverageMin: 0.9 });
 
+  // Prevent repeated loads (Lovable preview can re-run effects / remount routes).
+  const inFlightLoadRef = useRef(false);
+  const lastLoadedCourseIdRef = useRef<string | null>(null);
+
   // Admin guard
   const devOverrideRole = typeof window !== 'undefined' ? localStorage.getItem('role') : null;
   // In dev-agent mode (Lovable preview), allow editor access without a Supabase session.
@@ -101,10 +105,17 @@ const CourseEditor = () => {
     return () => window.removeEventListener('beforeunload', handler);
   }, [hasUnsavedChanges]);
 
-  const loadCourse = useCallback(async () => {
+  const loadCourse = useCallback(async (opts?: { force?: boolean }) => {
     if (!courseId) return;
+    const force = opts?.force === true;
+
+    // Avoid duplicate concurrent loads
+    if (inFlightLoadRef.current) return;
+    // If we already loaded this course and aren't forcing, don't refetch.
+    if (!force && lastLoadedCourseIdRef.current === courseId && course) return;
 
     try {
+      inFlightLoadRef.current = true;
       setLoading(true);
       setError(null);
       editorTelemetry.opened(courseId); // Track editor opened
@@ -132,10 +143,12 @@ const CourseEditor = () => {
       setUnsavedItems(new Set());
       // Archived metadata fetch removed to avoid direct Supabase access in UI.
       setArchivedBanner(null);
+      lastLoadedCourseIdRef.current = courseId;
     } catch (err) {
       logger.error('[CourseEditor] Failed to load course:', err);
       setError(err instanceof Error ? err.message : 'Failed to load course');
     } finally {
+      inFlightLoadRef.current = false;
       setLoading(false);
     }
   }, [courseId]);
@@ -342,7 +355,7 @@ const CourseEditor = () => {
     if (!hasUnsavedChanges) return;
 
     if (confirm(`Discard ${unsavedItems.size} unsaved change(s)?`)) {
-      loadCourse();
+      loadCourse({ force: true });
     }
   };
 
