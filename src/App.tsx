@@ -73,7 +73,8 @@ function isLovableHost(): boolean {
 }
 
 const DevAgentSetupGate = ({ children }: { children: React.ReactNode }) => {
-  const enabled = useMemo(() => isLovableHost() && isDevAgentMode(), []);
+  const lovable = useMemo(() => isLovableHost(), []);
+  const enabled = useMemo(() => lovable && isDevAgentMode(), [lovable]);
   const [agentToken, setAgentToken] = useState("");
   const [orgId, setOrgId] = useState("");
   const [userId, setUserId] = useState("");
@@ -82,7 +83,9 @@ const DevAgentSetupGate = ({ children }: { children: React.ReactNode }) => {
   // where input focus/typing can be flaky. Values are persisted to sessionStorage and then
   // removed from the URL immediately.
   useEffect(() => {
-    if (!enabled || typeof window === "undefined") return;
+    // Important: parse URL params even if dev-agent is currently disabled for this tab.
+    // If the user shares a Lovable link with agentToken/orgId, we should recover automatically.
+    if (!lovable || typeof window === "undefined") return;
     try {
       const params = new URLSearchParams(window.location.search);
       const token =
@@ -119,6 +122,19 @@ const DevAgentSetupGate = ({ children }: { children: React.ReactNode }) => {
       if (org) setBoth("iz_dev_org_id", org);
       if (user) setBoth("iz_dev_user_id", user);
 
+      // If the URL explicitly provides dev-agent credentials, re-enable dev-agent mode
+      // for this tab (a previous "disable" click shouldn't brick the shared link).
+      try {
+        window.sessionStorage.removeItem("iz_dev_agent_disabled");
+      } catch {
+        // ignore
+      }
+      try {
+        window.localStorage.removeItem("iz_dev_agent_disabled");
+      } catch {
+        // ignore
+      }
+
       // Remove sensitive params from URL so they don't stick in history/referrer.
       ["iz_dev_agent_token", "devAgentToken", "agentToken", "iz_dev_org_id", "devOrgId", "orgId", "iz_dev_user_id", "devUserId", "userId"].forEach(
         (k) => params.delete(k)
@@ -132,7 +148,7 @@ const DevAgentSetupGate = ({ children }: { children: React.ReactNode }) => {
     } catch {
       // ignore
     }
-  }, [enabled]);
+  }, [lovable]);
 
   const missing = useMemo(() => {
     if (!enabled || typeof window === "undefined") return false;
