@@ -1,5 +1,5 @@
-import { config } from '../config.ts';
-import { fetchJson } from '../http.ts';
+import { config } from '../config.js';
+import { fetchJson } from '../http.js';
 
 export async function getOrgSettings({ params }: { params: { orgId?: string } }) {
   const q = params?.orgId ? `?orgId=${encodeURIComponent(params.orgId)}` : '';

@@ -1,5 +1,5 @@
-import { config } from '../config.ts';
-import { fetchJson } from '../http.ts';
+import { config } from '../config.js';
+import { fetchJson } from '../http.js';
 
 export async function studytextRewrite({ params }: { params: { courseId: string; index?: number } }) {
   const url = `${config.supabaseUrl}/functions/v1/studytext-rewrite`;

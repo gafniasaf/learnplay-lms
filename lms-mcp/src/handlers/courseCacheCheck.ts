@@ -1,4 +1,4 @@
-import { config } from '../config.ts';
+import { config } from '../config.js';
 
 export async function courseCacheCheck({ params }: { params: { courseId: string } }) {
 	const url = `${config.supabaseUrl}/functions/v1/get-course?courseId=${encodeURIComponent(params.courseId)}`;

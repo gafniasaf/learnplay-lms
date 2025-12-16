@@ -27,6 +27,9 @@ export const config = {
   organizationId: process.env.ORGANIZATION_ID,
   port: Number(process.env.PORT || 4000),
   host: process.env.HOST || '127.0.0.1',
+  serviceRoleKey: process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SERVICE_ROLE_KEY,
+  allowServiceRole: process.env.ALLOW_SERVICE_ROLE === 'true',
+  optionBEnabled: process.env.OPTION_B_ENABLED === 'true',
 };
 
 

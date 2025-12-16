@@ -11,7 +11,8 @@ export class GeneratedCompileMockups implements JobExecutor {
     // Basic interpolation
     if (payload) {
         Object.keys(payload).forEach(key => {
-        const val = typeof payload[key] === 'object' ? JSON.stringify(payload[key]) : String(payload[key] ?? '');
+        const val = typeof payload[key] === 'object' ? JSON.stringify(payload[key]) : payload[key];
+        prompt = prompt.replace(new RegExp('{{' + key + '}}', 'g'), val || '');
         });
     }
 
@@ -49,7 +50,7 @@ export class GeneratedCompileMockups implements JobExecutor {
         }
     } catch (err) {
         console.error(err);
-        return { error: (err as Error).message };
+        return { error: err.message };
     }
   }
 }

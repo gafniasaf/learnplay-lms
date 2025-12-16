@@ -123,8 +123,6 @@ export const ComparePanel = ({
   onReject,
   label = 'AI Suggestion',
 }: ComparePanelProps) => {
-  if (proposed === null) return null;
-
   const originalText = original ?? '';
   const proposedText = proposed ?? '';
   const hasChanges = originalText.trim() !== proposedText.trim();
@@ -133,6 +131,8 @@ export const ComparePanel = ({
   const proposedSummary = useMemo(() => parseContentSummary(proposedText), [proposedText]);
   
   const diff = useMemo(() => computeSimpleDiff(originalText, proposedText), [originalText, proposedText]);
+
+  if (proposed === null) return null;
 
   // No changes state - make it prominent
   if (!hasChanges) {

@@ -1,5 +1,5 @@
-import { config } from '../config.ts';
-import { fetchJson } from '../http.ts';
+import { config } from '../config.js';
+import { fetchJson } from '../http.js';
 
 export async function itemRewriteQuality({ params }: { params: { courseId: string; itemId: number } }) {
   const url = `${config.supabaseUrl}/functions/v1/item-rewrite-quality`;

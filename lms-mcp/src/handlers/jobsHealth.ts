@@ -1,4 +1,4 @@
-import { deadJobAudit } from './deadJobAudit.ts';
+import { deadJobAudit } from './deadJobAudit.js';
 
 export async function jobsHealth({ params }: { params?: { maxQueuedMin?: number; maxProcessingMin?: number } }) {
 	const res = await deadJobAudit({ params: params || {} });
