@@ -11,7 +11,9 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { invalidateCourseCache } from '@/lib/utils/cacheInvalidation';
 import { editorTelemetry } from '@/lib/utils/telemetry';
@@ -19,7 +21,7 @@ import type { PatchOperation } from '@/lib/api/updateCourse';
 import { useAuth } from '@/hooks/useAuth';
 import { useMCP } from '@/hooks/useMCP';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 import { Navigator } from '@/components/admin/editor/Navigator';
 import { StemTab } from '@/components/admin/editor/StemTab';
@@ -33,6 +35,9 @@ import { Link } from 'react-router-dom';
 import { JobProgress } from '@/components/shared/JobProgress';
 import { ItemPreview } from '@/components/admin/ItemPreview';
 import type { Course, CourseItem } from '@/lib/types/course';
+import { parseStudyText } from '@/lib/types/studyText';
+import { resolvePublicMediaUrl } from '@/lib/media/resolvePublicMediaUrl';
+import { generateMedia } from '@/lib/api/aiRewrites';
 import { DiffViewer } from '@/components/admin/DiffViewer';
 import { logger } from '@/lib/logging';
 import { useCoursePublishing } from './editor/hooks/useCoursePublishing';
@@ -70,14 +75,18 @@ const CourseEditor = () => {
   const [studyTextEditorIndex, setStudyTextEditorIndex] = useState<number | null>(null);
   const [studyTextEditorTitle, setStudyTextEditorTitle] = useState<string>('');
   const [studyTextEditorDraft, setStudyTextEditorDraft] = useState<string>('');
+  const [studyTextEditorLearningObjectives, setStudyTextEditorLearningObjectives] = useState<string>('');
+  const [studyTextAiRewriteLoading, setStudyTextAiRewriteLoading] = useState(false);
+  const [studyTextAiImageLoading, setStudyTextAiImageLoading] = useState(false);
   const [showMediaLibrary, setShowMediaLibrary] = useState(false);
   const [showComparePanel, setShowComparePanel] = useState(false);
   const [compareData, setCompareData] = useState<{
     original: string;
     proposed: string;
     type: 'text' | 'media';
-    scope: 'stem' | 'reference' | 'option';
+    scope: 'stem' | 'reference' | 'option' | 'studyText';
     optionIndex?: number;
+    studyTextIndex?: number;
   } | null>(null);
   const [showRewriteChat, setShowRewriteChat] = useState(false);
   const [chatTarget, setChatTarget] = useState<{ segment: 'stem' | 'reference' | 'option'; optionIndex?: number } | null>(null);
@@ -246,6 +255,7 @@ const CourseEditor = () => {
     setStudyTextEditorIndex(index);
     setStudyTextEditorTitle(String(st.title ?? 'Study Text'));
     setStudyTextEditorDraft(String(st.content ?? ''));
+    setStudyTextEditorLearningObjectives(Array.isArray(st.learningObjectives) ? st.learningObjectives.join(', ') : '');
     setStudyTextEditorOpen(true);
   };
 
@@ -260,11 +270,180 @@ const CourseEditor = () => {
       return;
     }
 
-    sts[studyTextEditorIndex] = { ...prev, content: studyTextEditorDraft };
+    const nextTitle = String(studyTextEditorTitle || '').trim();
+    if (!nextTitle) {
+      toast.error('Title is required');
+      return;
+    }
+
+    const loArr = String(studyTextEditorLearningObjectives || '')
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean);
+
+    sts[studyTextEditorIndex] = {
+      ...prev,
+      title: nextTitle,
+      content: studyTextEditorDraft,
+      learningObjectives: loArr.length ? loArr : undefined,
+    };
     setCourse({ ...(course as any), studyTexts: sts } as Course);
     setUnsavedItems((prevSet) => new Set(prevSet).add(`ST-${studyTextEditorIndex}`));
     setStudyTextEditorOpen(false);
     toast.success('Study text updated (unsaved)');
+  };
+
+  const appendStudyTextMarker = (marker: string) => {
+    setStudyTextEditorDraft((prev) => {
+      const base = String(prev || '');
+      const sep = base.endsWith('\n') || base.length === 0 ? '' : '\n';
+      return `${base}${sep}${marker}\n`;
+    });
+  };
+
+  const findLastNonUrlImageMarker = (content: string) => {
+    const re = /\[IMAGE:(.*?)\]/g;
+    const matches: Array<{ start: number; end: number; token: string }> = [];
+    let m: RegExpExecArray | null;
+    while ((m = re.exec(content)) !== null) {
+      matches.push({ start: m.index, end: re.lastIndex, token: String(m[1] ?? '').trim() });
+    }
+    const isUrl = (t: string) => /^https?:\/\//i.test(t) || t.startsWith('data:');
+    for (let i = matches.length - 1; i >= 0; i--) {
+      const tok = matches[i].token;
+      if (tok && !isUrl(tok)) return matches[i];
+    }
+    return null;
+  };
+
+  const handleAIRewriteStudyText = async (
+    styleHints?: Array<'simplify' | 'add_visual_cue' | 'more_formal' | 'more_casual' | 'add_context'>
+  ) => {
+    if (!course) return;
+    if (studyTextEditorIndex === null) {
+      toast.error('No study text selected');
+      return;
+    }
+    const current = String(studyTextEditorDraft || '').trim();
+    if (!current) {
+      toast.error('No content to rewrite');
+      return;
+    }
+
+    try {
+      setStudyTextAiRewriteLoading(true);
+      toast.info('Generating AI rewrite…');
+
+      const title = String(studyTextEditorTitle || '').trim();
+      const lo = String(studyTextEditorLearningObjectives || '').trim();
+
+      const result = await mcp.rewriteText({
+        segmentType: 'reference',
+        currentText: current,
+        styleHints,
+        context: {
+          subject: (course as any).subject || course.title,
+          difficulty: 'intermediate',
+          studyText: { title, learningObjectives: lo },
+          guidance:
+            'Rewrite this study text to be clearer, more engaging, and age-appropriate. ' +
+            'CRITICAL: Preserve all markers like [SECTION:...] and [IMAGE:...] exactly (do not remove them). ' +
+            'Do not output HTML; output plain text with the same marker structure.',
+          course: {
+            id: course.id,
+            title: course.title,
+            description: course.description,
+            gradeBand: (course as any).gradeBand,
+            subject: (course as any).subject,
+          },
+          audience: { gradeBand: (course as any).gradeBand },
+          brandVoice: { tone: 'encouraging, clear, concise' },
+        },
+        candidateCount: 1,
+      });
+
+      const proposed = result?.candidates?.[0]?.text;
+      if (!proposed) throw new Error('AI returned no rewrite');
+
+      setCompareData({
+        original: current,
+        proposed,
+        type: 'text',
+        scope: 'studyText',
+        studyTextIndex: studyTextEditorIndex,
+      });
+      setShowComparePanel(true);
+    } catch (e) {
+      console.error('[CourseEditor] StudyText rewrite failed:', e);
+      toast.error(e instanceof Error ? e.message : 'AI rewrite failed');
+    } finally {
+      setStudyTextAiRewriteLoading(false);
+    }
+  };
+
+  const handleAIImageForStudyText = async () => {
+    if (!course) return;
+    if (studyTextEditorIndex === null) {
+      toast.error('No study text selected');
+      return;
+    }
+
+    try {
+      setStudyTextAiImageLoading(true);
+      toast.info('Generating image…');
+
+      const title = String(studyTextEditorTitle || '').trim();
+      const lo = String(studyTextEditorLearningObjectives || '')
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean)
+        .slice(0, 6)
+        .join(', ');
+
+      const raw = String(studyTextEditorDraft || '');
+      const marker = findLastNonUrlImageMarker(raw);
+      const markerPrompt = marker?.token || '';
+      const firstSection = parseStudyText(raw)?.[0];
+      const firstContext = firstSection?.content?.join(' ') || '';
+
+      const subj = (course as any)?.subject || course?.title || 'General';
+      const prompt = [
+        `Simple learning visual for ${subj}.`,
+        title ? `Study text: ${title}.` : '',
+        lo ? `Learning objectives: ${lo}.` : '',
+        markerPrompt ? `Image request: ${markerPrompt}.` : '',
+        firstContext ? `Context: ${firstContext.slice(0, 220)}.` : '',
+        `Create a clean photo or realistic illustration that helps students understand this concept.`,
+        `IMPORTANT: Absolutely no text, letters, words, labels, numbers, or written language anywhere in the image.`,
+        `No diagrams, charts, or infographics. Just a clean visual representation.`,
+        `Original artwork only - no copyrighted characters or brands.`,
+        `Colorful, friendly, child-appropriate educational style.`,
+      ]
+        .filter(Boolean)
+        .join(' ');
+
+      const res = await generateMedia({
+        prompt,
+        kind: 'image',
+        options: { aspectRatio: '16:9', size: '1024x1024', quality: 'standard' },
+      });
+
+      setStudyTextEditorDraft((prev) => {
+        const base = String(prev || '');
+        if (marker) {
+          return `${base.slice(0, marker.start)}[IMAGE:${res.url}]${base.slice(marker.end)}`;
+        }
+        const sep = base.endsWith('\n') || base.length === 0 ? '' : '\n';
+        return `${base}${sep}[IMAGE:${res.url}]\n`;
+      });
+
+      toast.success('AI image inserted (remember to Save)');
+    } catch (e) {
+      console.error('[CourseEditor] StudyText image generation failed:', e);
+      toast.error(e instanceof Error ? e.message : 'AI image generation failed');
+    } finally {
+      setStudyTextAiImageLoading(false);
+    }
   };
 
   const generatePatchOps = (): PatchOperation[] => {
@@ -879,11 +1058,19 @@ const result = await mcp.rewriteText({
   // Handle comparison panel actions
   const handleAdoptComparison = () => {
     if (!compareData) return;
-    
-    const currentItem = getCurrentItem();
-    if (!currentItem) return;
 
     if (compareData.type === 'text') {
+      if (compareData.scope === 'studyText') {
+        setStudyTextEditorDraft(compareData.proposed);
+        setShowComparePanel(false);
+        setCompareData(null);
+        toast.success('Applied AI suggestion (remember to Save)');
+        return;
+      }
+
+      const currentItem = getCurrentItem();
+      if (!currentItem) return;
+
       if (compareData.scope === 'stem') {
         const updatedItem = (currentItem as any).stem
           ? { ...currentItem, stem: { ...(currentItem as any).stem, text: compareData.proposed } }
@@ -1664,20 +1851,139 @@ const result = await mcp.rewriteText({
                       </DialogDescription>
                     </DialogHeader>
 
-                    <div className="space-y-2">
-                      <Label>Title</Label>
-                      <div className="text-sm font-medium">{studyTextEditorTitle}</div>
-                    </div>
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="studytext-title">Title</Label>
+                        <Input
+                          id="studytext-title"
+                          value={studyTextEditorTitle}
+                          onChange={(e) => setStudyTextEditorTitle(e.target.value)}
+                          placeholder="Study text title"
+                        />
+                      </div>
 
-                    <div className="space-y-2">
-                      <Label htmlFor="studytext-content">Content</Label>
-                      <Textarea
-                        id="studytext-content"
-                        value={studyTextEditorDraft}
-                        onChange={(e) => setStudyTextEditorDraft(e.target.value)}
-                        rows={18}
-                        className="font-mono text-sm"
-                      />
+                      <div className="space-y-2">
+                        <Label htmlFor="studytext-learning-objectives">Learning Objectives (comma-separated)</Label>
+                        <Input
+                          id="studytext-learning-objectives"
+                          value={studyTextEditorLearningObjectives}
+                          onChange={(e) => setStudyTextEditorLearningObjectives(e.target.value)}
+                          placeholder="LO-01, LO-02"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="studytext-content">Content</Label>
+
+                        <div className="flex flex-wrap gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            data-cta-id="cta-studytext-marker-section"
+                            data-action="action"
+                            onClick={() => appendStudyTextMarker('[SECTION:New Section Title]')}
+                          >
+                            + [SECTION:]
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            data-cta-id="cta-studytext-marker-image"
+                            data-action="action"
+                            onClick={() => appendStudyTextMarker('[IMAGE:Describe the image you want]')}
+                          >
+                            + [IMAGE:]
+                          </Button>
+
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            data-cta-id="cta-studytext-ai-rewrite"
+                            data-action="action"
+                            disabled={studyTextAiRewriteLoading}
+                            onClick={() => handleAIRewriteStudyText()}
+                            className="bg-gradient-to-r from-purple-50 to-pink-50 border-purple-200 hover:from-purple-100 hover:to-pink-100"
+                          >
+                            <Sparkles className="h-3.5 w-3.5 mr-1.5 text-purple-600" />
+                            <span className="text-purple-700">{studyTextAiRewriteLoading ? 'Rewriting…' : 'AI Rewrite'}</span>
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            data-cta-id="cta-studytext-ai-simplify"
+                            data-action="action"
+                            disabled={studyTextAiRewriteLoading}
+                            onClick={() => handleAIRewriteStudyText(['simplify'])}
+                          >
+                            Simplify
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            data-cta-id="cta-studytext-ai-add-context"
+                            data-action="action"
+                            disabled={studyTextAiRewriteLoading}
+                            onClick={() => handleAIRewriteStudyText(['add_context'])}
+                          >
+                            Add Context
+                          </Button>
+
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            data-cta-id="cta-studytext-ai-image"
+                            data-action="action"
+                            disabled={studyTextAiImageLoading}
+                            onClick={handleAIImageForStudyText}
+                            className="bg-gradient-to-r from-purple-50 to-pink-50 border-purple-200 hover:from-purple-100 hover:to-pink-100"
+                          >
+                            <Sparkles className="h-3.5 w-3.5 mr-1.5 text-purple-600" />
+                            <span className="text-purple-700">{studyTextAiImageLoading ? 'Generating…' : 'AI Image'}</span>
+                          </Button>
+                        </div>
+
+                        <Textarea
+                          id="studytext-content"
+                          value={studyTextEditorDraft}
+                          onChange={(e) => setStudyTextEditorDraft(e.target.value)}
+                          rows={14}
+                          className="font-mono text-sm"
+                        />
+                      </div>
+
+                      <Separator />
+
+                      <div className="space-y-2">
+                        <Label>Preview</Label>
+                        <div className="max-h-[320px] overflow-auto p-4 border rounded-lg bg-muted/30 prose prose-sm max-w-none">
+                          {parseStudyText(studyTextEditorDraft).map((section, i) => (
+                            <div key={i} className="mb-4">
+                              <h4 className="font-semibold">{section.title}</h4>
+                              {section.content.map((p, j) => (
+                                <p key={j}>{p}</p>
+                              ))}
+                              {section.images.map((img, k) => {
+                                const resolved = resolvePublicMediaUrl(img, (course as any)?.contentVersion);
+                                return (
+                                  <div key={k} className="my-3">
+                                    <img
+                                      src={resolved}
+                                      alt={`Study illustration ${k + 1}`}
+                                      className="rounded-lg border shadow-sm max-w-full h-auto"
+                                    />
+                                    <div className="text-xs text-muted-foreground mt-1 break-all">
+                                      {img}
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          ))}
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          Tip: add markers like <code>[IMAGE:Child demonstrating squat form]</code>, then click <b>AI Image</b> to replace the last placeholder marker with a generated URL.
+                        </div>
+                      </div>
                     </div>
 
                     <DialogFooter>
