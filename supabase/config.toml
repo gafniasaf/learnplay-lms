@@ -70,9 +70,6 @@ verify_jwt = false
 [functions.env-audit]
 verify_jwt = false
 
-[functions.fix-catalog-entry]
-verify_jwt = false
-
 [functions.fix-schema]
 verify_jwt = false
 

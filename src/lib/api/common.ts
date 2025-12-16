@@ -287,6 +287,16 @@ function shouldUseAgentTokenAuth(): boolean {
 
 function getStorageValue(key: string): string | null {
   if (typeof window === "undefined") return null;
+
+  // Lovable/iframe environments can block sessionStorage/localStorage. Keep a small in-memory
+  // escape hatch so dev-agent credentials can still be provided via URL params or setup UIs.
+  try {
+    const mem = (globalThis as any).__izDevAgent as Record<string, unknown> | undefined;
+    const v = mem?.[key];
+    if (typeof v === "string" && v.trim()) return v.trim();
+  } catch {
+    // ignore
+  }
   // Prefer sessionStorage for iframe/preview stability.
   try {
     const v = window.sessionStorage.getItem(key);
@@ -297,6 +307,26 @@ function getStorageValue(key: string): string | null {
   try {
     const v = window.localStorage.getItem(key);
     if (v) return v;
+  } catch {
+    // ignore
+  }
+
+  // Final fallback for dev-agent keys: allow reading from URL params when storage is unavailable.
+  // NOTE: This is intended for preview-only flows (Lovable). Do not rely on it for production auth.
+  try {
+    const params = new URLSearchParams(window.location.search);
+    if (key === "iz_dev_agent_token") {
+      const token = params.get("iz_dev_agent_token") || params.get("devAgentToken") || params.get("agentToken");
+      if (token?.trim()) return token.trim();
+    }
+    if (key === "iz_dev_org_id") {
+      const orgId = params.get("iz_dev_org_id") || params.get("devOrgId") || params.get("orgId");
+      if (orgId?.trim()) return orgId.trim();
+    }
+    if (key === "iz_dev_user_id") {
+      const userId = params.get("iz_dev_user_id") || params.get("devUserId") || params.get("userId");
+      if (userId?.trim()) return userId.trim();
+    }
   } catch {
     // ignore
   }

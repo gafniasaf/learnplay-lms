@@ -14,26 +14,13 @@ const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
 async function courseReality(courseId: string) {
   let hasCourseJson = false;
-  let inCatalog = false;
 
   const { data: files } = await admin.storage.from("courses").list(courseId, { limit: 100, search: "course.json" });
   if (files && Array.isArray(files)) {
     hasCourseJson = files.some((f: any) => (f.name || "") === "course.json");
   }
 
-  const { data: catObj } = await admin.storage.from("courses").download("catalog.json");
-  if (catObj) {
-    try {
-      const txt = await catObj.text();
-      const cat = JSON.parse(txt);
-      const arr = Array.isArray(cat?.courses) ? cat.courses : [];
-      inCatalog = arr.some((c: any) => c?.id === courseId);
-    } catch {
-      inCatalog = false;
-    }
-  }
-
-  return { hasCourseJson, inCatalog };
+  return { hasCourseJson };
 }
 
 serve(
@@ -76,22 +63,21 @@ serve(
 
     for (const job of jobs || []) {
       const courseId = job.course_id as string;
-      const { hasCourseJson, inCatalog } = await courseReality(courseId);
-      const realityDone = Boolean(hasCourseJson || inCatalog);
+      const { hasCourseJson } = await courseReality(courseId);
+      const realityDone = Boolean(hasCourseJson);
 
       if (realityDone) {
         const result_path = (job as any).result_path || `${courseId}/course.json`;
         await admin.from("ai_course_jobs").update({ status: "done", result_path }).eq("id", job.id);
         try {
-          await emitJobEvent(job.id, "done", 100, "Reconciler: marked done based on reality (storage or catalog)", {
+          await emitJobEvent(job.id, "done", 100, "Reconciler: marked done based on reality (storage)", {
             result_path,
             hasCourseJson,
-            inCatalog,
           });
         } catch {
           // best-effort
         }
-        results.push({ jobId: job.id, action: "marked_done", hasCourseJson, inCatalog });
+        results.push({ jobId: job.id, action: "marked_done", hasCourseJson });
         continue;
       }
 

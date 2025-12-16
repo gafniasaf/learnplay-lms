@@ -16,7 +16,6 @@ const QuerySchema = z.object({
 
 async function courseReality(admin: any, courseId: string) {
   let courseJsonExists: boolean | null = null;
-  let catalogEntryExists: boolean | null = null;
   let storagePath: string | null = null;
 
   try {
@@ -30,21 +29,7 @@ async function courseReality(admin: any, courseId: string) {
     courseJsonExists = null;
   }
 
-  try {
-    const { data: catObj, error: dlErr } = await admin.storage.from("courses").download("catalog.json");
-    if (dlErr || !catObj) {
-      catalogEntryExists = null;
-    } else {
-      const txt = await catObj.text();
-      const cat = txt ? JSON.parse(txt) : null;
-      const arr = Array.isArray(cat?.courses) ? cat.courses : [];
-      catalogEntryExists = arr.some((c: any) => c?.id === courseId);
-    }
-  } catch {
-    catalogEntryExists = null;
-  }
-
-  return { courseJsonExists, catalogEntryExists, storagePath };
+  return { courseJsonExists, storagePath };
 }
 
 serve(
@@ -102,10 +87,10 @@ serve(
     let progress = typeof last?.progress === "number" ? last.progress : state === "done" ? 100 : state === "failed" ? 100 : 10;
 
     const courseId = (job as any).course_id as string | undefined;
-    let reality = { courseJsonExists: null as null | boolean, catalogEntryExists: null as null | boolean, storagePath: null as null | string };
+    let reality = { courseJsonExists: null as null | boolean, storagePath: null as null | string };
     if (courseId) {
       reality = await courseReality(admin, courseId);
-      const realityDone = reality.courseJsonExists === true || reality.catalogEntryExists === true;
+      const realityDone = reality.courseJsonExists === true;
       if (realityDone && state !== "done") {
         state = "done";
         step = "done";
@@ -122,7 +107,6 @@ serve(
       lastEventTime: last?.created_at ?? (job as any).updated_at ?? null,
       drift: {
         storage: reality.courseJsonExists === true,
-        catalog: reality.catalogEntryExists === true,
       },
       reality,
     };

@@ -113,6 +113,18 @@ const DevAgentSetupGate = ({ children }: { children: React.ReactNode }) => {
 
       if (!token && !org && !user) return;
 
+      // Always cache in-memory for iframe environments where storage may be blocked.
+      // This allows the app to use dev-agent auth immediately without requiring a reload.
+      try {
+        const g = globalThis as any;
+        g.__izDevAgent = g.__izDevAgent || {};
+        if (token) g.__izDevAgent.iz_dev_agent_token = token;
+        if (org) g.__izDevAgent.iz_dev_org_id = org;
+        if (user) g.__izDevAgent.iz_dev_user_id = user;
+      } catch {
+        // ignore
+      }
+
       // Persist to BOTH storages (best-effort):
       // - sessionStorage: per-tab stability
       // - localStorage: survives refresh/new tab (if allowed in this iframe)
@@ -152,9 +164,6 @@ const DevAgentSetupGate = ({ children }: { children: React.ReactNode }) => {
       const newQs = params.toString();
       const newUrl = `${window.location.pathname}${newQs ? `?${newQs}` : ""}${window.location.hash}`;
       window.history.replaceState({}, "", newUrl);
-
-      // Reload so all API calls pick up the new storage values.
-      window.location.reload();
     } catch {
       // ignore
     }
