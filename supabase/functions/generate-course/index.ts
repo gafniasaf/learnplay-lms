@@ -44,6 +44,17 @@ function normalizeSubjectForSafety(subject: string, gradeBand: string): string {
   const s = raw.toLowerCase();
   const band = String(gradeBand || "").toLowerCase();
 
+  // Reject vulgar slurs/phrases early so we don't spend tokens on an LLM refusal,
+  // and so the UI can display a clear "rephrase" message.
+  const containsInappropriateLanguage =
+    /\b(pussy|pussies)\b/i.test(raw);
+  if (containsInappropriateLanguage) {
+    throw new Error(
+      'invalid_request: Subject contains inappropriate language. ' +
+        'Please rephrase using school-appropriate wording (e.g., "squat form for beginners").'
+    );
+  }
+
   // Minimal safety normalization:
   // - We don't generate explicit sexual content from slang inputs.
   // - For older students, we can reframe into medically accurate anatomy.
@@ -541,15 +552,20 @@ Deno.serve(
       // - the job is marked failed with the real message
       // - the response contains the real message + code
       const code =
+        message.startsWith("invalid_request:") ? "invalid_request" :
         message.startsWith("validation_failed:") ? "validation_failed" :
         message.startsWith("llm_fill_failed:") ? "llm_fill_failed" :
         message.startsWith("deterministic_failed:") ? "deterministic_failed" :
         "generation_failed";
 
+      const safeMessage = message.startsWith("invalid_request:")
+        ? message.replace(/^invalid_request:\s*/i, "")
+        : message;
+
       return jsonOk(
         {
           success: false,
-          error: { code, message },
+          error: { code, message: safeMessage },
           jobId,
         },
         requestId,

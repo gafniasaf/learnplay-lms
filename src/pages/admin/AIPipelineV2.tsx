@@ -197,7 +197,12 @@ export default function AIPipelineV2() {
         setState('creating');
       } else if (job.status === 'failed') {
         setState('idle'); // Reset on failure
-        toast.error('Course generation failed. Please try again.');
+        const details = typeof (job as any)?.error === 'string' && (job as any).error.trim()
+          ? String((job as any).error)
+          : null;
+        toast.error('Course generation failed', {
+          description: details ?? 'Please try again.',
+        });
         setCurrentJobId(null);
         setCurrentCourseId(null);
         try { sessionStorage.removeItem('selectedJobId'); } catch {}
