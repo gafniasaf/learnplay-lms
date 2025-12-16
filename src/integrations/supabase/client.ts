@@ -5,9 +5,6 @@ import { getRuntimeConfigSync } from '@/lib/runtimeConfig';
 // Avoid strict typing against generated Database types in varied environments
 // to prevent build-time type mismatches when tables differ.
 
-// Default to LIVE mode (production behavior). Only use mock when explicitly set to 'true'
-const USE_MOCK = String((import.meta as any).env?.VITE_USE_MOCK) === 'true';
-
 // Read config from env first, then runtime /app-config.json (Lovable-style hosts).
 const SUPABASE_URL: string | undefined =
   (import.meta as any).env?.VITE_SUPABASE_URL ||
@@ -17,46 +14,14 @@ const SUPABASE_KEY: string | undefined =
   (import.meta as any).env?.VITE_SUPABASE_ANON_KEY ||
   getRuntimeConfigSync()?.supabase?.publishableKey;
 
-// Per IgniteZero "No Silent Mocks" policy: FAIL LOUDLY if credentials missing in live mode
-if (!USE_MOCK && (!SUPABASE_URL || !SUPABASE_KEY)) {
+// IgniteZero: FAIL LOUDLY if credentials missing (mock mode is forbidden).
+if (!SUPABASE_URL || !SUPABASE_KEY) {
   throw new Error(
     '❌ BLOCKED: Missing Supabase credentials.\n' +
       '   Configure VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY (or VITE_SUPABASE_ANON_KEY).\n' +
-      '   Or set VITE_USE_MOCK=true for development without a backend.'
+      '   (Lovable/preview hosts may provide these via /app-config.json.)'
   );
 }
-
-// In mock mode, short-circuit all Supabase calls to avoid network dependency during E2E.
-const mockSupabase = {
-  functions: {
-     
-    invoke: async (): Promise<{ data: any; error: null }> => ({ data: null, error: null }),
-  },
-  auth: {
-     
-    getUser: async (): Promise<{ data: any; error: null }> => ({ data: { user: null }, error: null }),
-    getSession: async (): Promise<{ data: { session: null }; error: null }> => ({ data: { session: null }, error: null }),
-    signInWithPassword: async (): Promise<{ data: any; error: null }> => ({ data: { user: null, session: null }, error: null }),
-    signUp: async (): Promise<{ data: any; error: null }> => ({ data: { user: null, session: null }, error: null }),
-    signOut: async (): Promise<{ error: null }> => ({ error: null }),
-    onAuthStateChange: (_callback: any) => {
-      // Return unsubscribe function
-      return { data: { subscription: { unsubscribe: () => {} } } };
-    },
-  },
-  from: () => ({
-    select: () => ({ data: [], error: null }),
-    insert: () => ({ data: null, error: null }),
-    update: () => ({ data: null, error: null }),
-    delete: () => ({ data: null, error: null }),
-  }),
-  storage: {
-    from: () => ({
-      upload: async () => ({ data: null, error: null }),
-      getPublicUrl: () => ({ data: { publicUrl: 'https://mock.storage.url/file' } }),
-    }),
-  },
-} as any;
 
 // Safe localStorage wrapper to handle restricted iframe environments
 const safeStorage = (() => {
@@ -79,27 +44,18 @@ const safeStorage = (() => {
 
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
-export const supabase = USE_MOCK
-  ? mockSupabase
-  : createClient<any>(
-      SUPABASE_URL as string,
-      SUPABASE_KEY as string,
-      {
-        auth: {
-          storage: safeStorage,
-          persistSession: true,
-          autoRefreshToken: true,
-        }
-      }
-    );
+export const supabase = createClient<any>(SUPABASE_URL as string, SUPABASE_KEY as string, {
+  auth: {
+    storage: safeStorage,
+    persistSession: true,
+    autoRefreshToken: true,
+  },
+});
 
 /**
  * Helper function to get the current user's access token
  */
 export async function getAccessToken(): Promise<string | null> {
-  if (USE_MOCK) {
-    return 'mock-access-token';
-  }
   const { data: { session } } = await supabase.auth.getSession();
   return session?.access_token ?? null;
 }

@@ -18,7 +18,6 @@ import type {
   GetRecommendedCoursesResponse,
   GetAutoAssignSettingsResponse,
   StudentGoalsResponse,
-  StudentTimelineResponse,
   StudentAchievementsResponse,
   ParentChildrenResponse,
   ParentGoalsResponse,
@@ -40,9 +39,16 @@ import type {
   GetOrgConfigResponse,
   Assignment,
 } from '@/lib/types/edge-functions';
+import type { StudentTimelineResponse as StudentTimelineUiResponse } from "@/lib/api/studentTimeline";
 
-// Mock mode for E2E testing - returns demo data without network calls
-const useMockMode = import.meta.env.VITE_USE_MOCK === 'true' || import.meta.env.VITE_USE_MOCK === '1';
+// IgniteZero: mock mode is forbidden (fail loudly if anyone tries to enable it).
+const MOCK_MODE_REQUESTED =
+  import.meta.env.VITE_USE_MOCK === "true" || import.meta.env.VITE_USE_MOCK === "1";
+if (MOCK_MODE_REQUESTED) {
+  throw new Error(
+    "❌ MOCK MODE FORBIDDEN: VITE_USE_MOCK is not supported. Remove mock responses and implement missing backend Edge functions instead."
+  );
+}
 
 function shouldUseMCPProxy(): boolean {
   // Runtime config wins (Lovable preview / deployed environments without env injection)
@@ -54,48 +60,7 @@ function shouldUseMCPProxy(): boolean {
   return import.meta.env.VITE_USE_MCP_PROXY === 'true' || import.meta.env.VITE_USE_MCP_PROXY === '1';
 }
 
-// Mock data for E2E testing
-const MOCK_DATA: Record<string, unknown> = {
-  'learner-profile': {
-    records: [{
-      id: 'mock-1',
-      fullName: 'Demo Student',
-      currentMinutes: 45,
-      weeklyGoalMinutes: 60,
-      streakDays: 3,
-      totalSessions: 12,
-      averageAccuracy: 78,
-    }],
-  },
-  'assignment': {
-    records: [{
-      id: 'mock-assign-1',
-      title: 'Fractions Practice',
-      subject: 'Mathematics',
-      status: 'in_progress',
-    }],
-  },
-  'course-blueprint': {
-    records: [],
-  },
-  'message-thread': {
-    records: [{
-      id: 'thread-1',
-      title: 'Math Help',
-      participant_ids: ['user-1', 'teacher-1'],
-      last_message: 'Thanks for the help!',
-    }],
-  },
-  'job-ticket': {
-    records: [],
-  },
-  'session-event': {
-    records: [],
-  },
-  'goal-update': {
-    records: [],
-  },
-};
+
 
 interface MCPResponse<T = unknown> {
   result?: T;
@@ -185,12 +150,6 @@ export function useMCP() {
   const enqueueJob = async (jobType: string, payload: Record<string, unknown> = {}): Promise<EnqueueJobResult> => {
     setLoading(true);
     try {
-      // Mock mode for E2E testing
-      if (useMockMode) {
-        console.log('[MCP Mock] enqueueJob:', jobType, payload);
-        return { ok: true, jobId: 'mock-job-id' };
-      }
-
       if (shouldUseMCPProxy()) {
         return await callMCP<EnqueueJobResult>('lms.enqueueJob', { jobType, payload });
       }
@@ -292,12 +251,6 @@ export function useMCP() {
   const saveRecord = async (entity: string, values: Record<string, unknown>) => {
     setLoading(true);
     try {
-      // Mock mode for E2E testing
-      if (useMockMode) {
-        console.log('[MCP Mock] saveRecord:', entity, values);
-        return { ok: true, id: values.id || 'mock-saved-id' };
-      }
-
       if (shouldUseMCPProxy()) {
         return await callMCP('lms.saveRecord', { entity, values });
       }
@@ -311,13 +264,6 @@ export function useMCP() {
   const getRecord = async (entity: string, id: string) => {
     setLoading(true);
     try {
-      // Mock mode for E2E testing
-      if (useMockMode) {
-        console.log('[MCP Mock] getRecord:', entity, id);
-        const mockRecords = MOCK_DATA[entity] as { records?: unknown[] } | undefined;
-        return { record: mockRecords?.records?.[0] || null };
-      }
-
       if (shouldUseMCPProxy()) {
         return await callMCP('lms.getRecord', { entity, id });
       }
@@ -331,12 +277,6 @@ export function useMCP() {
   const listRecords = async (entity: string, limit = 20) => {
     setLoading(true);
     try {
-      // Mock mode for E2E testing
-      if (useMockMode) {
-        console.log('[MCP Mock] listRecords:', entity, limit);
-        return MOCK_DATA[entity] || { records: [] };
-      }
-
       if (shouldUseMCPProxy()) {
         return await callMCP<ListRecordsResponse>('lms.listRecords', { entity, limit });
       }
@@ -357,12 +297,6 @@ export function useMCP() {
   const listJobs = async (limit = 20) => {
     setLoading(true);
     try {
-      // Mock mode for E2E testing
-      if (useMockMode) {
-        console.log('[MCP Mock] listJobs:', limit);
-        return { jobs: [] };
-      }
-
       if (shouldUseMCPProxy()) {
         return await callMCP<ListJobsResponse>('lms.listJobs', { limit });
       }
@@ -379,10 +313,6 @@ export function useMCP() {
     async (params: { status?: string; sinceHours?: number; limit?: number; search?: string } = {}) => {
       setLoading(true);
       try {
-        if (useMockMode) {
-          console.log('[MCP Mock] listCourseJobs:', params);
-          return { ok: true, jobs: [], total: 0 };
-        }
         const queryParams: Record<string, string> = {};
         if (params.status) queryParams.status = params.status;
         if (params.sinceHours !== undefined) queryParams.sinceHours = String(params.sinceHours);
@@ -402,10 +332,6 @@ export function useMCP() {
     async (jobId: string, includeEvents = false) => {
       setLoading(true);
       try {
-        if (useMockMode) {
-          console.log('[MCP Mock] getCourseJob:', jobId);
-          return { ok: true, job: null, events: [] };
-        }
         return await callEdgeFunctionGet<GetJobResponse>('get-course-job', {
           id: jobId,
           includeEvents: includeEvents ? 'true' : 'false',
@@ -421,10 +347,6 @@ export function useMCP() {
   const requeueJob = async (jobId: string, jobTable: 'ai_course_jobs' | 'ai_media_jobs' = 'ai_course_jobs') => {
     setLoading(true);
     try {
-      if (useMockMode) {
-        console.log('[MCP Mock] requeueJob:', jobId, jobTable);
-        return { ok: true, message: 'Job requeued (mock)' };
-      }
       return await callEdgeFunction<{ ok: boolean; message: string }>('requeue-job', { jobId, jobTable });
     } finally {
       setLoading(false);
@@ -435,10 +357,6 @@ export function useMCP() {
   const deleteJob = async (jobId: string, jobTable: 'ai_course_jobs' | 'ai_media_jobs' = 'ai_course_jobs') => {
     setLoading(true);
     try {
-      if (useMockMode) {
-        console.log('[MCP Mock] deleteJob:', jobId, jobTable);
-        return { ok: true, message: 'Job deleted (mock)' };
-      }
       return await callEdgeFunction<{ ok: boolean; message: string }>('delete-job', { jobId, jobTable });
     } finally {
       setLoading(false);
@@ -449,10 +367,6 @@ export function useMCP() {
   const getJobMetrics = async (sinceHours = 24) => {
     setLoading(true);
     try {
-      if (useMockMode) {
-        console.log('[MCP Mock] getJobMetrics:', sinceHours);
-        return { ok: true, courseJobs: { total: 0, byStatus: {} }, mediaJobs: { total: 0, byStatus: {} } };
-      }
       return await callEdgeFunctionGet<{ ok: boolean; courseJobs: Record<string, any>; mediaJobs: Record<string, any> }>(
         "get-job-metrics",
         { sinceHours: String(sinceHours) }
@@ -466,11 +380,6 @@ export function useMCP() {
   const callGet = async <T = unknown>(method: string, params: Record<string, string> = {}): Promise<T> => {
     setLoading(true);
     try {
-      if (useMockMode) {
-        console.log('[MCP Mock] callGet:', method, params);
-        return { ok: true } as T;
-      }
-      
       // Pre-flight auth check for non-local
       if (!shouldUseMCPProxy()) {
         const token = await checkAuth();
@@ -512,16 +421,6 @@ export function useMCP() {
   const call = async <T = unknown>(method: string, params: Record<string, unknown> = {}): Promise<T> => {
     setLoading(true);
     try {
-      // Mock mode for E2E testing
-      if (useMockMode) {
-        console.log('[MCP Mock] call:', method, params);
-        // Handle health check
-        if (method === 'health' || method === 'lms.health') {
-          return { ok: true, services: { database: true, mcp: true } } as T;
-        }
-        return { ok: true } as T;
-      }
-
       // Pre-flight auth check for non-local
       if (!shouldUseMCPProxy()) {
         const token = await checkAuth();
@@ -564,10 +463,6 @@ export function useMCP() {
   const startGameRound = async (courseId: string, level: number, assignmentId?: string, contentVersion?: string) => {
     setLoading(true);
     try {
-      if (useMockMode) {
-        console.log('[MCP Mock] startGameRound:', courseId, level, assignmentId);
-        return { sessionId: 'mock-session-id', roundId: 'mock-round-id', startedAt: new Date().toISOString() };
-      }
       return await callEdgeFunction<{ sessionId: string; roundId: string; startedAt: string }>('game-start-round', {
         courseId,
         level,
@@ -591,10 +486,6 @@ export function useMCP() {
   ) => {
     setLoading(true);
     try {
-      if (useMockMode) {
-        console.log('[MCP Mock] logGameAttempt:', roundId, itemId, isCorrect);
-        return { attemptId: 'mock-attempt-id', roundId, final: finalize ? { finalScore: 10, endedAt: new Date().toISOString() } : undefined };
-      }
       return await callEdgeFunction<{ attemptId: string; roundId: string; final?: { finalScore: number; endedAt: string } }>(
         'game-log-attempt',
         {
@@ -616,14 +507,6 @@ export function useMCP() {
   const getAnalytics = async (courseId: string, range: '7' | '30' | '90' = '7') => {
     setLoading(true);
     try {
-      if (useMockMode) {
-        console.log('[MCP Mock] getAnalytics:', courseId, range);
-        return {
-          dailyData: [],
-          summary: { totalSessions: 0, totalAttempts: 0, overallAccuracy: 0 },
-          topStudents: [],
-        };
-      }
       return await callEdgeFunctionGet<{
         dailyData: Array<{ date: string; sessions: number; attempts: number; accuracy: number }>;
         summary: { totalSessions: number; totalAttempts: number; overallAccuracy: number };
@@ -645,10 +528,6 @@ export function useMCP() {
   }) => {
     setLoading(true);
     try {
-      if (useMockMode) {
-        console.log('[MCP Mock] getStudentSkills:', params);
-        return { skills: [], totalCount: 0 };
-      }
       return await callEdgeFunction<GetStudentSkillsResponse>('get-student-skills', params);
     } finally {
       setLoading(false);
@@ -664,10 +543,6 @@ export function useMCP() {
   }) => {
     setLoading(true);
     try {
-      if (useMockMode) {
-        console.log('[MCP Mock] getClassKOSummary:', params);
-        return [];
-      }
       return await callEdgeFunction<GetClassKOSummaryResponse>('get-class-ko-summary', params);
     } finally {
       setLoading(false);
@@ -682,10 +557,6 @@ export function useMCP() {
   }) => {
     setLoading(true);
     try {
-      if (useMockMode) {
-        console.log('[MCP Mock] updateMastery:', params);
-        return { oldMastery: 0, newMastery: params.exerciseScore, evidenceCount: 1 };
-      }
       return await callEdgeFunction<UpdateMasteryResponse>('update-mastery', params);
     } finally {
       setLoading(false);
@@ -695,10 +566,6 @@ export function useMCP() {
   const getDomainGrowth = async (studentId: string) => {
     setLoading(true);
     try {
-      if (useMockMode) {
-        console.log('[MCP Mock] getDomainGrowth:', studentId);
-        return [];
-      }
       return await callEdgeFunction<GetDomainGrowthResponse>('get-domain-growth', { studentId });
     } finally {
       setLoading(false);
@@ -708,10 +575,6 @@ export function useMCP() {
   const getRecommendedCourses = async (koId: string, studentId: string, limit?: number) => {
     setLoading(true);
     try {
-      if (useMockMode) {
-        console.log('[MCP Mock] getRecommendedCourses:', koId, studentId);
-        return [];
-      }
       const queryParams: Record<string, string> = { koId, studentId };
       if (limit !== undefined) queryParams.limit = String(limit);
       return await callEdgeFunctionGet<GetRecommendedCoursesResponse>("get-recommended-courses", queryParams);
@@ -723,10 +586,6 @@ export function useMCP() {
   const getAutoAssignSettings = async (studentId: string) => {
     setLoading(true);
     try {
-      if (useMockMode) {
-        console.log('[MCP Mock] getAutoAssignSettings:', studentId);
-        return null;
-      }
       return await callEdgeFunctionGet<GetAutoAssignSettingsResponse | null>("get-auto-assign-settings", { studentId });
     } finally {
       setLoading(false);
@@ -736,10 +595,6 @@ export function useMCP() {
   const updateAutoAssignSettings = async (studentId: string, settings: Record<string, unknown>) => {
     setLoading(true);
     try {
-      if (useMockMode) {
-        console.log('[MCP Mock] updateAutoAssignSettings:', studentId, settings);
-        return { studentId, ...settings, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() };
-      }
       return await callEdgeFunction<GetAutoAssignSettingsResponse>('update-auto-assign-settings', { studentId, settings });
     } finally {
       setLoading(false);
@@ -753,10 +608,6 @@ export function useMCP() {
   }) => {
     setLoading(true);
     try {
-      if (useMockMode) {
-        console.log('[MCP Mock] getStudentAssignments:', params);
-        return [];
-      }
       return await callEdgeFunction<Array<Assignment>>('get-student-assignments', params);
     } finally {
       setLoading(false);
@@ -775,10 +626,6 @@ export function useMCP() {
   }) => {
     setLoading(true);
     try {
-      if (useMockMode) {
-        console.log('[MCP Mock] createAssignment:', params);
-        return { assignmentIds: params.studentIds.map(id => `assign-${Date.now()}-${id}`), success: true };
-      }
       return await callEdgeFunction<{ assignmentIds: string[]; success: boolean }>('create-assignment', params);
     } finally {
       setLoading(false);
@@ -789,10 +636,6 @@ export function useMCP() {
   const getStudentGoals = async (params?: { studentId?: string; status?: string }) => {
     setLoading(true);
     try {
-      if (useMockMode) {
-        console.log('[MCP Mock] getStudentGoals:', params);
-        return { goals: [], summary: { total: 0, onTrack: 0, behind: 0, completed: 0 } };
-      }
       const queryParams: Record<string, string> = {};
       if (params?.studentId) queryParams.studentId = params.studentId;
       if (params?.status) queryParams.status = params.status;
@@ -805,10 +648,6 @@ export function useMCP() {
   const updateStudentGoal = async (goalId: string, updates: { progress_minutes?: number; status?: string; teacher_note?: string }) => {
     setLoading(true);
     try {
-      if (useMockMode) {
-        console.log('[MCP Mock] updateStudentGoal:', goalId, updates);
-        return { id: goalId, ...updates, updated_at: new Date().toISOString() };
-      }
       // Use direct fetch for PATCH since callEdgeFunction only supports POST
       const { getAccessToken } = await import("@/integrations/supabase/client");
       const supabaseUrl = (await import("@/lib/api/common")).getSupabaseUrl();
@@ -838,15 +677,37 @@ export function useMCP() {
   const getStudentTimeline = async (params?: { studentId?: string; limit?: number; cursor?: string }) => {
     setLoading(true);
     try {
-      if (useMockMode) {
-        console.log('[MCP Mock] getStudentTimeline:', params);
-        return { events: [], nextCursor: null };
-      }
       const queryParams: Record<string, string> = {};
       if (params?.studentId) queryParams.studentId = params.studentId;
       if (params?.limit !== undefined) queryParams.limit = String(params.limit);
       if (params?.cursor) queryParams.cursor = params.cursor;
-      return await callEdgeFunctionGet<StudentTimelineResponse>("student-timeline", queryParams);
+
+      type EdgeEvent = {
+        id: string;
+        student_id: string;
+        event_type: string;
+        description: string;
+        metadata: Record<string, any> | null;
+        occurred_at: string;
+      };
+      type EdgeResponse = { events: EdgeEvent[]; nextCursor: string | null; hasMore: boolean };
+
+      const resp = await callEdgeFunctionGet<EdgeResponse>("student-timeline", queryParams);
+
+      return {
+        events: Array.isArray(resp?.events)
+          ? resp.events.map((e) => ({
+              id: e.id,
+              studentId: e.student_id,
+              eventType: e.event_type,
+              description: e.description,
+              metadata: e.metadata ?? {},
+              occurredAt: e.occurred_at,
+            }))
+          : [],
+        nextCursor: resp?.nextCursor ?? null,
+        hasMore: Boolean(resp?.hasMore),
+      } satisfies StudentTimelineUiResponse;
     } finally {
       setLoading(false);
     }
@@ -855,10 +716,6 @@ export function useMCP() {
   const getStudentAchievements = async (studentId?: string) => {
     setLoading(true);
     try {
-      if (useMockMode) {
-        console.log('[MCP Mock] getStudentAchievements:', studentId);
-        return { achievements: [], total: 0 };
-      }
       return await callEdgeFunctionGet<StudentAchievementsResponse>(
         "student-achievements",
         studentId ? { studentId } : undefined
@@ -872,10 +729,6 @@ export function useMCP() {
   const getParentDashboard = async (parentId?: string) => {
     setLoading(true);
     try {
-      if (useMockMode) {
-        console.log('[MCP Mock] getParentDashboard:', parentId);
-        return { children: [], summary: { totalChildren: 0, activeGoals: 0, completedGoals: 0 } };
-      }
       // Per NO-FALLBACK policy: parentId is required, fail explicitly if missing
       if (!parentId) {
         throw new Error("parentId is required for parent-dashboard - no anonymous access");
@@ -892,10 +745,6 @@ export function useMCP() {
   const getParentChildren = async (parentId?: string) => {
     setLoading(true);
     try {
-      if (useMockMode) {
-        console.log('[MCP Mock] getParentChildren:', parentId);
-        return { children: [] };
-      }
       // Per NO-FALLBACK policy: parentId is required, fail explicitly if missing
       if (!parentId) {
         throw new Error("parentId is required for parent-children - no anonymous access");
@@ -909,10 +758,6 @@ export function useMCP() {
   const getParentGoals = async (childId: string) => {
     setLoading(true);
     try {
-      if (useMockMode) {
-        console.log('[MCP Mock] getParentGoals:', childId);
-        return { goals: [], summary: { total: 0, onTrack: 0, behind: 0, completed: 0 } };
-      }
       return await callEdgeFunctionGet<ParentGoalsResponse>("parent-goals", { childId });
     } finally {
       setLoading(false);
@@ -922,10 +767,6 @@ export function useMCP() {
   const getParentSubjects = async (childId: string) => {
     setLoading(true);
     try {
-      if (useMockMode) {
-        console.log('[MCP Mock] getParentSubjects:', childId);
-        return { subjects: [] };
-      }
       return await callEdgeFunctionGet<ParentSubjectsResponse>("parent-subjects", { childId });
     } finally {
       setLoading(false);
@@ -935,10 +776,6 @@ export function useMCP() {
   const getParentTimeline = async (childId: string, limit?: number) => {
     setLoading(true);
     try {
-      if (useMockMode) {
-        console.log('[MCP Mock] getParentTimeline:', childId, limit);
-        return { events: [], nextCursor: null };
-      }
       const queryParams: Record<string, string> = { childId };
       if (limit !== undefined) queryParams.limit = String(limit);
       return await callEdgeFunctionGet<ParentTimelineResponse>("parent-timeline", queryParams);
@@ -950,10 +787,6 @@ export function useMCP() {
   const getParentTopics = async (childId: string) => {
     setLoading(true);
     try {
-      if (useMockMode) {
-        console.log('[MCP Mock] getParentTopics:', childId);
-        return { topics: [] };
-      }
       return await callEdgeFunctionGet<ParentTopicsResponse>("parent-topics", { childId });
     } finally {
       setLoading(false);
@@ -964,11 +797,6 @@ export function useMCP() {
   const listClasses = async () => {
     setLoading(true);
     try {
-      if (useMockMode) {
-        console.log('[MCP Mock] listClasses');
-        return { classes: [] };
-      }
-      
       // Pre-flight auth check
       const token = await checkAuth();
       if (!token) {
@@ -990,10 +818,6 @@ export function useMCP() {
   const getClassRoster = async (classId: string) => {
     setLoading(true);
     try {
-      if (useMockMode) {
-        console.log('[MCP Mock] getClassRoster:', classId);
-        return { members: [], pendingInvites: [] };
-      }
       return await callEdgeFunctionGet<GetClassRosterResponse>("get-class-roster", { classId });
     } finally {
       setLoading(false);
@@ -1003,10 +827,6 @@ export function useMCP() {
   const createClass = async (name: string, description?: string) => {
     setLoading(true);
     try {
-      if (useMockMode) {
-        console.log('[MCP Mock] createClass:', name, description);
-        return { class: { id: `class-${Date.now()}`, name, description, owner: 'mock-owner', created_at: new Date().toISOString() } };
-      }
       return await callEdgeFunction<{ class: { id: string; name: string; description?: string; owner: string; created_at: string } }>('create-class', { name, description });
     } finally {
       setLoading(false);
@@ -1016,10 +836,6 @@ export function useMCP() {
   const addClassMember = async (classId: string, studentEmail: string) => {
     setLoading(true);
     try {
-      if (useMockMode) {
-        console.log('[MCP Mock] addClassMember:', classId, studentEmail);
-        return { ok: true };
-      }
       return await callEdgeFunction<{ ok: boolean }>('add-class-member', { classId, studentEmail });
     } finally {
       setLoading(false);
@@ -1029,10 +845,6 @@ export function useMCP() {
   const removeClassMember = async (classId: string, studentId: string) => {
     setLoading(true);
     try {
-      if (useMockMode) {
-        console.log('[MCP Mock] removeClassMember:', classId, studentId);
-        return { ok: true };
-      }
       return await callEdgeFunction<{ ok: boolean }>('remove-class-member', { classId, studentId });
     } finally {
       setLoading(false);
@@ -1042,10 +854,6 @@ export function useMCP() {
   const inviteStudent = async (orgId: string, classId: string, email: string) => {
     setLoading(true);
     try {
-      if (useMockMode) {
-        console.log('[MCP Mock] inviteStudent:', orgId, classId, email);
-        return { inviteId: `invite-${Date.now()}`, success: true };
-      }
       return await callEdgeFunction<{ inviteId: string; success: boolean }>('invite-student', { orgId, classId, email });
     } finally {
       setLoading(false);
@@ -1055,10 +863,6 @@ export function useMCP() {
   const generateClassCode = async (classId: string, refreshCode?: boolean) => {
     setLoading(true);
     try {
-      if (useMockMode) {
-        console.log('[MCP Mock] generateClassCode:', classId, refreshCode);
-        return { code: 'ABCD1234', expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString() };
-      }
       return await callEdgeFunction<{ code: string; expiresAt: string }>('generate-class-code', { classId, refreshCode });
     } finally {
       setLoading(false);
@@ -1068,10 +872,6 @@ export function useMCP() {
   const joinClass = async (code: string) => {
     setLoading(true);
     try {
-      if (useMockMode) {
-        console.log('[MCP Mock] joinClass:', code);
-        return { success: true, classId: 'mock-class-id' };
-      }
       return await callEdgeFunction<{ success: boolean; classId?: string }>('join-class', { code: code.toUpperCase() });
     } finally {
       setLoading(false);
@@ -1081,10 +881,6 @@ export function useMCP() {
   const createChildCode = async (studentId: string) => {
     setLoading(true);
     try {
-      if (useMockMode) {
-        console.log('[MCP Mock] createChildCode:', studentId);
-        return { code: 'CHILD1234', expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString() };
-      }
       return await callEdgeFunction<{ code: string; expiresAt: string }>('create-child-code', { studentId });
     } finally {
       setLoading(false);
@@ -1094,10 +890,6 @@ export function useMCP() {
   const linkChild = async (code: string) => {
     setLoading(true);
     try {
-      if (useMockMode) {
-        console.log('[MCP Mock] linkChild:', code);
-        return { success: true, childId: 'mock-child-id' };
-      }
       return await callEdgeFunction<{ success: boolean; childId?: string }>('link-child', { code });
     } finally {
       setLoading(false);
@@ -1108,10 +900,6 @@ export function useMCP() {
   const sendMessage = async (recipientId: string, content: string) => {
     setLoading(true);
     try {
-      if (useMockMode) {
-        console.log('[MCP Mock] sendMessage:', recipientId, content);
-        return { messageId: `msg-${Date.now()}`, success: true };
-      }
       return await callEdgeFunction<{ messageId: string; success: boolean }>('send-message', { recipientId, content });
     } finally {
       setLoading(false);
@@ -1121,10 +909,6 @@ export function useMCP() {
   const listConversations = async () => {
     setLoading(true);
     try {
-      if (useMockMode) {
-        console.log('[MCP Mock] listConversations');
-        return { conversations: [] };
-      }
       return await callEdgeFunctionGet<ListConversationsResponse>('list-conversations');
     } finally {
       setLoading(false);
@@ -1134,10 +918,6 @@ export function useMCP() {
   const listMessages = async (conversationWith?: string, limit?: number) => {
     setLoading(true);
     try {
-      if (useMockMode) {
-        console.log('[MCP Mock] listMessages:', conversationWith, limit);
-        return { messages: [], nextCursor: null };
-      }
       const queryParams: Record<string, string> = {};
       if (conversationWith) queryParams.conversationWith = conversationWith;
       if (limit !== undefined) queryParams.limit = String(limit);
@@ -1155,10 +935,6 @@ export function useMCP() {
   }) => {
     setLoading(true);
     try {
-      if (useMockMode) {
-        console.log('[MCP Mock] listMediaJobsFiltered:', params);
-        return { ok: true, jobs: [] };
-      }
       const queryParams: Record<string, string> = {};
       if (params.courseId) queryParams.courseId = params.courseId;
       if (params.status) queryParams.status = params.status;
@@ -1173,10 +949,6 @@ export function useMCP() {
   const listAssignmentsForTeacher = async () => {
     setLoading(true);
     try {
-      if (useMockMode) {
-        console.log('[MCP Mock] listAssignmentsForTeacher');
-        return { assignments: [], scope: 'teacher' as const };
-      }
       return await callEdgeFunctionGet<ListAssignmentsResponse>('list-assignments');
     } finally {
       setLoading(false);
@@ -1186,10 +958,6 @@ export function useMCP() {
   const listAssignmentsForStudent = async () => {
     setLoading(true);
     try {
-      if (useMockMode) {
-        console.log('[MCP Mock] listAssignmentsForStudent');
-        return { assignments: [], scope: 'student' as const };
-      }
       return await callEdgeFunctionGet<ListAssignmentsResponse>('list-assignments-student');
     } finally {
       setLoading(false);
@@ -1204,10 +972,6 @@ export function useMCP() {
   }) => {
     setLoading(true);
     try {
-      if (useMockMode) {
-        console.log('[MCP Mock] createAssignmentForCourse:', params);
-        return { assignmentId: `assign-${Date.now()}`, message: 'Assignment created (mock)' };
-      }
       return await callEdgeFunction<{ assignmentId: string; message: string }>('create-assignment', params);
     } finally {
       setLoading(false);
@@ -1217,10 +981,6 @@ export function useMCP() {
   const getAssignmentProgress = async (assignmentId: string) => {
     setLoading(true);
     try {
-      if (useMockMode) {
-        console.log('[MCP Mock] getAssignmentProgress:', assignmentId);
-        return { rows: [], assignmentTitle: 'Mock Assignment' };
-      }
       return await callEdgeFunctionGet<GetAssignmentProgressResponse>("get-assignment-progress", { assignmentId });
     } finally {
       setLoading(false);
@@ -1230,10 +990,6 @@ export function useMCP() {
   const exportGradebook = async (assignmentId: string): Promise<Blob> => {
     setLoading(true);
     try {
-      if (useMockMode) {
-        console.log('[MCP Mock] exportGradebook:', assignmentId);
-        throw new Error("Mock mode disabled: exportGradebook requires live Edge function");
-      }
       // export-gradebook returns raw CSV, not JSON
       const { exportGradebook: exportGradebookBlob } = await import("@/lib/api/assignments");
       return await exportGradebookBlob(assignmentId);
@@ -1246,10 +1002,6 @@ export function useMCP() {
   const getCourse = async (courseId: string) => {
     setLoading(true);
     try {
-      if (useMockMode) {
-        console.log('[MCP Mock] getCourse:', courseId);
-        return { id: courseId, title: 'Mock Course', items: [] };
-      }
       // get-course reads from Storage; allow a bit more time in preview environments.
       const payload = await callEdgeFunctionGet<any>("get-course", { courseId }, { timeoutMs: 60000, maxRetries: 1 });
 
@@ -1283,10 +1035,6 @@ export function useMCP() {
   const getCourseCatalog = async () => {
     setLoading(true);
     try {
-      if (useMockMode) {
-        console.log('[MCP Mock] getCourseCatalog');
-        return { courses: [], subjects: [] };
-      }
       // Fetch from list-courses Edge Function (not static file)
       // This ensures we only show courses that exist in the database
       console.log('[MCP] getCourseCatalog - fetching from Edge Function');
@@ -1320,10 +1068,6 @@ export function useMCP() {
   const searchCourses = async (query: string) => {
     setLoading(true);
     try {
-      if (useMockMode) {
-        console.log('[MCP Mock] searchCourses:', query);
-        return { courses: [] };
-      }
       return await callEdgeFunctionGet<SearchCoursesResponse>("search-courses", { query });
     } finally {
       setLoading(false);
@@ -1333,10 +1077,6 @@ export function useMCP() {
   const updateCourse = async (courseId: string, operations: unknown[]) => {
     setLoading(true);
     try {
-      if (useMockMode) {
-        console.log('[MCP Mock] updateCourse:', courseId, operations);
-        return { ok: true, courseId };
-      }
       // Edge function expects JSON Patch ops under `ops` (not `operations`).
       return await callEdgeFunction<{ ok: boolean; courseId: string }>('update-course', { courseId, ops: operations });
     } finally {
@@ -1347,10 +1087,6 @@ export function useMCP() {
   const publishCourse = async (courseId: string, changelog?: string) => {
     setLoading(true);
     try {
-      if (useMockMode) {
-        console.log('[MCP Mock] publishCourse:', courseId);
-        return { ok: true, courseId };
-      }
       return await callEdgeFunction<{ ok: boolean; courseId: string }>('publish-course', { courseId, changelog });
     } finally {
       setLoading(false);
@@ -1360,10 +1096,6 @@ export function useMCP() {
   const restoreCourseVersion = async (courseId: string, version: number) => {
     setLoading(true);
     try {
-      if (useMockMode) {
-        console.log('[MCP Mock] restoreCourseVersion:', courseId, version);
-        return { ok: true, courseId, version };
-      }
       return await callEdgeFunction<{ ok: boolean; courseId: string; version: number }>('restore-course-version', { courseId, version });
     } finally {
       setLoading(false);
@@ -1373,10 +1105,6 @@ export function useMCP() {
   const getCoursesByTags = async (tags: string[]) => {
     setLoading(true);
     try {
-      if (useMockMode) {
-        console.log('[MCP Mock] getCoursesByTags:', tags);
-        return { courses: [] };
-      }
       return await callEdgeFunction<SearchCoursesResponse>('get-courses-by-tags', { tags });
     } finally {
       setLoading(false);
@@ -1387,10 +1115,6 @@ export function useMCP() {
   const getDashboard = async (role: string, userId?: string) => {
     setLoading(true);
     try {
-      if (useMockMode) {
-        console.log('[MCP Mock] getDashboard:', role);
-        return { summary: {}, data: [] };
-      }
       // get-dashboard Edge Function requires teacherId, not role
       // For student/parent dashboards, use dedicated endpoints via useDashboard hook
       if (!userId) {
@@ -1406,10 +1130,6 @@ export function useMCP() {
   const getClassProgress = async (classId: string) => {
     setLoading(true);
     try {
-      if (useMockMode) {
-        console.log('[MCP Mock] getClassProgress:', classId);
-        return { students: [], summary: {} };
-      }
       return await callEdgeFunctionGet<GetClassProgressResponse>("get-class-progress", { classId });
     } finally {
       setLoading(false);
@@ -1419,10 +1139,6 @@ export function useMCP() {
   const fetchAnalytics = async (courseId: string, range: string) => {
     setLoading(true);
     try {
-      if (useMockMode) {
-        console.log('[MCP Mock] fetchAnalytics:', courseId, range);
-        return { dailyData: [], summary: {} };
-      }
       return await callEdgeFunctionGet<GetAnalyticsResponse>("get-analytics", { courseId, range });
     } finally {
       setLoading(false);
@@ -1432,10 +1148,6 @@ export function useMCP() {
   const listOrgStudents = async () => {
     setLoading(true);
     try {
-      if (useMockMode) {
-        console.log('[MCP Mock] listOrgStudents');
-        return { students: [] };
-      }
       return await callEdgeFunctionGet<ListStudentsResponse>('list-org-students');
     } finally {
       setLoading(false);
@@ -1446,10 +1158,6 @@ export function useMCP() {
   const startRound = async (courseId: string, level: number) => {
     setLoading(true);
     try {
-      if (useMockMode) {
-        console.log('[MCP Mock] startRound:', courseId, level);
-        return { sessionId: 'mock-session', roundId: 'mock-round' };
-      }
       return await callEdgeFunction<{ sessionId: string; roundId: string }>('game-start-round', { courseId, level });
     } finally {
       setLoading(false);
@@ -1459,10 +1167,6 @@ export function useMCP() {
   const logAttempt = async (params: unknown) => {
     setLoading(true);
     try {
-      if (useMockMode) {
-        console.log('[MCP Mock] logAttempt:', params);
-        return { attemptId: 'mock-attempt' };
-      }
       return await callEdgeFunction<{ attemptId: string }>('game-log-attempt', params as Record<string, unknown>);
     } finally {
       setLoading(false);
@@ -1473,10 +1177,6 @@ export function useMCP() {
   const getOrgConfig = async () => {
     setLoading(true);
     try {
-      if (useMockMode) {
-        console.log('[MCP Mock] getOrgConfig');
-        return { orgId: 'mock-org', settings: {} };
-      }
       const resp = await callEdgeFunctionGet<any>('get-org-config');
 
       // get-org-config returns HTTP 200 even on logical errors (preview safety).
@@ -1501,10 +1201,6 @@ export function useMCP() {
   const uploadMediaFile = async (file: File, path: string) => {
     setLoading(true);
     try {
-      if (useMockMode) {
-        console.log('[MCP Mock] uploadMediaFile:', file.name, path);
-        return { url: 'mock-url', path };
-      }
       const formData = new FormData();
       formData.append('file', file);
       formData.append('path', path);
@@ -1537,10 +1233,6 @@ export function useMCP() {
   const rewriteText = async (request: { segmentType: string; currentText: string; context?: Record<string, unknown>; styleHints?: string[]; candidateCount?: number }) => {
     setLoading(true);
     try {
-      if (useMockMode) {
-        console.log('[MCP Mock] rewriteText:', request.currentText.substring(0, 50), request.segmentType);
-        return { candidates: [{ text: request.currentText, rationale: 'Mock rewrite' }], originalText: request.currentText, segmentType: request.segmentType, context: request.context };
-      }
       return await callEdgeFunction<{ candidates: Array<{ text: string; rationale: string }>; originalText: string; segmentType: string; context: unknown }>('ai-rewrite-text', request);
     } finally {
       setLoading(false);
@@ -1551,10 +1243,6 @@ export function useMCP() {
   const getJobStatus = async (jobId: string) => {
     setLoading(true);
     try {
-      if (useMockMode) {
-        console.log('[MCP Mock] getJobStatus:', jobId);
-        return { jobId, state: 'running', step: 'generating', progress: 50 };
-      }
       return await callEdgeFunctionGet<{ jobId: string; state: string; step: string; progress: number; message?: string }>(
         "job-status",
         { jobId }

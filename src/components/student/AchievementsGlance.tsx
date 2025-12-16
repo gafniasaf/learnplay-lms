@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { Award, ArrowRight } from "lucide-react";
 import { format, parseISO } from "date-fns";
-import type { StudentAchievement } from "@/lib/student/mockSelectors";
+import type { StudentAchievement } from "@/lib/student/types";
 
 interface AchievementsGlanceProps {
   achievements: StudentAchievement[];

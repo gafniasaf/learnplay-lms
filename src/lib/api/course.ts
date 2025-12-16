@@ -1,6 +1,5 @@
-import { isLiveMode } from "../env";
 import type { Course } from "../types/course";
-import { shouldUseMockData, fetchWithTimeout, ApiError, getSupabaseUrl, getSupabaseAnonKey } from "./common";
+import { fetchWithTimeout, ApiError, getSupabaseUrl, getSupabaseAnonKey } from "./common";
 import { createLogger } from "../logger";
 
 const log = createLogger("api/course");
@@ -13,12 +12,6 @@ export async function getCourse(
 ): Promise<
   Course & { _metadata?: { dataSource: "live" | "mock"; etag?: string } }
 > {
-  const liveMode = isLiveMode();
-
-  // Mock responses forbidden: shouldUseMockData() will throw if anything tries to enable it.
-  void shouldUseMockData;
-  void liveMode;
-
   const supabaseUrl = getSupabaseUrl();
   const anonKey = getSupabaseAnonKey();
 

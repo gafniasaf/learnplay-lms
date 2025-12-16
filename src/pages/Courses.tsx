@@ -13,7 +13,6 @@ import type { CourseCatalogItem } from "@/lib/types/courseCatalog";
 import { useCatalogVersionListener } from "@/hooks/useCatalogVersionListener";
 import { isLiveMode } from "@/lib/env";
 import { toast } from "sonner";
-import { MOCK_KNOWLEDGE_OBJECTIVES } from "@/lib/mocks/knowledgeMockData";
 import { supabase } from "@/integrations/supabase/client";
 
 const Courses = () => {
@@ -125,9 +124,16 @@ const Courses = () => {
             throw new Error("STUDENT_ID_REQUIRED");
           }
           
-          // Get KO name for display
-          const ko = MOCK_KNOWLEDGE_OBJECTIVES.find(k => k.id === recommendedFor);
-          setKoName(ko?.name || null);
+          // Get KO name for display (live lookup; no mock datasets)
+          setKoName(null);
+          try {
+            const ko = await mcpRef.current.call<{ name?: string }>("get-knowledge-objective", { id: recommendedFor });
+            const name = ko && typeof ko === "object" ? (ko as any).name : undefined;
+            setKoName(typeof name === "string" && name.trim() ? name : null);
+          } catch (e) {
+            console.warn("[Courses] Failed to load knowledge objective name:", e);
+            setKoName(null);
+          }
           
           // Get recommended courses
           const recommended = await mcpRef.current.getRecommendedCourses(recommendedFor, studentId) as Array<{ courseId: string; relevance?: number; exerciseCount?: number }>;
@@ -236,48 +242,22 @@ const Courses = () => {
     }
 
     // Debounce server-side search
-    const timeoutId = setTimeout(async () => {
-      try {
-        if (!searchQuery.trim()) {
-          // Empty search - reload full catalog
-          const catalog = await mcpRef.current.getCourseCatalog() as { courses: CourseCatalogItem[] };
-          setCourses(catalog.courses);
-          setFilteredCourses(catalog.courses);
-        } else {
-          // Perform server-side search
-          console.log('[Courses] Searching for:', searchQuery);
-          const results = await mcpRef.current.searchCourses(searchQuery) as { courses: CourseCatalogItem[]; items?: CourseCatalogItem[] };
-          const items = results.courses || results.items || [];
-          console.log('[Courses] Search results:', items.length, 'courses');
-          
-          // Convert API response to CourseCatalogItem format
-          const searchResults: CourseCatalogItem[] = items.map((item: any) => ({
-            id: item.id,
-            title: item.title,
-            subject: item.subject,
-            description: item.description,
-            gradeBand: item.grade || 'All Grades',
-            itemCount: item.itemCount ?? 0,
-            contentVersion: (item as any).contentVersion || '',
-            duration: '15 min',
-            difficulty: 'Intermediate',
-          }));
-          
-          setFilteredCourses(searchResults);
-        }
-      } catch (err) {
-        console.error('[Courses] Search error:', err);
-        // Fall back to client-side filtering on error
-        const query = searchQuery.toLowerCase();
-        const filtered = courses.filter(
-          (course) =>
-            course.title.toLowerCase().includes(query) ||
-            course.subject.toLowerCase().includes(query) ||
-            course.description.toLowerCase().includes(query) ||
-            course.gradeBand.toLowerCase().includes(query)
-        );
-        setFilteredCourses(filtered);
+    const timeoutId = setTimeout(() => {
+      const query = searchQuery.trim().toLowerCase();
+      if (!query) {
+        setFilteredCourses(courses);
+        return;
       }
+
+      // Client-side filtering against the live catalog (no mock/placeholder fields)
+      const filtered = courses.filter(
+        (course) =>
+          course.title.toLowerCase().includes(query) ||
+          course.subject.toLowerCase().includes(query) ||
+          course.description.toLowerCase().includes(query) ||
+          course.gradeBand.toLowerCase().includes(query)
+      );
+      setFilteredCourses(filtered);
     }, 300); // 300ms debounce
 
     return () => clearTimeout(timeoutId);

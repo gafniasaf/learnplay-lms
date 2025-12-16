@@ -57,13 +57,6 @@ The Parent Dashboard provides an at-a-glance view of a child's learning progress
 
 ### Data Flow
 ```typescript
-// Mock selectors (fallback for mock mode)
-getKpiData(window) → sparklines, deltas, totals
-getSubjectTimeData(window) → time by subject
-getRecentSessions(window) → last sessions
-getRecentTopics(window) → recent topics
-getGoalData() → weekly goals
-
 // Live integrations (Supabase edge functions via React Query)
 useParentDashboard(params) → summary + child metrics
 useParentSubjects(params) → subject performance table
@@ -105,7 +98,6 @@ useParentGoals(params) → weekly goals + aggregates
 - `src/hooks/useParentDashboard.ts`, `useParentGoals.ts`, `useParentSubjects.ts`, `useParentTimeline.ts`, `useParentTopics.ts` - React Query hooks
 - `src/lib/api/parentDashboard.ts`, `parentGoals.ts`, `parentSubjects.ts`, `parentTimeline.ts`, `parentTopics.ts` - Edge function clients
 - `src/lib/parent/subjectsMappers.ts`, `timelineMappers.ts` - Response mappers
-- `src/lib/parent/mockSelectors.ts` - Mock fallback data
 
 **Tests:**
 - Jest: `src/pages/parent/__tests__/Dashboard.test.tsx`
@@ -119,7 +111,7 @@ useParentGoals(params) → weekly goals + aggregates
 
 ## Future Enhancements
 
-- Real-time data from Supabase (replace mock selectors)
+- Improve data richness and fidelity from Supabase (more KPIs, better subject/topic labeling)
 - Multi-child support with child switcher
 - Weekly/monthly email reports
 - Calendar heatmap for daily activity

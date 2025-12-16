@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { Calendar, ArrowRight } from "lucide-react";
 import { format, parseISO, differenceInHours } from "date-fns";
-import type { StudentAssignment } from "@/lib/student/mockSelectors";
+import type { StudentAssignment } from "@/lib/student/types";
 
 interface NextUpCardProps {
   assignment: StudentAssignment | null;

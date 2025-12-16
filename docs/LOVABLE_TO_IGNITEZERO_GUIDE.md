@@ -423,10 +423,10 @@ Add error handling to all Supabase calls. Show toast notifications for
 errors. Add loading states to all async operations.
 ```
 
-**Add Mock Data:**
+**IgniteZero (no mocks):**
 ```
-Create a mock data layer that works without Supabase. Add a useMock flag
-in localStorage that switches between real and mock data.
+Do NOT create a mock data layer or a useMock toggle.
+Wire to real Supabase Edge Functions, or show a clear BLOCKED state that names what's missing.
 ```
 
 ### Export Preparation Prompts

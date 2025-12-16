@@ -82,11 +82,14 @@ serve(async (req: Request): Promise<Response> => {
     const { data: masteryStates, error: queryError } = await query;
 
     if (queryError) {
-      // If tables don't exist, return empty result (graceful degradation)
-      console.warn("[get-student-skills] Query error (tables may not exist):", queryError);
+      // IgniteZero: fail loudly. Returning empty results hides missing migrations/schema.
+      console.error("[get-student-skills] Query error:", queryError);
       return new Response(
-        JSON.stringify({ skills: [], totalCount: 0 }),
-        { status: 200, headers: stdHeaders(req, { "Content-Type": "application/json" }) }
+        JSON.stringify({
+          error:
+            "BLOCKED: Unable to query student skills. Ensure Knowledge Map schema is applied (mastery_states + knowledge_objectives) and RLS/permissions are correct.",
+        }),
+        { status: 500, headers: stdHeaders(req, { "Content-Type": "application/json" }) }
       );
     }
 

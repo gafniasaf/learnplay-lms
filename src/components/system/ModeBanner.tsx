@@ -1,16 +1,11 @@
-import { isLiveMode } from "@/lib/env";
 import { isDevAgentMode } from "@/lib/api/common";
 
 const SHOW_MODE_BANNER = import.meta.env.VITE_SHOW_MODE_BANNER === "true";
 
 function modeLabel(): { label: string; detail?: string; variant: "info" | "warn" } | null {
-  const live = isLiveMode();
   const devAgent = isDevAgentMode();
 
   // Highest signal banners first
-  if (!live) {
-    return { label: "MOCK MODE", detail: "Using mocks/fallbacks (not fully live)", variant: "warn" };
-  }
   if (devAgent) {
     return { label: "DEV AGENT MODE", detail: "Using agent-token auth (explicit)", variant: "warn" };
   }

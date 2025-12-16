@@ -1,6 +1,5 @@
-import { isLiveMode } from "../env";
 import type { CourseCatalog } from "../types/courseCatalog";
-import { shouldUseMockData, fetchWithTimeout, ApiError, getSupabaseUrl, callEdgeFunctionGetRaw } from "./common";
+import { fetchWithTimeout, ApiError, getSupabaseUrl, callEdgeFunctionGetRaw } from "./common";
 import { createLogger } from "../logger";
 
 const log = createLogger("api/catalog");
@@ -13,12 +12,6 @@ const log = createLogger("api/catalog");
 export async function getCourseCatalog(): Promise<
   CourseCatalog & { _metadata?: { dataSource: "live" | "mock"; etag?: string } }
 > {
-  const liveMode = isLiveMode();
-
-  // Mock responses forbidden: if anything tries to run non-live, isLiveMode/shouldUseMockData will throw.
-  void liveMode;
-  void shouldUseMockData;
-
   log.info("Loading course catalog from Edge Function (LIVE mode)", {
     action: "getCourseCatalog",
     source: "live",
@@ -213,7 +206,6 @@ async function fetchFreshCatalog(
   CourseCatalog & { _metadata?: { dataSource: "live" | "mock"; etag?: string } }
 > {
   void supabaseUrl;
-  const liveMode = isLiveMode();
 
   // Check for cached fallback data
   const cachedJson = localStorage.getItem("catalogJson");
@@ -237,15 +229,11 @@ async function fetchFreshCatalog(
           _metadata: { dataSource: "live", etag: storedEtag },
         };
       }
-      // In LIVE mode, throw error instead of falling back to mock
-      if (liveMode) {
-        throw new ApiError(
-          "304 response but no cached data available in LIVE mode",
-          "NO_CACHE",
-          304
-        );
-      }
-      return { courses: [], _metadata: { dataSource: "mock" } };
+      throw new ApiError(
+        "304 response but no cached data available",
+        "NO_CACHE",
+        304
+      );
     }
 
     if (!res.ok) {
@@ -255,23 +243,8 @@ async function fetchFreshCatalog(
         errorText,
       });
 
-      // In LIVE mode, use cache if available, otherwise throw
-      if (liveMode) {
-        if (cached) {
-          log.warn("Using stale cached data after fetch error (LIVE mode)", {
-            action: "fetchFreshCatalog",
-          });
-          return {
-            ...cached,
-            _metadata: { dataSource: "live", etag: storedEtag },
-          };
-        }
-        throw new ApiError(`Failed to fetch catalog in LIVE mode: ${errorText}`, "FETCH_FAILED", res.status);
-      }
-
-      // DEV mode fallback
       if (cached) {
-        log.warn("Using cached data after fetch error", {
+        log.warn("Using stale cached data after fetch error", {
           action: "fetchFreshCatalog",
         });
         return {
@@ -279,11 +252,7 @@ async function fetchFreshCatalog(
           _metadata: { dataSource: "live", etag: storedEtag },
         };
       }
-      log.warn("Falling back to mock data", { action: "fetchFreshCatalog" });
-      return {
-        courses: [],
-        _metadata: { dataSource: "mock" },
-      };
+      throw new ApiError(`Failed to fetch catalog: ${errorText}`, "FETCH_FAILED", res.status);
     }
 
     const apiData = await res.json() as any;
@@ -323,20 +292,14 @@ async function fetchFreshCatalog(
       courseCount: Object.keys(versions).length,
     });
 
-    // In LIVE mode, return empty catalog rather than falling back to mock
+    // Never fall back to mocks: return an empty live catalog if API returns zero items.
     if (!catalog.courses || catalog.courses.length === 0) {
-      if (liveMode) {
-        log.warn("API returned 0 courses in LIVE mode", {
-          action: "fetchFreshCatalog",
-        });
-        return {
-          courses: [],
-          _metadata: { dataSource: "live", etag: newEtag || undefined },
-        };
-      }
+      log.warn("API returned 0 courses", {
+        action: "fetchFreshCatalog",
+      });
       return {
         courses: [],
-        _metadata: { dataSource: "mock" },
+        _metadata: { dataSource: "live", etag: newEtag || undefined },
       };
     }
 
@@ -354,23 +317,8 @@ async function fetchFreshCatalog(
       action: "fetchFreshCatalog",
     });
 
-    // In LIVE mode, use cache if available, otherwise rethrow
-    if (liveMode) {
-      if (cached) {
-        log.warn("Using stale cached data after exception (LIVE mode)", {
-          action: "fetchFreshCatalog",
-        });
-        return {
-          ...cached,
-          _metadata: { dataSource: "live", etag: storedEtag },
-        };
-      }
-      throw error;
-    }
-
-    // DEV mode fallback
     if (cached) {
-      log.warn("Using cached data after exception", {
+      log.warn("Using stale cached data after exception", {
         action: "fetchFreshCatalog",
       });
       return {
@@ -378,13 +326,7 @@ async function fetchFreshCatalog(
         _metadata: { dataSource: "live", etag: storedEtag },
       };
     }
-    log.warn("Falling back to mock data after exception", {
-      action: "fetchFreshCatalog",
-    });
-    return {
-      courses: [],
-      _metadata: { dataSource: "mock" },
-    };
+    throw error;
   }
 }
 

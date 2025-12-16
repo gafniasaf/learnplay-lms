@@ -200,8 +200,9 @@
 
 **Process:**
 1. **Stop all writes:**
-   - Set `VITE_USE_MOCK=true` to prevent writes
+   - **Do NOT** use mock mode (`VITE_USE_MOCK=true` is forbidden and should hard-fail)
    - Disable job runners
+   - If you must guarantee zero writes, enforce it at the backend (pause runners / revoke write-capable keys / apply maintenance controls)
 
 2. **Restore from backup:**
    ```bash

@@ -179,10 +179,11 @@ throw new Error("Unauthorized: Valid Agent Token or User Session required");
 ### The Only Exception:
 Feature flags that are EXPLICITLY documented and VISIBLE in logs:
 ```typescript
-// ✅ OK - Explicit, logged, documented
-const USE_MOCK = import.meta.env.VITE_USE_MOCK === 'true';
-if (USE_MOCK) {
-  console.warn("[MOCK MODE] Using mock data - NOT FOR PRODUCTION");
+// ✅ OK - Explicit, logged, documented feature flag (example)
+// NOTE: IgniteZero forbids mock mode. Do NOT add mock responses behind VITE_USE_MOCK.
+const DEV_FEATURES = import.meta.env.VITE_ENABLE_DEV === 'true';
+if (DEV_FEATURES) {
+  console.warn("[DEV] Dev features enabled");
 }
 ```
 
@@ -427,7 +428,7 @@ LOVABLE_URL=https://your-preview.lovable.app npm run test:lovable
 ### Why Standard Tests Miss These Issues
 
 1. **Unit tests** mock `useMCP` - never hit real network
-2. **E2E tests** run with `VITE_USE_MOCK=true` - use fake data
+2. **E2E tests** must run with `VITE_USE_MOCK=false` - hit real Edge Functions/DB (no fake data)
 3. **E2E tests** run against `localhost` - no CORS testing
 4. **Jest** uses its own module system - not Vite's dynamic imports
 

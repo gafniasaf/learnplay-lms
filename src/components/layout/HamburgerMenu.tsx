@@ -25,7 +25,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { filterNav } from "@/config/nav";
-import { isDevEnabled, isLiveMode, setDevEnabled, onDevChange } from "@/lib/env";
+import { isDevEnabled, setDevEnabled, onDevChange } from "@/lib/env";
 import { useAuth } from "@/hooks/useAuth";
 import { getRole, setRole, onRoleChange, type Role } from "@/lib/roles";
 import { toast } from "@/hooks/use-toast";
@@ -35,7 +35,6 @@ export const HamburgerMenu = () => {
   const [open, setOpen] = useState(false);
   const [announcement, setAnnouncement] = useState("");
   const [roleAnnouncement, setRoleAnnouncement] = useState("");
-  const [modeAnnouncement, setModeAnnouncement] = useState("");
   const [devAnnouncement, setDevAnnouncement] = useState("");
   const [sectionAnnouncement, setSectionAnnouncement] = useState("");
   const location = useLocation();
@@ -44,7 +43,6 @@ export const HamburgerMenu = () => {
   const triggerRef = useRef<HTMLButtonElement>(null);
   const { user, loading } = useAuth();
   const [devEnabled, setDevEnabledState] = useState(isDevEnabled());
-  const isLive = isLiveMode();
   const [currentRole, setCurrentRole] = useState<Role>(getRole());
 
   const getInitialOpenSections = (): string[] => {
@@ -116,31 +114,6 @@ export const HamburgerMenu = () => {
     if (!newOpen) {
       setTimeout(() => triggerRef.current?.focus(), 0);
     }
-  };
-
-  // Handle mode toggle (LIVE/MOCK)
-  const handleModeToggle = () => {
-    const newMode = isLive ? 'MOCK' : 'LIVE';
-    const newLiveParam = isLive ? '0' : '1';
-    
-    try {
-      localStorage.setItem('useMock', isLive ? 'true' : 'false');
-    } catch {
-      // localStorage blocked (iframe) - will use URL param below
-    }
-    
-    setModeAnnouncement(`Mode changed to ${newMode}`);
-    
-    toast({
-      title: "Mode switched",
-      description: `Now using ${newMode} mode`,
-      duration: 2000,
-    });
-    
-    // Reload with URL param to ensure mode is applied (works in iframe too)
-    const url = new URL(window.location.href);
-    url.searchParams.set('live', newLiveParam);
-    setTimeout(() => { window.location.href = url.toString(); }, 500);
   };
 
   // Handle role change from dropdown
@@ -237,16 +210,6 @@ export const HamburgerMenu = () => {
         className="sr-only"
       >
         {roleAnnouncement}
-      </div>
-
-      {/* Accessible announcement region for mode changes */}
-      <div
-        role="status"
-        aria-live="polite"
-        aria-atomic="true"
-        className="sr-only"
-      >
-        {modeAnnouncement}
       </div>
 
       {/* Accessible announcement region for dev mode changes */}
@@ -460,29 +423,6 @@ export const HamburgerMenu = () => {
                   </button>
                   <p className="text-xs text-foreground/50">
                     Shows Test Runner and Health Check
-                  </p>
-                </div>
-
-                {/* Mode Toggle (LIVE/MOCK) */}
-                <div className="space-y-2">
-                  <label className="text-xs font-semibold text-foreground/70 uppercase tracking-wider">
-                    API Mode
-                  </label>
-                  <button
-                    onClick={handleModeToggle}
-                    className={`w-full px-4 py-3 rounded-lg font-medium text-sm transition-all border-2 min-h-[44px]
-                      focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary focus-visible:ring-offset-4
-                      ${
-                      isLive
-                        ? 'bg-green-500/10 text-green-600 border-green-500/30 hover:bg-green-500/20'
-                        : 'bg-muted text-muted-foreground border-border hover:bg-muted/80'
-                    }`}
-                    aria-label={`Current mode: ${isLive ? 'Live' : 'Mock'}. Click to toggle.`}
-                  >
-                    {isLive ? 'LIVE' : 'MOCK'}
-                  </button>
-                  <p className="text-xs text-foreground/50">
-                    Click to switch between live and mock data
                   </p>
                 </div>
 

@@ -1,5 +1,5 @@
 import type { StudentTimelineEvent } from '@/lib/api/studentTimeline';
-import type { StudentSession } from '@/lib/student/mockSelectors';
+import type { StudentSession } from '@/lib/student/types';
 
 const toNumber = (value: unknown, fallback = 0): number => {
   const num = Number(value);

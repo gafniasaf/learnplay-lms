@@ -7,12 +7,10 @@ import { useMCP } from "@/hooks/useMCP";
 import type { Assignment } from "@/lib/api/assignments";
 import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
-import { getApiMode } from "@/lib/api";
 
 const Kids = () => {
   const { dashboard, loading, error } = useDashboard("student");
   const mcp = useMCP();
-  const isLive = getApiMode() === "live";
   const [assignments, setAssignments] = useState<Assignment[]>([]);
   const [loadingAssignments, setLoadingAssignments] = useState(false);
 
@@ -56,7 +54,7 @@ const Kids = () => {
   }
 
   // Live mode: use minimal stats from edge function
-  if (isLive && "stats" in dashboard && typeof dashboard.stats === "object") {
+  if ("stats" in dashboard && typeof dashboard.stats === "object") {
     const stats = dashboard.stats as {
       sessions?: number;
       rounds?: number;
@@ -114,9 +112,8 @@ const Kids = () => {
             </div>
           </div>
 
-          {/* Due Soon Panel - Live Mode Only */}
-          {isLive && (
-            <div className="mb-12">
+          {/* Due Soon Panel */}
+          <div className="mb-12">
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-2xl font-bold">Due Soon</h2>
                 {assignments.length > 0 && (
@@ -191,7 +188,6 @@ const Kids = () => {
                 </div>
               )}
             </div>
-          )}
 
           {/* Quick Actions */}
           <div className="mb-12">
@@ -225,8 +221,8 @@ const Kids = () => {
     );
   }
 
-  // Mock mode: use full dashboard structure (backward compatible)
-  const mockDashboard = dashboard as any;
+  // Legacy dashboard shape fallback (do not fabricate data)
+  const legacyDashboard = dashboard as any;
 
   return (
     <PageContainer>
@@ -236,7 +232,7 @@ const Kids = () => {
           <div className="inline-flex p-4 rounded-2xl bg-role-kids/10 mb-4">
             <Baby className="h-12 w-12 text-role-kids" />
           </div>
-          <h1 className="text-4xl font-bold mb-2">Welcome back, {mockDashboard.displayName?.split(" ")[0] || "Student"}!</h1>
+          <h1 className="text-4xl font-bold mb-2">Welcome back, {legacyDashboard.displayName?.split(" ")[0] || "Student"}!</h1>
           <p className="text-xl text-muted-foreground">Ready to learn and play?</p>
         </div>
 
@@ -244,35 +240,35 @@ const Kids = () => {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-12">
           <div className="p-6 rounded-2xl bg-gradient-to-br from-role-kids/10 to-role-kids/5 border border-role-kids/20">
             <Gamepad2 className="h-8 w-8 text-role-kids mb-2" />
-            <p className="text-2xl font-bold">{mockDashboard.stats?.coursesInProgress ?? 0}</p>
+            <p className="text-2xl font-bold">{legacyDashboard.stats?.coursesInProgress ?? 0}</p>
             <p className="text-sm text-muted-foreground">Active Courses</p>
           </div>
           
           <div className="p-6 rounded-2xl bg-gradient-to-br from-accent/10 to-accent/5 border border-accent/20">
             <Trophy className="h-8 w-8 text-accent mb-2" />
-            <p className="text-2xl font-bold">{mockDashboard.stats?.totalPoints ?? 0}</p>
+            <p className="text-2xl font-bold">{legacyDashboard.stats?.totalPoints ?? 0}</p>
             <p className="text-sm text-muted-foreground">Total Points</p>
           </div>
           
           <div className="p-6 rounded-2xl bg-gradient-to-br from-orange-500/10 to-orange-500/5 border border-orange-500/20">
             <Flame className="h-8 w-8 text-orange-500 mb-2" />
-            <p className="text-2xl font-bold">{mockDashboard.stats?.currentStreak ?? 0}</p>
+            <p className="text-2xl font-bold">{legacyDashboard.stats?.currentStreak ?? 0}</p>
             <p className="text-sm text-muted-foreground">Day Streak</p>
           </div>
           
           <div className="p-6 rounded-2xl bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/20">
             <Star className="h-8 w-8 text-primary mb-2" />
-            <p className="text-2xl font-bold">{mockDashboard.stats?.accuracyRate ?? 0}%</p>
+            <p className="text-2xl font-bold">{legacyDashboard.stats?.accuracyRate ?? 0}%</p>
             <p className="text-sm text-muted-foreground">Accuracy</p>
           </div>
         </div>
 
         {/* Continue Learning */}
-        {mockDashboard.upcoming && mockDashboard.upcoming.length > 0 && (
+        {legacyDashboard.upcoming && legacyDashboard.upcoming.length > 0 && (
           <div className="mb-12">
             <h2 className="text-2xl font-bold mb-6">Continue Learning</h2>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {mockDashboard.upcoming.map((course: any) => (
+              {legacyDashboard.upcoming.map((course: any) => (
                 <Link
                   key={course.id}
                   to={`/play/${course.id}/welcome`}
@@ -313,11 +309,11 @@ const Kids = () => {
         )}
 
         {/* Recent Grades */}
-        {mockDashboard.recent && mockDashboard.recent.length > 0 && (
+        {legacyDashboard.recent && legacyDashboard.recent.length > 0 && (
           <div>
             <h2 className="text-2xl font-bold mb-6">Recent Completions</h2>
             <div className="space-y-4">
-              {mockDashboard.recent.map((item: any) => (
+              {legacyDashboard.recent.map((item: any) => (
                 <div
                   key={item.id}
                   className="flex items-center justify-between p-6 rounded-2xl border bg-card"

@@ -45,7 +45,6 @@ import {
   MAX_LOGIN_ATTEMPTS,
   LOCKOUT_DURATION_MS,
   DEV_VERBOSE_LOGGING,
-  MOCK_API_DELAY_MS,
   E2E_DEFAULT_TIMEOUT_MS,
   E2E_NAVIGATION_TIMEOUT_MS,
 } from '@/lib/constants';
@@ -153,7 +152,6 @@ describe('Security', () => {
 describe('Development and Testing', () => {
   it('exports dev constants', () => {
     expect(DEV_VERBOSE_LOGGING).toBe(true);
-    expect(MOCK_API_DELAY_MS).toBe(500);
     expect(E2E_DEFAULT_TIMEOUT_MS).toBe(30000);
     expect(E2E_NAVIGATION_TIMEOUT_MS).toBe(10000);
   });

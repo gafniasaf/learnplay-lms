@@ -5,7 +5,7 @@
  * IgniteZero Compliant: Uses Edge Function instead of direct DB calls
  */
 
-import { callEdgeFunctionGet, shouldUseMockData } from './common';
+import { callEdgeFunctionGet } from './common';
 
 export type UserRole = 'superadmin' | 'org_admin' | 'editor' | 'viewer';
 
@@ -33,9 +33,6 @@ export async function getUserRoles(): Promise<UserRoleRecord[]> {
   if (cachedRoles && Date.now() - cacheTimestamp < CACHE_TTL_MS) {
     return cachedRoles;
   }
-
-  // Mock responses forbidden: shouldUseMockData() will throw if anything tries to enable it.
-  void shouldUseMockData;
 
   try {
     console.log('[Roles API] Fetching user roles via Edge Function');

@@ -155,7 +155,7 @@ test('CTA actually works', async ({ page }) => {
 
 | Aspect | E2E Tests | Integration Tests |
 |--------|-----------|-------------------|
-| **Mock Mode** | ✅ Uses `VITE_USE_MOCK=true` | ❌ Uses real APIs |
+| **Mock Mode** | ❌ Forbidden (`VITE_USE_MOCK=false`) | ❌ Forbidden (`VITE_USE_MOCK=false`) |
 | **Purpose** | Verify UI renders | Verify APIs work |
 | **Speed** | Fast (no network) | Slower (real network) |
 | **Catch Bugs** | UI rendering issues | Parameter mismatches, API errors |

@@ -8,7 +8,7 @@ import { format, parseISO, differenceInMinutes } from "date-fns";
 import { useMemo, useState } from "react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useStudentTimeline } from "@/hooks/useStudentTimeline";
-// useMockData removed - useStudentTimeline handles mock mode internally
+// Live data only (mock mode is forbidden).
 import { mapStudentTimelineEventToSession } from "@/lib/student/timelineMappers";
 
 export default function StudentTimeline() {

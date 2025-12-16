@@ -132,10 +132,10 @@ Add try/catch to all Supabase calls.
 Show toast on error. Add loading states.
 ```
 
-**Add mock mode:**
+**IgniteZero (no mocks):**
 ```
-Create mock data layer. Add useMock flag in 
-localStorage to toggle real/mock data.
+Do NOT create a mock data layer or a useMock toggle.
+If the backend is missing, surface a clear BLOCKED state that names the required Edge Function / env var.
 ```
 
 **Fix structure:**

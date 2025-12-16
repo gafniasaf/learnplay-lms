@@ -65,11 +65,14 @@ serve(async (req: Request): Promise<Response> => {
       .limit(limit);
 
     if (queryError) {
-      // If tables don't exist, return empty list
-      console.warn("[get-recommended-courses] Query error (tables may not exist):", queryError);
+      // IgniteZero: fail loudly. Empty lists hide missing migrations/schema.
+      console.error("[get-recommended-courses] Query error:", queryError);
       return new Response(
-        JSON.stringify([]),
-        { status: 200, headers: stdHeaders(req, { "Content-Type": "application/json" }) }
+        JSON.stringify({
+          error:
+            "BLOCKED: Unable to query recommended courses. Ensure Knowledge Map schema is applied (course_ko_scope + courses) and RLS/permissions are correct.",
+        }),
+        { status: 500, headers: stdHeaders(req, { "Content-Type": "application/json" }) }
       );
     }
 

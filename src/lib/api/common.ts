@@ -173,30 +173,6 @@ function extractStructuredFailure(data: unknown):
 }
 
 /**
- * Check if mock mode is enabled (non-hook helper)
- *
- * Override at runtime via:
- * - URL parameter: ?live=1 (enable live mode) or ?live=0 (enable mock mode)
- * - localStorage.useMock: 'false' (live) or 'true' (mock)
- * - Default: VITE_USE_MOCK environment variable
- *
- * @returns true if using mock data, false if using live edge functions
- */
-export const shouldUseMockData = (): boolean => {
-  // Mock responses are forbidden: fail loudly if anything tries to run in non-live mode.
-  if (!isLiveMode()) {
-    throw new Error("❌ MOCK MODE FORBIDDEN: mock responses are not allowed. Implement the missing backend instead.");
-  }
-  return false;
-};
-
-/**
- * Backwards-compatible alias for components/hooks that already import `useMockData`.
- * This is intentionally NOT a React hook; it simply delegates to `shouldUseMockData`.
- */
-export const useMockData = shouldUseMockData;
-
-/**
  * Fetch with timeout and retry logic
  */
 export async function fetchWithTimeout(

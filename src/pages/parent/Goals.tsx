@@ -13,7 +13,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Info, BookOpenCheck, Target, CheckCircle2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useParentGoals } from "@/hooks/useParentGoals";
-// useMockData removed - useParentGoals handles mock mode internally
+// Live data only (mock mode is forbidden).
 import type {
   ParentGoalRecord,
   ParentGoalsResponse,

@@ -19,7 +19,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useParentSubjects } from "@/hooks/useParentSubjects";
-// useMockData removed - useParentSubjects handles mock mode internally
+// Live data only (mock mode is forbidden).
 import type {
   ParentSubjectRecord,
   ParentSubjectsResponse,
@@ -98,39 +98,6 @@ const getTrendMeta = (trend: string, delta: number | null) => {
     tone: "text-muted-foreground",
   };
 };
-
-const MOCK_SUBJECTS: ParentSubjectRecord[] = [
-  {
-    subject: "algebra-fundamentals",
-    masteryPct: 72,
-    trend: "up",
-    alertFlag: false,
-    totalSessions: 18,
-    recentAccuracy: 84,
-    previousAccuracy: 78,
-    lastPracticedAt: new Date(Date.now() - 1000 * 60 * 60 * 6).toISOString(),
-  },
-  {
-    subject: "reading-comprehension",
-    masteryPct: 63,
-    trend: "stable",
-    alertFlag: false,
-    totalSessions: 12,
-    recentAccuracy: 80,
-    previousAccuracy: 79,
-    lastPracticedAt: new Date(Date.now() - 1000 * 60 * 60 * 16).toISOString(),
-  },
-  {
-    subject: "science-inquiry",
-    masteryPct: 48,
-    trend: "down",
-    alertFlag: true,
-    totalSessions: 7,
-    recentAccuracy: 62,
-    previousAccuracy: 70,
-    lastPracticedAt: new Date(Date.now() - 1000 * 60 * 60 * 30).toISOString(),
-  },
-];
 
 // Mock responses are forbidden: this file must not fabricate subject data.
 

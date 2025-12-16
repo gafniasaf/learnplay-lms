@@ -7,24 +7,20 @@
 jest.mock('@/hooks/useMCP', () => ({
   useMCP: jest.fn(),
 }));
-jest.mock('@/lib/env', () => ({
-  isLiveMode: jest.fn(() => true),
-}));
 
 import { renderHook, act, waitFor } from '@testing-library/react';
 import { useJobQuota } from '@/hooks/useJobQuota';
 import { useMCP } from '@/hooks/useMCP';
-import { isLiveMode } from '@/lib/env';
 
 const mockMCP = {
   getRecord: jest.fn(),
 };
 
 const mockJobQuota = {
-  daily_limit: 10,
-  daily_used: 5,
-  weekly_limit: 50,
-  weekly_used: 20,
+  jobs_last_hour: 1,
+  hourly_limit: 10,
+  jobs_last_day: 3,
+  daily_limit: 50,
 };
 
 beforeEach(() => {
@@ -38,129 +34,105 @@ afterEach(() => {
 });
 
 describe('useJobQuota', () => {
-  describe('in live mode', () => {
-    beforeEach(() => {
-      jest.mocked(isLiveMode).mockReturnValue(true);
+  it('fetches quota from MCP', async () => {
+    mockMCP.getRecord.mockResolvedValue({
+      record: mockJobQuota,
     });
 
-    it('fetches quota from MCP', async () => {
-      mockMCP.getRecord.mockResolvedValue({
-        record: mockJobQuota,
-      });
+    const { result } = renderHook(() => useJobQuota());
 
-      const { result } = renderHook(() => useJobQuota());
+    expect(result.current.loading).toBe(true);
 
-      expect(result.current.loading).toBe(true);
-
-      await waitFor(() => {
-        expect(result.current.loading).toBe(false);
-      });
-
-      expect(result.current.quota).toEqual(mockJobQuota);
-      expect(result.current.error).toBeNull();
-      expect(mockMCP.getRecord).toHaveBeenCalledWith('UserJobQuota', 'current');
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
     });
 
-    it('handles quota not found error', async () => {
-      mockMCP.getRecord.mockResolvedValue({
-        record: null,
-      });
+    expect(result.current.quota).toEqual(mockJobQuota);
+    expect(result.current.error).toBeNull();
+    expect(mockMCP.getRecord).toHaveBeenCalledWith('UserJobQuota', 'current');
+  });
 
-      const { result } = renderHook(() => useJobQuota());
-
-      await waitFor(() => {
-        expect(result.current.loading).toBe(false);
-      });
-
-      expect(result.current.error).toBeTruthy();
-      expect(result.current.error?.message).toContain('not found');
-      // Should still provide default quota
-      expect(result.current.quota).toBeTruthy();
+  it('handles quota not found error', async () => {
+    mockMCP.getRecord.mockResolvedValue({
+      record: null,
     });
 
-    it('handles API errors gracefully', async () => {
-      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
-      mockMCP.getRecord.mockRejectedValue(new Error('Network error'));
+    const { result } = renderHook(() => useJobQuota());
 
-      const { result } = renderHook(() => useJobQuota());
-
-      await waitFor(() => {
-        expect(result.current.loading).toBe(false);
-      });
-
-      expect(result.current.error).toBeTruthy();
-      // Error message is preserved from the original error
-      expect(result.current.error?.message).toBe('Network error');
-      expect(consoleErrorSpy).toHaveBeenCalled();
-      // Should still provide default quota
-      expect(result.current.quota).toBeTruthy();
-
-      consoleErrorSpy.mockRestore();
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
     });
 
-    it('polls quota every minute', async () => {
-      mockMCP.getRecord.mockResolvedValue({
-        record: mockJobQuota,
-      });
+    expect(result.current.error).toBeTruthy();
+    expect(result.current.error?.message).toContain('not found');
+    // Should still provide default quota so UI doesn't break
+    expect(result.current.quota).toBeTruthy();
+  });
 
-      const { result } = renderHook(() => useJobQuota());
+  it('handles API errors gracefully', async () => {
+    const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
+    mockMCP.getRecord.mockRejectedValue(new Error('Network error'));
 
-      await waitFor(() => {
-        expect(result.current.loading).toBe(false);
-      });
+    const { result } = renderHook(() => useJobQuota());
 
-      expect(mockMCP.getRecord).toHaveBeenCalledTimes(1);
-
-      // Advance time by 1 minute
-      act(() => {
-        jest.advanceTimersByTime(60000);
-      });
-
-      await waitFor(() => {
-        expect(mockMCP.getRecord).toHaveBeenCalledTimes(2);
-      });
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
     });
 
-    it('cleans up interval on unmount', async () => {
-      mockMCP.getRecord.mockResolvedValue({
-        record: mockJobQuota,
-      });
+    expect(result.current.error).toBeTruthy();
+    // Error message is preserved from the original error
+    expect(result.current.error?.message).toBe('Network error');
+    expect(consoleErrorSpy).toHaveBeenCalled();
+    // Should still provide default quota so UI doesn't break
+    expect(result.current.quota).toBeTruthy();
 
-      const { result, unmount } = renderHook(() => useJobQuota());
+    consoleErrorSpy.mockRestore();
+  });
 
-      await waitFor(() => {
-        expect(result.current.loading).toBe(false);
-      });
+  it('polls quota every minute', async () => {
+    mockMCP.getRecord.mockResolvedValue({
+      record: mockJobQuota,
+    });
 
-      const callCount = mockMCP.getRecord.mock.calls.length;
+    const { result } = renderHook(() => useJobQuota());
 
-      unmount();
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+    });
 
-      // Advance time - should not trigger more calls
-      act(() => {
-        jest.advanceTimersByTime(60000);
-      });
+    expect(mockMCP.getRecord).toHaveBeenCalledTimes(1);
 
-      expect(mockMCP.getRecord.mock.calls.length).toBe(callCount);
+    // Advance time by 1 minute
+    act(() => {
+      jest.advanceTimersByTime(60000);
+    });
+
+    await waitFor(() => {
+      expect(mockMCP.getRecord).toHaveBeenCalledTimes(2);
     });
   });
 
-  describe('in mock mode', () => {
-    beforeEach(() => {
-      jest.mocked(isLiveMode).mockReturnValue(false);
+  it('cleans up interval on unmount', async () => {
+    mockMCP.getRecord.mockResolvedValue({
+      record: mockJobQuota,
     });
 
-    it('returns default quota without API call', async () => {
-      const { result } = renderHook(() => useJobQuota());
+    const { result, unmount } = renderHook(() => useJobQuota());
 
-      await waitFor(() => {
-        expect(result.current.loading).toBe(false);
-      });
-
-      expect(result.current.quota).toBeTruthy();
-      expect(result.current.error).toBeNull();
-      expect(mockMCP.getRecord).not.toHaveBeenCalled();
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
     });
+
+    const callCount = mockMCP.getRecord.mock.calls.length;
+
+    unmount();
+
+    // Advance time - should not trigger more calls
+    act(() => {
+      jest.advanceTimersByTime(60000);
+    });
+
+    expect(mockMCP.getRecord.mock.calls.length).toBe(callCount);
   });
 });
 

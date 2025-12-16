@@ -272,8 +272,7 @@ To enable full rotation:
 
 ## Files Modified
 
-- `public/mock/courses/verbs.json` - Updated with [blank] and variant "1"
-- `public/mock/courses/modals.json` - Updated with [blank] and variant "1"
+- (Legacy) `public/mock/courses/*.json` - Mock fixtures (removed; IgniteZero is live-only)
 - `docs/CONTENT_LEVEL2_ACCEPTANCE.md` - This documentation
 
 ## References

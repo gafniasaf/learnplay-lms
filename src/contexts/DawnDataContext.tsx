@@ -15,6 +15,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from "react";
 import { useMCP } from "@/hooks/useMCP";
 import { useAuth } from "@/hooks/useAuth";
+import type { ListRecordsResponse } from "@/lib/types/edge-functions";
 
 // Entity types from LearnPlay manifest (system-manifest.json)
 export interface LearnerProfile {
@@ -181,11 +182,10 @@ export function DawnDataProvider({ children }: { children: React.ReactNode }) {
     }
     
     try {
-      const result = await mcp.listRecords(entity, 100) as { records?: { id: string; data?: Record<string, unknown> }[] } | null;
-      return (result?.records || []).map((r) => ({
-        id: r.id,
-        ...r.data,
-      }));
+      const result = (await mcp.listRecords(entity, 100)) as ListRecordsResponse | null;
+      const records = result?.records ?? [];
+      // list-records returns flattened rows: { ...data, id, title, created_at, updated_at, ... }
+      return records;
     } catch (err) {
       // Silently handle 401 errors (user not authenticated) - don't log as runtime error
       const error = err as any;

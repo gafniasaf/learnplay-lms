@@ -17,11 +17,8 @@ import {
   Filter,
 } from "lucide-react";
 import { Link } from "react-router-dom";
-import type { KnowledgeObjective, Topic, KOStatus } from "@/lib/types/knowledgeMap";
-import { MOCK_KNOWLEDGE_OBJECTIVES, MOCK_TOPICS, MOCK_MASTERY_STATES } from "@/lib/mocks/knowledgeMockData";
-
-// Mock mode controlled by env var per IgniteZero rules
-const ENV_USE_MOCK = (import.meta as any).env?.VITE_USE_MOCK === 'true';
+import type { KnowledgeObjective, KOStatus } from "@/lib/types/knowledgeMap";
+import { useStudentSkills } from "@/hooks/useKnowledgeMap";
 
 interface BrowseAllSkillsProps {
   isOpen: boolean;
@@ -31,10 +28,6 @@ interface BrowseAllSkillsProps {
    * Read-only mode for parent view (no practice buttons)
    */
   readOnly?: boolean;
-  /**
-   * Mock data mode - defaults to env var VITE_USE_MOCK
-   */
-  useMockData?: boolean;
 }
 
 type StatusFilter = "all" | "in-progress" | "mastered" | "locked";
@@ -47,6 +40,12 @@ interface SkillWithMastery {
   lastPracticed?: string;
   isLocked: boolean;
 }
+
+type TopicMeta = {
+  id: string;
+  name: string;
+  description?: string;
+};
 
 /**
  * BrowseAllSkills - Full-screen modal for exploring all Knowledge Objectives
@@ -65,7 +64,6 @@ export function BrowseAllSkills({
   onClose,
   studentId,
   readOnly = false,
-  useMockData = ENV_USE_MOCK,
 }: BrowseAllSkillsProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
@@ -73,10 +71,44 @@ export function BrowseAllSkills({
   const [expandedTopics, setExpandedTopics] = useState<Set<string>>(new Set());
   const [displayCount, setDisplayCount] = useState(20);
 
-  // Data source: mock data for development, uses getStudentSkills API in live mode
-  const { skills, topics, domains } = useMockData
-    ? getMockSkillsData(studentId)
-    : { skills: [], topics: [], domains: [] };
+  const {
+    skills: fetchedSkills,
+    isLoading,
+    isError,
+    error,
+    refetch,
+  } = useStudentSkills({ studentId, limit: 1000, offset: 0 });
+
+  const skills: SkillWithMastery[] = useMemo(() => {
+    return (fetchedSkills ?? []).map((s) => ({
+      ko: s.ko,
+      mastery: s.mastery,
+      evidenceCount: s.evidenceCount,
+      status: s.status,
+      lastPracticed: s.lastUpdated,
+      isLocked: s.status === "locked",
+    }));
+  }, [fetchedSkills]);
+
+  const domains = useMemo(() => {
+    return Array.from(new Set(skills.map((s) => s.ko.domain).filter(Boolean))).sort((a, b) =>
+      a.localeCompare(b)
+    );
+  }, [skills]);
+
+  const topics: TopicMeta[] = useMemo(() => {
+    const topicMap = new Map<string, TopicMeta>();
+    for (const skill of skills) {
+      const topicId = skill.ko.topicClusterId || "uncategorized";
+      if (!topicMap.has(topicId)) {
+        topicMap.set(topicId, {
+          id: topicId,
+          name: humanizeTopicId(topicId),
+        });
+      }
+    }
+    return Array.from(topicMap.values()).sort((a, b) => a.name.localeCompare(b.name));
+  }, [skills]);
 
   // Filter skills
   const filteredSkills = useMemo(() => {
@@ -149,10 +181,13 @@ export function BrowseAllSkills({
               {readOnly ? "Student Skills" : "My Skills"}
             </h2>
             <p className="text-sm text-muted-foreground mt-1">
-              {filteredSkills.length} skills
-              {searchQuery || statusFilter !== "all" || domainFilter !== "all"
-                ? ` (filtered from ${skills.length})`
-                : ""}
+              {isLoading
+                ? "Loading..."
+                : `${filteredSkills.length} skills${
+                    searchQuery || statusFilter !== "all" || domainFilter !== "all"
+                      ? ` (filtered from ${skills.length})`
+                      : ""
+                  }`}
             </p>
           </div>
           <Button
@@ -226,7 +261,24 @@ export function BrowseAllSkills({
 
         {/* Results */}
         <ScrollArea className="flex-1 p-4">
-          {filteredSkills.length === 0 ? (
+          {isLoading ? (
+            <div className="text-center py-12">
+              <BookOpen className="h-12 w-12 mx-auto text-muted-foreground mb-3" />
+              <p className="text-sm text-muted-foreground">Loading skills...</p>
+            </div>
+          ) : isError ? (
+            <div className="text-center py-12">
+              <BookOpen className="h-12 w-12 mx-auto text-muted-foreground mb-3" />
+              <p className="text-sm text-muted-foreground">
+                Failed to load skills{error?.message ? `: ${error.message}` : "."}
+              </p>
+              <div className="mt-4">
+                <Button variant="outline" onClick={() => refetch()}>
+                  Retry
+                </Button>
+              </div>
+            </div>
+          ) : filteredSkills.length === 0 ? (
             <div className="text-center py-12">
               <BookOpen className="h-12 w-12 mx-auto text-muted-foreground mb-3" />
               <p className="text-sm text-muted-foreground">
@@ -277,6 +329,7 @@ export function BrowseAllSkills({
                           key={skill.ko.id}
                           skill={skill}
                           readOnly={readOnly}
+                          studentId={studentId}
                         />
                       ))}
                       {!isExpanded && topicSkills.length > 3 && (
@@ -321,7 +374,15 @@ export function BrowseAllSkills({
 /**
  * Individual skill row in the browser
  */
-function SkillRow({ skill, readOnly }: { skill: SkillWithMastery; readOnly: boolean }) {
+function SkillRow({
+  skill,
+  readOnly,
+  studentId,
+}: {
+  skill: SkillWithMastery;
+  readOnly: boolean;
+  studentId: string;
+}) {
   const masteryPct = Math.round(skill.mastery * 100);
   const statusIcon = getStatusIcon(skill.status, skill.isLocked);
   const statusColor = getStatusColorClass(skill.mastery, skill.isLocked);
@@ -379,7 +440,11 @@ function SkillRow({ skill, readOnly }: { skill: SkillWithMastery; readOnly: bool
       {/* Action button */}
       {!readOnly && !skill.isLocked && (
         <Button size="sm" className="w-full h-7 text-xs" variant="outline" asChild>
-          <Link to={`/courses?recommendedFor=${skill.ko.id}`}>
+          <Link
+            to={`/courses?recommendedFor=${encodeURIComponent(skill.ko.id)}&studentId=${encodeURIComponent(
+              studentId
+            )}`}
+          >
             <Play className="h-3 w-3 mr-1.5" />
             Practice
           </Link>
@@ -433,61 +498,11 @@ function getStatusColorClass(mastery: number, isLocked: boolean): {
   };
 }
 
-/**
- * Mock data loader for development mode
- * Live mode uses getStudentSkills from knowledgeMap.ts
- */
-function getMockSkillsData(studentId: string): {
-  skills: SkillWithMastery[];
-  topics: Topic[];
-  domains: string[];
-} {
-  // Get all KOs
-  const allKOs = MOCK_KNOWLEDGE_OBJECTIVES;
+function humanizeTopicId(topicId: string): string {
+  if (!topicId || topicId === "uncategorized") return "Other Skills";
 
-  // Get student's mastery states
-  const studentMastery = MOCK_MASTERY_STATES.filter((m) => m.studentId === studentId);
-  const masteryMap = new Map(studentMastery.map((m) => [m.koId, m]));
-
-  // Check prerequisites to determine locked status
-  const isLocked = (ko: KnowledgeObjective): boolean => {
-    if (ko.prerequisites.length === 0) return false;
-    return ko.prerequisites.some((prereqId) => {
-      const prereqMastery = masteryMap.get(prereqId);
-      return !prereqMastery || prereqMastery.mastery < 0.7; // Need 70% to unlock
-    });
-  };
-
-  // Map to SkillWithMastery
-  const skills: SkillWithMastery[] = allKOs.map((ko) => {
-    const mastery = masteryMap.get(ko.id);
-    const locked = isLocked(ko);
-
-    let status: KOStatus = "locked";
-    if (!locked) {
-      if (!mastery || mastery.mastery < 0.7) {
-        status = "in-progress";
-      } else {
-        status = "mastered";
-      }
-    }
-
-    return {
-      ko,
-      mastery: mastery?.mastery || 0,
-      evidenceCount: mastery?.evidenceCount || 0,
-      status,
-      lastPracticed: mastery?.lastUpdated,
-      isLocked: locked,
-    };
-  });
-
-  // Get unique domains
-  const domains = Array.from(new Set(allKOs.map((ko) => ko.domain)));
-
-  return {
-    skills,
-    topics: MOCK_TOPICS,
-    domains,
-  };
+  // If it's a dotted id like "math.arithmetic", use the segment after the dot.
+  const raw = topicId.includes(".") ? topicId.split(".")[1] || topicId : topicId;
+  const words = raw.replace(/[-_]+/g, " ").replace(/\s+/g, " ").trim();
+  return words.replace(/\b\w/g, (c) => c.toUpperCase());
 }

@@ -9,8 +9,6 @@ import { getApiMode as getEnvApiMode } from "./env";
 
 // Export common utilities and types
 export {
-  useMockData,
-  shouldUseMockData,
   ApiError,
   callEdgeFunction,
   callEdgeFunctionGet,

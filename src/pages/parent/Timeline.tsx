@@ -24,7 +24,7 @@ import { CalendarIcon, ExternalLink, AlertCircle } from "lucide-react";
 import { format, parseISO, isSameDay } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useParentTimeline } from "@/hooks/useParentTimeline";
-// useMockData removed - useParentTimeline handles mock mode internally
+// Live data only (mock mode is forbidden).
 import { mapTimelineEventToSession } from "@/lib/parent/timelineMappers";
 
 type FilterType = "all" | "mistakes" | "mastered";
@@ -176,7 +176,7 @@ export default function Timeline() {
 
   const emptyStateMessage =
     !isLoading && apiActivities.length === 0
-      ? data?.message || "No activity found for the selected filters."
+      ? "No activity found for the selected filters."
       : null;
 
   if (isLoading) {

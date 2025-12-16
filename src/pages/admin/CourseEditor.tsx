@@ -78,6 +78,8 @@ const CourseEditor = () => {
   const [studyTextEditorLearningObjectives, setStudyTextEditorLearningObjectives] = useState<string>('');
   const [studyTextAiRewriteLoading, setStudyTextAiRewriteLoading] = useState(false);
   const [studyTextAiImageLoading, setStudyTextAiImageLoading] = useState(false);
+  const studyTextEditorDraftRef = useRef<HTMLTextAreaElement | null>(null);
+  const pendingStudyTextSelectionRef = useRef<{ start: number; end: number } | null>(null);
   const [showMediaLibrary, setShowMediaLibrary] = useState(false);
   const [showComparePanel, setShowComparePanel] = useState(false);
   const [compareData, setCompareData] = useState<{
@@ -294,12 +296,53 @@ const CourseEditor = () => {
   };
 
   const appendStudyTextMarker = (marker: string) => {
+    const el = studyTextEditorDraftRef.current;
+    const hasSelStart = typeof el?.selectionStart === 'number';
+    const hasSelEnd = typeof el?.selectionEnd === 'number';
+    const selectionStart = hasSelStart ? (el!.selectionStart as number) : null;
+    const selectionEnd = hasSelEnd ? (el!.selectionEnd as number) : null;
+
     setStudyTextEditorDraft((prev) => {
-      const base = String(prev || '');
-      const sep = base.endsWith('\n') || base.length === 0 ? '' : '\n';
-      return `${base}${sep}${marker}\n`;
+      const base = String(prev ?? '');
+      const start = selectionStart ?? base.length;
+      const end = selectionEnd ?? base.length;
+      const before = base.slice(0, start);
+      const after = base.slice(end);
+
+      // Put markers on their own line by default.
+      const leading = before.length === 0 || before.endsWith('\n') ? '' : '\n';
+      const trailing = after.startsWith('\n') || after.length === 0 ? '\n' : '\n';
+
+      const next = `${before}${leading}${marker}${trailing}${after}`;
+
+      // Highlight placeholder text (between ':' and ']') so it feels responsive.
+      const markerStart = before.length + leading.length;
+      const placeholderStartOffset = Math.max(marker.indexOf(':') + 1, 0);
+      const placeholderEndOffset = Math.max(marker.length - 1, placeholderStartOffset);
+      pendingStudyTextSelectionRef.current = {
+        start: markerStart + placeholderStartOffset,
+        end: markerStart + placeholderEndOffset,
+      };
+
+      return next;
     });
   };
+
+  // After inserting markers, highlight the placeholder text so the user can immediately type over it.
+  useEffect(() => {
+    if (!studyTextEditorOpen) return;
+    const pending = pendingStudyTextSelectionRef.current;
+    const el = studyTextEditorDraftRef.current;
+    if (!pending || !el) return;
+
+    pendingStudyTextSelectionRef.current = null;
+    try {
+      el.focus();
+      el.setSelectionRange(pending.start, pending.end);
+    } catch {
+      // best-effort; do not crash editor if selection fails in an embedded environment
+    }
+  }, [studyTextEditorDraft, studyTextEditorOpen]);
 
   const findLastNonUrlImageMarker = (content: string) => {
     const re = /\[IMAGE:(.*?)\]/g;
@@ -1944,6 +1987,7 @@ const result = await mcp.rewriteText({
 
                         <Textarea
                           id="studytext-content"
+                          ref={studyTextEditorDraftRef}
                           value={studyTextEditorDraft}
                           onChange={(e) => setStudyTextEditorDraft(e.target.value)}
                           rows={14}

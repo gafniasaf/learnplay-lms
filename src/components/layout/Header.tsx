@@ -22,13 +22,6 @@ export const Header = () => {
   // Filter nav based on current role and dev settings
   const sections = filterNav({ role: currentRole, devEnabled });
 
-  const handleToggleMode = () => {
-    // Toggle the mode in localStorage
-    localStorage.setItem('useMock', isLive ? 'true' : 'false');
-    // Reload the page to apply changes
-    window.location.reload();
-  };
-
   const handleLogout = async () => {
     try {
       await supabase.auth.signOut();
@@ -91,19 +84,16 @@ export const Header = () => {
             </Link>
           )}
           
-          {/* LIVE/MOCK toggle */}
-          <button
-            onClick={handleToggleMode}
-            title="Click to toggle between live and mock mode (persists in localStorage)"
-            className={`px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wider transition-all duration-200 cursor-pointer border-2 ${
-              isLive
-                ? 'bg-green-500/10 text-green-600 border-green-500/30 hover:bg-green-500/20 hover:border-green-500/50'
-                : 'bg-muted text-muted-foreground border-border hover:bg-muted/80 hover:border-border/80'
-            }`}
-            aria-label={`Current mode: ${isLive ? 'Live' : 'Mock'}. Click to toggle.`}
-          >
-            {isLive ? 'LIVE' : 'MOCK'}
-          </button>
+          {/* IgniteZero: live-only */}
+          {isLive && (
+            <span
+              className="px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wider border-2 bg-green-500/10 text-green-600 border-green-500/30"
+              aria-label="Live mode"
+              title="Live mode"
+            >
+              LIVE
+            </span>
+          )}
           
           <HamburgerMenu />
         </div>

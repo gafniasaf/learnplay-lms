@@ -11,13 +11,12 @@ export default defineConfig(({ mode }) => {
     process.env.VITE_BYPASS_AUTH ??
     (process.env.SKIP_VERIFY ? 'true' : '');
   
-  // Mock mode for E2E testing - allows running tests without network dependencies
-  // VITE_USE_MOCK='true' explicitly enables mock mode; otherwise defaults to live mode
-  // Default to LIVE mode for production (Lovable builds) so app uses real Supabase
+  // Mock mode is forbidden in IgniteZero. We still surface VITE_USE_MOCK into the build
+  // so the app can fail loudly if someone tries to enable it.
   const useMockValue = process.env.VITE_USE_MOCK;
   let useMockResult: string;
   if (useMockValue === 'true' || useMockValue === '1') {
-    useMockResult = 'true'; // Explicit mock mode
+    useMockResult = 'true'; // Explicit (forbidden) mock mode request (app will throw)
   } else {
     // Default to live mode for production
     useMockResult = 'false';

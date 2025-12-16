@@ -156,17 +156,15 @@ export interface ParentSubjectsResponse {
 }
 
 export interface ParentTimelineResponse {
+  childId: string;
   events: Array<{
     id: string;
-    student_id: string;
-    student_name?: string;
-    event_type: string;
+    eventType: string;
     description: string;
-    metadata: Record<string, any>;
-    occurred_at: string;
+    metadata: Record<string, any> | null;
+    occurredAt: string;
+    createdAt: string;
   }>;
-  nextCursor: string | null;
-  hasMore: boolean;
 }
 
 export interface ParentTopicsResponse {
@@ -280,7 +278,8 @@ export interface HealthResponse {
 // Record-related Edge Function responses
 export interface ListRecordsResponse {
   ok: boolean;
-  records: Array<Record<string, any>>;
+  records?: Array<{ id: string } & Record<string, any>>;
+  error?: { code: string; message: string };
 }
 
 export interface GetRecordResponse {

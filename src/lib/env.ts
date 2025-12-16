@@ -62,10 +62,6 @@ checkUrlOverride();
 /**
  * Determine if live mode is enabled
  * 
- * Priority order:
- * 1. localStorage.useMock ('false' = live, 'true' = mock)
- * 2. VITE_USE_MOCK env variable ('false' = live, anything else = mock)
- * 
  * @returns true if live mode is enabled (not using mocks)
  */
 export function isLiveMode(): boolean {
@@ -212,7 +208,7 @@ export function validateEnv(): void {
   const errors: string[] = [];
   const liveMode = isLiveMode();
   
-  // Only enforce hard requirements in LIVE mode; soft-pass otherwise
+  // Validate critical config (live-only; mock mode is forbidden)
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string | undefined;
   const supabaseKey =
     (import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string | undefined) ||
@@ -226,11 +222,6 @@ export function validateEnv(): void {
   }
   if (liveMode && !supabaseKey) {
     console.warn("[Env] Supabase key not set (runtime config may supply it)");
-  }
-  if (!liveMode && (!supabaseUrl || !supabaseKey)) {
-    console.warn(
-      "[Env] Running in mock mode (VITE_USE_MOCK=true); Supabase credentials not required."
-    );
   }
   
   // Required if Sentry is enabled: Sentry DSN

@@ -2,6 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   TrendingUp,
   TrendingDown,
@@ -15,9 +16,7 @@ import {
 import { useState } from "react";
 import type { DomainGrowthSummary } from "@/lib/types/knowledgeMap";
 import { BrowseAllSkills } from "@/components/student/BrowseAllSkills";
-
-// Mock mode controlled by env var per IgniteZero rules
-const ENV_USE_MOCK = (import.meta as any).env?.VITE_USE_MOCK === 'true';
+import { useDomainGrowth } from "@/hooks/useKnowledgeMap";
 
 interface GrowthTrackerProps {
   studentId: string;
@@ -30,10 +29,6 @@ interface GrowthTrackerProps {
    */
   hasTeacher?: boolean;
   teacherName?: string;
-  /**
-   * Mock data mode - defaults to env var VITE_USE_MOCK
-   */
-  useMockData?: boolean;
 }
 
 /**
@@ -57,12 +52,44 @@ export function GrowthTracker({
   onAssignPractice,
   hasTeacher = false,
   teacherName,
-  useMockData = ENV_USE_MOCK,
 }: GrowthTrackerProps) {
   const [showBrowseAll, setShowBrowseAll] = useState(false);
 
-  // Data source: mock data for development, uses getDomainGrowth API in live mode
-  const domains = useMockData ? getMockDomainSummaries(studentId) : [];
+  const { domains, isLoading, isError, error, refetch } = useDomainGrowth(studentId);
+
+  if (isLoading) {
+    return (
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-sm font-medium">Growth Tracker</CardTitle>
+        </CardHeader>
+        <CardContent className="text-center py-8">
+          <Target className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
+          <p className="text-sm text-muted-foreground">Loading skill data...</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (isError) {
+    return (
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-sm font-medium">Growth Tracker</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <Alert variant="destructive">
+            <AlertDescription>
+              Failed to load skill data{error?.message ? `: ${error.message}` : "."}
+            </AlertDescription>
+          </Alert>
+          <Button variant="outline" size="sm" onClick={() => refetch()}>
+            Retry
+          </Button>
+        </CardContent>
+      </Card>
+    );
+  }
 
   if (domains.length === 0) {
     return (
@@ -72,7 +99,7 @@ export function GrowthTracker({
         </CardHeader>
         <CardContent className="text-center py-8">
           <Target className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
-          <p className="text-sm text-muted-foreground">Loading skill data...</p>
+          <p className="text-sm text-muted-foreground">No skill data yet.</p>
         </CardContent>
       </Card>
     );
@@ -132,7 +159,6 @@ export function GrowthTracker({
         onClose={() => setShowBrowseAll(false)}
         studentId={studentId}
         readOnly={true}
-        useMockData={useMockData}
       />
     </>
   );
@@ -314,38 +340,4 @@ function getTrendIcon(trend: number): JSX.Element {
       <Minus className="h-3 w-3" />
     </Badge>
   );
-}
-
-/**
- * Mock data generator for development mode
- * Live mode uses getDomainGrowth from knowledgeMap.ts
- */
-function getMockDomainSummaries(studentId: string): DomainGrowthSummary[] {
-  // Mock: Student (Casey) has low mastery, struggling
-  return [
-    {
-      domain: "math",
-      overallMastery: 0.42,
-      trend: -0.08, // Down 8% (struggling)
-      masteredCount: 2,
-      inProgressCount: 5,
-      lockedCount: 23,
-    },
-    {
-      domain: "reading",
-      overallMastery: 0.38,
-      trend: 0.03, // Up 3% (slight improvement)
-      masteredCount: 1,
-      inProgressCount: 4,
-      lockedCount: 18,
-    },
-    {
-      domain: "science",
-      overallMastery: 0.0,
-      trend: 0.0, // No activity yet
-      masteredCount: 0,
-      inProgressCount: 0,
-      lockedCount: 12,
-    },
-  ];
 }

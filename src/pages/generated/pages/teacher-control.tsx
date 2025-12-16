@@ -4,6 +4,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import { useMCP } from "@/hooks/useMCP";
 import { useAuth } from "@/hooks/useAuth";
+import type { ListRecordsResponse } from "@/lib/types/edge-functions";
 
 interface Student {
   id: string;
@@ -31,24 +32,32 @@ export default function TeacherControl() {
     async function loadStudents() {
       // Don't fetch if user is not authenticated
       if (!user && !authLoading) {
-        setStudents([{ id: "demo-1", name: "Demo Student 1" }, { id: "demo-2", name: "Demo Student 2" }]);
+        setStudents([]);
         return;
       }
       
       try {
-        const result = await mcp.listRecords("learner-profile", 100);
-        const profiles = (result as { records?: { id: string; fullName?: string }[] })?.records || [];
-        setStudents(profiles.map(p => ({ id: p.id, name: p.fullName || "Student" })));
+        const result = (await mcp.listRecords("learner-profile", 100)) as ListRecordsResponse;
+        const profiles = result?.records ?? [];
+        setStudents(
+          profiles.map((p) => ({
+            id: p.id,
+            name:
+              (typeof (p as any).full_name === "string" && (p as any).full_name.trim()) ||
+              (typeof (p as any).fullName === "string" && (p as any).fullName.trim()) ||
+              (typeof (p as any).title === "string" && (p as any).title.trim()) ||
+              "Student",
+          }))
+        );
       } catch (err) {
         // Silently handle 401 errors (user not authenticated) - don't log as runtime error
         const error = err as any;
         if (error?.status === 401 || error?.code === 'UNAUTHORIZED' || 
             (error?.message && error.message.includes('Unauthorized'))) {
-          setStudents([{ id: "demo-1", name: "Demo Student 1" }, { id: "demo-2", name: "Demo Student 2" }]);
+          setStudents([]);
           return;
         }
-        // Demo students on other errors
-        setStudents([{ id: "demo-1", name: "Demo Student 1" }, { id: "demo-2", name: "Demo Student 2" }]);
+        setStudents([]);
       }
     }
     if (!authLoading) {
@@ -63,14 +72,15 @@ export default function TeacherControl() {
     }
     setAiLoading(true);
     try {
-      await mcp.enqueueJob("draft_assignment_plan", { subject, title, learnerId: learner_id });
+      const res = await mcp.enqueueJob("draft_assignment_plan", { subject, title, learnerId: learner_id });
       toast.success("AI draft job started!");
-      setAi_suggestions("AI is generating suggestions based on student performance...");
-      // Poll or wait for result - simplified demo
-      setTimeout(() => {
-        setAi_suggestions("Suggested: Focus on fractions with visual aids. Recommended: 15 questions, difficulty level 2.");
-        setAiLoading(false);
-      }, 2000);
+      const jobId = res?.jobId;
+      setAi_suggestions(
+        jobId
+          ? `Draft job queued (jobId: ${jobId}). Open Admin → AI Pipeline to review progress/results.`
+          : "Draft job queued. Open Admin → AI Pipeline to review progress/results."
+      );
+      setAiLoading(false);
     } catch {
       toast.error("AI draft failed - check API keys");
       setAiLoading(false);

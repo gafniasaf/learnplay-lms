@@ -19,7 +19,8 @@ if (typeof (global as any).import === 'undefined') {
 
 // Set up environment variables for tests
 (global as any).import.meta.env = {
-  VITE_USE_MOCK: process.env.VITE_USE_MOCK || 'true',
+  // Mock mode is forbidden; keep Jest env in live mode by default.
+  VITE_USE_MOCK: 'false',
   VITE_FORCE_SAME_ORIGIN_PREVIEW: process.env.VITE_FORCE_SAME_ORIGIN_PREVIEW || 'false',
   VITE_ENABLE_DEV: process.env.VITE_ENABLE_DEV || 'false',
   VITE_EMBED_ALLOWED_ORIGINS: process.env.VITE_EMBED_ALLOWED_ORIGINS || '',

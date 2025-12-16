@@ -49,7 +49,6 @@ Required environment variables:
 - `SUPABASE_SERVICE_ROLE_KEY` - Service role key (for admin operations)
 
 Optional:
-- `VITE_USE_MOCK` - Set to `true` for offline development (default: `false`, uses Supabase)
 - `VITE_ENABLE_DEV` - Set to `true` to enable dev tools (access via `?dev=1`)
 
 See [ENV_SETUP.md](ENV_SETUP.md) for complete environment configuration.
@@ -305,26 +304,12 @@ vite --port 3000
 
 ## Environment Modes
 
-### Mock Mode (Offline Development)
-```bash
-# Set in .env
-VITE_USE_MOCK=true
+### Live Mode (Only Supported Mode)
 
-# Or use URL parameter
-# Visit: http://localhost:8080?live=0
-```
+IgniteZero runs **live-only** against Supabase Edge Functions and real data.
 
-Uses mock data from `public/mock/*.json` - no Supabase connection required.
-
-### Live Mode (Production Default)
-Connects to Supabase for real-time data. Enable with:
-```bash
-# Set in .env
-VITE_USE_MOCK=false
-
-# Or use URL parameter
-# Visit: http://localhost:8080?live=1
-```
+- `VITE_USE_MOCK=true` is **forbidden** and should hard-fail.
+- Do not use URL overrides like `?live=0` / `?live=1`.
 
 ### Dev Mode
 ```bash

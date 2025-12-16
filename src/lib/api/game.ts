@@ -1,4 +1,4 @@
-import { callEdgeFunction, shouldUseMockData, getSupabaseUrl, getSupabaseAnonKey } from "./common";
+import { callEdgeFunction, getSupabaseUrl, getSupabaseAnonKey } from "./common";
 import { EDGE_FUNCTIONS } from "../types/api";
 import { createLogger } from "../logger";
 import type {
@@ -81,9 +81,6 @@ export async function startSession(
   userId: string,
   courseId: string
 ): Promise<StartSessionResponse> {
-  // Mock responses forbidden: shouldUseMockData() will throw if anything tries to enable it.
-  void shouldUseMockData;
-
   log.info("Using Supabase for startSession", {
     action: "startSession",
     userId,
@@ -109,9 +106,6 @@ export async function startRound(
   contentVersion?: string,
   assignmentId?: string
 ): Promise<RoundStartResponse> {
-  // Mock responses forbidden: shouldUseMockData() will throw if anything tries to enable it.
-  void shouldUseMockData;
-
   const payload = { courseId, level, contentVersion, assignmentId };
   log.debug("startRound payload", { action: "startRound", payload });
 
@@ -143,9 +137,6 @@ export async function startRound(
 export async function logAttemptLive(
   payload: LogAttemptPayload
 ): Promise<LogAttemptResult> {
-  // Mock responses forbidden: shouldUseMockData() will throw if anything tries to enable it.
-  void shouldUseMockData;
-
   // Offline queueing previously returned synthetic success; we now fail loudly instead.
   if (typeof navigator !== "undefined" && !navigator.onLine) {
     throw new Error("❌ OFFLINE_UNSUPPORTED: cannot log attempts while offline. Restore connectivity and retry.");
@@ -242,25 +233,6 @@ export async function endRound(
   mistakes: number,
   elapsedTime: number
 ): Promise<RoundEndResponse> {
-  if (shouldUseMockData()) {
-    log.info("Using mock data for endRound", {
-      action: "endRound",
-      roundId,
-      score,
-      mistakes,
-      elapsedTime,
-    });
-    // Mock: return completion data
-    const accuracy =
-      score + mistakes > 0 ? Math.round((score / (score + mistakes)) * 100) : 0;
-    return {
-      roundId,
-      score,
-      accuracy,
-      completedAt: new Date().toISOString(),
-    };
-  }
-
   log.info("Using Supabase for endRound", {
     action: "endRound",
     roundId,
@@ -476,16 +448,6 @@ export function logEvent(
   eventType: string,
   eventData?: Record<string, unknown>
 ) {
-  if (shouldUseMockData()) {
-    log.debug("Mock mode - skipping event log", {
-      action: "logEvent",
-      sessionId,
-      eventType,
-      eventData,
-    });
-    return;
-  }
-
   const idempotencyKey = `${sessionId}-${eventType}-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 
   eventQueue.enqueue({

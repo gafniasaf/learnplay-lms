@@ -37,10 +37,8 @@ By following this workflow you stay in “approve/reject” mode (no manual HTML
 ### 6. Re-export from the live React app
 - Use the exporter: `npx tsx scripts/export-mocks.ts` (expects dev server on `http://localhost:8081`; override with `MOCK_BASE_URL`).
 - The script visits all routes, stamps `data-route`, captures HTML to `docs/mockups/**/default.html`, and regenerates `coverage.json` (including any `data-cta-id` it finds).
-- Make sure fixtures are deterministic (mock mode) before exporting.
+- The exporter runs against whatever the app renders (IgniteZero is live-only). For stable exports, point the dev server at a stable test org/dataset.
 - After changes, rerun: `npx tsx scripts/export-mocks.ts && npm run mock:validate && npm run verify`.
 
 ### 7. Fixture and env notes
-- Default to mock mode: exporter seeds `localStorage.useMock=true`. Keep mock data stable so exports don’t drift.
 - If the dev server isn’t on 8080/8081, set `MOCK_BASE_URL`, e.g., `MOCK_BASE_URL=http://localhost:8083 npx tsx scripts/export-mocks.ts`.
-- Auth bypass is not needed for mocks; mock mode renders without real Supabase calls.

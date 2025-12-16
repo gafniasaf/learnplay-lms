@@ -2,7 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { Play } from "lucide-react";
-import type { ContinuePoint } from "@/lib/student/mockSelectors";
+import type { ContinuePoint } from "@/lib/student/types";
 
 interface ContinueCardProps {
   continuePoint: ContinuePoint | null;

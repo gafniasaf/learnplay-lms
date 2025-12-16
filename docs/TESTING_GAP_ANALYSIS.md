@@ -6,18 +6,17 @@
 
 ## The Core Problem: Test Isolation vs. Real Integration
 
-### 1. **E2E Tests Run in Mock Mode** ❌
+### 1. **E2E Tests Must Run Against Real APIs** ✅
 
 ```typescript
 // playwright.config.ts line 22
-command: 'npx cross-env VITE_USE_MOCK=true ... npm run build && npm run preview'
+command: 'npx cross-env VITE_USE_MOCK=false ... npm run build && npm run preview'
 ```
 
 **Impact:**
-- E2E tests **never hit real Edge Functions**
-- All API calls return fake data
-- Parameter mismatches (like `{ role }` vs `{ parentId }`) are **never caught**
-- CTA tests verify buttons exist, but not that they actually work
+- If E2E is configured with `VITE_USE_MOCK=true` (forbidden), tests will **never hit real Edge Functions**
+- Parameter mismatches (like `{ role }` vs `{ parentId }`) are **not caught**
+- CTA tests can verify buttons exist, but not that they actually work
 
 **Example:**
 ```typescript

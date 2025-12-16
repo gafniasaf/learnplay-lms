@@ -130,21 +130,19 @@ VITE_SENTRY_DSN=https://...@sentry.io/...
 ## Runtime Overrides
 
 ### URL Parameters
-- `?live=1` — Force live mode (disable mocks)
-- `?live=0` — Force mock mode
 - `?dev=1` — Enable dev routes
 - `?dev=0` — Disable dev routes
+- `?live=0` — **FORBIDDEN** (mock mode is not supported; app should hard-fail)
 
 ### localStorage
-- `useMock`: `'true'` (mock) | `'false'` (live)
 - `app.dev`: `'1'` (enabled) | `'0'` (disabled)
 - `app.embedAllowed`: Comma-separated origins
 
 ### Priority Order
+Dev mode only:
 1. localStorage override
 2. URL parameter (persisted to localStorage on boot)
 3. Environment variable
-4. Default value
 
 ## Validation
 
@@ -162,9 +160,7 @@ validateEnv(); // Throws if critical vars missing in live mode
 - `VITE_SUPABASE_PUBLISHABLE_KEY` must be present
 - `VITE_SENTRY_DSN` (if set) must match format `https://...@...`
 
-**Mock Mode:**
-- All variables optional
-- Warning logged if Supabase vars missing
+**Mock Mode:** Not supported (IgniteZero is live-only).
 
 ## Secrets Rotation Playbook
 

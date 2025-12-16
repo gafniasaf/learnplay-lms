@@ -158,9 +158,6 @@ export const LOCKOUT_DURATION_MS = 15 * 60 * 1000; // 15 minutes
 /** Enable verbose logging in development */
 export const DEV_VERBOSE_LOGGING = true;
 
-/** Mock data delay simulation in milliseconds */
-export const MOCK_API_DELAY_MS = 500;
-
 /** E2E test default timeout in milliseconds */
 export const E2E_DEFAULT_TIMEOUT_MS = 30000; // 30 seconds
 

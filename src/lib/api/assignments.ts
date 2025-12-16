@@ -1,4 +1,4 @@
-import { callEdgeFunctionGet, shouldUseMockData, ApiError, getSupabaseUrl } from "./common";
+import { callEdgeFunctionGet, ApiError, getSupabaseUrl } from "./common";
 
 export interface CreateAssignmentRequest {
   orgId?: string; // Optional - derived from user's auth context by edge function
@@ -52,9 +52,6 @@ export interface AssignmentProgressResponse {
 export async function createAssignment(
   request: CreateAssignmentRequest
 ): Promise<CreateAssignmentResponse> {
-  // Mock responses forbidden: shouldUseMockData() will throw if anything tries to enable it.
-  void shouldUseMockData;
-
   console.info("[createAssignment]", request);
 
   const supabaseUrl = getSupabaseUrl();
@@ -107,9 +104,6 @@ export async function listAssignmentsForTeacher(): Promise<ListAssignmentsRespon
  * List assignments for students (calls student-specific endpoint)
  */
 export async function listAssignmentsForStudent(): Promise<ListAssignmentsResponse> {
-  // Mock responses forbidden: shouldUseMockData() will throw if anything tries to enable it.
-  void shouldUseMockData;
-
   console.info("[listAssignmentsForStudent]");
 
   try {
@@ -127,9 +121,6 @@ export async function listAssignmentsForStudent(): Promise<ListAssignmentsRespon
  * List assignments (automatically filtered by RLS)
  */
 export async function listAssignments(): Promise<ListAssignmentsResponse> {
-  // Mock responses forbidden: shouldUseMockData() will throw if anything tries to enable it.
-  void shouldUseMockData;
-
   console.info("[listAssignments]");
 
   return callEdgeFunctionGet<ListAssignmentsResponse>("list-assignments");

@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import { useMCP } from '@/hooks/useMCP';
-import { isLiveMode } from '@/lib/env';
 
 interface JobQuota {
   jobs_last_hour: number;
@@ -9,7 +8,7 @@ interface JobQuota {
   daily_limit: number;
 }
 
-// Default quota for guest/unauthenticated users and mock mode
+// Default quota for guest/unauthenticated users (and as a safe UI fallback on error)
 const DEFAULT_QUOTA: JobQuota = {
   jobs_last_hour: 0,
   hourly_limit: 10,
@@ -27,15 +26,6 @@ export function useJobQuota() {
     let isMounted = true;
 
     const fetchQuota = async () => {
-      // In mock mode, return default quota without hitting the database
-      if (!isLiveMode()) {
-        if (isMounted) {
-          setQuota(DEFAULT_QUOTA);
-          setLoading(false);
-        }
-        return;
-      }
-
       try {
         // Use MCP to fetch job quota (routes through Edge Function)
         const response = await mcp.getRecord('UserJobQuota', 'current') as unknown as { record?: JobQuota };
@@ -68,8 +58,8 @@ export function useJobQuota() {
 
     fetchQuota();
 
-    // Refresh quota every minute (skip in mock mode)
-    const interval = isLiveMode() ? setInterval(fetchQuota, 60000) : null;
+    // Refresh quota every minute
+    const interval = setInterval(fetchQuota, 60000);
 
     return () => {
       isMounted = false;

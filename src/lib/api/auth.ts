@@ -1,5 +1,5 @@
 import type { Dashboard, DashboardRole } from "../types/dashboard";
-import { shouldUseMockData, callEdgeFunctionGet } from "./common";
+import { callEdgeFunctionGet } from "./common";
 
 /**
  * API: Get dashboard data for a role
@@ -8,9 +8,6 @@ import { shouldUseMockData, callEdgeFunctionGet } from "./common";
  */
 export async function getDashboard(role: DashboardRole): Promise<Dashboard> {
   const logger = (await import('@/lib/logger')).createLogger('API');
-  
-  // Mock responses forbidden: shouldUseMockData() will throw if anything tries to enable it.
-  void shouldUseMockData;
 
   logger.info('Getting dashboard', { component: 'getDashboard', role });
 

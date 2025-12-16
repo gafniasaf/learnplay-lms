@@ -33,8 +33,7 @@ Rule of thumb: Do everything that can be automated by code and CI here; use Lova
   - `npm run e2e:report`
 - Preview: `npm run build` → `npm run preview -- --strictPort` (http://localhost:8080).
 - Modes:
-  - Mock mode with `?live=0` (persisted via localStorage). Prefer for deterministic E2E.
-  - Live mode with `?live=1` (requires valid Supabase env/cors).
+  - IgniteZero is **live-only**. `?live=0` / mock mode is forbidden; tests should fail loudly if backend data is missing.
 
 ### Diagnostics Flow (Playwright → JSON → GitHub)
 - Purpose: capture console/network failures and CORS headers for Supabase `auth`/`functions` and persist as JSON in-repo.

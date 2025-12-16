@@ -122,7 +122,7 @@ getContinuePoint() → last course/level
 - `src/hooks/useStudentGoals.ts` - React Query hook for `student-goals`
 - `src/hooks/useStudentTimeline.ts` - React Query hook for `student-timeline`
 - `src/hooks/useStudentAssignments.ts` - React Query hook for `list-assignments-student`
-- `src/lib/student/mockSelectors.ts` - Data adapters
+- `src/lib/student/types.ts` - Student UI view-model types (live data only; no mock selectors)
 - `src/lib/student/goalsMappers.ts` - Aggregates API goals into UI totals
 - `src/lib/student/timelineMappers.ts` - Maps timeline events into session cards
 - `src/lib/student/assignmentsMappers.ts` - Maps assignments into UI cards

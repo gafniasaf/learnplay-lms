@@ -8,7 +8,8 @@ import { test, expect } from '@playwright/test';
  * - C.2: Teacher Assignment
  * - C.3: Parent Check Progress
  * 
- * Config: Uses VITE_USE_MOCK=true for deterministic testing
+ * Config: Runs against real APIs (VITE_USE_MOCK=false). If the required backend data
+ * is missing, tests should fail loudly rather than using mock responses.
  */
 
 test.describe('Learner Journey: Play Loop', () => {

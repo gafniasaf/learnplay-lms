@@ -69,11 +69,14 @@ serve(async (req: Request): Promise<Response> => {
       .eq("student_id", body.studentId);
 
     if (queryError) {
-      // If tables don't exist, return empty domains
-      console.warn("[get-domain-growth] Query error (tables may not exist):", queryError);
+      // IgniteZero: fail loudly. Returning empty arrays hides missing migrations/schema.
+      console.error("[get-domain-growth] Query error:", queryError);
       return new Response(
-        JSON.stringify([]),
-        { status: 200, headers: stdHeaders(req, { "Content-Type": "application/json" }) }
+        JSON.stringify({
+          error:
+            "BLOCKED: Unable to query domain growth. Ensure Knowledge Map schema is applied (mastery_states + knowledge_objectives) and RLS/permissions are correct.",
+        }),
+        { status: 500, headers: stdHeaders(req, { "Content-Type": "application/json" }) }
       );
     }
 
@@ -120,8 +123,8 @@ serve(async (req: Request): Promise<Response> => {
       const totalMastery = skills.reduce((sum, s) => sum + s.mastery, 0);
       const overallMastery = totalMastery / skills.length;
 
-      // Mock trend: calculate week-over-week change (simplified)
-      const trend = Math.random() * 0.2 - 0.1; // Random between -0.1 and 0.1
+      // Trend requires historical mastery snapshots (time-series). Until we store that, return deterministic 0.
+      const trend = 0;
 
       return {
         domain,
