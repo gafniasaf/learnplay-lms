@@ -118,6 +118,13 @@ async function fillStudyTextsOnly(
     timeoutMs: Math.min(timeoutMs, 70000),
   });
   if (!res.ok) return { ok: false, error: res.error || "llm_failed" };
+
+  // Generic moderation handling (no term lists): if the provider refuses, fail clearly.
+  const policy = detectContentPolicyViolation(res.text);
+  if (policy) {
+    return { ok: false, error: `content_policy_violation: ${policy.message}` };
+  }
+
   let parsed: any;
   try {
     parsed = extractJsonFromText(res.text);
@@ -393,7 +400,13 @@ export async function fillSkeleton(
     // Bounded repair: ask the model for studyTexts only, then merge.
     console.warn("[FILLER] Missing studyTexts; attempting targeted fill");
     const stRes = await fillStudyTextsOnly(skeleton, ctx, timeoutMs);
-    if (!stRes.ok) return { ok: false, error: `missing_studyTexts: ${stRes.error}` };
+    if (!stRes.ok) {
+      // If the provider refused, propagate directly so orchestrator can map to invalid_request.
+      if (/^content_policy_violation\s*:/i.test(stRes.error)) {
+        return { ok: false, error: stRes.error };
+      }
+      return { ok: false, error: `missing_studyTexts: ${stRes.error}` };
+    }
     parsed.studyTexts = stRes.studyTexts;
   }
   if (parsed.studyTexts.length !== skeleton.studyTexts.length) {
