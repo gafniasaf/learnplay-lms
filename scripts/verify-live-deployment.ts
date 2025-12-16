@@ -216,7 +216,7 @@ if (!ORGANIZATION_ID) {
 
 async function main() {
   console.log("🔍 Verifying ALL Live Edge Functions...\n");
-  console.log(`   AGENT_TOKEN: ${AGENT_TOKEN?.slice(0, 8)}...`);
+  console.log(`   AGENT_TOKEN: (set)`);
   console.log(`   ORGANIZATION_ID: ${ORGANIZATION_ID}`);
   console.log(`   VERIFY_USER_ID: ${VERIFY_USER_ID ?? "—"}`);
   console.log(`   SUPABASE_URL: ${SUPABASE_URL}\n`);
