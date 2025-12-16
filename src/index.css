@@ -7,6 +7,12 @@ All colors MUST be HSL.
 */
 
 @layer base {
+  :root,
+  html,
+  body {
+    color-scheme: light !important;
+  }
+
   :root {
     --background: 0 0% 100%;
     --foreground: 0 0% 0%; /* Black text */
