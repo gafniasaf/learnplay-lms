@@ -226,8 +226,10 @@
   height: 100%;
 }
 
-/* Form elements */
-input, select, textarea {
+/* Form elements (SCOPED to Golden Plan Generator only) */
+.gpg-layout input,
+.gpg-layout select,
+.gpg-layout textarea {
   background: var(--gen-card);
   border: 1px solid var(--gen-border);
   border-radius: 8px;
@@ -238,13 +240,15 @@ input, select, textarea {
   font-family: inherit;
 }
 
-input:focus, select:focus, textarea:focus {
+.gpg-layout input:focus,
+.gpg-layout select:focus,
+.gpg-layout textarea:focus {
   border-color: var(--gen-primary);
   box-shadow: 0 0 0 1px var(--gen-primary);
 }
 
-/* Buttons */
-button {
+/* Buttons (SCOPED to Golden Plan Generator only) */
+.gpg-layout button {
   cursor: pointer;
   font-family: inherit;
   transition: all 0.2s;

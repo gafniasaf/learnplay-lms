@@ -129,6 +129,15 @@ All colors MUST be HSL.
     @apply bg-background text-foreground;
   }
 
+  /* Default form control surfaces (prevents OS dark form controls) */
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="file"]),
+  select,
+  textarea {
+    background-color: hsl(var(--background));
+    border-color: hsl(var(--input));
+    color: hsl(var(--foreground));
+  }
+
   /* GLOBAL TEXT COLOR OVERRIDE - Force all text to be black */
   h1, h2, h3, h4, h5, h6,
   p, span, div, a, li, td, th,
