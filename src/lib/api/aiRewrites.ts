@@ -131,6 +131,17 @@ export async function generateMedia(
     throw new Error('Empty response from ai-generate-media');
   }
 
+  // Some Edge Functions return 200 with ok:false (preview stability). Treat as a hard failure.
+  if (data && typeof data === 'object' && 'ok' in (data as any) && (data as any).ok === false) {
+    const err = (data as any).error;
+    const code = typeof err?.code === 'string' ? err.code : 'ai_generate_media_failed';
+    const message = typeof err?.message === 'string' ? err.message : 'AI media generation failed';
+    const requestId = typeof (data as any)?.requestId === 'string' ? (data as any).requestId : undefined;
+    const retryable = (err as any)?.retryable === true;
+    const suffix = `${retryable ? ' Please try again.' : ''}${requestId ? ` (requestId: ${requestId})` : ''}`;
+    throw new Error(`${message}${suffix}`);
+  }
+
   return data as GeneratedMedia;
 }
 

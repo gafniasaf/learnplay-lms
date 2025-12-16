@@ -59,6 +59,41 @@ export interface MediaProvider {
   config: Record<string, unknown>;
 }
 
+export class UpstreamProviderError extends Error {
+  public readonly providerId: string;
+  public readonly status: number;
+  public readonly retryable: boolean;
+
+  constructor(args: { providerId: string; status: number; retryable: boolean; message: string }) {
+    super(args.message);
+    this.name = "UpstreamProviderError";
+    this.providerId = args.providerId;
+    this.status = args.status;
+    this.retryable = args.retryable;
+  }
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function isRetryableStatus(status: number): boolean {
+  return status === 408 || status === 409 || status === 429 || status === 500 || status === 502 || status === 503 || status === 504;
+}
+
+async function parseOpenAIErrorMessage(res: Response): Promise<{ message: string; code?: string }> {
+  const text = await res.text().catch(() => "");
+  if (!text) return { message: res.statusText || "Upstream error" };
+  try {
+    const json = JSON.parse(text) as any;
+    const msg = json?.error?.message || json?.message || text;
+    const code = json?.error?.code || json?.error?.type || json?.code;
+    return { message: String(msg), code: code ? String(code) : undefined };
+  } catch {
+    return { message: text || res.statusText || "Upstream error" };
+  }
+}
+
 // ============================================================================
 // PROVIDER IMPLEMENTATIONS
 // ============================================================================
@@ -101,45 +136,97 @@ export const dalleProvider: MediaProvider = {
     
     const size = params.options?.size as string || '1024x1024';
     const quality = params.options?.quality as string || 'standard';
-    
-    const response = await fetch('https://api.openai.com/v1/images/generations', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${OPENAI_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'dall-e-3',
-        prompt: params.prompt,
-        n: 1,
-        size,
-        quality,
-        response_format: 'url',
-      }),
-    });
-    
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(`DALL-E 3 generation failed: ${error.error?.message || response.statusText}`);
+
+    const maxAttempts = 3;
+    let lastErr: UpstreamProviderError | null = null;
+
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      try {
+        const response = await fetch('https://api.openai.com/v1/images/generations', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${OPENAI_API_KEY}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: 'dall-e-3',
+            prompt: params.prompt,
+            n: 1,
+            size,
+            quality,
+            response_format: 'url',
+          }),
+        });
+        
+        if (!response.ok) {
+          const parsed = await parseOpenAIErrorMessage(response);
+          const retryable = isRetryableStatus(response.status);
+          const msg = `DALL-E 3 generation failed: ${parsed.message}${parsed.code ? ` (code: ${parsed.code})` : ''}`;
+          lastErr = new UpstreamProviderError({
+            providerId: 'openai-dalle3',
+            status: response.status,
+            retryable,
+            message: msg,
+          });
+
+          if (retryable && attempt < maxAttempts) {
+            const backoffMs = 750 * attempt * attempt;
+            await sleep(backoffMs);
+            continue;
+          }
+          throw lastErr;
+        }
+        
+        const data = await response.json();
+        const generationTime = Date.now() - startTime;
+        
+        return {
+          url: data.data[0].url,
+          metadata: {
+            provider: 'openai-dalle3',
+            model: 'dall-e-3',
+            revised_prompt: data.data[0].revised_prompt,
+            dimensions: size === '1024x1024' ? { width: 1024, height: 1024 } 
+                      : size === '1792x1024' ? { width: 1792, height: 1024 }
+                      : { width: 1024, height: 1792 },
+            mime_type: 'image/png',
+            generation_time_ms: generationTime,
+            cost_usd: quality === 'hd' ? 0.08 : 0.04,
+          },
+        };
+      } catch (e) {
+        if (e instanceof UpstreamProviderError) {
+          lastErr = e;
+          if (e.retryable && attempt < maxAttempts) {
+            const backoffMs = 750 * attempt * attempt;
+            await sleep(backoffMs);
+            continue;
+          }
+          throw e;
+        }
+
+        const msg = e instanceof Error ? e.message : String(e);
+        lastErr = new UpstreamProviderError({
+          providerId: 'openai-dalle3',
+          status: 0,
+          retryable: true,
+          message: `DALL-E 3 generation failed: ${msg}`,
+        });
+        if (attempt < maxAttempts) {
+          const backoffMs = 750 * attempt * attempt;
+          await sleep(backoffMs);
+          continue;
+        }
+        throw lastErr;
+      }
     }
-    
-    const data = await response.json();
-    const generationTime = Date.now() - startTime;
-    
-    return {
-      url: data.data[0].url,
-      metadata: {
-        provider: 'openai-dalle3',
-        model: 'dall-e-3',
-        revised_prompt: data.data[0].revised_prompt,
-        dimensions: size === '1024x1024' ? { width: 1024, height: 1024 } 
-                  : size === '1792x1024' ? { width: 1792, height: 1024 }
-                  : { width: 1024, height: 1792 },
-        mime_type: 'image/png',
-        generation_time_ms: generationTime,
-        cost_usd: quality === 'hd' ? 0.08 : 0.04,
-      },
-    };
+
+    throw lastErr ?? new UpstreamProviderError({
+      providerId: 'openai-dalle3',
+      status: 0,
+      retryable: true,
+      message: 'DALL-E 3 generation failed: Unknown error',
+    });
   },
 };
 

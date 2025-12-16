@@ -2,7 +2,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { stdHeaders, handleOptions } from "../_shared/cors.ts";
 import { authenticateRequest } from "../_shared/auth.ts";
-import { getDefaultProvider, getProvider } from "../_shared/media-providers.ts";
+import { getDefaultProvider, getProvider, UpstreamProviderError } from "../_shared/media-providers.ts";
 
 // Minimal Deno shim for local TypeScript tooling
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -63,35 +63,37 @@ serve(async (req: Request): Promise<Response> => {
   }
 
   if (req.method !== "POST") {
-    return json(req, { error: { code: "method_not_allowed", message: "Method Not Allowed" }, requestId }, 405, requestId);
+    // Avoid non-200s in preview hosts that can blank-screen; still fail loudly via ok:false.
+    return json(req, { ok: false, error: { code: "method_not_allowed", message: "Method Not Allowed" }, requestId }, 200, requestId);
   }
 
   // Auth: agent token OR user session
   try {
     await authenticateRequest(req);
   } catch {
-    return json(req, { error: { code: "unauthorized", message: "Unauthorized" }, requestId }, 401, requestId);
+    // Avoid non-200s in preview hosts that can blank-screen; still fail loudly via ok:false.
+    return json(req, { ok: false, error: { code: "unauthorized", message: "Unauthorized" }, requestId }, 200, requestId);
   }
 
   let body: GenerateMediaBody;
   try {
     body = (await req.json()) as GenerateMediaBody;
   } catch {
-    return json(req, { error: { code: "invalid_request", message: "Invalid JSON body" }, requestId }, 400, requestId);
+    return json(req, { ok: false, error: { code: "invalid_request", message: "Invalid JSON body" }, requestId }, 200, requestId);
   }
 
   const prompt = typeof body?.prompt === "string" ? body.prompt.trim() : "";
   const kind = body?.kind === "image" || body?.kind === "audio" ? body.kind : null;
   if (!prompt) {
-    return json(req, { error: { code: "invalid_request", message: "prompt is required" }, requestId }, 400, requestId);
+    return json(req, { ok: false, error: { code: "invalid_request", message: "prompt is required" }, requestId }, 200, requestId);
   }
   if (!kind) {
-    return json(req, { error: { code: "invalid_request", message: "kind is required (image|audio)" }, requestId }, 400, requestId);
+    return json(req, { ok: false, error: { code: "invalid_request", message: "kind is required (image|audio)" }, requestId }, 200, requestId);
   }
 
   // Current UI uses only image. Audio is not yet supported end-to-end (provider returns blob URLs).
   if (kind !== "image") {
-    return json(req, { error: { code: "invalid_request", message: "Only kind=image is currently supported" }, requestId }, 400, requestId);
+    return json(req, { ok: false, error: { code: "invalid_request", message: "Only kind=image is currently supported" }, requestId }, 200, requestId);
   }
 
   const provider =
@@ -100,8 +102,8 @@ serve(async (req: Request): Promise<Response> => {
   if (!provider || !provider.enabled) {
     return json(
       req,
-      { error: { code: "provider_unavailable", message: `No enabled provider for media type: ${kind}` }, requestId },
-      500,
+      { ok: false, error: { code: "provider_unavailable", message: `No enabled provider for media type: ${kind}` }, requestId },
+      200,
       requestId
     );
   }
@@ -118,8 +120,8 @@ serve(async (req: Request): Promise<Response> => {
     if (!imgResp.ok) {
       return json(
         req,
-        { error: { code: "upstream_fetch_failed", message: `Failed to fetch generated image: ${imgResp.status} ${imgResp.statusText}` }, requestId },
-        502,
+        { ok: false, error: { code: "upstream_fetch_failed", message: `Failed to fetch generated image: ${imgResp.status} ${imgResp.statusText}` }, requestId },
+        200,
         requestId
       );
     }
@@ -143,8 +145,30 @@ serve(async (req: Request): Promise<Response> => {
       requestId,
     }, 200, requestId);
   } catch (e) {
+    if (e instanceof UpstreamProviderError) {
+      const code = e.retryable ? "upstream_unavailable" : "upstream_error";
+      // Avoid non-200s in preview hosts that can blank-screen; still fail loudly via ok:false.
+      return json(
+        req,
+        {
+          ok: false,
+          error: {
+            code,
+            message: e.message,
+            provider: e.providerId,
+            retryable: e.retryable,
+            upstreamStatus: e.status || undefined,
+          },
+          requestId,
+        },
+        200,
+        requestId
+      );
+    }
+
     const msg = e instanceof Error ? e.message : String(e);
-    return json(req, { error: { code: "internal_error", message: msg }, requestId }, 500, requestId);
+    // Avoid non-200s in preview hosts that can blank-screen; still fail loudly via ok:false.
+    return json(req, { ok: false, error: { code: "internal_error", message: msg }, requestId }, 200, requestId);
   }
 });
 
