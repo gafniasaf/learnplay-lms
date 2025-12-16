@@ -9,6 +9,7 @@
  */
 import React from "react";
 import { Route } from "react-router-dom";
+import CourseSelector from "./pages/admin/CourseSelector";
 
 // Workspace Entity Editors (Manifest-First pattern)
 const LearnerProfileEditor = React.lazy(() => import("./pages/workspace/LearnerProfileEditor"));
@@ -31,7 +32,6 @@ const AuthPage = React.lazy(() => import("./pages/Auth"));
 // Admin pages
 const AdminConsole = React.lazy(() => import("./pages/Admin"));
 const AIPipeline = React.lazy(() => import("./pages/admin/AIPipelineV2"));
-const CourseSelector = React.lazy(() => import("./pages/admin/CourseSelector"));
 const CourseEditor = React.lazy(() => import("./pages/admin/CourseEditor"));
 const CourseVersionHistory = React.lazy(() => import("./pages/admin/CourseVersionHistory"));
 const JobsDashboard = React.lazy(() => import("./pages/admin/JobsDashboard"));

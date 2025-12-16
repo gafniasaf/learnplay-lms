@@ -9,6 +9,7 @@ import { useSentryUser } from "./hooks/useSentryUser";
 import { DawnDataProvider } from "./contexts/DawnDataContext";
 import { Layout } from "./components/layout/Layout";
 import { isDevAgentMode } from "@/lib/api/common";
+import AdminCourseSelectorPage from "./pages/admin/CourseSelector";
 
 const Auth = lazy(() => import("./pages/Auth"));
 const ResetPassword = lazy(() => import("./pages/auth/ResetPassword"));
@@ -22,7 +23,9 @@ const CrmContacts = lazy(() => import("./pages/crm-demo/contacts/ContactList"));
 const GenericList = lazy(() => import("./pages/generic/GenericList"));
 const GenericBoard = lazy(() => import("./pages/generic/GenericBoard"));
 const AdminMetrics = lazy(() => import("./pages/admin/Metrics"));
-const AdminCourseSelector = lazy(() => import("./pages/admin/CourseSelector"));
+// NOTE: Lovable hosted previews can intermittently fail `React.lazy()` dynamic imports (served as /src/*.tsx).
+// Keep this route eagerly imported to avoid "Failed to fetch dynamically imported module" crashes.
+const AdminCourseSelector = AdminCourseSelectorPage;
 const AdminMediaManager = lazy(() => import("./pages/admin/MediaManager"));
 const AdminTagApprovalQueue = lazy(() => import("./pages/admin/TagApprovalQueue"));
 const TeacherAssignments = lazy(() => import("./pages/teacher/Assignments"));
