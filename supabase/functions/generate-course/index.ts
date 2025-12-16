@@ -41,40 +41,11 @@ const InputSchema = z.object({
 
 function normalizeSubjectForSafety(subject: string, gradeBand: string): string {
   const raw = String(subject || "").trim();
-  const s = raw.toLowerCase();
-  const band = String(gradeBand || "").toLowerCase();
-
-  // Reject vulgar slurs/phrases early so we don't spend tokens on an LLM refusal,
-  // and so the UI can display a clear "rephrase" message.
-  const containsInappropriateLanguage =
-    /\b(pussy|pussies)\b/i.test(raw);
-  if (containsInappropriateLanguage) {
-    throw new Error(
-      'invalid_request: Subject contains inappropriate language. ' +
-        'Please rephrase using school-appropriate wording (e.g., "squat form for beginners").'
-    );
-  }
-
-  // Minimal safety normalization:
-  // - We don't generate explicit sexual content from slang inputs.
-  // - For older students, we can reframe into medically accurate anatomy.
-  const containsSexualSlang =
-    /\b(boobs?|testicles?|tits?|porn|sex|blowjob|anal)\b/i.test(raw);
-
-  if (!containsSexualSlang) return raw;
-
-  const allowedForOlder =
-    band.includes("9-12") || band.includes("high") || band.includes("college") || band === "all";
-
-  if (!allowedForOlder) {
-    throw new Error(
-      "invalid_request: Subject contains adult content not suitable for this grade band. " +
-        "Use a school-appropriate topic or choose an older grade band."
-    );
-  }
-
-  // Reframe slang into a legitimate educational topic.
-  return "Human reproductive anatomy";
+  // Generic approach: do not maintain a term blacklist here.
+  // If a provider refuses the request, the filler will surface a content-policy error
+  // and the job will fail with a clear "please rephrase" message.
+  void gradeBand; // kept for signature stability
+  return raw;
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

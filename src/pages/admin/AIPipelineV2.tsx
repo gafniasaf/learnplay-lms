@@ -222,17 +222,6 @@ export default function AIPipelineV2() {
       return;
     }
 
-    // Client-side guardrail: block obviously inappropriate language early so we don't enqueue a job
-    // that will be refused by the LLM provider's safety filters.
-    const subj = subject.trim();
-    const subjLower = subj.toLowerCase();
-    if (/\b(pussy|pussies)\b/i.test(subjLower)) {
-      toast.error('Please rephrase the subject', {
-        description: 'This subject contains inappropriate language and will be rejected. Try “squat form for beginners”.',
-      });
-      return;
-    }
-
     // Check authentication before attempting to create
     if (!devAgent && !user && !authLoading) {
       setAuthError('Please log in to create courses');

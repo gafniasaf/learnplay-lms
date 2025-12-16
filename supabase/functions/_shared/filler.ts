@@ -38,6 +38,44 @@ function isNonEmptyString(v: unknown): v is string {
   return typeof v === "string" && v.trim().length > 0;
 }
 
+function detectContentPolicyViolation(rawText: string): { message: string } | null {
+  const s = String(rawText || "").trim();
+  if (!s) return null;
+  const lower = s.toLowerCase();
+
+  // Strong signal: providers sometimes emit an explicit code.
+  const hasPolicyCode = lower.includes("content_policy_violation");
+
+  // Generic refusal patterns (avoid hardcoding topic terms).
+  const looksLikeRefusal =
+    lower.startsWith("i'm sorry") ||
+    lower.startsWith("i am sorry") ||
+    lower.startsWith("i cannot") ||
+    lower.startsWith("i can't") ||
+    lower.includes("i cannot create") ||
+    lower.includes("i can't create") ||
+    lower.includes("not suitable for") ||
+    lower.includes("cannot comply") ||
+    lower.includes("can't comply") ||
+    lower.includes("policy violation") ||
+    lower.includes("content policy");
+
+  if (!hasPolicyCode && !looksLikeRefusal) return null;
+
+  // Try to extract a structured message if the model returned JSON-ish error text.
+  // Some models return `"error": "...", "message": "..."` without wrapping braces.
+  let msg: string | null = null;
+  const m = s.match(/\"message\"\s*:\s*\"([^\"]{1,500})\"/i);
+  if (m?.[1]) msg = m[1];
+
+  // Fall back to a generic user-facing message.
+  const message =
+    (msg && msg.trim()) ||
+    "The subject was rejected by the AI provider’s content policy. Please rephrase using school-appropriate wording.";
+
+  return { message };
+}
+
 function buildStudyTextsOnlyPrompt(skeleton: SkeletonCourse): string {
   const { subject, gradeBand, studyTexts } = skeleton;
   return `You are generating study text content for an educational course.
@@ -302,6 +340,12 @@ export async function fillSkeleton(
   
   if (!result.ok) {
     return { ok: false, error: result.error || "llm_failed" };
+  }
+
+  // Generic moderation handling (no term lists): if the provider refuses, fail with a clear error.
+  const policy = detectContentPolicyViolation(result.text);
+  if (policy) {
+    return { ok: false, error: `content_policy_violation: ${policy.message}` };
   }
   
   // Save raw LLM response for debugging (async fire-and-forget)

@@ -235,6 +235,12 @@ export function createGenerationRunner(deps: GenerationRunnerDeps) {
         } as any);
       }
       if (!fillResult.ok) {
+        // If the provider refused the request (content policy), surface it as an invalid_request
+        // so the UI can instruct the user to rephrase (no term lists, no silent fallback).
+        if (/^content_policy_violation\s*:/i.test(fillResult.error)) {
+          const msg = fillResult.error.replace(/^content_policy_violation\s*:\s*/i, "").trim();
+          throw new Error(`invalid_request: ${msg || "Subject rejected by content policy. Please rephrase."}`);
+        }
         // NO PLACEHOLDERS POLICY: fail loud so callers can see the real error and retry.
         throw new Error(`llm_fill_failed: ${fillResult.error}`);
       }
