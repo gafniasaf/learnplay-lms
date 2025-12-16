@@ -478,3 +478,15 @@ export interface GetOrgConfigResponse {
   config: Record<string, any>;
 }
 
+export interface SchoolDashboardSummaryResponse {
+  ok: true;
+  organizationId: string;
+  generatedAt: string;
+  stats: {
+    totalStudents: number;
+    totalTeachers: number;
+    activeClasses: number;
+    coursesAvailable: number;
+  };
+}
+

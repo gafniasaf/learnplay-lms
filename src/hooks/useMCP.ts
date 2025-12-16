@@ -37,6 +37,7 @@ import type {
   GetAnalyticsResponse,
   ListStudentsResponse,
   GetOrgConfigResponse,
+  SchoolDashboardSummaryResponse,
   Assignment,
 } from '@/lib/types/edge-functions';
 import type { StudentTimelineResponse as StudentTimelineUiResponse } from "@/lib/api/studentTimeline";
@@ -1127,6 +1128,17 @@ export function useMCP() {
     }
   };
 
+  const getSchoolDashboardSummary = async () => {
+    setLoading(true);
+    try {
+      // NOTE: We intentionally call the Edge Function directly here to keep dev-agent preview stable.
+      // If you later add an MCP handler, you can route this through callMCP when shouldUseMCPProxy() is true.
+      return await callEdgeFunctionGet<SchoolDashboardSummaryResponse>("school-dashboard");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const getClassProgress = async (classId: string) => {
     setLoading(true);
     try {
@@ -1325,6 +1337,7 @@ export function useMCP() {
     getCoursesByTags,
     // Dashboard methods
     getDashboard,
+    getSchoolDashboardSummary,
     getClassProgress,
     fetchAnalytics,
     listOrgStudents,
