@@ -52,7 +52,9 @@ interface Conversation {
 export default function Inbox() {
   const { user } = useAuth();
   const { toast } = useToast();
-  const messaging = useMessaging();
+  // IMPORTANT: avoid calling Edge Functions (list-conversations) when there is no Supabase user session.
+  // This prevents noisy 401s and runtime overlays in preview environments.
+  const messaging = useMessaging({ enabled: !!user });
   const mcp = useMCP();
   const [selectedConversation, setSelectedConversation] = useState<string | null>(null);
   const [messageContent, setMessageContent] = useState("");
