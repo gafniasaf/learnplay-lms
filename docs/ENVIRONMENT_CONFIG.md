@@ -210,7 +210,8 @@ validateEnv(); // Throws if critical vars missing in live mode
 
 ### AI generation fails
 - Verify `OPENAI_API_KEY` or `ANTHROPIC_API_KEY` in Supabase Edge Functions settings
-- Check edge function logs: `npx supabase functions logs ai-job-runner`
+- Check edge function logs in Supabase Dashboard → Project → Edge Functions → `ai-job-runner` → Logs  
+  (The repo-pinned Supabase CLI may not include `supabase functions logs` in all versions.)
 - Test API keys directly via cURL (see API_REFERENCE.md)
 
 ### Sentry not capturing errors

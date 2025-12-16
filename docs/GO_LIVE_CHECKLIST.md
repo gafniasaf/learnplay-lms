@@ -128,9 +128,8 @@
 - [ ] **Verify first real user login** succeeds
 - [ ] **Check AI generation** completes successfully
 - [ ] **Monitor Supabase logs:**
-  ```bash
-  npx supabase functions logs ai-job-runner --follow
-  ```
+  - Supabase Dashboard → Project → Edge Functions → `ai-job-runner` → Logs
+  - Note: The repo-pinned Supabase CLI may not include `supabase functions logs` in all versions.
 
 ### First 2 Hours
 

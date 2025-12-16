@@ -142,7 +142,7 @@ If Supabase storage is under maintenance, the script will warn you. Just rerun o
 | --- | --- | --- |
 | Download button says “Unauthorized” | Session cookie expired or you opened a private window. | Log back in at `/auth`, then revisit `/setup`. |
 | PowerShell bootstrap fails saying ReleaseUrl missing | The signed link timed out. | Click the download button again, copy the new URL, rerun `install-factory.ps1 -ReleaseUrl "<link>"`. |
-| Supabase CLI errors during `release:publish` | Supabase maintenance window or stale CLI login. | `supabase logout && supabase login`, then rerun once maintenance is over. |
+| Supabase CLI errors during `release:publish` | Supabase maintenance window or stale CLI login. | Re-auth the CLI (see `docs/DEPLOYMENT_MAGIC.md`), then rerun once status.supabase.com is green again. |
 | Watchtower is empty | MCP server isn’t running or jobs haven’t started. | Start `npm run mcp:ensure` or check `lms-mcp` logs. |
 | Playwright tests bypass auth | We intentionally set `VITE_BYPASS_AUTH=true` only for Playwright’s web server. | Ignore in CI; production builds never set this flag. |
 

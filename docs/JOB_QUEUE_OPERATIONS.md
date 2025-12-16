@@ -305,10 +305,10 @@ order by jobs_submitted desc;
 ### Symptom: Storage write failures
 
 **Diagnosis:**
-```bash
-# Check edge function logs
-npx supabase functions logs ai-job-runner --limit 50 | grep "Storage upload failed"
-```
+- Supabase Dashboard → Project → Edge Functions → `ai-job-runner` → Logs  
+  Search for: `Storage upload failed`
+
+Note: The repo-pinned Supabase CLI may not include `supabase functions logs` in all versions.
 
 **Cause:** Supabase Storage permissions or quota
 

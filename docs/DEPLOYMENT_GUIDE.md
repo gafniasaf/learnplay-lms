@@ -179,16 +179,12 @@ curl -X POST https://your-project.supabase.co/functions/v1/score-candidate \
 
 Watch logs for 15-30 minutes:
 
-```bash
-# Terminal 1: Orchestrator logs
-supabase functions logs ai-orchestrator --tail
-
-# Terminal 2: Main function logs  
-supabase functions logs generate-course --tail
-
-# Terminal 3: Candidate generation logs
-supabase functions logs generate-candidates --tail
-```
+- Supabase Dashboard → Project → Edge Functions → Logs
+  - `ai-orchestrator`
+  - `generate-course`
+  - `generate-candidates`
+  
+Note: The repo-pinned Supabase CLI may not include `supabase functions logs` in all versions.
 
 **Key metrics to watch**:
 - Latency per request (<90s target)
@@ -351,16 +347,9 @@ LIMIT 10;
 
 **Solution**:
 ```bash
-# Check orchestrator logs
-supabase functions logs ai-orchestrator --tail | grep ERROR
-
-# Common causes:
-# 1. Candidates not generating
-supabase functions logs generate-candidates --tail
-
-# 2. Review/scoring failing
-supabase functions logs review-candidate --tail
-supabase functions logs score-candidate --tail
+# Check logs in Supabase Dashboard:
+#   Project → Edge Functions → ai-orchestrator / generate-candidates / review-candidate / score-candidate → Logs
+# Then search for "ERROR" / "failed" in the log viewer.
 
 # 3. Missing env vars
 supabase secrets list | grep -E '(MIN_VIABLE_SCORE|CANDIDATE_COUNT)'
@@ -455,7 +444,7 @@ After Phase 1 stabilizes (1-2 weeks):
 ## Support
 
 For issues:
-1. Check logs: `supabase functions logs <function-name> --tail`
+1. Check logs in Supabase Dashboard → Project → Edge Functions → Logs
 2. Review metrics dashboard
 3. Test individual components
 4. Rollback if needed (procedures above)

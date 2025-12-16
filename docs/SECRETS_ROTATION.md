@@ -115,7 +115,8 @@ This playbook documents the procedure for rotating all secrets and API keys used
    - Verify job processes correctly
 
 4. **Monitor**
-   - Check edge function logs: `npx supabase functions logs ai-job-runner`
+   - Check edge function logs in Supabase Dashboard → Project → Edge Functions → `ai-job-runner` → Logs  
+     (The repo-pinned Supabase CLI may not include `supabase functions logs` in all versions.)
    - Watch for auth errors in first 10 minutes
 
 5. **Revoke Old Key**

@@ -1530,8 +1530,9 @@ npx tsx scripts/verify-live-deployment.ts
 
 **Debug Steps:**
 ```bash
-# Check logs
-npx supabase functions logs save-record --project-ref [your-ref]
+# Check logs in Supabase Dashboard:
+#   Project → Edge Functions → save-record → Logs
+# Note: The repo-pinned Supabase CLI may not include `supabase functions logs` in all versions.
 
 # Compare with known-working function
 diff supabase/functions/my-function/index.ts supabase/functions/list-jobs/index.ts

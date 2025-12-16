@@ -372,15 +372,13 @@ artillery report --output results.html
 ### Logs to Monitor
 
 **Per-function logs**:
-```bash
-# Orchestrator
-supabase functions logs ai-orchestrator --tail
+- Supabase Dashboard → Project → Edge Functions → Logs
+  - `ai-orchestrator`
+  - `generate-candidates`
+  - `review-candidate`
+  - `score-candidate`
 
-# Individual steps
-supabase functions logs generate-candidates --tail
-supabase functions logs review-candidate --tail
-supabase functions logs score-candidate --tail
-```
+Note: The repo-pinned Supabase CLI may not include `supabase functions logs` in all versions.
 
 **Key metrics**:
 - Candidate generation: latency, success rate, tokens
@@ -424,13 +422,9 @@ GROUP BY summary->>'method';
 ### Orchestrator returns 500
 
 Check logs for each step:
-```bash
-# Which step failed?
-supabase functions logs ai-orchestrator --tail | grep "failed"
-
-# Check that step's logs
-supabase functions logs generate-candidates --tail
-```
+- Supabase Dashboard → Project → Edge Functions → Logs
+  - Start with `ai-orchestrator` and search for "failed"
+  - Then check the failing step function’s logs (e.g., `generate-candidates`)
 
 ### High latency
 

@@ -75,9 +75,8 @@ git push origin main
 
 **Rollback Steps:**
 1. **Check edge function logs:**
-   ```bash
-   npx supabase functions logs ai-job-runner --limit 50
-   ```
+   - Supabase Dashboard → Project → Edge Functions → `ai-job-runner` → Logs
+   - Note: The repo-pinned Supabase CLI may not include `supabase functions logs` in all versions.
 
 2. **Identify error** (syntax error, missing env var, etc.)
 

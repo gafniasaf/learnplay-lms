@@ -111,6 +111,14 @@ serve(async (req: Request): Promise<Response> => {
 
 ## 🛠️ CLI Deployment Commands
 
+### Use the repo-pinned Supabase CLI (recommended)
+
+This repo pins a Supabase CLI version in `package.json`. Prefer:
+
+```powershell
+npx supabase --version
+```
+
 ### Authentication
 
 ```powershell
@@ -130,16 +138,16 @@ export SUPABASE_ACCESS_TOKEN="sbp_your_token_here"
 ### Deploy Single Function
 
 ```powershell
-supabase functions deploy save-record --project-ref xlslksprdjsxawvcikfk
+npx supabase functions deploy save-record --project-ref xlslksprdjsxawvcikfk --no-verify-jwt --debug
 ```
 
 ### Set Secrets
 
 ```powershell
 # Note: SUPABASE_* prefixed vars are auto-injected, cannot be set manually
-supabase secrets set AGENT_TOKEN="your-token" --project-ref xlslksprdjsxawvcikfk
-supabase secrets set ANTHROPIC_API_KEY="sk-ant-..." --project-ref xlslksprdjsxawvcikfk
-supabase secrets set OPENAI_API_KEY="sk-..." --project-ref xlslksprdjsxawvcikfk
+npx supabase secrets set AGENT_TOKEN="your-token" --project-ref xlslksprdjsxawvcikfk
+npx supabase secrets set ANTHROPIC_API_KEY="sk-ant-..." --project-ref xlslksprdjsxawvcikfk
+npx supabase secrets set OPENAI_API_KEY="sk-..." --project-ref xlslksprdjsxawvcikfk
 ```
 
 ---
@@ -173,10 +181,9 @@ Expected results:
 
 ### Debug Steps
 
-1. Check function logs (if available):
-   ```bash
-   supabase functions logs save-record --project-ref xlslksprdjsxawvcikfk
-   ```
+1. Check function logs in the Supabase Dashboard:
+   - **Dashboard → Project → Edge Functions →** select the function → **Logs**
+   - Note: The repo-pinned Supabase CLI may not include `supabase functions logs` in all versions.
 
 2. Compare with working function (`list-jobs`):
    - Same import pattern?
