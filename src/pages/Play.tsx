@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef, useMemo } from "react";
-import { useParams, useNavigate, useSearchParams } from "react-router-dom";
+import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { Trophy, Menu, Home, Target } from "lucide-react";
 import { useMCP } from "@/hooks/useMCP";
 import { useGameSession } from "@/hooks/useGameSession";
@@ -66,7 +66,7 @@ const Play = () => {
   })();
   
   const [course, setCourse] = useState<(Course & { _metadata?: { dataSource: 'live' | 'mock', etag?: string } }) | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState<boolean>(!!courseId);
   const [error, setError] = useState<string | null>(null);
   const [skillFocusEmpty, setSkillFocusEmpty] = useState<boolean>(false);
   const [feedbackMessage, setFeedbackMessage] = useState("");
@@ -95,6 +95,12 @@ const Play = () => {
   const [currentLevel, setCurrentLevel] = useState<number>(1);
   
   const sessionStore = useSessionStore();
+
+  // If this route is loaded without a courseId (e.g. legacy /play/welcome),
+  // avoid an infinite loading spinner and show a proper "Play" entry screen.
+  useEffect(() => {
+    if (!courseId) setLoading(false);
+  }, [courseId]);
 
   // If a skillFocus (koId) is provided, filter the course to only items mapped to that KO.
   // We create a derived course with filtered items and empty levels to trigger fallback (all groups).
@@ -790,6 +796,55 @@ const Play = () => {
             <Home className="h-4 w-4 mr-2" />
             Back to Courses
           </Button>
+        </div>
+      </div>
+    );
+  }
+
+  // Render entry screen (no course selected)
+  if (!courseId) {
+    return (
+      <div className="min-h-screen w-full bg-gradient-to-br from-primary/5 via-background to-accent/5 flex items-center justify-center p-6">
+        <div className="text-center max-w-xl">
+          <h1 className="text-4xl font-bold mb-4">Play</h1>
+          <p className="text-muted-foreground mb-8">
+            Choose where you want to start. You can jump into the Kids portal or pick a course first.
+          </p>
+
+          <div className="flex flex-col sm:flex-row gap-3 justify-center">
+            <Button asChild>
+              <Link
+                to="/kids"
+                data-cta-id="cta-play-welcome-kids"
+                data-action="navigate"
+                data-target="/kids"
+              >
+                Go to Kids
+              </Link>
+            </Button>
+
+            <Button asChild variant="outline">
+              <Link
+                to="/courses"
+                data-cta-id="cta-play-welcome-courses"
+                data-action="navigate"
+                data-target="/courses"
+              >
+                Browse Courses
+              </Link>
+            </Button>
+
+            <Button asChild variant="ghost">
+              <Link
+                to="/"
+                data-cta-id="cta-play-welcome-home"
+                data-action="navigate"
+                data-target="/"
+              >
+                Back to Home
+              </Link>
+            </Button>
+          </div>
         </div>
       </div>
     );

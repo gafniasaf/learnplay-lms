@@ -136,7 +136,7 @@ async function batchRepairItemsWithLLM(args: {
     prompt,
     maxTokens: 3500,
     temperature: 0.2,
-    prefillJson: false,
+    prefillJson: true,
     timeoutMs,
   });
   if (!res.ok) {

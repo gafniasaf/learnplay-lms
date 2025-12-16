@@ -2,15 +2,12 @@ import { useMemo, useState } from "react";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { StudentLayout } from "@/components/student/StudentLayout";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
 import { X, AlertCircle } from "lucide-react";
-import { useStudentRange } from "@/hooks/useStudentRange";
 import { useDashboard } from "@/hooks/useDashboard";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { useDawnData } from "@/contexts/DawnDataContext";
-import { SummaryCardsStudent } from "@/components/student/SummaryCardsStudent";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { StudentDashboard as StudentDashboardType } from "@/lib/types/dashboard";
 
@@ -18,7 +15,6 @@ export default function StudentDashboard() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { learnerProfiles, authRequired } = useDawnData();
-  const { range, setRange, window: rangeWindow } = useStudentRange();
   const [bannerDismissed, setBannerDismissed] = useState(false);
   const { dashboard, loading, error } = useDashboard("student");
 
@@ -119,21 +115,6 @@ export default function StudentDashboard() {
     return dueDate.toDateString() === today.toDateString();
   });
 
-  const summaryData = {
-    // These are not available from the current live student dashboard payload yet.
-    // We intentionally show zeros and a blocking warning below (no mock data).
-    todayMinutes: 0,
-    weekMinutes: 0,
-    monthMinutes: 0,
-    todayItems: 0,
-    weekItems: 0,
-    monthItems: 0,
-    todayAccuracyPct: studentDashboard?.stats?.accuracyRate ?? 0,
-    streakDays: studentDashboard?.stats?.currentStreak ?? 0,
-  };
-
-  const onTrack = (studentDashboard?.stats?.accuracyRate ?? 0) >= 80;
-
   return (
     <PageContainer>
       <StudentLayout>
@@ -163,62 +144,49 @@ export default function StudentDashboard() {
               <h1 className="text-3xl font-bold tracking-tight">My Learning</h1>
               <p className="text-muted-foreground">Track your progress and keep learning!</p>
             </div>
-            <div className="flex items-center gap-3">
-              <div className="flex gap-1 p-1 bg-muted rounded-lg">
-                <Button
-                  variant={range === 'day' ? 'default' : 'ghost'}
-                  size="sm"
-                  onClick={() => setRange('day')}
-                  className="h-8 px-3"
-                >
-                  Day
-                </Button>
-                <Button
-                  variant={range === 'week' ? 'default' : 'ghost'}
-                  size="sm"
-                  onClick={() => setRange('week')}
-                  className="h-8 px-3"
-                >
-                  Week
-                </Button>
-                <Button
-                  variant={range === 'month' ? 'default' : 'ghost'}
-                  size="sm"
-                  onClick={() => setRange('month')}
-                  className="h-8 px-3"
-                >
-                  Month
-                </Button>
-              </div>
-              <Badge 
-                variant={onTrack ? "default" : "secondary"} 
-                className="px-3 py-1"
-                role="status"
-                aria-live="polite"
-              >
-                {onTrack ? '✓ On Track' : 'Keep Going'}
-              </Badge>
-            </div>
           </div>
 
-          {/* Row 1: KPI Cards */}
-          <SummaryCardsStudent {...summaryData} />
+          {/* Quick stats (only fields available in live payload) */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">Courses in progress</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-semibold">{studentDashboard?.stats?.coursesInProgress ?? 0}</div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">Courses completed</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-semibold">{studentDashboard?.stats?.coursesCompleted ?? 0}</div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">Accuracy</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-semibold">{studentDashboard?.stats?.accuracyRate ?? 0}%</div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">Streak</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-semibold">{studentDashboard?.stats?.currentStreak ?? 0} days</div>
+              </CardContent>
+            </Card>
+          </div>
 
-          <Alert variant="destructive">
+          <Alert>
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>
-              This dashboard no longer uses mock selectors. The live student dashboard payload currently lacks:
-              <ul className="list-disc pl-5 mt-2 space-y-1">
-                <li>Minutes/items time series</li>
-                <li>Weekly goals (minutes/items)</li>
-                <li>Recent sessions feed</li>
-                <li>Achievements</li>
-                <li>Continue point</li>
-                <li>Skill map summary</li>
-              </ul>
-              <p className="mt-3">
-                Fix by extending the backend (MCP method <code>lms.student-dashboard</code> / edge functions) and updating <code>useDashboard("student")</code> mapping.
-              </p>
+              Some legacy dashboard widgets (minutes/items trends, weekly goals, recent sessions, continue point, skill map)
+              aren’t wired in live mode yet. This page shows the live fields that are currently available.
             </AlertDescription>
           </Alert>
 

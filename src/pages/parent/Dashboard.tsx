@@ -184,7 +184,7 @@ export default function ParentDashboard() {
   // Check if child has a teacher (blocks parent assignment)
   // Teacher presence is determined by learner profile data
   const hasTeacher = false;
-  const teacherName = "Mrs. Johnson";
+  const teacherName: string | undefined = undefined;
 
   const handleAssignPractice = (domain?: string) => {
     setSelectedDomain(domain);
@@ -264,11 +264,11 @@ export default function ParentDashboard() {
       <ParentLayout>
         <div className="space-y-6">
           {missingSignals.length > 0 && (
-            <Alert variant="destructive">
-              <AlertTitle>Missing live data</AlertTitle>
+            <Alert className="border-warning bg-warning/10">
+              <AlertTitle>Some insights aren’t available yet</AlertTitle>
               <AlertDescription>
                 <p className="mb-2">
-                  This dashboard will not fabricate data. The following inputs are empty/missing:
+                  Parts of this dashboard depend on live data that is currently empty or not linked for this account:
                 </p>
                 <ul className="list-disc pl-5 space-y-1">
                   {missingSignals.map((m) => (

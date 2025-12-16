@@ -57,6 +57,11 @@ const TeacherDashboard = () => {
     [dashboardData.assignments]
   );
 
+  const progressNotWiredYet = useMemo(() => {
+    if (assignments.length === 0) return false;
+    return assignments.every((a) => (a.progress ?? 0) === 0);
+  }, [assignments]);
+
   const classes = dashboardData.classes;
   const students = dashboardData.students;
   const activeClassId = classes[0]?.id ?? null;
@@ -328,6 +333,15 @@ const TeacherDashboard = () => {
         <div>
           <h2 className="text-2xl font-bold mb-6">Your Assignments</h2>
 
+          {progressNotWiredYet && assignments.length > 0 && (
+            <Alert className="mb-4 border-warning bg-warning/10">
+              <AlertTitle>Progress coming soon</AlertTitle>
+              <AlertDescription>
+                Assignment progress indicators aren’t connected to live completion data yet. This list is live, but the progress bars are placeholders.
+              </AlertDescription>
+            </Alert>
+          )}
+
           {assignments.length === 0 ? (
             <Card>
               <CardContent className="p-6 text-center text-muted-foreground">
@@ -354,10 +368,16 @@ const TeacherDashboard = () => {
                         </p>
                       </div>
                       <div className="space-y-2 w-40">
-                        <Progress value={assignment.progress ?? 0} className="h-2" />
-                        <p className="text-xs text-muted-foreground text-right">
-                          {assignment.progress ?? 0}% complete
-                        </p>
+                        {progressNotWiredYet ? (
+                          <p className="text-xs text-muted-foreground text-right">Progress coming soon</p>
+                        ) : (
+                          <>
+                            <Progress value={assignment.progress ?? 0} className="h-2" />
+                            <p className="text-xs text-muted-foreground text-right">
+                              {assignment.progress ?? 0}% complete
+                            </p>
+                          </>
+                        )}
                       </div>
                     </div>
                   </CardContent>

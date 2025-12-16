@@ -36,6 +36,15 @@ const server = http.createServer((req, res) => {
     const reqUrl = new URL(req.url || '/', `http://${req.headers.host}`);
     let pathname = decodeURIComponent(reqUrl.pathname);
     if (pathname.endsWith('/')) pathname += 'index.html';
+    // Important on Windows: `path.join(distDir, "/assets/...")` can ignore `distDir`.
+    // Strip leading slashes so we always resolve under dist/.
+    pathname = pathname.replace(/^\/+/, '');
+
+    // Basic traversal guard
+    if (pathname.includes('..')) {
+      send(res, 400, { 'Content-Type': 'text/plain' }, 'Bad Request');
+      return;
+    }
 
     const filePath = path.join(distDir, pathname);
     const exists = fs.existsSync(filePath) && fs.statSync(filePath).isFile();

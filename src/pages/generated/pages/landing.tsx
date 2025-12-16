@@ -57,6 +57,8 @@ export default function Landing() {
             data-cta-id={ctaId}
             data-action="navigate"
             data-target={path}
+            aria-labelledby={`${ctaId}-label`}
+            aria-describedby={`${ctaId}-desc`}
             className="group relative overflow-hidden rounded-2xl border bg-card p-8 transition-all hover:shadow-lg hover:scale-[1.02]"
             style={{
               borderColor: `hsl(var(--${color}) / 0.3)`,
@@ -82,8 +84,12 @@ export default function Landing() {
                 />
               </div>
               
-              <h2 className="text-2xl font-bold mb-2">{label}</h2>
-              <p className="text-muted-foreground">{description}</p>
+              <h2 id={`${ctaId}-label`} className="text-2xl font-bold mb-2">
+                {label}
+              </h2>
+              <p id={`${ctaId}-desc`} className="text-muted-foreground">
+                {description}
+              </p>
             </div>
           </Link>
         ))}

@@ -29,6 +29,8 @@ artifacts/
 coverage/
 reports/playwright-html/
 playwright-report/
+# Local caches / state
+.cache/
 # Test result snapshots
 junit.xml
 # Jest/Playwright outputs

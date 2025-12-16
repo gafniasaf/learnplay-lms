@@ -148,6 +148,11 @@ export function extractJsonFromText(text: string): any {
   // Normalize smart quotes and odd whitespace
   s = s.replace(/[“”]/g, '"').replace(/[‘’]/g, "'").replace(/\u00A0/g, ' ');
 
+  // Fast signal for truncated JSON (common when model output is cut off mid-stream)
+  // We deliberately do NOT attempt to "repair" by auto-closing braces, because that can fabricate data.
+  if (s.startsWith('{') && !s.includes('}')) throw new Error('truncated_json_object');
+  if (s.startsWith('[') && !s.includes(']')) throw new Error('truncated_json_array');
+
   // Prefer <json>...</json>
   const tagMatch = s.match(/<json>\s*([\s\S]*?)\s*<\/json>/i);
   if (tagMatch && tagMatch[1]) {

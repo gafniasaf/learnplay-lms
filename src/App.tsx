@@ -21,6 +21,13 @@ const CrmDashboard = lazy(() => import("./pages/crm-demo/dashboard/Dashboard"));
 const CrmContacts = lazy(() => import("./pages/crm-demo/contacts/ContactList"));
 const GenericList = lazy(() => import("./pages/generic/GenericList"));
 const GenericBoard = lazy(() => import("./pages/generic/GenericBoard"));
+const AdminMetrics = lazy(() => import("./pages/admin/Metrics"));
+const AdminCourseSelector = lazy(() => import("./pages/admin/CourseSelector"));
+const AdminMediaManager = lazy(() => import("./pages/admin/MediaManager"));
+const AdminTagApprovalQueue = lazy(() => import("./pages/admin/TagApprovalQueue"));
+const TeacherAssignments = lazy(() => import("./pages/teacher/Assignments"));
+const MessagesInbox = lazy(() => import("./pages/messages/Inbox"));
+const Play = lazy(() => import("./pages/Play"));
 
 const queryClient = new QueryClient();
 
@@ -287,6 +294,15 @@ const App = () => {
                   <Suspense fallback={<div className="flex items-center justify-center min-h-screen">Loading...</div>}>
                     <Routes>
                       <Route path="/admin" element={<Navigate to="/admin/ai-pipeline" replace />} />
+                      {/* Legacy DAWR route aliases (parity redirects) */}
+                      <Route path="/admin/courses" element={<AdminCourseSelector />} />
+                      <Route path="/admin/course-versions" element={<AdminCourseSelector />} />
+                      <Route path="/admin/media-manager" element={<AdminMediaManager />} />
+                      <Route path="/admin/tag-approval" element={<AdminTagApprovalQueue />} />
+                      <Route path="/admin/metrics" element={<AdminMetrics />} />
+                      <Route path="/teacher/assignment-progress" element={<TeacherAssignments />} />
+                      <Route path="/play/welcome" element={<Play />} />
+                      <Route path="/messages/inbox" element={<MessagesInbox />} />
                       <Route path="/auth" element={<Auth />} />
                       <Route path="/auth/reset-password" element={<ResetPassword />} />
                       <Route path="/kids" element={<Kids />} />

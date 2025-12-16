@@ -5,6 +5,7 @@ import { useMCP } from "@/hooks/useMCP";
 import { useAuth } from "@/hooks/useAuth";
 import { getApiMode } from "@/lib/api";
 import type { SchoolDashboard } from "@/lib/types/dashboard";
+import { toast } from "sonner";
 
 const Schools = () => {
   const mcp = useMCP();
@@ -176,19 +177,34 @@ const Schools = () => {
         <div className="mb-12">
           <h2 className="text-2xl font-bold mb-6">Quick Access</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <button className="p-6 rounded-2xl border bg-card hover:shadow-lg hover:scale-[1.02] transition-all text-left">
+            <button
+              className="p-6 rounded-2xl border bg-card hover:shadow-lg hover:scale-[1.02] transition-all text-left"
+              data-cta-id="schools-quick-manage-classes"
+              data-action="blocked"
+              onClick={() => toast.message("Manage Classes is not implemented yet.")}
+            >
               <UsersRound className="h-10 w-10 text-role-schools mb-4" />
               <h3 className="text-xl font-semibold mb-2">Manage Classes</h3>
               <p className="text-muted-foreground">View and organize all classes</p>
             </button>
 
-            <button className="p-6 rounded-2xl border bg-card hover:shadow-lg hover:scale-[1.02] transition-all text-left">
+            <button
+              className="p-6 rounded-2xl border bg-card hover:shadow-lg hover:scale-[1.02] transition-all text-left"
+              data-cta-id="schools-quick-course-catalog"
+              data-action="blocked"
+              onClick={() => toast.message("Course Catalog is not implemented yet.")}
+            >
               <BookOpen className="h-10 w-10 text-role-schools mb-4" />
               <h3 className="text-xl font-semibold mb-2">Course Catalog</h3>
               <p className="text-muted-foreground">Browse available courses</p>
             </button>
 
-            <button className="p-6 rounded-2xl border bg-card hover:shadow-lg hover:scale-[1.02] transition-all text-left">
+            <button
+              className="p-6 rounded-2xl border bg-card hover:shadow-lg hover:scale-[1.02] transition-all text-left"
+              data-cta-id="schools-quick-analytics"
+              data-action="blocked"
+              onClick={() => toast.message("School analytics is not implemented yet.")}
+            >
               <BarChart3 className="h-10 w-10 text-role-schools mb-4" />
               <h3 className="text-xl font-semibold mb-2">Analytics</h3>
               <p className="text-muted-foreground">View school-wide reports</p>
