@@ -2078,15 +2078,15 @@ const result = await mcp.rewriteText({
 
       {/* Comparison Panel Overlay */}
       {showComparePanel && compareData && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-2xl max-w-4xl w-full max-h-[80vh] overflow-hidden">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-2xl max-w-5xl w-full max-h-[90vh] overflow-hidden">
             <ComparePanel
               original={compareData.original}
               proposed={compareData.proposed}
               type={compareData.type}
               onAdopt={handleAdoptComparison}
               onReject={handleRejectComparison}
-              label={`AI Suggestion — ${compareData.scope}${typeof compareData.optionIndex === 'number' ? ` ${String.fromCharCode(65 + compareData.optionIndex)}` : ''}`}
+              label={`AI Suggestion — ${compareData.scope === 'studyText' ? 'Study Text' : compareData.scope}${typeof compareData.optionIndex === 'number' ? ` ${String.fromCharCode(65 + compareData.optionIndex)}` : ''}`}
             />
           </div>
         </div>
