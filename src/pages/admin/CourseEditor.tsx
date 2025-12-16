@@ -2120,10 +2120,16 @@ const result = await mcp.rewriteText({
         />
       )}
 
-      {/* Comparison Panel Overlay */}
+      {/* Comparison Panel - Slide-in Drawer */}
       {showComparePanel && compareData && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-2xl max-w-5xl w-full max-h-[90vh] overflow-hidden">
+        <>
+          {/* Backdrop */}
+          <div 
+            className="fixed inset-0 bg-black/30 z-40 transition-opacity"
+            onClick={handleRejectComparison}
+          />
+          {/* Drawer */}
+          <div className="fixed inset-y-0 right-0 z-50 w-full max-w-2xl bg-white shadow-2xl flex flex-col animate-in slide-in-from-right duration-300">
             <ComparePanel
               original={compareData.original}
               proposed={compareData.proposed}
@@ -2133,7 +2139,7 @@ const result = await mcp.rewriteText({
               label={`AI Suggestion — ${compareData.scope === 'studyText' ? 'Study Text' : compareData.scope}${typeof compareData.optionIndex === 'number' ? ` ${String.fromCharCode(65 + compareData.optionIndex)}` : ''}`}
             />
           </div>
-        </div>
+        </>
       )}
 
       {/* Diff Viewer Overlay (dry-run preview → approve/apply) */}

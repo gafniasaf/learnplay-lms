@@ -2,8 +2,9 @@ import { useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
-import { Check, X, FileText, Image, Layers, Sparkles, Equal } from 'lucide-react';
+import { Check, X, FileText, Image, Layers, Sparkles, Equal, ArrowLeft } from 'lucide-react';
 
 interface ComparePanelProps {
   original: string | null;
@@ -35,7 +36,7 @@ function RenderFormattedContent({ text }: { text: string }) {
   const lines = text.split('\n');
   
   return (
-    <div className="space-y-2">
+    <div className="space-y-3">
       {lines.map((line, i) => {
         const trimmed = line.trim();
         
@@ -43,9 +44,9 @@ function RenderFormattedContent({ text }: { text: string }) {
         const sectionMatch = trimmed.match(/^\[SECTION:(.*?)\]$/);
         if (sectionMatch) {
           return (
-            <div key={i} className="flex items-center gap-2 py-1">
-              <Layers className="h-4 w-4 text-blue-600 flex-shrink-0" />
-              <span className="font-semibold text-blue-900 bg-blue-50 px-2 py-0.5 rounded text-sm">
+            <div key={i} className="flex items-center gap-2 py-2 mt-4 first:mt-0">
+              <Layers className="h-5 w-5 text-blue-600 flex-shrink-0" />
+              <span className="font-semibold text-blue-900 bg-blue-50 px-3 py-1 rounded-md text-base">
                 {sectionMatch[1] || 'Untitled Section'}
               </span>
             </div>
@@ -57,13 +58,13 @@ function RenderFormattedContent({ text }: { text: string }) {
         if (imageMatch) {
           const isUrl = /^https?:\/\//i.test(imageMatch[1]);
           return (
-            <div key={i} className="flex items-center gap-2 py-1">
-              <Image className="h-4 w-4 text-purple-600 flex-shrink-0" />
+            <div key={i} className="flex items-center gap-2 py-2 my-2">
+              <Image className="h-5 w-5 text-purple-600 flex-shrink-0" />
               <span className={cn(
-                "px-2 py-0.5 rounded text-sm",
+                "px-3 py-1 rounded-md",
                 isUrl 
-                  ? "text-purple-700 bg-purple-50 font-mono text-xs truncate max-w-[300px]" 
-                  : "text-purple-600 bg-purple-50/50 italic"
+                  ? "text-purple-700 bg-purple-50 font-mono text-xs" 
+                  : "text-purple-600 bg-purple-50/50 italic text-sm"
               )}>
                 {isUrl ? '🖼️ Generated image' : `📝 ${imageMatch[1]}`}
               </span>
@@ -73,12 +74,12 @@ function RenderFormattedContent({ text }: { text: string }) {
         
         // Empty line
         if (!trimmed) {
-          return <div key={i} className="h-2" />;
+          return <div key={i} className="h-3" />;
         }
         
         // Regular text
         return (
-          <p key={i} className="text-sm text-gray-700 leading-relaxed">
+          <p key={i} className="text-base text-gray-700 leading-relaxed">
             {trimmed}
           </p>
         );
@@ -132,42 +133,44 @@ export const ComparePanel = ({
   const proposedSummary = useMemo(() => parseContentSummary(proposedText), [proposedText]);
   
   const diff = useMemo(() => computeSimpleDiff(originalText, proposedText), [originalText, proposedText]);
-  const changedLines = diff.filter(d => d.type !== 'same').length;
 
   // No changes state - make it prominent
   if (!hasChanges) {
     return (
-      <div className="flex flex-col h-full bg-gradient-to-b from-gray-50 to-white">
+      <div className="flex flex-col h-full">
         {/* Header */}
-        <div className="px-6 pt-5 pb-3 border-b bg-white/80 backdrop-blur flex items-center justify-between">
-          <h4 className="text-sm font-medium text-gray-900">{label}</h4>
+        <div className="px-6 py-4 border-b bg-white flex items-center gap-3">
           <Button
             variant="ghost"
-            size="sm"
-            data-cta-id="cta-compare-close"
+            size="icon"
+            className="h-9 w-9 -ml-2"
+            data-cta-id="cta-compare-back"
             data-action="close_modal"
             onClick={onReject}
           >
-            <X className="h-4 w-4" />
+            <ArrowLeft className="h-5 w-5" />
           </Button>
+          <h4 className="text-base font-semibold text-gray-900">{label}</h4>
         </div>
         
         {/* No Changes Content */}
-        <div className="flex-1 flex flex-col items-center justify-center p-8 text-center">
-          <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center mb-4">
-            <Equal className="h-8 w-8 text-gray-400" />
+        <div className="flex-1 flex flex-col items-center justify-center p-8 text-center bg-gray-50">
+          <div className="w-20 h-20 rounded-full bg-gray-100 flex items-center justify-center mb-6">
+            <Equal className="h-10 w-10 text-gray-400" />
           </div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">No Changes Detected</h3>
-          <p className="text-sm text-muted-foreground max-w-sm mb-6">
+          <h3 className="text-xl font-semibold text-gray-900 mb-3">No Changes Detected</h3>
+          <p className="text-base text-muted-foreground max-w-md mb-8">
             The AI suggestion is identical to your current content. No modifications needed.
           </p>
           <Button
+            size="lg"
             variant="outline"
             data-cta-id="cta-compare-dismiss"
             data-action="close_modal"
             onClick={onReject}
           >
-            Dismiss
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back to Editor
           </Button>
         </div>
       </div>
@@ -175,180 +178,188 @@ export const ComparePanel = ({
   }
 
   return (
-    <div className="flex flex-col h-full bg-gradient-to-b from-gray-50 to-white">
-      {/* Header */}
-      <div className="px-6 pt-5 pb-4 border-b bg-white">
+    <div className="flex flex-col h-full">
+      {/* Header - Fixed */}
+      <div className="px-6 py-4 border-b bg-white flex-shrink-0">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
-              <Sparkles className="h-4 w-4 text-white" />
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-9 w-9 -ml-2"
+              data-cta-id="cta-compare-back"
+              data-action="close_modal"
+              onClick={onReject}
+            >
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
+              <Sparkles className="h-5 w-5 text-white" />
             </div>
             <div>
-              <h4 className="text-sm font-semibold text-gray-900">{label}</h4>
-              <p className="text-xs text-muted-foreground">Review the AI's suggested changes</p>
+              <h4 className="text-base font-semibold text-gray-900">{label}</h4>
+              <p className="text-sm text-muted-foreground">Review the AI's suggested changes</p>
             </div>
           </div>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8"
-            data-cta-id="cta-compare-close"
-            data-action="close_modal"
-            onClick={onReject}
-          >
-            <X className="h-4 w-4" />
-          </Button>
         </div>
         
         {/* Change Summary */}
-        <div className="flex items-center gap-4 text-xs">
-          <Badge variant="outline" className="gap-1.5 font-normal">
-            <span className="text-rose-600 font-mono">−{diff.filter(d => d.type === 'removed' || d.type === 'changed').length}</span>
-            <span className="text-emerald-600 font-mono">+{diff.filter(d => d.type === 'added' || d.type === 'changed').length}</span>
-            <span className="text-muted-foreground">lines changed</span>
+        <div className="flex items-center gap-4 text-sm ml-12">
+          <Badge variant="outline" className="gap-1.5 font-normal py-1 px-2.5">
+            <span className="text-rose-600 font-mono font-medium">−{diff.filter(d => d.type === 'removed' || d.type === 'changed').length}</span>
+            <span className="text-emerald-600 font-mono font-medium">+{diff.filter(d => d.type === 'added' || d.type === 'changed').length}</span>
+            <span className="text-muted-foreground">lines</span>
           </Badge>
-          {proposedSummary.sections.length !== originalSummary.sections.length && (
+          {proposedSummary.sections.length > 0 && (
             <span className="text-muted-foreground">
-              {proposedSummary.sections.length} sections
+              {proposedSummary.sections.length} section{proposedSummary.sections.length !== 1 ? 's' : ''}
             </span>
           )}
-          {proposedSummary.images !== originalSummary.images && (
+          {proposedSummary.images > 0 && (
             <span className="text-muted-foreground">
-              {proposedSummary.images} images
+              {proposedSummary.images} image{proposedSummary.images !== 1 ? 's' : ''}
             </span>
           )}
         </div>
       </div>
 
-      {/* Body */}
-      <div className="flex-1 min-h-0 overflow-hidden">
-        <Tabs defaultValue="sideBySide" className="h-full flex flex-col">
-          <div className="px-6 pt-3">
-            <TabsList className="grid w-full grid-cols-3 max-w-md">
+      {/* Body - Scrollable */}
+      <div className="flex-1 overflow-hidden bg-gray-50">
+        <Tabs defaultValue="preview" className="h-full flex flex-col">
+          <div className="px-6 pt-4 pb-2 bg-gray-50 flex-shrink-0">
+            <TabsList className="grid w-full grid-cols-3">
+              <TabsTrigger
+                value="preview"
+                data-cta-id="cta-compare-tab-preview"
+                data-action="tab"
+              >
+                Preview New
+              </TabsTrigger>
               <TabsTrigger
                 value="sideBySide"
                 data-cta-id="cta-compare-tab-sidebyside"
                 data-action="tab"
-                className="text-xs"
               >
-                Side by Side
+                Compare
               </TabsTrigger>
               <TabsTrigger
                 value="diff"
                 data-cta-id="cta-compare-tab-diff"
                 data-action="tab"
-                className="text-xs"
               >
-                Unified Diff
-              </TabsTrigger>
-              <TabsTrigger
-                value="proposed"
-                data-cta-id="cta-compare-tab-proposed"
-                data-action="tab"
-                className="text-xs"
-              >
-                Preview New
+                Diff
               </TabsTrigger>
             </TabsList>
           </div>
 
-          {/* Side by Side View */}
-          <TabsContent value="sideBySide" className="flex-1 min-h-0 px-6 pb-4 mt-3">
-            <div className="h-full grid grid-cols-2 gap-4">
-              {/* Original */}
-              <div className="flex flex-col min-h-0">
-                <div className="flex items-center gap-2 mb-2">
-                  <FileText className="h-4 w-4 text-gray-500" />
-                  <span className="text-xs font-medium text-gray-600 uppercase tracking-wide">Current</span>
-                </div>
-                <div className="flex-1 overflow-auto rounded-lg border bg-white p-4">
-                  <RenderFormattedContent text={originalText} />
-                </div>
-              </div>
-              
-              {/* Proposed */}
-              <div className="flex flex-col min-h-0">
-                <div className="flex items-center gap-2 mb-2">
-                  <Sparkles className="h-4 w-4 text-purple-500" />
-                  <span className="text-xs font-medium text-purple-600 uppercase tracking-wide">AI Suggested</span>
-                </div>
-                <div className="flex-1 overflow-auto rounded-lg border-2 border-purple-200 bg-purple-50/30 p-4">
+          {/* Preview New View - Default */}
+          <TabsContent value="preview" className="flex-1 overflow-hidden m-0">
+            <ScrollArea className="h-full">
+              <div className="px-6 py-4">
+                <div className="bg-white rounded-xl border-2 border-purple-200 p-6 shadow-sm">
+                  <div className="mb-5 pb-4 border-b border-purple-100">
+                    <div className="flex items-center gap-2 text-purple-700">
+                      <Sparkles className="h-5 w-5" />
+                      <span className="font-medium">AI Suggested Content</span>
+                    </div>
+                  </div>
                   <RenderFormattedContent text={proposedText} />
                 </div>
               </div>
-            </div>
+            </ScrollArea>
+          </TabsContent>
+
+          {/* Side by Side View */}
+          <TabsContent value="sideBySide" className="flex-1 overflow-hidden m-0">
+            <ScrollArea className="h-full">
+              <div className="px-6 py-4 space-y-4">
+                {/* Current */}
+                <div>
+                  <div className="flex items-center gap-2 mb-3">
+                    <FileText className="h-4 w-4 text-gray-500" />
+                    <span className="text-sm font-medium text-gray-600 uppercase tracking-wide">Current</span>
+                  </div>
+                  <div className="bg-white rounded-xl border p-5">
+                    <RenderFormattedContent text={originalText} />
+                  </div>
+                </div>
+                
+                {/* Proposed */}
+                <div>
+                  <div className="flex items-center gap-2 mb-3">
+                    <Sparkles className="h-4 w-4 text-purple-500" />
+                    <span className="text-sm font-medium text-purple-600 uppercase tracking-wide">AI Suggested</span>
+                  </div>
+                  <div className="bg-white rounded-xl border-2 border-purple-200 p-5">
+                    <RenderFormattedContent text={proposedText} />
+                  </div>
+                </div>
+              </div>
+            </ScrollArea>
           </TabsContent>
 
           {/* Unified Diff View */}
-          <TabsContent value="diff" className="flex-1 min-h-0 px-6 pb-4 mt-3">
-            <div className="h-full overflow-auto rounded-lg border bg-white">
-              <div className="divide-y divide-gray-100">
-                {diff.map((line, idx) => {
-                  if (line.type === 'same') {
-                    return (
-                      <div key={idx} className="px-4 py-1.5 text-sm text-gray-600 font-mono bg-gray-50/50">
-                        <span className="text-gray-400 mr-3 select-none">&nbsp;</span>
-                        {line.original || '\u00A0'}
-                      </div>
-                    );
-                  }
-                  
-                  if (line.type === 'removed') {
-                    return (
-                      <div key={idx} className="px-4 py-1.5 text-sm font-mono bg-rose-50 text-rose-800">
-                        <span className="text-rose-500 mr-3 select-none font-bold">−</span>
-                        {line.original || '\u00A0'}
-                      </div>
-                    );
-                  }
-                  
-                  if (line.type === 'added') {
-                    return (
-                      <div key={idx} className="px-4 py-1.5 text-sm font-mono bg-emerald-50 text-emerald-800">
-                        <span className="text-emerald-500 mr-3 select-none font-bold">+</span>
-                        {line.proposed || '\u00A0'}
-                      </div>
-                    );
-                  }
-                  
-                  // Changed line - show both
-                  return (
-                    <div key={idx}>
-                      <div className="px-4 py-1.5 text-sm font-mono bg-rose-50 text-rose-800">
-                        <span className="text-rose-500 mr-3 select-none font-bold">−</span>
-                        {line.original || '\u00A0'}
-                      </div>
-                      <div className="px-4 py-1.5 text-sm font-mono bg-emerald-50 text-emerald-800">
-                        <span className="text-emerald-500 mr-3 select-none font-bold">+</span>
-                        {line.proposed || '\u00A0'}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          </TabsContent>
-
-          {/* Preview New View */}
-          <TabsContent value="proposed" className="flex-1 min-h-0 px-6 pb-4 mt-3">
-            <div className="h-full overflow-auto rounded-lg border-2 border-purple-200 bg-white p-6">
-              <div className="mb-4 pb-4 border-b border-purple-100">
-                <div className="flex items-center gap-2 text-purple-700">
-                  <Sparkles className="h-4 w-4" />
-                  <span className="text-sm font-medium">Preview of AI Suggested Content</span>
+          <TabsContent value="diff" className="flex-1 overflow-hidden m-0">
+            <ScrollArea className="h-full">
+              <div className="px-6 py-4">
+                <div className="bg-white rounded-xl border overflow-hidden">
+                  <div className="divide-y divide-gray-100">
+                    {diff.map((line, idx) => {
+                      if (line.type === 'same') {
+                        return (
+                          <div key={idx} className="px-4 py-2 text-sm text-gray-600 font-mono bg-gray-50/50">
+                            <span className="text-gray-400 mr-4 select-none inline-block w-4">&nbsp;</span>
+                            {line.original || '\u00A0'}
+                          </div>
+                        );
+                      }
+                      
+                      if (line.type === 'removed') {
+                        return (
+                          <div key={idx} className="px-4 py-2 text-sm font-mono bg-rose-50 text-rose-800">
+                            <span className="text-rose-500 mr-4 select-none font-bold inline-block w-4">−</span>
+                            {line.original || '\u00A0'}
+                          </div>
+                        );
+                      }
+                      
+                      if (line.type === 'added') {
+                        return (
+                          <div key={idx} className="px-4 py-2 text-sm font-mono bg-emerald-50 text-emerald-800">
+                            <span className="text-emerald-500 mr-4 select-none font-bold inline-block w-4">+</span>
+                            {line.proposed || '\u00A0'}
+                          </div>
+                        );
+                      }
+                      
+                      // Changed line - show both
+                      return (
+                        <div key={idx}>
+                          <div className="px-4 py-2 text-sm font-mono bg-rose-50 text-rose-800">
+                            <span className="text-rose-500 mr-4 select-none font-bold inline-block w-4">−</span>
+                            {line.original || '\u00A0'}
+                          </div>
+                          <div className="px-4 py-2 text-sm font-mono bg-emerald-50 text-emerald-800">
+                            <span className="text-emerald-500 mr-4 select-none font-bold inline-block w-4">+</span>
+                            {line.proposed || '\u00A0'}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
               </div>
-              <RenderFormattedContent text={proposedText} />
-            </div>
+            </ScrollArea>
           </TabsContent>
         </Tabs>
       </div>
 
-      {/* Actions */}
-      <div className="px-6 py-4 border-t bg-white">
+      {/* Actions - Fixed at bottom */}
+      <div className="px-6 py-4 border-t bg-white flex-shrink-0">
         <div className="flex gap-3">
           <Button
             variant="outline"
+            size="lg"
             className="flex-1"
             data-cta-id="cta-compare-keep-original"
             data-action="close_modal"
@@ -358,7 +369,7 @@ export const ComparePanel = ({
             Keep Current
           </Button>
           <Button
-            variant="default"
+            size="lg"
             className="flex-1 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
             data-cta-id="cta-compare-apply-proposed"
             data-action="apply"
