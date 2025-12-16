@@ -1,8 +1,8 @@
 import http from "node:http";
 import { URL, pathToFileURL } from "node:url";
 import path from "node:path";
-import { config } from "./config.js";
-import { callJson } from "./http.js";
+import { config } from "./config";
+import { callJson } from "./http";
 import "./polyfill.ts"; // Polyfill Deno for local strategies
 
 const METHODS = ["lms.health", "lms.enqueueJob", "lms.listJobs", "lms.getJob", "lms.saveRecord", "lms.getRecord", "lms.listRecords"] as const;

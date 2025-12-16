@@ -32,6 +32,22 @@ async function main() {
     throw error;
   }
 
+  // 2.5 Edge Function Linting (if Deno is available)
+  console.log("🔍 Checking Deno availability for Edge Function linting...");
+  try {
+    execSync('deno --version', { stdio: 'ignore' });
+    console.log("✅ Deno found. Running lint:edge...");
+    try {
+        execSync('npm run lint:edge', { stdio: 'inherit' });
+        console.log("✅ Edge Lint passed");
+    } catch (e) {
+        console.error("❌ Edge Lint failed");
+        throw e;
+    }
+  } catch (e) {
+    console.warn("⚠️  Deno not found. Skipping Edge Function linting. (Install Deno to enable)");
+  }
+
   // 3. Fallback Pattern Detection (NO-FALLBACK POLICY)
   console.log("🛡️ Checking for forbidden fallback patterns...");
   const checkFile = (filePath: string): string[] => {

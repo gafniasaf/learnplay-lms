@@ -1,6 +1,6 @@
-import { config } from '../config.js';
-import { fetchJson } from '../http.js';
-import { logs as logsHandler } from './logs.js';
+import { config } from '../config';
+import { fetchJson } from '../http';
+import { logs as logsHandler } from './logs';
 
 interface EnqueueAndTrackParams {
   type?: string;

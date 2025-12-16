@@ -1,6 +1,6 @@
-import { listCourses } from './listCourses.js';
-import { validateCourse } from './validateCourse.js';
-import { autoFix } from './autoFix.js';
+import { listCourses } from './listCourses';
+import { validateCourse } from './validateCourse';
+import { autoFix } from './autoFix';
 
 export async function autoFixBatch({ params }: { params: { orgId?: string; limit?: number; apply?: boolean } }) {
 	const coursesRes = await listCourses({ params: { includeArchived: false, limit: 50 } });

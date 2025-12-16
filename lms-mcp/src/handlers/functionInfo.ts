@@ -1,5 +1,5 @@
-import { config } from '../config.js';
-import { fetchJson } from '../http.js';
+import { config } from '../config';
+import { fetchJson } from '../http';
 
 function projectRefFromUrl(url: string): string {
   // https://<ref>.supabase.co → <ref>

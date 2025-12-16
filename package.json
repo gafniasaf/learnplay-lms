@@ -17,6 +17,7 @@
     "prepare": "husky install",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
+    "lint:edge": "deno lint supabase/functions",
     "format": "prettier --write .",
     "preview": "vite preview --port 8080",
     "test": "jest --reporters=default --reporters=jest-junit",

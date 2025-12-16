@@ -1,4 +1,4 @@
-import { listTemplates, getTemplate } from './templates.js';
+import { listTemplates, getTemplate } from './templates';
 
 const REQUIRED_BY_JOB: Record<string, string[]> = {
 	variants: ['courseId'],

@@ -1,5 +1,5 @@
-import { config } from '../config.js';
-import { fetchJson } from '../http.js';
+import { config } from '../config';
+import { fetchJson } from '../http';
 
 export async function deadJobAudit({ params }: { params: { maxQueuedMin?: number; maxProcessingMin?: number } }) {
 	const maxQueuedMin = Math.max(1, params?.maxQueuedMin ?? 30);

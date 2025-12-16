@@ -1,5 +1,5 @@
-import { config } from '../config.js';
-import { fetchJson } from '../http.js';
+import { config } from '../config';
+import { fetchJson } from '../http';
 
 export async function listJobs({ params }: { params: { page?: number; limit?: number } }) {
   const page = params.page ?? 1;

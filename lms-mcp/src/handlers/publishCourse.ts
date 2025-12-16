@@ -1,5 +1,5 @@
-import { config } from "../config.js";
-import { fetchJson } from "../http.js";
+import { config } from "../config";
+import { fetchJson } from "../http";
 import { createClient } from "@supabase/supabase-js";
 
 export interface PublishCourseInput {

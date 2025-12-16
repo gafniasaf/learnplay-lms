@@ -1,6 +1,6 @@
-import { config } from '../config.js';
-import { fetchJson } from '../http.js';
-import { ENDPOINT_PROBES } from '../config/endpointHealth.js';
+import { config } from '../config';
+import { fetchJson } from '../http';
+import { ENDPOINT_PROBES } from '../config/endpointHealth';
 
 export async function edgeSmoke() {
 	const base = `${config.supabaseUrl}/functions/v1/`;

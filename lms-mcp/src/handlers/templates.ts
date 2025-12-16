@@ -1,5 +1,5 @@
-import { config } from '../config.js';
-import { fetchJson } from '../http.js';
+import { config } from '../config';
+import { fetchJson } from '../http';
 
 export async function listTemplates() {
   const url = `${config.supabaseUrl}/functions/v1/list-templates`;

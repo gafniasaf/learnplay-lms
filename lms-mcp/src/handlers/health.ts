@@ -1,5 +1,5 @@
-import { config } from '../config.js';
-import { fetchJson } from '../http.js';
+import { config } from '../config';
+import { fetchJson } from '../http';
 
 // Attempt to read a value from a dotenv-style file
 async function tryReadEnvFromFile(filePath: string, key: string): Promise<string | ''> {

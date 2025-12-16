@@ -1,5 +1,5 @@
-import { enqueueMedia } from './enqueueMedia.js';
-import { getMediaJob } from './getMediaJob.js';
+import { enqueueMedia } from './enqueueMedia';
+import { getMediaJob } from './getMediaJob';
 
 type EnqueueMediaAndTrackParams = {
   courseId: string;

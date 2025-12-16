@@ -1,5 +1,5 @@
-import { config } from '../config.js';
-import { fetchJson } from '../http.js';
+import { config } from '../config';
+import { fetchJson } from '../http';
 
 export async function variantsGenerateMissing({ params }: { params: { courseId: string; axes?: string[]; dryRun?: boolean; jobId?: string } }) {
   const { courseId, axes = ['difficulty'], dryRun = true, jobId } = params;
