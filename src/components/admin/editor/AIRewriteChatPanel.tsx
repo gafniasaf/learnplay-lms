@@ -86,8 +86,6 @@ export const AIRewriteChatPanel: React.FC<AIRewriteChatPanelProps> = ({ open, on
     );
   }, [course?.title, stemText, optionsTexts, referenceHtml]);
 
-  if (!open) return null;
-
   const send = async () => {
     if (!prompt?.trim()) return;
     setLoading(true);
@@ -119,6 +117,8 @@ export const AIRewriteChatPanel: React.FC<AIRewriteChatPanelProps> = ({ open, on
     void send();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
+
+  if (!open) return null;
 
   const optionLabel = (i: number) => `Option ${String.fromCharCode(65 + i)}`;
 

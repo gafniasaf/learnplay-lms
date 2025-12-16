@@ -87,6 +87,9 @@ test.describe('legacy parity: admin publish flow', () => {
       }
     }
 
+    let primaryError: unknown = null;
+    let cleanupError: string | null = null;
+
     try {
       await gotoStable(page, `/admin/editor/${courseId}`);
       await assertNotAuthRedirect(page);
@@ -193,6 +196,8 @@ test.describe('legacy parity: admin publish flow', () => {
 
       // Success: app should redirect after publishing (best-effort; don't block success if SPA routing doesn't emit a load event).
       await page.waitForURL(/\/admin\/courses\/select/, { timeout: 10_000 }).catch(() => undefined);
+    } catch (e) {
+      primaryError = e;
     } finally {
       // Cleanup: delete the test course so we don't pollute real DB/storage.
       if (shouldCleanup) {
@@ -220,10 +225,20 @@ test.describe('legacy parity: admin publish flow', () => {
         }, { supabaseUrl, courseId });
 
         if (!ok || (ok as any).ok !== true) {
-          throw new Error(`BLOCKED: cleanup failed for ${courseId}: ${JSON.stringify(ok).slice(0, 400)}`);
+          cleanupError = `BLOCKED: cleanup failed for ${courseId}: ${JSON.stringify(ok).slice(0, 400)}`;
         }
       }
     }
+
+    if (cleanupError) {
+      // Avoid masking the primary test failure with a cleanup failure.
+      if (primaryError) {
+        console.warn(cleanupError);
+      } else {
+        throw new Error(cleanupError);
+      }
+    }
+    if (primaryError) throw primaryError;
   });
 });
 

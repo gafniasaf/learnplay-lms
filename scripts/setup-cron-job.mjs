@@ -14,7 +14,19 @@ if (!SUPABASE_URL) {
   process.exit(1);
 }
 
-const projectRef = process.env.SUPABASE_PROJECT_REF || new URL(SUPABASE_URL).hostname.split('.')[0];
+const projectRef = process.env.SUPABASE_PROJECT_REF;
+if (!projectRef) {
+  // Do not auto-derive as a fallback (per ABSOLUTE NO-FALLBACK POLICY). Provide a helpful hint only.
+  let hint = '';
+  try {
+    const derived = new URL(SUPABASE_URL).hostname.split('.')[0];
+    if (derived) hint = ` (hint: it often looks like "${derived}")`;
+  } catch {
+    // ignore URL parse failures; we'll still fail loudly below
+  }
+  console.error(`❌ Set SUPABASE_PROJECT_REF env var${hint}`);
+  process.exit(1);
+}
 
 if (!accessToken) {
   console.error('❌ Set SUPABASE_ACCESS_TOKEN env var');

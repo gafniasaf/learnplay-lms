@@ -7,6 +7,7 @@
 import { renderHook, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import React from 'react';
+import { MemoryRouter } from 'react-router-dom';
 
 // Track MCP calls
 let mcpCalls: Array<{ method: string; params: unknown }> = [];
@@ -44,6 +45,11 @@ jest.mock('@/hooks/useAuth', () => ({
   useAuth: () => ({ user: mockUser, loading: false }),
 }));
 
+// Avoid importing modules that rely on Vite `import.meta.env` in Jest.
+jest.mock('@/lib/api/common', () => ({
+  isDevAgentMode: () => false,
+}));
+
 jest.mock('@/integrations/supabase/client', () => ({
   supabase: {
     auth: {
@@ -56,7 +62,11 @@ jest.mock('@/integrations/supabase/client', () => ({
 const createWrapper = () => {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return ({ children }: { children: React.ReactNode }) =>
-    React.createElement(QueryClientProvider, { client: queryClient }, children);
+    React.createElement(
+      MemoryRouter,
+      {},
+      React.createElement(QueryClientProvider, { client: queryClient }, children)
+    );
 };
 
 describe('Parent Hook Contracts', () => {

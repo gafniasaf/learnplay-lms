@@ -118,10 +118,10 @@ export default function AIPipelineV2() {
     if (!storedJobId) return;
 
     const clearStored = () => {
-      try { window.sessionStorage.removeItem('selectedJobId'); } catch {}
-      try { window.sessionStorage.removeItem('selectedCourseId'); } catch {}
-      try { window.localStorage.removeItem('selectedJobId'); } catch {}
-      try { window.localStorage.removeItem('selectedCourseId'); } catch {}
+      try { window.sessionStorage.removeItem('selectedJobId'); } catch { /* storage may be unavailable */ }
+      try { window.sessionStorage.removeItem('selectedCourseId'); } catch { /* storage may be unavailable */ }
+      try { window.localStorage.removeItem('selectedJobId'); } catch { /* storage may be unavailable */ }
+      try { window.localStorage.removeItem('selectedCourseId'); } catch { /* storage may be unavailable */ }
     };
 
     const checkJobStatus = async () => {
@@ -170,7 +170,7 @@ export default function AIPipelineV2() {
       if (job.course_id && !currentCourseId) {
         setCurrentCourseId(job.course_id);
         // Persist in-session only (avoid surprising auto-resume on a fresh load).
-        try { sessionStorage.setItem('selectedCourseId', job.course_id); } catch {}
+        try { sessionStorage.setItem('selectedCourseId', job.course_id); } catch { /* storage may be unavailable */ }
       }
       
       if (job.status === 'done') {
@@ -185,10 +185,10 @@ export default function AIPipelineV2() {
         } else {
           // This is a restored completed job from localStorage on page load
           // Clear it and show the creation form instead
-          try { sessionStorage.removeItem('selectedJobId'); } catch {}
-          try { sessionStorage.removeItem('selectedCourseId'); } catch {}
-          try { localStorage.removeItem('selectedJobId'); } catch {}
-          try { localStorage.removeItem('selectedCourseId'); } catch {}
+          try { sessionStorage.removeItem('selectedJobId'); } catch { /* storage may be unavailable */ }
+          try { sessionStorage.removeItem('selectedCourseId'); } catch { /* storage may be unavailable */ }
+          try { localStorage.removeItem('selectedJobId'); } catch { /* storage may be unavailable */ }
+          try { localStorage.removeItem('selectedCourseId'); } catch { /* storage may be unavailable */ }
           setCurrentJobId(null);
           setCurrentCourseId(null);
           setState('idle');
@@ -205,10 +205,10 @@ export default function AIPipelineV2() {
         });
         setCurrentJobId(null);
         setCurrentCourseId(null);
-        try { sessionStorage.removeItem('selectedJobId'); } catch {}
-        try { sessionStorage.removeItem('selectedCourseId'); } catch {}
-        try { localStorage.removeItem('selectedJobId'); } catch {}
-        try { localStorage.removeItem('selectedCourseId'); } catch {}
+        try { sessionStorage.removeItem('selectedJobId'); } catch { /* storage may be unavailable */ }
+        try { sessionStorage.removeItem('selectedCourseId'); } catch { /* storage may be unavailable */ }
+        try { localStorage.removeItem('selectedJobId'); } catch { /* storage may be unavailable */ }
+        try { localStorage.removeItem('selectedCourseId'); } catch { /* storage may be unavailable */ }
       }
     } else if (currentJobId) {
       // Job ID exists but job data not loaded yet - stay in creating state
@@ -254,8 +254,8 @@ export default function AIPipelineV2() {
         setCurrentJobId(jobId);
         setCurrentCourseId(courseId); // Store courseId for later use
         // Persist in-session only (avoid surprising auto-resume on a fresh load).
-        try { sessionStorage.setItem('selectedJobId', jobId); } catch {}
-        try { sessionStorage.setItem('selectedCourseId', courseId); } catch {}
+        try { sessionStorage.setItem('selectedJobId', jobId); } catch { /* storage may be unavailable */ }
+        try { sessionStorage.setItem('selectedCourseId', courseId); } catch { /* storage may be unavailable */ }
         setState('creating');
         setSubject('');
         setSpecialRequests('');
@@ -293,10 +293,10 @@ export default function AIPipelineV2() {
       setState('idle');
       toast.info('Generation cancelled');
       // Ensure refresh/opening returns to clean start page
-      try { sessionStorage.removeItem('selectedJobId'); } catch {}
-      try { sessionStorage.removeItem('selectedCourseId'); } catch {}
-      try { localStorage.removeItem('selectedJobId'); } catch {}
-      try { localStorage.removeItem('selectedCourseId'); } catch {}
+      try { sessionStorage.removeItem('selectedJobId'); } catch { /* storage may be unavailable */ }
+      try { sessionStorage.removeItem('selectedCourseId'); } catch { /* storage may be unavailable */ }
+      try { localStorage.removeItem('selectedJobId'); } catch { /* storage may be unavailable */ }
+      try { localStorage.removeItem('selectedCourseId'); } catch { /* storage may be unavailable */ }
     }
   };
 
@@ -329,10 +329,10 @@ export default function AIPipelineV2() {
   const handleCreateAnother = () => {
     setCurrentJobId(null);
     setCurrentCourseId(null);
-    try { sessionStorage.removeItem('selectedJobId'); } catch {}
-    try { sessionStorage.removeItem('selectedCourseId'); } catch {}
-    try { localStorage.removeItem('selectedJobId'); } catch {}
-    try { localStorage.removeItem('selectedCourseId'); } catch {}
+    try { sessionStorage.removeItem('selectedJobId'); } catch { /* storage may be unavailable */ }
+    try { sessionStorage.removeItem('selectedCourseId'); } catch { /* storage may be unavailable */ }
+    try { localStorage.removeItem('selectedJobId'); } catch { /* storage may be unavailable */ }
+    try { localStorage.removeItem('selectedCourseId'); } catch { /* storage may be unavailable */ }
     setState('idle');
   };
 
