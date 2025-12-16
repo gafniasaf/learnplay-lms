@@ -1,5 +1,5 @@
-import { config } from '../config.ts';
-import { fetchJson } from '../http.ts';
+import { config } from '../config.js';
+import { fetchJson } from '../http.js';
 
 export async function localize({ params }: { params: { courseId: string; target_lang: string } }) {
   const { courseId, target_lang } = params;

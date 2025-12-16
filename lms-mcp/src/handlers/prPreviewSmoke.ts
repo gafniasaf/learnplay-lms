@@ -1,6 +1,6 @@
-import { getCourse } from './getCourse.ts';
-import { enqueueAndTrack } from './enqueueAndTrack.ts';
-import { applyJobResult } from './applyJobResult.ts';
+import { getCourse } from './getCourse.js';
+import { enqueueAndTrack } from './enqueueAndTrack.js';
+import { applyJobResult } from './applyJobResult.js';
 
 export async function prPreviewSmoke({ params }: { params: { courseId?: string; type?: 'variants' | 'localize' } }) {
 	const courseId = params.courseId || process.env.PR_SMOKE_COURSE_ID || '';

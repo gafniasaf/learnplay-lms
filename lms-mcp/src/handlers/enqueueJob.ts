@@ -1,5 +1,5 @@
-import { config } from '../config.ts';
-import { fetchJson } from '../http.ts';
+import { config } from '../config.js';
+import { fetchJson } from '../http.js';
 
 export async function enqueueJob({ params }: { params: { type: string; subject: string; courseId?: string; locale?: string; payload?: any } }) {
   const url = `${config.supabaseUrl}/functions/v1/enqueue-job`;

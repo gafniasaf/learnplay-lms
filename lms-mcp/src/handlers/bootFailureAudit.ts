@@ -1,5 +1,5 @@
-import { config } from '../config.ts';
-import { fetchJson } from '../http.ts';
+import { config } from '../config.js';
+import { fetchJson } from '../http.js';
 
 export async function bootFailureAudit() {
 	// Use the existing functionInfo endpoint via MCP route to gather details

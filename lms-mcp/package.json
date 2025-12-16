@@ -10,6 +10,7 @@
     "start": "node dist/index.js"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.88.0",
     "dotenv": "^16.4.5"
   },
   "devDependencies": {
@@ -17,5 +18,3 @@
     "typescript": "^5.4.3"
   }
 }
-
-
