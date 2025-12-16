@@ -2,6 +2,16 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { PageContainer } from '@/components/layout/PageContainer';
 import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { invalidateCourseCache } from '@/lib/utils/cacheInvalidation';
 import { editorTelemetry } from '@/lib/utils/telemetry';
@@ -56,6 +66,10 @@ const CourseEditor = () => {
   const [lastSavedAt, setLastSavedAt] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState('stem');
   const [topLevelTab, setTopLevelTab] = useState<'exercises' | 'studyTexts'>('exercises');
+  const [studyTextEditorOpen, setStudyTextEditorOpen] = useState(false);
+  const [studyTextEditorIndex, setStudyTextEditorIndex] = useState<number | null>(null);
+  const [studyTextEditorTitle, setStudyTextEditorTitle] = useState<string>('');
+  const [studyTextEditorDraft, setStudyTextEditorDraft] = useState<string>('');
   const [showMediaLibrary, setShowMediaLibrary] = useState(false);
   const [showComparePanel, setShowComparePanel] = useState(false);
   const [compareData, setCompareData] = useState<{
@@ -222,13 +236,55 @@ const CourseEditor = () => {
     setActiveTab('stem');
   };
 
+  const openStudyTextEditor = (index: number) => {
+    if (!course) return;
+    const st = ((course as any).studyTexts || [])[index];
+    if (!st) {
+      toast.error('Study text not found');
+      return;
+    }
+    setStudyTextEditorIndex(index);
+    setStudyTextEditorTitle(String(st.title ?? 'Study Text'));
+    setStudyTextEditorDraft(String(st.content ?? ''));
+    setStudyTextEditorOpen(true);
+  };
+
+  const commitStudyTextEditor = () => {
+    if (!course) return;
+    if (studyTextEditorIndex === null) return;
+
+    const sts = [...(((course as any).studyTexts) || [])];
+    const prev = sts[studyTextEditorIndex];
+    if (!prev) {
+      toast.error('Study text not found');
+      return;
+    }
+
+    sts[studyTextEditorIndex] = { ...prev, content: studyTextEditorDraft };
+    setCourse({ ...(course as any), studyTexts: sts } as Course);
+    setUnsavedItems((prevSet) => new Set(prevSet).add(`ST-${studyTextEditorIndex}`));
+    setStudyTextEditorOpen(false);
+    toast.success('Study text updated (unsaved)');
+  };
+
   const generatePatchOps = (): PatchOperation[] => {
     if (!course || unsavedItems.size === 0) return [];
 
     const ops: PatchOperation[] = [];
 
+    const hasStudyTextsFullReplace = unsavedItems.has('ST-ALL');
+    if (hasStudyTextsFullReplace) {
+      ops.push({
+        op: 'replace',
+        path: '/studyTexts',
+        value: (course as any).studyTexts || [],
+      });
+    }
+
     unsavedItems.forEach(itemKey => {
       if (itemKey.startsWith('ST-')) {
+        if (hasStudyTextsFullReplace) return;
+        if (itemKey === 'ST-ALL') return;
         const idx = Number(itemKey.split('-')[1]);
         const st = (course as any).studyTexts?.[idx];
         if (st) {
@@ -1557,14 +1613,13 @@ const result = await mcp.rewriteText({
                             </div>
                           )}
                         </div>
-                        <Button variant="outline" size="sm" onClick={() => {
-                          const next = prompt('Edit study text HTML', studyText.content || '');
-                          if (next === null) return;
-                          const sts = [ ...(((course as any).studyTexts) || []) ];
-                          sts[index] = { ...studyText, content: next };
-                          setCourse({ ...(course as any), studyTexts: sts } as Course);
-                          setUnsavedItems(prev => new Set(prev).add(`ST-${index}`));
-                        }}>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          data-cta-id={`cta-studytext-edit-${index}`}
+                          data-action="open_modal"
+                          onClick={() => openStudyTextEditor(index)}
+                        >
                           Edit
                         </Button>
                       </div>
@@ -1578,9 +1633,72 @@ const result = await mcp.rewriteText({
                   )}
                 </div>
 
-                <Button className="w-full mt-6">
+                <Button
+                  className="w-full mt-6"
+                  data-cta-id="cta-studytext-add"
+                  data-action="action"
+                  onClick={() => {
+                    if (!course) return;
+                    const sts = [...(((course as any).studyTexts) || [])];
+                    const nextIndex = sts.length;
+                    sts.push({
+                      id: `study-text-${Date.now()}`,
+                      title: 'New Study Text',
+                      content: '[SECTION:Introduction]\nEnter your content here...',
+                    });
+                    setCourse({ ...(course as any), studyTexts: sts } as Course);
+                    // Full replace so add/remove/reorder can be saved safely
+                    setUnsavedItems((prev) => new Set(prev).add('ST-ALL'));
+                    openStudyTextEditor(nextIndex);
+                  }}
+                >
                   + Add Study Text
                 </Button>
+
+                <Dialog open={studyTextEditorOpen} onOpenChange={setStudyTextEditorOpen}>
+                  <DialogContent className="sm:max-w-3xl">
+                    <DialogHeader>
+                      <DialogTitle>Edit Study Text</DialogTitle>
+                      <DialogDescription>
+                        Edit the raw content. Markers like <code>[SECTION:Title]</code> are supported.
+                      </DialogDescription>
+                    </DialogHeader>
+
+                    <div className="space-y-2">
+                      <Label>Title</Label>
+                      <div className="text-sm font-medium">{studyTextEditorTitle}</div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="studytext-content">Content</Label>
+                      <Textarea
+                        id="studytext-content"
+                        value={studyTextEditorDraft}
+                        onChange={(e) => setStudyTextEditorDraft(e.target.value)}
+                        rows={18}
+                        className="font-mono text-sm"
+                      />
+                    </div>
+
+                    <DialogFooter>
+                      <Button
+                        variant="outline"
+                        data-cta-id="cta-studytext-edit-cancel"
+                        data-action="close_modal"
+                        onClick={() => setStudyTextEditorOpen(false)}
+                      >
+                        Cancel
+                      </Button>
+                      <Button
+                        data-cta-id="cta-studytext-edit-save"
+                        data-action="save"
+                        onClick={commitStudyTextEditor}
+                      >
+                        Save (marks unsaved)
+                      </Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
               </div>
             </div>
           </div>
