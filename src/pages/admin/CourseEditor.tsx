@@ -1843,7 +1843,7 @@ const result = await mcp.rewriteText({
                 </Button>
 
                 <Dialog open={studyTextEditorOpen} onOpenChange={setStudyTextEditorOpen}>
-                  <DialogContent className="sm:max-w-3xl">
+                  <DialogContent className="w-[calc(100vw-2rem)] sm:max-w-4xl max-h-[calc(100vh-2rem)] overflow-hidden flex flex-col p-4 sm:p-6">
                     <DialogHeader>
                       <DialogTitle>Edit Study Text</DialogTitle>
                       <DialogDescription>
@@ -1851,7 +1851,7 @@ const result = await mcp.rewriteText({
                       </DialogDescription>
                     </DialogHeader>
 
-                    <div className="space-y-4">
+                    <div className="flex-1 min-h-0 overflow-y-auto space-y-4 pr-1">
                       <div className="space-y-2">
                         <Label htmlFor="studytext-title">Title</Label>
                         <Input
@@ -1955,7 +1955,7 @@ const result = await mcp.rewriteText({
 
                       <div className="space-y-2">
                         <Label>Preview</Label>
-                        <div className="max-h-[320px] overflow-auto p-4 border rounded-lg bg-muted/30 prose prose-sm max-w-none">
+                        <div className="max-h-[240px] sm:max-h-[320px] overflow-auto p-4 border rounded-lg bg-muted/30 prose prose-sm max-w-none">
                           {parseStudyText(studyTextEditorDraft).map((section, i) => (
                             <div key={i} className="mb-4">
                               <h4 className="font-semibold">{section.title}</h4>
