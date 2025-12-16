@@ -209,25 +209,12 @@ export function extractJsonFromText(text: string): any {
     return null;
   }
 
-  const objRegion = extractBalanced(s, '{', '}');
-  if (objRegion) {
-    // Attempt parse with basic repairs
-    try { return JSON.parse(objRegion.text); } catch (_) {
-      const repaired = objRegion.text.replace(/,\s*(\}|\])/g, '$1');
-      try { return JSON.parse(repaired); } catch (_) { /* continue */ }
-    }
-  }
-
-  const arrRegion = extractBalanced(s, '[', ']');
-  if (arrRegion) {
-    try { return JSON.parse(arrRegion.text); } catch (_) {
-      const repaired = arrRegion.text.replace(/,\s*(\}|\])/g, '$1');
-      try { return JSON.parse(repaired); } catch (_) { /* continue */ }
-    }
-  }
-
   // Special repair: reconstruct object if LLM emitted top-level keys without braces
   // e.g. \n  "studyTexts": [...],\n  "items": [...]
+  //
+  // IMPORTANT: Run this BEFORE naive balanced-object extraction, because in the
+  // brace-less form the first "{" belongs to the first array element, and we
+  // would otherwise incorrectly parse and return a single inner object.
   const hasStudyTexts = /\"studyTexts\"\s*:\s*\[/i.test(s);
   const hasItems = /\"items\"\s*:\s*\[/i.test(s);
   if (hasStudyTexts && hasItems) {
@@ -244,6 +231,23 @@ export function extractJsonFromText(text: string): any {
     if (stArr && itArr) {
       const reconstructed = `{\n  "studyTexts": ${stArr},\n  "items": ${itArr}\n}`;
       try { return JSON.parse(reconstructed); } catch (_) { /* continue */ }
+    }
+  }
+
+  const objRegion = extractBalanced(s, '{', '}');
+  if (objRegion) {
+    // Attempt parse with basic repairs
+    try { return JSON.parse(objRegion.text); } catch (_) {
+      const repaired = objRegion.text.replace(/,\s*(\}|\])/g, '$1');
+      try { return JSON.parse(repaired); } catch (_) { /* continue */ }
+    }
+  }
+
+  const arrRegion = extractBalanced(s, '[', ']');
+  if (arrRegion) {
+    try { return JSON.parse(arrRegion.text); } catch (_) {
+      const repaired = arrRegion.text.replace(/,\s*(\}|\])/g, '$1');
+      try { return JSON.parse(repaired); } catch (_) { /* continue */ }
     }
   }
 
