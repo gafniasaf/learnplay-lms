@@ -86,7 +86,33 @@ async function fillStudyTextsOnly(
   } catch (e) {
     return { ok: false, error: `json_parse_failed: ${String(e)}` };
   }
-  const arr = parsed?.studyTexts;
+  // Some providers may return:
+  // - a bare array
+  // - an object with a slightly different key
+  // - an object with a single array property
+  let arr: any[] | null = null;
+  if (Array.isArray(parsed)) {
+    arr = parsed;
+  } else if (parsed && typeof parsed === "object") {
+    const direct =
+      (Array.isArray((parsed as any).studyTexts) && (parsed as any).studyTexts) ||
+      (Array.isArray((parsed as any).study_texts) && (parsed as any).study_texts) ||
+      (Array.isArray((parsed as any).studytexts) && (parsed as any).studytexts) ||
+      (Array.isArray((parsed as any).studyText) && (parsed as any).studyText) ||
+      (Array.isArray((parsed as any).texts) && (parsed as any).texts);
+    if (direct) {
+      arr = direct;
+    } else {
+      const arrayValues = Object.values(parsed).filter((v) => Array.isArray(v)) as any[][];
+      if (arrayValues.length === 1) {
+        arr = arrayValues[0];
+      } else if (arrayValues.length > 1) {
+        // Prefer an array of objects that looks like study texts (has content)
+        const likely = arrayValues.find((a) => a.some((x) => x && typeof x === "object" && "content" in x));
+        if (likely) arr = likely;
+      }
+    }
+  }
   if (!Array.isArray(arr)) return { ok: false, error: "missing_studyTexts" };
   if (arr.length !== skeleton.studyTexts.length) {
     return {
@@ -100,22 +126,38 @@ async function fillStudyTextsOnly(
   const merged = arr.map((cand: any) => {
     const id = cand?.id;
     const orig = typeof id === "string" ? byId.get(id) : null;
-    if (!orig) return null;
     const content = cand?.content;
     if (!isNonEmptyString(content) || content.trim() === "__FILL__") return null;
-    return {
-      id: orig.id,
-      title: isNonEmptyString(cand?.title) ? cand.title : orig.title,
-      order: orig.order,
-      content,
-    };
+    if (orig) {
+      return {
+        id: orig.id,
+        title: isNonEmptyString(cand?.title) ? cand.title : orig.title,
+        order: orig.order,
+        content,
+      };
+    }
+    // If ids are missing/unknown, fall back to index mapping (still preserves skeleton ids/orders).
+    return { id: null, title: isNonEmptyString(cand?.title) ? cand.title : null, order: null, content };
   });
   if (merged.some((x) => x === null)) {
     return { ok: false, error: "studyTexts_invalid" };
   }
   // Preserve original ordering from skeleton
-  const ordered = skeleton.studyTexts.map((st) => merged.find((m: any) => m.id === st.id)).filter(Boolean);
-  if (ordered.length !== skeleton.studyTexts.length) return { ok: false, error: "studyTexts_incomplete" };
+  let ordered = skeleton.studyTexts.map((st) => merged.find((m: any) => m.id === st.id)).filter(Boolean);
+  if (ordered.length !== skeleton.studyTexts.length) {
+    // Index-based merge fallback
+    ordered = skeleton.studyTexts.map((st, idx) => {
+      const cand = merged[idx];
+      if (!cand) return null;
+      return {
+        id: st.id,
+        title: isNonEmptyString(cand?.title) ? cand.title : st.title,
+        order: st.order,
+        content: cand.content,
+      };
+    });
+  }
+  if (ordered.some((x) => x === null)) return { ok: false, error: "studyTexts_incomplete" };
   return { ok: true, studyTexts: ordered };
 }
 
