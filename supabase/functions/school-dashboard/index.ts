@@ -33,19 +33,62 @@ serve(
     const organizationId = auth.organizationId;
     if (!organizationId) return Errors.invalidRequest("Missing organization_id", requestId, req);
 
-    const actorUserId = auth.userId;
-    if (!actorUserId) return Errors.invalidRequest("Missing x-user-id for agent auth", requestId, req);
+    // Auth rules:
+    // - User-session requests MUST be authorized as an org teacher/school_admin OR a system/org admin role.
+    // - Dev-agent preview requests (agent token) are allowed to read this *summary* even when a concrete
+    //   user identity isn't available (Lovable iframes often can't persist Supabase sessions reliably).
+    if (auth.type === "user") {
+      const actorUserId = auth.userId;
+      if (!actorUserId) return Errors.invalidAuth(requestId, req);
 
-    // Authorization: teacher or school_admin in org
-    const { data: orgUser, error: orgErr } = await admin
-      .from("organization_users")
-      .select("org_role")
-      .eq("org_id", organizationId)
-      .eq("user_id", actorUserId)
-      .maybeSingle();
-    if (orgErr) return Errors.internal(orgErr.message, requestId, req);
-    if (!orgUser || !["teacher", "school_admin"].includes((orgUser as any).org_role)) {
-      return Errors.forbidden("Teacher or admin role required", requestId, req);
+      // 1) Superadmin (global)
+      const { data: superRole, error: superErr } = await admin
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", actorUserId)
+        .eq("role", "superadmin")
+        .maybeSingle();
+      if (superErr) return Errors.internal(superErr.message, requestId, req);
+
+      // 2) Org admin (org-scoped)
+      const { data: orgAdminRole, error: orgAdminErr } = await admin
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", actorUserId)
+        .eq("organization_id", organizationId)
+        .eq("role", "org_admin")
+        .maybeSingle();
+      if (orgAdminErr) return Errors.internal(orgAdminErr.message, requestId, req);
+
+      // 3) Legacy/global admin via profiles.role
+      const { data: profile, error: profileErr } = await admin
+        .from("profiles")
+        .select("role")
+        .eq("id", actorUserId)
+        .maybeSingle();
+      if (profileErr) return Errors.internal(profileErr.message, requestId, req);
+
+      // 4) Org membership (teacher/school_admin)
+      const { data: orgUser, error: orgErr } = await admin
+        .from("organization_users")
+        .select("org_role")
+        .eq("org_id", organizationId)
+        .eq("user_id", actorUserId)
+        .maybeSingle();
+      if (orgErr) return Errors.internal(orgErr.message, requestId, req);
+
+      const orgRole = (orgUser as any)?.org_role as string | undefined;
+      const isOrgMemberPrivileged = !!orgRole && ["teacher", "school_admin"].includes(orgRole);
+      const isSystemAdmin = (profile as any)?.role === "admin";
+      const isRoleAdmin = !!superRole || !!orgAdminRole;
+
+      if (!isOrgMemberPrivileged && !isSystemAdmin && !isRoleAdmin) {
+        return Errors.forbidden(
+          "Not authorized: requires org role teacher/school_admin or admin role (org_admin/superadmin).",
+          requestId,
+          req,
+        );
+      }
     }
 
     // Classes (org-scoped)
