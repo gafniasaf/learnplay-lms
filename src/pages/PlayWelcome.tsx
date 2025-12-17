@@ -88,39 +88,50 @@ export default function PlayWelcome() {
           <p className="text-sm text-muted-foreground mb-4">{course.description}</p>
         )}
 
-        {/* Preload progress - only show if there are images to preload */}
-        {total > 0 ? (
-          <div className="mb-4">
-            <div className="flex justify-between text-xs text-muted-foreground mb-1">
-              <span>Preloading images</span>
-              <span>{loaded}/{total}</span>
-            </div>
-            <div className="h-2 bg-muted rounded overflow-hidden">
-              <div 
-                className="h-2 bg-primary rounded transition-all duration-300 ease-out" 
-                style={{ width: `${pct}%` }} 
-              />
-            </div>
-            <p className="text-xs text-muted-foreground mt-2">
-              {loaded === total 
-                ? '✓ All images ready!' 
-                : 'You can start now; the rest will continue loading in the background.'}
-            </p>
-          </div>
-        ) : (
-          <div className="mb-4">
+        {/* Preload status */}
+        <div className="mb-4">
+          {total > 0 ? (
+            loaded === total ? (
+              // All images loaded (cached or just finished)
+              <div className="flex items-center gap-2 text-sm text-green-600">
+                <span className="w-2 h-2 rounded-full bg-green-500" />
+                <span>✓ All {total} images ready</span>
+              </div>
+            ) : (
+              // Still loading
+              <>
+                <div className="flex justify-between text-xs text-muted-foreground mb-1">
+                  <span>Loading images</span>
+                  <span>{loaded}/{total}</span>
+                </div>
+                <div className="h-2 bg-muted rounded overflow-hidden">
+                  <div 
+                    className="h-2 bg-primary rounded transition-all duration-300 ease-out" 
+                    style={{ width: `${pct}%` }} 
+                  />
+                </div>
+                <p className="text-xs text-muted-foreground mt-2">
+                  You can start now; images will continue loading in the background.
+                </p>
+              </>
+            )
+          ) : (
+            // No images in course
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <span className="w-2 h-2 rounded-full bg-green-500" />
               <span>Ready to start</span>
             </div>
-          </div>
-        )}
+          )}
+        </div>
 
         <div className="flex items-center gap-3">
           <Button onClick={handleStart}>Start</Button>
-          <Link to={`/play/${courseId}${searchParams.toString() ? `?${searchParams.toString()}` : ''}`} className="text-sm underline text-primary">
-            Skip preloading
-          </Link>
+          {/* Only show skip link while actually loading */}
+          {total > 0 && loaded < total && (
+            <Link to={`/play/${courseId}${searchParams.toString() ? `?${searchParams.toString()}` : ''}`} className="text-sm underline text-primary">
+              Skip preloading
+            </Link>
+          )}
         </div>
       </div>
     </div>

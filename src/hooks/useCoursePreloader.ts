@@ -5,7 +5,8 @@ import { getOptimizedImageUrl } from '@/lib/utils/imageOptimizer';
 import { getViewport, getOptionImageTargetWidth, getImageSizing } from '@/lib/utils/mediaSizing';
 
 // Track started preloads across component mounts for the same course/version
-const startedKeys = new Set<string>();
+// Maps versionKey -> { total, loaded } so we can report cached state
+const preloadCache = new Map<string, { total: number; loaded: number }>();
 
 // Identify if a string looks like an image URL or storage path
 function isImageLike(u?: string): boolean {
@@ -150,8 +151,13 @@ export function useCoursePreloader(
 
     // Only run once per course version across the app session
     const versionKey = `${course.id}:${(course as any).contentVersion ?? 'nov'}`;
-    if (startedKeys.has(versionKey)) return;
-    startedKeys.add(versionKey);
+    
+    // If already preloaded, report cached state immediately
+    const cached = preloadCache.get(versionKey);
+    if (cached) {
+      opts?.onProgress?.(cached.loaded, cached.total);
+      return;
+    }
 
     // Network conditions: respect Data Saver and 2g
     const conn: any = (navigator as any)?.connection;
@@ -177,11 +183,18 @@ export function useCoursePreloader(
 
     const total = targets.length;
     let loaded = 0;
-    const notify = () => opts?.onProgress?.(loaded, total);
+    
+    // Store in cache immediately (will be updated as loading progresses)
+    preloadCache.set(versionKey, { total, loaded });
+    
+    const notify = () => {
+      preloadCache.set(versionKey, { total, loaded });
+      opts?.onProgress?.(loaded, total);
+    };
     notify(); // Report initial state
 
     if (total === 0) {
-      // No images to preload
+      // No images to preload - cache is already set
       return;
     }
 
