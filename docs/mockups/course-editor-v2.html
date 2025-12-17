@@ -1,0 +1,2066 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Course Editor V2 - LearnPlay LMS</title>
+  <style>
+    /* === CSS Variables - Design Tokens === */
+    :root {
+      /* Primary palette - Deep ocean blue with coral accent */
+      --color-primary: #1e40af;
+      --color-primary-light: #3b82f6;
+      --color-primary-dark: #1e3a8a;
+      --color-accent: #f97316;
+      --color-accent-light: #fb923c;
+      
+      /* Semantic colors */
+      --color-success: #059669;
+      --color-warning: #d97706;
+      --color-danger: #dc2626;
+      --color-info: #0891b2;
+      
+      /* Neutrals - warm grays */
+      --color-bg: #fafaf9;
+      --color-surface: #ffffff;
+      --color-surface-elevated: #ffffff;
+      --color-border: #e7e5e4;
+      --color-border-subtle: #f5f5f4;
+      
+      /* Text colors */
+      --color-text: #1c1917;
+      --color-text-secondary: #57534e;
+      --color-text-muted: #a8a29e;
+      --color-text-inverse: #ffffff;
+      
+      /* Sidebar - dark theme */
+      --sidebar-bg: #1c1917;
+      --sidebar-surface: #292524;
+      --sidebar-border: #3f3f46;
+      --sidebar-text: #e7e5e4;
+      --sidebar-text-muted: #a8a29e;
+      --sidebar-active: var(--color-primary);
+      
+      /* Typography - Distinctive font pairing */
+      --font-display: 'Archivo Black', system-ui, sans-serif;
+      --font-body: 'DM Sans', system-ui, sans-serif;
+      --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+      
+      /* Spacing scale */
+      --space-1: 0.25rem;
+      --space-2: 0.5rem;
+      --space-3: 0.75rem;
+      --space-4: 1rem;
+      --space-5: 1.25rem;
+      --space-6: 1.5rem;
+      --space-8: 2rem;
+      --space-10: 2.5rem;
+      --space-12: 3rem;
+      
+      /* Radius */
+      --radius-sm: 0.375rem;
+      --radius-md: 0.5rem;
+      --radius-lg: 0.75rem;
+      --radius-xl: 1rem;
+      
+      /* Shadows */
+      --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+      --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+      --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+      --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+      
+      /* Animation */
+      --transition-fast: 0.1s ease;
+      --transition-normal: 0.2s ease;
+      --transition-slow: 0.3s ease;
+    }
+    
+    /* === Google Fonts === */
+    @import url('https://fonts.googleapis.com/css2?family=Archivo+Black&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=JetBrains+Mono:wght@400;500&display=swap');
+    
+    /* === Base Reset === */
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    
+    html {
+      font-size: 16px;
+      -webkit-font-smoothing: antialiased;
+    }
+    
+    body {
+      font-family: var(--font-body);
+      background: var(--color-bg);
+      color: var(--color-text);
+      line-height: 1.5;
+      min-height: 100vh;
+    }
+    
+    /* === Layout Structure === */
+    .app-container {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      overflow: hidden;
+    }
+    
+    .main-layout {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+    }
+    
+    /* === Header === */
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 56px;
+      padding: 0 var(--space-4);
+      background: var(--color-surface);
+      border-bottom: 1px solid var(--color-border);
+      gap: var(--space-4);
+    }
+    
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
+    }
+    
+    .header-center {
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
+      flex: 1;
+      justify-content: center;
+    }
+    
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+    }
+    
+    .logo {
+      width: 32px;
+      height: 32px;
+      background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-accent) 100%);
+      border-radius: var(--radius-md);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: 700;
+      font-size: 14px;
+    }
+    
+    .breadcrumb {
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+      font-size: 0.875rem;
+      color: var(--color-text-secondary);
+    }
+    
+    .breadcrumb-separator {
+      color: var(--color-text-muted);
+    }
+    
+    .breadcrumb-current {
+      font-weight: 600;
+      color: var(--color-text);
+      max-width: 200px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    
+    .unsaved-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-1);
+      padding: var(--space-1) var(--space-2);
+      background: #fef3c7;
+      color: #92400e;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+    
+    .unsaved-dot {
+      width: 6px;
+      height: 6px;
+      background: #f59e0b;
+      border-radius: 50%;
+      animation: pulse 1.5s infinite;
+    }
+    
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+    
+    /* === Buttons === */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: var(--space-2);
+      padding: var(--space-2) var(--space-3);
+      font-family: var(--font-body);
+      font-size: 0.875rem;
+      font-weight: 500;
+      border-radius: var(--radius-md);
+      border: 1px solid transparent;
+      cursor: pointer;
+      transition: all var(--transition-fast);
+      white-space: nowrap;
+    }
+    
+    .btn:focus {
+      outline: 2px solid var(--color-primary-light);
+      outline-offset: 2px;
+    }
+    
+    .btn-primary {
+      background: var(--color-primary);
+      color: var(--color-text-inverse);
+      border-color: var(--color-primary);
+    }
+    
+    .btn-primary:hover {
+      background: var(--color-primary-dark);
+    }
+    
+    .btn-secondary {
+      background: var(--color-surface);
+      color: var(--color-text);
+      border-color: var(--color-border);
+    }
+    
+    .btn-secondary:hover {
+      background: var(--color-bg);
+      border-color: var(--color-text-muted);
+    }
+    
+    .btn-ghost {
+      background: transparent;
+      color: var(--color-text-secondary);
+      border-color: transparent;
+    }
+    
+    .btn-ghost:hover {
+      background: var(--color-border-subtle);
+      color: var(--color-text);
+    }
+    
+    .btn-danger {
+      background: var(--color-danger);
+      color: var(--color-text-inverse);
+      border-color: var(--color-danger);
+    }
+    
+    .btn-danger:hover {
+      background: #b91c1c;
+    }
+    
+    .btn-ai {
+      background: linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%);
+      color: white;
+      border: none;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .btn-ai::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, #7c3aed 0%, #db2777 100%);
+      opacity: 0;
+      transition: opacity var(--transition-fast);
+    }
+    
+    .btn-ai:hover::before {
+      opacity: 1;
+    }
+    
+    .btn-ai span {
+      position: relative;
+      z-index: 1;
+    }
+    
+    .btn-icon {
+      padding: var(--space-2);
+      width: 36px;
+      height: 36px;
+    }
+    
+    .btn-sm {
+      padding: var(--space-1) var(--space-2);
+      font-size: 0.8125rem;
+    }
+    
+    .btn-lg {
+      padding: var(--space-3) var(--space-5);
+      font-size: 1rem;
+    }
+    
+    .kbd {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0.125rem 0.375rem;
+      font-family: var(--font-mono);
+      font-size: 0.6875rem;
+      background: var(--color-bg);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-sm);
+      color: var(--color-text-muted);
+      margin-left: var(--space-2);
+    }
+    
+    /* === Tab Navigation === */
+    .tab-bar {
+      display: flex;
+      gap: var(--space-1);
+      padding: 0 var(--space-4);
+      background: var(--color-surface);
+      border-bottom: 1px solid var(--color-border);
+    }
+    
+    .tab-btn {
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+      padding: var(--space-3) var(--space-4);
+      font-family: var(--font-body);
+      font-size: 0.875rem;
+      font-weight: 500;
+      color: var(--color-text-secondary);
+      background: transparent;
+      border: none;
+      border-bottom: 2px solid transparent;
+      cursor: pointer;
+      transition: all var(--transition-fast);
+      margin-bottom: -1px;
+    }
+    
+    .tab-btn:hover {
+      color: var(--color-text);
+    }
+    
+    .tab-btn.active {
+      color: var(--color-primary);
+      border-bottom-color: var(--color-primary);
+    }
+    
+    .tab-icon {
+      font-size: 1rem;
+    }
+    
+    /* === Navigator Sidebar === */
+    .navigator {
+      width: 280px;
+      background: var(--sidebar-bg);
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+    }
+    
+    .navigator-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: var(--space-4);
+      border-bottom: 1px solid var(--sidebar-border);
+    }
+    
+    .navigator-title {
+      font-family: var(--font-display);
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--sidebar-text-muted);
+    }
+    
+    .navigator-content {
+      flex: 1;
+      overflow-y: auto;
+      padding: var(--space-2);
+    }
+    
+    .nav-group {
+      margin-bottom: var(--space-2);
+    }
+    
+    .nav-group-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: var(--space-2) var(--space-3);
+      color: var(--sidebar-text);
+      font-weight: 600;
+      font-size: 0.8125rem;
+      cursor: pointer;
+      border-radius: var(--radius-md);
+      transition: background var(--transition-fast);
+    }
+    
+    .nav-group-header:hover {
+      background: var(--sidebar-surface);
+    }
+    
+    .nav-group-toggle {
+      color: var(--sidebar-text-muted);
+      transition: transform var(--transition-fast);
+    }
+    
+    .nav-group.expanded .nav-group-toggle {
+      transform: rotate(90deg);
+    }
+    
+    .nav-group-items {
+      display: none;
+      padding-left: var(--space-3);
+    }
+    
+    .nav-group.expanded .nav-group-items {
+      display: block;
+    }
+    
+    .nav-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: var(--space-2) var(--space-3);
+      color: var(--sidebar-text-muted);
+      font-size: 0.8125rem;
+      cursor: pointer;
+      border-radius: var(--radius-md);
+      transition: all var(--transition-fast);
+      margin: var(--space-1) 0;
+    }
+    
+    .nav-item:hover {
+      background: var(--sidebar-surface);
+      color: var(--sidebar-text);
+    }
+    
+    .nav-item.active {
+      background: var(--color-primary);
+      color: white;
+    }
+    
+    .nav-item-count {
+      font-size: 0.75rem;
+      padding: 0 var(--space-1);
+      border-radius: var(--radius-sm);
+      background: var(--sidebar-surface);
+    }
+    
+    .nav-item.active .nav-item-count {
+      background: rgba(255,255,255,0.2);
+    }
+    
+    .nav-item-unsaved {
+      width: 6px;
+      height: 6px;
+      background: var(--color-accent);
+      border-radius: 50%;
+    }
+    
+    .navigator-footer {
+      padding: var(--space-3);
+      border-top: 1px solid var(--sidebar-border);
+    }
+    
+    .nav-add-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: var(--space-2);
+      width: 100%;
+      padding: var(--space-2) var(--space-3);
+      background: var(--sidebar-surface);
+      color: var(--sidebar-text-muted);
+      border: 1px dashed var(--sidebar-border);
+      border-radius: var(--radius-md);
+      font-size: 0.8125rem;
+      cursor: pointer;
+      transition: all var(--transition-fast);
+    }
+    
+    .nav-add-btn:hover {
+      background: var(--sidebar-bg);
+      color: var(--sidebar-text);
+      border-color: var(--sidebar-text-muted);
+    }
+    
+    /* === Editor Area === */
+    .editor-area {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      background: var(--color-bg);
+    }
+    
+    .editor-content {
+      flex: 1;
+      overflow-y: auto;
+      padding: var(--space-6);
+    }
+    
+    .editor-container {
+      max-width: 900px;
+      margin: 0 auto;
+    }
+    
+    /* === Item Header Card === */
+    .item-header-card {
+      background: var(--color-surface);
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--color-border);
+      padding: var(--space-4) var(--space-5);
+      margin-bottom: var(--space-4);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: var(--shadow-sm);
+    }
+    
+    .item-header-left {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-1);
+    }
+    
+    .item-title {
+      font-family: var(--font-display);
+      font-size: 1.125rem;
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+    }
+    
+    .item-title-badge {
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      padding: var(--space-1) var(--space-2);
+      background: var(--color-primary);
+      color: white;
+      border-radius: var(--radius-sm);
+    }
+    
+    .item-meta {
+      display: flex;
+      align-items: center;
+      gap: var(--space-4);
+      font-size: 0.8125rem;
+      color: var(--color-text-secondary);
+    }
+    
+    .item-meta-item {
+      display: flex;
+      align-items: center;
+      gap: var(--space-1);
+    }
+    
+    .item-header-right {
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+    }
+    
+    .badge-warning {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-1);
+      padding: var(--space-1) var(--space-2);
+      background: #fef3c7;
+      color: #92400e;
+      border-radius: var(--radius-sm);
+      font-size: 0.75rem;
+      font-weight: 500;
+    }
+    
+    /* === Mode Selector === */
+    .mode-selector {
+      display: flex;
+      align-items: center;
+      gap: var(--space-1);
+    }
+    
+    .mode-selector label {
+      font-size: 0.8125rem;
+      color: var(--color-text-secondary);
+    }
+    
+    .mode-selector select {
+      padding: var(--space-1) var(--space-2);
+      font-size: 0.8125rem;
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-sm);
+      background: var(--color-surface);
+      cursor: pointer;
+    }
+    
+    /* === Editor Card === */
+    .editor-card {
+      background: var(--color-surface);
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--color-border);
+      overflow: hidden;
+      box-shadow: var(--shadow-sm);
+    }
+    
+    .editor-card-tabs {
+      display: flex;
+      border-bottom: 1px solid var(--color-border);
+      background: var(--color-bg);
+    }
+    
+    .editor-tab {
+      padding: var(--space-3) var(--space-5);
+      font-size: 0.875rem;
+      font-weight: 500;
+      color: var(--color-text-secondary);
+      background: transparent;
+      border: none;
+      border-bottom: 2px solid transparent;
+      cursor: pointer;
+      transition: all var(--transition-fast);
+      margin-bottom: -1px;
+    }
+    
+    .editor-tab:hover {
+      color: var(--color-text);
+      background: var(--color-surface);
+    }
+    
+    .editor-tab.active {
+      color: var(--color-primary);
+      background: var(--color-surface);
+      border-bottom-color: var(--color-primary);
+    }
+    
+    .editor-card-content {
+      padding: var(--space-5);
+    }
+    
+    /* === Form Elements === */
+    .form-group {
+      margin-bottom: var(--space-5);
+    }
+    
+    .form-label {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: var(--space-2);
+    }
+    
+    .form-label-text {
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: var(--color-text);
+    }
+    
+    .form-label-actions {
+      display: flex;
+      gap: var(--space-2);
+    }
+    
+    .form-textarea {
+      width: 100%;
+      padding: var(--space-3);
+      font-family: var(--font-body);
+      font-size: 0.9375rem;
+      line-height: 1.6;
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      resize: vertical;
+      min-height: 120px;
+      transition: border-color var(--transition-fast);
+    }
+    
+    .form-textarea:focus {
+      outline: none;
+      border-color: var(--color-primary);
+      box-shadow: 0 0 0 3px rgba(30, 64, 175, 0.1);
+    }
+    
+    .form-input {
+      width: 100%;
+      padding: var(--space-2) var(--space-3);
+      font-family: var(--font-body);
+      font-size: 0.9375rem;
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      transition: border-color var(--transition-fast);
+    }
+    
+    .form-input:focus {
+      outline: none;
+      border-color: var(--color-primary);
+      box-shadow: 0 0 0 3px rgba(30, 64, 175, 0.1);
+    }
+    
+    /* === Options Grid === */
+    .options-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: var(--space-4);
+    }
+    
+    .option-card {
+      padding: var(--space-4);
+      border: 2px solid var(--color-border);
+      border-radius: var(--radius-md);
+      transition: all var(--transition-fast);
+      position: relative;
+    }
+    
+    .option-card.correct {
+      border-color: var(--color-success);
+      background: #f0fdf4;
+    }
+    
+    .option-card:hover {
+      border-color: var(--color-primary-light);
+    }
+    
+    .option-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: var(--space-2);
+    }
+    
+    .option-label {
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+    }
+    
+    .option-letter {
+      width: 24px;
+      height: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--color-text);
+      color: white;
+      border-radius: var(--radius-sm);
+      font-size: 0.75rem;
+      font-weight: 700;
+    }
+    
+    .option-card.correct .option-letter {
+      background: var(--color-success);
+    }
+    
+    .option-actions {
+      display: flex;
+      gap: var(--space-1);
+      opacity: 0;
+      transition: opacity var(--transition-fast);
+    }
+    
+    .option-card:hover .option-actions {
+      opacity: 1;
+    }
+    
+    .option-input {
+      width: 100%;
+      padding: var(--space-2);
+      font-size: 0.875rem;
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-sm);
+      background: var(--color-surface);
+    }
+    
+    .option-input:focus {
+      outline: none;
+      border-color: var(--color-primary);
+    }
+    
+    .correct-checkbox {
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+      margin-top: var(--space-2);
+      font-size: 0.8125rem;
+      color: var(--color-text-secondary);
+    }
+    
+    /* === Preview Panel === */
+    .preview-panel {
+      width: 400px;
+      background: var(--color-surface);
+      border-left: 1px solid var(--color-border);
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+    }
+    
+    .preview-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: var(--space-4);
+      border-bottom: 1px solid var(--color-border);
+    }
+    
+    .preview-title {
+      font-weight: 600;
+      font-size: 0.875rem;
+    }
+    
+    .preview-content {
+      flex: 1;
+      overflow-y: auto;
+      padding: var(--space-4);
+    }
+    
+    .preview-device {
+      background: #1c1917;
+      border-radius: var(--radius-xl);
+      padding: var(--space-4);
+      max-width: 340px;
+      margin: 0 auto;
+      box-shadow: var(--shadow-xl);
+    }
+    
+    .preview-screen {
+      background: white;
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+    }
+    
+    .preview-question {
+      padding: var(--space-4);
+      font-size: 0.9375rem;
+      line-height: 1.6;
+      min-height: 100px;
+    }
+    
+    .preview-options {
+      padding: 0 var(--space-4) var(--space-4);
+    }
+    
+    .preview-option {
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
+      padding: var(--space-3);
+      border: 2px solid var(--color-border);
+      border-radius: var(--radius-md);
+      margin-bottom: var(--space-2);
+      cursor: pointer;
+      transition: all var(--transition-fast);
+    }
+    
+    .preview-option:hover {
+      border-color: var(--color-primary-light);
+      background: #eff6ff;
+    }
+    
+    .preview-option.selected {
+      border-color: var(--color-primary);
+      background: #eff6ff;
+    }
+    
+    .preview-option-letter {
+      width: 28px;
+      height: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--color-border);
+      border-radius: 50%;
+      font-size: 0.8125rem;
+      font-weight: 600;
+    }
+    
+    .preview-option.selected .preview-option-letter {
+      background: var(--color-primary);
+      color: white;
+    }
+    
+    /* === Media Library Sidebar === */
+    .media-sidebar {
+      width: 320px;
+      background: var(--color-surface);
+      border-left: 1px solid var(--color-border);
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+    }
+    
+    .media-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: var(--space-4);
+      border-bottom: 1px solid var(--color-border);
+    }
+    
+    .media-title {
+      font-weight: 600;
+    }
+    
+    .media-search {
+      padding: var(--space-3) var(--space-4);
+      border-bottom: 1px solid var(--color-border);
+    }
+    
+    .media-search-input {
+      width: 100%;
+      padding: var(--space-2) var(--space-3);
+      font-size: 0.875rem;
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      background: var(--color-bg);
+    }
+    
+    .media-filters {
+      display: flex;
+      gap: var(--space-2);
+      padding: var(--space-3) var(--space-4);
+      border-bottom: 1px solid var(--color-border);
+    }
+    
+    .media-filter {
+      padding: var(--space-1) var(--space-3);
+      font-size: 0.75rem;
+      font-weight: 500;
+      border-radius: 9999px;
+      border: 1px solid var(--color-border);
+      background: var(--color-surface);
+      cursor: pointer;
+      transition: all var(--transition-fast);
+    }
+    
+    .media-filter.active {
+      background: var(--color-primary);
+      color: white;
+      border-color: var(--color-primary);
+    }
+    
+    .media-grid {
+      flex: 1;
+      overflow-y: auto;
+      padding: var(--space-3);
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: var(--space-2);
+      align-content: start;
+    }
+    
+    .media-item {
+      aspect-ratio: 1;
+      background: var(--color-bg);
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      cursor: pointer;
+      position: relative;
+      border: 2px solid transparent;
+      transition: all var(--transition-fast);
+    }
+    
+    .media-item:hover {
+      border-color: var(--color-primary-light);
+    }
+    
+    .media-item.selected {
+      border-color: var(--color-primary);
+    }
+    
+    .media-item-placeholder {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--color-text-muted);
+      font-size: 2rem;
+    }
+    
+    /* === Command Palette Overlay === */
+    .command-palette-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.5);
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding-top: 15vh;
+      z-index: 100;
+      opacity: 0;
+      visibility: hidden;
+      transition: all var(--transition-normal);
+    }
+    
+    .command-palette-overlay.open {
+      opacity: 1;
+      visibility: visible;
+    }
+    
+    .command-palette {
+      width: 100%;
+      max-width: 560px;
+      background: var(--color-surface);
+      border-radius: var(--radius-xl);
+      box-shadow: var(--shadow-xl);
+      overflow: hidden;
+      transform: translateY(-20px);
+      transition: transform var(--transition-normal);
+    }
+    
+    .command-palette-overlay.open .command-palette {
+      transform: translateY(0);
+    }
+    
+    .command-input-wrapper {
+      display: flex;
+      align-items: center;
+      padding: var(--space-4);
+      border-bottom: 1px solid var(--color-border);
+    }
+    
+    .command-input-icon {
+      color: var(--color-text-muted);
+      margin-right: var(--space-3);
+    }
+    
+    .command-input {
+      flex: 1;
+      border: none;
+      font-size: 1.125rem;
+      outline: none;
+      font-family: var(--font-body);
+    }
+    
+    .command-list {
+      max-height: 400px;
+      overflow-y: auto;
+      padding: var(--space-2);
+    }
+    
+    .command-group {
+      margin-bottom: var(--space-3);
+    }
+    
+    .command-group-title {
+      padding: var(--space-2) var(--space-3);
+      font-size: 0.6875rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--color-text-muted);
+    }
+    
+    .command-item {
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
+      padding: var(--space-3);
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      transition: background var(--transition-fast);
+    }
+    
+    .command-item:hover, .command-item.selected {
+      background: var(--color-bg);
+    }
+    
+    .command-item-icon {
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--color-bg);
+      border-radius: var(--radius-md);
+    }
+    
+    .command-item-content {
+      flex: 1;
+    }
+    
+    .command-item-title {
+      font-weight: 500;
+      font-size: 0.9375rem;
+    }
+    
+    .command-item-description {
+      font-size: 0.8125rem;
+      color: var(--color-text-muted);
+    }
+    
+    .command-item-kbd {
+      display: flex;
+      gap: var(--space-1);
+    }
+    
+    /* === Toast Notifications === */
+    .toast-container {
+      position: fixed;
+      bottom: var(--space-6);
+      right: var(--space-6);
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-2);
+      z-index: 200;
+    }
+    
+    .toast {
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
+      padding: var(--space-3) var(--space-4);
+      background: var(--color-surface);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-lg);
+      border-left: 4px solid var(--color-success);
+      animation: slideIn 0.3s ease;
+    }
+    
+    .toast.success { border-left-color: var(--color-success); }
+    .toast.error { border-left-color: var(--color-danger); }
+    .toast.warning { border-left-color: var(--color-warning); }
+    .toast.info { border-left-color: var(--color-info); }
+    
+    @keyframes slideIn {
+      from { transform: translateX(100%); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+    
+    .toast-icon { font-size: 1.25rem; }
+    .toast-content { flex: 1; }
+    .toast-title { font-weight: 600; font-size: 0.875rem; }
+    .toast-message { font-size: 0.8125rem; color: var(--color-text-secondary); }
+    .toast-close { 
+      background: none; 
+      border: none; 
+      color: var(--color-text-muted); 
+      cursor: pointer;
+      padding: var(--space-1);
+    }
+    
+    /* === Floating Action Button === */
+    .fab-container {
+      position: fixed;
+      bottom: var(--space-6);
+      right: calc(var(--space-6) + 340px);
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: var(--space-3);
+      z-index: 50;
+    }
+    
+    .fab-menu {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-2);
+      opacity: 0;
+      visibility: hidden;
+      transform: translateY(10px);
+      transition: all var(--transition-normal);
+    }
+    
+    .fab-menu.open {
+      opacity: 1;
+      visibility: visible;
+      transform: translateY(0);
+    }
+    
+    .fab-menu-item {
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+      padding: var(--space-2) var(--space-4);
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: 9999px;
+      font-size: 0.875rem;
+      font-weight: 500;
+      box-shadow: var(--shadow-md);
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all var(--transition-fast);
+    }
+    
+    .fab-menu-item:hover {
+      border-color: var(--color-primary);
+      background: #eff6ff;
+    }
+    
+    .fab-button {
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%);
+      color: white;
+      border: none;
+      box-shadow: var(--shadow-lg);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+      transition: all var(--transition-fast);
+    }
+    
+    .fab-button:hover {
+      transform: scale(1.05);
+      box-shadow: var(--shadow-xl);
+    }
+    
+    .fab-button.open {
+      transform: rotate(45deg);
+    }
+    
+    /* === Utility Classes === */
+    .hidden { display: none !important; }
+    .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); border: 0; }
+  </style>
+</head>
+<body>
+  <div class="app-container" data-route="/admin/editor/:courseId">
+    <!-- Header -->
+    <header class="header">
+      <div class="header-left">
+        <div class="logo">LP</div>
+        <nav class="breadcrumb">
+          <span>Course Editor</span>
+          <span class="breadcrumb-separator">›</span>
+          <span class="breadcrumb-current">Squats for Pussy's: Foundations</span>
+        </nav>
+        <span class="unsaved-badge" id="unsaved-badge">
+          <span class="unsaved-dot"></span>
+          3 unsaved
+        </span>
+      </div>
+      
+      <div class="header-center">
+        <button class="btn btn-ghost btn-icon" onclick="toggleCommandPalette()" title="Command Palette (Ctrl+K)" data-cta-id="cta-courseeditor-command-palette" data-action="modal">
+          <span>⌘</span>
+        </button>
+      </div>
+      
+      <div class="header-right">
+        <button class="btn btn-ghost" onclick="handleClose()" data-cta-id="cta-courseeditor-close" data-action="navigate">✕ Close</button>
+        <button class="btn btn-secondary" onclick="handleDiscard()" id="discard-btn" data-cta-id="cta-courseeditor-discard" data-action="action">Discard</button>
+        <button class="btn btn-secondary" onclick="handleSave()" data-cta-id="cta-courseeditor-save" data-action="action">
+          💾 Save Draft<kbd>Ctrl+S</kbd>
+        </button>
+        <button class="btn btn-primary" onclick="handlePublish()" data-cta-id="cta-courseeditor-publish" data-action="action">
+          🚀 Publish
+        </button>
+      </div>
+    </header>
+    
+    <!-- Tab Bar -->
+    <div class="tab-bar">
+      <button class="tab-btn active" onclick="switchTopTab('exercises', this)" data-cta-id="cta-courseeditor-tab-exercises" data-action="tab">
+        <span class="tab-icon">📝</span> Exercises
+      </button>
+      <button class="tab-btn" onclick="switchTopTab('studyTexts', this)" data-cta-id="cta-courseeditor-tab-studytexts" data-action="tab">
+        <span class="tab-icon">📚</span> Study Texts
+      </button>
+    </div>
+    
+    <!-- Main Layout -->
+    <div class="main-layout">
+      <!-- Navigator Sidebar -->
+      <aside class="navigator">
+        <div class="navigator-header">
+          <span class="navigator-title">Course Structure</span>
+          <button class="btn btn-ghost btn-icon btn-sm" onclick="collapseAllGroups()" data-cta-id="cta-courseeditor-nav-collapse-all" data-action="action">📁</button>
+        </div>
+        
+        <div class="navigator-content">
+          <!-- Group 1 -->
+          <div class="nav-group expanded" id="group-0">
+            <div class="nav-group-header" onclick="toggleGroup('group-0')" data-cta-id="cta-courseeditor-nav-group-toggle-0" data-action="action">
+              <span>Squats for Pussy's: Foundations</span>
+              <span class="nav-group-toggle">▶</span>
+            </div>
+            <div class="nav-group-items">
+              <div class="nav-item active" onclick="selectItem(0, 0, this)" data-cta-id="cta-courseeditor-nav-item-select-0-0" data-action="action">
+                <span>Item 0</span>
+                <span class="nav-item-unsaved"></span>
+              </div>
+              <div class="nav-item" onclick="selectItem(0, 1, this)" data-cta-id="cta-courseeditor-nav-item-select-0-1" data-action="action">
+                <span>Item 1</span>
+              </div>
+              <div class="nav-item" onclick="selectItem(0, 2, this)" data-cta-id="cta-courseeditor-nav-item-select-0-2" data-action="action">
+                <span>Item 2</span>
+                <span class="nav-item-unsaved"></span>
+              </div>
+              <div class="nav-item" onclick="selectItem(0, 3, this)" data-cta-id="cta-courseeditor-nav-item-select-0-3" data-action="action">
+                <span>Item 3</span>
+              </div>
+              <div class="nav-item" onclick="selectItem(0, 4, this)" data-cta-id="cta-courseeditor-nav-item-select-0-4" data-action="action">
+                <span>Item 4</span>
+              </div>
+              <div class="nav-item" onclick="selectItem(0, 5, this)" data-cta-id="cta-courseeditor-nav-item-select-0-5" data-action="action">
+                <span>Item 5</span>
+                <span class="nav-item-unsaved"></span>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Group 2 -->
+          <div class="nav-group" id="group-1">
+            <div class="nav-group-header" onclick="toggleGroup('group-1')" data-cta-id="cta-courseeditor-nav-group-toggle-1" data-action="action">
+              <span>Advanced Techniques</span>
+              <span class="nav-group-toggle">▶</span>
+            </div>
+            <div class="nav-group-items">
+              <div class="nav-item" onclick="selectItem(1, 0, this)" data-cta-id="cta-courseeditor-nav-item-select-1-0" data-action="action">
+                <span>Item 0</span>
+              </div>
+              <div class="nav-item" onclick="selectItem(1, 1, this)" data-cta-id="cta-courseeditor-nav-item-select-1-1" data-action="action">
+                <span>Item 1</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="navigator-footer">
+          <button class="nav-add-btn" onclick="addGroup()" data-cta-id="cta-courseeditor-nav-add-group" data-action="action">+ Add Group</button>
+        </div>
+      </aside>
+      
+      <!-- Editor Area -->
+      <main class="editor-area">
+        <div class="editor-content">
+          <div class="editor-container">
+            <!-- Item Header Card -->
+            <div class="item-header-card">
+              <div class="item-header-left">
+                <h1 class="item-title">
+                  <span class="item-title-badge">Item 0</span>
+                  Squats for Pussy's: Foundations
+                </h1>
+                <div class="item-meta">
+                  <div class="mode-selector">
+                    <label>Mode:</label>
+                    <select id="mode-select" onchange="handleModeChange(this.value)" data-cta-id="cta-courseeditor-mode-select" data-action="action">
+                      <option value="options" selected>options</option>
+                      <option value="numeric">numeric</option>
+                    </select>
+                  </div>
+                  <div class="item-meta-item">
+                    <span>Cluster:</span>
+                    <strong>squats-for-pussy-s-foundations-cluster-0</strong>
+                  </div>
+                </div>
+              </div>
+              <div class="item-header-right">
+                <span class="badge-warning" id="missing-image-badge">🖼️ Missing image</span>
+                <button class="btn btn-secondary btn-sm" onclick="handleAddImageAI()" data-cta-id="cta-courseeditor-item-add-image-ai" data-action="action">🖼️ Add Image (AI)</button>
+                <button class="btn btn-secondary btn-sm" onclick="handleFixMissingImages()" data-cta-id="cta-courseeditor-item-fix-missing-images" data-action="action">🧩 Fix Missing Images (AI)</button>
+              </div>
+            </div>
+            
+            <!-- Editor Card -->
+            <div class="editor-card">
+              <div class="editor-card-tabs">
+                <button class="editor-tab active" onclick="switchEditorTab('stem', this)" data-cta-id="cta-courseeditor-editor-tab-stem" data-action="tab">Stem</button>
+                <button class="editor-tab" onclick="switchEditorTab('options', this)" data-cta-id="cta-courseeditor-editor-tab-options" data-action="tab">Options</button>
+                <button class="editor-tab" onclick="switchEditorTab('explanation', this)" data-cta-id="cta-courseeditor-editor-tab-explanation" data-action="tab">Explanation</button>
+                <button class="editor-tab" onclick="switchEditorTab('exercises', this)" data-cta-id="cta-courseeditor-editor-tab-exercises" data-action="tab">New Exercises</button>
+              </div>
+              
+              <div class="editor-card-content">
+                <!-- Stem Tab -->
+                <div id="tab-stem" class="tab-content">
+                  <div class="form-group">
+                    <div class="form-label">
+                      <span class="form-label-text">Question Text</span>
+                      <div class="form-label-actions">
+                        <button class="btn btn-ghost btn-sm" onclick="handlePreview()" data-cta-id="cta-courseeditor-stem-preview" data-action="action">👁️ Preview</button>
+                        <button class="btn btn-ai btn-sm" onclick="handleAIRewriteStem()" data-cta-id="cta-courseeditor-stem-ai-rewrite" data-action="action">
+                          <span>✨ AI Rewrite</span>
+                        </button>
+                      </div>
+                    </div>
+                    <textarea class="form-textarea" id="stem-text" placeholder="Enter the question stem..." oninput="markUnsaved()">What is the proper starting position for a basic squat exercise?</textarea>
+                  </div>
+                  
+                  <div class="form-group">
+                    <div class="form-label">
+                      <span class="form-label-text">Media</span>
+                      <div class="form-label-actions">
+                        <button class="btn btn-secondary btn-sm" onclick="handleUploadMedia()" data-cta-id="cta-courseeditor-stem-upload-media" data-action="action">📤 Upload</button>
+                        <button class="btn btn-secondary btn-sm" onclick="toggleMediaLibrary()" data-cta-id="cta-courseeditor-stem-media-library" data-action="action">📁 Library</button>
+                      </div>
+                    </div>
+                    <div style="padding: 2rem; border: 2px dashed var(--color-border); border-radius: var(--radius-md); text-align: center; color: var(--color-text-muted);">
+                      Drop media here or use buttons above
+                    </div>
+                  </div>
+                </div>
+                
+                <!-- Options Tab -->
+                <div id="tab-options" class="tab-content hidden">
+                  <div class="options-grid">
+                    <div class="option-card correct">
+                      <div class="option-header">
+                        <div class="option-label">
+                          <span class="option-letter">A</span>
+                          <span style="font-size: 0.75rem; color: var(--color-success); font-weight: 500;">✓ Correct</span>
+                        </div>
+                        <div class="option-actions">
+                          <button class="btn btn-ghost btn-icon btn-sm" onclick="handleAIRewriteOption(0)" data-cta-id="cta-courseeditor-option-0-ai-rewrite" data-action="action">✨</button>
+                          <button class="btn btn-ghost btn-icon btn-sm" onclick="handleAddMediaToOption(0)" data-cta-id="cta-courseeditor-option-0-add-media" data-action="action">🖼️</button>
+                        </div>
+                      </div>
+                      <input class="option-input" value="Feet shoulder-width apart, toes slightly pointed out" oninput="markUnsaved()">
+                    </div>
+                    
+                    <div class="option-card">
+                      <div class="option-header">
+                        <div class="option-label">
+                          <span class="option-letter">B</span>
+                        </div>
+                        <div class="option-actions">
+                          <button class="btn btn-ghost btn-icon btn-sm" onclick="handleAIRewriteOption(1)" data-cta-id="cta-courseeditor-option-1-ai-rewrite" data-action="action">✨</button>
+                          <button class="btn btn-ghost btn-icon btn-sm" onclick="handleAddMediaToOption(1)" data-cta-id="cta-courseeditor-option-1-add-media" data-action="action">🖼️</button>
+                        </div>
+                      </div>
+                      <input class="option-input" value="Feet together, arms crossed" oninput="markUnsaved()">
+                      <label class="correct-checkbox">
+                        <input type="radio" name="correct" onchange="setCorrectOption(1)" data-cta-id="cta-courseeditor-option-mark-correct-1" data-action="action"> Mark as correct
+                      </label>
+                    </div>
+                    
+                    <div class="option-card">
+                      <div class="option-header">
+                        <div class="option-label">
+                          <span class="option-letter">C</span>
+                        </div>
+                        <div class="option-actions">
+                          <button class="btn btn-ghost btn-icon btn-sm" onclick="handleAIRewriteOption(2)" data-cta-id="cta-courseeditor-option-2-ai-rewrite" data-action="action">✨</button>
+                          <button class="btn btn-ghost btn-icon btn-sm" onclick="handleAddMediaToOption(2)" data-cta-id="cta-courseeditor-option-2-add-media" data-action="action">🖼️</button>
+                        </div>
+                      </div>
+                      <input class="option-input" value="One foot in front of the other" oninput="markUnsaved()">
+                      <label class="correct-checkbox">
+                        <input type="radio" name="correct" onchange="setCorrectOption(2)" data-cta-id="cta-courseeditor-option-mark-correct-2" data-action="action"> Mark as correct
+                      </label>
+                    </div>
+                    
+                    <div class="option-card">
+                      <div class="option-header">
+                        <div class="option-label">
+                          <span class="option-letter">D</span>
+                        </div>
+                        <div class="option-actions">
+                          <button class="btn btn-ghost btn-icon btn-sm" onclick="handleAIRewriteOption(3)" data-cta-id="cta-courseeditor-option-3-ai-rewrite" data-action="action">✨</button>
+                          <button class="btn btn-ghost btn-icon btn-sm" onclick="handleAddMediaToOption(3)" data-cta-id="cta-courseeditor-option-3-add-media" data-action="action">🖼️</button>
+                        </div>
+                      </div>
+                      <input class="option-input" value="Sitting on a chair" oninput="markUnsaved()">
+                      <label class="correct-checkbox">
+                        <input type="radio" name="correct" onchange="setCorrectOption(3)" data-cta-id="cta-courseeditor-option-mark-correct-3" data-action="action"> Mark as correct
+                      </label>
+                    </div>
+                  </div>
+                  
+                  <button class="btn btn-secondary" style="margin-top: var(--space-4);" onclick="addOption()" data-cta-id="cta-courseeditor-option-add" data-action="action">+ Add Option</button>
+                </div>
+                
+                <!-- Explanation Tab -->
+                <div id="tab-explanation" class="tab-content hidden">
+                  <div class="form-group">
+                    <div class="form-label">
+                      <span class="form-label-text">Explanation (shown after answer)</span>
+                      <div class="form-label-actions">
+                        <button class="btn btn-ai btn-sm" onclick="handleAIRewriteExplanation()" data-cta-id="cta-courseeditor-explanation-ai-rewrite" data-action="action">
+                          <span>✨ AI Rewrite</span>
+                        </button>
+                      </div>
+                    </div>
+                    <textarea class="form-textarea" id="explanation-text" placeholder="Explain the correct answer..." oninput="markUnsaved()">The proper starting position for a squat is standing with feet shoulder-width apart and toes pointed slightly outward (about 15-30 degrees). This position allows for optimal balance and depth while protecting the knees.</textarea>
+                  </div>
+                </div>
+                
+                <!-- New Exercises Tab -->
+                <div id="tab-exercises" class="tab-content hidden">
+                  <div style="text-align: center; padding: var(--space-8); color: var(--color-text-muted);">
+                    <p style="margin-bottom: var(--space-4);">Generate new exercises based on this course's content.</p>
+                    <button class="btn btn-ai btn-lg" onclick="handleGenerateExercises()" data-cta-id="cta-courseeditor-exercises-generate" data-action="action">
+                      <span>✨ Generate New Exercises</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+      
+      <!-- Preview Panel -->
+      <aside class="preview-panel">
+        <div class="preview-header">
+          <span class="preview-title">📱 Live Preview</span>
+          <button class="btn btn-ghost btn-sm" data-cta-id="cta-courseeditor-preview-refresh" data-action="action">Refresh</button>
+        </div>
+        <div class="preview-content">
+          <div class="preview-device">
+            <div class="preview-screen">
+              <div class="preview-question" id="preview-question">
+                What is the proper starting position for a basic squat exercise?
+              </div>
+              <div class="preview-options">
+                <div class="preview-option selected" onclick="selectPreviewOption(this)" data-cta-id="cta-courseeditor-preview-option-select-0" data-action="action">
+                  <span class="preview-option-letter">A</span>
+                  <span>Feet shoulder-width apart, toes slightly pointed out</span>
+                </div>
+                <div class="preview-option" onclick="selectPreviewOption(this)" data-cta-id="cta-courseeditor-preview-option-select-1" data-action="action">
+                  <span class="preview-option-letter">B</span>
+                  <span>Feet together, arms crossed</span>
+                </div>
+                <div class="preview-option" onclick="selectPreviewOption(this)" data-cta-id="cta-courseeditor-preview-option-select-2" data-action="action">
+                  <span class="preview-option-letter">C</span>
+                  <span>One foot in front of the other</span>
+                </div>
+                <div class="preview-option" onclick="selectPreviewOption(this)" data-cta-id="cta-courseeditor-preview-option-select-3" data-action="action">
+                  <span class="preview-option-letter">D</span>
+                  <span>Sitting on a chair</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </aside>
+      
+      <!-- Media Library Sidebar (hidden by default) -->
+      <aside class="media-sidebar hidden" id="media-sidebar">
+        <div class="media-header">
+          <span class="media-title">📁 Media Library</span>
+          <button class="btn btn-ghost btn-icon btn-sm" onclick="toggleMediaLibrary()" data-cta-id="cta-courseeditor-media-toggle" data-action="action">✕</button>
+        </div>
+        <div class="media-search">
+          <input class="media-search-input" placeholder="Search media by keywords..." oninput="searchMedia(this.value)">
+        </div>
+        <div class="media-filters">
+          <button class="media-filter active" onclick="filterMedia('all', this)" data-cta-id="cta-courseeditor-media-filter-all" data-action="action">All</button>
+          <button class="media-filter" onclick="filterMedia('images', this)" data-cta-id="cta-courseeditor-media-filter-images" data-action="action">Images</button>
+          <button class="media-filter" onclick="filterMedia('audio', this)" data-cta-id="cta-courseeditor-media-filter-audio" data-action="action">Audio</button>
+          <button class="media-filter" onclick="filterMedia('video', this)" data-cta-id="cta-courseeditor-media-filter-video" data-action="action">Video</button>
+        </div>
+        <div class="media-grid">
+          <div class="media-item" onclick="selectMedia(this)" data-cta-id="cta-courseeditor-media-select-0" data-action="action">
+            <div class="media-item-placeholder">🖼️</div>
+          </div>
+          <div class="media-item" onclick="selectMedia(this)" data-cta-id="cta-courseeditor-media-select-1" data-action="action">
+            <div class="media-item-placeholder">🖼️</div>
+          </div>
+          <div class="media-item" onclick="selectMedia(this)" data-cta-id="cta-courseeditor-media-select-2" data-action="action">
+            <div class="media-item-placeholder">🎵</div>
+          </div>
+          <div class="media-item" onclick="selectMedia(this)" data-cta-id="cta-courseeditor-media-select-3" data-action="action">
+            <div class="media-item-placeholder">🖼️</div>
+          </div>
+          <div class="media-item" onclick="selectMedia(this)" data-cta-id="cta-courseeditor-media-select-4" data-action="action">
+            <div class="media-item-placeholder">🎬</div>
+          </div>
+          <div class="media-item" onclick="selectMedia(this)" data-cta-id="cta-courseeditor-media-select-5" data-action="action">
+            <div class="media-item-placeholder">🖼️</div>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </div>
+  
+  <!-- Command Palette -->
+  <div class="command-palette-overlay" id="command-palette" onclick="closeCommandPalette(event)">
+    <div class="command-palette" onclick="event.stopPropagation()">
+      <div class="command-input-wrapper">
+        <span class="command-input-icon">🔍</span>
+        <input class="command-input" id="command-input" placeholder="Type a command or search..." oninput="filterCommands(this.value)">
+      </div>
+      <div class="command-list">
+        <div class="command-group">
+          <div class="command-group-title">File</div>
+          <div class="command-item" onclick="handleSave(); closeCommandPaletteForce();" data-cta-id="cta-courseeditor-command-save" data-action="action">
+            <div class="command-item-icon">💾</div>
+            <div class="command-item-content">
+              <div class="command-item-title">Save Draft</div>
+              <div class="command-item-description">Save current changes</div>
+            </div>
+            <div class="command-item-kbd"><kbd>Ctrl</kbd><kbd>S</kbd></div>
+          </div>
+          <div class="command-item" onclick="handlePublish(); closeCommandPaletteForce();" data-cta-id="cta-courseeditor-command-publish" data-action="action">
+            <div class="command-item-icon">🚀</div>
+            <div class="command-item-content">
+              <div class="command-item-title">Publish Course</div>
+              <div class="command-item-description">Publish as new version</div>
+            </div>
+            <div class="command-item-kbd"><kbd>Ctrl</kbd><kbd>P</kbd></div>
+          </div>
+          <div class="command-item" onclick="handleDiscard(); closeCommandPaletteForce();" data-cta-id="cta-courseeditor-command-discard" data-action="action">
+            <div class="command-item-icon">↩️</div>
+            <div class="command-item-content">
+              <div class="command-item-title">Discard Changes</div>
+              <div class="command-item-description">Revert to last saved state</div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="command-group">
+          <div class="command-group-title">AI Tools</div>
+          <div class="command-item" onclick="handleRepairCourse(); closeCommandPaletteForce();" data-cta-id="cta-courseeditor-command-repair" data-action="action">
+            <div class="command-item-icon">🛠️</div>
+            <div class="command-item-content">
+              <div class="command-item-title">Repair Course</div>
+              <div class="command-item-description">Auto-fix structure issues</div>
+            </div>
+          </div>
+          <div class="command-item" onclick="handleAuditVariants(); closeCommandPaletteForce();" data-cta-id="cta-courseeditor-command-audit-variants" data-action="action">
+            <div class="command-item-icon">🔍</div>
+            <div class="command-item-content">
+              <div class="command-item-title">Audit Variants</div>
+              <div class="command-item-description">Check variant coverage</div>
+            </div>
+          </div>
+          <div class="command-item" onclick="handleGenerateMissingVariants(); closeCommandPaletteForce();" data-cta-id="cta-courseeditor-command-generate-missing-variants" data-action="action">
+            <div class="command-item-icon">➕</div>
+            <div class="command-item-content">
+              <div class="command-item-title">Generate Missing Variants</div>
+              <div class="command-item-description">Create missing content variations</div>
+            </div>
+          </div>
+          <div class="command-item" onclick="handleCoPilotVariants(); closeCommandPaletteForce();" data-cta-id="cta-courseeditor-command-copilot-variants" data-action="action">
+            <div class="command-item-icon">🤖</div>
+            <div class="command-item-content">
+              <div class="command-item-title">Co-Pilot: Variants</div>
+              <div class="command-item-description">AI-powered variant generation</div>
+            </div>
+          </div>
+          <div class="command-item" onclick="handleCoPilotEnrich(); closeCommandPaletteForce();" data-cta-id="cta-courseeditor-command-copilot-enrich" data-action="action">
+            <div class="command-item-icon">✨</div>
+            <div class="command-item-content">
+              <div class="command-item-title">Co-Pilot: Enrich</div>
+              <div class="command-item-description">Add explanations and context</div>
+            </div>
+          </div>
+          <div class="command-item" onclick="handleLocalize(); closeCommandPaletteForce();" data-cta-id="cta-courseeditor-command-localize" data-action="action">
+            <div class="command-item-icon">🌐</div>
+            <div class="command-item-content">
+              <div class="command-item-title">Localize Course</div>
+              <div class="command-item-description">Translate to another language</div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="command-group">
+          <div class="command-group-title">Course Actions</div>
+          <div class="command-item" onclick="handleArchive(); closeCommandPaletteForce();" data-cta-id="cta-courseeditor-command-archive" data-action="action">
+            <div class="command-item-icon">🗄️</div>
+            <div class="command-item-content">
+              <div class="command-item-title">Archive Course</div>
+              <div class="command-item-description">Move to archive</div>
+            </div>
+          </div>
+          <div class="command-item" onclick="handleDelete(); closeCommandPaletteForce();" data-cta-id="cta-courseeditor-command-delete" data-action="action">
+            <div class="command-item-icon">🗑️</div>
+            <div class="command-item-content">
+              <div class="command-item-title">Delete Course</div>
+              <div class="command-item-description">Permanently remove</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Floating Action Button -->
+  <div class="fab-container" id="fab-container">
+    <div class="fab-menu" id="fab-menu">
+      <button class="fab-menu-item" onclick="handleAIRewriteStem()" data-cta-id="cta-courseeditor-fab-ai-rewrite-stem" data-action="action">✨ AI Rewrite Stem</button>
+      <button class="fab-menu-item" onclick="handleAddImageAI()" data-cta-id="cta-courseeditor-fab-add-image-ai" data-action="action">🖼️ Add Image (AI)</button>
+      <button class="fab-menu-item" onclick="handleGenerateExercises()" data-cta-id="cta-courseeditor-fab-generate-exercises" data-action="action">📝 Generate Exercises</button>
+    </div>
+    <button class="fab-button" id="fab-button" onclick="toggleFabMenu()" data-cta-id="cta-courseeditor-fab-toggle" data-action="action">✨</button>
+  </div>
+  
+  <!-- Toast Container -->
+  <div class="toast-container" id="toast-container"></div>
+  
+  <script>
+    // === State Management ===
+    let unsavedCount = 3;
+    let currentGroupIndex = 0;
+    let currentItemIndex = 0;
+    let commandPaletteOpen = false;
+    let fabMenuOpen = false;
+    let mediaLibraryOpen = false;
+    
+    // === Toast Notifications ===
+    function showToast(type, title, message) {
+      const container = document.getElementById('toast-container');
+      const icons = { success: '✅', error: '❌', warning: '⚠️', info: 'ℹ️' };
+      
+      const toast = document.createElement('div');
+      toast.className = `toast ${type}`;
+      toast.innerHTML = `
+        <span class="toast-icon">${icons[type]}</span>
+        <div class="toast-content">
+          <div class="toast-title">${title}</div>
+          ${message ? `<div class="toast-message">${message}</div>` : ''}
+        </div>
+        <button class="toast-close" onclick="this.parentElement.remove()">✕</button>
+      `;
+      
+      container.appendChild(toast);
+      setTimeout(() => toast.remove(), 5000);
+    }
+    
+    // === Header Actions ===
+    function handleClose() {
+      if (unsavedCount > 0) {
+        if (confirm(`You have ${unsavedCount} unsaved changes. Discard and close?`)) {
+          showToast('info', 'Closed', 'Returning to course selector...');
+        }
+      } else {
+        showToast('info', 'Closed', 'Returning to course selector...');
+      }
+    }
+    
+    function handleDiscard() {
+      if (unsavedCount > 0) {
+        if (confirm(`Discard ${unsavedCount} unsaved changes?`)) {
+          unsavedCount = 0;
+          updateUnsavedBadge();
+          showToast('info', 'Changes Discarded', 'Reverted to last saved state');
+        }
+      }
+    }
+    
+    function handleSave() {
+      showToast('success', 'Draft Saved', `${unsavedCount} changes saved`);
+      unsavedCount = 0;
+      updateUnsavedBadge();
+      // Remove unsaved dots from nav items
+      document.querySelectorAll('.nav-item-unsaved').forEach(dot => dot.remove());
+    }
+    
+    function handlePublish() {
+      const changelog = prompt('Enter a brief description of changes:');
+      if (changelog) {
+        showToast('success', 'Course Published', 'New version created successfully');
+      }
+    }
+    
+    function updateUnsavedBadge() {
+      const badge = document.getElementById('unsaved-badge');
+      if (unsavedCount > 0) {
+        badge.style.display = 'inline-flex';
+        badge.innerHTML = `<span class="unsaved-dot"></span>${unsavedCount} unsaved`;
+      } else {
+        badge.style.display = 'none';
+      }
+    }
+    
+    function markUnsaved() {
+      if (unsavedCount === 0) unsavedCount = 1;
+      else unsavedCount++;
+      updateUnsavedBadge();
+      
+      // Update preview
+      const stemText = document.getElementById('stem-text');
+      if (stemText) {
+        document.getElementById('preview-question').textContent = stemText.value;
+      }
+    }
+    
+    // === Tab Switching ===
+    function switchTopTab(tab, btn) {
+      document.querySelectorAll('.tab-bar .tab-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      
+      if (tab === 'studyTexts') {
+        showToast('info', 'Study Texts', 'Switched to Study Texts editor');
+      }
+    }
+    
+    function switchEditorTab(tab, btn) {
+      // Update tab buttons
+      document.querySelectorAll('.editor-tab').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      
+      // Show/hide tab content
+      document.querySelectorAll('.tab-content').forEach(c => c.classList.add('hidden'));
+      document.getElementById(`tab-${tab}`).classList.remove('hidden');
+    }
+    
+    // === Navigator ===
+    function toggleGroup(groupId) {
+      const group = document.getElementById(groupId);
+      group.classList.toggle('expanded');
+    }
+    
+    function collapseAllGroups() {
+      document.querySelectorAll('.nav-group').forEach(g => g.classList.remove('expanded'));
+    }
+    
+    function selectItem(groupIndex, itemIndex, element) {
+      currentGroupIndex = groupIndex;
+      currentItemIndex = itemIndex;
+      
+      document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+      element.classList.add('active');
+      
+      showToast('info', 'Item Selected', `Now editing Item ${itemIndex} in Group ${groupIndex}`);
+    }
+    
+    function addGroup() {
+      showToast('success', 'Group Added', 'New group created');
+    }
+    
+    // === Options ===
+    function setCorrectOption(index) {
+      document.querySelectorAll('.option-card').forEach((card, i) => {
+        if (i === index) {
+          card.classList.add('correct');
+          card.querySelector('.option-label').innerHTML = `
+            <span class="option-letter">${String.fromCharCode(65 + i)}</span>
+            <span style="font-size: 0.75rem; color: var(--color-success); font-weight: 500;">✓ Correct</span>
+          `;
+        } else {
+          card.classList.remove('correct');
+          card.querySelector('.option-label').innerHTML = `<span class="option-letter">${String.fromCharCode(65 + i)}</span>`;
+        }
+      });
+      markUnsaved();
+    }
+    
+    function addOption() {
+      showToast('success', 'Option Added', 'New option E added');
+      markUnsaved();
+    }
+    
+    // === AI Actions ===
+    function handleAIRewriteStem() {
+      showToast('info', 'AI Rewrite', 'Generating new stem text...');
+      setTimeout(() => {
+        showToast('success', 'AI Suggestion Ready', 'Review the proposed changes');
+      }, 1500);
+    }
+    
+    function handleAIRewriteOption(index) {
+      showToast('info', 'AI Rewrite', `Rewriting option ${String.fromCharCode(65 + index)}...`);
+    }
+    
+    function handleAIRewriteExplanation() {
+      showToast('info', 'AI Rewrite', 'Generating new explanation...');
+    }
+    
+    function handleAddImageAI() {
+      showToast('info', 'AI Image', 'Generating image...');
+      setTimeout(() => {
+        document.getElementById('missing-image-badge').style.display = 'none';
+        showToast('success', 'Image Generated', 'AI image added to item');
+      }, 2000);
+    }
+    
+    function handleFixMissingImages() {
+      showToast('info', 'Batch Processing', 'Enqueueing jobs for missing images...');
+    }
+    
+    function handleGenerateExercises() {
+      showToast('info', 'Generating', 'Creating new exercises based on course content...');
+    }
+    
+    // === Command Palette ===
+    function toggleCommandPalette() {
+      const palette = document.getElementById('command-palette');
+      commandPaletteOpen = !commandPaletteOpen;
+      
+      if (commandPaletteOpen) {
+        palette.classList.add('open');
+        document.getElementById('command-input').focus();
+      } else {
+        palette.classList.remove('open');
+      }
+    }
+    
+    function closeCommandPalette(event) {
+      if (event.target === event.currentTarget) {
+        closeCommandPaletteForce();
+      }
+    }
+    
+    function closeCommandPaletteForce() {
+      commandPaletteOpen = false;
+      document.getElementById('command-palette').classList.remove('open');
+    }
+    
+    function filterCommands(query) {
+      const items = document.querySelectorAll('.command-item');
+      const q = query.toLowerCase();
+      
+      items.forEach(item => {
+        const title = item.querySelector('.command-item-title').textContent.toLowerCase();
+        const desc = item.querySelector('.command-item-description').textContent.toLowerCase();
+        
+        if (title.includes(q) || desc.includes(q)) {
+          item.style.display = 'flex';
+        } else {
+          item.style.display = 'none';
+        }
+      });
+    }
+    
+    // Command palette action handlers
+    function handleRepairCourse() {
+      showToast('info', 'Repair Course', 'Analyzing structure...');
+    }
+    
+    function handleAuditVariants() {
+      showToast('info', 'Audit Variants', 'Checking variant coverage...');
+    }
+    
+    function handleGenerateMissingVariants() {
+      showToast('info', 'Generate Variants', 'Creating missing variations...');
+    }
+    
+    function handleCoPilotVariants() {
+      showToast('info', 'Co-Pilot Started', 'Generating variants with AI...');
+    }
+    
+    function handleCoPilotEnrich() {
+      showToast('info', 'Co-Pilot Started', 'Enriching content with AI...');
+    }
+    
+    function handleLocalize() {
+      const locale = prompt('Target locale (e.g., es-419, fr-FR)?', 'es-419');
+      if (locale) {
+        showToast('info', 'Localization Started', `Translating to ${locale}...`);
+      }
+    }
+    
+    function handleArchive() {
+      if (confirm('Archive this course?')) {
+        showToast('success', 'Course Archived', 'Moved to archive');
+      }
+    }
+    
+    function handleDelete() {
+      const courseId = 'squats-for-pussys';
+      const confirm1 = prompt(`Type the course ID to confirm deletion: ${courseId}`);
+      if (confirm1 === courseId) {
+        showToast('success', 'Course Deleted', 'Permanently removed');
+      } else if (confirm1) {
+        showToast('error', 'Deletion Failed', 'Course ID did not match');
+      }
+    }
+    
+    // === FAB Menu ===
+    function toggleFabMenu() {
+      fabMenuOpen = !fabMenuOpen;
+      const menu = document.getElementById('fab-menu');
+      const button = document.getElementById('fab-button');
+      
+      if (fabMenuOpen) {
+        menu.classList.add('open');
+        button.classList.add('open');
+      } else {
+        menu.classList.remove('open');
+        button.classList.remove('open');
+      }
+    }
+    
+    // === Media Library ===
+    function toggleMediaLibrary() {
+      mediaLibraryOpen = !mediaLibraryOpen;
+      const sidebar = document.getElementById('media-sidebar');
+      const preview = document.querySelector('.preview-panel');
+      
+      if (mediaLibraryOpen) {
+        sidebar.classList.remove('hidden');
+        preview.classList.add('hidden');
+      } else {
+        sidebar.classList.add('hidden');
+        preview.classList.remove('hidden');
+      }
+    }
+    
+    function searchMedia(query) {
+      showToast('info', 'Searching', `Looking for "${query}"...`);
+    }
+    
+    function filterMedia(type, btn) {
+      document.querySelectorAll('.media-filter').forEach(f => f.classList.remove('active'));
+      btn.classList.add('active');
+    }
+    
+    function selectMedia(item) {
+      document.querySelectorAll('.media-item').forEach(m => m.classList.remove('selected'));
+      item.classList.add('selected');
+      showToast('success', 'Media Selected', 'Click to insert into editor');
+    }
+    
+    function handleUploadMedia() {
+      showToast('info', 'Upload', 'Select a file to upload...');
+    }
+    
+    function handleAddMediaToOption(index) {
+      showToast('info', 'Add Media', `Adding media to option ${String.fromCharCode(65 + index)}...`);
+    }
+    
+    // === Preview ===
+    function selectPreviewOption(option) {
+      document.querySelectorAll('.preview-option').forEach(o => o.classList.remove('selected'));
+      option.classList.add('selected');
+    }
+    
+    function handlePreview() {
+      showToast('info', 'Preview', 'Opening full preview...');
+    }
+    
+    function handleModeChange(mode) {
+      showToast('info', 'Mode Changed', `Switched to ${mode} mode`);
+      markUnsaved();
+    }
+    
+    // === Keyboard Shortcuts ===
+    document.addEventListener('keydown', (e) => {
+      // Ctrl+K: Command palette
+      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+        e.preventDefault();
+        toggleCommandPalette();
+      }
+      
+      // Ctrl+S: Save
+      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+        e.preventDefault();
+        handleSave();
+      }
+      
+      // Escape: Close overlays
+      if (e.key === 'Escape') {
+        if (commandPaletteOpen) closeCommandPaletteForce();
+        if (fabMenuOpen) toggleFabMenu();
+      }
+    });
+    
+    // === Initialize ===
+    console.log('Course Editor V2 Mockup Loaded');
+    console.log('Keyboard shortcuts: Ctrl+K (Command Palette), Ctrl+S (Save), Escape (Close)');
+  </script>
+</body>
+</html>
+

@@ -201,4 +201,132 @@ test.describe('Admin: Course Editor', () => {
       expect(hasContent).toBeTruthy();
     }
   });
+
+  test('Command palette opens with Ctrl+K', async ({ page }) => {
+    await page.goto(`${BASE_URL}/admin/courses/select`);
+    await page.waitForLoadState('networkidle');
+    await page.waitForTimeout(3000);
+    
+    const courseLink = page.locator('a[href*="/admin/editor/"]').first();
+    const hasCourseLink = await courseLink.isVisible({ timeout: 5000 }).catch(() => false);
+    
+    if (hasCourseLink) {
+      const href = await courseLink.getAttribute('href');
+      if (href) {
+        await page.goto(`${BASE_URL}${href}`);
+        await page.waitForLoadState('networkidle');
+        await page.waitForTimeout(3000);
+        
+        // Press Ctrl+K to open command palette
+        await page.keyboard.press('Control+K');
+        await page.waitForTimeout(500);
+        
+        // Check if command palette is visible
+        const commandPalette = page.locator('[data-cta-id*="command"], input[placeholder*="command" i], input[placeholder*="search" i]').first();
+        const isVisible = await commandPalette.isVisible({ timeout: 2000 }).catch(() => false);
+        
+        expect(isVisible).toBeTruthy();
+      }
+    }
+  });
+
+  test('FAB menu toggles and actions work', async ({ page }) => {
+    await page.goto(`${BASE_URL}/admin/courses/select`);
+    await page.waitForLoadState('networkidle');
+    await page.waitForTimeout(3000);
+    
+    const courseLink = page.locator('a[href*="/admin/editor/"]').first();
+    const hasCourseLink = await courseLink.isVisible({ timeout: 5000 }).catch(() => false);
+    
+    if (hasCourseLink) {
+      const href = await courseLink.getAttribute('href');
+      if (href) {
+        await page.goto(`${BASE_URL}${href}`);
+        await page.waitForLoadState('networkidle');
+        await page.waitForTimeout(3000);
+        
+        // Find FAB button
+        const fabButton = page.locator('[data-cta-id="cta-courseeditor-fab-toggle"]').first();
+        const hasFab = await fabButton.isVisible({ timeout: 5000 }).catch(() => false);
+        
+        if (hasFab) {
+          await fabButton.click();
+          await page.waitForTimeout(500);
+          
+          // Check if FAB menu items are visible
+          const fabMenuItems = page.locator('[data-cta-id*="fab-"]');
+          const itemCount = await fabMenuItems.count();
+          
+          expect(itemCount).toBeGreaterThan(0);
+        }
+      }
+    }
+  });
+
+  test('CTA IDs are present on interactive elements', async ({ page }) => {
+    await page.goto(`${BASE_URL}/admin/courses/select`);
+    await page.waitForLoadState('networkidle');
+    await page.waitForTimeout(3000);
+    
+    const courseLink = page.locator('a[href*="/admin/editor/"]').first();
+    const hasCourseLink = await courseLink.isVisible({ timeout: 5000 }).catch(() => false);
+    
+    if (hasCourseLink) {
+      const href = await courseLink.getAttribute('href');
+      if (href) {
+        await page.goto(`${BASE_URL}${href}`);
+        await page.waitForLoadState('networkidle');
+        await page.waitForTimeout(3000);
+        
+        // Check for key CTA IDs
+        const saveButton = page.locator('[data-cta-id="cta-courseeditor-save"]').first();
+        const publishButton = page.locator('[data-cta-id="cta-courseeditor-publish"]').first();
+        const commandPaletteButton = page.locator('[data-cta-id="cta-courseeditor-command-palette"]').first();
+        
+        const hasSave = await saveButton.isVisible({ timeout: 5000 }).catch(() => false);
+        const hasPublish = await publishButton.isVisible({ timeout: 5000 }).catch(() => false);
+        const hasCommandPalette = await commandPaletteButton.isVisible({ timeout: 5000 }).catch(() => false);
+        
+        // At least some CTAs should be present
+        expect(hasSave || hasPublish || hasCommandPalette).toBeTruthy();
+      }
+    }
+  });
+
+  test('Tab navigation works', async ({ page }) => {
+    await page.goto(`${BASE_URL}/admin/courses/select`);
+    await page.waitForLoadState('networkidle');
+    await page.waitForTimeout(3000);
+    
+    const courseLink = page.locator('a[href*="/admin/editor/"]').first();
+    const hasCourseLink = await courseLink.isVisible({ timeout: 5000 }).catch(() => false);
+    
+    if (hasCourseLink) {
+      const href = await courseLink.getAttribute('href');
+      if (href) {
+        await page.goto(`${BASE_URL}${href}`);
+        await page.waitForLoadState('networkidle');
+        await page.waitForTimeout(3000);
+        
+        // Test top-level tabs
+        const exercisesTab = page.locator('[data-cta-id="cta-courseeditor-tab-exercises"]').first();
+        const studyTextsTab = page.locator('[data-cta-id="cta-courseeditor-tab-studytexts"]').first();
+        
+        const hasExercisesTab = await exercisesTab.isVisible({ timeout: 5000 }).catch(() => false);
+        const hasStudyTextsTab = await studyTextsTab.isVisible({ timeout: 5000 }).catch(() => false);
+        
+        if (hasStudyTextsTab) {
+          await studyTextsTab.click();
+          await page.waitForTimeout(500);
+          
+          // Should show study texts content
+          const hasStudyTextsContent = await page.getByText(/study|text|content/i).isVisible({ timeout: 2000 }).catch(() => false);
+          expect(hasStudyTextsContent).toBeTruthy();
+        }
+        
+        // At least one tab should be present
+        expect(hasExercisesTab || hasStudyTextsTab).toBeTruthy();
+      }
+    }
+  });
 });

@@ -249,6 +249,321 @@
       ]
     },
     {
+      "path": "/admin/editor/:courseId",
+      "name": "Course Editor V2",
+      "description": "Course Editor V2",
+      "states": [
+        {
+          "id": "default",
+          "file": "course-editor-v2.html",
+          "description": "Default state",
+          "required": true
+        }
+      ],
+      "requiredCTAs": [
+        {
+          "id": "cta-courseeditor-close",
+          "target": "navigate"
+        },
+        {
+          "id": "cta-courseeditor-discard",
+          "target": "action"
+        },
+        {
+          "id": "cta-courseeditor-save",
+          "target": "action"
+        },
+        {
+          "id": "cta-courseeditor-publish",
+          "target": "action"
+        },
+        {
+          "id": "cta-courseeditor-command-palette",
+          "target": "modal"
+        },
+        {
+          "id": "cta-courseeditor-tab-exercises",
+          "target": "tab"
+        },
+        {
+          "id": "cta-courseeditor-tab-studytexts",
+          "target": "tab"
+        },
+        {
+          "id": "cta-courseeditor-nav-collapse-all",
+          "target": "action"
+        },
+        {
+          "id": "cta-courseeditor-nav-group-toggle-0",
+          "target": "action"
+        },
+        {
+          "id": "cta-courseeditor-nav-group-toggle-1",
+          "target": "action"
+        },
+        {
+          "id": "cta-courseeditor-nav-item-select-0-0",
+          "target": "action"
+        },
+        {
+          "id": "cta-courseeditor-nav-item-select-0-1",
+          "target": "action"
+        },
+        {
+          "id": "cta-courseeditor-nav-item-select-0-2",
+          "target": "action"
+        },
+        {
+          "id": "cta-courseeditor-nav-item-select-0-3",
+          "target": "action"
+        },
+        {
+          "id": "cta-courseeditor-nav-item-select-0-4",
+          "target": "action"
+        },
+        {
+          "id": "cta-courseeditor-nav-item-select-0-5",
+          "target": "action"
+        },
+        {
+          "id": "cta-courseeditor-nav-item-select-1-0",
+          "target": "action"
+        },
+        {
+          "id": "cta-courseeditor-nav-item-select-1-1",
+          "target": "action"
+        },
+        {
+          "id": "cta-courseeditor-nav-add-group",
+          "target": "action"
+        },
+        {
+          "id": "cta-courseeditor-mode-select",
+          "target": "action"
+        },
+        {
+          "id": "cta-courseeditor-item-add-image-ai",
+          "target": "action"
+        },
+        {
+          "id": "cta-courseeditor-item-fix-missing-images",
+          "target": "action"
+        },
+        {
+          "id": "cta-courseeditor-editor-tab-stem",
+          "target": "tab"
+        },
+        {
+          "id": "cta-courseeditor-editor-tab-options",
+          "target": "tab"
+        },
+        {
+          "id": "cta-courseeditor-editor-tab-explanation",
+          "target": "tab"
+        },
+        {
+          "id": "cta-courseeditor-editor-tab-exercises",
+          "target": "tab"
+        },
+        {
+          "id": "cta-courseeditor-stem-preview",
+          "target": "action"
+        },
+        {
+          "id": "cta-courseeditor-stem-ai-rewrite",
+          "target": "action"
+        },
+        {
+          "id": "cta-courseeditor-stem-upload-media",
+          "target": "action"
+        },
+        {
+          "id": "cta-courseeditor-stem-media-library",
+          "target": "action"
+        },
+        {
+          "id": "cta-courseeditor-option-0-ai-rewrite",
+          "target": "action"
+        },
+        {
+          "id": "cta-courseeditor-option-0-add-media",
+          "target": "action"
+        },
+        {
+          "id": "cta-courseeditor-option-1-ai-rewrite",
+          "target": "action"
+        },
+        {
+          "id": "cta-courseeditor-option-1-add-media",
+          "target": "action"
+        },
+        {
+          "id": "cta-courseeditor-option-2-ai-rewrite",
+          "target": "action"
+        },
+        {
+          "id": "cta-courseeditor-option-2-add-media",
+          "target": "action"
+        },
+        {
+          "id": "cta-courseeditor-option-3-ai-rewrite",
+          "target": "action"
+        },
+        {
+          "id": "cta-courseeditor-option-3-add-media",
+          "target": "action"
+        },
+        {
+          "id": "cta-courseeditor-option-mark-correct-1",
+          "target": "action"
+        },
+        {
+          "id": "cta-courseeditor-option-mark-correct-2",
+          "target": "action"
+        },
+        {
+          "id": "cta-courseeditor-option-mark-correct-3",
+          "target": "action"
+        },
+        {
+          "id": "cta-courseeditor-option-add",
+          "target": "action"
+        },
+        {
+          "id": "cta-courseeditor-explanation-ai-rewrite",
+          "target": "action"
+        },
+        {
+          "id": "cta-courseeditor-exercises-generate",
+          "target": "action"
+        },
+        {
+          "id": "cta-courseeditor-preview-refresh",
+          "target": "action"
+        },
+        {
+          "id": "cta-courseeditor-preview-option-select-0",
+          "target": "action"
+        },
+        {
+          "id": "cta-courseeditor-preview-option-select-1",
+          "target": "action"
+        },
+        {
+          "id": "cta-courseeditor-preview-option-select-2",
+          "target": "action"
+        },
+        {
+          "id": "cta-courseeditor-preview-option-select-3",
+          "target": "action"
+        },
+        {
+          "id": "cta-courseeditor-media-toggle",
+          "target": "action"
+        },
+        {
+          "id": "cta-courseeditor-media-filter-all",
+          "target": "action"
+        },
+        {
+          "id": "cta-courseeditor-media-filter-images",
+          "target": "action"
+        },
+        {
+          "id": "cta-courseeditor-media-filter-audio",
+          "target": "action"
+        },
+        {
+          "id": "cta-courseeditor-media-filter-video",
+          "target": "action"
+        },
+        {
+          "id": "cta-courseeditor-media-select-0",
+          "target": "action"
+        },
+        {
+          "id": "cta-courseeditor-media-select-1",
+          "target": "action"
+        },
+        {
+          "id": "cta-courseeditor-media-select-2",
+          "target": "action"
+        },
+        {
+          "id": "cta-courseeditor-media-select-3",
+          "target": "action"
+        },
+        {
+          "id": "cta-courseeditor-media-select-4",
+          "target": "action"
+        },
+        {
+          "id": "cta-courseeditor-media-select-5",
+          "target": "action"
+        },
+        {
+          "id": "cta-courseeditor-command-save",
+          "target": "action"
+        },
+        {
+          "id": "cta-courseeditor-command-publish",
+          "target": "action"
+        },
+        {
+          "id": "cta-courseeditor-command-discard",
+          "target": "action"
+        },
+        {
+          "id": "cta-courseeditor-command-repair",
+          "target": "action"
+        },
+        {
+          "id": "cta-courseeditor-command-audit-variants",
+          "target": "action"
+        },
+        {
+          "id": "cta-courseeditor-command-generate-missing-variants",
+          "target": "action"
+        },
+        {
+          "id": "cta-courseeditor-command-copilot-variants",
+          "target": "action"
+        },
+        {
+          "id": "cta-courseeditor-command-copilot-enrich",
+          "target": "action"
+        },
+        {
+          "id": "cta-courseeditor-command-localize",
+          "target": "action"
+        },
+        {
+          "id": "cta-courseeditor-command-archive",
+          "target": "action"
+        },
+        {
+          "id": "cta-courseeditor-command-delete",
+          "target": "action"
+        },
+        {
+          "id": "cta-courseeditor-fab-toggle",
+          "target": "action"
+        },
+        {
+          "id": "cta-courseeditor-fab-ai-rewrite-stem",
+          "target": "action"
+        },
+        {
+          "id": "cta-courseeditor-fab-add-image-ai",
+          "target": "action"
+        },
+        {
+          "id": "cta-courseeditor-fab-generate-exercises",
+          "target": "action"
+        }
+      ]
+    },
+    {
       "path": "/admin/jobs",
       "name": "Jobs Dashboard",
       "description": "Jobs Dashboard",

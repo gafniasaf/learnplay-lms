@@ -32,7 +32,7 @@ const AuthPage = React.lazy(() => import("./pages/Auth"));
 // Admin pages
 const AdminConsole = React.lazy(() => import("./pages/Admin"));
 const AIPipeline = React.lazy(() => import("./pages/admin/AIPipelineV2"));
-const CourseEditor = React.lazy(() => import("./pages/admin/CourseEditor"));
+const CourseEditor = React.lazy(() => import("./pages/admin/CourseEditorV2"));
 const CourseVersionHistory = React.lazy(() => import("./pages/admin/CourseVersionHistory"));
 const JobsDashboard = React.lazy(() => import("./pages/admin/JobsDashboard"));
 const Logs = React.lazy(() => import("./pages/admin/Logs"));
