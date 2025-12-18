@@ -12,6 +12,7 @@ interface PreviewPanelV2Props {
   contentVersion?: string;
   courseId?: string;
   courseTitle?: string;
+  fullScreen?: boolean;
 }
 
 export const PreviewPanelV2: React.FC<PreviewPanelV2Props> = ({
@@ -21,12 +22,13 @@ export const PreviewPanelV2: React.FC<PreviewPanelV2Props> = ({
   contentVersion,
   courseId,
   courseTitle,
+  fullScreen = false,
 }) => {
   const [selectedOption, setSelectedOption] = useState<number | null>(null);
 
   if (!item) {
     return (
-      <aside className="w-[400px] bg-white border-l border-gray-200 flex flex-col flex-shrink-0">
+      <aside className={fullScreen ? "w-full bg-white flex flex-col flex-shrink-0" : "w-[800px] bg-white border-l border-gray-200 flex flex-col flex-shrink-0"}>
         <div className="px-4 py-4 border-b border-gray-200">
           <span className="font-semibold text-sm">📱 Live Preview</span>
         </div>
@@ -59,7 +61,7 @@ export const PreviewPanelV2: React.FC<PreviewPanelV2Props> = ({
   };
 
   return (
-    <aside className="w-[800px] bg-white border-l border-gray-200 flex flex-col flex-shrink-0">
+    <aside className={fullScreen ? "w-full bg-white flex flex-col flex-shrink-0" : "w-[800px] bg-white border-l border-gray-200 flex flex-col flex-shrink-0"}>
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-4 border-b border-gray-200">
         <span className="font-semibold text-sm">📱 Live Preview</span>

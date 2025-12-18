@@ -43,7 +43,7 @@ import { useCoursePublishing } from './editor/hooks/useCoursePublishing';
 import { useCourseVariants } from './editor/hooks/useCourseVariants';
 import { useCourseCoPilot } from './editor/hooks/useCourseCoPilot';
 import { isDevAgentMode } from '@/lib/api/common';
-import { X, Save, Rocket, RotateCcw } from 'lucide-react';
+import { X, Save, Rocket, RotateCcw, Eye, Edit } from 'lucide-react';
 
 // Import handlers from CourseEditor - we'll copy the essential logic
 // For now, this is a structured skeleton that uses the new UI components
@@ -85,6 +85,7 @@ const CourseEditorV2 = () => {
   const [studyTextAiImageLoading, setStudyTextAiImageLoading] = useState(false);
   const studyTextEditorDraftRef = useRef<HTMLTextAreaElement | null>(null);
   const pendingStudyTextSelectionRef = useRef<{ start: number; end: number } | null>(null);
+  const [viewMode, setViewMode] = useState<'editor' | 'preview'>('editor');
 
   const isAdmin =
     devAgent ||
@@ -1195,6 +1196,29 @@ const CourseEditorV2 = () => {
         </div>
 
         <div className="flex items-center gap-2">
+          {/* View Mode Toggle */}
+          <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1 mr-2">
+            <Button
+              variant={viewMode === 'editor' ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => setViewMode('editor')}
+              className={viewMode === 'editor' ? 'bg-white shadow-sm' : ''}
+              data-cta-id="cta-courseeditor-view-editor"
+            >
+              <Edit className="h-4 w-4 mr-1" />
+              Editor
+            </Button>
+            <Button
+              variant={viewMode === 'preview' ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => setViewMode('preview')}
+              className={viewMode === 'preview' ? 'bg-white shadow-sm' : ''}
+              data-cta-id="cta-courseeditor-view-preview"
+            >
+              <Eye className="h-4 w-4 mr-1" />
+              Preview
+            </Button>
+          </div>
           <Button variant="ghost" onClick={handleClose} data-cta-id="cta-courseeditor-close" data-action="navigate">
             <X className="h-4 w-4 mr-1" />
             Close
@@ -1259,21 +1283,23 @@ const CourseEditorV2 = () => {
       <div className="flex-1 flex overflow-hidden">
         {topLevelTab === 'exercises' && (
           <>
-            {/* Navigator Sidebar */}
-            <NavigatorV2
-              course={course}
-              activeGroupIndex={activeGroupIndex}
-              activeItemIndex={activeItemIndex}
-              onItemSelect={handleItemSelect}
-              unsavedItems={unsavedItems}
-              onAddGroup={handleAddGroup}
-              onCollapseAll={() => {
-                // NavigatorV2 handles collapse internally
-              }}
-            />
+            {viewMode === 'editor' ? (
+              <>
+                {/* Navigator Sidebar */}
+                <NavigatorV2
+                  course={course}
+                  activeGroupIndex={activeGroupIndex}
+                  activeItemIndex={activeItemIndex}
+                  onItemSelect={handleItemSelect}
+                  unsavedItems={unsavedItems}
+                  onAddGroup={handleAddGroup}
+                  onCollapseAll={() => {
+                    // NavigatorV2 handles collapse internally
+                  }}
+                />
 
-            {/* Editor Area */}
-            <main className="flex-1 flex flex-col overflow-hidden bg-gray-50">
+                {/* Editor Area */}
+                <main className="flex-1 flex flex-col overflow-hidden bg-gray-50">
               <div className="flex-1 overflow-y-auto p-6">
                 <div className="max-w-[900px] mx-auto">
                   {currentItem ? (
@@ -1459,21 +1485,52 @@ const CourseEditorV2 = () => {
                   )}
                 </div>
               </div>
-            </main>
+                </main>
 
-            {/* Preview Panel */}
-            <PreviewPanelV2
-              item={currentItem}
-              contentVersion={(course as any)?.contentVersion}
-              courseId={courseId}
-              courseTitle={course?.title}
-              onRefresh={() => {
-                toast.info('Preview refreshed');
-              }}
-              onOptionSelect={(index) => {
-                toast.info(`Option ${index} selected`);
-              }}
-            />
+                {/* Preview Panel */}
+                <PreviewPanelV2
+                  item={currentItem}
+                  contentVersion={(course as any)?.contentVersion}
+                  courseId={courseId}
+                  courseTitle={course?.title}
+                  onRefresh={() => {
+                    toast.info('Preview refreshed');
+                  }}
+                  onOptionSelect={(index) => {
+                    toast.info(`Option ${index} selected`);
+                  }}
+                />
+              </>
+            ) : (
+              /* Preview Mode - Full Screen */
+              <>
+                {/* Show navigator in preview mode for item selection */}
+                <NavigatorV2
+                  course={course}
+                  activeGroupIndex={activeGroupIndex}
+                  activeItemIndex={activeItemIndex}
+                  onItemSelect={handleItemSelect}
+                  unsavedItems={unsavedItems}
+                  onAddGroup={handleAddGroup}
+                  onCollapseAll={() => {
+                    // NavigatorV2 handles collapse internally
+                  }}
+                />
+                <PreviewPanelV2
+                  item={currentItem}
+                  contentVersion={(course as any)?.contentVersion}
+                  courseId={courseId}
+                  courseTitle={course?.title}
+                  fullScreen={true}
+                  onRefresh={() => {
+                    toast.info('Preview refreshed');
+                  }}
+                  onOptionSelect={(index) => {
+                    toast.info(`Option ${index} selected`);
+                  }}
+                />
+              </>
+            )}
 
             {/* Media Library Sidebar */}
             {showMediaLibrary && (
