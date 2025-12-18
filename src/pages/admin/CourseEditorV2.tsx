@@ -1464,6 +1464,7 @@ const CourseEditorV2 = () => {
             {/* Preview Panel */}
             <PreviewPanelV2
               item={currentItem}
+              contentVersion={(course as any)?.contentVersion}
               onRefresh={() => {
                 toast.info('Preview refreshed');
               }}
