@@ -59,7 +59,7 @@ export const PreviewPanelV2: React.FC<PreviewPanelV2Props> = ({
   };
 
   return (
-    <aside className="w-[400px] bg-white border-l border-gray-200 flex flex-col flex-shrink-0">
+    <aside className="w-[800px] bg-white border-l border-gray-200 flex flex-col flex-shrink-0">
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-4 border-b border-gray-200">
         <span className="font-semibold text-sm">📱 Live Preview</span>
@@ -76,38 +76,43 @@ export const PreviewPanelV2: React.FC<PreviewPanelV2Props> = ({
         )}
       </div>
 
-      {/* Content - Use actual game components for WYSIWYG */}
-      <div className="flex-1 overflow-y-auto p-4 bg-gray-50">
-        <div className="max-w-full">
-          {/* Question Stem - using actual Stem component */}
-          <div className="mb-6">
-            <Stem
-              text={stemText}
-              stimulus={stimulus}
-              stemMedia={stemMedia}
-              courseTitle={courseTitle}
-              itemId={itemId}
-              cacheKey={contentVersion}
-              courseId={courseId}
-            />
-          </div>
-
-          {/* Options - using actual OptionGrid component */}
-          {item.mode === 'options' && options.length > 0 && (
-            <div className="mt-6">
-              <OptionGrid
-                options={options}
-                onSelect={handleOptionSelect}
-                disabled={false}
-                selectedIndex={selectedOption ?? undefined}
-                itemId={itemId}
-                optionMedia={optionMedia}
+      {/* Content - Match Play.tsx structure exactly */}
+      <div className="flex-1 overflow-y-auto bg-gradient-to-br from-primary/5 via-background to-accent/5">
+        {/* Match the exact container structure from Play.tsx: w-full max-w-5xl mx-auto */}
+        {/* Scale down proportionally: max-w-5xl is 1024px, so scale to fit 800px panel */}
+        <div className="w-full mx-auto h-full flex flex-col overflow-hidden p-4" style={{ maxWidth: '100%' }}>
+          {/* Match the exact content wrapper from Play.tsx: flex flex-col items-center justify-start min-h-full gap-6 py-2 */}
+          <div className="flex flex-col items-center justify-start min-h-full gap-6 py-2 w-full">
+            {/* Question Stem - using actual Stem component */}
+            <div className="w-full">
+              <Stem
+                text={stemText}
+                stimulus={stimulus}
+                stemMedia={stemMedia}
                 courseTitle={courseTitle}
+                itemId={itemId}
                 cacheKey={contentVersion}
                 courseId={courseId}
               />
             </div>
-          )}
+
+            {/* Options - using actual OptionGrid component */}
+            {item.mode === 'options' && options.length > 0 && (
+              <div className="w-full">
+                <OptionGrid
+                  options={options}
+                  onSelect={handleOptionSelect}
+                  disabled={false}
+                  selectedIndex={selectedOption ?? undefined}
+                  itemId={itemId}
+                  optionMedia={optionMedia}
+                  courseTitle={courseTitle}
+                  cacheKey={contentVersion}
+                  courseId={courseId}
+                />
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </aside>
