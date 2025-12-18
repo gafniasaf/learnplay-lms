@@ -1283,22 +1283,22 @@ const CourseEditorV2 = () => {
       <div className="flex-1 flex overflow-hidden">
         {topLevelTab === 'exercises' && (
           <>
+            {/* Navigator Sidebar - Always visible */}
+            <NavigatorV2
+              course={course}
+              activeGroupIndex={activeGroupIndex}
+              activeItemIndex={activeItemIndex}
+              onItemSelect={handleItemSelect}
+              unsavedItems={unsavedItems}
+              onAddGroup={handleAddGroup}
+              onCollapseAll={() => {
+                // NavigatorV2 handles collapse internally
+              }}
+            />
+
             {viewMode === 'editor' ? (
               <>
-                {/* Navigator Sidebar */}
-                <NavigatorV2
-                  course={course}
-                  activeGroupIndex={activeGroupIndex}
-                  activeItemIndex={activeItemIndex}
-                  onItemSelect={handleItemSelect}
-                  unsavedItems={unsavedItems}
-                  onAddGroup={handleAddGroup}
-                  onCollapseAll={() => {
-                    // NavigatorV2 handles collapse internally
-                  }}
-                />
-
-                {/* Editor Area */}
+                {/* Editor Area - Editor Mode Only */}
                 <main className="flex-1 flex flex-col overflow-hidden bg-gray-50">
               <div className="flex-1 overflow-y-auto p-6">
                 <div className="max-w-[900px] mx-auto">
@@ -1486,50 +1486,22 @@ const CourseEditorV2 = () => {
                 </div>
               </div>
                 </main>
-
-                {/* Preview Panel */}
-                <PreviewPanelV2
-                  item={currentItem}
-                  contentVersion={(course as any)?.contentVersion}
-                  courseId={courseId}
-                  courseTitle={course?.title}
-                  onRefresh={() => {
-                    toast.info('Preview refreshed');
-                  }}
-                  onOptionSelect={(index) => {
-                    toast.info(`Option ${index} selected`);
-                  }}
-                />
               </>
             ) : (
-              /* Preview Mode - Full Screen */
-              <>
-                {/* Show navigator in preview mode for item selection */}
-                <NavigatorV2
-                  course={course}
-                  activeGroupIndex={activeGroupIndex}
-                  activeItemIndex={activeItemIndex}
-                  onItemSelect={handleItemSelect}
-                  unsavedItems={unsavedItems}
-                  onAddGroup={handleAddGroup}
-                  onCollapseAll={() => {
-                    // NavigatorV2 handles collapse internally
-                  }}
-                />
-                <PreviewPanelV2
-                  item={currentItem}
-                  contentVersion={(course as any)?.contentVersion}
-                  courseId={courseId}
-                  courseTitle={course?.title}
-                  fullScreen={true}
-                  onRefresh={() => {
-                    toast.info('Preview refreshed');
-                  }}
-                  onOptionSelect={(index) => {
-                    toast.info(`Option ${index} selected`);
-                  }}
-                />
-              </>
+              /* Preview Mode - WYSIWYG Preview Only */
+              <PreviewPanelV2
+                item={currentItem}
+                contentVersion={(course as any)?.contentVersion}
+                courseId={courseId}
+                courseTitle={course?.title}
+                fullScreen={true}
+                onRefresh={() => {
+                  toast.info('Preview refreshed');
+                }}
+                onOptionSelect={(index) => {
+                  toast.info(`Option ${index} selected`);
+                }}
+              />
             )}
 
             {/* Media Library Sidebar */}
