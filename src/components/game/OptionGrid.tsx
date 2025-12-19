@@ -315,7 +315,7 @@ export const OptionGrid = ({
               // Full-bleed with 16:9 aspect ratio
               if (media?.type === 'image' && mediaLayout === 'full') {
                 return (
-                  <AspectRatio ratio={16/9} className="relative overflow-hidden">
+                  <>
                     <img
                       src={getOptimizedImageUrl(resolveUrl(media.url), { width: getOptionImageTargetWidth(viewport), quality: imageSizing.quality })}
                       alt={media.alt || ''}
@@ -341,7 +341,7 @@ export const OptionGrid = ({
                         {isCorrect ? '✓' : '✗'}
                       </Badge>
                     )}
-                  </AspectRatio>
+                  </>
                 );
               }
               
