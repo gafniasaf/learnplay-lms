@@ -208,11 +208,21 @@ export const OptionsTab = ({ item, onChange, onAIRewrite, onOpenAIChatOption: _o
             } finally {
               setAiLoading(false);
             }
-          }}>
+          }}
+          data-cta-id="cta-courseeditor-option-ai-improve-all"
+          data-action="action"
+          >
             <Sparkles className="h-3.5 w-3.5 mr-1.5 text-purple-600" />
             <span className="text-purple-700">{aiLoading ? 'Improving...' : 'AI Improve All'}</span>
           </Button>
-          <Button variant="outline" size="sm" onClick={handleAddOption} className="shadow-sm">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={handleAddOption} 
+            className="shadow-sm"
+            data-cta-id="cta-courseeditor-option-add"
+            data-action="action"
+          >
             <Plus className="h-3.5 w-3.5 mr-1.5" />
             Add Option
           </Button>
@@ -278,10 +288,23 @@ export const OptionsTab = ({ item, onChange, onAIRewrite, onOpenAIChatOption: _o
                 )}
 
                 <div className="flex items-center gap-2 mt-2 flex-wrap">
-                  <Button variant="outline" size="sm" onClick={() => togglePreview(index)}>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => togglePreview(index)}
+                    data-cta-id={`cta-courseeditor-option-${index}-preview-toggle`}
+                    data-action="action"
+                  >
                     {showPreview[index] ? 'Edit HTML' : 'Preview'}
                   </Button>
-                  <Button variant="outline" size="sm" onClick={() => onAIRewrite?.(index)} className="bg-gradient-to-r from-purple-50 to-pink-50 border-purple-200 hover:from-purple-100 hover:to-pink-100">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => onAIRewrite?.(index)} 
+                    className="bg-gradient-to-r from-purple-50 to-pink-50 border-purple-200 hover:from-purple-100 hover:to-pink-100"
+                    data-cta-id={`cta-courseeditor-option-${index}-ai-rewrite`}
+                    data-action="action"
+                  >
                     <Sparkles className="h-3.5 w-3.5 mr-1.5 text-purple-600" />
                     AI Rewrite
                   </Button>
@@ -304,6 +327,8 @@ export const OptionsTab = ({ item, onChange, onAIRewrite, onOpenAIChatOption: _o
                       toast.success(`Media layout: ${next}`);
                     }}
                     title="Toggle media layout: thumbnail/full"
+                    data-cta-id={`cta-courseeditor-option-${index}-layout-toggle`}
+                    data-action="action"
                   >
                     Layout: <span className="ml-1 font-mono text-xs">{(item.optionMedia?.[index] && (item.optionMedia?.[index]?.type === 'image' || item.optionMedia?.[index]?.type === 'video') ? item.optionMedia?.[index]?.mediaLayout : undefined) ?? 'full'}</span>
                   </Button>
@@ -325,6 +350,8 @@ export const OptionsTab = ({ item, onChange, onAIRewrite, onOpenAIChatOption: _o
                       toast.success(`Fit mode: ${next}`);
                     }}
                     title="Toggle fit mode: cover/contain"
+                    data-cta-id={`cta-courseeditor-option-${index}-fit-toggle`}
+                    data-action="action"
                   >
                     Fit: <span className="ml-1 font-mono text-xs">{(item.optionMedia?.[index] && (item.optionMedia?.[index]?.type === 'image' || item.optionMedia?.[index]?.type === 'video') ? item.optionMedia?.[index]?.fitMode : undefined) || 'auto'}</span>
                   </Button>
@@ -368,6 +395,8 @@ export const OptionsTab = ({ item, onChange, onAIRewrite, onOpenAIChatOption: _o
                       }
                     }}
                     className="bg-gradient-to-r from-purple-50 to-pink-50 border-purple-200 hover:from-purple-100 hover:to-pink-100"
+                    data-cta-id={`cta-courseeditor-option-${index}-ai-image`}
+                    data-action="action"
                   >
                     <Sparkles className="h-3.5 w-3.5 mr-1.5 text-purple-600" />
                     AI Image
@@ -404,6 +433,8 @@ export const OptionsTab = ({ item, onChange, onAIRewrite, onOpenAIChatOption: _o
                         toast.error(msg);
                       }
                     }}
+                    data-cta-id={`cta-courseeditor-option-${index}-ai-alt`}
+                    data-action="action"
                   >
                     🤖 Alt
                   </Button>
