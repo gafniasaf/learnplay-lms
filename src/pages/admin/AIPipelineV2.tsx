@@ -80,6 +80,13 @@ export default function AIPipelineV2() {
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const devAgent = isDevAgentMode();
+  
+  // Detect preview environment for authentication messages
+  const isLovablePreview = typeof window !== 'undefined' && (
+    window.location.hostname.includes('lovable.app') || 
+    window.location.hostname.includes('lovableproject.com') ||
+    window.location.hostname.includes('lovable.dev')
+  );
 
   // Track when the user started watching the current job.
   // We use this (not job.created_at) to avoid false "pending for a while" warnings
@@ -224,9 +231,12 @@ export default function AIPipelineV2() {
 
     // Check authentication before attempting to create
     if (!devAgent && !user && !authLoading) {
-      setAuthError('Please log in to create courses');
+      const errorMessage = isLovablePreview
+        ? 'Authentication required. Please log in to use this feature in preview environments.'
+        : 'Please log in to create courses';
+      setAuthError(errorMessage);
       toast.error('Authentication required', {
-        description: 'Please log in to create courses',
+        description: errorMessage,
         action: {
           label: 'Log In',
           onClick: () => navigate('/auth'),
@@ -399,6 +409,11 @@ export default function AIPipelineV2() {
     return Number.isFinite(ageMs) && ageMs > 90_000;
   })();
 
+  // Determine authentication warning message based on environment
+  const authWarningMessage = isLovablePreview
+    ? 'Authentication required. Please log in to use this feature in preview environments.'
+    : 'Authentication required. Please log in to create courses.';
+
   return (
     <PageContainer className="max-w-4xl mx-auto py-8">
       {/* Header */}
@@ -439,7 +454,7 @@ export default function AIPipelineV2() {
             <Alert variant="destructive">
               <AlertCircle className="h-4 w-4" />
               <AlertDescription className="flex items-center justify-between">
-                <span>Please log in to create courses</span>
+                <span>{authWarningMessage}</span>
                 <Button
                   variant="outline"
                   size="sm"
