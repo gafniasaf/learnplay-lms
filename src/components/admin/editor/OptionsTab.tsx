@@ -243,15 +243,19 @@ export const OptionsTab = ({ item, onChange, onAIRewrite, onOpenAIChatOption: _o
                 group bg-white border-2 rounded-xl overflow-hidden transition-all duration-200
                 ${dragOverIndex === index ? 'border-blue-400 shadow-lg scale-[1.02]' : isCorrect ? 'border-green-400 shadow-md' : 'border-gray-200 hover:border-gray-300 hover:shadow-md'}
               `}
-              draggable
-              onDragStart={(e) => handleDragStart(e, index)}
               onDragOver={handleDragOver}
               onDragEnter={() => setDragOverIndex(index)}
               onDragLeave={() => setDragOverIndex(null)}
               onDrop={(e) => handleDrop(e, index)}
             >
               <div className="flex items-start gap-4 p-4">
-                <GripVertical className="h-5 w-5 text-gray-400 group-hover:text-gray-600 cursor-grab mt-3 transition-colors" />
+                <div
+                  draggable
+                  onDragStart={(e) => handleDragStart(e, index)}
+                  className="cursor-grab active:cursor-grabbing"
+                >
+                  <GripVertical className="h-5 w-5 text-gray-400 group-hover:text-gray-600 mt-3 transition-colors" />
+                </div>
                 
                 <div className={`
                   w-10 h-10 rounded-full flex items-center justify-center font-bold text-base flex-shrink-0 transition-all
