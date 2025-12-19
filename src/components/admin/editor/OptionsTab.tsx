@@ -28,6 +28,7 @@ export const OptionsTab = ({ item, onChange, onAIRewrite, onOpenAIChatOption: _o
   const isNumericMode = item?.mode === 'numeric';
   const [showPreview, setShowPreview] = useState<Record<number, boolean>>({});
   const [aiLoading, setAiLoading] = useState(false);
+  const [aiImageLoading, setAiImageLoading] = useState<Record<number, boolean>>({});
   const currentCorrectIndex: number = typeof item?.correctIndex === 'number' ? item.correctIndex : -1;
 
   // Debug log gated by logger; keep noise out of prod consoles
@@ -291,7 +292,10 @@ export const OptionsTab = ({ item, onChange, onAIRewrite, onOpenAIChatOption: _o
                   <Button 
                     variant="outline" 
                     size="sm" 
-                    onClick={() => togglePreview(index)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      togglePreview(index);
+                    }}
                     data-cta-id={`cta-courseeditor-option-${index}-preview-toggle`}
                     data-action="action"
                   >
@@ -300,7 +304,10 @@ export const OptionsTab = ({ item, onChange, onAIRewrite, onOpenAIChatOption: _o
                   <Button 
                     variant="outline" 
                     size="sm" 
-                    onClick={() => onAIRewrite?.(index)} 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onAIRewrite?.(index);
+                    }} 
                     className="bg-gradient-to-r from-purple-50 to-pink-50 border-purple-200 hover:from-purple-100 hover:to-pink-100"
                     data-cta-id={`cta-courseeditor-option-${index}-ai-rewrite`}
                     data-action="action"
@@ -313,7 +320,8 @@ export const OptionsTab = ({ item, onChange, onAIRewrite, onOpenAIChatOption: _o
                     variant="outline"
                     size="sm"
                     role="button"
-                    onClick={() => {
+                    onClick={(e) => {
+                      e.stopPropagation();
                       const existingOptionMedia = ((item as any).optionMedia || []) as OptionMedia[];
                       const m = existingOptionMedia[index];
                       // If missing, create a default image media to satisfy editor flow
@@ -337,7 +345,8 @@ export const OptionsTab = ({ item, onChange, onAIRewrite, onOpenAIChatOption: _o
                     variant="outline"
                     size="sm"
                     role="button"
-                    onClick={() => {
+                    onClick={(e) => {
+                      e.stopPropagation();
                       const existingOptionMedia = (item.optionMedia || []) as OptionMedia[];
                       const m = existingOptionMedia[index];
                       // If missing, create a default image media to satisfy editor flow
@@ -359,12 +368,15 @@ export const OptionsTab = ({ item, onChange, onAIRewrite, onOpenAIChatOption: _o
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={async () => {
+                    disabled={aiImageLoading[index]}
+                    onClick={async (e) => {
+                      e.stopPropagation(); // Prevent drag handlers from interfering
                       if (!courseId) {
                         toast.error('Missing courseId');
                         return;
                       }
                       try {
+                        setAiImageLoading(prev => ({ ...prev, [index]: true }));
                         toast.info(`Generating image for option ${String.fromCharCode(65+index)}…`);
                         const res = await generateOptionImagePrompted({
                           course,
@@ -392,6 +404,8 @@ export const OptionsTab = ({ item, onChange, onAIRewrite, onOpenAIChatOption: _o
                         console.error(e);
                         const msg = e instanceof Error ? e.message : 'AI image generation failed';
                         toast.error(msg);
+                      } finally {
+                        setAiImageLoading(prev => ({ ...prev, [index]: false }));
                       }
                     }}
                     className="bg-gradient-to-r from-purple-50 to-pink-50 border-purple-200 hover:from-purple-100 hover:to-pink-100"
@@ -399,13 +413,14 @@ export const OptionsTab = ({ item, onChange, onAIRewrite, onOpenAIChatOption: _o
                     data-action="action"
                   >
                     <Sparkles className="h-3.5 w-3.5 mr-1.5 text-purple-600" />
-                    AI Image
+                    {aiImageLoading[index] ? 'Generating…' : 'AI Image'}
                   </Button>
                   {/* AI Alt for option image */}
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={async () => {
+                    onClick={async (e) => {
+                      e.stopPropagation();
                       try {
                         const optMedia = item.optionMedia?.[index];
                         if (!optMedia || optMedia?.type !== 'image') {
