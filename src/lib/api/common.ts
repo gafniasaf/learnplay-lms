@@ -70,6 +70,17 @@ export function isDevAgentMode(): boolean {
   // Runtime config can enable the mode (e.g. Lovable), but credentials must still come from env.
   if (getRuntimeConfigSync()?.devAgent?.enabled === true) return true;
 
+  // Localhost/dev environment: enable dev agent mode automatically for local development
+  // (unless FORCE_LIVE is set, which forces product-like behavior for testing)
+  if (!FORCE_LIVE && typeof window !== "undefined") {
+    const h = window.location.hostname || "";
+    const isLocalhost = h === "localhost" || h === "127.0.0.1" || h === "[::1]" || h.startsWith("192.168.") || h.startsWith("10.") || h.startsWith("172.16.");
+    if (isLocalhost) {
+      // In localhost, allow dev agent mode (user can still disable via storage if needed)
+      return true;
+    }
+  }
+
   // Lovable safety net:
   // Some preview hosts may provide agentToken/orgId via URL params which we persist into storage.
   // In that case, treat dev-agent mode as enabled so UI gates (e.g. AI Pipeline) don't incorrectly
