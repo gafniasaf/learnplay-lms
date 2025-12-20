@@ -1,4 +1,4 @@
-import { isLiveMode } from "../env";
+import { isDevEnabled, isLiveMode } from "../env";
 import { getRuntimeConfigSync } from "@/lib/runtimeConfig";
 
 // IgniteZero: NO hardcoded fallbacks - environment variables are REQUIRED
@@ -90,6 +90,10 @@ export function isDevAgentMode(): boolean {
     const isLovable =
       h.includes("lovable.app") || h.includes("lovableproject.com") || h.includes("lovable.dev");
     if (isLovable) {
+      // If Dev Tools are enabled, allow dev-agent mode so the setup gate can prompt for credentials.
+      // (Still fails loudly at call-time if token/org id are missing.)
+      if (!FORCE_LIVE && isDevEnabled()) return true;
+
       const token = getStorageValue("iz_dev_agent_token");
       const orgId = getStorageValue("iz_dev_org_id");
       if (token && orgId) return true;

@@ -232,6 +232,7 @@ const DevAgentSetupGate = ({ children }: { children: React.ReactNode }) => {
 
             <div className="flex flex-col md:flex-row gap-2 md:items-center md:justify-between pt-2">
               <button
+                data-cta-id="cta-dev-agent-disable"
                 className="rounded-md border px-3 py-2 text-sm"
                 onClick={() => {
                   try {
@@ -247,12 +248,14 @@ const DevAgentSetupGate = ({ children }: { children: React.ReactNode }) => {
 
               <div className="flex gap-2">
                 <button
+                  data-cta-id="cta-dev-agent-refresh"
                   className="rounded-md border px-3 py-2 text-sm"
                   onClick={() => window.location.reload()}
                 >
                   Refresh
                 </button>
                 <button
+                  data-cta-id="cta-dev-agent-save-reload"
                   className="rounded-md bg-primary text-primary-foreground px-3 py-2 text-sm"
                   onClick={() => {
                     try {
@@ -286,7 +289,6 @@ const DevAgentSetupGate = ({ children }: { children: React.ReactNode }) => {
           </div>
         </div>
       </div>
-      {children}
     </div>
   );
 };
