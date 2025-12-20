@@ -106,7 +106,7 @@ async function bootstrap() {
           <p style="color: #94a3b8;">
             This can happen after a preview redeploy. If a reload doesn't fix it, the preview build may be broken.
           </p>
-          <button onclick="window.location.reload()" style="margin-top: 1rem; padding: 0.5rem 1rem; background: #3b82f6; color: white; border: none; border-radius: 0.25rem; cursor: pointer;">Reload Page</button>
+          <button data-cta-id="cta-boot-reload" onclick="window.location.reload()" style="margin-top: 1rem; padding: 0.5rem 1rem; background: #3b82f6; color: white; border: none; border-radius: 0.25rem; cursor: pointer;">Reload Page</button>
         </div>
       `;
       throw error;

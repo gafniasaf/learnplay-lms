@@ -9,6 +9,7 @@ import { useSentryUser } from "./hooks/useSentryUser";
 import { DawnDataProvider } from "./contexts/DawnDataContext";
 import { Layout } from "./components/layout/Layout";
 import { isDevAgentMode } from "@/lib/api/common";
+import { onDevChange } from "@/lib/env";
 import AdminCourseSelectorPage from "./pages/admin/CourseSelector";
 
 const Auth = lazy(() => import("./pages/Auth"));
@@ -84,7 +85,16 @@ function isLovableHost(): boolean {
 
 const DevAgentSetupGate = ({ children }: { children: React.ReactNode }) => {
   const lovable = useMemo(() => isLovableHost(), []);
-  const enabled = useMemo(() => lovable && isDevAgentMode(), [lovable]);
+  // The DEV toggle lives deep in the UI (HamburgerMenu). Since state updates in descendants
+  // don't re-render ancestors, we subscribe to dev-mode changes and bump a local counter to
+  // recompute dev-agent gating immediately.
+  const [gateVersion, setGateVersion] = useState(0);
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    return onDevChange(() => setGateVersion((v) => v + 1));
+  }, []);
+
+  const enabled = lovable && isDevAgentMode();
   const [agentToken, setAgentToken] = useState("");
   const [orgId, setOrgId] = useState("");
   const [userId, setUserId] = useState("");
@@ -164,6 +174,10 @@ const DevAgentSetupGate = ({ children }: { children: React.ReactNode }) => {
       const newQs = params.toString();
       const newUrl = `${window.location.pathname}${newQs ? `?${newQs}` : ""}${window.location.hash}`;
       window.history.replaceState({}, "", newUrl);
+
+      // Force a re-render so missing-credential checks can see the newly cached values
+      // (important for iframe environments where storage is flaky).
+      setGateVersion((v) => v + 1);
     } catch {
       // ignore
     }
@@ -171,16 +185,48 @@ const DevAgentSetupGate = ({ children }: { children: React.ReactNode }) => {
 
   const missing = useMemo(() => {
     if (!enabled || typeof window === "undefined") return false;
-    const get = (k: string) => {
+
+    const get = (k: string): string | null => {
+      // In-memory cache (for iframe environments where storage is blocked)
       try {
-        return window.sessionStorage.getItem(k) || window.localStorage.getItem(k);
+        const mem = (globalThis as any).__izDevAgent as Record<string, unknown> | undefined;
+        const v = mem?.[k];
+        if (typeof v === "string" && v.trim()) return v.trim();
       } catch {
-        return null;
+        // ignore
       }
+
+      try {
+        const v = window.sessionStorage.getItem(k) || window.localStorage.getItem(k);
+        if (v && v.trim()) return v.trim();
+      } catch {
+        // ignore
+      }
+
+      // Final fallback: allow URL params (some previews block storage entirely).
+      try {
+        const params = new URLSearchParams(window.location.search);
+        if (k === "iz_dev_agent_token") {
+          const token = params.get("iz_dev_agent_token") || params.get("devAgentToken") || params.get("agentToken");
+          if (token?.trim()) return token.trim();
+        }
+        if (k === "iz_dev_org_id") {
+          const orgId = params.get("iz_dev_org_id") || params.get("devOrgId") || params.get("orgId");
+          if (orgId?.trim()) return orgId.trim();
+        }
+        if (k === "iz_dev_user_id") {
+          const userId = params.get("iz_dev_user_id") || params.get("devUserId") || params.get("userId");
+          if (userId?.trim()) return userId.trim();
+        }
+      } catch {
+        // ignore
+      }
+
+      return null;
     };
     // user id is optional (auto-generated in dev-agent mode)
     return !get("iz_dev_agent_token") || !get("iz_dev_org_id");
-  }, [enabled]);
+  }, [enabled, gateVersion]);
 
   if (!enabled || !missing) return <>{children}</>;
 
