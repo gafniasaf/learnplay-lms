@@ -1,4 +1,4 @@
-import { isDevEnabled, isLiveMode } from "../env";
+import { isLiveMode } from "../env";
 import { getRuntimeConfigSync } from "@/lib/runtimeConfig";
 
 // IgniteZero: NO hardcoded fallbacks - environment variables are REQUIRED
@@ -82,21 +82,18 @@ export function isDevAgentMode(): boolean {
   }
 
   // Lovable safety net:
-  // Some preview hosts may provide agentToken/orgId via URL params which we persist into storage.
-  // In that case, treat dev-agent mode as enabled so UI gates (e.g. AI Pipeline) don't incorrectly
-  // force a Supabase login.
+  // In iframe/preview environments Supabase auth persistence can be unreliable and sessions can go stale.
+  // On Lovable preview hosts, default to dev-agent mode (unless explicitly disabled for this tab).
+  //
+  // IMPORTANT:
+  // - We still FAIL LOUDLY if dev-agent credentials are missing (no fallbacks).
+  // - Users can opt out via iz_dev_agent_disabled to test real Supabase auth.
   if (typeof window !== "undefined") {
     const h = window.location.hostname || "";
     const isLovable =
       h.includes("lovable.app") || h.includes("lovableproject.com") || h.includes("lovable.dev");
     if (isLovable) {
-      // If Dev Tools are enabled, allow dev-agent mode so the setup gate can prompt for credentials.
-      // (Still fails loudly at call-time if token/org id are missing.)
-      if (!FORCE_LIVE && isDevEnabled()) return true;
-
-      const token = getStorageValue("iz_dev_agent_token");
-      const orgId = getStorageValue("iz_dev_org_id");
-      if (token && orgId) return true;
+      if (!FORCE_LIVE) return true;
     }
   }
 
