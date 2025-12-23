@@ -37,6 +37,13 @@ const InputSchema = z.object({
   itemsPerGroup: z.number().int().min(1).max(100).default(12),
   levelsCount: z.number().int().min(1).max(10).optional(),
   mode: z.enum(["options", "numeric"]).default("options"),
+  // Special requests passed from the UI (AIPipelineV2) via enqueue-job.
+  // Also accepted directly for manual POSTs.
+  notes: z.string().max(5000).optional(),
+  // Optional explicit override (else derived from notes).
+  studyTextsCount: z.number().int().min(1).max(12).optional(),
+  // Optional explicit toggle (else derived from notes).
+  generateStudyTextImages: z.boolean().optional(),
 });
 
 function normalizeSubjectForSafety(subject: string, gradeBand: string): string {
@@ -61,6 +68,90 @@ async function fetchJobCourseId(supabase: any, jobId: string): Promise<string | 
   }
 
   return (data as any)?.course_id ?? null;
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function fetchJobNotes(supabase: any, jobId: string): Promise<string | null> {
+  const { data, error } = await supabase
+    .from("job_events")
+    .select("meta,step,seq")
+    .eq("job_id", jobId)
+    .order("seq", { ascending: false })
+    .limit(25);
+  if (error) {
+    throw new Error(`Failed to load job_events for ${jobId}: ${error.message}`);
+  }
+  const rows = Array.isArray(data) ? data : [];
+  for (const row of rows) {
+    const meta = (row as any)?.meta;
+    const notes = typeof meta?.notes === "string" ? String(meta.notes).trim() : "";
+    if (notes) return notes;
+  }
+  return null;
+}
+
+function parseStudyTextsCountFromNotes(notes: string): number | null {
+  const s = String(notes || "").trim();
+  if (!s) return null;
+  const words: Record<string, number> = {
+    one: 1,
+    two: 2,
+    three: 3,
+    four: 4,
+    five: 5,
+    six: 6,
+    seven: 7,
+    eight: 8,
+    nine: 9,
+    ten: 10,
+    eleven: 11,
+    twelve: 12,
+  };
+  const m = s.match(/\b(\d{1,2}|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve)\s+study\s*texts?\b/i);
+  if (!m?.[1]) return null;
+  const raw = m[1].toLowerCase();
+  const n = /^\d+$/.test(raw) ? parseInt(raw, 10) : words[raw];
+  if (!Number.isFinite(n)) return null;
+  return Math.max(1, Math.min(12, Math.floor(n)));
+}
+
+function wantsStudyTextImagesFromNotes(notes: string): boolean {
+  const s = String(notes || "").trim();
+  if (!s) return false;
+  if (/\bwithout\s+images?\b/i.test(s)) return false;
+  return /\b(with|include|add|generate|create)\s+(ai\s+)?images?\b/i.test(s);
+}
+
+function extractImageMarkers(text: string): string[] {
+  const s = String(text || "");
+  const out: string[] = [];
+  const re = /\[IMAGE:([^\]]+)\]/g;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(s)) !== null) {
+    const desc = String(m[1] || "").trim();
+    if (desc) out.push(desc);
+  }
+  return out;
+}
+
+function buildStudyTextImagePrompt(args: {
+  subject: string;
+  gradeBand: string;
+  courseTitle: string;
+  studyTextTitle: string;
+  description: string;
+}): string {
+  const { subject, gradeBand, courseTitle, studyTextTitle, description } = args;
+  return [
+    `Create an educational illustration for a study text section in a course.`,
+    `Course: "${courseTitle}"`,
+    `Subject: "${subject}"`,
+    `Grade band: "${gradeBand}"`,
+    `Section: "${studyTextTitle}"`,
+    `Visual description: "${description}"`,
+    ``,
+    `Style requirements: clean, high-contrast, classroom-appropriate. Use simple labels only if necessary. No watermarks. No dense text blocks.`,
+  ].join("\n");
 }
 
 type PlaceholderInput = {
@@ -470,6 +561,22 @@ Deno.serve(
     const persistence = createPersistenceHelpers(supabase);
     const expectedCourseId = jobId ? await fetchJobCourseId(supabase, jobId) : null;
 
+    const notesFromInput = typeof input.notes === "string" ? input.notes.trim() : "";
+    const notesFromJob = jobId && !notesFromInput ? await fetchJobNotes(supabase, jobId) : null;
+    const notes = notesFromInput || notesFromJob || undefined;
+    const derivedStudyTextsCount =
+      typeof input.studyTextsCount === "number"
+        ? input.studyTextsCount
+        : notes
+          ? parseStudyTextsCountFromNotes(notes) ?? undefined
+          : undefined;
+    const derivedGenerateStudyTextImages =
+      typeof input.generateStudyTextImages === "boolean"
+        ? input.generateStudyTextImages
+        : notes
+          ? wantsStudyTextImagesFromNotes(notes)
+          : false;
+
     const runGeneration = createGenerationRunner({
       selectStrategy: (strategyInput) =>
         selectGenerationStrategy(strategyInput, {
@@ -490,6 +597,77 @@ Deno.serve(
         }),
       persistCourse: (course, context) => persistence.persistCourse(course, context),
       persistPlaceholder: (course, context) => persistence.persistPlaceholder(course, context),
+      enqueueStudyTextImages: async ({ course, input, jobId, requestId }) => {
+        const courseId = typeof course?.id === "string" ? course.id : "";
+        if (!courseId) return { imagesPending: 0, imagesNote: "No course id; cannot enqueue images" };
+
+        const studyTexts = Array.isArray(course?.studyTexts) ? course.studyTexts : [];
+        if (studyTexts.length === 0) {
+          return { imagesPending: 0, imagesNote: "No study texts; nothing to image" };
+        }
+
+        const courseTitle = typeof course?.title === "string" && course.title.trim()
+          ? course.title.trim()
+          : (typeof input.title === "string" && input.title.trim() ? input.title.trim() : `${input.subject} Course`);
+
+        const max = Math.min(studyTexts.length, 12);
+        let queued = 0;
+        let existing = 0;
+        for (let i = 0; i < max; i++) {
+          const st = studyTexts[i];
+          const sectionId = typeof st?.id === "string" ? st.id : "";
+          if (!sectionId) continue;
+
+          const titleFor = typeof st?.title === "string" && st.title.trim()
+            ? st.title.trim()
+            : `Study Section ${i + 1}`;
+          const markers = extractImageMarkers(String(st?.content || ""));
+          const description = markers[0] || `${input.subject}: ${titleFor} diagram`;
+
+          const prompt = buildStudyTextImagePrompt({
+            subject: input.subject,
+            gradeBand: input.gradeBand,
+            courseTitle,
+            studyTextTitle: titleFor,
+            description,
+          });
+
+          const idempotencyKey = `studytext-image:${courseId}:${sectionId}`;
+          const insert = {
+            course_id: courseId,
+            item_id: -1,
+            media_type: "image",
+            prompt,
+            provider: "openai",
+            status: "pending",
+            idempotency_key: idempotencyKey,
+            metadata: {
+              provider_id: "openai-dalle3",
+              targetRef: { type: "study_text", courseId, sectionId },
+              markerIndex: markers.length ? 0 : null,
+              placeholder: markers.length ? markers[0] : null,
+              requestId,
+              jobId,
+            },
+          };
+
+          const { error } = await supabase.from("ai_media_jobs").insert(insert);
+          if (error) {
+            if ((error as any)?.code === "23505") {
+              existing++;
+              continue;
+            }
+            throw new Error(`Failed to enqueue study text image job (${sectionId}): ${error.message ?? String(error)}`);
+          }
+          queued++;
+        }
+
+        const total = queued + existing;
+        const note = total
+          ? `Study text images queued: ${queued}${existing ? ` (already queued: ${existing})` : ""}`
+          : "No study text images queued";
+        return { imagesPending: total, imagesNote: note };
+      },
       updateJobProgress: jobHelpers.updateJobProgress,
       markJobDone: jobHelpers.markJobDone,
       saveJobSummary: jobHelpers.saveJobSummary,
@@ -506,6 +684,9 @@ Deno.serve(
           gradeBand,
           format: 'practice',
           grade: input.grade ?? null,
+          notes,
+          studyTextsCount: derivedStudyTextsCount,
+          generateStudyTextImages: derivedGenerateStudyTextImages,
         } as any,
         requestId,
         jobId,

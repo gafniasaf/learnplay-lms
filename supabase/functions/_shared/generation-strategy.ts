@@ -8,6 +8,9 @@ export interface GenerationInput {
   itemsPerGroup: number;
   levelsCount?: number;
   mode: "options" | "numeric";
+  notes?: string;
+  studyTextsCount?: number;
+  generateStudyTextImages?: boolean;
 }
 
 export interface GenerationDependencies {
@@ -37,14 +40,19 @@ export async function selectGenerationStrategy(
   input: GenerationInput,
   deps: GenerationDependencies,
 ): Promise<GenerationSelection> {
-  const deterministicResult = await deps.generateCourseDeterministic({
-    format: input.format,
-    subject: input.subject,
-    grade: input.grade,
-    itemsPerGroup: input.itemsPerGroup,
-    levelsCount: input.levelsCount,
-    mode: input.mode,
-  });
+  // If the user provided special requests, prefer the LLM pipeline so it can honor them.
+  // Deterministic packs are curated but not parameterized by free-form notes.
+  const hasNotes = typeof input.notes === "string" && input.notes.trim().length > 0;
+  const deterministicResult: DeterministicResult = hasNotes
+    ? { success: false, errors: ["skipped_due_to_notes"] }
+    : await deps.generateCourseDeterministic({
+      format: input.format,
+      subject: input.subject,
+      grade: input.grade,
+      itemsPerGroup: input.itemsPerGroup,
+      levelsCount: input.levelsCount,
+      mode: input.mode,
+    });
 
   if (deterministicResult.success && deterministicResult.course && deterministicResult.knowledgePack) {
     return {
@@ -67,6 +75,8 @@ export async function selectGenerationStrategy(
     itemsPerGroup: input.itemsPerGroup,
     levelsCount: input.levelsCount,
     mode: input.mode,
+    studyTextsCount: input.studyTextsCount,
+    notes: input.notes,
   });
 
   return {

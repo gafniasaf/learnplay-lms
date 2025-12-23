@@ -154,6 +154,8 @@ serve(async (req: Request): Promise<Response> => {
         : typeof (payload as any).itemsPerGroup === "number"
           ? (payload as any).itemsPerGroup
           : null;
+    const notes =
+      typeof (payload as any).notes === "string" ? String((payload as any).notes).trim() : "";
 
     if (!courseId) {
       return json({ ok: false, error: { code: "invalid_request", message: "course_id is required in payload" }, httpStatus: 400, requestId }, 200);
@@ -215,6 +217,38 @@ serve(async (req: Request): Promise<Response> => {
 
     const jobId = (stableJobId ?? (inserted.data.id as string)) as string;
 
+    // Persist special requests (notes) alongside the job via job_events meta (no DB schema changes required).
+    // This enables generate-course to honor the user’s requests even when the worker only has jobId.
+    if (notes) {
+      try {
+        const { data: nextSeqData, error: nextSeqErr } = await adminSupabase.rpc("next_job_event_seq", { p_job_id: jobId });
+        if (nextSeqErr) {
+          throw new Error(`next_job_event_seq failed: ${nextSeqErr.message ?? String(nextSeqErr)}`);
+        }
+        const seq = typeof nextSeqData === "number" ? nextSeqData : 1;
+        const { error: evErr } = await adminSupabase.from("job_events").insert({
+          job_id: jobId,
+          seq,
+          step: "queued",
+          status: "info",
+          progress: 0,
+          message: "Special requests captured",
+          meta: { notes },
+        });
+        if (evErr) {
+          throw new Error(`job_events insert failed: ${evErr.message ?? String(evErr)}`);
+        }
+      } catch (e) {
+        // Fail loud: if the user provided notes but we couldn't persist them, generation would silently ignore them.
+        const msg = e instanceof Error ? e.message : String(e);
+        await adminSupabase
+          .from("ai_course_jobs")
+          .update({ status: "failed", error: `Failed to persist special requests: ${msg}`, completed_at: new Date().toISOString() })
+          .eq("id", jobId);
+        return json({ ok: false, jobId, status: "failed", error: `Failed to persist special requests: ${msg}`, requestId }, 200);
+      }
+    }
+
     // For short jobs, we can optionally run them inline.
     // Use runSync=true in body to force sync execution.
     const SHORT_RUNNING_JOBS = ["smoke-test", "marketing"];
@@ -241,6 +275,7 @@ serve(async (req: Request): Promise<Response> => {
             itemsPerGroup: itemsPerGroup ?? 12,
             levelsCount: typeof (payload as any).levels_count === "number" ? (payload as any).levels_count : undefined,
             mode,
+            notes: notes || undefined,
           }),
         });
         const genJson = await genResp.json().catch(() => null);

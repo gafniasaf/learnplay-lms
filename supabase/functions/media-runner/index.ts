@@ -47,9 +47,23 @@ async function pickNextPending(): Promise<MediaJobRow | null> {
   return job as MediaJobRow;
 }
 
-async function uploadToMediaLibrary(courseId: string, itemId: number, bytes: Uint8Array, contentType: string) {
-  const ext = contentType.includes("webp") ? "webp" : contentType.includes("png") ? "png" : "bin";
-  const path = `courses/${courseId}/items/${itemId}/${crypto.randomUUID()}.${ext}`;
+function fileExtForContentType(contentType: string): string {
+  const ct = String(contentType || "").toLowerCase();
+  if (ct.includes("webp")) return "webp";
+  if (ct.includes("png")) return "png";
+  if (ct.includes("jpeg") || ct.includes("jpg")) return "jpg";
+  return "bin";
+}
+
+async function uploadToMediaLibrary(args: {
+  courseId: string;
+  pathPrefix: string;
+  bytes: Uint8Array;
+  contentType: string;
+}) {
+  const ext = fileExtForContentType(args.contentType);
+  const safePrefix = String(args.pathPrefix || "").replace(/^\/+/, "").replace(/\/+$/, "");
+  const path = `courses/${args.courseId}/${safePrefix}/${crypto.randomUUID()}.${ext}`;
   const blob = new Blob([bytes.slice().buffer as ArrayBuffer], { type: contentType });
   const { error } = await adminSupabase.storage.from("media-library").upload(path, blob, {
     upsert: true,
@@ -80,6 +94,61 @@ async function attachImageToCourse(courseId: string, itemId: number, publicUrl: 
   };
 
   const updated = isEnvelope ? { ...json, content: { ...content, items } } : { ...content, items };
+  const blob = new Blob([JSON.stringify(updated, null, 2)], { type: "application/json" });
+  const { error: upErr } = await adminSupabase.storage.from("courses").upload(`${courseId}/course.json`, blob, {
+    upsert: true,
+    contentType: "application/json",
+    cacheControl: "public, max-age=60",
+  });
+  if (upErr) throw new Error(`Failed to upload updated course.json: ${upErr.message}`);
+}
+
+async function attachImageToStudyText(args: {
+  courseId: string;
+  sectionId: string;
+  publicUrl: string;
+  markerIndex?: number | null;
+}) {
+  const { courseId, sectionId, publicUrl } = args;
+  const markerIndex = Number.isFinite(args.markerIndex) ? Math.max(0, Math.floor(args.markerIndex as number)) : null;
+
+  const { data: file, error: dlErr } = await adminSupabase.storage.from("courses").download(`${courseId}/course.json`);
+  if (dlErr || !file) throw new Error(`Failed to download course.json: ${dlErr?.message ?? "missing"}`);
+
+  const text = await file.text();
+  const json = JSON.parse(text);
+  const isEnvelope = json && typeof json === "object" && "content" in json && "format" in json;
+  const content = isEnvelope ? (json.content ?? {}) : json;
+
+  const studyTexts = Array.isArray(content.studyTexts) ? content.studyTexts : [];
+  const idx = studyTexts.findIndex((st: any) => typeof st?.id === "string" && st.id === sectionId);
+  if (idx === -1) return;
+
+  const original = String(studyTexts[idx]?.content || "");
+  const re = /\[IMAGE:[^\]]+\]/g;
+  let seen = 0;
+  const replaced = original.replace(re, (match) => {
+    if (markerIndex === null) {
+      // Replace the first marker.
+      if (seen === 0) {
+        seen++;
+        return `[IMAGE:${publicUrl}]`;
+      }
+      seen++;
+      return match;
+    }
+    if (seen === markerIndex) {
+      seen++;
+      return `[IMAGE:${publicUrl}]`;
+    }
+    seen++;
+    return match;
+  });
+
+  const updatedContent = seen > 0 ? replaced : `${original}${original.trim().length ? "\n\n" : ""}[IMAGE:${publicUrl}]`;
+  studyTexts[idx] = { ...studyTexts[idx], content: updatedContent };
+
+  const updated = isEnvelope ? { ...json, content: { ...content, studyTexts } } : { ...content, studyTexts };
   const blob = new Blob([JSON.stringify(updated, null, 2)], { type: "application/json" });
   const { error: upErr } = await adminSupabase.storage.from("courses").upload(`${courseId}/course.json`, blob, {
     upsert: true,
@@ -130,6 +199,18 @@ serve(async (req: Request): Promise<Response> => {
         throw new Error(`Unsupported media_type: ${job.media_type}`);
       }
 
+      const rawTarget = (job.metadata as any)?.targetRef;
+      const targetType = rawTarget && typeof rawTarget === "object" ? (rawTarget as any).type : null;
+      const targetRef =
+        targetType === "study_text" && typeof (rawTarget as any).sectionId === "string" && String((rawTarget as any).sectionId).trim()
+          ? { type: "study_text" as const, courseId: job.course_id, sectionId: String((rawTarget as any).sectionId).trim() }
+          : targetType === "item_stimulus" && Number.isFinite((rawTarget as any).itemId)
+            ? { type: "item_stimulus" as const, courseId: job.course_id, itemId: Number((rawTarget as any).itemId) }
+            : { type: "item_stimulus" as const, courseId: job.course_id, itemId: job.item_id };
+      if (targetRef.type === "item_stimulus" && (!Number.isFinite(targetRef.itemId) || targetRef.itemId < 0)) {
+        throw new Error("Invalid itemId for item_stimulus targetRef");
+      }
+
       const metaProviderId = (job.metadata as any)?.provider_id;
       const providerId =
         typeof metaProviderId === "string" && metaProviderId.trim()
@@ -147,7 +228,7 @@ serve(async (req: Request): Promise<Response> => {
       const result = await provider.generate({
         mediaType: "image",
         prompt: job.prompt,
-        targetRef: { type: "item_stimulus", courseId: job.course_id, itemId: job.item_id },
+        targetRef: targetRef as any,
       });
 
       const imgResp = await fetch(result.url);
@@ -157,13 +238,33 @@ serve(async (req: Request): Promise<Response> => {
       const contentType = imgResp.headers.get("content-type") || "image/png";
       const bytes = new Uint8Array(await imgResp.arrayBuffer());
 
-      const uploaded = await uploadToMediaLibrary(job.course_id, job.item_id, bytes, contentType);
-      await attachImageToCourse(job.course_id, job.item_id, uploaded.publicUrl);
+      const uploaded = await uploadToMediaLibrary({
+        courseId: job.course_id,
+        pathPrefix:
+          targetRef.type === "study_text"
+            ? `study-texts/${(targetRef as any).sectionId}`
+            : `items/${job.item_id}`,
+        bytes,
+        contentType,
+      });
+
+      if (targetRef.type === "study_text") {
+        const markerIndexRaw = (job.metadata as any)?.markerIndex;
+        const markerIndex = typeof markerIndexRaw === "number" ? markerIndexRaw : null;
+        await attachImageToStudyText({
+          courseId: job.course_id,
+          sectionId: (targetRef as any).sectionId,
+          publicUrl: uploaded.publicUrl,
+          markerIndex,
+        });
+      } else {
+        await attachImageToCourse(job.course_id, job.item_id, uploaded.publicUrl);
+      }
 
       await markJob(job.id, {
         status: "done",
         result_url: uploaded.publicUrl,
-        metadata: result.metadata,
+        metadata: { ...(job.metadata ?? {}), ...(result.metadata ?? {}) },
         completed_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       });

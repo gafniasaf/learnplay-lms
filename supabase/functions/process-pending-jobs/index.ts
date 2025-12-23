@@ -45,6 +45,28 @@ serve(async (req: Request): Promise<Response> => {
   try {
     const url = new URL(req.url);
     const jobIdParam = url.searchParams.get("jobId") || undefined;
+    const mediaNRaw = url.searchParams.get("mediaN") || url.searchParams.get("media_n") || undefined;
+    const mediaN = (() => {
+      const n = mediaNRaw ? Number(mediaNRaw) : 3;
+      if (!Number.isFinite(n)) return 3;
+      return Math.min(Math.max(Math.floor(n), 0), 25);
+    })();
+
+    const runMediaRunner = async () => {
+      if (mediaN <= 0) return null;
+      try {
+        const mediaUrl = `${SUPABASE_URL}/functions/v1/media-runner?n=${encodeURIComponent(String(mediaN))}`;
+        const mediaResp = await fetch(mediaUrl, {
+          method: "POST",
+          headers: { "x-agent-token": expectedToken, "Content-Type": "application/json" },
+        });
+        const mediaJson = await mediaResp.json().catch(() => null);
+        return { ok: mediaResp.ok, status: mediaResp.status, body: mediaJson };
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
+        return { ok: false, status: 0, error: msg };
+      }
+    };
 
     // Fetch pending jobs (limit to 5 to prevent timeout)
     let query = adminSupabase
@@ -65,10 +87,12 @@ serve(async (req: Request): Promise<Response> => {
     }
 
     if (!pendingJobs || pendingJobs.length === 0) {
+      const media = await runMediaRunner();
       return new Response(JSON.stringify({ 
         ok: true, 
         message: "No pending jobs",
-        processed: 0
+        processed: 0,
+        media
       }), {
         status: 200,
         headers: stdHeaders(req, { "Content-Type": "application/json" })
@@ -152,10 +176,12 @@ serve(async (req: Request): Promise<Response> => {
       }
     }
 
+    const media = await runMediaRunner();
     return new Response(JSON.stringify({ 
       ok: true, 
       processed: results.length,
-      results 
+      results,
+      media
     }), {
       status: 200,
       headers: stdHeaders(req, { "Content-Type": "application/json" })

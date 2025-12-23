@@ -9,6 +9,8 @@ export interface SkeletonParams {
   levelsCount?: number;
   mode: "options" | "numeric";
   sources?: Array<{ url: string; content: string; title?: string }>;
+  studyTextsCount?: number;
+  notes?: string;
 }
 
 export interface MathMeta {
@@ -58,6 +60,7 @@ export interface SkeletonCourse {
   levels: SkeletonLevel[];
   items: SkeletonItem[];
   studyTexts: SkeletonStudyText[];
+  notes?: string;
 }
 
 // Detect math operations from subject
@@ -210,20 +213,58 @@ export function buildSkeleton(params: SkeletonParams): SkeletonCourse {
   }
   
   // Generate study texts
-  const studyTexts: SkeletonStudyText[] = [
-    {
-      id: "study-intro",
-      title: "Introduction",
-      order: 1,
+  const clampInt = (n: number, min: number, max: number) => Math.max(min, Math.min(max, Math.floor(n)));
+  const requestedStudyTextsCount =
+    typeof params.studyTextsCount === "number" && Number.isFinite(params.studyTextsCount)
+      ? clampInt(params.studyTextsCount, 1, 12)
+      : null;
+  const desiredStudyTextsCount = requestedStudyTextsCount ?? 2;
+
+  const studyTexts: SkeletonStudyText[] = [];
+  const usedIds = new Set<string>();
+  const pushStudyText = (id: string, title: string) => {
+    if (studyTexts.length >= desiredStudyTextsCount) return;
+    let safeId = id;
+    let i = 2;
+    while (usedIds.has(safeId)) {
+      safeId = `${id}-${i++}`;
+    }
+    usedIds.add(safeId);
+    studyTexts.push({
+      id: safeId,
+      title,
+      order: studyTexts.length + 1,
       content: "__FILL__",
-    },
-    {
-      id: "study-concepts",
-      title: "Key Concepts",
-      order: 2,
-      content: "__FILL__",
-    },
+    });
+  };
+
+  // Always start with an intro.
+  pushStudyText("study-intro", "Introduction");
+
+  // Use group names as topical anchors when possible.
+  for (const g of groups) {
+    if (studyTexts.length >= desiredStudyTextsCount) break;
+    pushStudyText(`study-group-${g.id}`, g.name);
+  }
+
+  // Common extras to reach desired count.
+  const extras: Array<{ id: string; title: string }> = [
+    { id: "study-key-concepts", title: "Key Concepts" },
+    { id: "study-examples", title: "Worked Examples" },
+    { id: "study-misconceptions", title: "Common Misconceptions" },
+    { id: "study-practice", title: "Practice & Review" },
   ];
+  for (const ex of extras) {
+    if (studyTexts.length >= desiredStudyTextsCount) break;
+    pushStudyText(ex.id, ex.title);
+  }
+
+  // If we still need more, add generic extra topics.
+  let extraIdx = 1;
+  while (studyTexts.length < desiredStudyTextsCount) {
+    pushStudyText(`study-extra-${extraIdx}`, `Extra Study Topic ${extraIdx}`);
+    extraIdx++;
+  }
   
   return {
     id: sanitizeId(subject),
@@ -235,5 +276,6 @@ export function buildSkeleton(params: SkeletonParams): SkeletonCourse {
     levels,
     items,
     studyTexts,
+    notes: typeof params.notes === "string" && params.notes.trim() ? params.notes.trim() : undefined,
   };
 }

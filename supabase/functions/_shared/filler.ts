@@ -77,18 +77,32 @@ function detectContentPolicyViolation(rawText: string): { message: string } | nu
 }
 
 function buildStudyTextsOnlyPrompt(skeleton: SkeletonCourse): string {
-  const { subject, gradeBand, studyTexts } = skeleton;
+  const { subject, gradeBand, studyTexts, notes } = skeleton;
+  const wantsImages =
+    typeof notes === "string" &&
+    notes.trim().length > 0 &&
+    /\b(with|include|add)\s+images?\b/i.test(notes) &&
+    !/\bwithout\s+images?\b/i.test(notes);
+
+  const notesBlock =
+    typeof notes === "string" && notes.trim()
+      ? `SPECIAL REQUESTS (MUST FOLLOW):
+${notes.trim()}
+
+`
+      : "";
+
   return `You are generating study text content for an educational course.
 
 TOPIC (MUST FOLLOW):
 - Subject/topic: ${subject}
 - Grade band: ${gradeBand}
 
-YOUR TASK:
+${notesBlock}YOUR TASK:
 - Fill ONLY studyTexts[].content for each entry (2-3 paragraphs each)
 - Use [SECTION:Title] markers for major topics
 - Insert [IMAGE:description] where visuals help
-- Keep language age-appropriate
+- Keep language age-appropriate${wantsImages ? "\n- IMPORTANT: Each studyTexts[] entry MUST include at least one [IMAGE:description] marker" : ""}
 
 CRITICAL RULES:
 - Return ONLY valid JSON wrapped in <json>...</json>
@@ -210,8 +224,21 @@ async function fillStudyTextsOnly(
  * Build LLM prompt to fill skeleton
  */
 function buildFillPrompt(skeleton: SkeletonCourse): string {
-  const { subject, gradeBand, items, studyTexts, groups } = skeleton;
+  const { subject, gradeBand, items, studyTexts, groups, notes } = skeleton;
   const mode: "options" | "numeric" = items[0]?.mode ?? "options";
+  const wantsImages =
+    typeof notes === "string" &&
+    notes.trim().length > 0 &&
+    /\b(with|include|add)\s+images?\b/i.test(notes) &&
+    !/\bwithout\s+images?\b/i.test(notes);
+
+  const notesBlock =
+    typeof notes === "string" && notes.trim()
+      ? `SPECIAL REQUESTS (MUST FOLLOW):
+${notes.trim()}
+
+`
+      : "";
   
   // Build constraints based on subject analysis
   const itemSample = items[0];
@@ -228,7 +255,7 @@ TOPIC RULES (CRITICAL):
 - Do NOT default to math (e.g., multiplication tables) unless the subject/topic is explicitly math-related.
 - Use the group names as topical anchors; questions must match the group’s theme.
 
-IMMUTABLE STRUCTURE (DO NOT CHANGE):
+${notesBlock}IMMUTABLE STRUCTURE (DO NOT CHANGE):
 - ${groups.length} groups: ${groups.map(g => g.name).join(", ")}
 - ${items.length} items total
 - Each item has fixed: id, groupId, clusterId, variant, mode
@@ -242,7 +269,7 @@ Fill ONLY these fields:
    - Use [SECTION:Title] markers for major topics
    - Insert [IMAGE:description] where visuals help
    - Grade level: ${gradeBand}
-   - Keep language age-appropriate and engaging
+   - Keep language age-appropriate and engaging${wantsImages ? "\n   - IMPORTANT: Each studyTexts[] entry MUST include at least one [IMAGE:description] marker" : ""}
 
 2. items[].text
    - Write clear, educational questions/statements

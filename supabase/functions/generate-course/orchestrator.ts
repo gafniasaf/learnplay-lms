@@ -43,6 +43,12 @@ export interface GenerationRunnerDeps {
   }) => any;
   persistCourse: (course: any, context: { jobId: string | null; deterministicPack: DeterministicPackInfo | null }) => Promise<void>;
   persistPlaceholder: (course: any, context: { jobId: string | null; reason: string }) => Promise<void>;
+  enqueueStudyTextImages?: (args: {
+    course: any;
+    input: GenerationRunnerArgs["input"];
+    jobId: string | null;
+    requestId: string;
+  }) => Promise<{ imagesPending: number; imagesNote?: string }>;
   updateJobProgress: (jobId: string | null, stage: string, percent: number, message: string) => Promise<void>;
   markJobDone: (jobId: string | null, payload: { status: "done" | "needs_attention"; fallbackReason: string | null; summary?: any }) => Promise<void>;
   saveJobSummary: (jobId: string | null, summary: any) => Promise<void>;
@@ -203,6 +209,9 @@ export function createGenerationRunner(deps: GenerationRunnerDeps) {
       levelsCount: input.levelsCount,
       mode: input.mode,
       format: (input as GenerationInput & { format?: string }).format ?? "practice",
+      notes: input.notes,
+      studyTextsCount: input.studyTextsCount,
+      generateStudyTextImages: input.generateStudyTextImages,
     });
 
     let course: any;
@@ -365,6 +374,32 @@ export function createGenerationRunner(deps: GenerationRunnerDeps) {
       deterministicPack: deterministicPackInfo,
     });
 
+    let imagesPending = 0;
+    let imagesNote: string | undefined = "Images can be generated via enqueue-course-media";
+    if (input.generateStudyTextImages) {
+      if (!deps.enqueueStudyTextImages) {
+        imagesNote = "BLOCKED: generateStudyTextImages requested but enqueueStudyTextImages is not wired.";
+      } else {
+        await deps.updateJobProgress(jobId, "images", 90, "Enqueuing study text images...");
+        try {
+          const enq = await deps.enqueueStudyTextImages({
+            course,
+            input,
+            jobId,
+            requestId,
+          });
+          imagesPending = Number.isFinite(enq.imagesPending) ? Math.max(0, Math.floor(enq.imagesPending)) : 0;
+          imagesNote =
+            enq.imagesNote ??
+            (imagesPending > 0 ? `Queued ${imagesPending} study text image job(s)` : "No study text images queued");
+        } catch (e) {
+          const msg = e instanceof Error ? e.message : String(e);
+          imagesPending = 0;
+          imagesNote = `Image enqueue failed: ${msg}`;
+        }
+      }
+    }
+
     const nowIso = deps.now().toISOString();
     const summary = {
       requestId,
@@ -374,7 +409,7 @@ export function createGenerationRunner(deps: GenerationRunnerDeps) {
       provider: source,
       itemsPerGroup: input.itemsPerGroup,
       levelsCount: input.levelsCount ?? null,
-      imagesPending: 0,
+      imagesPending,
       validationIssues: validationResult.issues.length,
       deterministicPack: deterministicPackInfo,
       deterministicErrors,
@@ -395,8 +430,8 @@ export function createGenerationRunner(deps: GenerationRunnerDeps) {
         success: true,
         course,
         source,
-        imagesPending: 0,
-        imagesNote: "Images can be generated via enqueue-course-media",
+        imagesPending,
+        imagesNote,
         metadata: {
           subject: input.subject,
           title: input.title,
