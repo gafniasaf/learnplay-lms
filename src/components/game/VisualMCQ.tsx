@@ -68,7 +68,7 @@ export const VisualMCQ = ({
                   src={option.image}
                   alt={option.text}
                   role="img"
-                  className="w-full h-full object-contain bg-black/5"
+                  className="w-full h-full object-cover"
                 />
               </AspectRatio>
 

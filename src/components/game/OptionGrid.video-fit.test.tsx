@@ -54,7 +54,7 @@ describe('OptionGrid video smart-fit', () => {
     return waitFor(() => expect(video).toHaveClass('object-cover'));
   });
 
-  it('uses object-contain for non-16:9 videos (portrait)', () => {
+  it('uses object-cover so videos fill the option tile (portrait)', () => {
     const { container } = render(
       <OptionGrid
         options={[""]}
@@ -73,6 +73,6 @@ describe('OptionGrid video smart-fit', () => {
       dispatchLoadedMetadata(video, 900, 1600);
     });
 
-    return waitFor(() => expect(video).toHaveClass('object-contain'));
+    return waitFor(() => expect(video).toHaveClass('object-cover'));
   });
 });

@@ -19,12 +19,12 @@ describe('VisualMCQ fit behavior', () => {
     correctIndex: 0,
   };
 
-  it('renders images with object-contain to avoid cropping', () => {
+  it('renders images with object-cover so they fill the option tile', () => {
     render(<VisualMCQ item={item} onSelect={() => {}} />);
     const imgs = screen.getAllByRole('img');
     expect(imgs.length).toBeGreaterThan(0);
     for (const img of imgs) {
-      expect(img).toHaveClass('object-contain');
+      expect(img).toHaveClass('object-cover');
     }
   });
 });

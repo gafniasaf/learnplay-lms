@@ -1,4 +1,3 @@
-import { AspectRatio } from "@/components/ui/aspect-ratio";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
@@ -13,27 +12,19 @@ export function TileImage(props: {
 }) {
   const { optimizedSrc, alt, badge, fitClass, loading, onLoad, onError } = props;
   return (
-    <div className="relative w-full">
-      {loading && (
-        <div className="w-full bg-muted rounded-lg animate-pulse">
-          <AspectRatio ratio={16/9}>
-            <div className="bg-muted w-full h-full rounded-lg" />
-          </AspectRatio>
-        </div>
-      )}
-      <AspectRatio ratio={16/9} className={loading ? 'absolute inset-0 opacity-0' : ''}>
-        <img
-          src={optimizedSrc}
-          alt={alt}
-          className={cn("w-full h-full", fitClass)}
-          loading="lazy"
-          decoding="async"
-          onLoad={onLoad}
-          onError={onError}
-        />
-      </AspectRatio>
+    <>
+      {loading && <div className="absolute inset-0 bg-muted animate-pulse" />}
+      <img
+        src={optimizedSrc}
+        alt={alt}
+        className={cn("absolute inset-0 w-full h-full", fitClass, loading && "opacity-0")}
+        loading="lazy"
+        decoding="async"
+        onLoad={onLoad}
+        onError={onError}
+      />
       <Badge className="absolute bottom-2 left-2 bg-black/70 text-white border-0">{badge}</Badge>
-    </div>
+    </>
   );
 }
 
@@ -48,32 +39,24 @@ export function TileVideo(props: {
 }) {
   const { sources, badge, fitClass, loading, onLoadedMetadata, onError, captionsUrl } = props;
   return (
-    <div className="relative w-full" onClick={(e) => e.stopPropagation()}>
-      {loading && (
-        <div className="w-full bg-muted rounded-lg animate-pulse">
-          <AspectRatio ratio={16/9}>
-            <div className="bg-muted w-full h-full rounded-lg" />
-          </AspectRatio>
-        </div>
-      )}
-      <AspectRatio ratio={16/9} className={loading ? 'absolute inset-0 opacity-0' : ''}>
-        <video
-          controls
-          preload="metadata"
-          className={cn("w-full h-full", fitClass)}
-          onLoadedMetadata={onLoadedMetadata}
-          onError={onError}
-          aria-label={`Video option`}
-        >
-          {sources.map((s, i) => (
-            <source key={i} src={s} />
-          ))}
-          {captionsUrl && (
-            <track kind="captions" src={captionsUrl} srcLang="en" label="English" default />
-          )}
-          Your browser does not support the video element.
-        </video>
-      </AspectRatio>
+    <div className="absolute inset-0" onClick={(e) => e.stopPropagation()}>
+      {loading && <div className="absolute inset-0 bg-muted animate-pulse" />}
+      <video
+        controls
+        preload="metadata"
+        className={cn("absolute inset-0 w-full h-full", fitClass, loading && "opacity-0")}
+        onLoadedMetadata={onLoadedMetadata}
+        onError={onError}
+        aria-label={`Video option`}
+      >
+        {sources.map((s, i) => (
+          <source key={i} src={s} />
+        ))}
+        {captionsUrl && (
+          <track kind="captions" src={captionsUrl} srcLang="en" label="English" default />
+        )}
+        Your browser does not support the video element.
+      </video>
       <Badge className="absolute bottom-2 left-2 bg-black/70 text-white border-0">{badge}</Badge>
     </div>
   );

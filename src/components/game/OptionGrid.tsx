@@ -1,12 +1,10 @@
 import { useEffect, useRef, useMemo, useState } from "react";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
-import { AspectRatio } from "@/components/ui/aspect-ratio";
 import { Button } from "@/components/ui/button";
 import { Edit } from "lucide-react";
 import { getOptimizedImageUrl } from "@/lib/utils/imageOptimizer";
 import { useResponsiveImageSizing, useResponsiveAudioSizing, getViewport, getOptionImageTargetWidth, getOptionThumbnailWidth } from "@/lib/utils/mediaSizing";
-import { fitModeFromRatio, DESIRED_ASPECT } from "@/lib/utils/mediaFit";
 import { resolvePublicMediaUrl } from "@/lib/media/resolvePublicMediaUrl";
 import type { OptionMedia, ImageMedia, VideoMedia } from "@/lib/media/types";
 import { TileImage, TileVideo, TileAudio } from "./OptionGrid/tiles";
@@ -50,9 +48,6 @@ export const OptionGrid = ({
   const buttonRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const [transcriptStates, setTranscriptStates] = useState<Record<number, { open: boolean; text: string | null; loading: boolean }>>({});
   const [mediaLoadingStates, setMediaLoadingStates] = useState<Record<number, boolean>>({});
-  // Dynamic fit states (computed at runtime from natural dimensions)
-  const [imageFitStates, setImageFitStates] = useState<Record<number, 'cover' | 'contain'>>({});
-  const [videoFitStates, setVideoFitStates] = useState<Record<number, 'cover' | 'contain'>>({});
   const [isAdminUser, setIsAdminUser] = useState(false);
   // Router-free defaults for tests; read URL directly
   const searchParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : new URLSearchParams();
@@ -240,12 +235,9 @@ export const OptionGrid = ({
             {/* Media-only: Image */}
             {isMediaOnly && media?.type === 'image' && (() => {
               const m = media as ImageMedia;
-              const w = typeof m?.width === 'number' ? m.width : undefined;
-              const h = typeof m?.height === 'number' ? m.height : undefined;
-              const ratio = w && h ? w / h : undefined;
-              const auto = ratio ? fitModeFromRatio(ratio, DESIRED_ASPECT) : (imageFitStates[displayIndex] || 'cover');
-              const fit = m?.fitMode || auto;
-              const fitClass = fit === 'contain' ? 'object-contain bg-black/5' : 'object-cover';
+              // UX: Option images should fill the tile edge-to-edge.
+              // Use object-cover so the image fits the option tile exactly (cropping as needed).
+              const fitClass = 'object-cover';
               const optimized = getOptimizedImageUrl(resolveUrl(m.url), { width: getOptionImageTargetWidth(viewport), quality: imageSizing.quality });
               return (
                 <TileImage
@@ -254,13 +246,8 @@ export const OptionGrid = ({
                   badge={String.fromCharCode(65 + displayIndex)}
                   fitClass={fitClass}
                   loading={mediaLoading}
-                  onLoad={(e) => {
+                  onLoad={() => {
                     setMediaLoadingStates(prev => ({ ...prev, [displayIndex]: false }));
-                    try {
-                      const el = e.currentTarget as HTMLImageElement;
-                      const r = el.naturalWidth && el.naturalHeight ? el.naturalWidth / el.naturalHeight : undefined;
-                      if (r) setImageFitStates(prev => ({ ...prev, [displayIndex]: fitModeFromRatio(r, DESIRED_ASPECT) }));
-                    } catch (_err) { /* noop */ }
                   }}
                   onError={() => setMediaLoadingStates(prev => ({ ...prev, [displayIndex]: false }))}
                 />
@@ -270,8 +257,8 @@ export const OptionGrid = ({
             {/* Media-only: Video */}
             {isMediaOnly && media?.type === 'video' && (() => {
               const m = media as VideoMedia;
-              const fitPref = m?.fitMode || videoFitStates[displayIndex];
-              const fitClass = fitPref === 'contain' ? 'object-contain bg-black/5' : 'object-cover';
+              // UX: Option videos should fill the tile edge-to-edge.
+              const fitClass = 'object-cover';
               const src = resolveUrl(m.url);
               return (
                 <TileVideo
@@ -280,13 +267,8 @@ export const OptionGrid = ({
                   badge={String.fromCharCode(65 + displayIndex)}
                   fitClass={fitClass}
                   loading={mediaLoading}
-                  onLoadedMetadata={(e) => {
+                  onLoadedMetadata={() => {
                     setMediaLoadingStates(prev => ({ ...prev, [displayIndex]: false }));
-                    try {
-                      const el = e.currentTarget as HTMLVideoElement;
-                      const r = el.videoWidth && el.videoHeight ? el.videoWidth / el.videoHeight : undefined;
-                      if (r) setVideoFitStates(prev => ({ ...prev, [displayIndex]: fitModeFromRatio(r, DESIRED_ASPECT) }));
-                    } catch (_err) { /* noop */ }
                   }}
                   onError={() => setMediaLoadingStates(prev => ({ ...prev, [displayIndex]: false }))}
                 />

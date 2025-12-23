@@ -19,7 +19,7 @@ const screen = {
 describe('OptionGrid smart-fit', () => {
   const onSelect = jest.fn();
 
-  it('uses object-contain when image ratio deviates significantly from 16:9 (square image)', () => {
+  it('uses object-cover so images fill the option tile (square image)', () => {
     render(
       <OptionGrid
         options={[""]}
@@ -32,7 +32,7 @@ describe('OptionGrid smart-fit', () => {
     );
 
     const img = screen.getByAltText('Option 1');
-    expect(img).toHaveClass('object-contain');
+    expect(img).toHaveClass('object-cover');
   });
 
   it('uses object-cover when image ratio is ~16:9', () => {
@@ -51,7 +51,7 @@ describe('OptionGrid smart-fit', () => {
     expect(img).toHaveClass('object-cover');
   });
 
-  it('honors explicit fitMode override on media object', () => {
+  it('ignores explicit contain fitMode so images still fill the option tile', () => {
     render(
       <OptionGrid
         options={[""]}
@@ -64,6 +64,6 @@ describe('OptionGrid smart-fit', () => {
     );
 
     const img = screen.getByAltText('Option 1');
-    expect(img).toHaveClass('object-contain');
+    expect(img).toHaveClass('object-cover');
   });
 });
