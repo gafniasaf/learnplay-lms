@@ -221,22 +221,52 @@ serve(async (req: Request): Promise<Response> => {
     // This enables generate-course to honor the user’s requests even when the worker only has jobId.
     if (notes) {
       try {
-        const { data: nextSeqData, error: nextSeqErr } = await adminSupabase.rpc("next_job_event_seq", { p_job_id: jobId });
-        if (nextSeqErr) {
-          throw new Error(`next_job_event_seq failed: ${nextSeqErr.message ?? String(nextSeqErr)}`);
+        // Avoid dependency on RPCs that may not exist or may not be present in the PostgREST schema cache.
+        // We compute the next seq directly with a small retry loop to avoid (job_id, seq) collisions.
+        const MAX_SEQ_RETRIES = 5;
+        let lastErr: unknown = null;
+
+        for (let attempt = 0; attempt < MAX_SEQ_RETRIES; attempt++) {
+          const { data: lastEvent, error: lastErrQuery } = await adminSupabase
+            .from("job_events")
+            .select("seq")
+            .eq("job_id", jobId)
+            .order("seq", { ascending: false })
+            .limit(1)
+            .maybeSingle();
+
+          if (lastErrQuery) {
+            throw new Error(`job_events lookup failed: ${lastErrQuery.message ?? String(lastErrQuery)}`);
+          }
+
+          const lastSeqRaw = (lastEvent as any)?.seq;
+          const lastSeq = typeof lastSeqRaw === "number" && Number.isFinite(lastSeqRaw) ? lastSeqRaw : 0;
+          const seq = lastSeq + 1;
+
+          const { error: evErr } = await adminSupabase.from("job_events").insert({
+            job_id: jobId,
+            seq,
+            step: "queued",
+            status: "info",
+            progress: 0,
+            message: "Special requests captured",
+            meta: { notes },
+          });
+
+          if (!evErr) {
+            lastErr = null;
+            break;
+          }
+
+          lastErr = evErr;
+          // Retry on duplicate seq (race)
+          if ((evErr as any)?.code !== "23505" && !String((evErr as any)?.message || "").toLowerCase().includes("duplicate")) {
+            throw new Error(`job_events insert failed: ${(evErr as any)?.message ?? String(evErr)}`);
+          }
         }
-        const seq = typeof nextSeqData === "number" ? nextSeqData : 1;
-        const { error: evErr } = await adminSupabase.from("job_events").insert({
-          job_id: jobId,
-          seq,
-          step: "queued",
-          status: "info",
-          progress: 0,
-          message: "Special requests captured",
-          meta: { notes },
-        });
-        if (evErr) {
-          throw new Error(`job_events insert failed: ${evErr.message ?? String(evErr)}`);
+
+        if (lastErr) {
+          throw new Error(`job_events insert failed after retries: ${(lastErr as any)?.message ?? String(lastErr)}`);
         }
       } catch (e) {
         // Fail loud: if the user provided notes but we couldn't persist them, generation would silently ignore them.
