@@ -35,6 +35,31 @@ interface LogEntry {
   stack_trace: string | null;
 }
 
+interface JobEventEntry {
+  id: string;
+  job_id: string;
+  status?: string | null;
+  step?: string | null;
+  event_type?: string | null;
+  message?: string | null;
+  payload?: Record<string, unknown> | null;
+  metadata?: Record<string, unknown> | null;
+  created_at: string;
+  seq?: number | null;
+}
+
+interface CourseJobSummary {
+  id: string;
+  status: string;
+  subject?: string | null;
+  course_id?: string | null;
+  created_at: string;
+  updated_at?: string | null;
+  progress_stage?: string | null;
+  progress_message?: string | null;
+  progress_percent?: number | null;
+}
+
 // Known edge functions to show in filter even if no logs yet
 const KNOWN_FUNCTIONS = [
   'ai-job-runner',
@@ -48,10 +73,23 @@ const Logs = () => {
   const location = useLocation();
   const params = new URLSearchParams(location.search);
   const initRequestId = params.get('requestId') || '';
-  const initJobId = params.get('jobId') || '';
+  const initJobId =
+    params.get('jobId') ||
+    (() => {
+      if (typeof window === 'undefined') return '';
+      // Prefer the current job selected in the AI Pipeline, if present.
+      // This lets /admin/logs act like a "tail" view while a course is generating.
+      const get = (k: string) => {
+        try { return window.sessionStorage.getItem(k); } catch { /* ignore */ }
+        try { return window.localStorage.getItem(k); } catch { /* ignore */ }
+        return null;
+      };
+      return get('selectedJobId') || '';
+    })();
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [notice, setNotice] = useState<string | null>(null);
+  const [jobEventsNotice, setJobEventsNotice] = useState<string | null>(null);
   // Filters
   const [levelFilter, setLevelFilter] = useState<string>('all');
   const [functionFilter, setFunctionFilter] = useState<string>('all');
@@ -66,6 +104,15 @@ const Logs = () => {
   
   // Available functions
   const [functions, setFunctions] = useState<string[]>([]);
+
+  // Job Events (for course generation progress)
+  const [recentJobs, setRecentJobs] = useState<CourseJobSummary[]>([]);
+  const [jobEvents, setJobEvents] = useState<JobEventEntry[]>([]);
+  const [jobEventsLoading, setJobEventsLoading] = useState(false);
+  const [jobEventsError, setJobEventsError] = useState<string | null>(null);
+  const [jobExpanded, setJobExpanded] = useState<Set<string>>(new Set());
+  const [activeJob, setActiveJob] = useState<CourseJobSummary | null>(null);
+  const jobEventsInFlightRef = useRef(false);
 
   const loadLogs = useCallback(async () => {
     setLoading(true);
@@ -88,10 +135,87 @@ const Logs = () => {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // mcpRef is stable, toast is stable from sonner
 
+  const loadRecentJobs = useCallback(async () => {
+    try {
+      const resp = await mcpRef.current.listCourseJobs({ limit: 25 });
+      const jobs = (resp as any)?.jobs as CourseJobSummary[] | undefined;
+      setRecentJobs(Array.isArray(jobs) ? jobs : []);
+    } catch (e) {
+      console.warn('[Logs] Failed to load recent jobs:', e);
+      // Don't toast here; logs page should be resilient/noisy only on explicit user actions.
+    }
+  }, []);
+
+  const loadJobEvents = useCallback(async (jobId: string, opts: { silent?: boolean } = {}) => {
+    if (!jobId) return;
+    if (jobEventsInFlightRef.current) return;
+    jobEventsInFlightRef.current = true;
+    if (!opts.silent) setJobEventsLoading(true);
+    setJobEventsError(null);
+    try {
+      const resp = await mcpRef.current.getCourseJob(jobId, true);
+      const ok = Boolean((resp as any)?.ok);
+      if (!ok) {
+        const msg = (resp as any)?.error?.message || (resp as any)?.error || 'Failed to load job events';
+        setJobEventsError(String(msg));
+        setJobEvents([]);
+        setActiveJob(null);
+        return;
+      }
+      const job = (resp as any)?.job as CourseJobSummary | null | undefined;
+      const events = (resp as any)?.events as JobEventEntry[] | undefined;
+      setActiveJob(job && typeof job === 'object' ? job : null);
+      setJobEvents(Array.isArray(events) ? events : []);
+
+      // If the job_events table is missing, get-course-job will return ok:true but no events.
+      // Surface a helpful hint only when a job is selected.
+      setJobEventsNotice(Array.isArray(events) && events.length === 0
+        ? 'No job events found for this job yet (or the job_events table is not configured).'
+        : null);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      setJobEventsError(msg);
+      setJobEvents([]);
+      setActiveJob(null);
+    } finally {
+      jobEventsInFlightRef.current = false;
+      if (!opts.silent) setJobEventsLoading(false);
+    }
+  }, []);
+
   // Load logs
   useEffect(() => {
     loadLogs();
   }, [loadLogs]);
+
+  // Load recent jobs (once; we also refresh this on manual refresh)
+  useEffect(() => {
+    void loadRecentJobs();
+  }, [loadRecentJobs]);
+
+  // If a job id is provided, load its events (and keep polling while running).
+  useEffect(() => {
+    if (!jobIdFilter) {
+      setJobEvents([]);
+      setActiveJob(null);
+      setJobEventsError(null);
+      setJobEventsNotice(null);
+      return;
+    }
+    void loadJobEvents(jobIdFilter);
+  }, [jobIdFilter, loadJobEvents]);
+
+  useEffect(() => {
+    if (!jobIdFilter) return;
+    const status = activeJob?.status;
+    const isRunning = status === 'pending' || status === 'processing' || status === 'running';
+    if (!isRunning) return;
+
+    const id = window.setInterval(() => {
+      void loadJobEvents(jobIdFilter, { silent: true });
+    }, 2500);
+    return () => window.clearInterval(id);
+  }, [jobIdFilter, activeJob?.status, loadJobEvents]);
 
   const toggleExpand = (logId: string) => {
     setExpandedLogs(prev => {
@@ -111,6 +235,15 @@ const Logs = () => {
     setSearchQuery('');
     setRequestIdFilter('');
     setJobIdFilter('');
+  };
+
+  const toggleJobExpand = (eventId: string) => {
+    setJobExpanded((prev) => {
+      const next = new Set(prev);
+      if (next.has(eventId)) next.delete(eventId);
+      else next.add(eventId);
+      return next;
+    });
   };
 
   // Filter logs
@@ -150,7 +283,17 @@ const Logs = () => {
             <h1 className="text-3xl font-bold">System Logs</h1>
             <p className="text-muted-foreground mt-1">Monitor edge function activity and errors</p>
           </div>
-          <Button onClick={loadLogs} disabled={loading} variant="outline">
+          <Button
+            onClick={() => {
+              void loadLogs();
+              void loadRecentJobs();
+              if (jobIdFilter) void loadJobEvents(jobIdFilter);
+            }}
+            disabled={loading}
+            variant="outline"
+            data-cta-id="cta-logs-refresh"
+            data-action="action"
+          >
             <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
             Refresh
           </Button>
@@ -266,6 +409,145 @@ const Logs = () => {
             </CardContent>
           </Card>
         </div>
+
+        {/* Job Events (course generation progress) */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Job Events</CardTitle>
+            <CardDescription>
+              Progress events for background jobs (useful during course generation).
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex flex-wrap gap-3 items-center">
+              <div className="min-w-[280px] flex-1">
+                <Select
+                  value={jobIdFilter || 'none'}
+                  onValueChange={(v) => setJobIdFilter(v === 'none' ? '' : v)}
+                >
+                  <SelectTrigger className="w-full" data-cta-id="cta-logs-job-select" data-action="select">
+                    <SelectValue placeholder="Select a job to view events" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">No job selected</SelectItem>
+                    {recentJobs.map((j) => (
+                      <SelectItem key={j.id} value={j.id}>
+                        {j.status} • {(j.subject || j.course_id || j.id).toString().slice(0, 42)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => void loadRecentJobs()}
+                data-cta-id="cta-logs-refresh-jobs"
+                data-action="action"
+              >
+                Refresh jobs
+              </Button>
+
+              {jobIdFilter && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => void loadJobEvents(jobIdFilter)}
+                  disabled={jobEventsLoading}
+                  data-cta-id="cta-logs-refresh-job-events"
+                  data-action="action"
+                >
+                  Refresh events
+                </Button>
+              )}
+            </div>
+
+            {jobIdFilter && (
+              <div className="flex flex-wrap gap-2 items-center text-sm">
+                <Badge variant="outline" className="font-mono text-xs">
+                  Job: {jobIdFilter.slice(0, 8)}
+                </Badge>
+                {activeJob?.status && (
+                  <Badge variant="secondary">
+                    {activeJob.status}
+                  </Badge>
+                )}
+                {activeJob?.progress_percent != null && (
+                  <Badge variant="secondary">
+                    {Math.round(Number(activeJob.progress_percent))}%
+                  </Badge>
+                )}
+                {activeJob?.progress_message && (
+                  <span className="text-muted-foreground">
+                    {activeJob.progress_message}
+                  </span>
+                )}
+              </div>
+            )}
+
+            {jobEventsError && (
+              <div className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+                {jobEventsError}
+              </div>
+            )}
+
+            {jobEventsNotice && (
+              <div className="rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+                {jobEventsNotice}
+              </div>
+            )}
+
+            {jobIdFilter && jobEvents.length > 0 && (
+              <div className="space-y-2">
+                {jobEvents.slice(-100).map((e) => {
+                  const expanded = jobExpanded.has(e.id);
+                  const label = (e.step || e.event_type || 'event').toString();
+                  return (
+                    <div key={e.id} className="border rounded-lg p-3">
+                      <div className="flex items-start gap-3">
+                        <button
+                          onClick={() => toggleJobExpand(e.id)}
+                          className="mt-0.5 text-muted-foreground hover:text-foreground"
+                          data-cta-id="cta-logs-job-event-expand"
+                          data-action="toggle"
+                        >
+                          {expanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                        </button>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <Badge variant="outline">{label}</Badge>
+                            <span className="text-xs text-muted-foreground ml-auto">
+                              {new Date(e.created_at).toLocaleString()}
+                            </span>
+                          </div>
+                          <p className="mt-1 text-sm text-foreground/90">{e.message || ''}</p>
+                          {expanded && e.payload && (
+                            <pre className="mt-2 bg-muted p-2 rounded text-xs overflow-x-auto">
+                              {JSON.stringify(e.payload, null, 2)}
+                            </pre>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {jobIdFilter && !jobEventsLoading && jobEvents.length === 0 && !jobEventsError && !jobEventsNotice && (
+              <div className="text-sm text-muted-foreground">
+                No events yet.
+              </div>
+            )}
+
+            {!jobIdFilter && (
+              <div className="text-sm text-muted-foreground">
+                Select a job to view its progress events. Tip: start generation in AI Pipeline, then come here.
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
         {/* Logs List */}
         <Card>
