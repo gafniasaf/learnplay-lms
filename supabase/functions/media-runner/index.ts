@@ -64,10 +64,10 @@ async function uploadToMediaLibrary(args: {
   const ext = fileExtForContentType(args.contentType);
   const safePrefix = String(args.pathPrefix || "").replace(/^\/+/, "").replace(/\/+$/, "");
   const path = `courses/${args.courseId}/${safePrefix}/${crypto.randomUUID()}.${ext}`;
-  const blob = new Blob([bytes.slice().buffer as ArrayBuffer], { type: contentType });
+  const blob = new Blob([args.bytes.slice().buffer as ArrayBuffer], { type: args.contentType });
   const { error } = await adminSupabase.storage.from("media-library").upload(path, blob, {
     upsert: true,
-    contentType,
+    contentType: args.contentType,
     cacheControl: "public, max-age=31536000, immutable",
   });
   if (error) throw new Error(`Storage upload failed: ${error.message}`);
