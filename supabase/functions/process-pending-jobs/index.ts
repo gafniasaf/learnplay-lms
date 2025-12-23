@@ -1,7 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { stdHeaders, handleOptions } from "../_shared/cors.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { runJob } from "../ai-job-runner/runner.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
 const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
@@ -82,21 +81,7 @@ serve(async (req: Request): Promise<Response> => {
 
     for (const job of pendingJobs) {
       const jobId = job.id;
-      // Reconstruct jobType and payload from stored data
-      // In this system, ai_course_jobs rows represent course-generation work.
-      // The human-readable subject lives in job.subject; the job type is constant.
-      const jobType = "ai_course_generate";
-      const payload = {
-        course_id: job.course_id,
-        subject: job.subject,
-        grade: job.grade,
-        grade_band: job.grade_band,
-        items_per_group: job.items_per_group,
-        mode: job.mode,
-        ...((job as any).payload || {})
-      };
-
-      console.log(`[process-pending-jobs] Processing job ${jobId}: ${jobType}`);
+      console.log(`[process-pending-jobs] Processing job ${jobId}: generate-course`);
 
       // Mark as processing
       await adminSupabase
@@ -105,14 +90,56 @@ serve(async (req: Request): Promise<Response> => {
         .eq("id", jobId);
 
       try {
-        const result = await runJob(jobType, payload, jobId);
-        
-        await adminSupabase
-          .from("ai_course_jobs")
-          .update({ status: "done", completed_at: new Date().toISOString() })
-          .eq("id", jobId);
+        // IMPORTANT:
+        // The ONLY supported course generation path is the `generate-course` Edge Function,
+        // because it persists `courses/<course_id>/course.json` AND upserts `course_metadata`.
+        // The auto-generated ai-job-runner strategy is NOT authoritative for persistence.
+        const genUrl = `${SUPABASE_URL}/functions/v1/generate-course?jobId=${encodeURIComponent(jobId)}`;
+        const genResp = await fetch(genUrl, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${SERVICE_ROLE_KEY}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            subject: job.subject,
+            gradeBand: job.grade_band,
+            grade: job.grade,
+            itemsPerGroup: job.items_per_group,
+            levelsCount: (job as any).levels_count || undefined,
+            mode: job.mode,
+          }),
+        });
 
-        results.push({ jobId, status: "done", result });
+        const genJson = await genResp.json().catch(() => null);
+
+        // Lovable-safe semantics: generate-course may return 200 with { success:false } on failures.
+        if (!genResp.ok || genJson?.success === false) {
+          const msg = genJson?.error?.message || genJson?.error || `generate-course failed (${genResp.status})`;
+          await adminSupabase
+            .from("ai_course_jobs")
+            .update({ status: "failed", error: msg, completed_at: new Date().toISOString() })
+            .eq("id", jobId);
+          results.push({ jobId, status: "failed", error: msg });
+          continue;
+        }
+
+        // Ensure job row reflects completion and includes a canonical result_path for debuggability.
+        const courseId = String(job.course_id || "");
+        const resultPath =
+          typeof genJson?.result_path === "string"
+            ? genJson.result_path
+            : (courseId ? `${courseId}/course.json` : null);
+
+        const update: Record<string, unknown> = {
+          status: "done",
+          completed_at: new Date().toISOString(),
+        };
+        if (resultPath) update.result_path = resultPath;
+
+        await adminSupabase.from("ai_course_jobs").update(update).eq("id", jobId);
+
+        results.push({ jobId, status: "done", courseId: job.course_id, resultPath });
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
         
