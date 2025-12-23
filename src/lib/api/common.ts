@@ -785,6 +785,31 @@ async function callEdgeFunctionWithAgentToken<TRequest, TResponse>(
   if (failure?.code === "transient_network") {
     return data as TResponse;
   }
+  if (failure && typeof window !== "undefined") {
+    const msg = typeof failure.message === "string" ? failure.message : "";
+    const isUnauthorized =
+      failure.httpStatus === 401 ||
+      failure.code === "unauthorized" ||
+      msg.toLowerCase().includes("unauthorized");
+    if (isUnauthorized) {
+      try {
+        window.sessionStorage.setItem("iz_dev_agent_invalid", "1");
+      } catch {
+        // ignore
+      }
+      try {
+        const g = globalThis as any;
+        g.__izDevAgentInvalid = true;
+      } catch {
+        // ignore
+      }
+      try {
+        window.dispatchEvent(new CustomEvent("iz:dev-agent-invalid"));
+      } catch {
+        // ignore
+      }
+    }
+  }
   if (failure) {
     throw new ApiError(
       failure.message,
