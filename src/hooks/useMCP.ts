@@ -1,9 +1,7 @@
 import { useCallback, useEffect, useRef, useState, useMemo } from 'react';
-// supabase import removed - not used directly
 import { JOB_MODES } from '@/lib/contracts';
-import { callEdgeFunctionGet } from '@/lib/api/common';
+import { callEdgeFunction, callEdgeFunctionGet, isDevAgentMode, callEdgeFunctionGetRaw } from '@/lib/api/common';
 import { getRuntimeConfigSync } from '@/lib/runtimeConfig';
-import { isDevAgentMode } from '@/lib/api/common';
 import type {
   SaveRecordResponse,
   GetRecordResponse,
@@ -61,8 +59,6 @@ function shouldUseMCPProxy(): boolean {
   return import.meta.env.VITE_USE_MCP_PROXY === 'true' || import.meta.env.VITE_USE_MCP_PROXY === '1';
 }
 
-
-
 interface MCPResponse<T = unknown> {
   result?: T;
   error?: {
@@ -91,17 +87,6 @@ export function useMCP() {
   useEffect(() => {
     loadingRef.current = loading;
   }, [loading]);
-
-  // Call Supabase Edge Function via common helper (uses improved error handling)
-  const callEdgeFunction = async <T = unknown>(
-    functionName: string,
-    body: Record<string, unknown>,
-    options?: { maxRetries?: number; timeoutMs?: number; idempotencyKey?: string }
-  ): Promise<T> => {
-    // Use the common helper which has improved error handling, CORS detection, and auth retry logic
-    const { callEdgeFunction: callEdgeFn } = await import('@/lib/api/common');
-    return callEdgeFn<Record<string, unknown>, T>(functionName, body, options);
-  };
 
   // Call MCP proxy (for local development only)
   const callMCP = async <T = unknown>(method: string, params: Record<string, unknown> = {}): Promise<T> => {
@@ -160,27 +145,24 @@ export function useMCP() {
       
       if (mode === 'synchronous') {
         // Bypass queue, call runner directly (Live Pipeline)
-        return await callEdgeFunction<EnqueueJobResult>('ai-job-runner', { jobType, payload });
+        return await callEdgeFunction<Record<string, unknown>, EnqueueJobResult>('ai-job-runner', { jobType, payload });
       }
 
       // Default: Async queue (Factory Pipeline)
       // Use an idempotency key so transient network retries won't double-enqueue.
-      // This is especially important in Lovable preview where connections can drop mid-request.
       const idempotencyKey = crypto.randomUUID();
       console.log('[enqueueJob] Starting request with idempotencyKey:', idempotencyKey);
-      const result = await callEdgeFunction<EnqueueJobResult>(
+      const result = await callEdgeFunction<Record<string, unknown>, EnqueueJobResult>(
         'enqueue-job',
         { jobType, payload },
         // With idempotency, we can safely retry more aggressively for preview stability.
-        // Increase timeout to 60s for slow Lovable preview environments.
         { maxRetries: 5, idempotencyKey, timeoutMs: 60000 }
       );
       console.log('[enqueueJob] Success:', result);
 
       // Dev/Preview safety net:
-      // In some environments (Lovable iframe), there may be no separate queue worker to process pending jobs.
-      // If dev-agent mode is enabled and we just queued ai_course_generate, immediately kick generation by
-      // calling the job-aware `generate-course` endpoint (it updates job progress/status and persists output).
+      // In some environments (Lovable iframe), there may be no separate queue worker.
+      // If dev-agent mode is enabled and we just queued ai_course_generate, immediately kick generation.
       if (result?.ok && result.jobId && jobType === "ai_course_generate" && isDevAgentMode()) {
         const jobId = result.jobId;
         const p: any = payload ?? {};
@@ -194,7 +176,7 @@ export function useMCP() {
           levelsCount: typeof p.levels_count === "number" ? p.levels_count : (typeof p.levelsCount === "number" ? p.levelsCount : undefined),
         };
 
-        // Fire-and-forget so the UI can immediately start polling job status.
+        // Fire-and-forget
         void callEdgeFunction("generate-course?jobId=" + encodeURIComponent(jobId), generateBody, { timeoutMs: 600000, maxRetries: 0 })
           .then((resp: any) => {
             if (resp?.success === false) {
@@ -207,43 +189,6 @@ export function useMCP() {
       }
 
       return result;
-    } catch (error: unknown) {
-      console.error('[enqueueJob] Error caught:', error);
-      // Improve error messages for authentication issues
-      const errorObj = error as { status?: number; code?: string; message?: string; details?: { message?: string } };
-      if (errorObj?.status === 401 || errorObj?.code === 'UNAUTHORIZED' || errorObj?.code === 'SESSION_STALE' || (errorObj?.message || '').includes('401') || (errorObj?.message || '').includes('Unauthorized')) {
-        const errorMessage = errorObj?.message || errorObj?.details?.message || '';
-        
-        // Check for stale session / missing organization_id error
-        if (errorMessage.includes('missing organization_id') || 
-            errorMessage.includes('not configured') || 
-            errorMessage.includes("doesn't include organization") ||
-            errorMessage.includes('SESSION_STALE') ||
-            (error && typeof error === 'object' && 'code' in error && error.code === 'SESSION_STALE')) {
-          throw new Error(
-            'Your session token is stale and doesn\'t include your organization configuration. ' +
-            'Please log out completely and log back in to refresh your session token. ' +
-            'Your account is configured correctly, but you need a fresh login to activate it.'
-          );
-        }
-        
-        const isLovablePreview = typeof window !== 'undefined' && (
-          window.location.hostname.includes('lovable.app') || 
-          window.location.hostname.includes('lovableproject.com') ||
-          window.location.hostname.includes('lovable')
-        );
-        
-        let message = 'Authentication required. Please log in to enqueue jobs.';
-        if (isLovablePreview) {
-          message = 'Authentication required. Please log in to use this feature in preview environments.';
-        } else if (errorMessage) {
-          // Use the specific error message from the API if available
-          message = errorMessage;
-        }
-        
-        throw new Error(message);
-      }
-      throw error;
     } finally {
       setLoading(false);
     }
@@ -255,8 +200,7 @@ export function useMCP() {
       if (shouldUseMCPProxy()) {
         return await callMCP('lms.saveRecord', { entity, values });
       }
-      // Use Supabase Edge Function in production
-      return await callEdgeFunction<SaveRecordResponse>('save-record', { entity, values });
+      return await callEdgeFunction<Record<string, unknown>, SaveRecordResponse>('save-record', { entity, values });
     } finally {
       setLoading(false);
     }
@@ -268,8 +212,7 @@ export function useMCP() {
       if (shouldUseMCPProxy()) {
         return await callMCP('lms.getRecord', { entity, id });
       }
-      // Use Supabase Edge Function in production
-      return await callEdgeFunction<GetRecordResponse>('get-record', { entity, id });
+      return await callEdgeFunction<Record<string, unknown>, GetRecordResponse>('get-record', { entity, id });
     } finally {
       setLoading(false);
     }
@@ -281,15 +224,7 @@ export function useMCP() {
       if (shouldUseMCPProxy()) {
         return await callMCP<ListRecordsResponse>('lms.listRecords', { entity, limit });
       }
-      // Use Supabase Edge Function in production
-      return await callEdgeFunction<ListRecordsResponse>('list-records', { entity, limit });
-    } catch (err) {
-      // Fail loudly - auth issues must be visible in UI (no silent empty lists).
-      const error = err as any;
-      if (error?.status === 401 || error?.code === 'UNAUTHORIZED') {
-        throw new Error('Authentication required. Please sign in.');
-      }
-      throw err;
+      return await callEdgeFunction<Record<string, unknown>, ListRecordsResponse>('list-records', { entity, limit });
     } finally {
       setLoading(false);
     }
@@ -301,15 +236,13 @@ export function useMCP() {
       if (shouldUseMCPProxy()) {
         return await callMCP<ListJobsResponse>('lms.listJobs', { limit });
       }
-      // Use Supabase Edge Function in production
-      return await callEdgeFunction<ListJobsResponse>('list-jobs', { limit });
+      return await callEdgeFunction<Record<string, unknown>, ListJobsResponse>('list-jobs', { limit });
     } finally {
       setLoading(false);
     }
   };
 
   // List course jobs (IgniteZero compliant)
-  // NOTE: This must be referentially stable because polling hooks depend on it.
   const listCourseJobs = useCallback(
     async (params: { status?: string; sinceHours?: number; limit?: number; search?: string } = {}) => {
       setLoading(true);
@@ -328,7 +261,6 @@ export function useMCP() {
   );
 
   // Get single course job
-  // NOTE: This must be referentially stable because polling hooks depend on it.
   const getCourseJob = useCallback(
     async (jobId: string, includeEvents = false) => {
       setLoading(true);
@@ -348,7 +280,7 @@ export function useMCP() {
   const requeueJob = async (jobId: string, jobTable: 'ai_course_jobs' | 'ai_media_jobs' = 'ai_course_jobs') => {
     setLoading(true);
     try {
-      return await callEdgeFunction<{ ok: boolean; message: string }>('requeue-job', { jobId, jobTable });
+      return await callEdgeFunction<Record<string, unknown>, { ok: boolean; message: string }>('requeue-job', { jobId, jobTable });
     } finally {
       setLoading(false);
     }
@@ -358,7 +290,7 @@ export function useMCP() {
   const deleteJob = async (jobId: string, jobTable: 'ai_course_jobs' | 'ai_media_jobs' = 'ai_course_jobs') => {
     setLoading(true);
     try {
-      return await callEdgeFunction<{ ok: boolean; message: string }>('delete-job', { jobId, jobTable });
+      return await callEdgeFunction<Record<string, unknown>, { ok: boolean; message: string }>('delete-job', { jobId, jobTable });
     } finally {
       setLoading(false);
     }
@@ -381,38 +313,18 @@ export function useMCP() {
   const callGet = async <T = unknown>(method: string, params: Record<string, string> = {}): Promise<T> => {
     setLoading(true);
     try {
-      // Pre-flight auth check for non-local
-      if (!shouldUseMCPProxy()) {
-        const token = await checkAuth();
-        if (!token) {
-          // Return empty result for unauthenticated requests
-          return { ok: false, error: 'Not authenticated' } as T;
-        }
-      }
-      
       if (shouldUseMCPProxy()) {
-        // MCP protocol doesn't strictly distinguish GET/POST at transport, 
-        // but we map it to our internal proxy helper
         return await callMCP<T>(method, params);
       }
 
       // Map MCP method names to Edge Function names
-      // Handle kebab-case method names (e.g., 'lms.student-dashboard' -> 'student-dashboard')
       let functionName = method.replace('lms.', '');
-      // Only apply camelCase to kebab-case conversion if there are uppercase letters
-      // Otherwise, keep kebab-case as-is
       if (/[A-Z]/.test(functionName)) {
         functionName = functionName.replace(/([A-Z])/g, '-$1').toLowerCase();
       } else {
         functionName = functionName.toLowerCase();
       }
       return await callEdgeFunctionGet<T>(functionName, params);
-    } catch (err) {
-      const error = err as any;
-      if (error?.status === 401 || error?.code === 'UNAUTHORIZED') {
-        return { ok: false, error: 'Not authenticated' } as T;
-      }
-      throw err;
     } finally {
       setLoading(false);
     }
@@ -422,14 +334,6 @@ export function useMCP() {
   const call = async <T = unknown>(method: string, params: Record<string, unknown> = {}): Promise<T> => {
     setLoading(true);
     try {
-      // Pre-flight auth check for non-local
-      if (!shouldUseMCPProxy()) {
-        const token = await checkAuth();
-        if (!token) {
-          return { ok: false, error: 'Not authenticated' } as T;
-        }
-      }
-
       if (shouldUseMCPProxy()) {
         return await callMCP<T>(method, params);
       }
@@ -448,13 +352,7 @@ export function useMCP() {
         'lms.getJobMetrics': 'get-job-metrics',
       };
       const functionName = methodMap[method] || method.replace('lms.', '').replace(/([A-Z])/g, '-$1').toLowerCase();
-      return await callEdgeFunction<T>(functionName, params);
-    } catch (err) {
-      const error = err as any;
-      if (error?.status === 401 || error?.code === 'UNAUTHORIZED') {
-        return { ok: false, error: 'Not authenticated' } as T;
-      }
-      throw err;
+      return await callEdgeFunction<Record<string, unknown>, T>(functionName, params);
     } finally {
       setLoading(false);
     }
@@ -464,7 +362,7 @@ export function useMCP() {
   const startGameRound = async (courseId: string, level: number, assignmentId?: string, contentVersion?: string) => {
     setLoading(true);
     try {
-      return await callEdgeFunction<{ sessionId: string; roundId: string; startedAt: string }>('game-start-round', {
+      return await callEdgeFunction<Record<string, unknown>, { sessionId: string; roundId: string; startedAt: string }>('game-start-round', {
         courseId,
         level,
         assignmentId,
@@ -487,7 +385,7 @@ export function useMCP() {
   ) => {
     setLoading(true);
     try {
-      return await callEdgeFunction<{ attemptId: string; roundId: string; final?: { finalScore: number; endedAt: string } }>(
+      return await callEdgeFunction<Record<string, unknown>, { attemptId: string; roundId: string; final?: { finalScore: number; endedAt: string } }>(
         'game-log-attempt',
         {
           roundId,
@@ -529,7 +427,7 @@ export function useMCP() {
   }) => {
     setLoading(true);
     try {
-      return await callEdgeFunction<GetStudentSkillsResponse>('get-student-skills', params);
+      return await callEdgeFunction<Record<string, unknown>, GetStudentSkillsResponse>('get-student-skills', params);
     } finally {
       setLoading(false);
     }
@@ -544,7 +442,7 @@ export function useMCP() {
   }) => {
     setLoading(true);
     try {
-      return await callEdgeFunction<GetClassKOSummaryResponse>('get-class-ko-summary', params);
+      return await callEdgeFunction<Record<string, unknown>, GetClassKOSummaryResponse>('get-class-ko-summary', params);
     } finally {
       setLoading(false);
     }
@@ -558,7 +456,7 @@ export function useMCP() {
   }) => {
     setLoading(true);
     try {
-      return await callEdgeFunction<UpdateMasteryResponse>('update-mastery', params);
+      return await callEdgeFunction<Record<string, unknown>, UpdateMasteryResponse>('update-mastery', params);
     } finally {
       setLoading(false);
     }
@@ -567,7 +465,7 @@ export function useMCP() {
   const getDomainGrowth = async (studentId: string) => {
     setLoading(true);
     try {
-      return await callEdgeFunction<GetDomainGrowthResponse>('get-domain-growth', { studentId });
+      return await callEdgeFunction<Record<string, unknown>, GetDomainGrowthResponse>('get-domain-growth', { studentId });
     } finally {
       setLoading(false);
     }
@@ -596,7 +494,7 @@ export function useMCP() {
   const updateAutoAssignSettings = async (studentId: string, settings: Record<string, unknown>) => {
     setLoading(true);
     try {
-      return await callEdgeFunction<GetAutoAssignSettingsResponse>('update-auto-assign-settings', { studentId, settings });
+      return await callEdgeFunction<Record<string, unknown>, GetAutoAssignSettingsResponse>('update-auto-assign-settings', { studentId, settings });
     } finally {
       setLoading(false);
     }
@@ -609,7 +507,7 @@ export function useMCP() {
   }) => {
     setLoading(true);
     try {
-      return await callEdgeFunction<Array<Assignment>>('get-student-assignments', params);
+      return await callEdgeFunction<Record<string, unknown>, Array<Assignment>>('get-student-assignments', params);
     } finally {
       setLoading(false);
     }
@@ -627,7 +525,7 @@ export function useMCP() {
   }) => {
     setLoading(true);
     try {
-      return await callEdgeFunction<{ assignmentIds: string[]; success: boolean }>('create-assignment', params);
+      return await callEdgeFunction<Record<string, unknown>, { assignmentIds: string[]; success: boolean }>('create-assignment', params);
     } finally {
       setLoading(false);
     }
@@ -798,19 +696,7 @@ export function useMCP() {
   const listClasses = async () => {
     setLoading(true);
     try {
-      // Pre-flight auth check
-      const token = await checkAuth();
-      if (!token) {
-        return { classes: [] };
-      }
-      
       return await callEdgeFunctionGet<ListClassesResponse>('list-classes');
-    } catch (err) {
-      const error = err as any;
-      if (error?.status === 401 || error?.code === 'UNAUTHORIZED') {
-        return { classes: [] };
-      }
-      throw err;
     } finally {
       setLoading(false);
     }
@@ -828,7 +714,7 @@ export function useMCP() {
   const createClass = async (name: string, description?: string) => {
     setLoading(true);
     try {
-      return await callEdgeFunction<{ class: { id: string; name: string; description?: string; owner: string; created_at: string } }>('create-class', { name, description });
+      return await callEdgeFunction<Record<string, unknown>, { class: { id: string; name: string; description?: string; owner: string; created_at: string } }>('create-class', { name, description });
     } finally {
       setLoading(false);
     }
@@ -837,7 +723,7 @@ export function useMCP() {
   const addClassMember = async (classId: string, studentEmail: string) => {
     setLoading(true);
     try {
-      return await callEdgeFunction<{ ok: boolean }>('add-class-member', { classId, studentEmail });
+      return await callEdgeFunction<Record<string, unknown>, { ok: boolean }>('add-class-member', { classId, studentEmail });
     } finally {
       setLoading(false);
     }
@@ -846,7 +732,7 @@ export function useMCP() {
   const removeClassMember = async (classId: string, studentId: string) => {
     setLoading(true);
     try {
-      return await callEdgeFunction<{ ok: boolean }>('remove-class-member', { classId, studentId });
+      return await callEdgeFunction<Record<string, unknown>, { ok: boolean }>('remove-class-member', { classId, studentId });
     } finally {
       setLoading(false);
     }
@@ -855,7 +741,7 @@ export function useMCP() {
   const inviteStudent = async (orgId: string, classId: string, email: string) => {
     setLoading(true);
     try {
-      return await callEdgeFunction<{ inviteId: string; success: boolean }>('invite-student', { orgId, classId, email });
+      return await callEdgeFunction<Record<string, unknown>, { inviteId: string; success: boolean }>('invite-student', { orgId, classId, email });
     } finally {
       setLoading(false);
     }
@@ -864,7 +750,7 @@ export function useMCP() {
   const generateClassCode = async (classId: string, refreshCode?: boolean) => {
     setLoading(true);
     try {
-      return await callEdgeFunction<{ code: string; expiresAt: string }>('generate-class-code', { classId, refreshCode });
+      return await callEdgeFunction<Record<string, unknown>, { code: string; expiresAt: string }>('generate-class-code', { classId, refreshCode });
     } finally {
       setLoading(false);
     }
@@ -873,7 +759,7 @@ export function useMCP() {
   const joinClass = async (code: string) => {
     setLoading(true);
     try {
-      return await callEdgeFunction<{ success: boolean; classId?: string }>('join-class', { code: code.toUpperCase() });
+      return await callEdgeFunction<Record<string, unknown>, { success: boolean; classId?: string }>('join-class', { code: code.toUpperCase() });
     } finally {
       setLoading(false);
     }
@@ -882,7 +768,7 @@ export function useMCP() {
   const createChildCode = async (studentId: string) => {
     setLoading(true);
     try {
-      return await callEdgeFunction<{ code: string; expiresAt: string }>('create-child-code', { studentId });
+      return await callEdgeFunction<Record<string, unknown>, { code: string; expiresAt: string }>('create-child-code', { studentId });
     } finally {
       setLoading(false);
     }
@@ -891,7 +777,7 @@ export function useMCP() {
   const linkChild = async (code: string) => {
     setLoading(true);
     try {
-      return await callEdgeFunction<{ success: boolean; childId?: string }>('link-child', { code });
+      return await callEdgeFunction<Record<string, unknown>, { success: boolean; childId?: string }>('link-child', { code });
     } finally {
       setLoading(false);
     }
@@ -901,7 +787,7 @@ export function useMCP() {
   const sendMessage = async (recipientId: string, content: string) => {
     setLoading(true);
     try {
-      return await callEdgeFunction<{ messageId: string; success: boolean }>('send-message', { recipientId, content });
+      return await callEdgeFunction<Record<string, unknown>, { messageId: string; success: boolean }>('send-message', { recipientId, content });
     } finally {
       setLoading(false);
     }
@@ -973,7 +859,7 @@ export function useMCP() {
   }) => {
     setLoading(true);
     try {
-      return await callEdgeFunction<{ assignmentId: string; message: string }>('create-assignment', params);
+      return await callEdgeFunction<Record<string, unknown>, { assignmentId: string; message: string }>('create-assignment', params);
     } finally {
       setLoading(false);
     }
@@ -1053,6 +939,7 @@ export function useMCP() {
         itemCount: item.itemCount || 0,
         duration: '15 min',
         difficulty: 'Intermediate',
+        difficultyLabel: 'Intermediate',
       }));
       
       console.log('[MCP] getCourseCatalog - loaded', courses.length, 'courses from Edge Function');
@@ -1079,7 +966,7 @@ export function useMCP() {
     setLoading(true);
     try {
       // Edge function expects JSON Patch ops under `ops` (not `operations`).
-      return await callEdgeFunction<{ ok: boolean; courseId: string }>('update-course', { courseId, ops: operations });
+      return await callEdgeFunction<Record<string, unknown>, { ok: boolean; courseId: string }>('update-course', { courseId, ops: operations });
     } finally {
       setLoading(false);
     }
@@ -1088,7 +975,7 @@ export function useMCP() {
   const publishCourse = async (courseId: string, changelog?: string) => {
     setLoading(true);
     try {
-      return await callEdgeFunction<{ ok: boolean; courseId: string }>('publish-course', { courseId, changelog });
+      return await callEdgeFunction<Record<string, unknown>, { ok: boolean; courseId: string }>('publish-course', { courseId, changelog });
     } finally {
       setLoading(false);
     }
@@ -1097,7 +984,7 @@ export function useMCP() {
   const restoreCourseVersion = async (courseId: string, version: number) => {
     setLoading(true);
     try {
-      return await callEdgeFunction<{ ok: boolean; courseId: string; version: number }>('restore-course-version', { courseId, version });
+      return await callEdgeFunction<Record<string, unknown>, { ok: boolean; courseId: string; version: number }>('restore-course-version', { courseId, version });
     } finally {
       setLoading(false);
     }
@@ -1106,7 +993,7 @@ export function useMCP() {
   const getCoursesByTags = async (tags: string[]) => {
     setLoading(true);
     try {
-      return await callEdgeFunction<SearchCoursesResponse>('get-courses-by-tags', { tags });
+      return await callEdgeFunction<Record<string, unknown>, SearchCoursesResponse>('get-courses-by-tags', { tags });
     } finally {
       setLoading(false);
     }
@@ -1170,7 +1057,7 @@ export function useMCP() {
   const startRound = async (courseId: string, level: number) => {
     setLoading(true);
     try {
-      return await callEdgeFunction<{ sessionId: string; roundId: string }>('game-start-round', { courseId, level });
+      return await callEdgeFunction<Record<string, unknown>, { sessionId: string; roundId: string }>('game-start-round', { courseId, level });
     } finally {
       setLoading(false);
     }
@@ -1179,7 +1066,7 @@ export function useMCP() {
   const logAttempt = async (params: unknown) => {
     setLoading(true);
     try {
-      return await callEdgeFunction<{ attemptId: string }>('game-log-attempt', params as Record<string, unknown>);
+      return await callEdgeFunction<Record<string, unknown>, { attemptId: string }>('game-log-attempt', params as Record<string, unknown>);
     } finally {
       setLoading(false);
     }
@@ -1245,7 +1132,7 @@ export function useMCP() {
   const rewriteText = async (request: { segmentType: string; currentText: string; context?: Record<string, unknown>; styleHints?: string[]; candidateCount?: number }) => {
     setLoading(true);
     try {
-      return await callEdgeFunction<{ candidates: Array<{ text: string; rationale: string }>; originalText: string; segmentType: string; context: unknown }>('ai-rewrite-text', request);
+      return await callEdgeFunction<Record<string, unknown>, { candidates: Array<{ text: string; rationale: string }>; originalText: string; segmentType: string; context: unknown }>('ai-rewrite-text', request);
     } finally {
       setLoading(false);
     }

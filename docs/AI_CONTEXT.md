@@ -64,10 +64,10 @@ We distinguish between two types of work. Use the correct pipeline:
 **When asked to "Refactor to [Domain]":**
 
 1.  **Update Manifest:** Modify `system-manifest.json` to match the new domain.
-2.  **Scaffold:** Run `npx tsx scripts/scaffold-manifest.ts` to regenerate contracts.
+2.  **Scaffold:** Run `npx ignite scaffold` to regenerate contracts.
 3.  **The Repair Loop:**
 
-    * Run `npm run verify`.
+    * Run `npx ignite verify`.
     * If **FAIL**: Read the error log. Fix the specific components causing the error (rename files, map props).
     * **MAX ATTEMPTS:** 3. If the same error persists after 3 attempts, **HALT** and ask for human review.
     * If **PASS**: Stop. The refactor is complete.

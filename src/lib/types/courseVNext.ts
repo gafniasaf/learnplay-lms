@@ -89,6 +89,17 @@ export interface CourseItemVNext {
   // Metadata
   clusterId?: string;
   variant?: string;
+  /**
+   * Progressive hints (preferred).
+   * - nudge: gentle conceptual reminder
+   * - guide: more specific directional clue
+   * - reveal: near-solution without stating the answer verbatim
+   */
+  hints?: {
+    nudge?: string;
+    guide?: string;
+    reveal?: string;
+  };
   hint?: string;
   relatedStudyTextIds?: string[];
   learningObjectiveId?: string;
@@ -223,6 +234,7 @@ export function migrateCourseToVNext(legacyCourse: any): CourseVNext {
         answer: item.answer,
         clusterId: item.clusterId,
         variant: item.variant,
+        hints: item.hints,
         hint: item.hint,
         relatedStudyTextIds: item.relatedStudyTextIds,
         learningObjectiveId: item.learningObjectiveId,

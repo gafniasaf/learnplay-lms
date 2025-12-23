@@ -28,6 +28,7 @@ import { StemTab } from '@/components/admin/editor/StemTab';
 import { OptionsTab } from '@/components/admin/editor/OptionsTab';
 import { ReferenceTab } from '@/components/admin/editor/ReferenceTab';
 import { ExercisesTab } from '@/components/admin/editor/ExercisesTab';
+import { HintsTab } from '@/components/admin/editor/HintsTab';
 import { MediaLibraryPanel } from '@/components/admin/editor/MediaLibraryPanel';
 import { ComparePanel } from '@/components/admin/editor/ComparePanel';
 import { AIRewriteChatPanel } from '@/components/admin/editor/AIRewriteChatPanel';
@@ -78,6 +79,7 @@ const CourseEditor = () => {
   const [studyTextEditorLearningObjectives, setStudyTextEditorLearningObjectives] = useState<string>('');
   const [studyTextAiRewriteLoading, setStudyTextAiRewriteLoading] = useState(false);
   const [studyTextAiImageLoading, setStudyTextAiImageLoading] = useState(false);
+  const [hintsGenerating, setHintsGenerating] = useState(false);
   const studyTextEditorDraftRef = useRef<HTMLTextAreaElement | null>(null);
   const pendingStudyTextSelectionRef = useRef<{ start: number; end: number } | null>(null);
   const [showMediaLibrary, setShowMediaLibrary] = useState(false);
@@ -1018,6 +1020,82 @@ const result = await mcp.rewriteText({
     }
   };
 
+  const handleAIGenerateHints = async () => {
+    if (!courseId) {
+      toast.error('Missing courseId');
+      return;
+    }
+    const currentItem = getCurrentItem();
+    if (!currentItem) {
+      toast.error('No item selected');
+      return;
+    }
+    if (unsavedItems.size > 0) {
+      toast.error('Please save or discard unsaved changes before generating hints');
+      return;
+    }
+
+    try {
+      toast.info('Generating hints…');
+      await mcp.call('lms.enrichHints', { courseId, itemIds: [Number((currentItem as any).id)] });
+      toast.success('Hints generated and saved');
+      // Reload to reflect saved hints and keep editor state consistent.
+      await loadCourse({ force: true });
+    } catch (e) {
+      console.error('[CourseEditor] enrich-hints failed:', e);
+      toast.error(e instanceof Error ? e.message : 'Hint generation failed');
+    }
+  };
+
+  const handleAIGenerateAllHints = async () => {
+    if (!courseId) {
+      toast.error('Missing courseId');
+      return;
+    }
+    if (!course) {
+      toast.error('Course not loaded');
+      return;
+    }
+    if (unsavedItems.size > 0) {
+      toast.error('Please save or discard unsaved changes before generating hints');
+      return;
+    }
+
+    const allItems: any[] = Array.isArray((course as any)?.groups)
+      ? (course as any).groups.flatMap((g: any) => (Array.isArray(g?.items) ? g.items : []))
+      : [];
+
+    const missingHintIds = allItems
+      .filter((it: any) => {
+        const h = it?.hints;
+        const hasStructured =
+          !!(h && (h.nudge || h.guide || h.reveal));
+        const hasLegacy = typeof it?.hint === 'string' && it.hint.trim().length > 0;
+        return !hasStructured && !hasLegacy;
+      })
+      .map((it: any) => Number(it?.id))
+      .filter((id: number) => Number.isFinite(id));
+
+    if (missingHintIds.length === 0) {
+      toast.info('All items already have hints');
+      return;
+    }
+
+    try {
+      setHintsGenerating(true);
+      toast.info(`Generating hints for ${missingHintIds.length} item(s)…`);
+      const json = await mcp.call<any>('lms.enrichHints', { courseId, itemIds: missingHintIds });
+      const n = Number(json?.count ?? missingHintIds.length);
+      toast.success(`Generated hints for ${n} item(s)`);
+      await loadCourse({ force: true });
+    } catch (e) {
+      console.error('[CourseEditor] enrich-hints (all) failed:', e);
+      toast.error(e instanceof Error ? e.message : 'Hint generation failed');
+    } finally {
+      setHintsGenerating(false);
+    }
+  };
+
   // Add Media to Option
   const handleAddMediaToOption = (index: number) => {
     const input = document.createElement('input');
@@ -1690,6 +1768,8 @@ const result = await mcp.rewriteText({
                     <Button
                       variant="outline"
                       size="sm"
+                      data-cta-id="cta-courseeditor-ai-fix-missing-images"
+                      data-action="action"
                       onClick={async () => {
                         if (!courseId) return;
                         try {
@@ -1702,6 +1782,17 @@ const result = await mcp.rewriteText({
                       }}
                     >
                       🧩 Fix Missing Images (AI)
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      data-cta-id="cta-courseeditor-ai-generate-hints-all"
+                      data-action="action"
+                      disabled={hintsGenerating || unsavedItems.size > 0}
+                      onClick={handleAIGenerateAllHints}
+                      title={unsavedItems.size > 0 ? 'Save or discard unsaved changes first' : undefined}
+                    >
+                      💡 {hintsGenerating ? 'Generating Hints…' : 'Generate Hints (AI)'}
                     </Button>
                   </div>
                 </div>
@@ -1725,10 +1816,21 @@ const result = await mcp.rewriteText({
               <Tabs value={activeTab} onValueChange={setActiveTab} className="bg-white rounded-lg shadow-sm border border-gray-200">
                 <div className="border-b border-gray-200 px-4">
                   <TabsList className="bg-transparent">
-                    <TabsTrigger value="stem">Stem</TabsTrigger>
-                    <TabsTrigger value="options">Options</TabsTrigger>
-                    <TabsTrigger value="reference">Explanation</TabsTrigger>
-                    <TabsTrigger value="exercises">New Exercises</TabsTrigger>
+                    <TabsTrigger value="stem" data-cta-id="cta-courseeditor-tab-stem" data-action="tab">
+                      Stem
+                    </TabsTrigger>
+                    <TabsTrigger value="options" data-cta-id="cta-courseeditor-tab-options" data-action="tab">
+                      Options
+                    </TabsTrigger>
+                    <TabsTrigger value="reference" data-cta-id="cta-courseeditor-tab-reference" data-action="tab">
+                      Explanation
+                    </TabsTrigger>
+                    <TabsTrigger value="hints" data-cta-id="cta-courseeditor-tab-hints" data-action="tab">
+                      Hints
+                    </TabsTrigger>
+                    <TabsTrigger value="exercises" data-cta-id="cta-courseeditor-tab-exercises" data-action="tab">
+                      New Exercises
+                    </TabsTrigger>
                   </TabsList>
                 </div>
 
@@ -1773,6 +1875,15 @@ const result = await mcp.rewriteText({
                       item={currentItem}
                       onChange={handleItemChange}
                       onAIRewrite={handleAIRewriteReference}
+                    />
+                  </TabsContent>
+
+                  <TabsContent value="hints" className="mt-0">
+                    <HintsTab
+                      item={currentItem as any}
+                      onChange={handleItemChange as any}
+                      onAIGenerate={handleAIGenerateHints}
+                      aiDisabled={unsavedItems.size > 0}
                     />
                   </TabsContent>
 

@@ -127,8 +127,7 @@ const Play = () => {
   const [showWrongModal, setShowWrongModal] = useState(false);
   const [phase, setPhase] = useState<Phase>('idle');
   const [frozenItem, setFrozenItem] = useState(gameState.currentItem);
-  const [showHint, setShowHint] = useState(false);
-  const [currentHint, setCurrentHint] = useState<string | undefined>(undefined);
+  const [hintLevel, setHintLevel] = useState(0);
 
   // Preload all course images in the background once the course and first item are ready
   useCoursePreloader(course);
@@ -178,6 +177,11 @@ const Play = () => {
       setFrozenItem(gameState.currentItem);
     }
   }, [gameState.currentItem, phase]);
+
+  // Reset hints when the question changes
+  useEffect(() => {
+    setHintLevel(0);
+  }, [(frozenItem as any)?.id]);
   const distinctItemsRef = useRef(new Set<number>());
   const finalScoreRef = useRef<number | undefined>(undefined);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -966,51 +970,64 @@ const Play = () => {
                   courseId={courseId}
                 />
 
-              {/* Hint button */}
+              {/* Progressive hints */}
               <div className="w-full max-w-5xl mx-auto -mt-2 -mb-2">
+                {(() => {
+                  const item: any = frozenItem as any;
+                  const h = item?.hints;
+                  const available: string[] = [];
+                  if (h && typeof h === 'object') {
+                    if (typeof h.nudge === 'string' && h.nudge.trim()) available.push(h.nudge.trim());
+                    if (typeof h.guide === 'string' && h.guide.trim()) available.push(h.guide.trim());
+                    if (typeof h.reveal === 'string' && h.reveal.trim()) available.push(h.reveal.trim());
+                  }
+                  if (available.length === 0 && typeof item?.hint === 'string' && item.hint.trim()) {
+                    available.push(item.hint.trim());
+                  }
+
+                  const canShowMore = available.length > 0 && hintLevel < available.length;
+                  const shown = available.slice(0, Math.min(hintLevel, available.length));
+
+                  return (
+                    <>
                 <Button
                   variant="outline"
                   size="sm"
                   data-testid="btn-hint"
-                  onClick={async () => {
-                    try {
-                    // If hint already present, just reveal it
-                    if ((frozenItem as any)?.hint) {
-                      setCurrentHint((frozenItem as any).hint as string);
-                      setShowHint(true);
-                      return;
-                    }
-                    const json = await mcp.call<any>('lms.generateHint', { courseId, itemId: frozenItem.id });
-                    const hintText = String(json?.hint || '');
-                    setCurrentHint(hintText);
-                    setShowHint(true);
-                    console.info('[Play] Hint generated');
-                    // Best-effort cache invalidation; log instead of silent swallow
-                    try {
-                      if (courseId) {
-                        const mod = await import("@/lib/utils/cacheInvalidation");
-                        await mod.invalidateCourseCache(courseId);
-                      }
-                    } catch (cacheError) {
-                      console.warn('[Play] Cache invalidation skipped', cacheError);
-                    }
-                    } catch (e) {
-                      console.warn('[Play] Hint error', e);
-                    (window as any)?.__toast?.error?.('Hint error');
-                    }
-                  }}
+                  data-cta-id="cta-play-hint"
+                  data-action="action"
+                  disabled={!canShowMore}
+                  onClick={() => setHintLevel((lvl) => Math.min(lvl + 1, available.length))}
                 >
-                  Need a hint?
+                  {available.length === 0
+                    ? 'No hints'
+                    : hintLevel === 0
+                      ? 'Need a hint?'
+                      : hintLevel < available.length
+                        ? 'Another hint?'
+                        : 'No more hints'}
                 </Button>
-              </div>
-              {showHint && (currentHint || (frozenItem as any)?.hint) && (
-                <div className="w-full max-w-5xl mx-auto -mt-4">
-                  <div className="rounded-md border bg-muted/40 p-3 text-sm">
-                    <span className="font-medium">Hint:</span>{' '}
-                    <span>{currentHint || (frozenItem as any).hint}</span>
+                {shown.length > 0 && (
+                  <div className="w-full max-w-5xl mx-auto mt-3 space-y-2">
+                    {shown.map((hint, idx) => {
+                      const cls =
+                        idx === 0
+                          ? 'border-blue-200 bg-blue-50'
+                          : idx === 1
+                            ? 'border-amber-200 bg-amber-50'
+                            : 'border-rose-200 bg-rose-50';
+                      return (
+                        <div key={idx} className={`rounded-md border p-3 text-sm ${cls}`}>
+                          <span className="font-medium">Hint {idx + 1}:</span> {hint}
+                        </div>
+                      );
+                    })}
                   </div>
-                </div>
-              )}
+                )}
+                    </>
+                  );
+                })()}
+              </div>
 
               {categoryMode ? (
                 // Category mode: Show group buttons (legacy mode)

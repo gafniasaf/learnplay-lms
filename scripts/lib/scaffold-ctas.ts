@@ -1,8 +1,13 @@
 import fs from "node:fs";
 import path from "node:path";
+import { fileURLToPath } from 'node:url';
 
-const COVERAGE_PATH = path.join("docs", "mockups", "coverage.json");
-const OUTPUT_PATH = path.join("src", "lib", "cta-ids.ts");
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Adjust paths since this is now in scripts/lib/
+const COVERAGE_PATH = path.join(__dirname, "../../docs/mockups/coverage.json");
+const OUTPUT_PATH = path.join(__dirname, "../../src/lib/cta-ids.ts");
 
 type Coverage = {
   routes: Array<{
@@ -36,7 +41,8 @@ function generateCtaIdsFile(ctaIds: Set<string>): string {
   return `// ------------------------------------------------------------------
 // ⚠️ AUTO-GENERATED FROM docs/mockups/coverage.json
 // ------------------------------------------------------------------
-// Run: npx tsx scripts/scaffold-ctas.ts
+// Run: npx ignite scaffold
+// (or via npx tsx scripts/ignite.ts scaffold)
 
 export enum CtaId {
 ${enumEntries.join("\n")}
@@ -58,7 +64,7 @@ export function isValidCtaId(id: string): id is CtaIdType {
 `;
 }
 
-async function main() {
+export async function scaffoldCtas() {
   console.log("🔧 Generating CTA ID types from coverage.json...");
   
   if (!fs.existsSync(COVERAGE_PATH)) {
@@ -82,9 +88,4 @@ async function main() {
   fs.writeFileSync(OUTPUT_PATH, output, "utf-8");
   console.log(`✅ Generated: ${OUTPUT_PATH}`);
 }
-
-main().catch((err) => {
-  console.error("💥 Failed:", err instanceof Error ? err.message : err);
-  process.exit(1);
-});
 

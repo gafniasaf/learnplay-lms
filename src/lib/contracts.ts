@@ -678,10 +678,26 @@ export const EDGE_FUNCTION_SCHEMAS = [
     "id": "generate-hint",
     "input": {
       "courseId": "string",
-      "itemId": "string"
+      "itemId": "number"
     },
     "output": {
+      "ok": "boolean",
+      "courseId": "string",
+      "itemId": "number",
       "hint": "string"
+    }
+  },
+  {
+    "id": "enrich-hints",
+    "input": {
+      "courseId": "string",
+      "itemIds": "json"
+    },
+    "output": {
+      "ok": "boolean",
+      "courseId": "string",
+      "updatedItemIds": "json",
+      "count": "number"
     }
   },
   {

@@ -46,10 +46,11 @@ interface Manifest {
 // --- Generator Logic ---
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const MANIFEST_PATH = path.join(__dirname, '../system-manifest.json');
-const OUTPUT_PATH = path.join(__dirname, '../src/lib/contracts.ts');
-const STRATEGIES_DIR = path.join(__dirname, '../supabase/functions/ai-job-runner/strategies');
-const REGISTRY_PATH = path.join(__dirname, '../supabase/functions/ai-job-runner/registry.ts');
+// Adjust paths since this is now in scripts/lib/
+const MANIFEST_PATH = path.join(__dirname, '../../system-manifest.json');
+const OUTPUT_PATH = path.join(__dirname, '../../src/lib/contracts.ts');
+const STRATEGIES_DIR = path.join(__dirname, '../../supabase/functions/ai-job-runner/strategies');
+const REGISTRY_PATH = path.join(__dirname, '../../supabase/functions/ai-job-runner/registry.ts');
 
 function mapTypeToZod(field: FieldDef): string {
   let zodType = 'z.any()';
@@ -292,7 +293,7 @@ function generateEdgeFunctions(manifest: Manifest): string {
   return `export const EDGE_FUNCTION_SCHEMAS = ${JSON.stringify(edges, null, 2)} as const;`;
 }
 
-async function main() {
+export async function scaffoldManifest() {
   if (!fs.existsSync(MANIFEST_PATH)) {
     console.error(`❌ Manifest not found at ${MANIFEST_PATH}`);
     process.exit(1);
@@ -357,4 +358,3 @@ ${generateEdgeFunctions(manifest)}
   generateRegistry(manifest);
 }
 
-main();

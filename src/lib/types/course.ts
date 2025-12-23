@@ -45,6 +45,18 @@ export interface CourseItem {
   correctIndex: number;
   wrongExplanations?: string[];
   answer?: number;
+  /**
+   * Progressive hints (preferred).
+   * - nudge: gentle conceptual reminder
+   * - guide: more specific directional clue
+   * - reveal: near-solution without stating the answer verbatim
+   */
+  hints?: {
+    nudge?: string;
+    guide?: string;
+    reveal?: string;
+  };
+  /** Legacy single hint (backwards compatible) */
   hint?: string;
   relatedStudyTextIds?: string[];
   learningObjectiveId?: string;

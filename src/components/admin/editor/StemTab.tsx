@@ -90,7 +90,14 @@ export const StemTab = ({ item, onChange, onAIRewrite, onOpenAIChat, onAddMedia,
               {showPreview ? <Code className="h-3.5 w-3.5 mr-1.5" /> : <Eye className="h-3.5 w-3.5 mr-1.5" />}
               {showPreview ? 'Edit HTML' : 'Preview'}
             </Button>
-            <Button variant="outline" size="sm" onClick={onOpenAIChat ?? onAIRewrite} className="shadow-sm bg-gradient-to-r from-purple-50 to-pink-50 border-purple-200 hover:from-purple-100 hover:to-pink-100">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={onOpenAIChat ?? onAIRewrite} 
+              className="shadow-sm bg-gradient-to-r from-purple-50 to-pink-50 border-purple-200 hover:from-purple-100 hover:to-pink-100"
+              data-cta-id="cta-courseeditor-stem-ai-rewrite"
+              data-action="action"
+            >
               <Sparkles className="h-3.5 w-3.5 mr-1.5 text-purple-600" />
               <span className="text-purple-700">AI Rewrite</span>
             </Button>

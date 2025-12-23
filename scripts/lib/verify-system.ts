@@ -2,12 +2,13 @@ import { execSync } from 'child_process';
 import fs from 'fs';
 import { glob } from 'glob';
 
-if (process.env.SKIP_VERIFY === '1') {
-  console.log("⚠️  SKIP_VERIFY=1 — skipping verify script (used for local e2e builds).");
-  process.exit(0);
-}
+// Export as a function, not a self-executing script
+export async function verifySystem() {
+  if (process.env.SKIP_VERIFY === '1') {
+    console.log("⚠️  SKIP_VERIFY=1 — skipping verify script (used for local e2e builds).");
+    return;
+  }
 
-async function main() {
   console.log("🔍 Verifying System Integrity...");
 
   // 1. Contract Integrity Check
@@ -29,7 +30,7 @@ async function main() {
   } catch (error) {
     console.error("❌ ESLint failed - architectural violations detected");
     console.error("Fix violations before proceeding. Run 'npm run lint:fix' for auto-fixes.");
-    throw error;
+    throw new Error("ESLint failed");
   }
 
   // 3. Fallback Pattern Detection (NO-FALLBACK POLICY)
@@ -98,13 +99,21 @@ async function main() {
 
   // 3. Type Safety Check (The Iron Gate)
   console.log("🛠️ Running Typecheck...");
-  execSync('npm run typecheck', { stdio: 'inherit' });
-  console.log("✅ TYPECHECK PASSED");
+  try {
+    execSync('npm run typecheck', { stdio: 'inherit' });
+    console.log("✅ TYPECHECK PASSED");
+  } catch (e) {
+    throw new Error("Typecheck failed");
+  }
 
   // 4. Unit Tests
   console.log("🧪 Running Unit Tests...");
-  execSync('npm run test', { stdio: 'inherit' });
-  console.log("✅ UNIT TESTS PASSED");
+  try {
+    execSync('npm run test', { stdio: 'inherit' });
+    console.log("✅ UNIT TESTS PASSED");
+  } catch (e) {
+    throw new Error("Unit tests failed");
+  }
 
   // 5. LearnPlay E2E Tests Check
   if (fs.existsSync('tests/e2e/learnplay-journeys.spec.ts')) {
@@ -143,9 +152,3 @@ async function main() {
   console.log("\n🎉 SYSTEM READY FOR REVIEW.");
 }
 
-main().catch((e) => {
-  console.error("\n❌ VERIFICATION FAILED.");
-  console.error("Agent: Read the errors above. Fix the code until this script passes.");
-  console.error(e instanceof Error ? e.message : e);
-  process.exit(1);
-});
