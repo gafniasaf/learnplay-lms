@@ -1,7 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { stdHeaders, handleOptions } from "../_shared/cors.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { runJob } from "../ai-job-runner/runner.ts";
 import { authenticateRequest, requireOrganizationId } from "../_shared/auth.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
@@ -228,13 +227,41 @@ serve(async (req: Request): Promise<Response> => {
         .eq("id", jobId);
 
       try {
-        const result = await runJob(body.jobType, payload, jobId);
-        await adminSupabase
-          .from("ai_course_jobs")
-          .update({ status: "done", completed_at: new Date().toISOString() })
-          .eq("id", jobId);
+        // IMPORTANT:
+        // Even in "runSync" mode, course generation MUST use the canonical generate-course pipeline
+        // so course artifacts are persisted (storage + course_metadata) and observable via job progress.
+        const genUrl = `${SUPABASE_URL}/functions/v1/generate-course?jobId=${encodeURIComponent(jobId)}`;
+        const genResp = await fetch(genUrl, {
+          method: "POST",
+          headers: { "Authorization": `Bearer ${SERVICE_ROLE_KEY}`, "Content-Type": "application/json" },
+          body: JSON.stringify({
+            subject,
+            gradeBand,
+            grade: typeof (payload as any).grade === "string" ? (payload as any).grade : null,
+            itemsPerGroup: itemsPerGroup ?? 12,
+            levelsCount: typeof (payload as any).levels_count === "number" ? (payload as any).levels_count : undefined,
+            mode,
+          }),
+        });
+        const genJson = await genResp.json().catch(() => null);
+        if (!genResp.ok || genJson?.success === false) {
+          const msg = genJson?.error?.message || genJson?.error || `generate-course failed (${genResp.status})`;
+          await adminSupabase
+            .from("ai_course_jobs")
+            .update({ status: "failed", error: msg, completed_at: new Date().toISOString() })
+            .eq("id", jobId);
+          return json({ ok: false, jobId, status: "failed", error: msg, requestId }, 200);
+        }
 
-        return new Response(JSON.stringify({ ok: true, jobId, status: "completed", result, requestId }), {
+        const resultPath =
+          typeof genJson?.result_path === "string"
+            ? genJson.result_path
+            : (courseId ? `${courseId}/course.json` : null);
+        const update: Record<string, unknown> = { status: "done", completed_at: new Date().toISOString() };
+        if (resultPath) update.result_path = resultPath;
+        await adminSupabase.from("ai_course_jobs").update(update).eq("id", jobId);
+
+        return new Response(JSON.stringify({ ok: true, jobId, status: "completed", result: genJson, requestId }), {
           status: 200,
           headers: stdHeaders(req, { "Content-Type": "application/json", "X-Request-Id": requestId }),
         });

@@ -4,7 +4,6 @@ import { withCors } from "../_shared/cors.ts";
 import { Errors } from "../_shared/error.ts";
 import { checkOrigin } from "../_shared/origins.ts";
 import { requireEnv } from "../_shared/env.ts";
-import { runJob } from "../ai-job-runner/runner.ts";
 
 const SUPABASE_URL = requireEnv("SUPABASE_URL");
 const SUPABASE_SERVICE_ROLE_KEY = requireEnv("SUPABASE_SERVICE_ROLE_KEY");
@@ -66,21 +65,50 @@ serve(
       const jobId = job.id;
       await admin.from("ai_course_jobs").update({ status: "processing", started_at: new Date().toISOString() }).eq("id", jobId);
 
-      const jobType = "ai_course_generate";
-      const payload = {
-        course_id: job.course_id,
-        subject: job.subject,
-        grade: job.grade,
-        grade_band: job.grade_band,
-        items_per_group: job.items_per_group,
-        mode: job.mode,
-        ...((job as any).payload || {}),
-      };
-
       try {
-        const result = await runJob(jobType, payload, jobId);
-        await admin.from("ai_course_jobs").update({ status: "done", completed_at: new Date().toISOString() }).eq("id", jobId);
-        results.push({ jobId, status: "done", result });
+        // IMPORTANT:
+        // Batch runner must use the canonical `generate-course` pipeline so courses are persisted
+        // to `courses/<course_id>/course.json` and indexed via `course_metadata`.
+        const genUrl = `${SUPABASE_URL}/functions/v1/generate-course?jobId=${encodeURIComponent(jobId)}`;
+        const genResp = await fetch(genUrl, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            subject: job.subject,
+            gradeBand: job.grade_band,
+            grade: job.grade,
+            itemsPerGroup: job.items_per_group,
+            levelsCount: (job as any).levels_count || undefined,
+            mode: job.mode,
+          }),
+        });
+
+        const genJson = await genResp.json().catch(() => null);
+
+        if (!genResp.ok || genJson?.success === false) {
+          const msg = genJson?.error?.message || genJson?.error || `generate-course failed (${genResp.status})`;
+          await admin.from("ai_course_jobs").update({ status: "failed", error: msg, completed_at: new Date().toISOString() }).eq("id", jobId);
+          results.push({ jobId, status: "failed", error: msg });
+          continue;
+        }
+
+        const courseId = String(job.course_id || "");
+        const resultPath =
+          typeof genJson?.result_path === "string"
+            ? genJson.result_path
+            : (courseId ? `${courseId}/course.json` : null);
+
+        const update: Record<string, unknown> = {
+          status: "done",
+          completed_at: new Date().toISOString(),
+        };
+        if (resultPath) update.result_path = resultPath;
+
+        await admin.from("ai_course_jobs").update(update).eq("id", jobId);
+        results.push({ jobId, status: "done", courseId: job.course_id, resultPath });
       } catch (e) {
         const message = e instanceof Error ? e.message : String(e);
         await admin.from("ai_course_jobs").update({ status: "failed", error: message, completed_at: new Date().toISOString() }).eq("id", jobId);
