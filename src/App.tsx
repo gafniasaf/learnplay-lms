@@ -91,7 +91,13 @@ const DevAgentSetupGate = ({ children }: { children: React.ReactNode }) => {
   const [gateVersion, setGateVersion] = useState(0);
   useEffect(() => {
     if (typeof window === "undefined") return;
-    return onDevChange(() => setGateVersion((v) => v + 1));
+    const offDev = onDevChange(() => setGateVersion((v) => v + 1));
+    const onInvalid = () => setGateVersion((v) => v + 1);
+    window.addEventListener("iz:dev-agent-invalid", onInvalid as EventListener);
+    return () => {
+      offDev?.();
+      window.removeEventListener("iz:dev-agent-invalid", onInvalid as EventListener);
+    };
   }, []);
 
   const enabled = lovable && isDevAgentMode();
@@ -186,6 +192,20 @@ const DevAgentSetupGate = ({ children }: { children: React.ReactNode }) => {
   const missing = useMemo(() => {
     if (!enabled || typeof window === "undefined") return false;
 
+    const invalidFlag = (() => {
+      try {
+        const g = globalThis as any;
+        if (g.__izDevAgentInvalid === true) return true;
+      } catch {
+        // ignore
+      }
+      try {
+        return window.sessionStorage.getItem("iz_dev_agent_invalid") === "1";
+      } catch {
+        return false;
+      }
+    })();
+
     const get = (k: string): string | null => {
       // In-memory cache (for iframe environments where storage is blocked)
       try {
@@ -224,11 +244,45 @@ const DevAgentSetupGate = ({ children }: { children: React.ReactNode }) => {
 
       return null;
     };
+    const normalize = (key: string, value: string | null): string | null => {
+      const v = value?.trim() ?? "";
+      if (!v) return null;
+      // Common placeholder values that should NOT be treated as configured.
+      const lowered = v.toLowerCase();
+      if (v === "..." || v === "<token>" || v === "<org_uuid>" || v === "AGENT_TOKEN") return null;
+      if (lowered === "null" || lowered === "undefined") return null;
+      if (key === "iz_dev_org_id") {
+        // Basic UUID check (keep strict to prevent "almost org id" mistakes).
+        const uuidRe = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+        if (!uuidRe.test(v)) return null;
+      }
+      // Agent token: require a minimally plausible length to avoid accidental placeholders.
+      if (key === "iz_dev_agent_token" && v.length < 12) return null;
+      return v;
+    };
+
+    const token = normalize("iz_dev_agent_token", get("iz_dev_agent_token"));
+    const org = normalize("iz_dev_org_id", get("iz_dev_org_id"));
+
     // user id is optional (auto-generated in dev-agent mode)
-    return !get("iz_dev_agent_token") || !get("iz_dev_org_id");
+    return invalidFlag || !token || !org;
   }, [enabled, gateVersion]);
 
   if (!enabled || !missing) return <>{children}</>;
+
+  const showInvalidHint = (() => {
+    try {
+      const g = globalThis as any;
+      if (g.__izDevAgentInvalid === true) return true;
+    } catch {
+      // ignore
+    }
+    try {
+      return window.sessionStorage.getItem("iz_dev_agent_invalid") === "1";
+    } catch {
+      return false;
+    }
+  })();
 
   return (
     <div className="min-h-screen">
@@ -241,6 +295,11 @@ const DevAgentSetupGate = ({ children }: { children: React.ReactNode }) => {
               Lovable preview runs in an iframe where Supabase auth persistence can be unreliable. To keep you unblocked,
               paste your dev-agent credentials (stored in <code>sessionStorage</code> for this tab).
             </p>
+            {showInvalidHint && (
+              <div className="rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm text-amber-700">
+                Existing dev-agent credentials were rejected (401). Please paste the correct <code>AGENT_TOKEN</code> and org id.
+              </div>
+            )}
 
             <div className="space-y-2">
               <label className="text-sm font-medium">Agent token</label>
@@ -306,6 +365,7 @@ const DevAgentSetupGate = ({ children }: { children: React.ReactNode }) => {
                   onClick={() => {
                     try {
                       window.sessionStorage.removeItem("iz_dev_agent_disabled");
+                      window.sessionStorage.removeItem("iz_dev_agent_invalid");
                       window.sessionStorage.setItem("iz_dev_agent_token", agentToken.trim());
                       window.sessionStorage.setItem("iz_dev_org_id", orgId.trim());
                       // user id is optional; if omitted it will be generated automatically.

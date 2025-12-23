@@ -750,6 +750,27 @@ async function callEdgeFunctionWithAgentToken<TRequest, TResponse>(
     }
     
     console.error(`[callEdgeFunctionWithAgentToken:${functionName}] Error ${res.status}:`, errorData);
+
+    // If dev-agent auth was attempted but rejected, prompt the user to re-enter credentials.
+    // This typically happens when a placeholder token was stored, or when the AGENT_TOKEN changed.
+    if (typeof window !== "undefined" && res.status === 401) {
+      try {
+        window.sessionStorage.setItem("iz_dev_agent_invalid", "1");
+      } catch {
+        // ignore
+      }
+      try {
+        const g = globalThis as any;
+        g.__izDevAgentInvalid = true;
+      } catch {
+        // ignore
+      }
+      try {
+        window.dispatchEvent(new CustomEvent("iz:dev-agent-invalid"));
+      } catch {
+        // ignore
+      }
+    }
     
     throw new ApiError(
       errorData.message || errorData.error || `Edge function ${functionName} failed`,
