@@ -72,22 +72,27 @@ async function fetchJobCourseId(supabase: any, jobId: string): Promise<string | 
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function fetchJobNotes(supabase: any, jobId: string): Promise<string | null> {
-  const { data, error } = await supabase
-    .from("job_events")
-    .select("meta,step,seq")
-    .eq("job_id", jobId)
-    .order("seq", { ascending: false })
-    .limit(25);
-  if (error) {
-    throw new Error(`Failed to load job_events for ${jobId}: ${error.message}`);
+  // Store special requests in Storage so we don't depend on `job_events` being deployed / in schema cache.
+  // Path written by enqueue-job: debug/jobs/<jobId>/special_requests.json
+  try {
+    const path = `debug/jobs/${jobId}/special_requests.json`;
+    const { data: file, error } = await supabase.storage.from("courses").download(path);
+    if (error) {
+      const msg = String((error as any)?.message || "").toLowerCase();
+      const status = Number((error as any)?.statusCode || (error as any)?.status || 0);
+      // If missing, treat as "no notes" (notes are optional).
+      if (status === 404 || msg.includes("not found") || msg.includes("does not exist")) return null;
+      throw new Error(error.message ?? String(error));
+    }
+    if (!file) return null;
+    const text = await file.text();
+    const parsed = JSON.parse(text);
+    const notes = typeof parsed?.notes === "string" ? String(parsed.notes).trim() : "";
+    return notes || null;
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    throw new Error(`Failed to load special requests for ${jobId}: ${msg}`);
   }
-  const rows = Array.isArray(data) ? data : [];
-  for (const row of rows) {
-    const meta = (row as any)?.meta;
-    const notes = typeof meta?.notes === "string" ? String(meta.notes).trim() : "";
-    if (notes) return notes;
-  }
-  return null;
 }
 
 function parseStudyTextsCountFromNotes(notes: string): number | null {
@@ -119,7 +124,8 @@ function wantsStudyTextImagesFromNotes(notes: string): boolean {
   const s = String(notes || "").trim();
   if (!s) return false;
   if (/\bwithout\s+images?\b/i.test(s)) return false;
-  return /\b(with|include|add|generate|create)\s+(ai\s+)?images?\b/i.test(s);
+  return /\b(with|include|add|generate|create)\s+(?:(?:\d+|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve)\s+)?(ai\s+)?images?\b/i
+    .test(s);
 }
 
 function extractImageMarkers(text: string): string[] {

@@ -81,7 +81,7 @@ function buildStudyTextsOnlyPrompt(skeleton: SkeletonCourse): string {
   const wantsImages =
     typeof notes === "string" &&
     notes.trim().length > 0 &&
-    /\b(with|include|add)\s+images?\b/i.test(notes) &&
+    /\b(with|include|add)\s+(?:(?:\d+|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve)\s+)?images?\b/i.test(notes) &&
     !/\bwithout\s+images?\b/i.test(notes);
 
   const notesBlock =
@@ -229,7 +229,7 @@ function buildFillPrompt(skeleton: SkeletonCourse): string {
   const wantsImages =
     typeof notes === "string" &&
     notes.trim().length > 0 &&
-    /\b(with|include|add)\s+images?\b/i.test(notes) &&
+    /\b(with|include|add)\s+(?:(?:\d+|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve)\s+)?images?\b/i.test(notes) &&
     !/\bwithout\s+images?\b/i.test(notes);
 
   const notesBlock =

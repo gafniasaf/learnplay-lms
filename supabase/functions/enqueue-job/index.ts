@@ -217,56 +217,24 @@ serve(async (req: Request): Promise<Response> => {
 
     const jobId = (stableJobId ?? (inserted.data.id as string)) as string;
 
-    // Persist special requests (notes) alongside the job via job_events meta (no DB schema changes required).
-    // This enables generate-course to honor the user’s requests even when the worker only has jobId.
+    // Persist special requests (notes) alongside the job in Storage (no DB schema changes required).
+    // This enables generate-course to honor the user’s requests even when the worker only has jobId,
+    // and works even if `job_events` is not deployed / not in PostgREST schema cache.
     if (notes) {
       try {
-        // Avoid dependency on RPCs that may not exist or may not be present in the PostgREST schema cache.
-        // We compute the next seq directly with a small retry loop to avoid (job_id, seq) collisions.
-        const MAX_SEQ_RETRIES = 5;
-        let lastErr: unknown = null;
-
-        for (let attempt = 0; attempt < MAX_SEQ_RETRIES; attempt++) {
-          const { data: lastEvent, error: lastErrQuery } = await adminSupabase
-            .from("job_events")
-            .select("seq")
-            .eq("job_id", jobId)
-            .order("seq", { ascending: false })
-            .limit(1)
-            .maybeSingle();
-
-          if (lastErrQuery) {
-            throw new Error(`job_events lookup failed: ${lastErrQuery.message ?? String(lastErrQuery)}`);
-          }
-
-          const lastSeqRaw = (lastEvent as any)?.seq;
-          const lastSeq = typeof lastSeqRaw === "number" && Number.isFinite(lastSeqRaw) ? lastSeqRaw : 0;
-          const seq = lastSeq + 1;
-
-          const { error: evErr } = await adminSupabase.from("job_events").insert({
-            job_id: jobId,
-            seq,
-            step: "queued",
-            status: "info",
-            progress: 0,
-            message: "Special requests captured",
-            meta: { notes },
-          });
-
-          if (!evErr) {
-            lastErr = null;
-            break;
-          }
-
-          lastErr = evErr;
-          // Retry on duplicate seq (race)
-          if ((evErr as any)?.code !== "23505" && !String((evErr as any)?.message || "").toLowerCase().includes("duplicate")) {
-            throw new Error(`job_events insert failed: ${(evErr as any)?.message ?? String(evErr)}`);
-          }
-        }
-
-        if (lastErr) {
-          throw new Error(`job_events insert failed after retries: ${(lastErr as any)?.message ?? String(lastErr)}`);
+        const path = `debug/jobs/${jobId}/special_requests.json`;
+        const payload = {
+          jobId,
+          notes,
+          requestId,
+          createdAt: new Date().toISOString(),
+        };
+        const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+        const { error: upErr } = await adminSupabase.storage
+          .from("courses")
+          .upload(path, blob, { upsert: true, contentType: "application/json" });
+        if (upErr) {
+          throw new Error(`Storage upload failed: ${upErr.message ?? String(upErr)}`);
         }
       } catch (e) {
         // Fail loud: if the user provided notes but we couldn't persist them, generation would silently ignore them.
