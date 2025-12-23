@@ -1,6 +1,6 @@
 import { Link, useNavigate } from "react-router-dom";
 import { Sparkles } from "lucide-react";
-import { isLiveMode, isDevEnabled } from "@/lib/env";
+import { isDevEnabled } from "@/lib/env";
 import { isCourseFullscreen } from "@/lib/embed";
 import { HamburgerMenu } from "./HamburgerMenu";
 import { supabase } from "@/integrations/supabase/client";
@@ -10,7 +10,6 @@ import { getRole } from "@/lib/roles";
 import { filterNav } from "@/config/nav";
 
 export const Header = () => {
-  const isLive = isLiveMode();
   const devEnabled = isDevEnabled();
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -70,31 +69,8 @@ export const Header = () => {
           <span className="hidden sm:inline">LearnPlay</span>
         </Link>
         
-        {/* Right: Mode indicators + Hamburger */}
+        {/* Right: Hamburger */}
         <div className="flex items-center gap-2">
-          {/* DEV badge - subtle but visible */}
-          {devEnabled && (
-            <Link
-              to="/dev/tests"
-              className="px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wider transition-all duration-200 border-2 bg-amber-500/10 text-amber-600 border-amber-500/30 hover:bg-amber-500/20 hover:border-amber-500/50"
-              aria-label="Developer mode enabled. Click to access dev tools."
-              title="Developer mode enabled"
-            >
-              DEV
-            </Link>
-          )}
-          
-          {/* IgniteZero: live-only */}
-          {isLive && (
-            <span
-              className="px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wider border-2 bg-green-500/10 text-green-600 border-green-500/30"
-              aria-label="Live mode"
-              title="Live mode"
-            >
-              LIVE
-            </span>
-          )}
-          
           <HamburgerMenu />
         </div>
       </div>
