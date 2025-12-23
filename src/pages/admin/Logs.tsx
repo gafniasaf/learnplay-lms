@@ -51,6 +51,7 @@ const Logs = () => {
   const initJobId = params.get('jobId') || '';
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [loading, setLoading] = useState(true);
+  const [notice, setNotice] = useState<string | null>(null);
   // Filters
   const [levelFilter, setLevelFilter] = useState<string>('all');
   const [functionFilter, setFunctionFilter] = useState<string>('all');
@@ -72,12 +73,15 @@ const Logs = () => {
       const response = await mcpRef.current.callGet<any>('lms.list-edge-logs', { limit: "100" });
       const records = (response?.logs || response?.records || []) as LogEntry[];
       setLogs(records);
+      const message = typeof response?.message === 'string' ? response.message : null;
+      setNotice(message && records.length === 0 ? message : null);
       const fromLogs = records.map((log) => (log as any)?.function_name).filter(Boolean) as string[];
       const merged = Array.from(new Set([...KNOWN_FUNCTIONS, ...fromLogs]));
       setFunctions(merged);
     } catch (error) {
       console.error('Failed to load logs:', error);
       toast.error('Failed to load logs');
+      setNotice('Failed to load logs (check auth / Edge connectivity).');
     } finally {
       setLoading(false);
     }
@@ -105,6 +109,8 @@ const Logs = () => {
     setLevelFilter('all');
     setFunctionFilter('all');
     setSearchQuery('');
+    setRequestIdFilter('');
+    setJobIdFilter('');
   };
 
   // Filter logs
@@ -153,6 +159,16 @@ const Logs = () => {
         {/* Filters */}
         <Card>
           <CardContent className="pt-6">
+            {notice && (
+              <div className="mb-4 rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+                <span className="font-semibold">Heads up:</span> {notice}
+                {notice.toLowerCase().includes('no logs table') && (
+                  <span className="block mt-1 text-amber-800/90">
+                    This page only shows logs if an <code className="px-1 bg-amber-100 rounded">edge_logs</code> table is configured and functions write into it. For course generation progress, use Jobs / AI Pipeline events.
+                  </span>
+                )}
+              </div>
+            )}
             <div className="flex flex-wrap gap-4">
               <div className="flex-1 min-w-[200px]">
                 <div className="relative">
