@@ -50,8 +50,8 @@ export const ItemHeaderCard: React.FC<ItemHeaderCardProps> = ({
               data-cta-id="cta-courseeditor-mode-select"
               data-action="action"
             >
-              <option value="options">options</option>
-              <option value="numeric">numeric</option>
+              <option value="options">MCQ</option>
+              <option value="numeric">Numeric</option>
             </select>
           </div>
           <div className="flex items-center gap-1">
@@ -63,7 +63,7 @@ export const ItemHeaderCard: React.FC<ItemHeaderCardProps> = ({
       <div className="flex items-center gap-2">
         {hasMissingImage && (
           <span className="inline-flex items-center gap-1 px-2 py-1 bg-yellow-100 text-yellow-800 rounded text-xs font-medium">
-            🖼️ Missing image
+            🖼️ Missing stem image
           </span>
         )}
         <Button
@@ -72,9 +72,10 @@ export const ItemHeaderCard: React.FC<ItemHeaderCardProps> = ({
           onClick={onAddImageAI}
           data-cta-id="cta-courseeditor-item-add-image-ai"
           data-action="action"
+          title="Generate an AI image for the question stem"
         >
           <Image className="h-3.5 w-3.5 mr-1.5" />
-          Add Image (AI)
+          Add Stem Image (AI)
         </Button>
         <Button
           variant="secondary"
@@ -82,8 +83,9 @@ export const ItemHeaderCard: React.FC<ItemHeaderCardProps> = ({
           onClick={onFixMissingImages}
           data-cta-id="cta-courseeditor-item-fix-missing-images"
           data-action="action"
+          title="Course-wide: enqueue AI jobs for items missing stem images"
         >
-          🧩 Fix Missing Images (AI)
+          🧩 Fix Missing Stem Images (AI)
         </Button>
       </div>
     </div>

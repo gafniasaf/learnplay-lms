@@ -22,14 +22,6 @@ interface StemTabProps {
 
 export const StemTab = ({ item, onChange, onAIRewrite, onOpenAIChat, onAddMedia, onFromURL, onRemoveMedia, onReplaceMedia, courseId, course }: StemTabProps) => {
   const mcp = useMCP();
-  // Debug: Log what we receive
-  console.log('[StemTab] Received item:', {
-    hasItem: !!item,
-    hasStem: !!item?.stem,
-    stemText: item?.stem?.text,
-    legacyText: (item as any)?.text,
-    fullItem: item
-  });
 
   // Handle both schema formats: item.stem.text (new) and item.text (legacy)
   const initialText = item?.stem?.text || (item as any)?.text || '';

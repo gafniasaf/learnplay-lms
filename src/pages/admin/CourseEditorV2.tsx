@@ -97,6 +97,21 @@ const CourseEditorV2 = () => {
     ? (course as any).groups?.[activeGroupIndex]?.items?.[activeItemIndex] || null
     : null;
 
+  const currentItemHasStemImage = (() => {
+    if (!course || !currentItem) return false;
+    try {
+      const itemId = (currentItem as any)?.id;
+      const key = typeof itemId === 'number' || typeof itemId === 'string' ? `item:${itemId}:stem` : null;
+      const images = key ? (course as any)?.images?.[key] : null;
+      if (Array.isArray(images) && images.length > 0) return true;
+      if ((currentItem as any)?.stimulus?.type === 'image' && (currentItem as any)?.stimulus?.url) return true;
+      const media = (currentItem as any)?.stem?.media || (currentItem as any)?.stimulus?.media || [];
+      return Array.isArray(media) && media.some((m: any) => String(m?.type || '').startsWith('image') && !!m?.url);
+    } catch {
+      return false;
+    }
+  })();
+
   // Load course - with course structure transformation
   const loadCourse = useCallback(async () => {
     if (!courseId) return;
@@ -1094,12 +1109,12 @@ const CourseEditorV2 = () => {
     },
     {
       id: 'add-image-ai',
-      label: 'Add Image (AI)',
+      label: 'Add Stem Image (AI)',
       icon: '🖼️',
       onClick: async () => {
         if (!courseId || !currentItem) return;
         try {
-          toast.info('Generating image...');
+          toast.info('Generating stem image...');
           const stemText = (currentItem as any).stem?.text || (currentItem as any).text || '';
           const prompt = stemText ? `Generate an illustrative image: ${stemText}` : `Generate an illustrative image for item ${currentItem.id}`;
           await mcp.call<any>('lms.enqueueCourseMedia', {
@@ -1315,7 +1330,7 @@ const CourseEditorV2 = () => {
                         onAddImageAI={async () => {
                           if (!courseId || !currentItem) return;
                           try {
-                            toast.info('Generating image...');
+                            toast.info('Generating stem image...');
                             const stemText = (currentItem as any).stem?.text || (currentItem as any).text || '';
                             const prompt = stemText ? `Generate an illustrative image: ${stemText}` : `Generate an illustrative image for item ${currentItem.id}`;
                             await mcp.call<any>('lms.enqueueCourseMedia', {
@@ -1332,14 +1347,14 @@ const CourseEditorV2 = () => {
                         onFixMissingImages={async () => {
                           if (!courseId) return;
                           try {
-                            toast.info('Enqueueing jobs for missing images...');
+                            toast.info('Enqueueing jobs for missing stem images...');
                             await mcp.call<any>('lms.enqueueCourseMissingImages', { courseId, limit: 25 });
                             toast.success('Batch image generation jobs enqueued');
                           } catch (error) {
                             toast.error(error instanceof Error ? error.message : 'Failed to enqueue jobs');
                           }
                         }}
-                        hasMissingImage={false}
+                        hasMissingImage={!currentItemHasStemImage}
                       />
 
                       {/* Editor Card */}
@@ -1359,7 +1374,7 @@ const CourseEditorV2 = () => {
                                 data-cta-id="cta-courseeditor-editor-tab-options"
                                 data-action="tab"
                               >
-                                Options
+                                {(currentItem as any)?.mode === 'numeric' ? 'Answer' : 'Options'}
                               </TabsTrigger>
                               <TabsTrigger
                                 value="explanation"

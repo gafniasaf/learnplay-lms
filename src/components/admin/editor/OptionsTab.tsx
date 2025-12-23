@@ -328,14 +328,17 @@ export const OptionsTab = ({ item, onChange, onAIRewrite, onOpenAIChatOption: _o
                       e.stopPropagation();
                       const existingOptionMedia = ((item as any).optionMedia || []) as OptionMedia[];
                       const m = existingOptionMedia[index];
-                      // If missing, create a default image media to satisfy editor flow
-                      const baseMedia = m && (m.type === 'image' || m.type === 'video') ? m : ({ type: 'image', url: '' } as any);
+                      // Only allow toggling layout when an image/video is actually attached.
+                      if (!m || (m.type !== 'image' && m.type !== 'video') || !m.url) {
+                        toast.error('Attach an image or video to this option first');
+                        return;
+                      }
+                      const baseMedia = m;
                       const current = (baseMedia as any).mediaLayout ?? 'full';
                       const next = current === 'full' ? 'thumbnail' : 'full';
                       const updatedOptionMedia = [...existingOptionMedia];
                       updatedOptionMedia[index] = { ...(baseMedia as any), mediaLayout: next };
-                      const updatedItem = { options, correctIndex: currentCorrectIndex, optionMedia: updatedOptionMedia } as any;
-                      onChange(updatedItem);
+                      onChange({ ...item, optionMedia: updatedOptionMedia });
                       toast.success(`Media layout: ${next}`);
                     }}
                     title="Toggle media layout: thumbnail/full"
@@ -343,30 +346,6 @@ export const OptionsTab = ({ item, onChange, onAIRewrite, onOpenAIChatOption: _o
                     data-action="action"
                   >
                     Layout: <span className="ml-1 font-mono text-xs">{(item.optionMedia?.[index] && (item.optionMedia?.[index]?.type === 'image' || item.optionMedia?.[index]?.type === 'video') ? item.optionMedia?.[index]?.mediaLayout : undefined) ?? 'full'}</span>
-                  </Button>
-                  {/* Fit mode toggle */}
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    role="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      const existingOptionMedia = (item.optionMedia || []) as OptionMedia[];
-                      const m = existingOptionMedia[index];
-                      // If missing, create a default image media to satisfy editor flow
-                      const baseMedia = m && (m.type === 'image' || m.type === 'video') ? m : ({ type: 'image', url: '' } as any);
-                      const next = (baseMedia as any).fitMode === 'contain' ? 'cover' : 'contain';
-                      const updatedOptionMedia = [...existingOptionMedia];
-                      updatedOptionMedia[index] = { ...(baseMedia as any), fitMode: next };
-                      const updatedItem = { options, correctIndex: currentCorrectIndex, optionMedia: updatedOptionMedia } as any;
-                      onChange(updatedItem);
-                      toast.success(`Fit mode: ${next}`);
-                    }}
-                    title="Toggle fit mode: cover/contain"
-                    data-cta-id={`cta-courseeditor-option-${index}-fit-toggle`}
-                    data-action="action"
-                  >
-                    Fit: <span className="ml-1 font-mono text-xs">{(item.optionMedia?.[index] && (item.optionMedia?.[index]?.type === 'image' || item.optionMedia?.[index]?.type === 'video') ? item.optionMedia?.[index]?.fitMode : undefined) || 'auto'}</span>
                   </Button>
                   {/* AI Image for option */}
                   <Button
