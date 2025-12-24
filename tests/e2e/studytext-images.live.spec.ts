@@ -85,6 +85,8 @@ test('live: course generation should create 3 study texts with 1 image each (rea
   // NOTE: this uses real LLM + real image providers in Edge.
   const procResp = await request.get(`${SUPABASE_URL}/functions/v1/process-pending-jobs?jobId=${encodeURIComponent(jobId)}&mediaN=25`, {
     headers: { 'x-agent-token': AGENT_TOKEN },
+    // Real LLM calls can take >30s; override Playwright's default request timeout.
+    timeout: 10 * 60_000,
   });
   const procJson = await procResp.json().catch(() => null) as any;
   expect(procResp.ok()).toBeTruthy();
@@ -128,6 +130,8 @@ test('live: course generation should create 3 study texts with 1 image each (rea
       if (pending.length > 0) {
         await request.post(`${SUPABASE_URL}/functions/v1/media-runner?n=25`, {
           headers: { 'x-agent-token': AGENT_TOKEN, 'Content-Type': 'application/json' },
+          // Image generation can take >30s; override Playwright's default request timeout.
+          timeout: 10 * 60_000,
         });
         return null;
       }
@@ -149,6 +153,7 @@ test('live: course generation should create 3 study texts with 1 image each (rea
         await request.post(`${SUPABASE_URL}/functions/v1/sync-study-text-images`, {
           headers: { 'x-agent-token': AGENT_TOKEN, 'Content-Type': 'application/json' },
           data: { courseId },
+          timeout: 60_000,
         });
         return null;
       }
