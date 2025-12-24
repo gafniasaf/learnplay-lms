@@ -77,6 +77,7 @@
     "e2e:live": "playwright test --config=playwright.live.config.ts",
     "e2e:live:headed": "playwright test --config=playwright.live.config.ts --headed",
     "e2e:live:report": "playwright show-report reports/playwright-live-html",
+    "e2e:live:studytext-images": "playwright test --config=playwright.live.config.ts tests/e2e/studytext-images.live.spec.ts",
     "test:lovable": "playwright test --config=playwright.lovable.config.ts",
     "test:lovable:headed": "playwright test --config=playwright.lovable.config.ts --headed",
     "test:lovable:report": "playwright show-report reports/lovable-smoke",
