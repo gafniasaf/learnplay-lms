@@ -4,9 +4,23 @@ import { resolvePublicMediaUrl } from '@/lib/media/resolvePublicMediaUrl';
 import { getOptimizedImageUrl } from '@/lib/utils/imageOptimizer';
 import { getViewport, getOptionImageTargetWidth, getImageSizing } from '@/lib/utils/mediaSizing';
 
-// Track started preloads across component mounts for the same course/version
-// Maps versionKey -> { total, loaded } so we can report cached state
-const preloadCache = new Map<string, { total: number; loaded: number }>();
+type PreloadListener = (loaded: number, total: number) => void;
+
+type PreloadEntry = {
+  total: number;
+  loaded: number;
+  urls: string[];
+  urlSet: Set<string>;
+  done: Set<string>;
+  listeners: Set<PreloadListener>;
+  running: boolean;
+};
+
+// Track preloads across component mounts for the same course/version.
+// IMPORTANT: This must handle React StrictMode (effects mount/unmount/mount),
+// otherwise preloading can start in the first mount and the progress UI will
+// never receive updates in the second mount.
+const preloadCache = new Map<string, PreloadEntry>();
 
 // Identify if a string looks like an image URL or storage path
 function isImageLike(u?: string): boolean {
@@ -115,15 +129,100 @@ function collectImageTargets(course: Course): PreloadTarget[] {
   return deduped;
 }
 
-async function preloadImage(url: string): Promise<void> {
+async function preloadImage(url: string, timeoutMs = 15_000): Promise<void> {
   return new Promise((resolve) => {
     const img = new Image();
-    img.onload = () => resolve();
-    img.onerror = () => resolve();
+    let done = false;
+
+    const finish = () => {
+      if (done) return;
+      done = true;
+      img.onload = null;
+      img.onerror = null;
+      // @ts-ignore - onabort exists on HTMLImageElement in browsers
+      img.onabort = null;
+      clearTimeout(timer);
+      resolve();
+    };
+
+    const timer = window.setTimeout(finish, timeoutMs);
+    img.onload = finish;
+    img.onerror = finish;
+    // @ts-ignore - onabort exists on HTMLImageElement in browsers
+    img.onabort = finish;
     img.decoding = 'async';
     img.loading = 'eager';
     img.src = url;
+
+    // Some browsers may not reliably fire onload for cached resources; handle that.
+    if (img.complete) {
+      queueMicrotask(finish);
+    }
   });
+}
+
+function ensureEntry(versionKey: string): PreloadEntry {
+  const existing = preloadCache.get(versionKey);
+  if (existing && (existing as any).listeners && (existing as any).done && (existing as any).urlSet) {
+    return existing;
+  }
+
+  const entry: PreloadEntry = {
+    total: 0,
+    loaded: 0,
+    urls: [],
+    urlSet: new Set<string>(),
+    done: new Set<string>(),
+    listeners: new Set<PreloadListener>(),
+    running: false,
+  };
+  preloadCache.set(versionKey, entry);
+  return entry;
+}
+
+function notify(entry: PreloadEntry) {
+  entry.loaded = entry.done.size;
+  entry.total = entry.urls.length;
+  for (const cb of entry.listeners) {
+    try {
+      cb(entry.loaded, entry.total);
+    } catch {
+      // ignore listener failures
+    }
+  }
+}
+
+async function runPreload(entry: PreloadEntry) {
+  if (entry.running) return;
+  if (entry.urls.length === 0) return;
+
+  entry.running = true;
+  try {
+    const CONCURRENCY = 4;
+    let idx = 0;
+
+    const runNext = async (): Promise<void> => {
+      while (true) {
+        const i = idx++;
+        if (i >= entry.urls.length) return;
+        const url = entry.urls[i];
+        if (!url || entry.done.has(url)) continue;
+        await preloadImage(url);
+        entry.done.add(url);
+        notify(entry);
+      }
+    };
+
+    const workers = Array.from({ length: Math.min(CONCURRENCY, entry.urls.length) }, () => runNext());
+    await Promise.all(workers);
+  } finally {
+    entry.running = false;
+    // If more URLs were added while we were running, start again.
+    if (entry.done.size < entry.urls.length) {
+      // fire-and-forget
+      void runPreload(entry);
+    }
+  }
 }
 
 /**
@@ -151,13 +250,7 @@ export function useCoursePreloader(
 
     // Only run once per course version across the app session
     const versionKey = `${course.id}:${(course as any).contentVersion ?? 'nov'}`;
-    
-    // If already preloaded, report cached state immediately
-    const cached = preloadCache.get(versionKey);
-    if (cached) {
-      opts?.onProgress?.(cached.loaded, cached.total);
-      return;
-    }
+    const entry = ensureEntry(versionKey);
 
     // Network conditions: respect Data Saver and 2g
     const conn: any = (navigator as any)?.connection;
@@ -165,7 +258,11 @@ export function useCoursePreloader(
     const eff = String(conn?.effectiveType || '');
     if (saveData || /(^|-)2g$/.test(eff)) {
       // Skip aggressive preloading on constrained networks
-      opts?.onProgress?.(0, 0);
+      // Still notify through the shared entry so any listeners get consistent state.
+      entry.urls = [];
+      entry.urlSet.clear();
+      entry.done.clear();
+      notify(entry);
       return;
     }
 
@@ -181,48 +278,28 @@ export function useCoursePreloader(
       return optimized;
     });
 
-    const total = targets.length;
-    let loaded = 0;
-    
-    // Store in cache immediately (will be updated as loading progresses)
-    preloadCache.set(versionKey, { total, loaded });
-    
-    const notify = () => {
-      preloadCache.set(versionKey, { total, loaded });
-      opts?.onProgress?.(loaded, total);
-    };
-    notify(); // Report initial state
-
-    if (total === 0) {
-      // No images to preload - cache is already set
-      return;
+    // Merge targets into the shared entry (deduped) so multiple mounts keep consistent progress.
+    for (const url of targets) {
+      if (!url) continue;
+      if (entry.urlSet.has(url)) continue;
+      entry.urlSet.add(url);
+      entry.urls.push(url);
     }
 
-    // Concurrency-limited preloading
-    const CONCURRENCY = 4;
-    let idx = 0;
-    let aborted = false;
-
-    const runNext = async (): Promise<void> => {
-      if (aborted) return;
-      const i = idx++;
-      if (i >= targets.length) return;
-      const url = targets[i];
-      try {
-        await preloadImage(url);
-      } finally {
-        loaded += 1;
-        notify();
-        if (!aborted) await runNext();
-      }
+    // Subscribe to progress updates.
+    const listener: PreloadListener = (l, t) => {
+      opts?.onProgress?.(l, t);
     };
+    entry.listeners.add(listener);
 
-    const workers = Array.from({ length: Math.min(CONCURRENCY, targets.length) }, () => runNext());
+    // Report initial state (cached/in-flight).
+    notify(entry);
 
-    Promise.all(workers).catch(() => {/* ignore */});
+    // Start or continue preloading.
+    void runPreload(entry);
 
     return () => {
-      aborted = true;
+      entry.listeners.delete(listener);
     };
   }, [course?.id, (course as any)?.contentVersion, opts?.onProgress]);
 }
