@@ -2,6 +2,7 @@ import { ReactNode } from "react";
 import { Navigate, useLocation } from "react-router-dom";
 import { Loader2 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import { isDevAgentMode } from "@/lib/api/common";
 
 interface ProtectedRouteProps {
   children: ReactNode;
@@ -16,8 +17,11 @@ export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
 
   // Dev-only bypass mode for development velocity. MUST be explicitly enabled.
   const devAgentMode = import.meta.env.VITE_DEV_AGENT_MODE === "true";
+  // Runtime dev-agent mode (Lovable previews / localhost safety net).
+  const runtimeDevAgent = isDevAgentMode();
   const bypassAuth =
     devAgentMode ||
+    runtimeDevAgent ||
     runtimeBypass ||
     (import.meta.env.VITE_BYPASS_AUTH === "true" && !import.meta.env.PROD);
   if (bypassAuth) {

@@ -186,7 +186,10 @@ serve(async (req: Request): Promise<Response> => {
       items_per_group: itemsPerGroup ?? 12,
       mode,
       status: "pending",
-      created_by: auth.userId ?? null,
+      // Preview/dev-agent mode may provide a synthetic x-user-id that is NOT a real auth.users row.
+      // Some deployments enforce an FK on ai_course_jobs.created_by → auth.users(id).
+      // In agent-token mode, do NOT write created_by to avoid FK violations; use NULL.
+      created_by: auth.type === "agent" ? null : (auth.userId ?? null),
     };
     if (stableJobId) {
       // Base column: "id" is safe to include (avoid adding new columns to dodge schema-cache drift).

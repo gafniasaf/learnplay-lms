@@ -3,6 +3,7 @@ import { withCors } from "../_shared/cors.ts";
 import { rateLimit } from "../_shared/rateLimit.ts";
 import { checkOrigin } from "../_shared/origins.ts";
 import { Errors } from "../_shared/error.ts";
+import { authenticateRequest } from "../_shared/auth.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
@@ -19,16 +20,8 @@ interface DeletePayload {
   confirm: string;
 }
 
-async function getUserRoles(supabase: any, userId: string): Promise<{ role: string; organization_id: string | null }[]> {
-  const { data, error } = await supabase
-    .from("user_roles")
-    .select("role, organization_id")
-    .eq("user_id", userId);
-  if (error) {
-    console.warn("[delete-course] roles fetch error:", error);
-    return [];
-  }
-  return data || [];
+function getHeader(req: Request, name: string): string | null {
+  return req.headers.get(name) ?? req.headers.get(name.toLowerCase()) ?? req.headers.get(name.toUpperCase());
 }
 
 Deno.serve(withCors(async (req) => {
@@ -52,27 +45,45 @@ Deno.serve(withCors(async (req) => {
   if (rl) return rl;
 
   try {
-    const authHeader = req.headers.get("Authorization") || "";
+    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-    // Use service role but forward user JWT for RLS context
-    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
-      global: { headers: authHeader ? { Authorization: authHeader } : {} },
-    });
-
-    // Get user
-    const token = authHeader?.replace(/^Bearer\s+/i, "") || "";
-    const { data: userData, error: userErr } = await supabase.auth.getUser(token);
-    if (userErr || !userData?.user?.id) {
+    let auth;
+    try {
+      auth = await authenticateRequest(req);
+    } catch {
       return Errors.invalidAuth(reqId, req);
     }
-    const userId = userData.user.id as string;
-    const userEmail = userData.user.email || userId;
+
+    const isAgent = auth.type === "agent";
+    const organizationId = auth.organizationId;
+    if (isAgent && !organizationId) {
+      return Errors.invalidRequest("Missing x-organization-id for agent auth", reqId, req);
+    }
 
     // Admin check: superadmin or org_admin
-    const roles = await getUserRoles(supabase, userId);
-    const isAdmin = roles.some(r => r.role === "superadmin" || r.role === "org_admin");
-    if (!isAdmin) {
-      return Errors.forbidden("forbidden", reqId, req);
+    // In preview/dev-agent mode, agent token is treated as org-admin for the provided org.
+    let actorUserId: string | null = null;
+    let actorLabel: string | null = null;
+    if (!isAgent) {
+      const authHeader = req.headers.get("Authorization") || "";
+      const token = authHeader?.replace(/^Bearer\s+/i, "") || "";
+      const { data: userData, error: userErr } = await supabase.auth.getUser(token);
+      if (userErr || !userData?.user?.id) {
+        return Errors.invalidAuth(reqId, req);
+      }
+      actorUserId = userData.user.id as string;
+      actorLabel = userData.user.email || actorUserId;
+
+      const { data: roles, error: rolesErr } = await supabase
+        .from("user_roles")
+        .select("role, organization_id")
+        .eq("user_id", actorUserId);
+      if (rolesErr) return Errors.internal(rolesErr.message, reqId, req);
+      const isAdmin = Array.isArray(roles) && roles.some((r: any) => r.role === "superadmin" || r.role === "org_admin");
+      if (!isAdmin) return Errors.forbidden("forbidden", reqId, req);
+    } else {
+      actorUserId = auth.userId ?? null;
+      actorLabel = actorUserId ? `agent:${actorUserId}` : "agent";
     }
 
     // Parse body
@@ -90,6 +101,20 @@ Deno.serve(withCors(async (req) => {
       });
     }
     const courseId = body.courseId.trim();
+
+    // In agent mode, enforce org boundary explicitly (service role bypasses RLS).
+    if (isAgent) {
+      const { data: meta, error: metaErr } = await supabase
+        .from("course_metadata")
+        .select("organization_id")
+        .eq("id", courseId)
+        .maybeSingle();
+      if (metaErr) return Errors.internal(metaErr.message, reqId, req);
+      if (!meta) return Errors.notFound("Course", reqId, req);
+      if (String((meta as any).organization_id) !== String(organizationId)) {
+        return Errors.forbidden("Not authorized to delete this course", reqId, req);
+      }
+    }
 
     // Backup path
     const ts = new Date().toISOString().replace(/[:.]/g, "-");
@@ -118,7 +143,7 @@ Deno.serve(withCors(async (req) => {
     // Mark deleted in metadata
     const { error: upErr } = await supabase
       .from("course_metadata")
-      .update({ deleted_at: new Date().toISOString(), deleted_by: userId })
+      .update({ deleted_at: new Date().toISOString(), deleted_by: isAgent ? null : actorUserId })
       .eq("id", courseId);
 
     if (upErr) {
@@ -132,7 +157,7 @@ Deno.serve(withCors(async (req) => {
     // Audit
     await supabase.from("agent_audit").insert({
       method: "delete_course",
-      actor: userEmail,
+      actor: actorLabel,
       args: { courseId, backupPath },
       success: true,
     });

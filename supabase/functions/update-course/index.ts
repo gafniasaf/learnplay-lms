@@ -5,6 +5,7 @@ import { createClient } from 'npm:@supabase/supabase-js@2';
 import { withCors } from '../_shared/cors.ts';
 import { jsonOk, jsonError } from '../_shared/error.ts';
 import { getRequestId } from '../_shared/log.ts';
+import { authenticateRequest } from '../_shared/auth.ts';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
@@ -58,6 +59,18 @@ Deno.serve(withCors(async (req) => {
   const reqId = getRequestId(req);
 
   try {
+    // Hybrid auth: require user session OR agent token (preview/dev).
+    let auth;
+    try {
+      auth = await authenticateRequest(req);
+    } catch {
+      return jsonError('unauthorized', 'Unauthorized', 401, reqId, req);
+    }
+    const isAgent = auth.type === 'agent';
+    if (isAgent && !auth.organizationId) {
+      return jsonError('invalid_request', 'Missing x-organization-id for agent auth', 400, reqId, req);
+    }
+
     // Parse and validate request
     const body: UpdateCourseRequest = await req.json();
     
@@ -90,6 +103,24 @@ Deno.serve(withCors(async (req) => {
 
     // Create Supabase client
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+
+    // In agent mode, enforce org boundary explicitly (service role bypasses RLS).
+    if (isAgent) {
+      const { data: meta, error: metaErr } = await supabase
+        .from('course_metadata')
+        .select('organization_id')
+        .eq('id', courseId)
+        .maybeSingle();
+      if (metaErr) {
+        return jsonError('internal_error', metaErr.message, 500, reqId, req);
+      }
+      if (!meta) {
+        return jsonError('not_found', 'Course not found', 404, reqId, req);
+      }
+      if (String((meta as any).organization_id) !== String(auth.organizationId)) {
+        return jsonError('forbidden', 'Not authorized to update this course', 403, reqId, req);
+      }
+    }
 
     // Fetch current course from storage (path: <courseId>/course.json)
     const coursePath = `${courseId}/course.json`;

@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { stdHeaders, handleOptions } from "../_shared/cors.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { authenticateRequest } from "../_shared/auth.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
 const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
@@ -32,6 +33,20 @@ serve(async (req: Request): Promise<Response> => {
   }
 
   try {
+    // Auth: allow dev-agent auth (preview) or real user session.
+    // In preview/dev-agent mode, we treat agent token as org-admin for the provided org.
+    let auth;
+    try {
+      auth = await authenticateRequest(req);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Unauthorized";
+      // IMPORTANT: avoid non-200 to prevent Lovable blank screens.
+      return new Response(
+        JSON.stringify({ ok: false, error: { code: "unauthorized", message: msg }, httpStatus: 401 }),
+        { status: 200, headers: stdHeaders(req, { "Content-Type": "application/json" }) }
+      );
+    }
+
     const body = await req.json() as CreateTagRequest;
     const { typeKey, value, slug: providedSlug } = body;
 
@@ -44,9 +59,14 @@ serve(async (req: Request): Promise<Response> => {
 
     const slug = providedSlug || value.toLowerCase().replace(/\s+/g, '-');
 
+    // In agent mode, scope tags to the org (unless caller provided organizationId explicitly in future).
+    // This keeps preview isolated per-org and avoids polluting global tags.
+    const organizationId = auth.type === "agent" ? (auth.organizationId ?? null) : null;
+
     const { data, error } = await supabase
       .from('tags')
       .insert({
+        organization_id: organizationId,
         type_key: typeKey,
         value,
         slug,

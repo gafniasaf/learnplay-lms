@@ -8,7 +8,6 @@ import { requireEnv } from "../_shared/env.ts";
 import { authenticateRequest, requireOrganizationId } from "../_shared/auth.ts";
 
 const SUPABASE_URL = requireEnv("SUPABASE_URL");
-const SUPABASE_ANON_KEY = requireEnv("SUPABASE_ANON_KEY");
 const SUPABASE_SERVICE_ROLE_KEY = requireEnv("SUPABASE_SERVICE_ROLE_KEY");
 
 const QuerySchema = z.object({
@@ -40,9 +39,16 @@ serve(
       return msg.includes("organization_id") ? Errors.invalidRequest(msg, requestId, req) : Errors.invalidAuth(requestId, req);
     }
 
+    // Preview/Dev-Agent superuser mode:
+    // When using agent-token auth, we allow org-scoped version reads without requiring a real auth.users row.
+    const isAgent = auth.type === "agent";
+    if (isAgent && !auth.organizationId) {
+      return Errors.invalidRequest("Missing x-organization-id for agent auth", requestId, req);
+    }
+
     const organizationId = requireOrganizationId(auth);
     const actorUserId = auth.userId;
-    if (!actorUserId) return Errors.invalidRequest("Missing x-user-id for agent auth", requestId, req);
+    if (!isAgent && !actorUserId) return Errors.invalidAuth(requestId, req);
 
     const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
@@ -55,19 +61,23 @@ serve(
     if (!meta) return Errors.notFound("Course", requestId, req);
     if ((meta as any).organization_id !== organizationId) return Errors.forbidden("Course is not in your organization", requestId, req);
 
-    const { data: roles, error: roleErr } = await admin
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", actorUserId)
-      .eq("organization_id", meta.organization_id);
-    if (roleErr) return Errors.internal(roleErr.message, requestId, req);
+    if (!isAgent) {
+      const { data: roles, error: roleErr } = await admin
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", actorUserId)
+        .eq("organization_id", meta.organization_id);
+      if (roleErr) return Errors.internal(roleErr.message, requestId, req);
 
-    const allowed = Array.isArray(roles) && roles.some((r: any) => ["org_admin", "editor", "superadmin"].includes(r.role));
-    if (!allowed) return Errors.forbidden("Editor/org_admin role required", requestId, req);
+      const allowed = Array.isArray(roles) && roles.some((r: any) => ["org_admin", "editor", "superadmin"].includes(r.role));
+      if (!allowed) return Errors.forbidden("Editor/org_admin role required", requestId, req);
+    }
 
     const { data: versions, error: vErr } = await admin
       .from("course_versions")
-      .select("id, course_id, version, published_at, published_by, change_summary, metadata_snapshot, etag")
+      // NOTE: Some deployments do not have a standalone `etag` column on course_versions.
+      // ETag is stored inside metadata_snapshot when needed.
+      .select("id, course_id, version, published_at, published_by, change_summary, metadata_snapshot")
       .eq("course_id", parsed.data.courseId)
       .order("version", { ascending: false })
       .limit(parsed.data.limit);

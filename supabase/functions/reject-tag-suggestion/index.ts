@@ -8,7 +8,6 @@ import { requireEnv } from "../_shared/env.ts";
 import { authenticateRequest, requireOrganizationId } from "../_shared/auth.ts";
 
 const SUPABASE_URL = requireEnv("SUPABASE_URL");
-const SUPABASE_ANON_KEY = requireEnv("SUPABASE_ANON_KEY");
 const SUPABASE_SERVICE_ROLE_KEY = requireEnv("SUPABASE_SERVICE_ROLE_KEY");
 
 const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
@@ -44,9 +43,14 @@ serve(
       return msg.includes("organization_id") ? Errors.invalidRequest(msg, requestId, req) : Errors.invalidAuth(requestId, req);
     }
 
+    const isAgent = auth.type === "agent";
+    if (isAgent && !auth.organizationId) {
+      return Errors.invalidRequest("Missing x-organization-id for agent auth", requestId, req);
+    }
+
     const organizationId = requireOrganizationId(auth);
     const actorUserId = auth.userId;
-    if (!actorUserId) return Errors.invalidRequest("Missing x-user-id for agent auth", requestId, req);
+    if (!isAgent && !actorUserId) return Errors.invalidAuth(requestId, req);
 
     const { data: item, error: loadErr } = await admin
       .from("tag_approval_queue")
@@ -57,21 +61,25 @@ serve(
     if (!item) return Errors.notFound("Tag suggestion", requestId, req);
     if ((item as any).status !== "pending") return Errors.conflict("Suggestion is not pending", requestId, req);
 
-    const { data: roles, error: roleErr } = await admin
-      .from("user_roles")
-      .select("role, organization_id")
-      .eq("user_id", actorUserId);
-    if (roleErr) return Errors.internal(roleErr.message, requestId, req);
-    const isSuper = Array.isArray(roles) && roles.some((r: any) => r.role === "superadmin");
-    const isOrgAdmin = Array.isArray(roles) && roles.some((r: any) => r.role === "org_admin" && r.organization_id === (item as any).organization_id);
-    if (!isSuper && !isOrgAdmin) return Errors.forbidden("org_admin or superadmin required", requestId, req);
-    if ((item as any).organization_id !== organizationId && !isSuper) return Errors.forbidden("Suggestion is not in your organization", requestId, req);
+    if (isAgent) {
+      if ((item as any).organization_id !== organizationId) return Errors.forbidden("Suggestion is not in your organization", requestId, req);
+    } else {
+      const { data: roles, error: roleErr } = await admin
+        .from("user_roles")
+        .select("role, organization_id")
+        .eq("user_id", actorUserId);
+      if (roleErr) return Errors.internal(roleErr.message, requestId, req);
+      const isSuper = Array.isArray(roles) && roles.some((r: any) => r.role === "superadmin");
+      const isOrgAdmin = Array.isArray(roles) && roles.some((r: any) => r.role === "org_admin" && r.organization_id === (item as any).organization_id);
+      if (!isSuper && !isOrgAdmin) return Errors.forbidden("org_admin or superadmin required", requestId, req);
+      if ((item as any).organization_id !== organizationId && !isSuper) return Errors.forbidden("Suggestion is not in your organization", requestId, req);
+    }
 
     const { error: updErr } = await admin
       .from("tag_approval_queue")
       .update({
         status: "rejected",
-        reviewed_by: actorUserId,
+        reviewed_by: isAgent ? null : actorUserId,
         reviewed_at: new Date().toISOString(),
       })
       .eq("id", item.id);

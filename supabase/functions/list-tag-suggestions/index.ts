@@ -7,7 +7,6 @@ import { requireEnv } from "../_shared/env.ts";
 import { authenticateRequest, requireOrganizationId } from "../_shared/auth.ts";
 
 const SUPABASE_URL = requireEnv("SUPABASE_URL");
-const SUPABASE_ANON_KEY = requireEnv("SUPABASE_ANON_KEY");
 const SUPABASE_SERVICE_ROLE_KEY = requireEnv("SUPABASE_SERVICE_ROLE_KEY");
 
 const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
@@ -29,17 +28,28 @@ serve(
       return msg.includes("organization_id") ? Errors.invalidRequest(msg, requestId, req) : Errors.invalidAuth(requestId, req);
     }
 
+    const isAgent = auth.type === "agent";
+    if (isAgent && !auth.organizationId) {
+      return Errors.invalidRequest("Missing x-organization-id for agent auth", requestId, req);
+    }
+
     const organizationId = requireOrganizationId(auth);
     const actorUserId = auth.userId;
-    if (!actorUserId) return Errors.invalidRequest("Missing x-user-id for agent auth", requestId, req);
+    // In preview/dev-agent mode we do NOT require a real user id; agent token is treated as org-admin.
+    if (!isAgent && !actorUserId) return Errors.invalidAuth(requestId, req);
 
-    // Only superadmin can view queue across orgs; org_admin can view their org only
-    const { data: roles, error: roleErr } = await admin.from("user_roles").select("role, organization_id").eq("user_id", actorUserId);
-    if (roleErr) return Errors.internal(roleErr.message, requestId, req);
+    // Only superadmin can view queue across orgs; org_admin can view their org only.
+    // In preview/dev-agent mode, agent token is treated as org-admin for the provided org.
+    let isSuper = false;
+    let orgAdminOrgs = new Set<string>();
+    if (!isAgent) {
+      const { data: roles, error: roleErr } = await admin.from("user_roles").select("role, organization_id").eq("user_id", actorUserId);
+      if (roleErr) return Errors.internal(roleErr.message, requestId, req);
 
-    const isSuper = Array.isArray(roles) && roles.some((r: any) => r.role === "superadmin");
-    const orgAdminOrgs = new Set((roles ?? []).filter((r: any) => r.role === "org_admin").map((r: any) => r.organization_id).filter(Boolean));
-    if (!isSuper && orgAdminOrgs.size === 0) return Errors.forbidden("org_admin or superadmin required", requestId, req);
+      isSuper = Array.isArray(roles) && roles.some((r: any) => r.role === "superadmin");
+      orgAdminOrgs = new Set((roles ?? []).filter((r: any) => r.role === "org_admin").map((r: any) => r.organization_id).filter(Boolean));
+      if (!isSuper && orgAdminOrgs.size === 0) return Errors.forbidden("org_admin or superadmin required", requestId, req);
+    }
 
     let q = admin
       .from("tag_approval_queue")
@@ -48,8 +58,10 @@ serve(
       .order("created_at", { ascending: false })
       .limit(200);
 
-    if (isSuper) {
-      // superadmin can query all orgs; still allow filtering to current org for agent runs
+    // In preview agent mode, scope strictly to the provided org.
+    if (isAgent) {
+      q = q.eq("organization_id", organizationId);
+    } else if (isSuper) {
       q = q.eq("organization_id", organizationId);
     } else {
       q = q.in("organization_id", Array.from(orgAdminOrgs));

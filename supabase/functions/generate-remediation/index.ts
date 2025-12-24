@@ -84,7 +84,8 @@ serve(
         items_per_group: itemsPerGroup,
         mode: "options",
         status: "pending",
-        created_by: auth.userId ?? null,
+        // In agent-token mode, userId may be synthetic and not exist in auth.users (FK-safe).
+        created_by: auth.type === "agent" ? null : (auth.userId ?? null),
       })
       .select("id")
       .single();
