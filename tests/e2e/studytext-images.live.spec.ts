@@ -27,7 +27,9 @@ async function poll<T>(args: {
   // bounded loop
   while (Date.now() - start < args.timeoutMs) {
     const res = await args.fn();
-    if (res) return res;
+    // IMPORTANT: treat only `null` as "not ready".
+    // Some callsites intentionally return `undefined` (e.g. T=void) to signal success.
+    if (res !== null) return res;
     await sleep(args.intervalMs);
   }
   throw new Error(`Timed out waiting for ${args.name} after ${args.timeoutMs}ms`);
