@@ -79,6 +79,7 @@
     "e2e:live:report": "playwright show-report reports/playwright-live-html",
     "e2e:live:studytext-images": "playwright test --config=playwright.live.config.ts tests/e2e/studytext-images.live.spec.ts",
     "e2e:live:option-image-fit": "playwright test --config=playwright.live.config.ts tests/e2e/option-images-fit.live.spec.ts",
+    "e2e:live:publish-agent": "playwright test --config=playwright.live.config.ts tests/e2e/publish-course-agent.live.spec.ts",
     "test:lovable": "playwright test --config=playwright.lovable.config.ts",
     "test:lovable:headed": "playwright test --config=playwright.lovable.config.ts --headed",
     "test:lovable:report": "playwright show-report reports/lovable-smoke",

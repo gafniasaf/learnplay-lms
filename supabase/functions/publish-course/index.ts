@@ -10,7 +10,7 @@
  * 6. Triggering async job to regenerate embeddings
  * 7. Invalidating CDN cache (future)
  * 
- * Auth: Required (editor or org_admin)
+ * Auth: Required (editor or org_admin) OR valid Agent Token (dev/automation)
  * 
  * Body:
  *   {
@@ -24,13 +24,40 @@ import { withCors } from '../_shared/cors.ts';
 import { Errors } from '../_shared/error.ts';
 
 const supabaseUrl = Deno.env.get('SUPABASE_URL');
+const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY');
 const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+const expectedAgentToken = Deno.env.get('AGENT_TOKEN');
 
 if (!supabaseUrl) {
   throw new Error('SUPABASE_URL is required');
 }
+if (!supabaseAnonKey) {
+  throw new Error('SUPABASE_ANON_KEY is required');
+}
 if (!supabaseServiceKey) {
   throw new Error('SUPABASE_SERVICE_ROLE_KEY is required');
+}
+
+// Create client ONCE at module load (per EDGE_DEPLOYMENT_RUNBOOK)
+const service = createClient(supabaseUrl, supabaseServiceKey);
+
+function getHeader(req: Request, name: string): string | null {
+  return req.headers.get(name) ?? req.headers.get(name.toLowerCase()) ?? req.headers.get(name.toUpperCase());
+}
+
+function isValidAgentAuth(req: Request): boolean {
+  const agentToken = getHeader(req, 'x-agent-token') ?? getHeader(req, 'X-Agent-Token');
+  return Boolean(expectedAgentToken && agentToken && agentToken === expectedAgentToken);
+}
+
+function getAgentOrgId(req: Request): string | null {
+  return (
+    getHeader(req, 'x-organization-id') ??
+    getHeader(req, 'X-Organization-Id') ??
+    new URL(req.url).searchParams.get('iz_dev_org_id') ??
+    new URL(req.url).searchParams.get('devOrgId') ??
+    new URL(req.url).searchParams.get('orgId')
+  );
 }
 
 const handler = async (req: Request) => {
@@ -39,20 +66,33 @@ const handler = async (req: Request) => {
     return Errors.methodNotAllowed(req.method, requestId, req);
   }
 
-  const authHeader = req.headers.get('Authorization');
-  if (!authHeader) {
-    return Errors.noAuth(requestId, req);
-  }
+  const agentAuth = isValidAgentAuth(req);
+  const agentOrgId = agentAuth ? getAgentOrgId(req) : null;
 
-  const supabase = createClient(supabaseUrl, supabaseServiceKey, {
-    global: {
-      headers: { Authorization: authHeader }
+  // User-session auth path (for real logged-in admins)
+  let user: { id: string } | null = null;
+  if (!agentAuth) {
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      return Errors.noAuth(requestId, req);
     }
-  });
 
-  const { data: { user }, error: userError } = await supabase.auth.getUser();
-  if (userError || !user) {
-    return Errors.invalidAuth(requestId, req);
+    // IMPORTANT: Use a service client for DB/storage ops, but validate user session using the provided bearer token.
+    // We pass the Authorization header only for auth.getUser(), not for DB writes.
+    const authClient = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } }
+    });
+
+    const { data: { user: sessionUser }, error: userError } = await authClient.auth.getUser();
+    if (userError || !sessionUser) {
+      return Errors.invalidAuth(requestId, req);
+    }
+    user = { id: sessionUser.id };
+  } else {
+    // Agent-token auth path (preview/dev/automation)
+    if (!agentOrgId) {
+      return Errors.invalidRequest("Missing x-organization-id", requestId, req);
+    }
   }
 
   // Parse request body
@@ -69,7 +109,7 @@ const handler = async (req: Request) => {
   }
 
   // Fetch course metadata
-  const { data: metadata, error: metadataError } = await supabase
+  const { data: metadata, error: metadataError } = await service
     .from('course_metadata')
     .select('*')
     .eq('id', courseId)
@@ -79,31 +119,39 @@ const handler = async (req: Request) => {
     return Errors.notFound("Course", requestId, req);
   }
 
-  // Check user has editor/org_admin for this org, OR is superadmin.
-  // NOTE: Other admin actions (e.g. delete-course) already treat superadmin as privileged.
-  const { data: superRole } = await supabase
-    .from('user_roles')
-    .select('role')
-    .eq('user_id', user.id)
-    .eq('role', 'superadmin')
-    .maybeSingle();
-
-  if (!superRole) {
-    const { data: userRole } = await supabase
+  // Authorization
+  if (agentAuth) {
+    // In agent mode, enforce org boundary explicitly (service role bypasses RLS).
+    if (String(metadata.organization_id) !== String(agentOrgId)) {
+      return Errors.forbidden("Not authorized to publish this course", requestId, req);
+    }
+  } else {
+    // User-session mode: require editor/org_admin for this org, OR superadmin.
+    // NOTE: Other admin actions (e.g. delete-course) already treat superadmin as privileged.
+    const { data: superRole } = await service
       .from('user_roles')
       .select('role')
-      .eq('user_id', user.id)
-      .eq('organization_id', metadata.organization_id)
-      .in('role', ['org_admin', 'editor'])
-      .single();
+      .eq('user_id', user!.id)
+      .eq('role', 'superadmin')
+      .maybeSingle();
 
-    if (!userRole) {
-      return Errors.forbidden("Not authorized to publish this course", requestId, req);
+    if (!superRole) {
+      const { data: userRole } = await service
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', user!.id)
+        .eq('organization_id', metadata.organization_id)
+        .in('role', ['org_admin', 'editor'])
+        .single();
+
+      if (!userRole) {
+        return Errors.forbidden("Not authorized to publish this course", requestId, req);
+      }
     }
   }
 
   // Load course JSON from storage
-  const { data: courseFile, error: storageError } = await supabase
+  const { data: courseFile, error: storageError } = await service
     .storage
     .from('courses')
     .download(`${courseId}/course.json`);
@@ -118,7 +166,7 @@ const handler = async (req: Request) => {
 
   // Validate all tag_ids exist in tags table
   if (metadata.tag_ids && metadata.tag_ids.length > 0) {
-    const { data: existingTags, error: tagsError } = await supabase
+    const { data: existingTags, error: tagsError } = await service
       .from('tags')
       .select('id')
       .in('id', metadata.tag_ids);
@@ -144,7 +192,7 @@ const handler = async (req: Request) => {
   const newContentVersion = (metadata.content_version || 0) + 1;
   const newEtag = (metadata.etag || 0) + 1;
 
-  const { error: updateError } = await supabase
+  const { error: updateError } = await service
     .from('course_metadata')
     .update({
       content_version: newContentVersion,
@@ -163,7 +211,7 @@ const handler = async (req: Request) => {
   // - relational row stores version + storage_path + metadata snapshot
   const versionPath = `${courseId}/versions/${newContentVersion}.json`;
   try {
-    const { error: verUploadErr } = await supabase.storage
+    const { error: verUploadErr } = await service.storage
       .from('courses')
       .upload(
         versionPath,
@@ -179,13 +227,15 @@ const handler = async (req: Request) => {
     return Errors.internal('Failed to upload version snapshot', requestId, req);
   }
 
-  const { data: versionData, error: versionError } = await supabase
+  const { data: versionData, error: versionError } = await service
     .from('course_versions')
     .insert({
       course_id: courseId,
       version: newContentVersion,
       storage_path: versionPath,
-      published_by: user.id,
+      // In agent-token mode there may not be a real auth.users id available.
+      // published_by is nullable in this repo's current schema; do NOT write placeholder user ids.
+      published_by: agentAuth ? null : user!.id,
       change_summary: changelog || `Published version ${newContentVersion}`,
       metadata_snapshot: {
         course_id: courseId,
@@ -207,7 +257,7 @@ const handler = async (req: Request) => {
 
   // Emit realtime event for clients to refresh course content/caches
   try {
-    await supabase.from('catalog_updates').insert({
+    await service.from('catalog_updates').insert({
       course_id: courseId,
       action: 'updated',
       catalog_version: newEtag || newContentVersion || 1,
