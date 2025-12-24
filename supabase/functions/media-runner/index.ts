@@ -23,6 +23,82 @@ type MediaJobRow = {
   metadata?: Record<string, unknown> | null;
 };
 
+function replaceFirstImageMarker(content: string, url: string): string {
+  const s = String(content || "");
+  const re = /\[IMAGE:[^\]]+\]/;
+  if (re.test(s)) {
+    return s.replace(re, `[IMAGE:${url}]`);
+  }
+  return `${s}${s.trim().length ? "\n\n" : ""}[IMAGE:${url}]`;
+}
+
+async function syncStudyTextImages(courseId: string): Promise<{ updated: number; updatedSections: string[] }> {
+  // Pull the latest done study_text jobs for this course and ensure course.json embeds their URLs.
+  const { data: jobs, error: jobsErr } = await adminSupabase
+    .from("ai_media_jobs")
+    .select("result_url,metadata,created_at,status")
+    .eq("course_id", courseId)
+    .eq("status", "done")
+    .order("created_at", { ascending: false })
+    .limit(200);
+  if (jobsErr) throw new Error(`sync query failed: ${jobsErr.message ?? String(jobsErr)}`);
+
+  const sectionToUrl = new Map<string, string>();
+  for (const j of jobs ?? []) {
+    const url = typeof (j as any)?.result_url === "string" ? String((j as any).result_url).trim() : "";
+    if (!url) continue;
+    const tr = (j as any)?.metadata?.targetRef;
+    const type = tr && typeof tr === "object" ? (tr as any).type : null;
+    if (type !== "study_text") continue;
+    const sectionId = typeof (tr as any).sectionId === "string" ? String((tr as any).sectionId).trim() : "";
+    if (!sectionId) continue;
+    if (!sectionToUrl.has(sectionId)) sectionToUrl.set(sectionId, url);
+  }
+
+  if (sectionToUrl.size === 0) {
+    return { updated: 0, updatedSections: [] };
+  }
+
+  const { data: file, error: dlErr } = await adminSupabase.storage.from("courses").download(`${courseId}/course.json`);
+  if (dlErr || !file) throw new Error(`Failed to download course.json: ${dlErr?.message ?? "missing"}`);
+
+  const text = await file.text();
+  const json = JSON.parse(text);
+  const isEnvelope = json && typeof json === "object" && "content" in json && "format" in json;
+  const content = isEnvelope ? (json.content ?? {}) : json;
+
+  const studyTexts = Array.isArray(content.studyTexts) ? content.studyTexts : [];
+  let updated = 0;
+  const updatedSections: string[] = [];
+
+  for (let i = 0; i < studyTexts.length; i++) {
+    const st = studyTexts[i];
+    const id = typeof st?.id === "string" ? String(st.id) : "";
+    const url = id ? sectionToUrl.get(id) : null;
+    if (!id || !url) continue;
+    const originalContent = String(st?.content || "");
+    const nextContent = replaceFirstImageMarker(originalContent, url);
+    if (nextContent !== originalContent) {
+      studyTexts[i] = { ...st, content: nextContent };
+      updated++;
+      updatedSections.push(id);
+    }
+  }
+
+  if (updated === 0) return { updated: 0, updatedSections: [] };
+
+  const updatedJson = isEnvelope ? { ...json, content: { ...content, studyTexts } } : { ...content, studyTexts };
+  const blob = new Blob([JSON.stringify(updatedJson, null, 2)], { type: "application/json" });
+  const { error: upErr } = await adminSupabase.storage.from("courses").upload(`${courseId}/course.json`, blob, {
+    upsert: true,
+    contentType: "application/json",
+    cacheControl: "public, max-age=60",
+  });
+  if (upErr) throw new Error(`Failed to upload updated course.json: ${upErr.message}`);
+
+  return { updated, updatedSections };
+}
+
 async function pickNextPending(): Promise<MediaJobRow | null> {
   // Prefer RPC (atomic); fallback to select.
   const { data: rpcData, error: rpcErr } = await adminSupabase.rpc("get_next_pending_media_job");
@@ -190,6 +266,7 @@ serve(async (req: Request): Promise<Response> => {
   const n = Math.min(Math.max(Number(url.searchParams.get("n") || "1"), 1), 25);
 
   const results: Array<{ id: string; status: string; resultUrl?: string; error?: string }> = [];
+  const coursesToSync = new Set<string>();
   for (let i = 0; i < n; i++) {
     const job = await pickNextPending();
     if (!job) break;
@@ -269,6 +346,10 @@ serve(async (req: Request): Promise<Response> => {
         updated_at: new Date().toISOString(),
       });
 
+      if (targetRef.type === "study_text") {
+        coursesToSync.add(job.course_id);
+      }
+
       results.push({ id: job.id, status: "done", resultUrl: uploaded.publicUrl });
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
@@ -282,7 +363,18 @@ serve(async (req: Request): Promise<Response> => {
     }
   }
 
-  return new Response(JSON.stringify({ ok: true, processed: results.length, results }), {
+  const sync: Array<{ courseId: string; updated: number; updatedSections: string[]; error?: string }> = [];
+  for (const courseId of coursesToSync) {
+    try {
+      const r = await syncStudyTextImages(courseId);
+      sync.push({ courseId, updated: r.updated, updatedSections: r.updatedSections });
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      sync.push({ courseId, updated: 0, updatedSections: [], error: msg });
+    }
+  }
+
+  return new Response(JSON.stringify({ ok: true, processed: results.length, results, sync }), {
     status: 200,
     headers: stdHeaders(req, { "Content-Type": "application/json", "X-Request-Id": requestId }),
   });
