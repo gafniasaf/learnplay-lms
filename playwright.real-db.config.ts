@@ -40,6 +40,8 @@ const config: PlaywrightTestConfig = {
       // Use real Supabase credentials from .env
       VITE_SUPABASE_URL: process.env.VITE_SUPABASE_URL,
       VITE_SUPABASE_PUBLISHABLE_KEY: process.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+      // Used to gate small E2E-only compatibility shims in the UI (keeps production clean).
+      VITE_E2E: 'true',
     },
   },
   // Projects for different auth states
