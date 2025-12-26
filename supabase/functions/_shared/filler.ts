@@ -276,7 +276,15 @@ Fill ONLY these fields:
    - Include EXACTLY ONE [blank] placeholder per item
    - ${mode === "options" ? "Questions should have 3-4 clear answer choices" : "Questions should have single numeric answers"}
 
-3. For items[] - THIS IS CRITICAL:
+3. items[].explain
+   - Write a clear, educational explanation (1-2 paragraphs in HTML)
+   - Explain WHY the correct answer is correct
+   - Help students understand the concept, not just memorize the answer
+   - Reference the question context and provide additional insight
+   - Use <p> tags for paragraphs
+   - Example: "<p>The correct answer is 'clay' because clay is one of the most common materials used to make statues. Clay is soft when wet and can be easily shaped, then hardens when dried or fired in a kiln.</p>"
+
+4. For items[] - THIS IS CRITICAL:
    ${mode === "options" 
      ? "- mode=\"options\" requires TWO fields: \"options\" (array of 3-4 strings) AND \"correctIndex\" (number 0-3)\n   - DO NOT use \"answer\" field for options mode\n   - Example: {\"options\": [\"30\", \"25\", \"35\", \"40\"], \"correctIndex\": 0}" 
      : "- mode=\"numeric\" requires ONE field: \"answer\" (number)\n   - DO NOT use \"options\" or \"correctIndex\" for numeric mode\n   - Example: {\"answer\": 30}"}
@@ -319,6 +327,7 @@ OUTPUT SCHEMA (you MUST return an object with these two top-level keys):
     {
       "id": 0,                    // KEEP SAME
       "text": "...",              // FILL with exactly one [blank]
+      "explain": "<p>...</p>",    // FILL with explanation of why answer is correct
       "groupId": 0,               // KEEP SAME
       "clusterId": "...",         // KEEP SAME
       "variant": "1",             // KEEP SAME
@@ -336,6 +345,7 @@ ${JSON.stringify({ studyTexts, items: items.map(it => {
   const base: any = {
     id: it.id,
     text: it.text,
+    explain: "", // FILL with explanation
     groupId: it.groupId,
     clusterId: it.clusterId,
     variant: it.variant,
