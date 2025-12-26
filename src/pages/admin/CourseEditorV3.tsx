@@ -107,6 +107,7 @@ const CourseEditorV3 = () => {
   const [stemShowPreview, setStemShowPreview] = useState(false);
   const [explanationShowPreview, setExplanationShowPreview] = useState(false);
   const [stemAiImageLoading, setStemAiImageLoading] = useState(false);
+  const [optionAiImageLoading, setOptionAiImageLoading] = useState<Set<number>>(new Set());
   
   // Unsaved tracking
   const [unsavedItems, setUnsavedItems] = useState<Set<string>>(new Set());
@@ -900,6 +901,69 @@ const CourseEditorV3 = () => {
     optionMedia[index] = null;
     handleItemChange({ ...currentItem, optionMedia });
     toast.success('Option media removed');
+  };
+
+  const handleAIGenerateOptionImage = async (index: number) => {
+    if (!currentItem || !course) return;
+    const options = Array.isArray((currentItem as any)?.options) ? ((currentItem as any).options as any[]) : [];
+    const option = options[index];
+    if (!option) {
+      toast.error('Option not found');
+      return;
+    }
+
+    try {
+      setOptionAiImageLoading((prev) => new Set(prev).add(index));
+      toast.info(`Generating image for option ${index + 1}…`);
+
+      const optionText = typeof option === 'string' ? option : String(option?.text || '');
+      const optionPlain = optionText.replace(/<[^>]*>/g, '').replace(/\[blank\]/gi, '___').slice(0, 120);
+      const subj = (course as any)?.subject || course?.title || 'General';
+      const stem = String((currentItem as any)?.stem?.text || (currentItem as any)?.text || '');
+      const stemPlain = stem.replace(/<[^>]*>/g, '').replace(/\[blank\]/gi, '___').slice(0, 100);
+
+      const prompt = [
+        `Simple learning visual for ${subj}.`,
+        `Question context: ${stemPlain}`,
+        `This option represents: ${optionPlain}`,
+        `Create a clean photo or realistic illustration that visually represents this option/answer choice.`,
+        `IMPORTANT: Absolutely no text, letters, words, labels, numbers, or written language anywhere in the image.`,
+        `No diagrams, charts, or infographics. Just a clean visual representation of the concept.`,
+        `Original artwork only - no copyrighted characters or brands.`,
+        `Colorful, friendly, child-appropriate educational style.`,
+        `Square aspect ratio (1:1) suitable for an option tile.`,
+      ]
+        .filter(Boolean)
+        .join(' ');
+
+      const res = await generateMedia({
+        prompt,
+        kind: 'image',
+        options: { aspectRatio: '1:1', size: '1024x1024', quality: 'standard' },
+      });
+
+      const newMedia = {
+        id: crypto.randomUUID(),
+        type: 'image',
+        url: res.url,
+        alt: res.alt || `Option ${index + 1} image`,
+      };
+
+      const existingOptionMedia = (currentItem as any).optionMedia || [];
+      const updatedOptionMedia = [...existingOptionMedia];
+      updatedOptionMedia[index] = newMedia;
+      handleItemChange({ ...currentItem, optionMedia: updatedOptionMedia });
+      toast.success(`AI image added to option ${index + 1} (remember to Save)`);
+    } catch (e) {
+      logger.error('[CourseEditorV3] Option AI image generation failed:', e);
+      toast.error(e instanceof Error ? e.message : 'AI image generation failed');
+    } finally {
+      setOptionAiImageLoading((prev) => {
+        const next = new Set(prev);
+        next.delete(index);
+        return next;
+      });
+    }
   };
 
   const handleModeChange = (mode: 'options' | 'numeric') => {
@@ -2127,6 +2191,26 @@ const CourseEditorV3 = () => {
                                               data-action="action"
                                             >
                                               ✨
+                                            </button>
+                                            <button
+                                              type="button"
+                                              onClick={() => handleAIGenerateOptionImage(idx)}
+                                              disabled={optionAiImageLoading.has(idx)}
+                                              className="w-8 h-8 rounded-md transition-colors disabled:opacity-50"
+                                              style={{ color: styles.accent }}
+                                              onMouseEnter={(e) => {
+                                                if (!optionAiImageLoading.has(idx)) {
+                                                  e.currentTarget.style.background = styles.accentSoft;
+                                                }
+                                              }}
+                                              onMouseLeave={(e) => {
+                                                e.currentTarget.style.background = 'transparent';
+                                              }}
+                                              title={optionAiImageLoading.has(idx) ? 'Generating...' : 'AI Image'}
+                                              data-cta-id={`cta-courseeditor-option-ai-image-${idx}`}
+                                              data-action="action"
+                                            >
+                                              {optionAiImageLoading.has(idx) ? '⏳' : '🎨'}
                                             </button>
                                             <button
                                               type="button"
