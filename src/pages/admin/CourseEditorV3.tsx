@@ -8,7 +8,7 @@
  * - Full integration with existing hooks and components
  */
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -71,6 +71,7 @@ const styles = {
   orange: '#d97b0d',
   orangeSoft: '#fef4e6',
   red: '#d14343',
+  redSoft: '#fef0f0',
 };
 
 const CourseEditorV3 = () => {
@@ -109,8 +110,10 @@ const CourseEditorV3 = () => {
   const [stemAiImageLoading, setStemAiImageLoading] = useState(false);
   const [optionAiImageLoading, setOptionAiImageLoading] = useState<Set<number>>(new Set());
   
-  // Unsaved tracking
+  // Unsaved tracking & auto-save status
   const [unsavedItems, setUnsavedItems] = useState<Set<string>>(new Set());
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
+  const autoSaveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   
   // Study Text Editor
   const [studyTextEditorOpen, setStudyTextEditorOpen] = useState(false);
@@ -387,6 +390,51 @@ const CourseEditorV3 = () => {
     return ops;
   };
 
+  // Silent auto-save function (no toast, just status indicator)
+  const performAutoSave = useCallback(async () => {
+    if (!course || !courseId || unsavedItems.size === 0) return;
+    try {
+      setSaveStatus('saving');
+      const ops = generatePatchOps();
+      if (ops.length === 0) {
+        setSaveStatus('idle');
+        return;
+      }
+      logger.debug('[CourseEditorV3] Auto-saving with ops:', ops);
+      await mcp.updateCourse(courseId, ops);
+      setUnsavedItems(new Set());
+      setSaveStatus('saved');
+      // Reset to idle after 2 seconds
+      setTimeout(() => setSaveStatus('idle'), 2000);
+    } catch (err) {
+      logger.error('[CourseEditorV3] Auto-save failed:', err);
+      setSaveStatus('error');
+      toast.error('Auto-save failed. Please try saving manually.');
+    }
+  }, [course, courseId, unsavedItems, mcp]);
+
+  // Auto-save effect: debounce 1.5 seconds after any change
+  useEffect(() => {
+    if (unsavedItems.size === 0) return;
+    
+    // Clear any existing timeout
+    if (autoSaveTimeoutRef.current) {
+      clearTimeout(autoSaveTimeoutRef.current);
+    }
+    
+    // Set new timeout for auto-save
+    autoSaveTimeoutRef.current = setTimeout(() => {
+      performAutoSave();
+    }, 1500);
+    
+    return () => {
+      if (autoSaveTimeoutRef.current) {
+        clearTimeout(autoSaveTimeoutRef.current);
+      }
+    };
+  }, [unsavedItems, performAutoSave]);
+
+  // Legacy manual save (kept for keyboard shortcut compatibility)
   const handleSaveDraft = async () => {
     if (!course || !courseId || unsavedItems.size === 0) {
       toast.info('No changes to save');
@@ -394,17 +442,22 @@ const CourseEditorV3 = () => {
     }
     try {
       setSaving(true);
+      setSaveStatus('saving');
       const ops = generatePatchOps();
       if (ops.length === 0) {
         toast.info('No changes to save');
+        setSaveStatus('idle');
         return;
       }
       logger.debug('[CourseEditorV3] Saving draft with ops:', ops);
       await mcp.updateCourse(courseId, ops);
       setUnsavedItems(new Set());
-      toast.success(`Draft saved (${ops.length} changes)`);
+      setSaveStatus('saved');
+      toast.success(`Saved (${ops.length} changes)`);
+      setTimeout(() => setSaveStatus('idle'), 2000);
     } catch (err) {
       logger.error('[CourseEditorV3] Save failed:', err);
+      setSaveStatus('error');
       toast.error(err instanceof Error ? err.message : 'Failed to save draft');
     } finally {
       setSaving(false);
@@ -413,10 +466,15 @@ const CourseEditorV3 = () => {
 
   const handlePublish = async () => {
     if (!course || !courseId) return;
+    
+    // Auto-save any pending changes first
     if (unsavedItems.size > 0) {
-      toast.error('Please save all changes before publishing');
-      return;
+      toast.info('Saving pending changes...');
+      await performAutoSave();
+      // Small delay to ensure save completes
+      await new Promise(r => setTimeout(r, 500));
     }
+    
     const changelog = prompt('Enter a brief description of changes:');
     if (!changelog) return;
     try {
@@ -1549,20 +1607,56 @@ const CourseEditorV3 = () => {
             </svg>
             Preview
           </button>
-          <button
-            onClick={handleSaveDraft}
-            disabled={saving || unsavedCount === 0}
-            className="h-9 px-4 flex items-center gap-2 rounded-lg text-sm font-semibold transition-colors disabled:opacity-50"
-            style={{ background: styles.bgCard, border: `1px solid ${styles.border}`, color: styles.text }}
-            data-cta-id="cta-courseeditor-save"
-            data-action="action"
+          {/* Auto-save status indicator */}
+          <div 
+            className="h-9 px-3 flex items-center gap-2 rounded-lg text-xs font-medium"
+            style={{ 
+              background: saveStatus === 'error' ? styles.redSoft : styles.bgSunken, 
+              color: saveStatus === 'saving' ? styles.text3 : saveStatus === 'saved' ? styles.green : saveStatus === 'error' ? styles.red : styles.text4 
+            }}
           >
-            Save
-            <span className="text-[10px] px-1.5 py-0.5 rounded" style={{ background: styles.bgSunken, color: styles.text4, fontFamily: "'JetBrains Mono', monospace" }}>⌘S</span>
-          </button>
+            {saveStatus === 'saving' && (
+              <>
+                <svg className="w-3 h-3 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                  <circle cx="12" cy="12" r="10" strokeWidth="3" strokeDasharray="60" strokeDashoffset="20" />
+                </svg>
+                Saving...
+              </>
+            )}
+            {saveStatus === 'saved' && (
+              <>
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+                </svg>
+                Saved
+              </>
+            )}
+            {saveStatus === 'error' && (
+              <>
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+                Error
+              </>
+            )}
+            {saveStatus === 'idle' && unsavedCount > 0 && (
+              <>
+                <span className="w-2 h-2 rounded-full" style={{ background: styles.orange }} />
+                {unsavedCount} unsaved
+              </>
+            )}
+            {saveStatus === 'idle' && unsavedCount === 0 && (
+              <>
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+                </svg>
+                All saved
+              </>
+            )}
+          </div>
           <button
             onClick={handlePublish}
-            disabled={saving || unsavedCount > 0}
+            disabled={saving}
             className="h-9 px-4 flex items-center gap-1.5 rounded-lg text-sm font-semibold transition-colors disabled:opacity-50"
             style={{ background: styles.accent, color: 'white' }}
             data-cta-id="cta-courseeditor-publish"
