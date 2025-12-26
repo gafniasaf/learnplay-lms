@@ -1860,7 +1860,8 @@ const CourseEditorV3 = () => {
               </ScrollArea>
             </aside>
 
-            {/* Editor Panel */}
+            {/* Editor Panel - hidden when preview is shown */}
+            {!showStudentPreview && (
             <main className="flex-1 flex flex-col overflow-hidden">
               {/* Editor Toolbar */}
               <div className="flex items-center justify-between px-6 py-3" style={{ background: styles.bgCard, borderBottom: `1px solid ${styles.border}` }}>
@@ -2708,39 +2709,54 @@ const CourseEditorV3 = () => {
                 )}
               </div>
             </main>
+            )}
 
-            {/* Preview Panel - only visible when Preview button is clicked */}
+            {/* Preview Panel - takes over the editor space when visible */}
             {showStudentPreview && (
               <aside
-                className="flex flex-col shrink-0"
+                className="flex flex-col flex-1"
                 style={{
-                  width: '360px',
                   background: styles.bgCard,
                   borderLeft: `1px solid ${styles.border}`,
+                  minWidth: 0,
                 }}
               >
                 <div
-                  className="px-4 py-3.5 flex items-center gap-2 text-xs font-bold uppercase tracking-wide shrink-0"
+                  className="px-4 py-3.5 flex items-center justify-between shrink-0"
                   style={{
-                    color: styles.text3,
                     borderBottom: `1px solid ${styles.border}`,
                   }}
                 >
-                  <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ opacity: 0.6 }}>
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
-                  </svg>
-                  Student View
+                  <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wide" style={{ color: styles.text3 }}>
+                    <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ opacity: 0.6 }}>
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                    </svg>
+                    Student View
+                  </div>
+                  <button
+                    onClick={() => setShowStudentPreview(false)}
+                    className="h-8 px-3 rounded-md text-xs font-semibold transition-colors"
+                    style={{ background: styles.bgSunken, color: styles.text2 }}
+                    onMouseEnter={(e) => (e.currentTarget.style.background = styles.bgHover)}
+                    onMouseLeave={(e) => (e.currentTarget.style.background = styles.bgSunken)}
+                    data-cta-id="cta-courseeditor-close-preview"
+                    data-action="toggle"
+                  >
+                    ← Back to Editor
+                  </button>
                 </div>
-                <div className="flex-1 overflow-y-auto p-5">
-                  <PreviewPanelV2
-                    item={currentItem}
-                    contentVersion={(course as any)?.contentVersion}
-                    courseId={courseId}
-                    courseTitle={course?.title}
-                    onRefresh={() => toast.info('Preview refreshed')}
-                    onOptionSelect={(index) => toast.info(`Option ${index + 1} selected`)}
-                  />
+                <div className="flex-1 overflow-y-auto flex items-center justify-center p-8" style={{ background: styles.bg }}>
+                  <div className="w-full max-w-md">
+                    <PreviewPanelV2
+                      item={currentItem}
+                      contentVersion={(course as any)?.contentVersion}
+                      courseId={courseId}
+                      courseTitle={course?.title}
+                      onRefresh={() => toast.info('Preview refreshed')}
+                      onOptionSelect={(index) => toast.info(`Option ${index + 1} selected`)}
+                    />
+                  </div>
                 </div>
               </aside>
             )}
