@@ -1,26 +1,45 @@
 /**
  * Import Legacy Course Edge Function
- * 
- * Imports courses from the legacy MES system into IgniteZero.
+ *
+ * One-way import from MES legacy DB into IgniteZero:
+ * - Fetch legacy course payload (via get_course_content)
+ * - (Optional) migrate images from legacy blob → Supabase Storage (media-library)
+ * - Save course.json to courses bucket (path: <courseId>/course.json)
+ * - Upsert course_metadata for catalog visibility
+ *
+ * NOTE: This function MUST NOT hardcode any secrets. Configure:
+ * - LEGACY_DATABASE_URL (required)
+ * - SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY (required)
  */
 
-import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
-import { createClient } from 'npm:@supabase/supabase-js@2';
-import { Pool } from 'https://deno.land/x/postgres@v0.17.0/mod.ts';
-import { stdHeaders, handleOptions } from '../_shared/cors.ts';
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "npm:@supabase/supabase-js@2";
+import { Pool } from "https://deno.land/x/postgres@v0.17.0/mod.ts";
+import { withCors } from "../_shared/cors.ts";
+import { Errors } from "../_shared/error.ts";
+import { getRequestId } from "../_shared/log.ts";
+import { authenticateRequest } from "../_shared/auth.ts";
+import { upsertCourseMetadata } from "../_shared/metadata.ts";
 
 // ═══════════════════════════════════════════════════════════════════════════
 // CONFIGURATION
 // ═══════════════════════════════════════════════════════════════════════════
 
-const LEGACY_DB_URL = Deno.env.get('LEGACY_DATABASE_URL') || 
-  'postgresql://postgres:d584WwaNjJbcQxHs@db.yqpqdtedhoffgmurpped.supabase.co:5432/postgres';
+const LEGACY_DATABASE_URL = Deno.env.get("LEGACY_DATABASE_URL");
+const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
+const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
-const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
-const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-const LEGACY_BLOB_BASE = 'https://expertcollegeresources.blob.core.windows.net/assets-cnt';
+if (!LEGACY_DATABASE_URL) {
+  throw new Error("LEGACY_DATABASE_URL is REQUIRED (set as an Edge secret).");
+}
+if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+  throw new Error("SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are REQUIRED.");
+}
 
-const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+const LEGACY_BLOB_BASE = "https://expertcollegeresources.blob.core.windows.net/assets-cnt";
+const MEDIA_BUCKET = "media-library";
+const COURSES_BUCKET = "courses";
 
 // ═══════════════════════════════════════════════════════════════════════════
 // TYPES
@@ -64,12 +83,18 @@ interface LegacyCourseContent {
   subjects: LegacySubject[];
 }
 
+type ImportLegacyCourseRequest = {
+  courseId: number;
+  migrateImages?: boolean;
+  locale?: string;
+};
+
 // ═══════════════════════════════════════════════════════════════════════════
 // LEGACY DATABASE
 // ═══════════════════════════════════════════════════════════════════════════
 
 async function fetchLegacyCourseContent(courseId: number): Promise<LegacyCourseContent> {
-  const pool = new Pool(LEGACY_DB_URL, 3);
+  const pool = new Pool(LEGACY_DATABASE_URL!, 1);
   
   try {
     const connection = await pool.connect();
@@ -78,7 +103,9 @@ async function fetchLegacyCourseContent(courseId: number): Promise<LegacyCourseC
         'SELECT get_course_content($1)',
         [courseId]
       );
-      return result.rows[0].get_course_content;
+      const row = result.rows?.[0]?.get_course_content as any;
+      if (!row) throw new Error("legacy_query_failed: empty_result");
+      return row as LegacyCourseContent;
     } finally {
       connection.release();
     }
@@ -91,39 +118,56 @@ async function fetchLegacyCourseContent(courseId: number): Promise<LegacyCourseC
 // IMAGE MIGRATION
 // ═══════════════════════════════════════════════════════════════════════════
 
-async function migrateImage(
-  originalUrl: string, 
-  targetPath: string
-): Promise<{ success: boolean; newUrl: string; error?: string }> {
+function normalizeLegacyImageUrl(url: string): string {
+  const s = String(url || "").trim();
+  if (!s) return "";
+  if (s.startsWith("http://") || s.startsWith("https://")) return s;
+  if (s.startsWith("/")) return `${LEGACY_BLOB_BASE}${s}`;
+  return `${LEGACY_BLOB_BASE}/${s}`;
+}
+
+function fileExtForContentType(contentType: string): string {
+  const ct = String(contentType || "").toLowerCase();
+  if (ct.includes("webp")) return "webp";
+  if (ct.includes("png")) return "png";
+  if (ct.includes("jpeg") || ct.includes("jpg")) return "jpg";
+  if (ct.includes("gif")) return "gif";
+  return "bin";
+}
+
+async function migrateImageToMediaLibrary(args: {
+  originalUrl: string;
+  courseId: string;
+}): Promise<{ ok: true; url: string } | { ok: false; url: string; error: string }> {
+  const originalUrl = normalizeLegacyImageUrl(args.originalUrl);
+  if (!originalUrl) return { ok: false, url: args.originalUrl, error: "empty_url" };
+
   try {
-    // Download image
-    const response = await fetch(originalUrl);
-    if (!response.ok) {
-      return { success: false, newUrl: originalUrl, error: `HTTP ${response.status}` };
+    const resp = await fetch(originalUrl);
+    if (!resp.ok) {
+      return { ok: false, url: originalUrl, error: `http_${resp.status}` };
     }
+    const contentType = resp.headers.get("content-type") || "image/jpeg";
+    const ext = fileExtForContentType(contentType);
+    const bytes = new Uint8Array(await resp.arrayBuffer());
+    const path = `courses/${args.courseId}/legacy-import/${crypto.randomUUID()}.${ext}`;
 
-    const contentType = response.headers.get('content-type') || 'image/jpeg';
-    const arrayBuffer = await response.arrayBuffer();
-
-    // Upload to Supabase Storage
-    const { error } = await supabase.storage
-      .from('media')
-      .upload(targetPath, arrayBuffer, {
-        contentType,
-        upsert: true,
-      });
-
-    if (error) {
-      return { success: false, newUrl: originalUrl, error: error.message };
+    const blob = new Blob([bytes.slice().buffer as ArrayBuffer], { type: contentType });
+    const { error: upErr } = await admin.storage.from(MEDIA_BUCKET).upload(path, blob, {
+      upsert: true,
+      contentType,
+      cacheControl: "public, max-age=31536000, immutable",
+    });
+    if (upErr) {
+      return { ok: false, url: originalUrl, error: `upload_failed: ${upErr.message}` };
     }
-
-    const newUrl = `${SUPABASE_URL}/storage/v1/object/public/media/${targetPath}`;
-    return { success: true, newUrl };
+    const { data } = admin.storage.from(MEDIA_BUCKET).getPublicUrl(path);
+    return { ok: true, url: data.publicUrl };
   } catch (err) {
-    return { 
-      success: false, 
-      newUrl: originalUrl, 
-      error: err instanceof Error ? err.message : 'Unknown error' 
+    return {
+      ok: false,
+      url: originalUrl,
+      error: err instanceof Error ? err.message : "unknown_error",
     };
   }
 }
@@ -349,134 +393,123 @@ function escapeRegex(str: string): string {
 // MAIN HANDLER
 // ═══════════════════════════════════════════════════════════════════════════
 
-serve(async (req) => {
-  if (req.method === 'OPTIONS') {
-    return handleOptions();
-  }
+serve(
+  withCors(async (req) => {
+    const reqId = getRequestId(req);
 
-  try {
-    const body = await req.json();
-    const { courseId, migrateImages = true, locale = 'he' } = body;
-
-    if (!courseId || typeof courseId !== 'number') {
-      return new Response(
-        JSON.stringify({ success: false, error: 'courseId is required and must be a number' }),
-        { status: 400, headers: stdHeaders }
-      );
+    if (req.method !== "POST") {
+      return Errors.methodNotAllowed(req.method, reqId, req);
     }
 
-    console.log(`[import-legacy-course] Starting import for course ${courseId}`);
-
-    // 1. Fetch legacy content
-    console.log('[import-legacy-course] Fetching from legacy database...');
-    const legacyContent = await fetchLegacyCourseContent(courseId);
-
-    if (!legacyContent.course || legacyContent.course.length === 0) {
-      return new Response(
-        JSON.stringify({ success: false, error: 'Course not found in legacy database' }),
-        { status: 404, headers: stdHeaders }
-      );
+    // Hybrid auth (agent token OR user session)
+    let auth;
+    try {
+      auth = await authenticateRequest(req);
+    } catch {
+      return Errors.invalidAuth(reqId, req);
+    }
+    if (auth.type === "agent" && !auth.organizationId) {
+      return Errors.invalidRequest("Missing x-organization-id for agent auth", reqId, req);
     }
 
-    // 2. Migrate images
-    let imageUrlMap = new Map<string, string>();
+    const organizationId = auth.organizationId;
+    if (!organizationId) {
+      return Errors.invalidRequest("Missing organization_id", reqId, req);
+    }
+
+    let body: ImportLegacyCourseRequest;
+    try {
+      body = (await req.json()) as ImportLegacyCourseRequest;
+    } catch {
+      return Errors.invalidRequest("Invalid JSON body", reqId, req);
+    }
+
+    const courseId = body?.courseId;
+    const migrateImages = body?.migrateImages !== false; // default true
+    const locale = typeof body?.locale === "string" && body.locale.trim().length > 0 ? body.locale.trim() : "he";
+
+    if (typeof courseId !== "number" || !Number.isFinite(courseId) || courseId <= 0) {
+      return Errors.invalidRequest("courseId is required and must be a positive number", reqId, req);
+    }
+
+    const newCourseId = `legacy-${courseId}`;
+    console.log(`[import-legacy-course] reqId=${reqId} importing legacy course ${courseId} -> ${newCourseId}`);
+
+    // 1) Fetch legacy content
+    let legacy: LegacyCourseContent;
+    try {
+      legacy = await fetchLegacyCourseContent(courseId);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      return Errors.internal(`Legacy DB fetch failed: ${msg}`, reqId, req);
+    }
+    if (!legacy?.course || legacy.course.length === 0) {
+      return Errors.notFound(`Legacy course ${courseId}`, reqId, req);
+    }
+
+    // 2) Optional image migration
+    const imageUrlMap = new Map<string, string>();
     let imagesMigrated = 0;
     let imagesFailedCount = 0;
 
     if (migrateImages) {
-      console.log('[import-legacy-course] Extracting images...');
-      const imageUrls = extractImageUrls(legacyContent);
-      console.log(`[import-legacy-course] Found ${imageUrls.length} images`);
+      const extracted = extractImageUrls(legacy)
+        .map((u) => String(u || "").trim())
+        .filter(Boolean);
+      const unique = Array.from(new Set(extracted));
+      console.log(`[import-legacy-course] Found ${unique.length} image(s) to migrate`);
 
-      for (let i = 0; i < imageUrls.length; i++) {
-        const url = imageUrls[i];
-        const filename = url.split('/').pop() || 'image.jpg';
-        const targetPath = `legacy-import/legacy-${courseId}/${Date.now()}-${i}-${filename}`.toLowerCase().replace(/[^a-z0-9._/-]/g, '_');
-        
-        const result = await migrateImage(url, targetPath);
-        imageUrlMap.set(url, result.newUrl);
-        
-        if (result.success) {
-          imagesMigrated++;
-        } else {
-          imagesFailedCount++;
-          console.warn(`[import-legacy-course] Image migration failed: ${url} - ${result.error}`);
-        }
+      for (const rawUrl of unique) {
+        const normalized = normalizeLegacyImageUrl(rawUrl);
+        const res = await migrateImageToMediaLibrary({ originalUrl: normalized, courseId: newCourseId });
+        if (res.ok) imagesMigrated++;
+        else imagesFailedCount++;
+
+        // Map both raw + normalized → new URL so string replace works reliably.
+        imageUrlMap.set(rawUrl, res.url);
+        if (normalized && normalized !== rawUrl) imageUrlMap.set(normalized, res.url);
       }
     }
 
-    // 3. Transform course
-    console.log('[import-legacy-course] Transforming course...');
-    const course = transformLegacyCourse(legacyContent, { locale, imageUrlMap });
+    // 3) Transform course payload (flat items + groups)
+    const course = transformLegacyCourse(legacy, { locale, imageUrlMap }) as any;
+    course.id = newCourseId;
+    course.organization_id = organizationId;
+    course.visibility = "org";
 
-    // 4. Save to Storage
-    console.log('[import-legacy-course] Saving to storage...');
-    const { error: uploadError } = await supabase.storage
-      .from('courses')
-      .upload(`${course.id}.json`, JSON.stringify(course, null, 2), {
-        contentType: 'application/json',
-        upsert: true,
-      });
-
-    if (uploadError) {
-      return new Response(
-        JSON.stringify({ success: false, error: `Storage upload failed: ${uploadError.message}` }),
-        { status: 500, headers: stdHeaders }
-      );
+    // 4) Save course.json to Storage (canonical path)
+    const coursePath = `${newCourseId}/course.json`;
+    const blob = new Blob([JSON.stringify(course, null, 2)], { type: "application/json" });
+    const { error: uploadErr } = await admin.storage.from(COURSES_BUCKET).upload(coursePath, blob, {
+      upsert: true,
+      contentType: "application/json",
+      cacheControl: "public, max-age=60",
+    });
+    if (uploadErr) {
+      return Errors.internal(`Storage upload failed: ${uploadErr.message}`, reqId, req);
     }
 
-    // 5. Create metadata (if organization_id available)
-    const organizationId = req.headers.get('x-organization-id');
-    const warnings: string[] = [];
-
-    if (organizationId) {
-      const { error: metaError } = await supabase
-        .from('course_metadata')
-        .upsert({
-          id: course.id,
-          title: course.title,
-          organization_id: organizationId,
-          status: 'draft',
-          subject: course.subject,
-          grade_band: course.gradeBand,
-          locale: course.locale,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        }, { onConflict: 'id' });
-
-      if (metaError) {
-        warnings.push(`Metadata insert warning: ${metaError.message}`);
-      }
-    } else {
-      warnings.push('No organization_id provided - skipping metadata insert');
+    // 5) Upsert metadata for catalog + org scoping
+    try {
+      await upsertCourseMetadata(admin as any, newCourseId, course);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      return Errors.internal(`Metadata upsert failed: ${msg}`, reqId, req);
     }
 
-    console.log(`[import-legacy-course] Import complete: ${course.id}`);
+    console.log(`[import-legacy-course] Done: ${newCourseId} (items=${course?.items?.length ?? 0})`);
 
-    return new Response(
-      JSON.stringify({
-        success: true,
-        courseId: course.id,
-        stats: {
-          itemsImported: course.items.length,
-          studyTextsImported: course.studyTexts.length,
-          imagesMigrated,
-          imagesFailedCount,
-        },
-        warnings,
-      }),
-      { status: 200, headers: stdHeaders }
-    );
-
-  } catch (error) {
-    console.error('[import-legacy-course] Error:', error);
-    return new Response(
-      JSON.stringify({ 
-        success: false, 
-        error: error instanceof Error ? error.message : 'Unknown error' 
-      }),
-      { status: 500, headers: stdHeaders }
-    );
-  }
-});
+    return {
+      success: true,
+      courseId: newCourseId,
+      stats: {
+        itemsImported: Array.isArray(course?.items) ? course.items.length : 0,
+        studyTextsImported: Array.isArray(course?.studyTexts) ? course.studyTexts.length : 0,
+        imagesMigrated,
+        imagesFailedCount,
+      },
+      requestId: reqId,
+    };
+  })
+);
 

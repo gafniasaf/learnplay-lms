@@ -11,7 +11,7 @@ import type { ImageMigrationResult } from './types.ts';
 // ═══════════════════════════════════════════════════════════════════════════
 
 const LEGACY_BLOB_BASE = 'https://expertcollegeresources.blob.core.windows.net/assets-cnt';
-const SUPABASE_STORAGE_BUCKET = 'media'; // or 'course-assets'
+const SUPABASE_STORAGE_BUCKET = 'media-library';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // IMAGE MIGRATOR CLASS
@@ -154,7 +154,7 @@ export class ImageMigrator {
     
     // Generate unique path
     const timestamp = Date.now();
-    return `legacy-import/${courseId}/${timestamp}-${cleanFilename}`;
+    return `courses/${courseId}/legacy-import/${timestamp}-${cleanFilename}`;
   }
 
   /**

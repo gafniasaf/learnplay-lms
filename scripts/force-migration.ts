@@ -1,6 +1,10 @@
 import { Client } from 'pg';
 
-const connectionString = "postgresql://postgres.eidcegehaswbtzrwzvfa:D!kkelul123@aws-0-us-east-1.pooler.supabase.com:6543/postgres";
+const connectionString = process.env.SUPABASE_DB_URL ?? process.env.DATABASE_URL;
+if (!connectionString) {
+  console.error('❌ BLOCKED: SUPABASE_DB_URL (or DATABASE_URL) is required to run this migration script.');
+  process.exit(1);
+}
 
 async function runMigration() {
   const client = new Client({

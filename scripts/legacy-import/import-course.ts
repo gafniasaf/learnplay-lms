@@ -7,7 +7,8 @@
  *   npx tsx scripts/legacy-import/import-course.ts --batch=10
  */
 
-import { createClient } from 'npm:@supabase/supabase-js@2';
+import { createClient } from '@supabase/supabase-js';
+import { Pool } from 'pg';
 import { transformLegacyCourse, extractImageUrls } from './transform.ts';
 import { ImageMigrator, normalizeLegacyImageUrl } from './image-migrator.ts';
 import type { LegacyCourseContent, ImportResult } from './types.ts';
@@ -16,11 +17,9 @@ import type { LegacyCourseContent, ImportResult } from './types.ts';
 // CONFIGURATION
 // ═══════════════════════════════════════════════════════════════════════════
 
-const LEGACY_DB_URL = Deno.env.get('LEGACY_DATABASE_URL') || 
-  'postgresql://postgres:d584WwaNjJbcQxHs@db.yqpqdtedhoffgmurpped.supabase.co:5432/postgres';
-
-const TARGET_SUPABASE_URL = Deno.env.get('SUPABASE_URL') || Deno.env.get('VITE_SUPABASE_URL');
-const TARGET_SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+const LEGACY_DB_URL = process.env.LEGACY_DATABASE_URL;
+const TARGET_SUPABASE_URL = process.env.SUPABASE_URL ?? process.env.VITE_SUPABASE_URL;
+const TARGET_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 const DEFAULT_LOCALE = 'he'; // Hebrew as default based on legacy system
 
@@ -29,8 +28,10 @@ const DEFAULT_LOCALE = 'he'; // Hebrew as default based on legacy system
 // ═══════════════════════════════════════════════════════════════════════════
 
 async function createLegacyClient() {
+  if (!LEGACY_DB_URL) {
+    throw new Error('❌ BLOCKED: LEGACY_DATABASE_URL is required');
+  }
   // Use pg directly for legacy database
-  const { Pool } = await import('npm:pg@8.11.3');
   return new Pool({ connectionString: LEGACY_DB_URL });
 }
 
@@ -55,7 +56,7 @@ async function listLegacyCourses(pool: any, limit = 20): Promise<{ id: number; n
 
 function createTargetClient() {
   if (!TARGET_SUPABASE_URL || !TARGET_SERVICE_KEY) {
-    throw new Error('Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY');
+    throw new Error('❌ BLOCKED: SUPABASE_URL (or VITE_SUPABASE_URL) and SUPABASE_SERVICE_ROLE_KEY are required');
   }
   return createClient(TARGET_SUPABASE_URL, TARGET_SERVICE_KEY);
 }
@@ -147,9 +148,10 @@ async function importSingleCourse(
     if (!options.dryRun) {
       console.log('\n💾 Saving to Supabase Storage...');
       
+      const blob = new Blob([JSON.stringify(course, null, 2)], { type: 'application/json' });
       const { error: uploadError } = await targetClient.storage
         .from('courses')
-        .upload(`${course.id}.json`, JSON.stringify(course, null, 2), {
+        .upload(`${course.id}/course.json`, blob, {
           contentType: 'application/json',
           upsert: true,
         });
@@ -161,20 +163,18 @@ async function importSingleCourse(
 
       // 5. Create course metadata record
       console.log('📋 Creating course metadata...');
-      const organizationId = Deno.env.get('ORGANIZATION_ID');
+      const organizationId = process.env.ORGANIZATION_ID;
       
       if (organizationId) {
         const { error: metaError } = await targetClient
           .from('course_metadata')
           .upsert({
             id: course.id,
-            title: course.title,
             organization_id: organizationId,
-            status: 'draft',
-            subject: course.subject,
-            grade_band: course.gradeBand,
-            locale: course.locale,
-            created_at: new Date().toISOString(),
+            visibility: 'org',
+            content_version: 1,
+            tag_ids: [],
+            tags: { __format: 'practice' },
             updated_at: new Date().toISOString(),
           }, { onConflict: 'id' });
 
@@ -206,7 +206,7 @@ async function importSingleCourse(
 // ═══════════════════════════════════════════════════════════════════════════
 
 async function main() {
-  const args = Deno.args;
+  const args = process.argv.slice(2);
   
   // Parse arguments
   const courseIdArg = args.find(a => a.startsWith('--courseId='));
@@ -220,13 +220,17 @@ async function main() {
   console.log('━'.repeat(40));
 
   // Validate environment
+  if (!LEGACY_DB_URL) {
+    console.error('❌ BLOCKED: LEGACY_DATABASE_URL is required');
+    process.exit(1);
+  }
   if (!TARGET_SUPABASE_URL) {
-    console.error('❌ SUPABASE_URL or VITE_SUPABASE_URL is required');
-    Deno.exit(1);
+    console.error('❌ BLOCKED: SUPABASE_URL or VITE_SUPABASE_URL is required');
+    process.exit(1);
   }
   if (!TARGET_SERVICE_KEY && !dryRun) {
-    console.error('❌ SUPABASE_SERVICE_ROLE_KEY is required (or use --dry-run)');
-    Deno.exit(1);
+    console.error('❌ BLOCKED: SUPABASE_SERVICE_ROLE_KEY is required (or use --dry-run)');
+    process.exit(1);
   }
 
   // Connect to legacy database
