@@ -677,27 +677,60 @@ const CourseEditorV3 = () => {
   const handleAIRewriteReference = async () => {
     if (!currentItem || !course) return;
     const referenceText = (currentItem as any).reference?.html || (currentItem as any).referenceHtml || (currentItem as any).explain || '';
-    if (!referenceText) { toast.error('No explanation text to rewrite'); return; }
+    const hasExistingText = referenceText.trim().length > 0;
+    
     try {
-      toast.info('Generating AI rewrite...');
+      toast.info(hasExistingText ? 'Generating AI rewrite...' : 'Generating explanation...');
+      
+      const stem = (currentItem as any).stem?.text || (currentItem as any).text || '';
+      const options = Array.isArray((currentItem as any)?.options) 
+        ? ((currentItem as any).options as any[])
+            .map((o: any) => typeof o === 'string' ? o : (o?.text ?? ''))
+            .filter(Boolean)
+        : [];
+      const correctIndex = typeof (currentItem as any)?.correctIndex === 'number' ? (currentItem as any).correctIndex : -1;
+      const correctOption = correctIndex >= 0 && options[correctIndex] ? options[correctIndex] : null;
+      
+      const guidance = hasExistingText
+        ? 'Rewrite the explanation to be clearer and more helpful. Output HTML only.'
+        : `Write a clear, educational explanation of why "${correctOption || 'the correct answer'}" is the correct answer. 
+           Explain the concept in a way that helps students understand. 
+           Reference the question context: "${stem.replace(/<[^>]*>/g, '').slice(0, 200)}". 
+           Output HTML only.`;
+      
       const result = await mcp.rewriteText({
         segmentType: 'reference',
-        currentText: referenceText,
+        currentText: hasExistingText ? referenceText : '<p>Generate an explanation...</p>',
         context: {
           subject: (course as any).subject || course.title,
           difficulty: 'intermediate',
-          stem: (currentItem as any).stem?.text || (currentItem as any).text || '',
-          guidance: 'Write a clear explanation of why the correct answer is correct. Output HTML only.',
+          stem,
+          options,
+          correctIndex,
+          guidance,
+          course: { 
+            id: course.id, 
+            title: course.title, 
+            description: course.description,
+            gradeBand: (course as any).gradeBand,
+            subject: (course as any).subject 
+          },
         },
         candidateCount: 1,
       });
+      
       if (result.candidates?.[0]) {
-        handleItemChange({ ...currentItem, reference: { html: result.candidates[0].text } } as CourseItem);
-        toast.success('AI rewrite applied');
+        const updatedItem = (currentItem as any).reference
+          ? { ...currentItem, reference: { ...(currentItem as any).reference, html: result.candidates[0].text } }
+          : (currentItem as any).referenceHtml !== undefined
+          ? { ...currentItem, referenceHtml: result.candidates[0].text }
+          : { ...currentItem, explain: result.candidates[0].text };
+        handleItemChange(updatedItem as CourseItem);
+        toast.success(hasExistingText ? 'AI rewrite applied' : 'Explanation generated');
       }
     } catch (error) {
       logger.error('AI rewrite failed:', error);
-      toast.error(error instanceof Error ? error.message : 'AI rewrite failed');
+      toast.error(error instanceof Error ? error.message : 'AI generation failed');
     }
   };
 
