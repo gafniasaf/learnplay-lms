@@ -102,7 +102,7 @@ const CourseEditorV3 = () => {
   const [activeTab, setActiveTab] = useState('stem');
   const [topLevelTab, setTopLevelTab] = useState<'exercises' | 'studyTexts'>('exercises');
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
-  const [showStudentPreview, setShowStudentPreview] = useState(true);
+  const [showStudentPreview, setShowStudentPreview] = useState(false); // Hidden by default, toggle via Preview button
   // Keep the current WYSIWYG HTML preview toggles (stem + explanation) in the new Focus form layout.
   const [stemShowPreview, setStemShowPreview] = useState(false);
   const [explanationShowPreview, setExplanationShowPreview] = useState(false);
@@ -1429,9 +1429,9 @@ const CourseEditorV3 = () => {
           <button
             onClick={() => setShowStudentPreview((prev) => !prev)}
             className="h-9 px-4 flex items-center gap-1.5 rounded-lg text-sm font-semibold transition-colors"
-            style={{ background: showStudentPreview ? 'transparent' : styles.bgSunken, color: styles.text2 }}
+            style={{ background: 'transparent', color: styles.text2 }}
             onMouseEnter={(e) => (e.currentTarget.style.background = styles.bgHover)}
-            onMouseLeave={(e) => (e.currentTarget.style.background = showStudentPreview ? 'transparent' : styles.bgSunken)}
+            onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
             data-cta-id="cta-courseeditor-toggle-student-preview"
             data-action="toggle"
             title={showStudentPreview ? 'Hide student preview' : 'Show student preview'}
@@ -1827,117 +1827,11 @@ const CourseEditorV3 = () => {
                 </div>
               </div>
 
-              {/* Editor Form */}
+              {/* Editor Form - Field-based layout (all fields visible, no tabs) */}
               <div className="flex-1 overflow-y-auto p-6" style={{ background: styles.bg }}>
                 {currentItem ? (
-                  <div className="max-w-3xl mx-auto">
-                    {/* Section nav (keeps existing CTA IDs; now scrolls to sections) */}
-                    <div className="mb-4 flex gap-1 p-1 rounded-lg" style={{ background: styles.bgSunken }}>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setActiveTab('stem');
-                          scrollToFocusSection('stem');
-                        }}
-                        className="px-3.5 py-2 rounded-md text-sm font-medium transition-all"
-                        style={{
-                          background: activeTab === 'stem' ? styles.bgCard : 'transparent',
-                          color: activeTab === 'stem' ? styles.text : styles.text3,
-                          boxShadow: activeTab === 'stem' ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
-                        }}
-                        data-cta-id="cta-courseeditor-editor-tab-stem"
-                        data-action="tab"
-                      >
-                        Stem
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setActiveTab('options');
-                          scrollToFocusSection('options');
-                        }}
-                        className="px-3.5 py-2 rounded-md text-sm font-medium transition-all"
-                        style={{
-                          background: activeTab === 'options' ? styles.bgCard : 'transparent',
-                          color: activeTab === 'options' ? styles.text : styles.text3,
-                          boxShadow: activeTab === 'options' ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
-                        }}
-                        data-cta-id="cta-courseeditor-editor-tab-options"
-                        data-action="tab"
-                      >
-                        {(currentItem as any)?.mode === 'numeric' ? 'Answer' : 'Options'}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setActiveTab('explanation');
-                          scrollToFocusSection('explanation');
-                        }}
-                        className="px-3.5 py-2 rounded-md text-sm font-medium transition-all"
-                        style={{
-                          background: activeTab === 'explanation' ? styles.bgCard : 'transparent',
-                          color: activeTab === 'explanation' ? styles.text : styles.text3,
-                          boxShadow: activeTab === 'explanation' ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
-                        }}
-                        data-cta-id="cta-courseeditor-editor-tab-explanation"
-                        data-action="tab"
-                      >
-                        Explanation
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setActiveTab('hints');
-                          scrollToFocusSection('hints');
-                        }}
-                        className="px-3.5 py-2 rounded-md text-sm font-medium transition-all"
-                        style={{
-                          background: activeTab === 'hints' ? styles.bgCard : 'transparent',
-                          color: activeTab === 'hints' ? styles.text : styles.text3,
-                          boxShadow: activeTab === 'hints' ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
-                        }}
-                        data-cta-id="cta-courseeditor-editor-tab-hints"
-                        data-action="tab"
-                      >
-                        Hints
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setActiveTab('media');
-                          scrollToFocusSection('media');
-                        }}
-                        className="px-3.5 py-2 rounded-md text-sm font-medium transition-all"
-                        style={{
-                          background: activeTab === 'media' ? styles.bgCard : 'transparent',
-                          color: activeTab === 'media' ? styles.text : styles.text3,
-                          boxShadow: activeTab === 'media' ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
-                        }}
-                        data-cta-id="cta-courseeditor-editor-tab-media"
-                        data-action="tab"
-                      >
-                        Media
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setActiveTab('exercises');
-                          scrollToFocusSection('exercises');
-                        }}
-                        className="px-3.5 py-2 rounded-md text-sm font-medium transition-all"
-                        style={{
-                          background: activeTab === 'exercises' ? styles.bgCard : 'transparent',
-                          color: activeTab === 'exercises' ? styles.text : styles.text3,
-                          boxShadow: activeTab === 'exercises' ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
-                        }}
-                        data-cta-id="cta-courseeditor-editor-tab-exercises"
-                        data-action="tab"
-                      >
-                        New Exercises
-                      </button>
-                    </div>
-
-                    {/* Focus form (field-based) */}
+                  <div className="max-w-[720px] mx-auto">
+                    {/* Focus form (field-based) - all fields visible vertically */}
                     <div className="space-y-7">
                       {/* Stem */}
                       <section
@@ -2698,16 +2592,40 @@ const CourseEditorV3 = () => {
               </div>
             </main>
 
-            {/* Preview Panel - keep existing WYSIWYG */}
+            {/* Preview Panel - only visible when Preview button is clicked */}
             {showStudentPreview && (
-              <PreviewPanelV2
-                item={currentItem}
-                contentVersion={(course as any)?.contentVersion}
-                courseId={courseId}
-                courseTitle={course?.title}
-                onRefresh={() => toast.info('Preview refreshed')}
-                onOptionSelect={(index) => toast.info(`Option ${index + 1} selected`)}
-              />
+              <aside
+                className="flex flex-col shrink-0"
+                style={{
+                  width: '360px',
+                  background: styles.bgCard,
+                  borderLeft: `1px solid ${styles.border}`,
+                }}
+              >
+                <div
+                  className="px-4 py-3.5 flex items-center gap-2 text-xs font-bold uppercase tracking-wide shrink-0"
+                  style={{
+                    color: styles.text3,
+                    borderBottom: `1px solid ${styles.border}`,
+                  }}
+                >
+                  <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ opacity: 0.6 }}>
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                  </svg>
+                  Student View
+                </div>
+                <div className="flex-1 overflow-y-auto p-5">
+                  <PreviewPanelV2
+                    item={currentItem}
+                    contentVersion={(course as any)?.contentVersion}
+                    courseId={courseId}
+                    courseTitle={course?.title}
+                    onRefresh={() => toast.info('Preview refreshed')}
+                    onOptionSelect={(index) => toast.info(`Option ${index + 1} selected`)}
+                  />
+                </div>
+              </aside>
             )}
           </div>
         )}
