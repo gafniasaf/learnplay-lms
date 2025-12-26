@@ -1,7 +1,11 @@
 import React from 'react';
-import { Button } from '@/components/ui/button';
-import { Sparkles, Image } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { ImageOff } from 'lucide-react';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 
 interface ItemHeaderCardProps {
   item: any;
@@ -10,8 +14,10 @@ interface ItemHeaderCardProps {
   course: any;
   mode: 'options' | 'numeric';
   onModeChange: (mode: 'options' | 'numeric') => void;
-  onAddImageAI: () => void;
-  onFixMissingImages: () => void;
+  /** @deprecated No longer used - image actions moved to StemTab */
+  onAddImageAI?: () => void;
+  /** @deprecated No longer used - batch action moved to Command Palette */
+  onFixMissingImages?: () => void;
   hasMissingImage?: boolean;
 }
 
@@ -22,8 +28,6 @@ export const ItemHeaderCard: React.FC<ItemHeaderCardProps> = ({
   course,
   mode,
   onModeChange,
-  onAddImageAI,
-  onFixMissingImages,
   hasMissingImage = false,
 }) => {
   const group = course?.groups?.[groupIndex];
@@ -37,6 +41,20 @@ export const ItemHeaderCard: React.FC<ItemHeaderCardProps> = ({
             Item {itemIndex}
           </span>
           {group?.name || course?.title || 'Untitled Course'}
+          {hasMissingImage && (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className="inline-flex items-center justify-center w-6 h-6 bg-amber-100 text-amber-600 rounded-full cursor-help">
+                    <ImageOff className="h-3.5 w-3.5" />
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent side="bottom">
+                  <p className="text-xs">No stem image — add one in the Stem tab</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )}
         </h1>
         <div className="flex items-center gap-4 text-[13px] text-gray-500">
           <div className="flex items-center gap-1">
@@ -59,34 +77,6 @@ export const ItemHeaderCard: React.FC<ItemHeaderCardProps> = ({
             <strong className="font-mono">{clusterId}</strong>
           </div>
         </div>
-      </div>
-      <div className="flex items-center gap-2">
-        {hasMissingImage && (
-          <span className="inline-flex items-center gap-1 px-2 py-1 bg-yellow-100 text-yellow-800 rounded text-xs font-medium">
-            🖼️ Missing stem image
-          </span>
-        )}
-        <Button
-          variant="secondary"
-          size="sm"
-          onClick={onAddImageAI}
-          data-cta-id="cta-courseeditor-item-add-image-ai"
-          data-action="action"
-          title="Generate an AI image for the question stem"
-        >
-          <Image className="h-3.5 w-3.5 mr-1.5" />
-          Add Stem Image (AI)
-        </Button>
-        <Button
-          variant="secondary"
-          size="sm"
-          onClick={onFixMissingImages}
-          data-cta-id="cta-courseeditor-item-fix-missing-images"
-          data-action="action"
-          title="Course-wide: enqueue AI jobs for items missing stem images"
-        >
-          🧩 Fix Missing Stem Images (AI)
-        </Button>
       </div>
     </div>
   );

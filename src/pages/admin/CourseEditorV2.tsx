@@ -845,6 +845,23 @@ const CourseEditorV2 = () => {
       group: 'AI',
     },
     {
+      id: 'fix-missing-images',
+      title: 'Fix Missing Stem Images',
+      description: 'Generate AI images for items without stem images',
+      icon: '🖼️',
+      action: async () => {
+        if (!courseId) return;
+        try {
+          toast.info('Enqueueing jobs for missing stem images...');
+          await mcp.call<any>('lms.enqueueCourseMissingImages', { courseId, limit: 25 });
+          toast.success('Batch image generation jobs enqueued');
+        } catch (error) {
+          toast.error(error instanceof Error ? error.message : 'Failed to enqueue jobs');
+        }
+      },
+      group: 'AI',
+    },
+    {
       id: 'archive',
       title: 'Archive Course',
       description: 'Archive this course',
@@ -1336,33 +1353,6 @@ const CourseEditorV2 = () => {
                         course={course}
                         mode={(currentItem as any).mode || 'options'}
                         onModeChange={handleModeChange}
-                        onAddImageAI={async () => {
-                          if (!courseId || !currentItem) return;
-                          try {
-                            toast.info('Generating stem image...');
-                            const stemText = (currentItem as any).stem?.text || (currentItem as any).text || '';
-                            const prompt = stemText ? `Generate an illustrative image: ${stemText}` : `Generate an illustrative image for item ${currentItem.id}`;
-                            await mcp.call<any>('lms.enqueueCourseMedia', {
-                              courseId,
-                              itemId: currentItem.id,
-                              prompt,
-                              style: 'clean-diagram',
-                            });
-                            toast.success('Image generation job enqueued');
-                          } catch (error) {
-                            toast.error(error instanceof Error ? error.message : 'Failed to generate image');
-                          }
-                        }}
-                        onFixMissingImages={async () => {
-                          if (!courseId) return;
-                          try {
-                            toast.info('Enqueueing jobs for missing stem images...');
-                            await mcp.call<any>('lms.enqueueCourseMissingImages', { courseId, limit: 25 });
-                            toast.success('Batch image generation jobs enqueued');
-                          } catch (error) {
-                            toast.error(error instanceof Error ? error.message : 'Failed to enqueue jobs');
-                          }
-                        }}
                         hasMissingImage={!currentItemHasStemImage}
                       />
 
