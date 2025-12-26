@@ -898,9 +898,13 @@ export function useMCP() {
       const format = isEnvelope ? String((payload as any).format ?? "practice") : "practice";
       const course = (isEnvelope ? (payload as any).content : payload) as any;
 
-      if (format !== "practice") {
+      // Supported course formats:
+      // - practice: native format
+      // - learnplay-v1: legacy import format (stored in the same shape; treated as practice at runtime)
+      const supportedFormats = new Set(["practice", "learnplay-v1"]);
+      if (!supportedFormats.has(format)) {
         throw new Error(
-          `Unsupported course format '${format}'. This course is stored correctly, but Play/Editor currently only support 'practice'.`
+          `Unsupported course format '${format}'. Supported formats: ${Array.from(supportedFormats).join(", ")}.`
         );
       }
 

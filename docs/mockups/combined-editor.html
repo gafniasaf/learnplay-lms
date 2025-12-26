@@ -1,0 +1,1829 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Combined Course Editor - LearnPlay</title>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #fafafa;
+            --bg-card: #ffffff;
+            --bg-hover: #f0f0f2;
+            --bg-active: #e8e8ec;
+            --bg-sunken: #f0f0f2;
+            
+            --border: #e2e2e6;
+            --border-strong: #ccc;
+            
+            --text: #1a1a1c;
+            --text-2: #4a4a52;
+            --text-3: #7a7a84;
+            --text-4: #a0a0a8;
+            
+            --accent: #6b5ccd;
+            --accent-hover: #5a4bb8;
+            --accent-soft: #f0eef8;
+            --accent-muted: #e4e0f4;
+            
+            --green: #1a9a6a;
+            --green-soft: #e6f5ef;
+            --orange: #d97b0d;
+            --orange-soft: #fef4e6;
+            --red: #d14343;
+            --red-soft: #fef0f0;
+            --blue: #2563eb;
+            --blue-soft: #eff6ff;
+            
+            --radius: 8px;
+            --radius-lg: 12px;
+            --transition: 150ms ease;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'DM Sans', system-ui, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            font-size: 14px;
+            line-height: 1.5;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* ════════════════════════════════════════════════════════════
+           HEADER
+        ════════════════════════════════════════════════════════════ */
+        .header {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            height: 56px;
+            padding: 0 20px;
+            background: var(--bg-card);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .back-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 36px;
+            height: 36px;
+            border-radius: var(--radius);
+            border: none;
+            background: transparent;
+            color: var(--text-2);
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .back-btn:hover { background: var(--bg-hover); color: var(--text); }
+        .back-btn svg { width: 20px; height: 20px; }
+
+        .course-title {
+            font-size: 16px;
+            font-weight: 700;
+        }
+
+        .course-meta {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-left: 8px;
+        }
+
+        .meta-badge {
+            font-size: 11px;
+            font-weight: 600;
+            padding: 4px 10px;
+            border-radius: 20px;
+            background: var(--bg-sunken);
+            color: var(--text-3);
+        }
+
+        .meta-badge.legacy {
+            background: var(--blue-soft);
+            color: var(--blue);
+        }
+
+        .meta-badge.practice {
+            background: var(--accent-soft);
+            color: var(--accent);
+        }
+
+        .save-badge {
+            background: var(--green-soft);
+            color: var(--green);
+        }
+
+        .header-center {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            background: var(--bg-sunken);
+            padding: 4px;
+            border-radius: var(--radius);
+        }
+
+        .view-btn {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 14px;
+            border-radius: 6px;
+            border: none;
+            background: transparent;
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-3);
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .view-btn:hover { color: var(--text-2); }
+        .view-btn.active { background: var(--bg-card); color: var(--text); box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+        .view-btn svg { width: 16px; height: 16px; }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            height: 36px;
+            padding: 0 16px;
+            border-radius: var(--radius);
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            border: none;
+        }
+
+        .btn svg { width: 16px; height: 16px; }
+
+        .btn-ghost { background: transparent; color: var(--text-2); }
+        .btn-ghost:hover { background: var(--bg-hover); color: var(--text); }
+
+        .btn-outline { background: var(--bg-card); border: 1px solid var(--border); color: var(--text); }
+        .btn-outline:hover { background: var(--bg-hover); border-color: var(--border-strong); }
+
+        .btn-primary { background: var(--accent); color: white; }
+        .btn-primary:hover { background: var(--accent-hover); }
+
+        .kbd {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 10px;
+            padding: 3px 6px;
+            background: var(--bg-sunken);
+            border-radius: 4px;
+            color: var(--text-4);
+        }
+
+        /* ════════════════════════════════════════════════════════════
+           COURSE TYPE SWITCHER (Demo only)
+        ════════════════════════════════════════════════════════════ */
+        .demo-switcher {
+            position: fixed;
+            top: 70px;
+            right: 20px;
+            z-index: 200;
+            background: var(--text);
+            color: white;
+            padding: 12px 16px;
+            border-radius: var(--radius-lg);
+            font-size: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+        }
+
+        .demo-switcher-title {
+            font-weight: 700;
+            margin-bottom: 8px;
+            opacity: 0.7;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-size: 10px;
+        }
+
+        .demo-switcher-btns {
+            display: flex;
+            gap: 6px;
+        }
+
+        .demo-switcher-btn {
+            padding: 8px 14px;
+            border-radius: 6px;
+            border: none;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            background: rgba(255,255,255,0.1);
+            color: white;
+        }
+
+        .demo-switcher-btn:hover { background: rgba(255,255,255,0.2); }
+        .demo-switcher-btn.active { background: white; color: var(--text); }
+
+        /* ════════════════════════════════════════════════════════════
+           MAIN LAYOUT
+        ════════════════════════════════════════════════════════════ */
+        .editor-container {
+            display: flex;
+            height: calc(100vh - 56px);
+        }
+
+        /* ════════════════════════════════════════════════════════════
+           NAVIGATION RAIL
+        ════════════════════════════════════════════════════════════ */
+        .nav-rail {
+            width: 280px;
+            background: var(--bg-card);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            flex-shrink: 0;
+        }
+
+        .nav-rail-header {
+            padding: 16px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .nav-rail-title {
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--text-4);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+        }
+
+        .nav-rail-progress {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .progress-bar {
+            flex: 1;
+            height: 4px;
+            background: var(--bg-sunken);
+            border-radius: 2px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: var(--green);
+            transition: width 0.3s;
+        }
+
+        .progress-text {
+            font-size: 11px;
+            color: var(--text-4);
+        }
+
+        .nav-rail-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 8px;
+        }
+
+        /* ═══════════════ Legacy Outline Navigation ═══════════════ */
+        .nav-chapter {
+            margin-bottom: 4px;
+        }
+
+        .nav-chapter-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 12px;
+            border-radius: var(--radius);
+            cursor: pointer;
+            transition: var(--transition);
+            font-weight: 600;
+            font-size: 13px;
+            color: var(--text);
+        }
+
+        .nav-chapter-header:hover { background: var(--bg-hover); }
+
+        .nav-chapter-icon {
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-3);
+            transition: var(--transition);
+        }
+
+        .nav-chapter.expanded .nav-chapter-icon { transform: rotate(90deg); }
+        .nav-chapter-icon svg { width: 14px; height: 14px; }
+
+        .nav-chapter-children {
+            display: none;
+            padding-left: 16px;
+        }
+
+        .nav-chapter.expanded .nav-chapter-children { display: block; }
+
+        .nav-topic {
+            margin-bottom: 2px;
+        }
+
+        .nav-topic-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            border-radius: var(--radius);
+            cursor: pointer;
+            transition: var(--transition);
+            font-size: 12px;
+            color: var(--text-2);
+        }
+
+        .nav-topic-header:hover { background: var(--bg-hover); }
+
+        .nav-topic.expanded .nav-topic-children { display: block; }
+
+        .nav-topic-children {
+            display: none;
+            padding-left: 12px;
+        }
+
+        /* ═══════════════ Shared Node Item ═══════════════ */
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 12px;
+            border-radius: var(--radius);
+            cursor: pointer;
+            transition: var(--transition);
+            margin-bottom: 2px;
+        }
+
+        .nav-item:hover { background: var(--bg-hover); }
+
+        .nav-item.active {
+            background: var(--accent);
+            color: white;
+        }
+
+        .nav-item-icon {
+            width: 22px;
+            height: 22px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 5px;
+            flex-shrink: 0;
+            font-size: 10px;
+            font-weight: 700;
+        }
+
+        .nav-item-icon.study-text {
+            background: var(--blue-soft);
+            color: var(--blue);
+        }
+
+        .nav-item.active .nav-item-icon.study-text {
+            background: rgba(255,255,255,0.2);
+            color: white;
+        }
+
+        .nav-item-icon.exercise {
+            background: var(--accent-soft);
+            color: var(--accent);
+        }
+
+        .nav-item.active .nav-item-icon.exercise {
+            background: rgba(255,255,255,0.2);
+            color: white;
+        }
+
+        .nav-item-icon.complete {
+            background: var(--green);
+            color: white;
+        }
+
+        .nav-item-icon svg { width: 12px; height: 12px; }
+
+        .nav-item-text {
+            flex: 1;
+            font-size: 12px;
+            color: var(--text-2);
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .nav-item.active .nav-item-text { color: rgba(255,255,255,0.9); }
+
+        .nav-item-badge {
+            font-size: 9px;
+            font-weight: 700;
+            text-transform: uppercase;
+            padding: 2px 5px;
+            border-radius: 3px;
+            background: var(--bg-sunken);
+            color: var(--text-4);
+        }
+
+        .nav-item.active .nav-item-badge {
+            background: rgba(255,255,255,0.2);
+            color: white;
+        }
+
+        .nav-item-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--orange);
+        }
+
+        .nav-item.active .nav-item-dot { background: white; }
+
+        /* ═══════════════ Practice-mode Group Navigation ═══════════════ */
+        .nav-group {
+            margin-bottom: 8px;
+        }
+
+        .nav-group-name {
+            font-size: 10px;
+            font-weight: 700;
+            color: var(--text-4);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            padding: 8px 10px 6px;
+        }
+
+        .nav-item-num {
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            font-weight: 700;
+            background: var(--bg-sunken);
+            border-radius: 5px;
+            color: var(--text-3);
+            flex-shrink: 0;
+        }
+
+        .nav-item.active .nav-item-num {
+            background: rgba(255,255,255,0.2);
+            color: white;
+        }
+
+        .nav-item.complete .nav-item-num {
+            background: var(--green);
+            color: white;
+        }
+
+        /* ════════════════════════════════════════════════════════════
+           EDITOR PANEL
+        ════════════════════════════════════════════════════════════ */
+        .editor-panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .editor-toolbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 24px;
+            background: var(--bg-card);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .editor-nav {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .nav-arrow {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 36px;
+            height: 36px;
+            border-radius: var(--radius);
+            border: 1px solid var(--border);
+            background: var(--bg-card);
+            color: var(--text-2);
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .nav-arrow:hover { background: var(--bg-hover); color: var(--text); }
+        .nav-arrow:disabled { opacity: 0.4; cursor: not-allowed; }
+        .nav-arrow svg { width: 18px; height: 18px; }
+
+        .editor-position {
+            font-size: 14px;
+            color: var(--text-3);
+        }
+
+        .editor-position strong {
+            color: var(--text);
+            font-weight: 600;
+        }
+
+        .node-type-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 11px;
+            font-weight: 600;
+            padding: 4px 10px;
+            border-radius: 6px;
+            margin-left: 10px;
+        }
+
+        .node-type-badge.study-text {
+            background: var(--blue-soft);
+            color: var(--blue);
+        }
+
+        .node-type-badge.exercise {
+            background: var(--accent-soft);
+            color: var(--accent);
+        }
+
+        .node-type-badge svg { width: 12px; height: 12px; }
+
+        .editor-actions {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        /* Scrollable Form */
+        .editor-scroll {
+            flex: 1;
+            overflow-y: auto;
+            padding: 24px;
+            background: var(--bg);
+        }
+
+        .editor-form {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .field {
+            margin-bottom: 28px;
+        }
+
+        .field-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+
+        .field-label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .field-label span {
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--text);
+        }
+
+        .field-required {
+            font-size: 10px;
+            font-weight: 600;
+            text-transform: uppercase;
+            padding: 2px 6px;
+            border-radius: 4px;
+            background: var(--orange-soft);
+            color: var(--orange);
+        }
+
+        .field-complete {
+            font-size: 10px;
+            font-weight: 600;
+            text-transform: uppercase;
+            padding: 2px 6px;
+            border-radius: 4px;
+            background: var(--green-soft);
+            color: var(--green);
+        }
+
+        .field-ai {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            padding: 6px 10px;
+            border-radius: 6px;
+            border: none;
+            background: var(--accent-soft);
+            color: var(--accent);
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .field-ai:hover { background: var(--accent-muted); }
+        .field-ai svg { width: 14px; height: 14px; }
+
+        .textarea {
+            width: 100%;
+            min-height: 100px;
+            padding: 14px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            font-family: inherit;
+            font-size: 14px;
+            line-height: 1.6;
+            resize: vertical;
+            transition: var(--transition);
+            background: var(--bg-card);
+        }
+
+        .textarea:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(107, 92, 205, 0.1);
+        }
+
+        .textarea::placeholder { color: var(--text-4); }
+
+        .textarea.large { min-height: 140px; }
+
+        /* ═══════════════ Rich Text Editor (Study Text) ═══════════════ */
+        .rich-editor {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            overflow: hidden;
+        }
+
+        .rich-editor-toolbar {
+            display: flex;
+            align-items: center;
+            gap: 2px;
+            padding: 8px 12px;
+            background: var(--bg-sunken);
+            border-bottom: 1px solid var(--border);
+            flex-wrap: wrap;
+        }
+
+        .toolbar-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 32px;
+            height: 32px;
+            border-radius: 6px;
+            border: none;
+            background: transparent;
+            color: var(--text-2);
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .toolbar-btn:hover { background: var(--bg-hover); color: var(--text); }
+        .toolbar-btn.active { background: var(--accent-soft); color: var(--accent); }
+        .toolbar-btn svg { width: 16px; height: 16px; }
+
+        .toolbar-divider {
+            width: 1px;
+            height: 24px;
+            background: var(--border);
+            margin: 0 6px;
+        }
+
+        .rich-editor-content {
+            min-height: 300px;
+            padding: 20px;
+            font-size: 15px;
+            line-height: 1.8;
+        }
+
+        .rich-editor-content h2 {
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 12px;
+            color: var(--text);
+        }
+
+        .rich-editor-content p {
+            margin-bottom: 16px;
+            color: var(--text-2);
+        }
+
+        .rich-editor-content img {
+            max-width: 100%;
+            border-radius: var(--radius);
+            margin: 16px 0;
+        }
+
+        .rich-editor-content .image-placeholder {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            height: 180px;
+            background: var(--bg-sunken);
+            border: 2px dashed var(--border);
+            border-radius: var(--radius);
+            color: var(--text-3);
+            margin: 16px 0;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .rich-editor-content .image-placeholder:hover {
+            border-color: var(--accent);
+            background: var(--accent-soft);
+            color: var(--accent);
+        }
+
+        /* ═══════════════ Options Field ═══════════════ */
+        .options-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .option-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px 14px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            transition: var(--transition);
+        }
+
+        .option-item:hover { border-color: var(--border-strong); }
+
+        .option-item.correct {
+            border-color: var(--green);
+            background: var(--green-soft);
+        }
+
+        .option-radio {
+            width: 18px;
+            height: 18px;
+            border: 2px solid var(--border-strong);
+            border-radius: 50%;
+            cursor: pointer;
+            transition: var(--transition);
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .option-item.correct .option-radio {
+            border-color: var(--green);
+            background: var(--green);
+        }
+
+        .option-item.correct .option-radio::after {
+            content: '✓';
+            color: white;
+            font-size: 11px;
+            font-weight: 700;
+        }
+
+        .option-text {
+            flex: 1;
+            font-size: 14px;
+            color: var(--text);
+        }
+
+        .option-actions {
+            display: flex;
+            gap: 4px;
+        }
+
+        .option-btn {
+            width: 28px;
+            height: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 6px;
+            border: none;
+            background: transparent;
+            color: var(--text-4);
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .option-btn:hover { background: var(--bg-hover); color: var(--text-2); }
+        .option-btn svg { width: 14px; height: 14px; }
+
+        .add-option {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            padding: 12px;
+            border: 2px dashed var(--border);
+            border-radius: var(--radius);
+            color: var(--text-3);
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .add-option:hover {
+            border-color: var(--accent);
+            background: var(--accent-soft);
+            color: var(--accent);
+        }
+
+        .add-option svg { width: 16px; height: 16px; }
+
+        /* Hints Field */
+        .hints-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+        }
+
+        .hint-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            overflow: hidden;
+        }
+
+        .hint-header {
+            padding: 10px 12px;
+            background: var(--bg-sunken);
+            border-bottom: 1px solid var(--border);
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--text-3);
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+
+        .hint-card textarea {
+            width: 100%;
+            min-height: 80px;
+            padding: 12px;
+            border: none;
+            font-family: inherit;
+            font-size: 13px;
+            line-height: 1.5;
+            resize: none;
+        }
+
+        .hint-card textarea:focus { outline: none; }
+        .hint-card textarea::placeholder { color: var(--text-4); }
+
+        /* Media Section */
+        .media-upload {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            padding: 40px 20px;
+            border: 2px dashed var(--border);
+            border-radius: var(--radius);
+            color: var(--text-3);
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .media-upload:hover {
+            border-color: var(--accent);
+            background: var(--accent-soft);
+            color: var(--accent);
+        }
+
+        .media-upload svg { width: 20px; height: 20px; }
+
+        /* ════════════════════════════════════════════════════════════
+           PREVIEW PANEL
+        ════════════════════════════════════════════════════════════ */
+        .preview-panel {
+            width: 380px;
+            background: var(--bg-card);
+            border-left: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            flex-shrink: 0;
+        }
+
+        .preview-header {
+            padding: 14px 16px;
+            border-bottom: 1px solid var(--border);
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--text-3);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .preview-header svg { width: 14px; height: 14px; opacity: 0.6; }
+
+        .preview-tabs {
+            display: flex;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .preview-tab {
+            flex: 1;
+            padding: 10px;
+            text-align: center;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-3);
+            cursor: pointer;
+            transition: var(--transition);
+            border: none;
+            background: none;
+        }
+
+        .preview-tab:hover { color: var(--text); }
+        .preview-tab.active { 
+            color: var(--accent); 
+            box-shadow: inset 0 -2px 0 var(--accent);
+        }
+
+        .preview-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+        }
+
+        .preview-device {
+            background: #f8f8f8;
+            border-radius: 16px;
+            padding: 20px;
+            border: 1px solid var(--border);
+        }
+
+        .preview-stem {
+            font-size: 15px;
+            line-height: 1.6;
+            color: var(--text);
+            margin-bottom: 16px;
+        }
+
+        .preview-options {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .preview-option {
+            padding: 12px 14px;
+            background: white;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 14px;
+            color: var(--text);
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .preview-option:hover { border-color: var(--accent); }
+
+        .preview-option.selected {
+            border-color: var(--accent);
+            background: var(--accent-soft);
+        }
+
+        /* Study Text Preview */
+        .preview-study-text {
+            font-size: 14px;
+            line-height: 1.8;
+            color: var(--text-2);
+        }
+
+        .preview-study-text h2 {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--text);
+            margin-bottom: 12px;
+        }
+
+        .preview-study-text p {
+            margin-bottom: 14px;
+        }
+
+        .preview-study-text img {
+            max-width: 100%;
+            border-radius: var(--radius);
+            margin: 12px 0;
+        }
+
+        /* ════════════════════════════════════════════════════════════
+           TOAST
+        ════════════════════════════════════════════════════════════ */
+        .toast {
+            position: fixed;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%) translateY(20px);
+            background: var(--text);
+            color: white;
+            padding: 12px 20px;
+            border-radius: var(--radius);
+            font-size: 13px;
+            font-weight: 500;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+            opacity: 0;
+            transition: all 0.3s ease;
+            z-index: 1000;
+        }
+
+        .toast.active {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--text-4); }
+
+        /* Hidden helper */
+        .hidden { display: none !important; }
+
+        /* ════════════════════════════════════════════════════════════
+           LANGUAGE SELECTOR
+        ════════════════════════════════════════════════════════════ */
+        .lang-selector {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 10px;
+            border-radius: 6px;
+            background: var(--bg-sunken);
+            font-size: 12px;
+            color: var(--text-2);
+        }
+
+        .lang-selector select {
+            border: none;
+            background: transparent;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text);
+            cursor: pointer;
+            outline: none;
+        }
+
+        .lang-selector svg { width: 14px; height: 14px; opacity: 0.6; }
+
+        /* Translation status */
+        .translation-status {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 10px;
+            font-weight: 600;
+            padding: 3px 8px;
+            border-radius: 4px;
+        }
+
+        .translation-status.complete {
+            background: var(--green-soft);
+            color: var(--green);
+        }
+
+        .translation-status.partial {
+            background: var(--orange-soft);
+            color: var(--orange);
+        }
+
+        .translation-status.missing {
+            background: var(--red-soft);
+            color: var(--red);
+        }
+    </style>
+</head>
+<body>
+
+<!-- Demo Mode Switcher -->
+<div class="demo-switcher">
+    <div class="demo-switcher-title">Demo: Switch Course Type</div>
+    <div class="demo-switcher-btns">
+        <button class="demo-switcher-btn active" onclick="switchMode('legacy')">Legacy Outline</button>
+        <button class="demo-switcher-btn" onclick="switchMode('practice')">Practice Course</button>
+    </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════ HEADER ════════════════════════════════════════════════════════════ -->
+<header class="header">
+    <div class="header-left">
+        <button class="back-btn" title="Back to courses">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+            </svg>
+        </button>
+        <h1 class="course-title" id="courseTitle">Introduction to Mathematics</h1>
+        <div class="course-meta">
+            <span class="meta-badge legacy" id="courseTypeBadge">Legacy</span>
+            <span class="meta-badge">Grades 4-8</span>
+            <span class="meta-badge save-badge">Auto-saved</span>
+        </div>
+    </div>
+
+    <div class="header-center">
+        <!-- Language Selector (for multi-lang support) -->
+        <div class="lang-selector">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129"/>
+            </svg>
+            <select id="langSelect">
+                <option value="en">English</option>
+                <option value="he">עברית</option>
+                <option value="ar">العربية</option>
+            </select>
+        </div>
+        <span class="translation-status complete" id="translationStatus">100%</span>
+    </div>
+
+    <div class="header-right">
+        <button class="btn btn-ghost">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+            </svg>
+            Preview
+        </button>
+        <button class="btn btn-outline">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            History
+        </button>
+        <button class="btn btn-primary" onclick="publish()">Publish</button>
+    </div>
+</header>
+
+<!-- ════════════════════════════════════════════════════════════ MAIN CONTAINER ════════════════════════════════════════════════════════════ -->
+<div class="editor-container">
+    
+    <!-- ═══════════════ NAVIGATION RAIL ═══════════════ -->
+    <aside class="nav-rail">
+        <div class="nav-rail-header">
+            <div class="nav-rail-title" id="navTitle">Course Outline</div>
+            <div class="nav-rail-progress">
+                <div class="progress-bar">
+                    <div class="progress-fill" style="width: 72%"></div>
+                </div>
+                <span class="progress-text">72%</span>
+            </div>
+        </div>
+        
+        <!-- Legacy Outline Navigation -->
+        <div class="nav-rail-list" id="legacyNav">
+            <!-- Chapter 1 -->
+            <div class="nav-chapter expanded">
+                <div class="nav-chapter-header" onclick="toggleChapter(this)">
+                    <span class="nav-chapter-icon">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                        </svg>
+                    </span>
+                    Chapter 1: Numbers
+                </div>
+                <div class="nav-chapter-children">
+                    <!-- Topic 1.1 -->
+                    <div class="nav-topic expanded">
+                        <div class="nav-topic-header" onclick="toggleTopic(this)">
+                            <span class="nav-chapter-icon">
+                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                                </svg>
+                            </span>
+                            1.1 Counting Basics
+                        </div>
+                        <div class="nav-topic-children">
+                            <div class="nav-item active" onclick="selectNode(this, 'study-text')">
+                                <span class="nav-item-icon study-text">
+                                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                    </svg>
+                                </span>
+                                <span class="nav-item-text">Introduction to Counting</span>
+                            </div>
+                            <div class="nav-item" onclick="selectNode(this, 'exercise')">
+                                <span class="nav-item-icon exercise">E1</span>
+                                <span class="nav-item-text">Count the apples</span>
+                                <span class="nav-item-badge">MCQ</span>
+                            </div>
+                            <div class="nav-item" onclick="selectNode(this, 'exercise')">
+                                <span class="nav-item-icon exercise">E2</span>
+                                <span class="nav-item-text">How many fingers?</span>
+                                <span class="nav-item-badge">NUM</span>
+                                <span class="nav-item-dot"></span>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Topic 1.2 -->
+                    <div class="nav-topic">
+                        <div class="nav-topic-header" onclick="toggleTopic(this)">
+                            <span class="nav-chapter-icon">
+                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                                </svg>
+                            </span>
+                            1.2 Number Sequences
+                        </div>
+                        <div class="nav-topic-children">
+                            <div class="nav-item" onclick="selectNode(this, 'study-text')">
+                                <span class="nav-item-icon study-text">
+                                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                    </svg>
+                                </span>
+                                <span class="nav-item-text">Understanding Patterns</span>
+                            </div>
+                            <div class="nav-item" onclick="selectNode(this, 'exercise')">
+                                <span class="nav-item-icon complete">✓</span>
+                                <span class="nav-item-text">What comes next?</span>
+                                <span class="nav-item-badge">MCQ</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Chapter 2 -->
+            <div class="nav-chapter">
+                <div class="nav-chapter-header" onclick="toggleChapter(this)">
+                    <span class="nav-chapter-icon">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                        </svg>
+                    </span>
+                    Chapter 2: Addition
+                </div>
+                <div class="nav-chapter-children">
+                    <div class="nav-topic">
+                        <div class="nav-topic-header" onclick="toggleTopic(this)">
+                            <span class="nav-chapter-icon">
+                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                                </svg>
+                            </span>
+                            2.1 Adding Small Numbers
+                        </div>
+                        <div class="nav-topic-children">
+                            <div class="nav-item" onclick="selectNode(this, 'study-text')">
+                                <span class="nav-item-icon study-text">
+                                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                    </svg>
+                                </span>
+                                <span class="nav-item-text">The Plus Sign</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Practice Mode Navigation (hidden by default) -->
+        <div class="nav-rail-list hidden" id="practiceNav">
+            <div class="nav-group">
+                <div class="nav-group-name">Parts of Speech</div>
+                <div class="nav-item complete" onclick="selectNode(this, 'exercise')">
+                    <span class="nav-item-num">✓</span>
+                    <span class="nav-item-text">A noun is a word that...</span>
+                </div>
+                <div class="nav-item" onclick="selectNode(this, 'exercise')">
+                    <span class="nav-item-num">2</span>
+                    <span class="nav-item-text">Verbs express actions...</span>
+                    <span class="nav-item-dot"></span>
+                </div>
+                <div class="nav-item complete" onclick="selectNode(this, 'exercise')">
+                    <span class="nav-item-num">✓</span>
+                    <span class="nav-item-text">Adjectives describe...</span>
+                </div>
+            </div>
+            <div class="nav-group">
+                <div class="nav-group-name">Sentence Structure</div>
+                <div class="nav-item complete" onclick="selectNode(this, 'exercise')">
+                    <span class="nav-item-num">✓</span>
+                    <span class="nav-item-text">A complete sentence...</span>
+                </div>
+                <div class="nav-item" onclick="selectNode(this, 'exercise')">
+                    <span class="nav-item-num">2</span>
+                    <span class="nav-item-text">Count the words...</span>
+                    <span class="nav-item-dot"></span>
+                </div>
+            </div>
+        </div>
+    </aside>
+
+    <!-- ═══════════════ EDITOR PANEL ═══════════════ -->
+    <main class="editor-panel">
+        <div class="editor-toolbar">
+            <div class="editor-nav">
+                <button class="nav-arrow" onclick="prevNode()">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+                    </svg>
+                </button>
+                <span class="editor-position">
+                    <strong id="nodePosition">Study Text</strong>
+                    <span class="node-type-badge study-text" id="nodeTypeBadge">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                        </svg>
+                        Reading
+                    </span>
+                </span>
+                <button class="nav-arrow" onclick="nextNode()">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="editor-actions">
+                <button class="btn btn-ghost">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                    </svg>
+                    Duplicate
+                </button>
+                <button class="btn btn-ghost" style="color: var(--red);">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                    </svg>
+                    Delete
+                </button>
+            </div>
+        </div>
+
+        <div class="editor-scroll">
+            <!-- Study Text Editor -->
+            <div class="editor-form" id="studyTextForm">
+                <div class="field">
+                    <div class="field-header">
+                        <div class="field-label">
+                            <span>Title</span>
+                        </div>
+                    </div>
+                    <input type="text" class="textarea" style="min-height: auto; padding: 12px 14px;" value="Introduction to Counting" placeholder="Section title...">
+                </div>
+
+                <div class="field">
+                    <div class="field-header">
+                        <div class="field-label">
+                            <span>Content</span>
+                            <span class="field-complete">Complete</span>
+                        </div>
+                        <div style="display: flex; gap: 6px;">
+                            <button class="field-ai">
+                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                                </svg>
+                                AI Image
+                            </button>
+                            <button class="field-ai">
+                                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L14.09 8.26L20 9.27L15.55 14.14L16.91 20.02L12 16.77L7.09 20.02L8.45 14.14L4 9.27L9.91 8.26L12 2Z"/></svg>
+                                AI Improve
+                            </button>
+                        </div>
+                    </div>
+                    <div class="rich-editor">
+                        <div class="rich-editor-toolbar">
+                            <button class="toolbar-btn" title="Bold"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 4h8a4 4 0 014 4 4 4 0 01-4 4H6z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 12h9a4 4 0 014 4 4 4 0 01-4 4H6z"/></svg></button>
+                            <button class="toolbar-btn" title="Italic"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 4h4m-2 0v16m-4 0h8"/></svg></button>
+                            <button class="toolbar-btn" title="Underline"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 3v7a6 6 0 006 6 6 6 0 006-6V3M4 21h16"/></svg></button>
+                            <span class="toolbar-divider"></span>
+                            <button class="toolbar-btn" title="Heading"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h7"/></svg></button>
+                            <button class="toolbar-btn" title="Bullet List"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h.01M4 12h.01M4 18h.01M8 6h12M8 12h12M8 18h12"/></svg></button>
+                            <button class="toolbar-btn" title="Numbered List"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h.01M4 12h.01M4 18h.01M8 6h12M8 12h12M8 18h12"/></svg></button>
+                            <span class="toolbar-divider"></span>
+                            <button class="toolbar-btn" title="Insert Image"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg></button>
+                            <button class="toolbar-btn" title="Insert Video"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg></button>
+                            <button class="toolbar-btn" title="Insert Link"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg></button>
+                            <span class="toolbar-divider"></span>
+                            <button class="toolbar-btn" title="View HTML"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/></svg></button>
+                        </div>
+                        <div class="rich-editor-content" contenteditable="true">
+                            <h2>Welcome to Counting!</h2>
+                            <p>Counting is one of the first math skills we learn. It helps us understand how many things we have and is the foundation for all other math concepts.</p>
+                            <div class="image-placeholder">
+                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="24" height="24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                                </svg>
+                                Click to add an image
+                            </div>
+                            <p>When we count, we assign a number to each item. The last number we say tells us the total count. Let's practice counting together!</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Exercise Editor (hidden by default) -->
+            <div class="editor-form hidden" id="exerciseForm">
+                <!-- Stem -->
+                <div class="field">
+                    <div class="field-header">
+                        <div class="field-label">
+                            <span>Question (Stem)</span>
+                            <span class="field-complete">Complete</span>
+                        </div>
+                        <button class="field-ai" onclick="aiRewrite()">
+                            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L14.09 8.26L20 9.27L15.55 14.14L16.91 20.02L12 16.77L7.09 20.02L8.45 14.14L4 9.27L9.91 8.26L12 2Z"/></svg>
+                            AI Rewrite
+                        </button>
+                    </div>
+                    <textarea class="textarea large" placeholder="Type the question students will see...">Count the apples in the picture. How many apples are there?</textarea>
+                </div>
+
+                <!-- Options -->
+                <div class="field">
+                    <div class="field-header">
+                        <div class="field-label">
+                            <span>Answer Options</span>
+                            <span class="field-complete">Complete</span>
+                        </div>
+                        <button class="field-ai">
+                            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L14.09 8.26L20 9.27L15.55 14.14L16.91 20.02L12 16.77L7.09 20.02L8.45 14.14L4 9.27L9.91 8.26L12 2Z"/></svg>
+                            AI Improve All
+                        </button>
+                    </div>
+                    <div class="options-list">
+                        <div class="option-item correct">
+                            <div class="option-radio"></div>
+                            <span class="option-text">5</span>
+                            <div class="option-actions">
+                                <button class="option-btn" title="AI Image"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg></button>
+                                <button class="option-btn" title="Edit"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg></button>
+                                <button class="option-btn" title="Delete"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button>
+                            </div>
+                        </div>
+                        <div class="option-item">
+                            <div class="option-radio"></div>
+                            <span class="option-text">3</span>
+                            <div class="option-actions">
+                                <button class="option-btn" title="AI Image"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg></button>
+                                <button class="option-btn" title="Edit"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg></button>
+                                <button class="option-btn" title="Delete"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button>
+                            </div>
+                        </div>
+                        <div class="option-item">
+                            <div class="option-radio"></div>
+                            <span class="option-text">7</span>
+                            <div class="option-actions">
+                                <button class="option-btn" title="AI Image"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg></button>
+                                <button class="option-btn" title="Edit"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg></button>
+                                <button class="option-btn" title="Delete"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button>
+                            </div>
+                        </div>
+                        <div class="option-item">
+                            <div class="option-radio"></div>
+                            <span class="option-text">4</span>
+                            <div class="option-actions">
+                                <button class="option-btn" title="AI Image"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg></button>
+                                <button class="option-btn" title="Edit"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg></button>
+                                <button class="option-btn" title="Delete"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button>
+                            </div>
+                        </div>
+                        <div class="add-option">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                            </svg>
+                            Add option
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Explanation -->
+                <div class="field">
+                    <div class="field-header">
+                        <div class="field-label">
+                            <span>Explanation</span>
+                            <span class="field-complete">Complete</span>
+                        </div>
+                        <button class="field-ai" onclick="aiRewrite()">
+                            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L14.09 8.26L20 9.27L15.55 14.14L16.91 20.02L12 16.77L7.09 20.02L8.45 14.14L4 9.27L9.91 8.26L12 2Z"/></svg>
+                            AI Generate
+                        </button>
+                    </div>
+                    <textarea class="textarea" placeholder="Explain why the correct answer is correct...">There are exactly 5 apples in the picture. Count them one by one: 1, 2, 3, 4, 5. The correct answer is 5!</textarea>
+                </div>
+
+                <!-- Hints -->
+                <div class="field">
+                    <div class="field-header">
+                        <div class="field-label">
+                            <span>Hints</span>
+                            <span class="field-required">Optional</span>
+                        </div>
+                        <button class="field-ai" onclick="aiRewrite()">
+                            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L14.09 8.26L20 9.27L15.55 14.14L16.91 20.02L12 16.77L7.09 20.02L8.45 14.14L4 9.27L9.91 8.26L12 2Z"/></svg>
+                            Generate All
+                        </button>
+                    </div>
+                    <div class="hints-grid">
+                        <div class="hint-card">
+                            <div class="hint-header">1. Nudge</div>
+                            <textarea placeholder="A gentle reminder...">Try pointing at each apple as you count.</textarea>
+                        </div>
+                        <div class="hint-card">
+                            <div class="hint-header">2. Guide</div>
+                            <textarea placeholder="A more specific clue...">Start from the left and count each apple. Don't skip any!</textarea>
+                        </div>
+                        <div class="hint-card">
+                            <div class="hint-header">3. Reveal</div>
+                            <textarea placeholder="Almost the answer...">The answer is a number between 4 and 6.</textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Media -->
+                <div class="field">
+                    <div class="field-header">
+                        <div class="field-label">
+                            <span>Media</span>
+                            <span class="field-required">Optional</span>
+                        </div>
+                        <button class="field-ai" onclick="aiRewrite()">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                            </svg>
+                            AI Image
+                        </button>
+                    </div>
+                    <div class="media-upload">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                        </svg>
+                        Drop image here or click to upload
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- ═══════════════ PREVIEW PANEL ═══════════════ -->
+    <aside class="preview-panel">
+        <div class="preview-header">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+            </svg>
+            Student View
+        </div>
+        
+        <div class="preview-tabs">
+            <button class="preview-tab active">Mobile</button>
+            <button class="preview-tab">Tablet</button>
+            <button class="preview-tab">Desktop</button>
+        </div>
+        
+        <div class="preview-content">
+            <!-- Study Text Preview -->
+            <div class="preview-device" id="studyTextPreview">
+                <div class="preview-study-text">
+                    <h2>Welcome to Counting!</h2>
+                    <p>Counting is one of the first math skills we learn. It helps us understand how many things we have and is the foundation for all other math concepts.</p>
+                    <img src="https://images.unsplash.com/photo-1596496181871-9681eacf9764?w=400&h=200&fit=crop" alt="Counting example">
+                    <p>When we count, we assign a number to each item. The last number we say tells us the total count. Let's practice counting together!</p>
+                </div>
+            </div>
+
+            <!-- Exercise Preview (hidden by default) -->
+            <div class="preview-device hidden" id="exercisePreview">
+                <p class="preview-stem">Count the apples in the picture. How many apples are there?</p>
+                <img src="https://images.unsplash.com/photo-1568702846914-96b305d2uj?w=300&h=150&fit=crop" alt="Apples" style="width: 100%; border-radius: 8px; margin-bottom: 16px;">
+                <div class="preview-options">
+                    <div class="preview-option selected">5</div>
+                    <div class="preview-option">3</div>
+                    <div class="preview-option">7</div>
+                    <div class="preview-option">4</div>
+                </div>
+            </div>
+        </div>
+    </aside>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+    // ════════════════════════════════════════════════════════════
+    // Mode Switching (Demo)
+    // ════════════════════════════════════════════════════════════
+    function switchMode(mode) {
+        document.querySelectorAll('.demo-switcher-btn').forEach(btn => btn.classList.remove('active'));
+        event.target.classList.add('active');
+
+        const legacyNav = document.getElementById('legacyNav');
+        const practiceNav = document.getElementById('practiceNav');
+        const courseTypeBadge = document.getElementById('courseTypeBadge');
+        const courseTitle = document.getElementById('courseTitle');
+        const navTitle = document.getElementById('navTitle');
+
+        if (mode === 'legacy') {
+            legacyNav.classList.remove('hidden');
+            practiceNav.classList.add('hidden');
+            courseTypeBadge.textContent = 'Legacy';
+            courseTypeBadge.className = 'meta-badge legacy';
+            courseTitle.textContent = 'Introduction to Mathematics';
+            navTitle.textContent = 'Course Outline';
+            // Show study text editor by default
+            showStudyTextEditor();
+        } else {
+            legacyNav.classList.add('hidden');
+            practiceNav.classList.remove('hidden');
+            courseTypeBadge.textContent = 'Practice';
+            courseTypeBadge.className = 'meta-badge practice';
+            courseTitle.textContent = 'English Grammar Foundations';
+            navTitle.textContent = 'Exercises';
+            // Show exercise editor by default
+            showExerciseEditor();
+        }
+    }
+
+    // ════════════════════════════════════════════════════════════
+    // Navigation Toggles
+    // ════════════════════════════════════════════════════════════
+    function toggleChapter(header) {
+        const chapter = header.parentElement;
+        chapter.classList.toggle('expanded');
+    }
+
+    function toggleTopic(header) {
+        const topic = header.parentElement;
+        topic.classList.toggle('expanded');
+    }
+
+    // ════════════════════════════════════════════════════════════
+    // Node Selection
+    // ════════════════════════════════════════════════════════════
+    function selectNode(el, type) {
+        // Update active state in nav
+        document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+        el.classList.add('active');
+
+        // Switch editor form
+        if (type === 'study-text') {
+            showStudyTextEditor();
+        } else {
+            showExerciseEditor();
+        }
+    }
+
+    function showStudyTextEditor() {
+        document.getElementById('studyTextForm').classList.remove('hidden');
+        document.getElementById('exerciseForm').classList.add('hidden');
+        document.getElementById('studyTextPreview').classList.remove('hidden');
+        document.getElementById('exercisePreview').classList.add('hidden');
+
+        const badge = document.getElementById('nodeTypeBadge');
+        badge.className = 'node-type-badge study-text';
+        badge.innerHTML = `
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+            </svg>
+            Reading
+        `;
+        document.getElementById('nodePosition').textContent = 'Study Text';
+    }
+
+    function showExerciseEditor() {
+        document.getElementById('studyTextForm').classList.add('hidden');
+        document.getElementById('exerciseForm').classList.remove('hidden');
+        document.getElementById('studyTextPreview').classList.add('hidden');
+        document.getElementById('exercisePreview').classList.remove('hidden');
+
+        const badge = document.getElementById('nodeTypeBadge');
+        badge.className = 'node-type-badge exercise';
+        badge.innerHTML = `
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+            </svg>
+            Exercise
+        `;
+        document.getElementById('nodePosition').textContent = 'Exercise 1';
+    }
+
+    // ════════════════════════════════════════════════════════════
+    // Navigation
+    // ════════════════════════════════════════════════════════════
+    function prevNode() {
+        showToast('Previous item');
+    }
+
+    function nextNode() {
+        showToast('Next item');
+    }
+
+    // ════════════════════════════════════════════════════════════
+    // Actions
+    // ════════════════════════════════════════════════════════════
+    function publish() {
+        showToast('Publishing course...');
+    }
+
+    function aiRewrite() {
+        showToast('AI is generating...');
+    }
+
+    // ════════════════════════════════════════════════════════════
+    // Toast
+    // ════════════════════════════════════════════════════════════
+    function showToast(msg) {
+        const toast = document.getElementById('toast');
+        toast.textContent = msg;
+        toast.classList.add('active');
+        setTimeout(() => toast.classList.remove('active'), 2500);
+    }
+
+    // ════════════════════════════════════════════════════════════
+    // Keyboard Shortcuts
+    // ════════════════════════════════════════════════════════════
+    document.addEventListener('keydown', (e) => {
+        if ((e.metaKey || e.ctrlKey) && e.key === 's') {
+            e.preventDefault();
+            showToast('Auto-saved');
+        }
+        if (e.key === 'j' && !e.target.matches('input, textarea, [contenteditable]')) {
+            nextNode();
+        }
+        if (e.key === 'k' && !e.target.matches('input, textarea, [contenteditable]')) {
+            prevNode();
+        }
+    });
+
+    // ════════════════════════════════════════════════════════════
+    // Preview Tabs
+    // ════════════════════════════════════════════════════════════
+    document.querySelectorAll('.preview-tab').forEach(tab => {
+        tab.addEventListener('click', () => {
+            document.querySelectorAll('.preview-tab').forEach(t => t.classList.remove('active'));
+            tab.classList.add('active');
+        });
+    });
+
+    // ════════════════════════════════════════════════════════════
+    // Language Selector
+    // ════════════════════════════════════════════════════════════
+    document.getElementById('langSelect').addEventListener('change', (e) => {
+        const lang = e.target.value;
+        const status = document.getElementById('translationStatus');
+        
+        if (lang === 'en') {
+            status.textContent = '100%';
+            status.className = 'translation-status complete';
+        } else if (lang === 'he') {
+            status.textContent = '85%';
+            status.className = 'translation-status partial';
+        } else {
+            status.textContent = '0%';
+            status.className = 'translation-status missing';
+        }
+        
+        showToast(`Switched to ${e.target.options[e.target.selectedIndex].text}`);
+    });
+</script>
+
+</body>
+</html>
+

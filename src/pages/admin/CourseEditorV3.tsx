@@ -81,6 +81,10 @@ const CourseEditorV3 = () => {
   const mcp = useMCP();
   const getCourseRef = useRef(mcp.getCourse);
   useEffect(() => { getCourseRef.current = mcp.getCourse; }, [mcp]);
+  const didAutoSelectTopLevelTabRef = useRef(false);
+  useEffect(() => {
+    didAutoSelectTopLevelTabRef.current = false;
+  }, [courseId]);
   
   const publishing = useCoursePublishing();
   const variants = useCourseVariants();
@@ -101,7 +105,8 @@ const CourseEditorV3 = () => {
   const [activeGroupIndex, setActiveGroupIndex] = useState(0);
   const [activeItemIndex, setActiveItemIndex] = useState(0);
   const [activeTab, setActiveTab] = useState('stem');
-  const [topLevelTab, setTopLevelTab] = useState<'exercises' | 'studyTexts'>('exercises');
+  const [topLevelTab, setTopLevelTab] = useState<'outline' | 'exercises' | 'studyTexts'>('exercises');
+  const [outlineActiveType, setOutlineActiveType] = useState<'exercise' | 'studyText'>('exercise');
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
   const [showStudentPreview, setShowStudentPreview] = useState(false); // Hidden by default, toggle via Preview button
   // Keep the current WYSIWYG HTML preview toggles (stem + explanation) in the new Focus form layout.
@@ -136,6 +141,10 @@ const CourseEditorV3 = () => {
     devOverrideRole === 'admin' ||
     user?.app_metadata?.role === 'admin' ||
     user?.user_metadata?.role === 'admin';
+
+  const isLegacyCourse =
+    String((course as any)?.id || '').startsWith('legacy-') ||
+    (course as any)?._import?.sourceSystem === 'mes_legacy';
   
   const groups = (course as any)?.groups || [];
   const currentItem = groups[activeGroupIndex]?.items?.[activeItemIndex] || null;
@@ -147,6 +156,13 @@ const CourseEditorV3 = () => {
     setStemShowPreview(false);
     setExplanationShowPreview(false);
   }, [activeGroupIndex, activeItemIndex, topLevelTab]);
+
+  // Outline tab is focus-only (node-based). Force focus if user toggles.
+  useEffect(() => {
+    if (topLevelTab === 'outline' && viewMode !== 'focus') {
+      setViewMode('focus');
+    }
+  }, [topLevelTab, viewMode]);
 
   // Leave-page guards (browser refresh/close)
   useEffect(() => {
@@ -214,6 +230,17 @@ const CourseEditorV3 = () => {
       
       setCourse(transformedCourse as Course);
       setUnsavedItems(new Set());
+
+      // Auto-select the combined outline view for legacy imports (once per courseId).
+      if (!didAutoSelectTopLevelTabRef.current) {
+        const incomingIsLegacy =
+          String((courseData as any)?.id || '').startsWith('legacy-') ||
+          (courseData as any)?._import?.sourceSystem === 'mes_legacy';
+        if (incomingIsLegacy) {
+          setTopLevelTab('outline');
+        }
+        didAutoSelectTopLevelTabRef.current = true;
+      }
     } catch (err) {
       logger.error('[CourseEditorV3] Failed to load course:', err);
       setError(err instanceof Error ? err.message : 'Failed to load course');
@@ -310,6 +337,16 @@ const CourseEditorV3 = () => {
       setActiveGroupIndex(next.groupIdx);
       setActiveItemIndex(next.itemIdx);
     }
+  };
+
+  const navigateStudyText = (direction: number) => {
+    if (!course) return;
+    const sts: any[] = ((course as any).studyTexts || []) as any[];
+    if (sts.length === 0) return;
+    const current = studyTextEditorIndex ?? 0;
+    const nextIdx = Math.max(0, Math.min(sts.length - 1, current + direction));
+    if (nextIdx === current) return;
+    selectStudyTextInline(nextIdx);
   };
 
   const getCurrentFlatIndex = () => {
@@ -1079,6 +1116,99 @@ const CourseEditorV3 = () => {
     setStudyTextEditorOpen(true);
   };
 
+  const selectStudyTextInline = (index: number) => {
+    if (!course) return;
+    const st = ((course as any).studyTexts || [])[index];
+    if (!st) {
+      toast.error('Study text not found');
+      return;
+    }
+    setOutlineActiveType('studyText');
+    setStudyTextEditorIndex(index);
+    setStudyTextEditorTitle(String(st.title ?? 'Study Text'));
+    setStudyTextEditorDraft(String(st.content ?? ''));
+    setStudyTextEditorLearningObjectives(Array.isArray(st.learningObjectives) ? st.learningObjectives.join(', ') : '');
+    setShowStudentPreview(false);
+    setViewMode('focus');
+  };
+
+  const handleDuplicateCurrentStudyText = () => {
+    if (!course) return;
+    if (studyTextEditorIndex === null) {
+      toast.error('No study text selected');
+      return;
+    }
+    const sts = [...(((course as any).studyTexts) || [])];
+    const current = sts[studyTextEditorIndex];
+    if (!current) {
+      toast.error('Study text not found');
+      return;
+    }
+
+    const copy = {
+      ...current,
+      id: `study-text-${Date.now()}`,
+      title: `${String(current.title || 'Study Text')} (Copy)`,
+    };
+
+    const insertAt = Math.min(sts.length, studyTextEditorIndex + 1);
+    sts.splice(insertAt, 0, copy);
+    const normalized = sts.map((st, i) => ({ ...st, order: i }));
+    setCourse({ ...(course as any), studyTexts: normalized } as Course);
+    setUnsavedItems((prev) => new Set(prev).add('ST-ALL'));
+
+    // Select the duplicated study text immediately (do not rely on async course state)
+    setOutlineActiveType('studyText');
+    setStudyTextEditorIndex(insertAt);
+    setStudyTextEditorTitle(String(copy.title ?? 'Study Text'));
+    setStudyTextEditorDraft(String(copy.content ?? ''));
+    setStudyTextEditorLearningObjectives(Array.isArray(copy.learningObjectives) ? copy.learningObjectives.join(', ') : '');
+    setShowStudentPreview(false);
+
+    toast.success('Study text duplicated (unsaved)');
+  };
+
+  const handleDeleteCurrentStudyText = () => {
+    if (!course) return;
+    if (studyTextEditorIndex === null) {
+      toast.error('No study text selected');
+      return;
+    }
+    const sts = [...(((course as any).studyTexts) || [])];
+    const current = sts[studyTextEditorIndex];
+    if (!current) {
+      toast.error('Study text not found');
+      return;
+    }
+
+    if (!confirm(`Delete study text "${String(current.title || 'Untitled')}"?`)) return;
+
+    sts.splice(studyTextEditorIndex, 1);
+    const normalized = sts.map((st, i) => ({ ...st, order: i }));
+    setCourse({ ...(course as any), studyTexts: normalized } as Course);
+    setUnsavedItems((prev) => new Set(prev).add('ST-ALL'));
+    setShowStudentPreview(false);
+
+    if (normalized.length === 0) {
+      setStudyTextEditorIndex(null);
+      setStudyTextEditorTitle('');
+      setStudyTextEditorDraft('');
+      setStudyTextEditorLearningObjectives('');
+      setOutlineActiveType('exercise');
+      toast.success('Study text deleted');
+      return;
+    }
+
+    const nextIdx = Math.max(0, Math.min(normalized.length - 1, studyTextEditorIndex - 1));
+    const next = normalized[nextIdx];
+    setOutlineActiveType('studyText');
+    setStudyTextEditorIndex(nextIdx);
+    setStudyTextEditorTitle(String(next?.title ?? 'Study Text'));
+    setStudyTextEditorDraft(String(next?.content ?? ''));
+    setStudyTextEditorLearningObjectives(Array.isArray(next?.learningObjectives) ? next.learningObjectives.join(', ') : '');
+    toast.success('Study text deleted');
+  };
+
   const commitStudyTextEditor = () => {
     if (!course) return;
     if (studyTextEditorIndex === null) return;
@@ -1113,42 +1243,72 @@ const CourseEditorV3 = () => {
     toast.success('Study text updated (unsaved)');
   };
 
+  const upsertStudyTextInline = (partial: {
+    title?: string;
+    content?: string;
+    learningObjectives?: string;
+  }) => {
+    if (!course) return;
+    if (studyTextEditorIndex === null) return;
+    const sts = [...(((course as any).studyTexts) || [])];
+    const prev = sts[studyTextEditorIndex];
+    if (!prev) return;
+
+    const nextTitle = partial.title !== undefined ? partial.title : studyTextEditorTitle;
+    const nextContent = partial.content !== undefined ? partial.content : studyTextEditorDraft;
+    const nextLoRaw =
+      partial.learningObjectives !== undefined ? partial.learningObjectives : studyTextEditorLearningObjectives;
+
+    const loArr = String(nextLoRaw || '')
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean);
+
+    sts[studyTextEditorIndex] = {
+      ...prev,
+      title: String(nextTitle ?? ''),
+      content: String(nextContent ?? ''),
+      learningObjectives: loArr.length ? loArr : undefined,
+    };
+    setCourse({ ...(course as any), studyTexts: sts } as Course);
+    setUnsavedItems((prevSet) => new Set(prevSet).add(`ST-${studyTextEditorIndex}`));
+  };
+
   const appendStudyTextMarker = (marker: string) => {
     const el = studyTextEditorDraftRef.current;
+    const base = String(studyTextEditorDraft ?? '');
     const hasSelStart = typeof el?.selectionStart === 'number';
     const hasSelEnd = typeof el?.selectionEnd === 'number';
-    const selectionStart = hasSelStart ? (el!.selectionStart as number) : null;
-    const selectionEnd = hasSelEnd ? (el!.selectionEnd as number) : null;
+    const start = hasSelStart ? (el!.selectionStart as number) : base.length;
+    const end = hasSelEnd ? (el!.selectionEnd as number) : base.length;
+    const before = base.slice(0, start);
+    const after = base.slice(end);
 
-    setStudyTextEditorDraft((prev) => {
-      const base = String(prev ?? '');
-      const start = selectionStart ?? base.length;
-      const end = selectionEnd ?? base.length;
-      const before = base.slice(0, start);
-      const after = base.slice(end);
+    // Put markers on their own line by default.
+    const leading = before.length === 0 || before.endsWith('\n') ? '' : '\n';
+    const trailing = after.startsWith('\n') || after.length === 0 ? '\n' : '\n';
 
-      // Put markers on their own line by default.
-      const leading = before.length === 0 || before.endsWith('\n') ? '' : '\n';
-      const trailing = after.startsWith('\n') || after.length === 0 ? '\n' : '\n';
+    const next = `${before}${leading}${marker}${trailing}${after}`;
 
-      const next = `${before}${leading}${marker}${trailing}${after}`;
+    // Highlight placeholder text (between ':' and ']') so it feels responsive.
+    const markerStart = before.length + leading.length;
+    const placeholderStartOffset = Math.max(marker.indexOf(':') + 1, 0);
+    const placeholderEndOffset = Math.max(marker.length - 1, placeholderStartOffset);
+    pendingStudyTextSelectionRef.current = {
+      start: markerStart + placeholderStartOffset,
+      end: markerStart + placeholderEndOffset,
+    };
 
-      // Highlight placeholder text (between ':' and ']') so it feels responsive.
-      const markerStart = before.length + leading.length;
-      const placeholderStartOffset = Math.max(marker.indexOf(':') + 1, 0);
-      const placeholderEndOffset = Math.max(marker.length - 1, placeholderStartOffset);
-      pendingStudyTextSelectionRef.current = {
-        start: markerStart + placeholderStartOffset,
-        end: markerStart + placeholderEndOffset,
-      };
-
-      return next;
-    });
+    setStudyTextEditorDraft(next);
+    if (topLevelTab === 'outline' && outlineActiveType === 'studyText') {
+      upsertStudyTextInline({ content: next });
+    }
   };
 
   // After inserting markers, highlight the placeholder text so the user can immediately type over it.
   useEffect(() => {
-    if (!studyTextEditorOpen) return;
+    const allow = studyTextEditorOpen || (topLevelTab === 'outline' && outlineActiveType === 'studyText');
+    if (!allow) return;
     const pending = pendingStudyTextSelectionRef.current;
     const el = studyTextEditorDraftRef.current;
     if (!pending || !el) return;
@@ -1160,7 +1320,7 @@ const CourseEditorV3 = () => {
     } catch {
       // best-effort
     }
-  }, [studyTextEditorDraft, studyTextEditorOpen]);
+  }, [studyTextEditorDraft, studyTextEditorOpen, topLevelTab, outlineActiveType]);
 
   const findLastNonUrlImageMarker = (content: string) => {
     const re = /\[IMAGE:(.*?)\]/g;
@@ -1229,8 +1389,14 @@ const CourseEditorV3 = () => {
       });
 
       if (result.candidates && result.candidates.length > 0) {
-        setStudyTextEditorDraft(result.candidates[0].text);
-        toast.success('AI rewrite complete (remember to Save)');
+        const next = result.candidates[0].text;
+        setStudyTextEditorDraft(next);
+        if (topLevelTab === 'outline' && outlineActiveType === 'studyText') {
+          upsertStudyTextInline({ content: next });
+          toast.success('AI rewrite complete');
+        } else {
+          toast.success('AI rewrite complete (remember to Save)');
+        }
       } else {
         toast.error('No rewrite candidates returned');
       }
@@ -1289,16 +1455,17 @@ const CourseEditorV3 = () => {
         options: { aspectRatio: '16:9', size: '1024x1024', quality: 'standard' },
       });
 
-      setStudyTextEditorDraft((prev) => {
-        const base = String(prev || '');
-        if (marker) {
-          return `${base.slice(0, marker.start)}[IMAGE:${res.url}]${base.slice(marker.end)}`;
-        }
-        const sep = base.endsWith('\n') || base.length === 0 ? '' : '\n';
-        return `${base}${sep}[IMAGE:${res.url}]\n`;
-      });
-
-      toast.success('AI image inserted (remember to Save)');
+      const base = String(studyTextEditorDraft || '');
+      const next = marker
+        ? `${base.slice(0, marker.start)}[IMAGE:${res.url}]${base.slice(marker.end)}`
+        : `${base}${base.endsWith('\n') || base.length === 0 ? '' : '\n'}[IMAGE:${res.url}]\n`;
+      setStudyTextEditorDraft(next);
+      if (topLevelTab === 'outline' && outlineActiveType === 'studyText') {
+        upsertStudyTextInline({ content: next });
+        toast.success('AI image inserted');
+      } else {
+        toast.success('AI image inserted (remember to Save)');
+      }
     } catch (e) {
       logger.error('[CourseEditorV3] StudyText image generation failed:', e);
       toast.error(e instanceof Error ? e.message : 'AI image generation failed');
@@ -1669,6 +1836,25 @@ const CourseEditorV3 = () => {
 
       {/* Top-level Tabs (Exercises / Study Texts) */}
       <div className="flex gap-1 px-5" style={{ background: styles.bgCard, borderBottom: `1px solid ${styles.border}` }}>
+        {isLegacyCourse && (
+          <div
+            role="tab"
+            tabIndex={0}
+            className="px-4 py-3 text-sm font-semibold cursor-pointer select-none"
+            style={{
+              borderBottom: `2px solid ${topLevelTab === 'outline' ? styles.accent : 'transparent'}`,
+              color: topLevelTab === 'outline' ? styles.accent : styles.text3,
+            }}
+            onClick={() => {
+              setTopLevelTab('outline');
+              setViewMode('focus');
+            }}
+            data-cta-id="cta-courseeditor-tab-outline"
+            data-action="tab"
+          >
+            🧭 Outline
+          </div>
+        )}
         <div
           role="tab"
           tabIndex={0}
@@ -1888,13 +2074,15 @@ const CourseEditorV3 = () => {
           </div>
         )}
 
-        {topLevelTab === 'exercises' && viewMode === 'focus' && (
+        {(topLevelTab === 'exercises' || topLevelTab === 'outline') && viewMode === 'focus' && (
           <div className="h-full flex">
             {/* Navigation Rail */}
             <aside className="w-60 flex flex-col shrink-0" style={{ background: styles.bgCard, borderRight: `1px solid ${styles.border}` }}>
               {/* Nav Header */}
               <div className="p-4" style={{ borderBottom: `1px solid ${styles.border}` }}>
-                <div className="text-[10px] font-bold uppercase tracking-wider mb-2" style={{ color: styles.text4 }}>Exercises</div>
+                <div className="text-[10px] font-bold uppercase tracking-wider mb-2" style={{ color: styles.text4 }}>
+                  {topLevelTab === 'outline' ? 'Outline' : 'Exercises'}
+                </div>
                 <div className="flex items-center gap-2">
                   <div className="flex-1 h-1 rounded-full overflow-hidden" style={{ background: styles.bgSunken }}>
                     <div className="h-full rounded-full transition-all" style={{ background: styles.green, width: `${(stats.complete / stats.total) * 100}%` }}></div>
@@ -1906,50 +2094,241 @@ const CourseEditorV3 = () => {
               {/* Nav List */}
               <ScrollArea className="flex-1">
                 <div className="py-2 px-2">
-                  {groups.map((group: any, groupIdx: number) => (
-                    <div key={groupIdx} className="mb-2">
-                      <div className="text-[10px] font-bold uppercase tracking-wider py-2 px-2.5" style={{ color: styles.text4 }}>
-                        {group.name || `Group ${groupIdx + 1}`}
-                      </div>
-                      {(group.items || []).map((item: any, itemIdx: number) => {
-                        const isActive = groupIdx === activeGroupIndex && itemIdx === activeItemIndex;
-                        const complete = isItemComplete(item);
-                        const hasUnsaved = unsavedItems.has(`${groupIdx}-${itemIdx}`);
-                        
+                  {topLevelTab === 'outline' ? (
+                    <>
+                      {(() => {
+                        const sts: any[] = ((course as any).studyTexts || []) as any[];
+                        const stIndexById = new Map<string, number>();
+                        sts.forEach((st, idx) => {
+                          if (st?.id) stIndexById.set(String(st.id), idx);
+                        });
+
+                        const referenced = new Set<string>();
+                        groups.forEach((g: any) => {
+                          (g.items || []).forEach((it: any) => {
+                            (it.relatedStudyTextIds || []).forEach((id: any) => referenced.add(String(id)));
+                          });
+                        });
+
+                        const unlinked = sts
+                          .map((st, idx) => ({ st, idx }))
+                          .filter(({ st }) => st?.id && !referenced.has(String(st.id)));
+
+                        const currentStudyIdx = studyTextEditorIndex ?? -1;
+
                         return (
-                          <div
-                            key={itemIdx}
-                            onClick={() => handleItemSelect(groupIdx, itemIdx)}
-                            className="flex items-center gap-2 px-3 py-2.5 rounded-lg cursor-pointer transition-all my-0.5"
-                            style={{ 
-                              background: isActive ? styles.accent : 'transparent',
-                              color: isActive ? 'white' : styles.text2
-                            }}
-                            onMouseEnter={e => !isActive && (e.currentTarget.style.background = styles.bgHover)}
-                            onMouseLeave={e => !isActive && (e.currentTarget.style.background = 'transparent')}
-                            data-cta-id={`cta-courseeditor-nav-item-select-${groupIdx}-${itemIdx}`}
-                            data-action="select"
-                          >
-                            <span 
-                              className="w-5 h-5 flex items-center justify-center text-[10px] font-bold rounded shrink-0"
-                              style={{ 
-                                background: isActive ? 'rgba(255,255,255,0.2)' : complete ? styles.green : styles.bgSunken,
-                                color: isActive ? 'white' : complete ? 'white' : styles.text3
-                              }}
-                            >
-                              {complete ? '✓' : itemIdx + 1}
-                            </span>
-                            <span className="flex-1 text-xs truncate" style={{ color: isActive ? 'rgba(255,255,255,0.9)' : styles.text2 }}>
-                              {(item.stem?.text || item.text || 'No text').replace(/<[^>]*>/g, '').slice(0, 30)}...
-                            </span>
-                            {hasUnsaved && (
-                              <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: isActive ? 'white' : styles.orange }}></span>
+                          <>
+                            {groups.map((group: any, groupIdx: number) => {
+                              const ids = new Set<string>();
+                              (group.items || []).forEach((it: any) => {
+                                (it.relatedStudyTextIds || []).forEach((id: any) => ids.add(String(id)));
+                              });
+                              const related = Array.from(ids)
+                                .map((id) => stIndexById.get(id))
+                                .filter((v): v is number => typeof v === 'number')
+                                .map((idx) => ({ idx, st: sts[idx] }))
+                                .sort((a, b) => Number(a.st?.order ?? a.idx) - Number(b.st?.order ?? b.idx));
+
+                              return (
+                                <div key={groupIdx} className="mb-2">
+                                  <div
+                                    className="text-[10px] font-bold uppercase tracking-wider py-2 px-2.5"
+                                    style={{
+                                      color: styles.text4,
+                                      paddingLeft: 10 + Math.max(0, Number(group?.treeLevel || 0)) * 10,
+                                    }}
+                                  >
+                                    {group.name || `Group ${groupIdx + 1}`}
+                                  </div>
+
+                                  {/* Related Study Texts */}
+                                  {related.map(({ idx, st }) => {
+                                    const isActive =
+                                      outlineActiveType === 'studyText' && idx === currentStudyIdx;
+                                    const hasUnsaved = unsavedItems.has(`ST-${idx}`);
+                                    const isComplete = String(st?.title || '').trim().length > 0 && String(st?.content || '').trim().length > 0;
+
+                                    return (
+                                      <div
+                                        key={`st-${groupIdx}-${idx}`}
+                                        onClick={() => selectStudyTextInline(idx)}
+                                        className="flex items-center gap-2 px-3 py-2.5 rounded-lg cursor-pointer transition-all my-0.5"
+                                        style={{
+                                          background: isActive ? styles.accent : 'transparent',
+                                          color: isActive ? 'white' : styles.text2,
+                                        }}
+                                        onMouseEnter={(e) => !isActive && (e.currentTarget.style.background = styles.bgHover)}
+                                        onMouseLeave={(e) => !isActive && (e.currentTarget.style.background = 'transparent')}
+                                        data-cta-id={`cta-courseeditor-nav-outline-studytext-${groupIdx}-${idx}`}
+                                        data-action="select"
+                                      >
+                                        <span
+                                          className="w-5 h-5 flex items-center justify-center text-[10px] font-bold rounded shrink-0"
+                                          style={{
+                                            background: isActive ? 'rgba(255,255,255,0.2)' : isComplete ? styles.green : styles.bgSunken,
+                                            color: isActive ? 'white' : isComplete ? 'white' : styles.text3,
+                                          }}
+                                        >
+                                          {isComplete ? '✓' : 'ST'}
+                                        </span>
+                                        <span className="flex-1 text-xs truncate" style={{ color: isActive ? 'rgba(255,255,255,0.9)' : styles.text2 }}>
+                                          {String(st?.title || 'Untitled study text')}
+                                        </span>
+                                        {hasUnsaved && (
+                                          <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: isActive ? 'white' : styles.orange }}></span>
+                                        )}
+                                      </div>
+                                    );
+                                  })}
+
+                                  {/* Exercises */}
+                                  {(group.items || []).map((item: any, itemIdx: number) => {
+                                    const isActive =
+                                      outlineActiveType === 'exercise' &&
+                                      groupIdx === activeGroupIndex &&
+                                      itemIdx === activeItemIndex;
+                                    const complete = isItemComplete(item);
+                                    const hasUnsaved = unsavedItems.has(`${groupIdx}-${itemIdx}`);
+
+                                    return (
+                                      <div
+                                        key={itemIdx}
+                                        onClick={() => {
+                                          setOutlineActiveType('exercise');
+                                          setShowStudentPreview(false);
+                                          handleItemSelect(groupIdx, itemIdx);
+                                        }}
+                                        className="flex items-center gap-2 px-3 py-2.5 rounded-lg cursor-pointer transition-all my-0.5"
+                                        style={{
+                                          background: isActive ? styles.accent : 'transparent',
+                                          color: isActive ? 'white' : styles.text2,
+                                        }}
+                                        onMouseEnter={(e) => !isActive && (e.currentTarget.style.background = styles.bgHover)}
+                                        onMouseLeave={(e) => !isActive && (e.currentTarget.style.background = 'transparent')}
+                                        data-cta-id={`cta-courseeditor-nav-item-select-${groupIdx}-${itemIdx}`}
+                                        data-action="select"
+                                      >
+                                        <span
+                                          className="w-5 h-5 flex items-center justify-center text-[10px] font-bold rounded shrink-0"
+                                          style={{
+                                            background: isActive ? 'rgba(255,255,255,0.2)' : complete ? styles.green : styles.bgSunken,
+                                            color: isActive ? 'white' : complete ? 'white' : styles.text3,
+                                          }}
+                                        >
+                                          {complete ? '✓' : itemIdx + 1}
+                                        </span>
+                                        <span className="flex-1 text-xs truncate" style={{ color: isActive ? 'rgba(255,255,255,0.9)' : styles.text2 }}>
+                                          {(item.stem?.text || item.text || 'No text').replace(/<[^>]*>/g, '').slice(0, 30)}...
+                                        </span>
+                                        {hasUnsaved && (
+                                          <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: isActive ? 'white' : styles.orange }}></span>
+                                        )}
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              );
+                            })}
+
+                            {/* Unlinked Study Texts */}
+                            {unlinked.length > 0 && (
+                              <div className="mt-4">
+                                <div className="text-[10px] font-bold uppercase tracking-wider py-2 px-2.5" style={{ color: styles.text4 }}>
+                                  Unlinked Study Texts
+                                </div>
+                                {unlinked
+                                  .sort((a, b) => Number(a.st?.order ?? a.idx) - Number(b.st?.order ?? b.idx))
+                                  .map(({ idx, st }) => {
+                                    const isActive =
+                                      outlineActiveType === 'studyText' && idx === currentStudyIdx;
+                                    const hasUnsaved = unsavedItems.has(`ST-${idx}`);
+                                    const isComplete =
+                                      String(st?.title || '').trim().length > 0 && String(st?.content || '').trim().length > 0;
+
+                                    return (
+                                      <div
+                                        key={`unlinked-${idx}`}
+                                        onClick={() => selectStudyTextInline(idx)}
+                                        className="flex items-center gap-2 px-3 py-2.5 rounded-lg cursor-pointer transition-all my-0.5"
+                                        style={{
+                                          background: isActive ? styles.accent : 'transparent',
+                                          color: isActive ? 'white' : styles.text2,
+                                        }}
+                                        onMouseEnter={(e) => !isActive && (e.currentTarget.style.background = styles.bgHover)}
+                                        onMouseLeave={(e) => !isActive && (e.currentTarget.style.background = 'transparent')}
+                                        data-cta-id={`cta-courseeditor-nav-outline-studytext-unlinked-${idx}`}
+                                        data-action="select"
+                                      >
+                                        <span
+                                          className="w-5 h-5 flex items-center justify-center text-[10px] font-bold rounded shrink-0"
+                                          style={{
+                                            background: isActive ? 'rgba(255,255,255,0.2)' : isComplete ? styles.green : styles.bgSunken,
+                                            color: isActive ? 'white' : isComplete ? 'white' : styles.text3,
+                                          }}
+                                        >
+                                          {isComplete ? '✓' : 'ST'}
+                                        </span>
+                                        <span className="flex-1 text-xs truncate" style={{ color: isActive ? 'rgba(255,255,255,0.9)' : styles.text2 }}>
+                                          {String(st?.title || 'Untitled study text')}
+                                        </span>
+                                        {hasUnsaved && (
+                                          <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: isActive ? 'white' : styles.orange }}></span>
+                                        )}
+                                      </div>
+                                    );
+                                  })}
+                              </div>
                             )}
-                          </div>
+                          </>
                         );
-                      })}
-                    </div>
-                  ))}
+                      })()}
+                    </>
+                  ) : (
+                    groups.map((group: any, groupIdx: number) => (
+                      <div key={groupIdx} className="mb-2">
+                        <div className="text-[10px] font-bold uppercase tracking-wider py-2 px-2.5" style={{ color: styles.text4 }}>
+                          {group.name || `Group ${groupIdx + 1}`}
+                        </div>
+                        {(group.items || []).map((item: any, itemIdx: number) => {
+                          const isActive = groupIdx === activeGroupIndex && itemIdx === activeItemIndex;
+                          const complete = isItemComplete(item);
+                          const hasUnsaved = unsavedItems.has(`${groupIdx}-${itemIdx}`);
+                          
+                          return (
+                            <div
+                              key={itemIdx}
+                              onClick={() => handleItemSelect(groupIdx, itemIdx)}
+                              className="flex items-center gap-2 px-3 py-2.5 rounded-lg cursor-pointer transition-all my-0.5"
+                              style={{ 
+                                background: isActive ? styles.accent : 'transparent',
+                                color: isActive ? 'white' : styles.text2
+                              }}
+                              onMouseEnter={e => !isActive && (e.currentTarget.style.background = styles.bgHover)}
+                              onMouseLeave={e => !isActive && (e.currentTarget.style.background = 'transparent')}
+                              data-cta-id={`cta-courseeditor-nav-item-select-${groupIdx}-${itemIdx}`}
+                              data-action="select"
+                            >
+                              <span 
+                                className="w-5 h-5 flex items-center justify-center text-[10px] font-bold rounded shrink-0"
+                                style={{ 
+                                  background: isActive ? 'rgba(255,255,255,0.2)' : complete ? styles.green : styles.bgSunken,
+                                  color: isActive ? 'white' : complete ? 'white' : styles.text3
+                                }}
+                              >
+                                {complete ? '✓' : itemIdx + 1}
+                              </span>
+                              <span className="flex-1 text-xs truncate" style={{ color: isActive ? 'rgba(255,255,255,0.9)' : styles.text2 }}>
+                                {(item.stem?.text || item.text || 'No text').replace(/<[^>]*>/g, '').slice(0, 30)}...
+                              </span>
+                              {hasUnsaved && (
+                                <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: isActive ? 'white' : styles.orange }}></span>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ))
+                  )}
                 </div>
               </ScrollArea>
             </aside>
@@ -1961,10 +2340,20 @@ const CourseEditorV3 = () => {
               <div className="flex items-center justify-between px-6 py-3" style={{ background: styles.bgCard, borderBottom: `1px solid ${styles.border}` }}>
                 <div className="flex items-center gap-2">
                   <button
-                    onClick={() => navigateExercise(-1)}
+                    onClick={() => {
+                      if (topLevelTab === 'outline' && outlineActiveType === 'studyText') {
+                        navigateStudyText(-1);
+                        return;
+                      }
+                      navigateExercise(-1);
+                    }}
                     className="w-9 h-9 flex items-center justify-center rounded-lg transition-colors"
                     style={{ border: `1px solid ${styles.border}`, background: styles.bgCard, color: styles.text2 }}
-                    data-cta-id="cta-courseeditor-nav-prev"
+                    data-cta-id={
+                      topLevelTab === 'outline' && outlineActiveType === 'studyText'
+                        ? 'cta-courseeditor-studytext-nav-prev'
+                        : 'cta-courseeditor-nav-prev'
+                    }
                     data-action="navigate"
                   >
                     <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1972,13 +2361,34 @@ const CourseEditorV3 = () => {
                     </svg>
                   </button>
                   <span className="text-sm" style={{ color: styles.text3 }}>
-                    <strong style={{ color: styles.text }}>Exercise {getCurrentFlatIndex()}</strong> of {getTotalExerciseCount()}
+                    {topLevelTab === 'outline' && outlineActiveType === 'studyText' ? (
+                      <>
+                        <strong style={{ color: styles.text }}>
+                          Study Text {(studyTextEditorIndex ?? 0) + 1}
+                        </strong>{' '}
+                        of {(((course as any).studyTexts) || []).length || 0}
+                      </>
+                    ) : (
+                      <>
+                        <strong style={{ color: styles.text }}>Exercise {getCurrentFlatIndex()}</strong> of {getTotalExerciseCount()}
+                      </>
+                    )}
                   </span>
                   <button
-                    onClick={() => navigateExercise(1)}
+                    onClick={() => {
+                      if (topLevelTab === 'outline' && outlineActiveType === 'studyText') {
+                        navigateStudyText(1);
+                        return;
+                      }
+                      navigateExercise(1);
+                    }}
                     className="w-9 h-9 flex items-center justify-center rounded-lg transition-colors"
                     style={{ border: `1px solid ${styles.border}`, background: styles.bgCard, color: styles.text2 }}
-                    data-cta-id="cta-courseeditor-nav-next"
+                    data-cta-id={
+                      topLevelTab === 'outline' && outlineActiveType === 'studyText'
+                        ? 'cta-courseeditor-studytext-nav-next'
+                        : 'cta-courseeditor-nav-next'
+                    }
                     data-action="navigate"
                   >
                     <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1989,12 +2399,22 @@ const CourseEditorV3 = () => {
                 
                 <div className="flex items-center gap-1.5">
                   <button
-                    onClick={handleDuplicateCurrentItem}
+                    onClick={() => {
+                      if (topLevelTab === 'outline' && outlineActiveType === 'studyText') {
+                        handleDuplicateCurrentStudyText();
+                        return;
+                      }
+                      handleDuplicateCurrentItem();
+                    }}
                     className="h-9 px-3 flex items-center gap-1.5 rounded-lg text-sm font-medium transition-colors"
                     style={{ background: 'transparent', color: styles.text2 }}
                     onMouseEnter={e => (e.currentTarget.style.background = styles.bgHover)}
                     onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
-                    data-cta-id="cta-courseeditor-item-duplicate"
+                    data-cta-id={
+                      topLevelTab === 'outline' && outlineActiveType === 'studyText'
+                        ? 'cta-courseeditor-studytext-duplicate'
+                        : 'cta-courseeditor-item-duplicate'
+                    }
                     data-action="action"
                   >
                     <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -2003,12 +2423,22 @@ const CourseEditorV3 = () => {
                     Duplicate
                   </button>
                   <button
-                    onClick={handleDeleteCurrentItem}
+                    onClick={() => {
+                      if (topLevelTab === 'outline' && outlineActiveType === 'studyText') {
+                        handleDeleteCurrentStudyText();
+                        return;
+                      }
+                      handleDeleteCurrentItem();
+                    }}
                     className="h-9 px-3 flex items-center gap-1.5 rounded-lg text-sm font-medium transition-colors"
                     style={{ background: 'transparent', color: styles.red }}
                     onMouseEnter={e => (e.currentTarget.style.background = styles.bgHover)}
                     onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
-                    data-cta-id="cta-courseeditor-item-delete"
+                    data-cta-id={
+                      topLevelTab === 'outline' && outlineActiveType === 'studyText'
+                        ? 'cta-courseeditor-studytext-delete'
+                        : 'cta-courseeditor-item-delete'
+                    }
                     data-action="action"
                   >
                     <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -2021,7 +2451,225 @@ const CourseEditorV3 = () => {
 
               {/* Editor Form - Field-based layout (all fields visible, no tabs) */}
               <div className="flex-1 overflow-y-auto p-6" style={{ background: styles.bg }}>
-                {currentItem ? (
+                {topLevelTab === 'outline' && outlineActiveType === 'studyText' ? (
+                  (() => {
+                    const idx = studyTextEditorIndex;
+                    const st = idx !== null ? (((course as any).studyTexts) || [])[idx] : null;
+                    if (idx === null || !st) {
+                      return (
+                        <div className="h-full flex items-center justify-center" style={{ color: styles.text4 }}>
+                          Select a study text to edit
+                        </div>
+                      );
+                    }
+
+                    const titleComplete = String(studyTextEditorTitle || '').trim().length > 0;
+                    const contentComplete = String(studyTextEditorDraft || '').trim().length > 0;
+                    const complete = titleComplete && contentComplete;
+
+                    return (
+                      <div className="max-w-[720px] mx-auto">
+                        <div className="space-y-7">
+                          {/* Study Text Meta */}
+                          <section
+                            id="courseeditor-section-studytext-meta"
+                            className="rounded-xl p-6"
+                            style={{ background: styles.bgCard, border: `1px solid ${styles.border}` }}
+                          >
+                            <div className="flex items-center justify-between mb-3">
+                              <div className="flex items-center gap-2">
+                                <span className="text-sm font-bold" style={{ color: styles.text }}>
+                                  Study Text
+                                </span>
+                                <span
+                                  className="text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded"
+                                  style={{
+                                    background: complete ? styles.greenSoft : styles.orangeSoft,
+                                    color: complete ? styles.green : styles.orange,
+                                  }}
+                                >
+                                  {complete ? 'Complete' : 'Needs content'}
+                                </span>
+                              </div>
+                            </div>
+
+                            <div className="space-y-4">
+                              <div>
+                                <div className="text-xs font-semibold mb-1.5" style={{ color: styles.text3 }}>
+                                  Title
+                                </div>
+                                <input
+                                  value={studyTextEditorTitle}
+                                  onChange={(e) => {
+                                    const next = e.target.value;
+                                    setStudyTextEditorTitle(next);
+                                    upsertStudyTextInline({ title: next });
+                                  }}
+                                  placeholder="Study text title"
+                                  className="w-full rounded-lg"
+                                  style={{
+                                    padding: 12,
+                                    border: `1px solid ${styles.border}`,
+                                    background: styles.bgCard,
+                                    color: styles.text,
+                                  }}
+                                  data-cta-id="cta-courseeditor-outline-studytext-title"
+                                  data-action="edit"
+                                />
+                              </div>
+
+                              <div>
+                                <div className="text-xs font-semibold mb-1.5" style={{ color: styles.text3 }}>
+                                  Learning Objectives (comma-separated)
+                                </div>
+                                <input
+                                  value={studyTextEditorLearningObjectives}
+                                  onChange={(e) => {
+                                    const next = e.target.value;
+                                    setStudyTextEditorLearningObjectives(next);
+                                    upsertStudyTextInline({ learningObjectives: next });
+                                  }}
+                                  placeholder="LO-01, LO-02"
+                                  className="w-full rounded-lg"
+                                  style={{
+                                    padding: 12,
+                                    border: `1px solid ${styles.border}`,
+                                    background: styles.bgCard,
+                                    color: styles.text,
+                                  }}
+                                  data-cta-id="cta-courseeditor-outline-studytext-learning-objectives"
+                                  data-action="edit"
+                                />
+                              </div>
+                            </div>
+                          </section>
+
+                          {/* Study Text Content */}
+                          <section
+                            id="courseeditor-section-studytext-content"
+                            className="rounded-xl p-6"
+                            style={{ background: styles.bgCard, border: `1px solid ${styles.border}` }}
+                          >
+                            <div className="flex items-center justify-between mb-3">
+                              <div className="flex items-center gap-2">
+                                <span className="text-sm font-bold" style={{ color: styles.text }}>
+                                  Content
+                                </span>
+                                <span className="text-[11px]" style={{ color: styles.text4 }}>
+                                  Use markers like <span className="font-mono">[SECTION:...]</span> and <span className="font-mono">[IMAGE:...]</span>
+                                </span>
+                              </div>
+
+                              <div className="flex items-center gap-2">
+                                <button
+                                  type="button"
+                                  onClick={() => appendStudyTextMarker('[SECTION:New Section Title]')}
+                                  className="h-8 px-3 rounded-md text-xs font-semibold transition-colors"
+                                  style={{ background: styles.bgSunken, color: styles.text2 }}
+                                  data-cta-id="cta-studytext-marker-section"
+                                  data-action="action"
+                                >
+                                  + [SECTION:]
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => appendStudyTextMarker('[IMAGE:Describe the image you want]')}
+                                  className="h-8 px-3 rounded-md text-xs font-semibold transition-colors"
+                                  style={{ background: styles.bgSunken, color: styles.text2 }}
+                                  data-cta-id="cta-studytext-marker-image"
+                                  data-action="action"
+                                >
+                                  + [IMAGE:]
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleAIRewriteStudyText()}
+                                  className="h-8 px-3 rounded-md text-xs font-semibold transition-colors disabled:opacity-50"
+                                  style={{ background: styles.accentSoft, color: styles.accent }}
+                                  disabled={studyTextAiRewriteLoading}
+                                  data-cta-id="cta-studytext-ai-rewrite"
+                                  data-action="action"
+                                >
+                                  {studyTextAiRewriteLoading ? 'AI Rewriting…' : 'AI Rewrite'}
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={handleAIImageForStudyText}
+                                  className="h-8 px-3 rounded-md text-xs font-semibold transition-colors disabled:opacity-50"
+                                  style={{ background: styles.accentSoft, color: styles.accent }}
+                                  disabled={studyTextAiImageLoading}
+                                  data-cta-id="cta-studytext-ai-image"
+                                  data-action="action"
+                                >
+                                  {studyTextAiImageLoading ? 'AI Image…' : 'AI Image'}
+                                </button>
+                              </div>
+                            </div>
+
+                            <textarea
+                              ref={studyTextEditorDraftRef}
+                              value={studyTextEditorDraft}
+                              onChange={(e) => {
+                                const next = e.target.value;
+                                setStudyTextEditorDraft(next);
+                                upsertStudyTextInline({ content: next });
+                              }}
+                              rows={14}
+                              className="w-full rounded-lg resize-y"
+                              style={{
+                                padding: 14,
+                                border: `1px solid ${styles.border}`,
+                                background: styles.bgCard,
+                                color: styles.text,
+                                fontFamily: "'JetBrains Mono', monospace",
+                                lineHeight: 1.6,
+                              }}
+                              data-cta-id="cta-courseeditor-outline-studytext-content"
+                              data-action="edit"
+                            />
+                          </section>
+
+                          {/* Study Text Preview */}
+                          <section
+                            id="courseeditor-section-studytext-preview"
+                            className="rounded-xl p-6"
+                            style={{ background: styles.bgCard, border: `1px solid ${styles.border}` }}
+                          >
+                            <div className="flex items-center justify-between mb-3">
+                              <span className="text-sm font-bold" style={{ color: styles.text }}>
+                                Preview
+                              </span>
+                              <span className="text-xs" style={{ color: styles.text4 }}>
+                                Shows the parsed sections/images as students see them.
+                              </span>
+                            </div>
+
+                            <div className="max-h-[360px] overflow-auto p-4 rounded-lg" style={{ background: styles.bg, border: `1px solid ${styles.border}` }}>
+                              <div className="prose prose-sm max-w-none">
+                                {parseStudyText(String(studyTextEditorDraft || '')).map((section, i) => (
+                                  <div key={i} className="mb-5">
+                                    <h4 className="font-semibold">{section.title}</h4>
+                                    {section.content.map((p, j) => (
+                                      <p key={j}>{p}</p>
+                                    ))}
+                                    {section.images.map((img, k) => {
+                                      const resolved = resolvePublicMediaUrl(img, (course as any)?.contentVersion);
+                                      return (
+                                        <div key={k} className="my-3">
+                                          <img src={resolved} alt={img} className="max-w-full rounded" />
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          </section>
+                        </div>
+                      </div>
+                    );
+                  })()
+                ) : currentItem ? (
                   <div className="max-w-[720px] mx-auto">
                     {/* Focus form (field-based) - all fields visible vertically */}
                     <div className="space-y-7">
@@ -2798,7 +3446,7 @@ const CourseEditorV3 = () => {
                   </div>
                 ) : (
                   <div className="h-full flex items-center justify-center" style={{ color: styles.text4 }}>
-                    Select an exercise to edit
+                    Select an item to edit
                   </div>
                 )}
               </div>
@@ -2841,16 +3489,44 @@ const CourseEditorV3 = () => {
                   </button>
                 </div>
                 <div className="flex-1 overflow-y-auto flex items-center justify-center p-8" style={{ background: styles.bg }}>
-                  <div className="w-full max-w-md">
-                    <PreviewPanelV2
-                      item={currentItem}
-                      contentVersion={(course as any)?.contentVersion}
-                      courseId={courseId}
-                      courseTitle={course?.title}
-                      onRefresh={() => toast.info('Preview refreshed')}
-                      onOptionSelect={(index) => toast.info(`Option ${index + 1} selected`)}
-                    />
-                  </div>
+                  {topLevelTab === 'outline' && outlineActiveType === 'studyText' ? (
+                    <div className="w-full max-w-2xl">
+                      <div className="rounded-2xl p-6" style={{ background: styles.bgCard, border: `1px solid ${styles.border}` }}>
+                        <div className="text-sm font-bold mb-3" style={{ color: styles.text }}>
+                          {String(studyTextEditorTitle || 'Study Text')}
+                        </div>
+                        <div className="prose prose-sm max-w-none">
+                          {parseStudyText(String(studyTextEditorDraft || '')).map((section, i) => (
+                            <div key={i} className="mb-6">
+                              <h4 className="font-semibold">{section.title}</h4>
+                              {section.content.map((p, j) => (
+                                <p key={j}>{p}</p>
+                              ))}
+                              {section.images.map((img, k) => {
+                                const resolved = resolvePublicMediaUrl(img, (course as any)?.contentVersion);
+                                return (
+                                  <div key={k} className="my-3">
+                                    <img src={resolved} alt={img} className="max-w-full rounded" />
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="w-full max-w-md">
+                      <PreviewPanelV2
+                        item={currentItem}
+                        contentVersion={(course as any)?.contentVersion}
+                        courseId={courseId}
+                        courseTitle={course?.title}
+                        onRefresh={() => toast.info('Preview refreshed')}
+                        onOptionSelect={(index) => toast.info(`Option ${index + 1} selected`)}
+                      />
+                    </div>
+                  )}
                 </div>
               </aside>
             )}
@@ -3096,7 +3772,7 @@ const CourseEditorV3 = () => {
       </div>
 
       {/* Keyboard Hints (Focus Mode) */}
-      {topLevelTab === 'exercises' && viewMode === 'focus' && (
+      {(topLevelTab === 'exercises' || topLevelTab === 'outline') && viewMode === 'focus' && (
         <div 
           className="fixed bottom-5 right-5 flex gap-3 px-3.5 py-2.5 rounded-lg text-[11px]"
           style={{ background: styles.bgCard, border: `1px solid ${styles.border}`, color: styles.text4, boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}

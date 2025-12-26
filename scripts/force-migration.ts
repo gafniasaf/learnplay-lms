@@ -1,6 +1,6 @@
 import { Client } from 'pg';
 
-const connectionString = process.env.SUPABASE_DB_URL ?? process.env.DATABASE_URL;
+const connectionString = process.env.SUPABASE_DB_URL || process.env.DATABASE_URL;
 if (!connectionString) {
   console.error('❌ BLOCKED: SUPABASE_DB_URL (or DATABASE_URL) is required to run this migration script.');
   process.exit(1);

@@ -17,6 +17,9 @@ export interface CourseLevel {
 export interface CourseGroup {
   id: number;
   name: string;
+  /** Optional hierarchy metadata (used by legacy imports / outline navigation) */
+  parentId?: number;
+  treeLevel?: number;
   color?: string;
 }
 
@@ -25,11 +28,18 @@ export interface StudyText {
   title: string;
   content: string;
   order: number;
+  /** Optional hierarchy metadata (used by legacy imports / outline navigation) */
+  parentId?: string;
+  treeLevel?: number;
   learningObjectives?: string[];
   metadata?: {
     difficulty?: string;
     estimatedReadingTime?: number;
     keywords?: string[];
+  };
+  _import?: {
+    sourceStudyTextId?: number;
+    sourceSubjectId?: number;
   };
 }
 
@@ -76,13 +86,22 @@ export interface Course {
   id: string;
   title: string;
   locale?: string;
+  availableLocales?: string[];
   contentVersion?: string;
   format?: string;
   description?: string;
+  subject?: string;
+  gradeBand?: string;
   studyTexts?: StudyText[];
   levels: CourseLevel[];
   groups: CourseGroup[];
   items: CourseItem[];
+  _import?: {
+    sourceSystem?: string;
+    sourceCourseId?: number;
+    importedAt?: string;
+    importVersion?: string;
+  };
 }
 
 

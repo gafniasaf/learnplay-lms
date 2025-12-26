@@ -220,6 +220,53 @@ function extractImageUrls(legacy: LegacyCourseContent): string[] {
 // TRANSFORMATION
 // ═══════════════════════════════════════════════════════════════════════════
 
+function decodeBasicHtmlEntities(input: string): string {
+  const s = String(input || '');
+  return s
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/&amp;/gi, '&')
+    .replace(/&lt;/gi, '<')
+    .replace(/&gt;/gi, '>')
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;/gi, "'");
+}
+
+function legacyHtmlToStudyTextMarkers(args: { title: string; html: string }): string {
+  const title = String(args.title || 'Study Text');
+  let s = String(args.html || '');
+
+  s = s.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+
+  // Convert images into explicit markers.
+  s = s.replace(/<img\s+[^>]*src="([^"]+)"[^>]*>/gi, (_m, src) => `\n[IMAGE:${src}]\n`);
+
+  // Convert common block-ish tags into line breaks.
+  s = s.replace(/<br\s*\/?>/gi, '\n');
+  s = s.replace(/<\/p\s*>/gi, '\n');
+  s = s.replace(/<\/div\s*>/gi, '\n');
+  s = s.replace(/<\/li\s*>/gi, '\n');
+
+  // Make list items readable.
+  s = s.replace(/<li\s*[^>]*>/gi, '- ');
+
+  // Remove remaining tags.
+  s = s.replace(/<[^>]+>/g, '');
+
+  // Decode a minimal set of entities.
+  s = decodeBasicHtmlEntities(s);
+
+  // Normalize whitespace while keeping markers on their own lines.
+  const lines = s
+    .split('\n')
+    .map((l) => l.trim())
+    .filter((l) => l.length > 0);
+
+  const safeTitle = title.replace(/\]/g, '').slice(0, 120);
+  const hasSection = lines.some((l) => l.startsWith('[SECTION:'));
+  const out = hasSection ? lines : [`[SECTION:${safeTitle}]`, ...lines];
+  return out.join('\n');
+}
+
 function transformLegacyCourse(
   legacy: LegacyCourseContent,
   options: { locale: string; imageUrlMap: Map<string, string> }
@@ -246,13 +293,19 @@ function transformLegacyCourse(
     });
 
   const groupIdMap = new Map<number, number>();
-  const groups = sortedTopics.map((topic, idx) => {
-    groupIdMap.set(topic.mes_topic_id, idx);
-    return {
-      id: idx,
+  const groups: any[] = [];
+  for (const topic of sortedTopics) {
+    const id = groups.length;
+    groupIdMap.set(topic.mes_topic_id, id);
+    const parentId =
+      topic.mes_topic_parent_id !== null ? groupIdMap.get(topic.mes_topic_parent_id) : undefined;
+    groups.push({
+      id,
       name: topic.mes_topic_name,
-    };
-  });
+      parentId,
+      treeLevel: topic.tree_level,
+    });
+  }
 
   // Transform items from exercises
   const items: any[] = [];
@@ -278,6 +331,13 @@ function transformLegacyCourse(
       options,
       correctIndex,
       answer,
+      relatedStudyTextIds: topic.mes_exercise_studytext_id
+        ? [`st-${topic.mes_exercise_studytext_id}`]
+        : undefined,
+      _import: {
+        sourceExerciseId: topic.mes_exercise_id,
+        exerciseType: topic.mes_exercise_type,
+      },
     });
     itemId++;
   }
@@ -288,6 +348,8 @@ function transformLegacyCourse(
   for (const subject of legacy.subjects || []) {
     if (!subject.mes_studytext_id) continue;
 
+    const title =
+      subject.mes_subject_name || subject.mes_resource_displayname || `Section ${order + 1}`;
     let content = subject.mes_resource_content_text || '';
     
     // Replace image URLs
@@ -297,9 +359,15 @@ function transformLegacyCourse(
 
     studyTexts.push({
       id: `st-${subject.mes_studytext_id}`,
-      title: subject.mes_subject_name || subject.mes_resource_displayname || `Section ${order + 1}`,
-      content,
+      title,
+      content: legacyHtmlToStudyTextMarkers({ title, html: content }),
       order,
+      parentId: subject.mes_subject_parent_id !== null ? `subj-${subject.mes_subject_parent_id}` : undefined,
+      treeLevel: subject.tree_level,
+      _import: {
+        sourceStudyTextId: subject.mes_studytext_id,
+        sourceSubjectId: subject.mes_subject_id,
+      },
     });
     order++;
   }
