@@ -84,7 +84,9 @@ interface LegacyCourseContent {
 }
 
 type ImportLegacyCourseRequest = {
-  courseId: number;
+  action?: "import" | "list";
+  limit?: number;
+  courseId?: number;
   migrateImages?: boolean;
   locale?: string;
 };
@@ -106,6 +108,24 @@ async function fetchLegacyCourseContent(courseId: number): Promise<LegacyCourseC
       const row = result.rows?.[0]?.get_course_content as any;
       if (!row) throw new Error("legacy_query_failed: empty_result");
       return row as LegacyCourseContent;
+    } finally {
+      connection.release();
+    }
+  } finally {
+    await pool.end();
+  }
+}
+
+async function listLegacyCourses(limit: number): Promise<Array<{ id: number; name: string }>> {
+  const pool = new Pool(LEGACY_DATABASE_URL!, 1);
+  try {
+    const connection = await pool.connect();
+    try {
+      const result = await connection.queryObject<{ id: number; name: string }>(
+        "SELECT mes_course_id AS id, mes_course_name AS name FROM mes_course ORDER BY mes_course_id LIMIT $1",
+        [Math.max(1, Math.min(50, Math.floor(limit)))]
+      );
+      return (result.rows ?? []).map((r: any) => ({ id: Number(r.id), name: String(r.name ?? "") }));
     } finally {
       connection.release();
     }
@@ -424,9 +444,16 @@ serve(
       return Errors.invalidRequest("Invalid JSON body", reqId, req);
     }
 
+    const action = body?.action ?? "import";
     const courseId = body?.courseId;
     const migrateImages = body?.migrateImages !== false; // default true
     const locale = typeof body?.locale === "string" && body.locale.trim().length > 0 ? body.locale.trim() : "he";
+
+    if (action === "list") {
+      const limit = typeof body?.limit === "number" && Number.isFinite(body.limit) ? body.limit : 10;
+      const items = await listLegacyCourses(limit);
+      return { success: true, items, requestId: reqId };
+    }
 
     if (typeof courseId !== "number" || !Number.isFinite(courseId) || courseId <= 0) {
       return Errors.invalidRequest("courseId is required and must be a positive number", reqId, req);
