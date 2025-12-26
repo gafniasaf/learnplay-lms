@@ -1,5 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { stdHeaders, handleOptions } from "../_shared/cors.ts";
+import { withCors } from "../_shared/cors.ts";
+import { Errors } from "../_shared/error.ts";
+import { getRequestId } from "../_shared/log.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { authenticateRequest, requireOrganizationId } from "../_shared/auth.ts";
 
@@ -21,47 +23,37 @@ interface GetStudentSkillsBody {
   offset?: number;
 }
 
-serve(async (req: Request): Promise<Response> => {
-  if (req.method === "OPTIONS") {
-    return handleOptions(req, "get-student-skills");
-  }
+serve(withCors(async (req: Request): Promise<any> => {
+  const reqId = getRequestId(req);
 
   if (req.method !== "POST") {
-    return new Response("Method Not Allowed", {
-      status: 405,
-      headers: stdHeaders(req),
-    });
+    return Errors.methodNotAllowed(req.method, reqId, req);
   }
 
   let auth;
   try {
     auth = await authenticateRequest(req);
-  } catch (error) {
-    const message = error instanceof Error ? error.message : "Unauthorized";
-    return new Response(
-      JSON.stringify({ error: message }),
-      { status: message === "Missing organization_id" ? 400 : 401, headers: stdHeaders(req, { "Content-Type": "application/json" }) }
-    );
+  } catch {
+    return Errors.invalidAuth(reqId, req);
   }
 
   let body: GetStudentSkillsBody;
   try {
-    body = await req.json() as GetStudentSkillsBody;
+    body = (await req.json()) as GetStudentSkillsBody;
   } catch {
-    return new Response(JSON.stringify({ error: "Invalid JSON body" }), {
-      status: 400,
-      headers: stdHeaders(req, { "Content-Type": "application/json" }),
-    });
+    return Errors.invalidRequest("Invalid JSON body", reqId, req);
   }
 
   if (!body?.studentId || typeof body.studentId !== "string") {
-    return new Response(JSON.stringify({ error: "studentId is required" }), {
-      status: 400,
-      headers: stdHeaders(req, { "Content-Type": "application/json" }),
-    });
+    return Errors.missingFields(["studentId"], reqId, req);
   }
 
-  const organizationId = requireOrganizationId(auth);
+  // Enforce org boundary (required for agent auth; user auth has org embedded in metadata)
+  try {
+    requireOrganizationId(auth);
+  } catch {
+    return Errors.invalidRequest("Missing organization_id", reqId, req);
+  }
 
   try {
     // Query mastery_states joined with knowledge_objectives
@@ -84,12 +76,10 @@ serve(async (req: Request): Promise<Response> => {
     if (queryError) {
       // IgniteZero: fail loudly. Returning empty results hides missing migrations/schema.
       console.error("[get-student-skills] Query error:", queryError);
-      return new Response(
-        JSON.stringify({
-          error:
-            "BLOCKED: Unable to query student skills. Ensure Knowledge Map schema is applied (mastery_states + knowledge_objectives) and RLS/permissions are correct.",
-        }),
-        { status: 500, headers: stdHeaders(req, { "Content-Type": "application/json" }) }
+      return Errors.internal(
+        "BLOCKED: Unable to query student skills. Ensure Knowledge Map schema is applied (mastery_states + knowledge_objectives) and RLS/permissions are correct.",
+        reqId,
+        req
       );
     }
 
@@ -159,15 +149,9 @@ serve(async (req: Request): Promise<Response> => {
     const offset = body.offset || 0;
     const paginatedSkills = filteredSkills.slice(offset, offset + limit);
 
-    return new Response(
-      JSON.stringify({ skills: paginatedSkills, totalCount }),
-      { status: 200, headers: stdHeaders(req, { "Content-Type": "application/json" }) }
-    );
+    return { ok: true, skills: paginatedSkills, totalCount, requestId: reqId };
   } catch (error) {
     console.error("get-student-skills error:", error);
-    return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" }),
-      { status: 500, headers: stdHeaders(req, { "Content-Type": "application/json" }) }
-    );
+    return Errors.internal(error instanceof Error ? error.message : "Unknown error", reqId, req);
   }
-});
+}));
