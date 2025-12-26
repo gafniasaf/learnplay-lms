@@ -29,6 +29,7 @@ const AdminMetrics = lazy(() => import("./pages/admin/Metrics"));
 const AdminCourseSelector = AdminCourseSelectorPage;
 const AdminMediaManager = lazy(() => import("./pages/admin/MediaManager"));
 const AdminTagApprovalQueue = lazy(() => import("./pages/admin/TagApprovalQueue"));
+const AdminImportLegacyCourse = lazy(() => import("./pages/admin/ImportLegacyCourse"));
 const TeacherAssignments = lazy(() => import("./pages/teacher/Assignments"));
 const MessagesInbox = lazy(() => import("./pages/messages/Inbox"));
 const Play = lazy(() => import("./pages/Play"));
@@ -419,6 +420,7 @@ const App = () => {
                       <Route path="/admin/course-versions" element={<AdminCourseSelector />} />
                       <Route path="/admin/media-manager" element={<AdminMediaManager />} />
                       <Route path="/admin/tag-approval" element={<AdminTagApprovalQueue />} />
+                      <Route path="/admin/import-legacy" element={<AdminImportLegacyCourse />} />
                       <Route path="/admin/metrics" element={<AdminMetrics />} />
                       <Route path="/teacher/assignment-progress" element={<TeacherAssignments />} />
                       <Route path="/play/welcome" element={<Play />} />
