@@ -139,7 +139,7 @@ async function preloadImage(url: string, timeoutMs = 15_000): Promise<void> {
       done = true;
       img.onload = null;
       img.onerror = null;
-      // @ts-ignore - onabort exists on HTMLImageElement in browsers
+      // @ts-expect-error - onabort exists on HTMLImageElement in browsers
       img.onabort = null;
       clearTimeout(timer);
       resolve();
@@ -148,7 +148,7 @@ async function preloadImage(url: string, timeoutMs = 15_000): Promise<void> {
     const timer = window.setTimeout(finish, timeoutMs);
     img.onload = finish;
     img.onerror = finish;
-    // @ts-ignore - onabort exists on HTMLImageElement in browsers
+    // @ts-expect-error - onabort exists on HTMLImageElement in browsers
     img.onabort = finish;
     img.decoding = 'async';
     img.loading = 'eager';

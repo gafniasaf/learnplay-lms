@@ -11,7 +11,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   Dialog,
@@ -35,10 +34,6 @@ import { generateMedia } from '@/lib/api/aiRewrites';
 import { CommandPalette } from '@/components/admin/editor/CommandPalette';
 import { FloatingActionButton } from '@/components/admin/editor/FloatingActionButton';
 import { PreviewPanelV2 } from '@/components/admin/editor/PreviewPanelV2';
-import { StemTab } from '@/components/admin/editor/StemTab';
-import { OptionsTab } from '@/components/admin/editor/OptionsTab';
-import { ReferenceTab } from '@/components/admin/editor/ReferenceTab';
-import { HintsTab } from '@/components/admin/editor/HintsTab';
 import { ExercisesTab } from '@/components/admin/editor/ExercisesTab';
 import type { Course, CourseItem } from '@/lib/types/course';
 import type { PatchOperation } from '@/lib/api/updateCourse';
@@ -48,6 +43,7 @@ import { useCourseVariants } from './editor/hooks/useCourseVariants';
 import { useCourseCoPilot } from './editor/hooks/useCourseCoPilot';
 import { isDevAgentMode } from '@/lib/api/common';
 import { cn } from '@/lib/utils';
+import { sanitizeHtml } from '@/lib/utils/sanitizeHtml';
 
 const UNSAVED_ALL_ITEMS_KEY = 'IT-ALL';
 const UNSAVED_ALL_GROUPS_KEY = 'GR-ALL';
@@ -106,6 +102,11 @@ const CourseEditorV3 = () => {
   const [activeTab, setActiveTab] = useState('stem');
   const [topLevelTab, setTopLevelTab] = useState<'exercises' | 'studyTexts'>('exercises');
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
+  const [showStudentPreview, setShowStudentPreview] = useState(true);
+  // Keep the current WYSIWYG HTML preview toggles (stem + explanation) in the new Focus form layout.
+  const [stemShowPreview, setStemShowPreview] = useState(false);
+  const [explanationShowPreview, setExplanationShowPreview] = useState(false);
+  const [stemAiImageLoading, setStemAiImageLoading] = useState(false);
   
   // Unsaved tracking
   const [unsavedItems, setUnsavedItems] = useState<Set<string>>(new Set());
@@ -136,6 +137,12 @@ const CourseEditorV3 = () => {
   const currentItem = groups[activeGroupIndex]?.items?.[activeItemIndex] || null;
   const unsavedCount = unsavedItems.size;
   const hasUnsavedChanges = unsavedCount > 0;
+
+  // Reset section-local preview toggles when switching exercises/tabs
+  useEffect(() => {
+    setStemShowPreview(false);
+    setExplanationShowPreview(false);
+  }, [activeGroupIndex, activeItemIndex, topLevelTab]);
 
   // Leave-page guards (browser refresh/close)
   useEffect(() => {
@@ -276,6 +283,11 @@ const CourseEditorV3 = () => {
     setActiveTab('stem');
     setViewMode('focus');
   };
+
+  const scrollToFocusSection = useCallback((section: string) => {
+    const el = document.getElementById(`courseeditor-section-${section}`);
+    el?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, []);
 
   const navigateExercise = (direction: number) => {
     const allItems: { groupIdx: number; itemIdx: number }[] = [];
@@ -449,6 +461,33 @@ const CourseEditorV3 = () => {
       return next;
     });
     toast.success('Group added');
+  };
+
+  const handleGroupSettings = (groupIdx: number) => {
+    if (!course) return;
+    const courseGroups = groups.map((g: any) => ({ ...g, items: [...(g.items || [])] }));
+    const group = courseGroups[groupIdx];
+    if (!group) return;
+
+    const currentName = String(group.name || `Group ${groupIdx + 1}`);
+    const nextName = prompt('Group name:', currentName);
+    if (nextName === null) return;
+    const trimmed = nextName.trim();
+    if (!trimmed) {
+      toast.error('Group name is required');
+      return;
+    }
+
+    group.name = trimmed;
+    const updated: any = { ...(course as any), groups: courseGroups };
+    updated.items = flattenItemsForStorage(courseGroups);
+    setCourse(updated as Course);
+    setUnsavedItems((prev) => {
+      const next = new Set(prev);
+      next.add(UNSAVED_ALL_GROUPS_KEY);
+      return next;
+    });
+    toast.success('Group updated (unsaved)');
   };
 
   const handleAddItemToGroup = (groupIdx: number, opts?: { focus?: boolean }) => {
@@ -676,6 +715,32 @@ const CourseEditorV3 = () => {
   };
 
   // Media handlers
+  const uploadStemMediaFile = async (file: File) => {
+    if (!currentItem) return;
+    try {
+      toast.info('Uploading media...');
+      const path = `temp/${Date.now()}-${file.name}`;
+      const result = await mcp.uploadMediaFile(file, path);
+      if (!result.ok) throw new Error('Upload failed');
+
+      const newMedia = {
+        id: `media-${Date.now()}`,
+        type: file.type.startsWith('image/') ? 'image' : file.type.startsWith('audio/') ? 'audio' : 'video',
+        url: result.url,
+        alt: file.name,
+      };
+      const existingMedia = (currentItem as any).stem?.media || (currentItem as any).stimulus?.media || [];
+      const updatedItem = (currentItem as any).stem
+        ? { ...currentItem, stem: { ...(currentItem as any).stem, media: [...existingMedia, newMedia] } }
+        : { ...currentItem, stimulus: { ...currentItem.stimulus, media: [...existingMedia, newMedia] } };
+      handleItemChange(updatedItem);
+      toast.success('Media uploaded');
+    } catch (error) {
+      logger.error('[CourseEditorV3] Upload failed:', error);
+      toast.error(error instanceof Error ? error.message : 'Upload failed');
+    }
+  };
+
   const handleAddMediaToStem = async () => {
     const input = document.createElement('input');
     input.type = 'file';
@@ -683,30 +748,66 @@ const CourseEditorV3 = () => {
     input.onchange = async (e) => {
       const file = (e.target as HTMLInputElement).files?.[0];
       if (!file) return;
-      try {
-        toast.info('Uploading media...');
-        const path = `temp/${Date.now()}-${file.name}`;
-        const result = await mcp.uploadMediaFile(file, path);
-        if (!result.ok) throw new Error('Upload failed');
-        if (!currentItem) return;
-        const newMedia = {
-          id: `media-${Date.now()}`,
-          type: file.type.startsWith('image/') ? 'image' : file.type.startsWith('audio/') ? 'audio' : 'video',
-          url: result.url,
-          alt: file.name,
-        };
-        const existingMedia = (currentItem as any).stem?.media || (currentItem as any).stimulus?.media || [];
-        const updatedItem = (currentItem as any).stem
-          ? { ...currentItem, stem: { ...(currentItem as any).stem, media: [...existingMedia, newMedia] } }
-          : { ...currentItem, stimulus: { ...currentItem.stimulus, media: [...existingMedia, newMedia] } };
-        handleItemChange(updatedItem);
-        toast.success('Media uploaded');
-      } catch (error) {
-        logger.error('[CourseEditorV3] Upload failed:', error);
-        toast.error(error instanceof Error ? error.message : 'Upload failed');
-      }
+      await uploadStemMediaFile(file);
     };
     input.click();
+  };
+
+  const handleAIGenerateStemImage = async () => {
+    if (!currentItem || !course) return;
+    try {
+      setStemAiImageLoading(true);
+      toast.info('Generating image…');
+
+      const stem = String((currentItem as any)?.stem?.text || (currentItem as any)?.text || '');
+      const subj = (course as any)?.subject || course?.title || 'General';
+      const stemPlain = stem.replace(/<[^>]*>/g, '').replace(/\[blank\]/gi, '___').slice(0, 160);
+      const allOptions = Array.isArray((currentItem as any)?.options)
+        ? ((currentItem as any).options as any[])
+            .slice(0, 4)
+            .map((o: any) => (typeof o === 'string' ? o : o?.text || ''))
+            .filter(Boolean)
+        : [];
+      const optionsContext = allOptions.length > 0 ? `Answer choices include: ${allOptions.join(', ')}.` : '';
+
+      const prompt = [
+        `Simple learning visual for ${subj}.`,
+        `Question context: ${stemPlain}`,
+        optionsContext,
+        `Create a clean photo or realistic illustration that helps students understand this concept.`,
+        `IMPORTANT: Absolutely no text, letters, words, labels, numbers, or written language anywhere in the image.`,
+        `No diagrams, charts, or infographics. Just a clean visual representation.`,
+        `Original artwork only - no copyrighted characters or brands.`,
+        `Colorful, friendly, child-appropriate educational style.`,
+      ]
+        .filter(Boolean)
+        .join(' ');
+
+      const res = await generateMedia({
+        prompt,
+        kind: 'image',
+        options: { aspectRatio: '16:9', size: '1024x1024', quality: 'standard' },
+      });
+
+      const newMediaItem = {
+        id: crypto.randomUUID(),
+        type: 'image',
+        url: res.url,
+        alt: res.alt || 'Course image',
+      } as any;
+
+      const existingMedia = (currentItem as any).stem?.media || (currentItem as any).stimulus?.media || [];
+      const updatedItem = (currentItem as any).stem
+        ? { ...currentItem, stem: { ...(currentItem as any).stem, media: [...existingMedia, newMediaItem] } }
+        : { ...currentItem, stimulus: { ...(currentItem as any).stimulus, media: [...existingMedia, newMediaItem] } };
+      handleItemChange(updatedItem);
+      toast.success('AI image added to stem (remember to Save)');
+    } catch (e) {
+      logger.error('[CourseEditorV3] Stem AI image generation failed:', e);
+      toast.error(e instanceof Error ? e.message : 'AI image generation failed');
+    } finally {
+      setStemAiImageLoading(false);
+    }
   };
 
   const handleAddMediaFromURL = (url: string, type: 'image' | 'audio' | 'video') => {
@@ -1072,7 +1173,8 @@ const CourseEditorV3 = () => {
       });
     });
     
-    return { complete, needsAttention, total };
+    const draft = Array.from(unsavedItems).filter((k) => /^\d+-\d+$/.test(k)).length;
+    return { complete, needsAttention, draft, total };
   };
 
   const isItemComplete = (item: any) => {
@@ -1282,6 +1384,8 @@ const CourseEditorV3 = () => {
               background: viewMode === 'overview' ? styles.bgCard : 'transparent',
               color: viewMode === 'overview' ? styles.text : styles.text3
             }}
+            data-cta-id="cta-courseeditor-view-overview"
+            data-action="tab"
           >
             <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.75" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/>
@@ -1298,6 +1402,8 @@ const CourseEditorV3 = () => {
               background: viewMode === 'focus' ? styles.bgCard : 'transparent',
               color: viewMode === 'focus' ? styles.text : styles.text3
             }}
+            data-cta-id="cta-courseeditor-view-focus"
+            data-action="tab"
           >
             <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.75" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/>
@@ -1321,15 +1427,30 @@ const CourseEditorV3 = () => {
             ⌘
           </button>
           <button
-            onClick={handleDiscard}
+            onClick={() => setShowStudentPreview((prev) => !prev)}
             className="h-9 px-4 flex items-center gap-1.5 rounded-lg text-sm font-semibold transition-colors"
-            style={{ background: 'transparent', color: styles.text2 }}
-            onMouseEnter={e => (e.currentTarget.style.background = styles.bgHover)}
-            onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
-            data-cta-id="cta-courseeditor-discard"
-            data-action="action"
+            style={{ background: showStudentPreview ? 'transparent' : styles.bgSunken, color: styles.text2 }}
+            onMouseEnter={(e) => (e.currentTarget.style.background = styles.bgHover)}
+            onMouseLeave={(e) => (e.currentTarget.style.background = showStudentPreview ? 'transparent' : styles.bgSunken)}
+            data-cta-id="cta-courseeditor-toggle-student-preview"
+            data-action="toggle"
+            title={showStudentPreview ? 'Hide student preview' : 'Show student preview'}
           >
-            Discard
+            <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="1.75"
+                d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+              />
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="1.75"
+                d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+              />
+            </svg>
+            Preview
           </button>
           <button
             onClick={handleSaveDraft}
@@ -1404,6 +1525,10 @@ const CourseEditorV3 = () => {
                     <span className="w-2 h-2 rounded-full" style={{ background: styles.orange }}></span>
                     {stats.needsAttention} need attention
                   </div>
+                  <div className="flex items-center gap-1.5 text-sm" style={{ color: styles.text3 }}>
+                    <span className="w-2 h-2 rounded-full" style={{ background: styles.text4 }}></span>
+                    {stats.draft} draft
+                  </div>
                 </div>
               </div>
 
@@ -1422,9 +1547,25 @@ const CourseEditorV3 = () => {
                         onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = styles.text4; }}
                         onClick={() => handleAddItemToGroup(groupIdx, { focus: true })}
                         title="Add exercise"
+                        data-cta-id={`cta-courseeditor-overview-group-add-item-${groupIdx}`}
+                        data-action="action"
                       >
                         <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4"/>
+                        </svg>
+                      </button>
+                      <button
+                        className="w-7 h-7 flex items-center justify-center rounded-md transition-colors"
+                        style={{ color: styles.text4 }}
+                        onMouseEnter={e => { e.currentTarget.style.background = styles.bgHover; e.currentTarget.style.color = styles.text2; }}
+                        onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = styles.text4; }}
+                        onClick={() => handleGroupSettings(groupIdx)}
+                        title="Group settings"
+                        data-cta-id={`cta-courseeditor-overview-group-settings-${groupIdx}`}
+                        data-action="action"
+                      >
+                        <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 5v.01M12 12v.01M12 19v.01" />
                         </svg>
                       </button>
                     </div>
@@ -1447,6 +1588,16 @@ const CourseEditorV3 = () => {
                             border: `1px solid ${styles.border}`,
                             borderLeft: `3px solid ${complete ? styles.green : styles.orange}`,
                           }}
+                          role="button"
+                          tabIndex={0}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' || e.key === ' ') {
+                              e.preventDefault();
+                              handleItemSelect(groupIdx, itemIdx);
+                            }
+                          }}
+                          data-cta-id={`cta-courseeditor-overview-item-open-${groupIdx}-${itemIdx}`}
+                          data-action="navigate"
                           onMouseEnter={e => { e.currentTarget.style.borderColor = styles.accent; e.currentTarget.style.boxShadow = '0 4px 12px rgba(107, 92, 205, 0.1)'; }}
                           onMouseLeave={e => { e.currentTarget.style.borderColor = styles.border; e.currentTarget.style.boxShadow = 'none'; e.currentTarget.style.borderLeftColor = complete ? styles.green : styles.orange; }}
                         >
@@ -1513,6 +1664,10 @@ const CourseEditorV3 = () => {
                       style={{ border: `2px dashed ${styles.border}`, color: styles.text3 }}
                       onMouseEnter={e => { e.currentTarget.style.borderColor = styles.accent; e.currentTarget.style.background = styles.accentSoft; e.currentTarget.style.color = styles.accent; }}
                       onMouseLeave={e => { e.currentTarget.style.borderColor = styles.border; e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = styles.text3; }}
+                      role="button"
+                      tabIndex={0}
+                      data-cta-id={`cta-courseeditor-overview-item-add-${groupIdx}`}
+                      data-action="action"
                     >
                       <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M12 4v16m8-8H4"/>
@@ -1530,6 +1685,8 @@ const CourseEditorV3 = () => {
                 style={{ border: `2px dashed ${styles.border}`, color: styles.text3 }}
                 onMouseEnter={e => { e.currentTarget.style.borderColor = styles.accent; e.currentTarget.style.background = styles.accentSoft; e.currentTarget.style.color = styles.accent; }}
                 onMouseLeave={e => { e.currentTarget.style.borderColor = styles.border; e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = styles.text3; }}
+                data-cta-id="cta-courseeditor-overview-group-add"
+                data-action="action"
               >
                 <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4"/>
@@ -1615,6 +1772,8 @@ const CourseEditorV3 = () => {
                     onClick={() => navigateExercise(-1)}
                     className="w-9 h-9 flex items-center justify-center rounded-lg transition-colors"
                     style={{ border: `1px solid ${styles.border}`, background: styles.bgCard, color: styles.text2 }}
+                    data-cta-id="cta-courseeditor-nav-prev"
+                    data-action="navigate"
                   >
                     <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7"/>
@@ -1627,6 +1786,8 @@ const CourseEditorV3 = () => {
                     onClick={() => navigateExercise(1)}
                     className="w-9 h-9 flex items-center justify-center rounded-lg transition-colors"
                     style={{ border: `1px solid ${styles.border}`, background: styles.bgCard, color: styles.text2 }}
+                    data-cta-id="cta-courseeditor-nav-next"
+                    data-action="navigate"
                   >
                     <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"/>
@@ -1670,130 +1831,864 @@ const CourseEditorV3 = () => {
               <div className="flex-1 overflow-y-auto p-6" style={{ background: styles.bg }}>
                 {currentItem ? (
                   <div className="max-w-3xl mx-auto">
-                    <Tabs value={activeTab} onValueChange={setActiveTab}>
-                      <TabsList className="mb-4 p-1 rounded-lg" style={{ background: styles.bgSunken }}>
-                        <TabsTrigger
-                          value="stem"
-                          className="rounded-md data-[state=active]:bg-white data-[state=active]:shadow-sm"
-                          data-cta-id="cta-courseeditor-editor-tab-stem"
-                          data-action="tab"
-                        >
-                          Stem
-                        </TabsTrigger>
-                        <TabsTrigger
-                          value="options"
-                          className="rounded-md data-[state=active]:bg-white data-[state=active]:shadow-sm"
-                          data-cta-id="cta-courseeditor-editor-tab-options"
-                          data-action="tab"
-                        >
-                          {(currentItem as any)?.mode === 'numeric' ? 'Answer' : 'Options'}
-                        </TabsTrigger>
-                        <TabsTrigger
-                          value="explanation"
-                          className="rounded-md data-[state=active]:bg-white data-[state=active]:shadow-sm"
-                          data-cta-id="cta-courseeditor-editor-tab-explanation"
-                          data-action="tab"
-                        >
-                          Explanation
-                        </TabsTrigger>
-                        <TabsTrigger
-                          value="hints"
-                          className="rounded-md data-[state=active]:bg-white data-[state=active]:shadow-sm"
-                          data-cta-id="cta-courseeditor-editor-tab-hints"
-                          data-action="tab"
-                        >
-                          Hints
-                        </TabsTrigger>
-                        <TabsTrigger
-                          value="exercises"
-                          className="rounded-md data-[state=active]:bg-white data-[state=active]:shadow-sm"
-                          data-cta-id="cta-courseeditor-editor-tab-exercises"
-                          data-action="tab"
-                        >
-                          New Exercises
-                        </TabsTrigger>
-                      </TabsList>
+                    {/* Section nav (keeps existing CTA IDs; now scrolls to sections) */}
+                    <div className="mb-4 flex gap-1 p-1 rounded-lg" style={{ background: styles.bgSunken }}>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setActiveTab('stem');
+                          scrollToFocusSection('stem');
+                        }}
+                        className="px-3.5 py-2 rounded-md text-sm font-medium transition-all"
+                        style={{
+                          background: activeTab === 'stem' ? styles.bgCard : 'transparent',
+                          color: activeTab === 'stem' ? styles.text : styles.text3,
+                          boxShadow: activeTab === 'stem' ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
+                        }}
+                        data-cta-id="cta-courseeditor-editor-tab-stem"
+                        data-action="tab"
+                      >
+                        Stem
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setActiveTab('options');
+                          scrollToFocusSection('options');
+                        }}
+                        className="px-3.5 py-2 rounded-md text-sm font-medium transition-all"
+                        style={{
+                          background: activeTab === 'options' ? styles.bgCard : 'transparent',
+                          color: activeTab === 'options' ? styles.text : styles.text3,
+                          boxShadow: activeTab === 'options' ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
+                        }}
+                        data-cta-id="cta-courseeditor-editor-tab-options"
+                        data-action="tab"
+                      >
+                        {(currentItem as any)?.mode === 'numeric' ? 'Answer' : 'Options'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setActiveTab('explanation');
+                          scrollToFocusSection('explanation');
+                        }}
+                        className="px-3.5 py-2 rounded-md text-sm font-medium transition-all"
+                        style={{
+                          background: activeTab === 'explanation' ? styles.bgCard : 'transparent',
+                          color: activeTab === 'explanation' ? styles.text : styles.text3,
+                          boxShadow: activeTab === 'explanation' ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
+                        }}
+                        data-cta-id="cta-courseeditor-editor-tab-explanation"
+                        data-action="tab"
+                      >
+                        Explanation
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setActiveTab('hints');
+                          scrollToFocusSection('hints');
+                        }}
+                        className="px-3.5 py-2 rounded-md text-sm font-medium transition-all"
+                        style={{
+                          background: activeTab === 'hints' ? styles.bgCard : 'transparent',
+                          color: activeTab === 'hints' ? styles.text : styles.text3,
+                          boxShadow: activeTab === 'hints' ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
+                        }}
+                        data-cta-id="cta-courseeditor-editor-tab-hints"
+                        data-action="tab"
+                      >
+                        Hints
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setActiveTab('media');
+                          scrollToFocusSection('media');
+                        }}
+                        className="px-3.5 py-2 rounded-md text-sm font-medium transition-all"
+                        style={{
+                          background: activeTab === 'media' ? styles.bgCard : 'transparent',
+                          color: activeTab === 'media' ? styles.text : styles.text3,
+                          boxShadow: activeTab === 'media' ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
+                        }}
+                        data-cta-id="cta-courseeditor-editor-tab-media"
+                        data-action="tab"
+                      >
+                        Media
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setActiveTab('exercises');
+                          scrollToFocusSection('exercises');
+                        }}
+                        className="px-3.5 py-2 rounded-md text-sm font-medium transition-all"
+                        style={{
+                          background: activeTab === 'exercises' ? styles.bgCard : 'transparent',
+                          color: activeTab === 'exercises' ? styles.text : styles.text3,
+                          boxShadow: activeTab === 'exercises' ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
+                        }}
+                        data-cta-id="cta-courseeditor-editor-tab-exercises"
+                        data-action="tab"
+                      >
+                        New Exercises
+                      </button>
+                    </div>
 
-                      <div className="rounded-xl p-5" style={{ background: styles.bgCard, border: `1px solid ${styles.border}` }}>
-                        <TabsContent value="stem" className="mt-0">
-                          <StemTab
-                            item={currentItem}
-                            onChange={handleItemChange}
-                            onAIRewrite={handleAIRewriteStem}
-                            onAddMedia={handleAddMediaToStem}
-                            onFromURL={handleAddMediaFromURL}
-                            onRemoveMedia={handleRemoveMedia}
-                            onReplaceMedia={handleReplaceMedia}
-                            courseId={courseId || ''}
-                            course={course}
-                          />
-                        </TabsContent>
-                        <TabsContent value="options" className="mt-0">
-                          <OptionsTab
-                            item={currentItem}
-                            onChange={handleItemChange}
-                            onAIRewrite={handleAIRewriteOption}
-                            onAddMedia={handleAddMediaToOption}
-                            onRemoveOptionMedia={handleRemoveOptionMedia}
-                            courseId={courseId || ''}
-                            course={course}
-                          />
-                        </TabsContent>
-                        <TabsContent value="explanation" className="mt-0">
-                          <ReferenceTab
-                            item={currentItem}
-                            onChange={handleItemChange}
-                            onAIRewrite={handleAIRewriteReference}
-                          />
-                        </TabsContent>
-                        <TabsContent value="hints" className="mt-0">
-                          <HintsTab
-                            item={currentItem as any}
-                            onChange={handleItemChange as any}
-                            onAIGenerate={handleAIGenerateHints}
-                            aiDisabled={unsavedItems.size > 0}
-                          />
-                        </TabsContent>
-                        <TabsContent value="exercises" className="mt-0">
-                          <ExercisesTab
-                            courseId={courseId || ''}
-                            onAdopt={(exercises) => {
-                              if (!course) return;
-                              try {
-                                const courseGroups = groups.map((g: any) => ({ ...g, items: [...(g.items || [])] }));
-                                const destGroupIndex = courseGroups.length > 0 ? courseGroups.length - 1 : 0;
-                                if (courseGroups.length === 0) {
-                                  courseGroups.push({ id: 1, name: 'Group 1', items: [] });
-                                }
-                                const destItems = courseGroups[destGroupIndex].items;
-                                const startIdx = destItems.length;
-                                const newItemsWithIds = exercises.map((ex, idx) => ({
-                                  ...ex,
-                                  id: (course as any).items?.length ? (course as any).items.length + idx + 1 : idx + 1,
-                                  groupId: courseGroups[destGroupIndex].id,
-                                }));
-                                newItemsWithIds.forEach((ni) => destItems.push(ni));
-                                const updatedCourse = {
-                                  ...course,
-                                  groups: courseGroups,
-                                  items: ([...(((course as any).items) || []), ...newItemsWithIds]),
-                                } as any;
-                                setCourse(updatedCourse as Course);
-                                const newUnsaved = new Set(unsavedItems);
-                                for (let i = 0; i < newItemsWithIds.length; i++) {
-                                  newUnsaved.add(`${destGroupIndex}-${startIdx + i}`);
-                                }
-                                setUnsavedItems(newUnsaved);
-                                toast.success(`Adopted ${exercises.length} exercise(s) - remember to Save Draft`);
-                              } catch (error) {
-                                logger.error('[CourseEditorV3] Failed to adopt exercises:', error);
-                                toast.error('Failed to adopt exercises');
+                    {/* Focus form (field-based) */}
+                    <div className="space-y-7">
+                      {/* Stem */}
+                      <section
+                        id="courseeditor-section-stem"
+                        className="rounded-xl p-6"
+                        style={{ background: styles.bgCard, border: `1px solid ${styles.border}` }}
+                      >
+                        {(() => {
+                          const stemText = String((currentItem as any)?.stem?.text || (currentItem as any)?.text || '');
+                          const stemComplete = stemText.trim().length > 0;
+                          const sanitized = sanitizeHtml(stemText);
+
+                          const updateStemText = (next: string) => {
+                            if ((currentItem as any).stem) {
+                              handleItemChange({
+                                ...currentItem,
+                                stem: { ...(currentItem as any).stem, text: next },
+                              } as any);
+                              return;
+                            }
+                            handleItemChange({ ...currentItem, text: next } as any);
+                          };
+
+                          return (
+                            <div>
+                              <div className="flex items-center justify-between mb-3">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-sm font-bold" style={{ color: styles.text }}>
+                                    Question (Stem)
+                                  </span>
+                                  <span
+                                    className="text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded"
+                                    style={{
+                                      background: stemComplete ? styles.greenSoft : styles.orangeSoft,
+                                      color: stemComplete ? styles.green : styles.orange,
+                                    }}
+                                  >
+                                    {stemComplete ? 'Complete' : 'Required'}
+                                  </span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <button
+                                    type="button"
+                                    onClick={() => setStemShowPreview((prev) => !prev)}
+                                    className="h-8 px-3 rounded-md text-xs font-semibold transition-colors"
+                                    style={{ background: styles.bgSunken, color: styles.text2 }}
+                                    data-cta-id="cta-courseeditor-stem-toggle-preview"
+                                    data-action="toggle"
+                                  >
+                                    {stemShowPreview ? 'Edit HTML' : 'Preview'}
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={handleAIRewriteStem}
+                                    className="h-8 px-3 rounded-md text-xs font-semibold transition-colors"
+                                    style={{ background: styles.accentSoft, color: styles.accent }}
+                                    data-cta-id="cta-courseeditor-stem-ai-rewrite"
+                                    data-action="action"
+                                  >
+                                    AI Rewrite
+                                  </button>
+                                </div>
+                              </div>
+
+                              {!stemShowPreview ? (
+                                <textarea
+                                  value={stemText}
+                                  onChange={(e) => updateStemText(e.target.value)}
+                                  placeholder="<p>Type the question students will see...</p>"
+                                  className="w-full min-h-[140px] rounded-lg resize-y"
+                                  style={{
+                                    padding: 14,
+                                    border: `1px solid ${styles.border}`,
+                                    background: styles.bgCard,
+                                    color: styles.text,
+                                    fontFamily: "'JetBrains Mono', monospace",
+                                    lineHeight: 1.6,
+                                  }}
+                                  data-cta-id="cta-courseeditor-stem-input"
+                                  data-action="edit"
+                                />
+                              ) : (
+                                <div
+                                  className="rounded-lg"
+                                  style={{
+                                    border: `2px dashed ${styles.border}`,
+                                    background: styles.bg,
+                                    padding: 16,
+                                    minHeight: 140,
+                                  }}
+                                >
+                                  {stemText ? (
+                                    <div className="prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: sanitized }} />
+                                  ) : (
+                                    <div className="text-sm" style={{ color: styles.text4 }}>
+                                      No stem yet. Switch to <b>Edit HTML</b> to add content.
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+
+                              <div className="mt-2 text-xs" style={{ color: styles.text4 }}>
+                                HTML is sanitized for security.
+                              </div>
+                            </div>
+                          );
+                        })()}
+                      </section>
+
+                      {/* Options / Answer */}
+                      <section
+                        id="courseeditor-section-options"
+                        className="rounded-xl p-6"
+                        style={{ background: styles.bgCard, border: `1px solid ${styles.border}` }}
+                      >
+                        {(() => {
+                          const mode: 'options' | 'numeric' = ((currentItem as any)?.mode as any) || 'options';
+                          const hasCorrect =
+                            mode === 'numeric'
+                              ? (currentItem as any)?.answer !== undefined && (currentItem as any)?.answer !== null && String((currentItem as any)?.answer) !== ''
+                              : typeof (currentItem as any)?.correctIndex === 'number' && (currentItem as any)?.correctIndex >= 0;
+
+                          const options = Array.isArray((currentItem as any)?.options) ? ((currentItem as any).options as any[]) : [];
+                          const correctIndex: number = typeof (currentItem as any)?.correctIndex === 'number' ? (currentItem as any).correctIndex : -1;
+                          const optionMedia = Array.isArray((currentItem as any)?.optionMedia) ? ((currentItem as any).optionMedia as any[]) : [];
+
+                          const setCorrect = (idx: number) => {
+                            handleItemChange({ ...currentItem, correctIndex: idx } as any);
+                          };
+
+                          const updateOptionText = (idx: number, next: string) => {
+                            const updated = [...options];
+                            const prev = updated[idx];
+                            updated[idx] = typeof prev === 'string' ? next : { ...prev, text: next };
+                            handleItemChange({ ...currentItem, options: updated } as any);
+                          };
+
+                          const addOption = () => {
+                            const updated = [...options, ''];
+                            const nextCorrect = correctIndex >= 0 ? correctIndex : 0;
+                            handleItemChange({ ...currentItem, options: updated, correctIndex: nextCorrect } as any);
+                          };
+
+                          const deleteOption = (idx: number) => {
+                            const updated = [...options];
+                            updated.splice(idx, 1);
+                            let nextCorrect = correctIndex;
+                            if (correctIndex === idx) nextCorrect = -1;
+                            else if (correctIndex > idx) nextCorrect = correctIndex - 1;
+                            const nextMedia = [...optionMedia];
+                            if (nextMedia.length) nextMedia.splice(idx, 1);
+                            handleItemChange({ ...currentItem, options: updated, correctIndex: nextCorrect, optionMedia: nextMedia } as any);
+                          };
+
+                          const setNumericAnswer = (raw: string) => {
+                            if (raw === '') {
+                              handleItemChange({ ...currentItem, answer: undefined } as any);
+                              return;
+                            }
+                            const n = Number(raw);
+                            if (Number.isNaN(n)) return;
+                            handleItemChange({ ...currentItem, answer: n } as any);
+                          };
+
+                          return (
+                            <div>
+                              <div className="flex items-center justify-between mb-3">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-sm font-bold" style={{ color: styles.text }}>
+                                    {mode === 'numeric' ? 'Correct Answer' : 'Answer Options'}
+                                  </span>
+                                  <span
+                                    className="text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded"
+                                    style={{
+                                      background: hasCorrect ? styles.greenSoft : styles.orangeSoft,
+                                      color: hasCorrect ? styles.green : styles.orange,
+                                    }}
+                                  >
+                                    {hasCorrect ? 'Complete' : 'Required'}
+                                  </span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <span className="text-xs font-semibold" style={{ color: styles.text3 }}>
+                                    Mode
+                                  </span>
+                                  <select
+                                    value={mode}
+                                    onChange={(e) => handleModeChange(e.target.value as any)}
+                                    className="h-8 px-2 rounded-md text-xs font-semibold"
+                                    style={{ border: `1px solid ${styles.border}`, background: styles.bgCard, color: styles.text }}
+                                    data-cta-id="cta-courseeditor-mode-select"
+                                    data-action="action"
+                                  >
+                                    <option value="options">MCQ</option>
+                                    <option value="numeric">Numeric</option>
+                                  </select>
+                                </div>
+                              </div>
+
+                              {mode === 'numeric' ? (
+                                <div>
+                                  <input
+                                    type="number"
+                                    step="any"
+                                    value={
+                                      (currentItem as any)?.answer === undefined || (currentItem as any)?.answer === null
+                                        ? ''
+                                        : String((currentItem as any)?.answer)
+                                    }
+                                    onChange={(e) => setNumericAnswer(e.target.value)}
+                                    placeholder="Enter the correct numeric answer…"
+                                    className="w-full h-11 rounded-lg text-base font-semibold"
+                                    style={{
+                                      padding: '0 12px',
+                                      border: `1px solid ${styles.border}`,
+                                      background: styles.bgCard,
+                                      color: styles.text,
+                                    }}
+                                    data-cta-id="cta-courseeditor-numeric-answer-input"
+                                    data-action="edit"
+                                  />
+                                  <div className="mt-2 text-xs" style={{ color: styles.text4 }}>
+                                    Accepts whole numbers, decimals, and negative numbers.
+                                  </div>
+                                </div>
+                              ) : (
+                                <div>
+                                  <div className="text-xs mb-2" style={{ color: styles.text4 }}>
+                                    Click the circle to mark correct answer.
+                                  </div>
+                                  <div className="flex flex-col gap-2">
+                                    {options.map((opt: any, idx: number) => {
+                                      const textValue = typeof opt === 'string' ? opt : String(opt?.text ?? '');
+                                      const isCorrect = idx === correctIndex;
+                                      const hasMedia = !!optionMedia?.[idx]?.url;
+
+                                      return (
+                                        <div
+                                          key={idx}
+                                          className="group flex items-center gap-3 px-3 py-2 rounded-lg transition-colors"
+                                          style={{
+                                            background: styles.bgCard,
+                                            border: `1px solid ${isCorrect ? styles.green : styles.border}`,
+                                          }}
+                                        >
+                                          <button
+                                            type="button"
+                                            onClick={() => setCorrect(idx)}
+                                            className="w-[18px] h-[18px] rounded-full flex items-center justify-center shrink-0"
+                                            style={{
+                                              border: `2px solid ${isCorrect ? styles.green : styles.borderStrong}`,
+                                              background: isCorrect ? styles.green : 'transparent',
+                                              color: 'white',
+                                            }}
+                                            title="Mark as correct"
+                                            data-cta-id={`cta-courseeditor-option-set-correct-${idx}`}
+                                            data-action="action"
+                                          >
+                                            {isCorrect ? <span style={{ fontSize: 11, fontWeight: 700 }}>✓</span> : null}
+                                          </button>
+
+                                          <input
+                                            value={textValue}
+                                            onChange={(e) => updateOptionText(idx, e.target.value)}
+                                            placeholder={`Option ${idx + 1}…`}
+                                            className="flex-1 h-9 rounded-md text-sm"
+                                            style={{
+                                              padding: '0 10px',
+                                              border: `1px solid ${styles.border}`,
+                                              background: styles.bgCard,
+                                              color: styles.text,
+                                            }}
+                                            data-cta-id={`cta-courseeditor-option-input-${idx}`}
+                                            data-action="edit"
+                                          />
+
+                                          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <button
+                                              type="button"
+                                              onClick={() => handleAIRewriteOption(idx)}
+                                              className="w-8 h-8 rounded-md transition-colors"
+                                              style={{ color: styles.text4 }}
+                                              onMouseEnter={(e) => {
+                                                e.currentTarget.style.background = styles.bgHover;
+                                                e.currentTarget.style.color = styles.text2;
+                                              }}
+                                              onMouseLeave={(e) => {
+                                                e.currentTarget.style.background = 'transparent';
+                                                e.currentTarget.style.color = styles.text4;
+                                              }}
+                                              title="AI rewrite"
+                                              data-cta-id={`cta-courseeditor-option-ai-rewrite-${idx}`}
+                                              data-action="action"
+                                            >
+                                              ✨
+                                            </button>
+                                            <button
+                                              type="button"
+                                              onClick={() => handleAddMediaToOption(idx)}
+                                              className="w-8 h-8 rounded-md transition-colors"
+                                              style={{ color: hasMedia ? styles.accent : styles.text4 }}
+                                              onMouseEnter={(e) => {
+                                                e.currentTarget.style.background = styles.bgHover;
+                                                e.currentTarget.style.color = hasMedia ? styles.accent : styles.text2;
+                                              }}
+                                              onMouseLeave={(e) => {
+                                                e.currentTarget.style.background = 'transparent';
+                                                e.currentTarget.style.color = hasMedia ? styles.accent : styles.text4;
+                                              }}
+                                              title={hasMedia ? 'Replace media' : 'Add media'}
+                                              data-cta-id={`cta-courseeditor-option-media-upload-${idx}`}
+                                              data-action="action"
+                                            >
+                                              🖼️
+                                            </button>
+                                            {hasMedia && (
+                                              <button
+                                                type="button"
+                                                onClick={() => handleRemoveOptionMedia(idx)}
+                                                className="w-8 h-8 rounded-md transition-colors"
+                                                style={{ color: styles.text4 }}
+                                                onMouseEnter={(e) => {
+                                                  e.currentTarget.style.background = styles.bgHover;
+                                                  e.currentTarget.style.color = styles.red;
+                                                }}
+                                                onMouseLeave={(e) => {
+                                                  e.currentTarget.style.background = 'transparent';
+                                                  e.currentTarget.style.color = styles.text4;
+                                                }}
+                                                title="Remove media"
+                                                data-cta-id={`cta-courseeditor-option-media-remove-${idx}`}
+                                                data-action="action"
+                                              >
+                                                ⛔
+                                              </button>
+                                            )}
+                                            <button
+                                              type="button"
+                                              onClick={() => deleteOption(idx)}
+                                              className="w-8 h-8 rounded-md transition-colors"
+                                              style={{ color: styles.text4 }}
+                                              onMouseEnter={(e) => {
+                                                e.currentTarget.style.background = styles.bgHover;
+                                                e.currentTarget.style.color = styles.red;
+                                              }}
+                                              onMouseLeave={(e) => {
+                                                e.currentTarget.style.background = 'transparent';
+                                                e.currentTarget.style.color = styles.text4;
+                                              }}
+                                              title="Delete option"
+                                              data-cta-id={`cta-courseeditor-option-delete-${idx}`}
+                                              data-action="action"
+                                            >
+                                              ✕
+                                            </button>
+                                          </div>
+                                        </div>
+                                      );
+                                    })}
+
+                                    <button
+                                      type="button"
+                                      onClick={addOption}
+                                      className="h-11 rounded-lg text-sm font-semibold transition-colors"
+                                      style={{ border: `2px dashed ${styles.border}`, color: styles.text3, background: 'transparent' }}
+                                      onMouseEnter={(e) => {
+                                        e.currentTarget.style.borderColor = styles.accent;
+                                        e.currentTarget.style.background = styles.accentSoft;
+                                        e.currentTarget.style.color = styles.accent;
+                                      }}
+                                      onMouseLeave={(e) => {
+                                        e.currentTarget.style.borderColor = styles.border;
+                                        e.currentTarget.style.background = 'transparent';
+                                        e.currentTarget.style.color = styles.text3;
+                                      }}
+                                      data-cta-id="cta-courseeditor-option-add"
+                                      data-action="action"
+                                    >
+                                      + Add option
+                                    </button>
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })()}
+                      </section>
+
+                      {/* Explanation */}
+                      <section
+                        id="courseeditor-section-explanation"
+                        className="rounded-xl p-6"
+                        style={{ background: styles.bgCard, border: `1px solid ${styles.border}` }}
+                      >
+                        {(() => {
+                          const explanationText = String(
+                            (currentItem as any)?.reference?.html ||
+                              (currentItem as any)?.referenceHtml ||
+                              (currentItem as any)?.explain ||
+                              ''
+                          );
+                          const explanationComplete = explanationText.trim().length > 0;
+                          const sanitized = sanitizeHtml(explanationText);
+
+                          const updateExplanation = (next: string) => {
+                            if ((currentItem as any).reference) {
+                              handleItemChange({ ...currentItem, reference: { ...(currentItem as any).reference, html: next } } as any);
+                              return;
+                            }
+                            if ((currentItem as any).referenceHtml !== undefined) {
+                              handleItemChange({ ...currentItem, referenceHtml: next } as any);
+                              return;
+                            }
+                            handleItemChange({ ...currentItem, explain: next } as any);
+                          };
+
+                          return (
+                            <div>
+                              <div className="flex items-center justify-between mb-3">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-sm font-bold" style={{ color: styles.text }}>
+                                    Explanation
+                                  </span>
+                                  <span
+                                    className="text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded"
+                                    style={{
+                                      background: explanationComplete ? styles.greenSoft : styles.orangeSoft,
+                                      color: explanationComplete ? styles.green : styles.orange,
+                                    }}
+                                  >
+                                    {explanationComplete ? 'Complete' : 'Required'}
+                                  </span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <button
+                                    type="button"
+                                    onClick={() => setExplanationShowPreview((prev) => !prev)}
+                                    className="h-8 px-3 rounded-md text-xs font-semibold transition-colors"
+                                    style={{ background: styles.bgSunken, color: styles.text2 }}
+                                    data-cta-id="cta-courseeditor-explanation-toggle-preview"
+                                    data-action="toggle"
+                                  >
+                                    {explanationShowPreview ? 'Edit HTML' : 'Preview'}
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={handleAIRewriteReference}
+                                    className="h-8 px-3 rounded-md text-xs font-semibold transition-colors"
+                                    style={{ background: styles.accentSoft, color: styles.accent }}
+                                    data-cta-id="cta-courseeditor-explanation-ai-generate"
+                                    data-action="action"
+                                  >
+                                    AI Generate
+                                  </button>
+                                </div>
+                              </div>
+
+                              {!explanationShowPreview ? (
+                                <textarea
+                                  value={explanationText}
+                                  onChange={(e) => updateExplanation(e.target.value)}
+                                  placeholder="<p>Explain why the correct answer is correct...</p>"
+                                  className="w-full min-h-[220px] rounded-lg resize-y"
+                                  style={{
+                                    padding: 14,
+                                    border: `1px solid ${styles.border}`,
+                                    background: styles.bgCard,
+                                    color: styles.text,
+                                    fontFamily: "'JetBrains Mono', monospace",
+                                    lineHeight: 1.6,
+                                  }}
+                                  data-cta-id="cta-courseeditor-explanation-input"
+                                  data-action="edit"
+                                />
+                              ) : (
+                                <div
+                                  className="rounded-lg"
+                                  style={{
+                                    border: `2px dashed ${styles.border}`,
+                                    background: styles.bg,
+                                    padding: 16,
+                                    minHeight: 220,
+                                  }}
+                                >
+                                  {explanationText ? (
+                                    <div className="prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: sanitized }} />
+                                  ) : (
+                                    <div className="text-sm" style={{ color: styles.text4 }}>
+                                      No explanation yet. Switch to <b>Edit HTML</b> to add content.
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })()}
+                      </section>
+
+                      {/* Hints */}
+                      <section
+                        id="courseeditor-section-hints"
+                        className="rounded-xl p-6"
+                        style={{ background: styles.bgCard, border: `1px solid ${styles.border}` }}
+                      >
+                        {(() => {
+                          const hints = ((currentItem as any)?.hints || {}) as { nudge?: string; guide?: string; reveal?: string };
+                          const updateHint = (key: 'nudge' | 'guide' | 'reveal', value: string) => {
+                            const nextHints = { ...(hints || {}), [key]: value };
+                            handleItemChange({ ...(currentItem as any), hints: nextHints, hint: nextHints.nudge || (currentItem as any).hint } as any);
+                          };
+                          return (
+                            <div>
+                              <div className="flex items-center justify-between mb-3">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-sm font-bold" style={{ color: styles.text }}>
+                                    Hints
+                                  </span>
+                                  <span
+                                    className="text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded"
+                                    style={{ background: styles.bgSunken, color: styles.text3 }}
+                                  >
+                                    Optional
+                                  </span>
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={handleAIGenerateHints}
+                                  disabled={unsavedItems.size > 0}
+                                  className="h-8 px-3 rounded-md text-xs font-semibold transition-colors disabled:opacity-50"
+                                  style={{ background: styles.accentSoft, color: styles.accent }}
+                                  title={unsavedItems.size > 0 ? 'Save or discard changes before generating hints' : 'Generate hints with AI'}
+                                  data-cta-id="cta-courseeditor-hints-ai-generate"
+                                  data-action="action"
+                                >
+                                  Generate All
+                                </button>
+                              </div>
+
+                              <div className="grid gap-3" style={{ gridTemplateColumns: 'repeat(3, minmax(0, 1fr))' }}>
+                                {[
+                                  { key: 'nudge' as const, title: '1. Nudge', placeholder: 'A gentle reminder…' },
+                                  { key: 'guide' as const, title: '2. Guide', placeholder: 'A more specific clue…' },
+                                  { key: 'reveal' as const, title: '3. Reveal', placeholder: 'Almost the answer…' },
+                                ].map((h) => (
+                                  <div
+                                    key={h.key}
+                                    className="rounded-lg overflow-hidden"
+                                    style={{ border: `1px solid ${styles.border}`, background: styles.bgCard }}
+                                  >
+                                    <div
+                                      className="px-3 py-2 text-[11px] font-bold uppercase tracking-wide"
+                                      style={{ background: styles.bgSunken, color: styles.text3, borderBottom: `1px solid ${styles.border}` }}
+                                    >
+                                      {h.title}
+                                    </div>
+                                    <textarea
+                                      value={String((hints as any)[h.key] ?? '')}
+                                      onChange={(e) => updateHint(h.key, e.target.value)}
+                                      placeholder={h.placeholder}
+                                      className="w-full min-h-[96px] resize-y"
+                                      style={{
+                                        padding: 12,
+                                        border: 'none',
+                                        outline: 'none',
+                                        background: styles.bgCard,
+                                        color: styles.text,
+                                        lineHeight: 1.5,
+                                      }}
+                                      data-cta-id={`cta-courseeditor-hint-input-${h.key}`}
+                                      data-action="edit"
+                                    />
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          );
+                        })()}
+                      </section>
+
+                      {/* Media */}
+                      <section
+                        id="courseeditor-section-media"
+                        className="rounded-xl p-6"
+                        style={{ background: styles.bgCard, border: `1px solid ${styles.border}` }}
+                      >
+                        {(() => {
+                          const media = ((currentItem as any)?.stem?.media || (currentItem as any)?.stimulus?.media || []) as any[];
+                          const mediaArr = Array.isArray(media) ? media : [];
+
+                          return (
+                            <div>
+                              <div className="flex items-center justify-between mb-3">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-sm font-bold" style={{ color: styles.text }}>
+                                    Media
+                                  </span>
+                                  <span
+                                    className="text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded"
+                                    style={{ background: styles.bgSunken, color: styles.text3 }}
+                                  >
+                                    Optional
+                                  </span>
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={handleAIGenerateStemImage}
+                                  disabled={stemAiImageLoading}
+                                  className="h-8 px-3 rounded-md text-xs font-semibold transition-colors disabled:opacity-50"
+                                  style={{ background: styles.accentSoft, color: styles.accent }}
+                                  data-cta-id="cta-courseeditor-media-ai-image"
+                                  data-action="action"
+                                >
+                                  {stemAiImageLoading ? 'Generating…' : 'AI Image'}
+                                </button>
+                              </div>
+
+                              <div
+                                className="rounded-lg flex items-center justify-center gap-2 cursor-pointer"
+                                style={{
+                                  border: `2px dashed ${styles.border}`,
+                                  color: styles.text3,
+                                  padding: '40px 16px',
+                                  background: 'transparent',
+                                }}
+                                onClick={handleAddMediaToStem}
+                                onDragOver={(e) => {
+                                  e.preventDefault();
+                                }}
+                                onDrop={(e) => {
+                                  e.preventDefault();
+                                  const f = e.dataTransfer.files?.[0];
+                                  if (f) uploadStemMediaFile(f);
+                                }}
+                                data-cta-id="cta-courseeditor-media-upload"
+                                data-action="action"
+                                role="button"
+                                tabIndex={0}
+                              >
+                                <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth="1.5"
+                                    d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                                  />
+                                </svg>
+                                Drop media here or click to upload
+                              </div>
+
+                              {mediaArr.length > 0 && (
+                                <div className="mt-4 grid gap-3" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))' }}>
+                                  {mediaArr.map((m: any) => {
+                                    const url = resolvePublicMediaUrl(m?.url || '');
+                                    const key = String(m?.id || url);
+                                    const type = String(m?.type || 'image');
+                                    return (
+                                      <div
+                                        key={key}
+                                        className="group rounded-lg overflow-hidden"
+                                        style={{ border: `1px solid ${styles.border}`, background: styles.bgCard }}
+                                      >
+                                        <div className="relative" style={{ background: styles.bgSunken, aspectRatio: '16 / 9' }}>
+                                          {type === 'image' && url ? (
+                                            <img src={url} alt={m?.alt || 'Media'} className="absolute inset-0 w-full h-full object-cover" />
+                                          ) : (
+                                            <div className="absolute inset-0 flex items-center justify-center text-sm" style={{ color: styles.text3 }}>
+                                              {type.toUpperCase()}
+                                            </div>
+                                          )}
+                                          <button
+                                            type="button"
+                                            onClick={() => handleRemoveMedia(String(m?.id))}
+                                            className="absolute top-2 right-2 w-8 h-8 rounded-md opacity-0 group-hover:opacity-100 transition-opacity"
+                                            style={{ background: styles.bgCard, border: `1px solid ${styles.border}`, color: styles.red }}
+                                            data-cta-id={`cta-courseeditor-media-remove-${key}`}
+                                            data-action="action"
+                                            title="Remove media"
+                                          >
+                                            ✕
+                                          </button>
+                                        </div>
+                                        <div className="px-3 py-2 text-xs truncate" style={{ color: styles.text3 }}>
+                                          {m?.alt || (m?.url ? String(m.url).split('/').pop() : 'Media')}
+                                        </div>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })()}
+                      </section>
+
+                      {/* New Exercises (advanced) */}
+                      <section
+                        id="courseeditor-section-exercises"
+                        className="rounded-xl p-6"
+                        style={{ background: styles.bgCard, border: `1px solid ${styles.border}` }}
+                      >
+                        <div className="flex items-center justify-between mb-3">
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-bold" style={{ color: styles.text }}>
+                              New Exercises
+                            </span>
+                            <span
+                              className="text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded"
+                              style={{ background: styles.bgSunken, color: styles.text3 }}
+                            >
+                              Advanced
+                            </span>
+                          </div>
+                        </div>
+                        <ExercisesTab
+                          courseId={courseId || ''}
+                          onAdopt={(exercises) => {
+                            if (!course) return;
+                            try {
+                              const courseGroups = groups.map((g: any) => ({ ...g, items: [...(g.items || [])] }));
+                              const destGroupIndex = courseGroups.length > 0 ? courseGroups.length - 1 : 0;
+                              if (courseGroups.length === 0) {
+                                courseGroups.push({ id: 1, name: 'Group 1', items: [] });
                               }
-                            }}
-                          />
-                        </TabsContent>
-                      </div>
-                    </Tabs>
+                              const destItems = courseGroups[destGroupIndex].items;
+                              const startIdx = destItems.length;
+                              const newItemsWithIds = exercises.map((ex, idx) => ({
+                                ...ex,
+                                id: (course as any).items?.length ? (course as any).items.length + idx + 1 : idx + 1,
+                                groupId: courseGroups[destGroupIndex].id,
+                              }));
+                              newItemsWithIds.forEach((ni) => destItems.push(ni));
+                              const updatedCourse = {
+                                ...course,
+                                groups: courseGroups,
+                                items: [...(((course as any).items) || []), ...newItemsWithIds],
+                              } as any;
+                              setCourse(updatedCourse as Course);
+                              const newUnsaved = new Set(unsavedItems);
+                              for (let i = 0; i < newItemsWithIds.length; i++) {
+                                newUnsaved.add(`${destGroupIndex}-${startIdx + i}`);
+                              }
+                              setUnsavedItems(newUnsaved);
+                              toast.success(`Adopted ${exercises.length} exercise(s) - remember to Save Draft`);
+                            } catch (error) {
+                              logger.error('[CourseEditorV3] Failed to adopt exercises:', error);
+                              toast.error('Failed to adopt exercises');
+                            }
+                          }}
+                        />
+                      </section>
+                    </div>
                   </div>
                 ) : (
                   <div className="h-full flex items-center justify-center" style={{ color: styles.text4 }}>
@@ -1803,15 +2698,17 @@ const CourseEditorV3 = () => {
               </div>
             </main>
 
-            {/* Preview Panel - Using existing WYSIWYG */}
-            <PreviewPanelV2
-              item={currentItem}
-              contentVersion={(course as any)?.contentVersion}
-              courseId={courseId}
-              courseTitle={course?.title}
-              onRefresh={() => toast.info('Preview refreshed')}
-              onOptionSelect={(index) => toast.info(`Option ${index + 1} selected`)}
-            />
+            {/* Preview Panel - keep existing WYSIWYG */}
+            {showStudentPreview && (
+              <PreviewPanelV2
+                item={currentItem}
+                contentVersion={(course as any)?.contentVersion}
+                courseId={courseId}
+                courseTitle={course?.title}
+                onRefresh={() => toast.info('Preview refreshed')}
+                onOptionSelect={(index) => toast.info(`Option ${index + 1} selected`)}
+              />
+            )}
           </div>
         )}
 
