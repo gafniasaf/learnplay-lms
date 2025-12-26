@@ -1214,20 +1214,29 @@ const CourseEditorV2 = () => {
           {/* View Mode Toggle */}
           <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1 mr-2">
             <Button
-              variant={viewMode === 'editor' ? 'default' : 'ghost'}
+              variant="ghost"
               size="sm"
               onClick={() => setViewMode('editor')}
-              className={viewMode === 'editor' ? 'bg-white shadow-sm' : ''}
+              // NOTE: Don't use Button "default" variant here because it sets `text-primary-foreground`
+              // (often white). Since we style the active pill with `bg-white`, default can yield white-on-white
+              // text in some themes. Use explicit text colors for reliable contrast.
+              className={viewMode === 'editor'
+                ? 'bg-white shadow-sm text-gray-900 hover:bg-white'
+                : 'text-gray-700 hover:text-gray-900'
+              }
               data-cta-id="cta-courseeditor-view-editor"
             >
               <Edit className="h-4 w-4 mr-1" />
               Editor
             </Button>
             <Button
-              variant={viewMode === 'preview' ? 'default' : 'ghost'}
+              variant="ghost"
               size="sm"
               onClick={() => setViewMode('preview')}
-              className={viewMode === 'preview' ? 'bg-white shadow-sm' : ''}
+              className={viewMode === 'preview'
+                ? 'bg-white shadow-sm text-gray-900 hover:bg-white'
+                : 'text-gray-700 hover:text-gray-900'
+              }
               data-cta-id="cta-courseeditor-view-preview"
             >
               <Eye className="h-4 w-4 mr-1" />
