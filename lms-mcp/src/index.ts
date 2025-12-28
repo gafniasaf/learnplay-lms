@@ -5,7 +5,7 @@ import { config } from "./config.js";
 import { callJson } from "./http.js";
 import "./polyfill.ts"; // Polyfill Deno for local strategies
 
-const METHODS = ["lms.health", "lms.enqueueJob", "lms.listJobs", "lms.getJob", "lms.saveRecord", "lms.getRecord", "lms.listRecords"] as const;
+const METHODS = ["lms.health", "lms.enqueueJob", "lms.listJobs", "lms.getJob", "lms.logs", "lms.saveRecord", "lms.getRecord", "lms.listRecords"] as const;
 
 const server = http.createServer(async (req, res) => {
   // CORS Headers
@@ -57,6 +57,10 @@ const server = http.createServer(async (req, res) => {
       }
       case "lms.getJob": {
         const result = await getJob(params);
+        return send(res, 200, { ok: true, result });
+      }
+      case "lms.logs": {
+        const result = await logs(params);
         return send(res, 200, { ok: true, result });
       }
       case "lms.saveRecord": {
@@ -149,6 +153,35 @@ async function getJob(params: any) {
     method: "GET",
     headers: { "X-Agent-Token": config.agentToken },
   });
+}
+
+async function logs(params: any) {
+  const jobId = params?.jobId ?? params?.id;
+  if (!jobId || typeof jobId !== "string") {
+    throw new Error("jobId is required");
+  }
+
+  let limit = 200;
+  const rawLimit = params?.eventsLimit ?? params?.limit;
+  if (typeof rawLimit === "number" && Number.isFinite(rawLimit)) {
+    limit = Math.max(1, Math.min(200, Math.floor(rawLimit)));
+  }
+
+  const resp = await supabaseFetch(
+    `get-job?id=${encodeURIComponent(jobId)}&eventsLimit=${encodeURIComponent(String(limit))}`,
+    {
+      method: "GET",
+      headers: { "X-Agent-Token": config.agentToken },
+    }
+  );
+
+  if (!resp.ok) {
+    throw new Error(`logs failed (${resp.status}) ${resp.text || ""}`);
+  }
+
+  const data: any = resp.json || {};
+  const ev = data.events || data.job?.events || data.job_events || [];
+  return Array.isArray(ev) ? ev : [];
 }
 
 async function saveRecord(params: any) {

@@ -1,35 +1,77 @@
 import fs from "node:fs";
 import path from "node:path";
 
-const BASE_URL = process.env.MCP_BASE_URL;
+function parseEnvFile(filePath: string): Record<string, string> {
+  try {
+    const text = fs.readFileSync(filePath, "utf-8");
+    const out: Record<string, string> = {};
+    for (const raw of text.split(/\r?\n/)) {
+      const line = raw.trim();
+      if (!line || line.startsWith("#")) continue;
+      const idx = line.indexOf("=");
+      if (idx <= 0) continue;
+      const k = line.slice(0, idx).trim();
+      let v = line.slice(idx + 1).trim();
+      if (
+        v.length >= 2 &&
+        ((v.startsWith('"') && v.endsWith('"')) || (v.startsWith("'") && v.endsWith("'")))
+      ) {
+        v = v.slice(1, -1);
+      }
+      if (k) out[k] = v;
+    }
+    return out;
+  } catch {
+    return {};
+  }
+}
+
+function findMcpEnvFile(): string | null {
+  const candidates = [path.join("lms-mcp", ".env.local"), path.join("lms-mcp", ".env")];
+  for (const p of candidates) {
+    if (fs.existsSync(p)) return p;
+  }
+  return null;
+}
+
+function normalizeHost(host: string | undefined): string {
+  const h = String(host || "").trim();
+  if (!h) return "";
+  if (h === "0.0.0.0" || h === "::") return "127.0.0.1";
+  return h;
+}
+
+let BASE_URL: string | undefined = process.env.MCP_BASE_URL;
+let TOKEN: string | undefined = process.env.MCP_AUTH_TOKEN;
+
+// Try to resolve from lms-mcp env file (preferred) if not set
+const envPath = findMcpEnvFile();
+const fileEnv = envPath ? parseEnvFile(envPath) : {};
+
 if (!BASE_URL) {
-  console.error('❌ MCP_BASE_URL is REQUIRED - set env var before running');
-  console.error('   Example: MCP_BASE_URL=http://127.0.0.1:4000');
+  const host = normalizeHost(fileEnv.HOST);
+  const portRaw = String(fileEnv.PORT || "").trim();
+  const port = Number(portRaw);
+  if (host && portRaw && Number.isFinite(port) && port > 0) {
+    BASE_URL = `http://${host}:${port}`;
+  }
+}
+
+if (!BASE_URL) {
+  console.error("❌ MCP_BASE_URL is REQUIRED - set env var before running");
+  console.error("   Example: MCP_BASE_URL=http://127.0.0.1:4000");
+  console.error("   Or set HOST and PORT in lms-mcp/.env.local");
   process.exit(1);
 }
 
-let TOKEN = process.env.MCP_AUTH_TOKEN;
+if (!TOKEN) {
+  TOKEN = fileEnv.MCP_AUTH_TOKEN;
+}
 const JOB_LIMIT = Number(process.env.DIAG_JOB_LIMIT);
 if (!JOB_LIMIT || isNaN(JOB_LIMIT)) {
   console.error('❌ DIAG_JOB_LIMIT is REQUIRED - set env var before running');
   console.error('   Example: DIAG_JOB_LIMIT=10');
   process.exit(1);
-}
-
-// Try to load from lms-mcp/.env.local if not set
-if (!TOKEN) {
-  try {
-    const envPath = path.join("lms-mcp", ".env.local");
-    if (fs.existsSync(envPath)) {
-      const env = fs.readFileSync(envPath, "utf-8");
-      const match = env.match(/^MCP_AUTH_TOKEN=(.+)$/m);
-      if (match?.[1]) {
-        TOKEN = match[1].trim();
-      }
-    }
-  } catch {
-    // File not found - will fail below
-  }
 }
 
 // Per IgniteZero rules: No fallbacks - require real token

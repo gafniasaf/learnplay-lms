@@ -4,6 +4,11 @@ import { glob } from 'glob';
 
 // Export as a function, not a self-executing script
 export async function verifySystem() {
+  // Hard gate: MCP must be running locally for any agent-driven verification loop.
+  // This prevents “debug/fix” workflows from proceeding without runtime diagnostics.
+  console.log("🚀 Ensuring MCP is running (hard gate)...");
+  execSync('npm run mcp:require', { stdio: 'inherit' });
+
   if (process.env.SKIP_VERIFY === '1') {
     console.log("⚠️  SKIP_VERIFY=1 — skipping verify script (used for local e2e builds).");
     return;

@@ -278,10 +278,16 @@ export function validateCourse(
   // Schema validation
   const schemaResult = CourseSchema.safeParse(course);
   if (!schemaResult.success) {
+    const details = schemaResult.error.errors
+      .map((e) => {
+        const p = Array.isArray(e.path) && e.path.length > 0 ? e.path.join(".") : "";
+        return p ? `${p}: ${e.message}` : e.message;
+      })
+      .join("; ");
     issues.push({
       code: "schema_error",
       severity: "error",
-      message: `Schema validation failed: ${schemaResult.error.errors.map(e => e.message).join(", ")}`,
+      message: `Schema validation failed: ${details}`,
     });
   }
   

@@ -461,6 +461,24 @@ function createJobHelpers(supabase: any) {
     }
   }
 
+  async function saveValidationIssues(
+    jobId: string | null,
+    payload: { reason: string; codes: string; errorCount: number; issues: any[]; requestId: string; timestamp: string; courseId?: string }
+  ) {
+    if (!jobId || !payload) return;
+    try {
+      const path = `debug/jobs/${jobId}/validation_issues.json`;
+      const blob = new Blob([JSON.stringify(payload, null, 2)], {
+        type: "application/json",
+      });
+      await supabase.storage
+        .from("courses")
+        .upload(path, blob, { upsert: true, contentType: "application/json" });
+    } catch (error) {
+      console.warn("[generate-course] Failed to store validation issues", error);
+    }
+  }
+
   async function markJobDone(
     jobId: string | null,
     payload: { status: "done" | "needs_attention"; fallbackReason: string | null; summary?: any },
@@ -531,6 +549,7 @@ function createJobHelpers(supabase: any) {
     updateJobProgress,
     saveJobSummary,
     saveRepairArtifact,
+    saveValidationIssues,
     markJobDone,
     markJobFailed,
   };
@@ -747,6 +766,7 @@ Deno.serve(
       markJobDone: jobHelpers.markJobDone,
       saveJobSummary: jobHelpers.saveJobSummary,
       saveRepairArtifact: jobHelpers.saveRepairArtifact,
+      saveValidationIssues: jobHelpers.saveValidationIssues,
       now: () => new Date(),
     });
 

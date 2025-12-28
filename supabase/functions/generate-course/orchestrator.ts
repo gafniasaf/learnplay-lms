@@ -58,6 +58,18 @@ export interface GenerationRunnerDeps {
     jobId: string | null,
     artifact: { original: any[]; repaired: any[]; failedIds: number[]; metrics?: unknown; reason: string }
   ) => Promise<void>;
+  saveValidationIssues?: (
+    jobId: string | null,
+    payload: {
+      reason: string;
+      codes: string;
+      errorCount: number;
+      issues: any[];
+      requestId: string;
+      timestamp: string;
+      courseId?: string;
+    }
+  ) => Promise<void>;
   now: () => Date;
 }
 
@@ -407,10 +419,24 @@ export function createGenerationRunner(deps: GenerationRunnerDeps) {
 
       if (hasValidationErrors(validationResult)) {
         const errorCount = validationResult.issues.filter((issue) => issue.severity === "error").length;
-        throw new Error(
-          `validation_failed: ${errorCount} errors (${validationResult.issues.length} issues) | ` +
-            `codes=${summarizeValidationErrors(validationResult)}`
-        );
+        const codes = summarizeValidationErrors(validationResult);
+
+        // Persist full validation issues for diagnostics (best-effort).
+        try {
+          await deps.saveValidationIssues?.(jobId, {
+            reason: "validation_failed",
+            codes,
+            errorCount,
+            issues: validationResult.issues,
+            requestId,
+            timestamp: deps.now().toISOString(),
+            courseId: typeof course?.id === "string" ? course.id : undefined,
+          });
+        } catch {
+          // best-effort
+        }
+
+        throw new Error(`validation_failed: ${errorCount} errors (${validationResult.issues.length} issues) | codes=${codes}`);
       }
     }
 

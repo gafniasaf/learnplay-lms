@@ -32,6 +32,8 @@ async function main() {
     if (command === 'verify') {
       await verifySystem();
     } else if (command === 'scaffold') {
+      // Hard gate: keep agent workflows consistent — MCP must be available for diagnostics.
+      run('npm', ['run', 'mcp:require']);
       await scaffoldManifest();
       await scaffoldCtas();
     } else if (command === 'test') {

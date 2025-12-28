@@ -54,11 +54,10 @@ function resolveMcpConfig() {
 
   /** @type {string | undefined} */
   let token = process.env.MCP_AUTH_TOKEN;
-  // Do NOT use `process.env.X || ...` patterns; use explicit branching.
   if (!token) token = fileEnv.MCP_AUTH_TOKEN || undefined;
 
   if (!token || token === 'CHANGE_ME_REQUIRED') {
-    console.error('[mcp:ensure] ❌ BLOCKED: MCP_AUTH_TOKEN is REQUIRED');
+    console.error('[mcp:require] ❌ BLOCKED: MCP_AUTH_TOKEN is REQUIRED');
     console.error('   Provide it via env var MCP_AUTH_TOKEN or in lms-mcp/.env.local');
     process.exit(1);
   }
@@ -70,7 +69,7 @@ function resolveMcpConfig() {
     const portRaw = String(fileEnv.PORT || '').trim();
     const port = Number(portRaw);
     if (!host || !portRaw || !Number.isFinite(port) || port <= 0) {
-      console.error('[mcp:ensure] ❌ BLOCKED: MCP_BASE_URL is REQUIRED');
+      console.error('[mcp:require] ❌ BLOCKED: MCP_BASE_URL is REQUIRED');
       console.error('   Provide env var MCP_BASE_URL (e.g. http://127.0.0.1:4000)');
       console.error('   Or set HOST and PORT in lms-mcp/.env.local');
       process.exit(1);
@@ -78,29 +77,14 @@ function resolveMcpConfig() {
     baseUrl = `http://${host}:${port}`;
   }
 
-  let port = 0;
-  try {
-    const u = new URL(baseUrl);
-    port = Number(u.port);
-  } catch {
-    // ignore; validated below
-  }
-
-  if (!port || !Number.isFinite(port) || port <= 0) {
-    console.error('[mcp:ensure] ❌ BLOCKED: MCP_BASE_URL must include a numeric port (e.g. http://127.0.0.1:4000)');
-    process.exit(1);
-  }
-
-  return { baseUrl, token, port, envFile };
+  return { baseUrl, token };
 }
 
-const cfg = resolveMcpConfig();
-
-async function health() {
+async function health(cfg) {
   try {
     const res = await fetch(cfg.baseUrl, {
       method: 'POST',
-      headers: { 'Authorization': `Bearer ${cfg.token}`, 'Content-Type': 'application/json' },
+      headers: { Authorization: `Bearer ${cfg.token}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({ method: 'lms.health', params: {} }),
     });
     if (!res.ok) return false;
@@ -112,60 +96,40 @@ async function health() {
 }
 
 function sh(cmd, args, opts = {}) {
-  const res = spawnSync(cmd, args, { stdio: 'pipe', ...opts });
-  return { code: res.status ?? 0, out: (res.stdout || '').toString(), err: (res.stderr || '').toString() };
+  const res = spawnSync(cmd, args, { stdio: 'inherit', shell: true, ...opts });
+  return { code: res.status ?? 0 };
 }
 
 (async () => {
-  if (await health()) {
-    console.log('[mcp:ensure] MCP already healthy.');
+  const cfg = resolveMcpConfig();
+
+  if (await health(cfg)) {
+    console.log('[mcp:require] MCP healthy.');
     process.exit(0);
   }
 
-  // Check if container exists
-  const ps = sh('docker', ['ps', '--format', '{{.Names}}']);
-  if (ps.code !== 0) {
-    console.error('[mcp:ensure] Docker not available.');
+  console.warn('[mcp:require] MCP not healthy. Attempting to start via mcp:ensure...');
+  const started = sh('npm', ['run', 'mcp:ensure']);
+  if (started.code !== 0) {
+    console.error('[mcp:require] ❌ BLOCKED: Unable to start MCP (mcp:ensure failed).');
     process.exit(1);
   }
-  const running = ps.out.split(/\r?\n/).some(n => n.trim() === 'lms-mcp');
 
-  if (!running) {
-    if (!cfg.envFile) {
-      console.error('[mcp:ensure] ❌ BLOCKED: MCP env file missing.');
-      console.error('   Create: lms-mcp/.env.local (preferred) or lms-mcp/.env');
-      console.error('   Tip: run `npm run setup` to scaffold required local files.');
-      process.exit(1);
-    }
-
-    // Try run; if missing image, build then run
-    console.log('[mcp:ensure] Starting MCP container...');
-    let run = sh('docker', ['run', '-d', '--name', 'lms-mcp', '-p', `127.0.0.1:${cfg.port}:${cfg.port}`, '--env-file', cfg.envFile, 'lms-mcp']);
-    if (run.code !== 0) {
-      console.log('[mcp:ensure] Image missing, building...');
-      const build = sh('docker', ['build', '-t', 'lms-mcp', './lms-mcp']);
-      if (build.code !== 0) {
-        console.error('[mcp:ensure] Build failed:', build.err || build.out);
-        process.exit(1);
-      }
-      run = sh('docker', ['run', '-d', '--name', 'lms-mcp', '-p', `127.0.0.1:${cfg.port}:${cfg.port}`, '--env-file', cfg.envFile, 'lms-mcp']);
-      if (run.code !== 0) {
-        console.error('[mcp:ensure] Run failed:', run.err || run.out);
-        process.exit(1);
-      }
-    }
-  }
-
-  // Wait for health
-  for (let i = 0; i < 30; i++) {
-    if (await health()) {
-      console.log('[mcp:ensure] MCP healthy.');
+  const cfg2 = resolveMcpConfig();
+  for (let i = 0; i < 10; i++) {
+    if (await health(cfg2)) {
+      console.log('[mcp:require] MCP healthy.');
       process.exit(0);
     }
-    await new Promise(r => setTimeout(r, 500));
+    await new Promise((r) => setTimeout(r, 250));
   }
-  console.error('[mcp:ensure] MCP did not become healthy in time.');
+
+  console.error('[mcp:require] ❌ BLOCKED: MCP did not become healthy in time.');
   process.exit(1);
-})();
+})().catch((e) => {
+  const msg = e instanceof Error ? e.message : String(e);
+  console.error('[mcp:require] ❌ BLOCKED:', msg);
+  process.exit(1);
+});
 
 
