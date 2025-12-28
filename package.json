@@ -4,10 +4,10 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "npm run mcp:require && vite",
     "setup": "npx tsx scripts/setup.ts",
     "preflight": "npx tsx scripts/preflight-env.ts",
-    "dev:up": "npm run preflight && npm run mcp:ensure && npm run dev",
+    "dev:up": "npm run preflight && npm run mcp:require && npm run dev",
     "build": "vite build",
     "prebuild": "npm run typecheck && npm run codegen && npm run verify",
     "codegen": "npm run ignite -- scaffold",

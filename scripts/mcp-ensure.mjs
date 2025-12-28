@@ -122,15 +122,24 @@ function sh(cmd, args, opts = {}) {
     process.exit(0);
   }
 
-  // Check if container exists
-  const ps = sh('docker', ['ps', '--format', '{{.Names}}']);
+  // Check if container exists (running or stopped)
+  const ps = sh('docker', ['ps', '-a', '--filter', 'name=lms-mcp', '--format', '{{.Names}}']);
   if (ps.code !== 0) {
     console.error('[mcp:ensure] Docker not available.');
     process.exit(1);
   }
-  const running = ps.out.split(/\r?\n/).some(n => n.trim() === 'lms-mcp');
+  const exists = ps.out.split(/\r?\n/).some(n => n.trim() === 'lms-mcp');
 
-  if (!running) {
+  if (exists) {
+    // If it exists but health check failed, it's likely stopped or unhealthy. Try starting it.
+    console.log('[mcp:ensure] Container exists, starting...');
+    const start = sh('docker', ['start', 'lms-mcp']);
+    if (start.code !== 0) {
+       console.error('[mcp:ensure] Start failed:', start.err || start.out);
+       // Fall through to try recreating it? No, better fail loud to avoid data loss or port conflicts.
+       process.exit(1);
+    }
+  } else {
     if (!cfg.envFile) {
       console.error('[mcp:ensure] ❌ BLOCKED: MCP env file missing.');
       console.error('   Create: lms-mcp/.env.local (preferred) or lms-mcp/.env');
