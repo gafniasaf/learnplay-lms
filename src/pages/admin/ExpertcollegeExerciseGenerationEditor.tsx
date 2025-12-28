@@ -87,6 +87,7 @@ export default function ExpertcollegeExerciseGenerationEditor() {
 
   const [expandedKeys, setExpandedKeys] = useState<Set<string>>(new Set());
   const [selectedItemKeys, setSelectedItemKeys] = useState<Set<string>>(new Set());
+  const [expandedStudyTextIds, setExpandedStudyTextIds] = useState<Set<string>>(new Set());
 
   const studyTexts = useMemo(() => {
     const sts = Array.isArray((course as any)?.studyTexts) ? ((course as any).studyTexts as StudyText[]) : [];
@@ -149,6 +150,16 @@ export default function ExpertcollegeExerciseGenerationEditor() {
   // Scope selection helpers
   const toggleStudyText = (id: string) => {
     setSelectedStudyTextIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleStudyTextExpand = (id: string, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation(); // prevent selecting when expanding
+    setExpandedStudyTextIds((prev) => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
       else next.add(id);
@@ -854,7 +865,7 @@ export default function ExpertcollegeExerciseGenerationEditor() {
             {scopeMode !== "course" && (
               <div className="space-y-2">
                 <Label>Study texts</Label>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                <div className="flex flex-col gap-2">
                   {studyTexts.map((st) => {
                     const id = String(st.id);
                     const checked = selectedStudyTextIds.has(id);
@@ -862,43 +873,68 @@ export default function ExpertcollegeExerciseGenerationEditor() {
                     return (
                       <div
                         key={id}
-                        className="flex items-start gap-3 p-3 rounded-lg border bg-card"
-                        data-cta-id={`cta-ecgen-studytext-row-${id}`}
-                        data-action="select"
-                        role="button"
-                        tabIndex={0}
-                        onClick={() => {
-                          if (scopeMode === "single") {
-                            setSelectedStudyTextIds(new Set([id]));
-                          } else {
-                            toggleStudyText(id);
-                          }
-                        }}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter" || e.key === " ") {
-                            e.preventDefault();
-                            if (scopeMode === "single") setSelectedStudyTextIds(new Set([id]));
-                            else toggleStudyText(id);
-                          }
-                        }}
+                        className="flex flex-col rounded-lg border bg-card overflow-hidden"
                       >
-                        <Checkbox
-                          checked={checked}
-                          disabled={isDisabled}
-                          onCheckedChange={() => {
-                            if (scopeMode === "single") setSelectedStudyTextIds(new Set([id]));
-                            else toggleStudyText(id);
-                          }}
-                          data-cta-id={`cta-ecgen-studytext-check-${id}`}
+                        <div
+                          className="flex items-start gap-3 p-3"
+                          data-cta-id={`cta-ecgen-studytext-row-${id}`}
                           data-action="select"
-                        />
-                        <div className="min-w-0">
-                          <div className="font-semibold text-sm truncate">{st.title || "Untitled study text"}</div>
-                          <div className="text-xs text-muted-foreground line-clamp-2">
-                            {stripHtml(st.content).slice(0, 160)}
-                            {stripHtml(st.content).length > 160 ? "…" : ""}
+                          role="button"
+                          tabIndex={0}
+                          onClick={() => {
+                            if (scopeMode === "single") {
+                              setSelectedStudyTextIds(new Set([id]));
+                            } else {
+                              toggleStudyText(id);
+                            }
+                          }}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter" || e.key === " ") {
+                              e.preventDefault();
+                              if (scopeMode === "single") setSelectedStudyTextIds(new Set([id]));
+                              else toggleStudyText(id);
+                            }
+                          }}
+                        >
+                          <Checkbox
+                            checked={checked}
+                            disabled={isDisabled}
+                            onCheckedChange={() => {
+                              if (scopeMode === "single") setSelectedStudyTextIds(new Set([id]));
+                              else toggleStudyText(id);
+                            }}
+                            data-cta-id={`cta-ecgen-studytext-check-${id}`}
+                            data-action="select"
+                          />
+                          <div className="min-w-0 flex-1">
+                            <div className="font-semibold text-sm truncate">{st.title || "Untitled study text"}</div>
+                            <div className="text-xs text-muted-foreground line-clamp-2">
+                              {stripHtml(st.content).slice(0, 160)}
+                              {stripHtml(st.content).length > 160 ? "…" : ""}
+                            </div>
                           </div>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="shrink-0 px-2"
+                            onClick={(e) => toggleStudyTextExpand(id, e)}
+                            data-cta-id={`cta-ecgen-studytext-expand-${id}`}
+                            data-action="toggle"
+                            aria-label={expandedStudyTextIds.has(id) ? "Collapse" : "Expand"}
+                          >
+                            <ChevronDown
+                              className={`h-4 w-4 transition-transform ${expandedStudyTextIds.has(id) ? "rotate-180" : ""}`}
+                            />
+                          </Button>
                         </div>
+                        {expandedStudyTextIds.has(id) && (
+                          <div className="border-t bg-muted/30 p-4 text-sm max-h-80 overflow-y-auto">
+                            <div
+                              className="prose prose-sm dark:prose-invert max-w-none"
+                              dangerouslySetInnerHTML={{ __html: st.content || "<em>No content</em>" }}
+                            />
+                          </div>
+                        )}
                       </div>
                     );
                   })}
