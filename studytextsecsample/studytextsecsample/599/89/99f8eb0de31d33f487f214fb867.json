@@ -1,0 +1,10 @@
+{
+  "id": "5998999f-8eb0-de31-d33f-487f214fb867",
+  "Content": [
+    {
+      "Language": "nl-NL",
+      "Content": "[$BOX]\n\t[$CELL]\n\t\t[$BLOCK]\n\n\t\t\t<h3>Neuronen</h3>\n\t\t\t<p>De functionele eenheid van het zenuwstelsel is het <em>neuron</em> (zenuwcel). Een neuron bestaat uit een cellichaam met daaraan twee of meer <em>dendrieten</em>, korte, draadachtige uitlopers, die informatie naar het cellichaam vervoeren. Het <em>axon</em> (zenuwvezel) vervoert informatie van het cellichaam af (zie figuur 13.1). De meeste axonen worden omgeven door een myelineschede, een beschermende vetlaag die het lipoprote&iuml;ne <em>myeline</em> bevat. Beschadiging van deze myelineschede vertraagt de prikkelgeleiding en verstoort de zenuwfunctie. Er zijn drie soorten neuronen. De eerste soort neuronen zijn interneuronen, die zenuwprikkels tussen de neuronen geleiden. De tweede soort zijn de sensorische neuronen, die veranderingen in de omgeving (zoals aanraking, licht of pijn) registreren en signalen naar de hersenen of het ruggenmerg sturen. De motorische neuronen ten slotte geleiden impulsen van het CZS naar de spieren, die vervolgens samentrekken, of naar de klieren, die vervolgens hun producten afscheiden.</p>\n\t\t\t<p>&nbsp;</p>\n\t\t\t<p>&nbsp;</p>\n\n\t\t[$/BLOCK]\n\t[$/CELL]\n\t[$CELL]\n\n\t\t[$IMG(\"/media/Images/Pathologyfig159.jpg\";353,300;1.98)]\n\t\t\t<p><strong>Figuur 13.1 Neuron</strong></p>\n\t\t[$IMG(\"/media/Images/shutterstock_432573415.jpg\";188,300)]\n\n\t[$/CELL]\n[$/BOX]",
+      "Name": "13.1.2 Neuronen"
+    }
+  ]
+}

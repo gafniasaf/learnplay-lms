@@ -1004,16 +1004,20 @@ export default function ExpertcollegeExerciseGenerationEditor() {
                       </div>
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
-                      {r.status === "queued" || r.status === "running" ? (
-                        <span className="inline-flex items-center gap-2 text-sm text-muted-foreground">
-                          <Loader2 className="h-4 w-4 animate-spin" /> {r.status === "queued" ? "Queued" : "Running"}
+                      {r.status === "queued" ? (
+                        <span className="inline-flex items-center gap-2 text-sm text-muted-foreground" title="Queued: Job is waiting for the AI worker to start processing">
+                          <Loader2 className="h-4 w-4 animate-spin" /> Queued
+                        </span>
+                      ) : r.status === "running" ? (
+                        <span className="inline-flex items-center gap-2 text-sm text-blue-700" title="Running: AI is analyzing the study text and generating exercises">
+                          <Loader2 className="h-4 w-4 animate-spin" /> Generating…
                         </span>
                       ) : r.status === "done" ? (
-                        <span className="inline-flex items-center gap-2 text-sm text-green-700">
-                          <CheckCircle2 className="h-4 w-4" /> Done
+                        <span className="inline-flex items-center gap-2 text-sm text-green-700" title="Done: Exercises generated successfully">
+                          <CheckCircle2 className="h-4 w-4" /> Complete
                         </span>
                       ) : (
-                        <span className="inline-flex items-center gap-2 text-sm text-red-700">
+                        <span className="inline-flex items-center gap-2 text-sm text-red-700" title={`Failed: ${r.error || "Generation error"}`}>
                           <AlertCircle className="h-4 w-4" /> Failed
                         </span>
                       )}

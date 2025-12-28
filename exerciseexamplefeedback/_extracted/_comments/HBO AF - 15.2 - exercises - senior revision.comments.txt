@@ -1,0 +1,384 @@
+[SOURCE] HBO AF - 15.2 - exercises - senior revision.docx
+[COMMENT_COUNT] 43
+
+---
+id: 71
+author: Milou Buijk
+date: 2021-12-29T10:42:00Z
+text:
+Zorg ervoor dat je ‘fluster’ vetgedrukt maakt. Ik heb het hier voor je gedaan. Doe hetzelfde bij de rest van de ‘flusters’.
+
+---
+id: 74
+author: Milou Buijk
+date: 2021-12-29T10:43:00Z
+text:
+Op hbo-niveau schrijven we liever niet ‘heten het’.
+Protocol:
+Gebruik wordt genoemd, noemt men of een ander woord voor … is ... Gebruik niet noemen we, noem je, of dit heet.
+
+---
+id: 75
+author: Milou Buijk
+date: 2021-12-29T10:46:00Z
+text:
+Deze antwoordopties bevatten twee kenniselementen en dit is niet toegestaan.
+Mijn suggestie is als volgt:
+Fluster
+Stelling:
+Een onderdeel van het autonome zenuwstelsel is het ….. zenuwstelsel.
+Sympathische
+Parasympathische
+Beide bovenstaande
+Geen van bovenstaande
+Hierbij zou ik de theorie die je bij deze fluster gebruikt weglaten, omdat je anders al verklapt dat het om twee onderdelen gaat.
+(Dit geldt ook voor de rest van je stellingen in deze fluster)
+
+---
+id: 76
+author: Milou Buijk
+date: 2021-12-29T10:49:00Z
+text:
+Ik vind dit een vrij uitgebreide ‘extra info’, hetgeen wat korter opgeschreven kan worden. Mijn suggestie is om de theorie die je gebruikt als extra info op te schrijven met nog wat extra informatie uit de ‘extra info’.
+Extra info:
+Beide onderdelen hebben verschillende, maar complementaire functies. De twee zenuwstelsels voeren meestal tegenovergestelde taken uit.
+(Dit geldt ook voor de rest van je stellingen in deze fluster)
+
+---
+id: 78
+author: Milou Buijk
+date: 2021-12-29T10:53:00Z
+text:
+Deze stelling bevat twee kenniselementen, dit is ook niet toegestaan.
+Suggestie:
+Stelling:
+Het autonome zenuwstelsel bestaat uit het parasympathische zenuwstelsel.
+Deze stelling is correct
+Deze stelling is niet correct
+Extra info:
+Naast het parasympathische zenuwstelsel, bestaat het autonome zenuwstelsel ook uit het sympathische zenuwstelsel.
+
+---
+id: 80
+author: Milou Buijk
+date: 2021-12-29T10:55:00Z
+text:
+Deze stelling bevat ook twee kenniselementen en dit mag niet.
+Suggestie:
+Stelling:
+Een onderdeel van het autonome zenuwstelsel is het centrale zenuwstelsel.
+Deze stelling is correct
+Deze stelling is niet correct
+
+---
+id: 81
+author: Milou Buijk
+date: 2021-12-29T10:56:00Z
+text:
+Verander in:
+Het autonome zenuwstelsel bestaat uit het sympathische en parasympathische zenuwstelsel.
+
+---
+id: 82
+author: Milou Buijk
+date: 2021-12-29T11:00:00Z
+text:
+Bij Expertcollege maken we liever geen gebruik van termen als ‘mens’/’persoon’, dit zijn namelijk vage termen.
+Mijn suggestie is om hier ‘lichaam’ van te maken. Dus:
+‘de student weet dat het parasympathische zenuwstelsel vooral actief is als het lichaam in rust is.’
+
+---
+id: 83
+author: Milou Buijk
+date: 2021-12-29T10:59:00Z
+text:
+Dit mag je wat mij betreft weglaten, aangezien dit in de vorige fluster is getoetst.
+(Geldt ook voor de rest van deze fluster)
+
+---
+id: 84
+author: Milou Buijk
+date: 2021-12-29T11:02:00Z
+text:
+Dit moet dus ook worden aangepast (zie eerdere opmerking): ‘als het lichaam in rust is’
+
+---
+id: 85
+author: Milou Buijk
+date: 2021-12-29T11:02:00Z
+text:
+Schrijf liever niet in de ‘we-vorm’, dit is namelijk geen hbo-niveau. (Ik weet dat het zo wel in de tekst staat).
+Suggestie:
+Het parasympathische zenuwstelsel is vooral actief net na het eten of tijdens het rusten.
+
+---
+id: 86
+author: Milou Buijk
+date: 2021-12-29T11:04:00Z
+text:
+Ik zou hier een apart leerdoel van maken, dit is relevante informatie. Op die manier wordt je ‘extra info’ ook wat korter.
+
+---
+id: 88
+author: Milou Buijk
+date: 2021-12-29T11:04:00Z
+text:
+Schrijf dit anders op, zie eerdere opmerking.
+
+---
+id: 91
+author: Milou Buijk
+date: 2021-12-29T11:07:00Z
+text:
+Dit mag je wat mij betreft weglaten, aangezien dit in een eerdere fluster is getoetst.
+(Geldt ook voor de rest van deze fluster)
+
+---
+id: 92
+author: Milou Buijk
+date: 2021-12-29T11:32:00Z
+text:
+Mijn advies zou zijn om wat meer af te wisselen in manier van toetsen (vraag/stellingen). In de voorgaande flusters en de flusters hierna maak je veel gebruik van stellingen. Je zou hier dus een vraag van kunnen maken.
+Suggestie:
+Vraag:
+Wanneer is het sympathische zenuwstelsel vooral actief?
+
+---
+id: 98
+author: Milou Buijk
+date: 2021-12-29T11:18:00Z
+text:
+Ik zou hier een apart leerdoel van maken, dit is relevante informatie namelijk.
+
+---
+id: 96
+author: Milou Buijk
+date: 2021-12-29T11:16:00Z
+text:
+Ik vind dit ook een vrij lange ‘extra info’. Probeer de theorie en extra info altijd zo bondig mogelijk te houden. In deze ‘extra info’ benoem je heel wat voorbeelden. Mijn suggestie is om niet al deze voorbeelden te benoemen.
+(Hetzelfde geldt voor de rest van deze fluster)
+
+---
+id: 100
+author: Milou Buijk
+date: 2021-12-29T11:21:00Z
+text:
+In dit leerdoel staan drie kenniselementen, namelijk, gebruik maken van:
+autonome ganglia;
+preganglionaire neuronen;
+postganglionaire neuronen.
+Het is toegestaan om meerdere kenniselementen in je leerdoel te formuleren, maar bij de vraag/stelling en per antwoordoptie mag er maar één kenniselement staan. De rest van de kenniselementen moet vervolgens terugkomen in de extra info.
+
+---
+id: 101
+author: Milou Buijk
+date: 2021-12-29T11:24:00Z
+text:
+Bovenstaande feedback in oogschouw nemend is mijn suggestie als volgt:
+Theorie:
+Het sympathische en parasympathische gedeelte van het autonome zenuwstelsel hebben een aantal eigenschappen gemeen.
+Stelling:
+Eén van deze gemeenschappelijke eigenschappen is dat …..
+Ze synapteren in dezelfde autonome ganglia
+Ze gebruik maken van preganglionaire neuronen
+De cellichamen van de preganglionaire neuronen zich op dezelfde plek bevinden
+Ze even veel gebruik maken van neuronale divergentie
+Extra info:
+Naast gebruik te maken van preganglionaire neuronen, maken beide bovendien gebruik van autonome ganglia en postganglionaire neuronen. Ze verschillen in: de ligging van het preganglionaire cellichaam; ligging van de autonome ganglia; lengte van de pre- en postganglionaire axonen en de mate van neuronale divergentie.
+
+---
+id: 102
+author: Milou Buijk
+date: 2021-12-29T11:24:00Z
+text:
+Dit is een stelling, verander dus naar ‘stelling’.
+
+---
+id: 106
+author: Milou Buijk
+date: 2021-12-29T11:28:00Z
+text:
+Dit zou ik korter opschrijven (zie bovenstaande suggestie).
+
+---
+id: 107
+author: Milou Buijk
+date: 2021-12-29T11:29:00Z
+text:
+Stelling
+
+---
+id: 108
+author: Milou Buijk
+date: 2021-12-29T11:29:00Z
+text:
+Hier toets je drie kenniselementen en dit mag niet. Zie suggestie eerder.
+Zet dus één kenniselement in je stelling en geeft de overige kenniselementen in je ‘extra info’.
+
+---
+id: 110
+author: Milou Buijk
+date: 2021-12-29T11:29:00Z
+text:
+Stelling
+
+---
+id: 113
+author: Milou Buijk
+date: 2021-12-29T11:34:00Z
+text:
+Het
+
+---
+id: 115
+author: Milou Buijk
+date: 2021-12-29T18:14:00Z
+text:
+Je toetst hier eigenlijk twee kenniselementen, namelijk de hersenstam of het sacrale deel van het ruggenmerg. Om dit te voorkomen kun je een gedeelte al opnemen in je stelling.
+Suggestie:
+Stelling:
+De cellichamen van de preganglionaire neuronen van het parasympathische zenuwstelsel liggen in het sacrale deel van het ruggenmerg of in …..
+Het cervicale deel van het ruggenmerg
+Het thoracolumbale ruggenmerg
+De hersenstam
+De doelorganen
+
+---
+id: 132
+author: Milou Buijk
+date: 2021-12-29T11:43:00Z
+text:
+Probeer de ‘extra info’ zo kort mogelijk te houden, dit is herhaling en kun je dus weglaten.
+Suggestie:
+Het collectief van deze ganglia staat bekend als de truncus sympathicus, ofwel als de prevertrebrale ganglia.
+(Dit geldt ook voor de rest van dit fluster)
+
+---
+id: 133
+author: Milou Buijk
+date: 2021-12-29T11:45:00Z
+text:
+Hier moet je deze info natuurlijk wel laten staan.
+
+---
+id: 134
+author: Milou Buijk
+date: 2021-12-29T11:45:00Z
+text:
+Wat mij betreft laat je dit wel weg.
+
+---
+id: 136
+author: Milou Buijk
+date: 2021-12-29T11:46:00Z
+text:
+Hier doe je het wel goed en dus zonder de herhaling van info!
+
+---
+id: 137
+author: Milou Buijk
+date: 2021-12-29T11:47:00Z
+text:
+Mag wat mij betreft weggelaten worden.
+
+---
+id: 138
+author: Milou Buijk
+date: 2021-12-29T18:18:00Z
+text:
+Hier toets je ook weer twee kenniselementen en dat mag niet. Verwerk een van deze kenniselementen al in de stelling.
+Suggestie:
+Stelling:
+De autonome ganglia van het parasympathische zenuwstelsel liggen vlakbij het doelorgaan of …..
+In het ruggenmerg
+Binnen het doelorgaan
+Naast de wervelkolom
+In de truncus sympathicus
+
+---
+id: 154
+author: Milou Buijk
+date: 2021-12-29T11:53:00Z
+text:
+Dit kun je weglaten, aangezien dit al in de theorie staat.
+Dus:
+Vraag:
+Welke antwoordoptie is correct?
+
+---
+id: 169
+author: Milou Buijk
+date: 2021-12-29T11:59:00Z
+text:
+Dit is herhaling en mag dus weggelaten worden.
+
+---
+id: 172
+author: Milou Buijk
+date: 2021-12-29T12:22:00Z
+text:
+Ik zou dit weglaten.
+
+---
+id: 174
+author: Milou Buijk
+date: 2021-12-29T12:22:00Z
+text:
+Dit antwoord past niet bij je leerdoel, pas dus aan naar je leerdoel.
+Als je de antwoordoptie aanpast naar je leerdoel, dan kan deze structuur ‘beide bovenstaande/geen van bovenstaande’ niet meer. Zorg daarmee dus nog voor twee antwoordopties.
+
+---
+id: 176
+author: Milou Buijk
+date: 2021-12-29T12:20:00Z
+text:
+Deze stelling sluit niet aan bij je leerdoel.
+Suggestie:
+Stelling:
+Op basis van deze structuur is te concluderen dat het parasympathische zenuwstelsel zich vooral richt op specifieke activering van doelorganen.
+
+---
+id: 179
+author: Milou Buijk
+date: 2021-12-29T12:26:00Z
+text:
+Je kunt dit dan weglaten, eventueel kun je nog toevoegen dat het zich dus niet richt op activatie van het hele systeem (gezien je dit in je leerdoel hebt staan).
+
+---
+id: 185
+author: Milou Buijk
+date: 2021-12-29T12:24:00Z
+text:
+Ik zou hier juist direct uitleggen dat het zich richt op specifieke activering van doelorganen en dus niet met dit stukje tekst beginnen. Je mag dit stukje tekst wat mij betreft weglaten (dit staat niet in je leerdoel).
+
+---
+id: 188
+author: Milou Buijk
+date: 2021-12-29T12:29:00Z
+text:
+Schrijf korter op: ‘snelle activatie van het gehele sympathische zenuwstelsel’.
+
+---
+id: 187
+author: Milou Buijk
+date: 2021-12-29T12:30:00Z
+text:
+Schrijf allen korter op:
+‘Activatie van specifieke doelorganen’
+‘Snelle activatie van het hele sympathische zenuwstelsel’
+‘Bemoeilijken van de coördinatie tussen orgaansystemen’
+
+---
+id: 189
+author: Milou Buijk
+date: 2021-12-29T12:32:00Z
+text:
+Mijn voorstel zou zijn om nog een leerdoel te maken over neurale divergentie. De student hier bijvoorbeeld toetsen wat neurale divergentie inhoudt.
+
+---
+id: 190
+author: Milou Buijk
+date: 2021-12-29T12:33:00Z
+text:
+Dit mag je wat mij betreft weglaten, dit is een beetje dubbelop en maakt de ‘extra info’ erg lang.
+(Geldt ook voor de rest van dit fluster)

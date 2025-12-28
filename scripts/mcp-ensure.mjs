@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import fs from 'node:fs';
 import { spawnSync } from 'node:child_process';
+import { ensureDockerRunning } from './utils/docker-starter.mjs';
 
 function parseEnvFile(filePath) {
   try {
@@ -120,6 +121,13 @@ function sh(cmd, args, opts = {}) {
   if (await health()) {
     console.log('[mcp:ensure] MCP already healthy.');
     process.exit(0);
+  }
+
+  // Ensure Docker is running, auto-start if needed
+  const dockerReady = await ensureDockerRunning({ autoStart: true, silent: false });
+  if (!dockerReady) {
+    console.error('[mcp:ensure] ❌ Docker could not be started.');
+    process.exit(1);
   }
 
   // Check if container exists (running or stopped)

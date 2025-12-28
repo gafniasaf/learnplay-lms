@@ -1,0 +1,10 @@
+{
+  "id": "59093315-3e56-4af1-eb60-9201d62ee46e",
+  "Content": [
+    {
+      "Language": "nl-NL",
+      "Content": "[$BOX]\n\t[$CELL]\n\t\t[$BLOCK]\n\n\t\t\t<h3>Classificatie decubitus</h3>\n\t\t\t<p><em><strong>Classificatie van decubitus volgens deze richtlijnen:</strong></em></p>\n\t\t\t<strong>Categorie I: Niet-wegdrukbare roodheid bij een intacte huid</strong>\n\t\t\t<p>Intacte huid met niet-wegdrukbare roodheid in een gelokaliseerd gebied, meestal ter hoogte van een botuitsteeksel. Er kan sprake zijn van een verkleuring van de huid, warmte, oedeem, verharding en pijn. Een donkergekleurde huid vertoont mogelijk geen zichtbare verkleuring.</p>\n\t\t\t<strong>Categorie II: Verlies van een deel van de huidlaag of blaar</strong>\n\t\t\t<p>Gedeeltelijk verlies van een laag van de lederhuid (dermis), waardoor een oppervlakkige open wond met een rood/roze wondbodem, zonder wondbeslag, zichtbaar wordt. Kan er ook uitzien als een intacte of open/gescheurde, met vocht of met serum en bloed gevulde blaar.</p>\n\t\t\t<strong>Categorie III: Verlies van een volledige huidlaag (vet zichtbaar)</strong>\n\t\t\t<p>Verlies van de volledige huidlaag. Subcutaan vet kan zichtbaar zijn, maar bot, pezen en spieren liggen niet bloot. Wondbeslag kan aanwezig zijn. Ondermijning of tunneling kan aanwezig zijn.</p>\n\t\t\t<strong>Categorie IV: Verlies van een volledige weefsellaag (spier/bot zichtbaar)</strong>\n\t\t\t<p>Verlies van een volledige weefsellaag met blootliggend(e) bot, pezen of spieren. Een vervloeid wondbeslag of necrotische korst kan aanwezig zijn. Meestal is er sprake van ondermijning of tunneling. Categorie IV-decubitus kan zich ook onder een intacte huid manifesteren.</p>\n\n\t\t[$/BLOCK]\n\t[$/CELL]\n[$/BOX]",
+      "Name": "Classificatie decubitus"
+    }
+  ]
+}

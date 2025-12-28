@@ -3,6 +3,7 @@ import { execSync, spawnSync } from 'child_process';
 import fs from 'fs';
 import path from 'path';
 import readline from 'readline';
+import { ensureDockerRunning } from './utils/docker-starter.js';
 
 // --- Colors for Console Output ---
 const RESET = "\x1b[0m";
@@ -86,14 +87,14 @@ async function checkPrerequisites() {
     log("Please install Docker Desktop: https://www.docker.com/products/docker-desktop/");
     process.exit(1);
   }
-  // Check if docker daemon is running
-  try {
-    execSync('docker ps', { stdio: 'ignore' });
-    success("Docker is running");
-  } catch {
-    error("Docker daemon is not running. Please start Docker Desktop.");
+  
+  // Check if docker daemon is running, auto-start if needed
+  const dockerReady = await ensureDockerRunning({ autoStart: true, silent: false });
+  if (!dockerReady) {
+    error("Docker daemon could not be started.");
     process.exit(1);
   }
+  success("Docker is running");
 
   // Supabase CLI
   if (!checkCommand('supabase')) {

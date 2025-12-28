@@ -1,0 +1,10 @@
+{
+  "id": "576bca53-2d14-1eed-73d9-b1126f02e3bc",
+  "Content": [
+    {
+      "Language": "nl-NL",
+      "Content": "[$BOX]\n\t[$CELL]\n\t\t[$BLOCK]\n\n\t\t\t<h3>Psychisch</h3>\n\t\t\t<p>Het psychische domein gaat over de mentale gesteldheid van een zorgvrager. Hierbij kun je letten op de stemming, de ori&euml;ntatie, het begrip, het reactievermogen, het geheugen en het ontwikkelingsniveau van de zorgvrager.</p>\n\t\t\t<p>Hoe gaat iemand om met emoties? Is er sprake van verwardheid of hallucinaties? Sommige onderdelen van de psychische gesteldheid van een zorgvrager zijn te objectiveren. Zo kun je een MMSE-vragenlijst afnemen als je denkt dat er sprake is van dementie. Als je vermoedt dat de zorgvrager een delier heeft, kan je een DOS-score bijhouden. Voor het vaststellen van een depressie wordt de Hamilton Depressie Schaal gebruikt. Het voordeel van scores bijhouden is dat je de waarnemingen objectiveert. Ook kun je de meting later nog eens overdoen en vergelijken met eerdere metingen.</p>\n\n\t\t[$/BLOCK]\n\t[$/CELL]\n\t[$CELL]\n\n\t\t[$IMG(\"/media/Images/shutterstock_379530769.jpg\";150,300)]\n\n\t[$/CELL]\n[$/BOX] ",
+      "Name": "Psychisch"
+    }
+  ]
+}

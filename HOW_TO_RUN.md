@@ -14,7 +14,7 @@
 - **Supabase CLI** 1.50+ (for local development)
 
 ### Optional Tools
-- **Docker** (for local Supabase)
+- **Docker Desktop** (for local Supabase and MCP server - **auto-starts if not running**)
 - **PostgreSQL** client (for direct DB access)
 
 ---

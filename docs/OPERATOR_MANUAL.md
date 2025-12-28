@@ -16,6 +16,7 @@ This document is a lightweight guide for running and operating the **Ignite Zero
 ### Troubleshooting
 
 - **Local DB reset**: `supabase db reset --yes`
-- **Note**: If `supabase db reset` fails locally, ensure **Docker Desktop is running**. This command only affects the **local simulator**, not the code artifact.
+- **Note**: Docker Desktop is **automatically started** when needed. If you encounter issues, manually check Docker with `npm run docker:check` or start it with `npm run docker:start`.
+- **Manual Docker start**: If auto-start fails, open Docker Desktop manually from the Start menu.
 
 

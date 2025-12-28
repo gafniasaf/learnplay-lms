@@ -1,0 +1,954 @@
+[SOURCE] HBO Pathologie - Menstruatiestoornissen - senior revision exercises.docx
+[COMMENT_COUNT] 128
+
+---
+id: 83
+author: Marco Verweij | ExpertCollege
+date: 2021-08-23T13:28:00Z
+text:
+Dit heb ik zelf toegevoegd aan de tekst. Zou je hier nog een fluster van kunnen maken? Alvast bedankt!
+
+---
+id: 84
+author: Marco Verweij | ExpertCollege
+date: 2021-08-23T13:27:00Z
+text:
+Maak het woord ‘fluster’ altijd dikgedrukt
+
+---
+id: 85
+author: Marco Verweij | ExpertCollege
+date: 2021-08-23T13:32:00Z
+text:
+Dit is een beetje overbodige zin. Het is mooier om dit in de stelling te verwerken in de vorm van:
+‘Deze eerste menstruatie treedt het vaakst op tussen de leeftijd van tien en ….. jaar.’
+Pas dit aan in het hele fluster.
+
+---
+id: 88
+author: Marco Verweij | ExpertCollege
+date: 2021-08-23T13:29:00Z
+text:
+We hebben als regel dat je geen twee leerdoelen mag testen in 1 vraag. Wat je hier doet is een zogenaamde gecombineerde vraag maken, wat niet is toegestaan. De studenten moeten nu immers zowel de beginleeftijd als de eindleeftijd weten van de periode waarin de menarche doorgaans optreedt. Dit kun je voorkomen door één van beide in de stelling te plaatsen, zie de stelling. Pas de antwoordopties aan.
+
+---
+id: 90
+author: Marco Verweij | ExpertCollege
+date: 2021-08-23T13:31:00Z
+text:
+Let op protocollaire punten over de opmaak. Na ‘Extra info’ volgt in principe altijd een enter. Geldt voor de gehele module.
+
+---
+id: 91
+author: Marco Verweij | ExpertCollege
+date: 2021-08-23T13:36:00Z
+text:
+Prima dat je deze info toevoegt. Niet per se noodzakelijk maar geeft wel extra relevante informatie.
+
+---
+id: 93
+author: Marco Verweij | ExpertCollege
+date: 2021-08-23T13:34:00Z
+text:
+Zie voor de juiste formulering mijn opmerking bij de eerst vraag.
+
+---
+id: 96
+author: Marco Verweij | ExpertCollege
+date: 2021-08-23T13:35:00Z
+text:
+Getallen tot twintig uitschrijven in de stelling.
+
+---
+id: 98
+author: Marco Verweij | ExpertCollege
+date: 2021-08-23T13:41:00Z
+text:
+Dikgedrukt. Ik zal dit niet meer herhalen. Pas dit aan in de gehele module.
+
+---
+id: 99
+author: Marco Verweij | ExpertCollege
+date: 2021-08-23T13:37:00Z
+text:
+In dit verband is een komma onjuist. Gebruik een punt of puntkomma.
+
+---
+id: 100
+author: Marco Verweij | ExpertCollege
+date: 2021-08-23T13:38:00Z
+text:
+Iets mooiere formulering. Is een beetje finetuning.
+Geldt uiteraard voor hele fluster.
+
+---
+id: 104
+author: Marco Verweij | ExpertCollege
+date: 2021-08-23T13:39:00Z
+text:
+Als je het zo formuleert vind ik de antwoorden 46 en 57 ook correct. Zorg dat je het zo formuleert als ik heb voorgedaan bij de eerste vraag.
+
+---
+id: 105
+author: Marco Verweij | ExpertCollege
+date: 2021-08-23T13:40:00Z
+text:
+idem
+
+---
+id: 107
+author: Marco Verweij | ExpertCollege
+date: 2021-08-23T13:41:00Z
+text:
+idem, er zullen best vrouwen zijn die op hun 45e in de menopauze komen. Het gaat echt om de gemiddelde leeftijd.
+
+---
+id: 109
+author: Marco Verweij | ExpertCollege
+date: 2021-08-23T13:52:00Z
+text:
+Zorg dat dit bij iedere vraag duidelijk naar voren komt. Er is namelijk een grote mate van spreiding. Dit kun je doen door het woord ‘ongeveer’ te gebruiken in je vraagstelling of extra info toe te voegen.
+
+---
+id: 110
+author: Marco Verweij | ExpertCollege
+date: 2021-08-23T13:46:00Z
+text:
+Net zoals in je eerste vraag zou ik dit in je vraag verwerken. Bij HBO teksten hoef je niet zo snel bang te zijn voor te lange vragen. Hoeveel milliliter bloed gaat er in totaal ongeveer verloren tijdens de menstruatie.
+
+---
+id: 112
+author: Marco Verweij | ExpertCollege
+date: 2021-08-23T13:48:00Z
+text:
+Zie vorige opmerking
+
+---
+id: 113
+author: Marco Verweij | ExpertCollege
+date: 2021-08-23T13:48:00Z
+text:
+Keurig dat je steeds even grote stappen neemt tussen je antwoordopties.
+
+---
+id: 116
+author: Marco Verweij | ExpertCollege
+date: 2021-08-23T13:49:00Z
+text:
+Vergeet je stelling niet te eindigen met een punt.
+
+---
+id: 115
+author: Marco Verweij | ExpertCollege
+date: 2021-08-23T13:50:00Z
+text:
+Pas de stelling aan naar aanleiding van mijn eerdere opmerking.
+
+---
+id: 121
+author: Marco Verweij | ExpertCollege
+date: 2021-08-23T13:50:00Z
+text:
+Tientallen in de stelling altijd uitschrijven
+
+---
+id: 120
+author: Marco Verweij | ExpertCollege
+date: 2021-08-23T13:50:00Z
+text:
+idem
+
+---
+id: 123
+author: Marco Verweij | ExpertCollege
+date: 2021-08-23T13:51:00Z
+text:
+Pas de stelling aan.
+
+---
+id: 125
+author: Marco Verweij | ExpertCollege
+date: 2021-08-23T13:51:00Z
+text:
+Belangrijke toevoeging. Er zit een grote mate van variatie in.
+
+---
+id: 127
+author: Marco Verweij | ExpertCollege
+date: 2021-08-23T13:51:00Z
+text:
+Tientallen in de extra info ook uitschrijven. Alleen in de antwoordopties mag je getallen daadwerkelijk in cijfers uitschrijven.
+
+---
+id: 128
+author: Microsoft Office-gebruiker
+date: 2021-06-29T12:42:00Z
+text:
+Ik wil hier graag een leerdoel van maken, echter ik kan geen foute antwoordopties bedenken..
+
+---
+id: 129
+author: Marco Verweij | ExpertCollege
+date: 2021-08-23T13:59:00Z
+text:
+Ik kan er ook geen bedenken. Zou het leerdoel daarom weghalen.
+
+---
+id: 130
+author: Marco Verweij | ExpertCollege
+date: 2021-08-23T14:01:00Z
+text:
+De theorie is net wat te lang. Dit kun je aanpassen door de laatste zin te verwerken in de stelling zoals ik ook eerder heb aangegeven.
+Een menstruatiestoornis komt voor bij ….. procent van de vrouwen die al eens zijn bevallen.
+Bij HBO is het niet erg als je vraagstelling iets langer is.
+
+---
+id: 132
+author: Marco Verweij | ExpertCollege
+date: 2021-08-23T14:03:00Z
+text:
+Zie vorige opmerking
+
+---
+id: 133
+author: Marco Verweij | ExpertCollege
+date: 2021-08-23T14:04:00Z
+text:
+Idem
+
+---
+id: 136
+author: Marco Verweij | ExpertCollege
+date: 2021-08-23T14:04:00Z
+text:
+In de stelling moet je dit uitschrijven.
+
+---
+id: 135
+author: Marco Verweij | ExpertCollege
+date: 2021-08-23T14:04:00Z
+text:
+Idem
+
+---
+id: 137
+author: Marco Verweij | ExpertCollege
+date: 2021-08-23T14:05:00Z
+text:
+Pas de eerder genoemde opmerkingen ook hier toe.
+
+---
+id: 139
+author: Marco Verweij | ExpertCollege
+date: 2021-08-23T14:05:00Z
+text:
+Beetje kromme formulering. -> 10% van de vrouwen die al eens bevallen is, heeft last van een menstruatiestoornis.
+
+---
+id: 140
+author: Marco Verweij | ExpertCollege
+date: 2021-08-23T14:06:00Z
+text:
+Ik zou de theorie in dit fluster anders verwoorden:
+Theorie:
+Van alle vrouwen die al eens bevallen zijn, heeft 10% last van een menstruatiestoornis.
+Vraag:
+Hoe hoog is dit percentage bij vrouwen die nog nooit zijn bevallen?
+Pas dit aan in het hele fluster.
+
+---
+id: 142
+author: Marco Verweij | ExpertCollege
+date: 2021-08-23T14:08:00Z
+text:
+In feite is dus ook correct, omdat zeker 10% van de vrouwen hier last van heeft. Je kunt dit voorkomen door te vragen naar het percentage (zie mijn suggestie hierboven) of in het geval van een stelling een hoger percentage te geven wat sowieso fout is.
+
+---
+id: 141
+author: Marco Verweij | ExpertCollege
+date: 2021-08-23T14:07:00Z
+text:
+Het valt mij op dat je steeds dezelfde volgorde aanhoudt. Eerst de correcte stelling en je eindigt met de niet-correcte stelling. Probeer hier vaker in te variëren.
+
+---
+id: 143
+author: Marco Verweij | ExpertCollege
+date: 2021-08-23T15:09:00Z
+text:
+Hier staan veel belangrijke factoren die niet in je vragen terugkomen. Probeer dit nog te toetsen. Let op, de volledige opsomming moet in 1 leerdoel getoetst worden, waarbij je alle niet getoetste elementen in de extra info plaatst. Houdt je hierbij wel aan het toegestane maximale aantal vragen per fluster (max 5).
+
+---
+id: 144
+author: Marco Verweij | ExpertCollege
+date: 2021-08-23T15:11:00Z
+text:
+Akkoord dat je dit niet in de vragen toetst. Zijn geen gebruikelijke termen.
+
+---
+id: 145
+author: Marco Verweij | ExpertCollege
+date: 2021-08-23T15:11:00Z
+text:
+Ik vind het belangrijk dat in je vragen het verschil tussen primaire en secundaire dysmenorroe aan bod komt. Zorg dat je dit behandelt. Dit mag bijvoorbeeld prima in een vraag waarbij de antwoordopties iets langer worden.
+
+---
+id: 146
+author: Marco Verweij | ExpertCollege
+date: 2021-08-23T14:19:00Z
+text:
+Ik snap niet wat je leerdoel van dit fluster precies is…
+
+---
+id: 147
+author: Marco Verweij | ExpertCollege
+date: 2021-08-23T14:29:00Z
+text:
+Het is me niet duidelijk of wilt voorbeelden van aangeboren oorzaken wilt toetsen of dat je wilt toetsen aan welke organen afwijkingen moeten zitten om menstruatiestoornissen te krijgen. Zorg dat je één van beide toetst in dit fluster. Let hier dus nog goed op.
+
+---
+id: 148
+author: Marco Verweij | ExpertCollege
+date: 2021-08-23T14:18:00Z
+text:
+Maak de correcte antwoorden in het fluster nog dikgedrukt.
+
+---
+id: 149
+author: Marco Verweij | ExpertCollege
+date: 2021-08-23T14:20:00Z
+text:
+Dit mag je als bekend veronderstellen bij HBO studenten.
+
+---
+id: 151
+author: Marco Verweij | ExpertCollege
+date: 2021-08-23T14:21:00Z
+text:
+Ik zou dit anders formuleren
+
+---
+id: 155
+author: Marco Verweij | ExpertCollege
+date: 2021-08-23T14:22:00Z
+text:
+In maximaal 40% van de beide bovenstaande/geen van bovenstaande vragen, mag ‘beide bovenstaande’ het correcte antwoord zijn.
+
+---
+id: 157
+author: Marco Verweij | ExpertCollege
+date: 2021-08-23T14:25:00Z
+text:
+Prima vraag!
+
+---
+id: 163
+author: Marco Verweij | ExpertCollege
+date: 2021-08-23T14:26:00Z
+text:
+Leg uit wat de andere antwoordopties wel zijn.
+
+---
+id: 170
+author: Marco Verweij | ExpertCollege
+date: 2021-08-23T14:28:00Z
+text:
+Formuleer je extra info in dit geval als volgt:
+Naast afwijkingen aan de ovaria kunnen afwijkingen aan de uterus ook leiden tot menstruatiestoornissen.
+
+---
+id: 172
+author: Marco Verweij | ExpertCollege
+date: 2021-08-23T14:31:00Z
+text:
+Volgens mij is dit exact dezelfde vraag als de vorige..
+
+---
+id: 174
+author: Marco Verweij | ExpertCollege
+date: 2021-08-23T14:34:00Z
+text:
+Bij HBO vragen formuleren we in tegenstelling tot MBO vaak passief. Dus: ‘Hoe wordt deze aandoening genoemd?’
+
+---
+id: 173
+author: Marco Verweij | ExpertCollege
+date: 2021-08-23T14:34:00Z
+text:
+Prima vraag!
+
+---
+id: 188
+author: Marco Verweij | ExpertCollege
+date: 2021-08-23T14:40:00Z
+text:
+Voor zover ik weet is deze optie tijdelijk uit het protocol gehaald. Ik kan hem in ieder geval niet meer terugvinden in het protocol. Daarbuiten vind ik het wel een goede vraag dus ik laat hem staan, maar ik zou ik het vervolg (tot nader order) geen casus meer gebruiken. Gebruik in plaats daarvan theorie.
+
+---
+id: 189
+author: Marco Verweij | ExpertCollege
+date: 2021-08-23T14:39:00Z
+text:
+Formuleer passief
+
+---
+id: 190
+author: Marco Verweij | ExpertCollege
+date: 2021-08-23T14:43:00Z
+text:
+In het kader van de leerdoel zou ik er een stelling van maken en daarin ook benoemen dat het om een primaire amenorroe gaat. Je toetst dit namelijk in de andere vragen wel. In iedere vraag binnen een fluster moet het volledige leerdoel getoetst worden.
+Stelling:
+Deze aandoening wordt primaire ….. genoemd.
+
+---
+id: 194
+author: Marco Verweij | ExpertCollege
+date: 2021-08-23T14:42:00Z
+text:
+Passief formuleren
+
+---
+id: 197
+author: Marco Verweij | ExpertCollege
+date: 2021-08-23T14:42:00Z
+text:
+Idem
+
+---
+id: 199
+author: Marco Verweij | ExpertCollege
+date: 2021-08-23T14:44:00Z
+text:
+Varieer in volgorde
+
+---
+id: 201
+author: Marco Verweij | ExpertCollege
+date: 2021-08-23T14:46:00Z
+text:
+Wat is een secundaire amenorroe dan? Lijkt me relevante toevoeging voor in de extra info.
+
+---
+id: 202
+author: Marco Verweij | ExpertCollege
+date: 2021-08-23T14:47:00Z
+text:
+Getallen onder de 20 uitschrijven
+
+---
+id: 204
+author: Marco Verweij | ExpertCollege
+date: 2021-08-23T14:52:00Z
+text:
+Het word ‘bovenstaand’ is niet per se fout, maar wel een beetje overbodig. Geldt voor hele fluster.
+
+---
+id: 203
+author: Marco Verweij | ExpertCollege
+date: 2021-08-23T14:49:00Z
+text:
+Passief formuleren
+
+---
+id: 206
+author: Marco Verweij | ExpertCollege
+date: 2021-08-23T14:49:00Z
+text:
+Passief maken
+
+---
+id: 207
+author: Marco Verweij | ExpertCollege
+date: 2021-08-23T14:50:00Z
+text:
+Pas ook in de laatste 2 vragen van dit fluster mijn eerdere opmerkingen over passief schrijven en afwisseling van vraagvolgorde toe.
+
+---
+id: 210
+author: Marco Verweij | ExpertCollege
+date: 2021-08-23T14:53:00Z
+text:
+Je mag best eens afwisselen in formulering van de extra info. Dit maakt het voor de studenten leuker om de vragen te maken. Bijvoorbeeld:
+Bij polymenorroe is de menstruatiecyclus 22 dagen of korter.
+
+---
+id: 211
+author: Marco Verweij | ExpertCollege
+date: 2021-08-23T14:54:00Z
+text:
+Geen nieuwe fouten. Pas in dit fluster het volgende aan:
+Passief formuleren (dus met ‘wordt’)
+Liever geen casus, maar gewoon theorie
+Opmaak (fluster dikgedrukt, enter na extra info)
+Vraagvariabiliteit
+‘Bovenstaande’ overbodig
+Variatie in formulering van de extra info
+
+---
+id: 212
+author: Marco Verweij | ExpertCollege
+date: 2021-08-23T14:57:00Z
+text:
+Let op met het kopiëren van tekst. Je neemt gemakkelijk fouten over die je vervolgens in het hele fluster repliceert. Pas dit aan in het hele fluster,
+
+---
+id: 213
+author: Marco Verweij | ExpertCollege
+date: 2021-08-23T14:59:00Z
+text:
+Je formuleert veel leerdoelen op dezelfde manier. Hierdoor wordt de module wel erg ‘saai’ voor studenten. Al enkele flusters achter elkaar gaat het om het latijnse woord van een bepaalde aandoening. Je zou er bijvoorbeeld voor kunnen kiezen om nu eens een ander aspect te toetsen, bijvoorbeeld vanaf welke lengte je spreekt van menorragie.
+
+---
+id: 214
+author: Marco Verweij | ExpertCollege
+date: 2021-08-23T14:59:00Z
+text:
+Pas ook in dit fluster het volgende aan:
+Passief formuleren (dus met ‘wordt’)
+Liever geen casus, maar gewoon theorie
+Opmaak (fluster dikgedrukt, enter na extra info)
+Vraagvariabiliteit
+‘Bovenstaande’ overbodig
+Variatie in formulering van de extra info
+
+---
+id: 215
+author: Marco Verweij | ExpertCollege
+date: 2021-08-23T14:58:00Z
+text:
+Voorbeeld om het gebruik van een casus te vermijden:
+Theorie:
+Soms houden de menstruaties langer aan dan de gemiddelde zeven dagen.
+
+---
+id: 216
+author: Marco Verweij | ExpertCollege
+date: 2021-08-23T15:01:00Z
+text:
+Geen nieuwe fouten. Pas in dit fluster het volgende aan:
+Passief formuleren (dus met ‘wordt’)
+Liever geen casus, maar gewoon theorie
+Opmaak (fluster dikgedrukt, enter na extra info)
+Vraagvariabiliteit (gebruik ook eens een beide bovenstaande/ geen van bovenstaande vraag.)
+‘Bovenstaande’ overbodig
+Variatie in formulering van de extra info
+
+---
+id: 217
+author: Marco Verweij | ExpertCollege
+date: 2021-08-23T15:44:00Z
+text:
+Toets deze opties in 1 leerdoel (zie latere opmerking)
+
+---
+id: 218
+author: Marco Verweij | ExpertCollege
+date: 2021-08-23T15:45:00Z
+text:
+Maak hier een fluster van.
+
+---
+id: 219
+author: Microsoft Office-gebruiker
+date: 2021-07-02T16:30:00Z
+text:
+Ook een leuk leerdoel, echter geen foute antwoordopties te bedenken, want het ligt aan de huisarts welk onderzoek aangevraagd worden. Geen enkel antwoord is in principe fout…
+
+---
+id: 220
+author: Marco Verweij | ExpertCollege
+date: 2021-08-23T15:44:00Z
+text:
+Je hebt dit nu in de extra info benoemd, maar je zou hier ook een nieuw fluster van kunnen maken..
+
+---
+id: 222
+author: Marco Verweij | ExpertCollege
+date: 2021-08-23T15:07:00Z
+text:
+Probeer deze zin te verwerken in de vraagstelling.
+Op basis van welke factor wordt het menstruatiepatroon beoordeeld?
+
+---
+id: 223
+author: Marco Verweij | ExpertCollege
+date: 2021-08-23T15:13:00Z
+text:
+Zie bovenstaande opmerking
+
+---
+id: 224
+author: Marco Verweij | ExpertCollege
+date: 2021-08-23T15:13:00Z
+text:
+Vergeet het juiste antwoordoptie niet dikgedrukt te maken.
+Let op: in maximaal 40% van dit vraagtype mag ‘beide bovenstaande’ het juiste antwoord zijn.
+Bovendien vind ik dit de makkelijkste vraag van het fluster omdat beide antwoordopties correct zijn. Daarom zou ik deze vraag als laatste plaatsen.
+
+---
+id: 227
+author: Marco Verweij | ExpertCollege
+date: 2021-08-23T15:14:00Z
+text:
+Goed dat je het formuleert met ‘naast..’
+
+---
+id: 229
+author: Marco Verweij | ExpertCollege
+date: 2021-08-23T15:14:00Z
+text:
+Stelling niet beginnen met ‘ook’. Zie opmerking bij de eerste vraag.
+
+---
+id: 232
+author: Marco Verweij | ExpertCollege
+date: 2021-08-23T15:15:00Z
+text:
+‘Naast’ en ‘ook’ zijn in feite dubbelop (maar geen grote fout als je het zo laat staan).
+
+---
+id: 234
+author: Marco Verweij | ExpertCollege
+date: 2021-08-23T15:16:00Z
+text:
+Zie voor de vraagstelling mijn eerdere opmerking
+
+---
+id: 235
+author: Microsoft Office-gebruiker
+date: 2021-07-02T16:25:00Z
+text:
+Ik wil hier graag een leerdoel van maken, echter hoelang ik hier ook over nadenk, ik kan geen geode antwoordopties verzinnen.
+
+---
+id: 236
+author: Marco Verweij | ExpertCollege
+date: 2021-08-23T15:20:00Z
+text:
+Je maakt het jezelf erg lastig met de formulering van je leerdoel. Je kunt in dit geval beter toetsen welke dingen de zorgprofessional nog meer bespreekt. Je toetst nu een enkel element van een opsomming die je eigenlijk als geheel zou moeten toetsen. Mijn advies om dit alsnog te doen.
+Optie 2 is om te toetsen hoe de zorgvrager onderzoek doet naar de kans op zwangerschap, maar dit is erg voor de hand liggend.
+
+---
+id: 238
+author: Marco Verweij | ExpertCollege
+date: 2021-08-23T15:19:00Z
+text:
+Dit komt een beetje uit de lucht vallen. Waar heb je het precies over?
+
+---
+id: 242
+author: Marco Verweij | ExpertCollege
+date: 2021-08-23T15:23:00Z
+text:
+Er wordt niet standaard een zwangerschapstest gedaan. Zou dit daarom niet zo in dit fluster toetsen. Zie opmerking hierboven. Dit fluster vereist de nodige aanpassing.
+
+---
+id: 243
+author: Marco Verweij | ExpertCollege
+date: 2021-08-23T15:32:00Z
+text:
+Verwerk in de vraag
+
+---
+id: 247
+author: Marco Verweij | ExpertCollege
+date: 2021-08-23T15:33:00Z
+text:
+In dit geval zou ik specifiek huisarts gebruiken omdat het om een specifieke zorgprofessional gaat.
+
+---
+id: 248
+author: Marco Verweij | ExpertCollege
+date: 2021-08-23T15:33:00Z
+text:
+Selecteer de juiste antwoordoptie
+
+---
+id: 249
+author: Marco Verweij | ExpertCollege
+date: 2021-08-23T15:31:00Z
+text:
+Deze antwoordopties overlappen. Dit is niet toegestaan.
+
+---
+id: 251
+author: Marco Verweij | ExpertCollege
+date: 2021-08-23T15:32:00Z
+text:
+Dit is niet geheel incorrect, omdat de gynaecoloog dit wel doet.
+
+---
+id: 250
+author: Marco Verweij | ExpertCollege
+date: 2021-08-23T15:34:00Z
+text:
+Suggesties voor antwoordopties zijn: CT-scan verrichten, anticonceptie voorschrijven, etc.
+
+---
+id: 253
+author: Marco Verweij | ExpertCollege
+date: 2021-08-23T15:35:00Z
+text:
+Pas de kleine (leesbaarheids)aanpassingen ook aan bij de andere vragen in je fluster.
+
+---
+id: 265
+author: Marco Verweij | ExpertCollege
+date: 2021-08-23T15:37:00Z
+text:
+Zie mijn aanpassingen in de vorige vraag. Let goed op de leesbaarheid. Het zijn vaak maar kleine aanpassingen.
+
+---
+id: 268
+author: Marco Verweij | ExpertCollege
+date: 2021-08-23T15:36:00Z
+text:
+Ik mis hier het correcte antwoord
+
+---
+id: 269
+author: Marco Verweij | ExpertCollege
+date: 2021-08-23T16:18:00Z
+text:
+Maak hier nog een fluster van.
+
+---
+id: 270
+author: Marco Verweij | ExpertCollege
+date: 2021-08-23T16:17:00Z
+text:
+Je mag best creatief zijn en dit toetsen in een leerdoel waarbij je bijvoorbeeld vraagt:
+Op basis waarvan wordt de noodzaak van behandeling ingeschat?
+Zou je dit willen proberen te maken in een nieuw fluster. De informatie die je namelijk in de extra info zet wordt niet altijd gelezen en moet je daarom nog in een apart fluster toetsen.
+
+---
+id: 272
+author: Microsoft Office-gebruiker
+date: 2021-06-28T16:58:00Z
+text:
+Zin met ‘kan’
+
+---
+id: 273
+author: Marco Verweij | ExpertCollege
+date: 2021-08-23T15:42:00Z
+text:
+Een zin met ‘kan’ is niet per definitie fout. Het gaat er met name om dat het niet te vaak wordt gebruikt. In dit geval geeft het aan dat de verlichting niet altijd optreedt. ‘Kan’ is in dit geval een goede optie.
+
+---
+id: 271
+author: Marco Verweij | ExpertCollege
+date: 2021-08-23T16:19:00Z
+text:
+Dit is een erg belangrijk onderdeel wat je moet toetsen in een fluster. In de praktijk worden anticonceptie namelijk erg veel voorgeschreven bij diverse menstruatiestoornissen. Voorbeeld:
+Leerdoel: De student weet dat hormonale anticonceptiva de natuurlijke cyclus onderdrukken.
+Theorie:
+Bij sommige menstruatiestoornissen wordt hormonale anticonceptie voorgeschreven als behandeling.
+Vraag:
+Op welke manier zorgt hormonale anticonceptie voor verlichting van de klachten?
+Het zorgt voor onderdrukking van de natuurlijke cyclus
+Het leidt tot meer gereguleerde afgifte van hormonen
+Het heeft een pijnstillende werking
+Het zorgt voor betere copingsmechanismen
+Extra info:
+De oorzaak wordt niet weggenomen, maar de onderdrukking van de natuurlijke cyclus zorgt wel vaak voor verlichting van de klachten.
+
+---
+id: 274
+author: Marco Verweij | ExpertCollege
+date: 2021-08-23T16:18:00Z
+text:
+Maak hier nog een fluster van
+
+---
+id: 275
+author: Marco Verweij | ExpertCollege
+date: 2021-08-23T16:01:00Z
+text:
+Foutje wat vervolgens door het kopiëren in meerdere flusters aanwezig blijft. Lees je zin 3x door voordat je hem kopieert!
+
+---
+id: 278
+author: Marco Verweij | ExpertCollege
+date: 2021-08-23T15:48:00Z
+text:
+Zie deze aanpassing om de vraag beter op je theorie te laten aansluiten.
+Ik vind de formulering met ‘factoren’ niet mooi. Dit komt ook niet in de tekst terug.
+
+---
+id: 287
+author: Marco Verweij | ExpertCollege
+date: 2021-08-23T15:49:00Z
+text:
+Let op, dit is de makkelijkste vraag. Zou deze als laatste doen.
+
+---
+id: 290
+author: Marco Verweij | ExpertCollege
+date: 2021-08-23T15:53:00Z
+text:
+Tussen ‘niet’ en ‘ondersteunend’ hoort een koppelteken.
+
+---
+id: 296
+author: Marco Verweij | ExpertCollege
+date: 2021-08-23T15:51:00Z
+text:
+Pas ook deze vraagstelling aan
+
+---
+id: 297
+author: Marco Verweij | ExpertCollege
+date: 2021-08-23T15:51:00Z
+text:
+Let op met kopiëren van stukken tekst. Je gaat hier de fout in. Benoem alle vier de gevallen waarbij een aanpassing in het leefpatroon een goede behandeling is.
+
+---
+id: 314
+author: Marco Verweij | ExpertCollege
+date: 2021-08-23T15:59:00Z
+text:
+Je vergat een woordje. Doordat je vervolgens de theorie kopieert treedt deze vraag op bij alle vragen in dit fluster.
+
+---
+id: 318
+author: Marco Verweij | ExpertCollege
+date: 2021-08-23T15:55:00Z
+text:
+Er zijn ook behandelingen die de oorzaak van de dysmenorroe wegnemen. Maak daarom een kleine nuance in de vorm van het woord ‘vaak’ of ‘doorgaans’.
+
+---
+id: 319
+author: Marco Verweij | ExpertCollege
+date: 2021-08-23T15:57:00Z
+text:
+Kies voor de mooiste formulering
+
+---
+id: 326
+author: Marco Verweij | ExpertCollege
+date: 2021-08-23T15:58:00Z
+text:
+Ik zou de ‘beide bovenstaande’ vraag niet als eerste plaatsen. Probeer goed te kijken naar moeilijkheid.
+
+---
+id: 328
+author: Marco Verweij | ExpertCollege
+date: 2021-08-23T15:59:00Z
+text:
+Prima extra info
+
+---
+id: 333
+author: Marco Verweij | ExpertCollege
+date: 2021-08-23T15:59:00Z
+text:
+Idem, formulering
+
+---
+id: 339
+author: Marco Verweij | ExpertCollege
+date: 2021-08-23T16:02:00Z
+text:
+Geen fraaie formulering, pas dit aan (zie eerdere opmerkingen)
+
+---
+id: 343
+author: Marco Verweij | ExpertCollege
+date: 2021-08-23T16:03:00Z
+text:
+Idem
+
+---
+id: 345
+author: Marco Verweij | ExpertCollege
+date: 2021-08-23T16:06:00Z
+text:
+Ik vind dit niet correct. Ik vind een anemie namelijk niet het ergste wat er kan gebeuren. In theorie zou een fors bloedend myoom nog kunnen leiden tot een hypovolemische shock. Pas je formulering aan zoals ik hieronder heb voorgedaan.
+
+---
+id: 346
+author: Marco Verweij | ExpertCollege
+date: 2021-08-23T16:13:00Z
+text:
+De medische term met tussen haakjes de Nederlandse naam. Dit neem ik je niet kwalijk, ik heb dit in de tekst zelf ook aangepast.
+
+---
+id: 350
+author: Marco Verweij | ExpertCollege
+date: 2021-08-23T16:04:00Z
+text:
+Pas dit zo aan dat de laatste regel van de theorie in je vraagstelling wordt verwerkt.
+Stelling:
+Bij fors bloedverlies veroorzaakt een myoom …..
+
+---
+id: 352
+author: Marco Verweij | ExpertCollege
+date: 2021-08-23T16:12:00Z
+text:
+Zie eerdere opmerkingen, let op de volgorde van je vragen.
+
+---
+id: 356
+author: Marco Verweij | ExpertCollege
+date: 2021-08-23T16:12:00Z
+text:
+Kleine aanpassing in de leesbaarheid
+
+---
+id: 354
+author: Marco Verweij | ExpertCollege
+date: 2021-08-23T16:16:00Z
+text:
+Je mag best creatief zijn en dit toetsen in een leerdoel waarbij je bijvoorbeeld vraagt:
+Op basis waarvan wordt de noodzaak van behandeling ingeschat?
+Zou je dit willen proberen te maken in een nieuw fluster. De informatie die je namelijk in de extra info zet wordt niet altijd gelezen en moet je daarom nog in een apart fluster toetsen.
+
+---
+id: 363
+author: Marco Verweij | ExpertCollege
+date: 2021-08-23T16:13:00Z
+text:
+Pas de vraagstelling aan (zie eerste vraag)
+
+---
+id: 365
+author: Marco Verweij | ExpertCollege
+date: 2021-08-23T16:14:00Z
+text:
+Voorkom deze uitdrukking om eerder genoemde reden
+
+---
+id: 367
+author: Marco Verweij | ExpertCollege
+date: 2021-08-23T16:12:00Z
+text:
+Kleine aanpassing in de leesbaarheid
+
+---
+id: 371
+author: Marco Verweij | ExpertCollege
+date: 2021-08-23T16:15:00Z
+text:
+Idem, pas aan
+
+---
+id: 373
+author: Marco Verweij | ExpertCollege
+date: 2021-08-23T16:15:00Z
+text:
+Idem
+
+---
+id: 375
+author: Marco Verweij | ExpertCollege
+date: 2021-08-23T16:12:00Z
+text:
+Kleine aanpassing in de leesbaarheid
+
+---
+id: 381
+author: Marco Verweij | ExpertCollege
+date: 2021-08-23T16:12:00Z
+text:
+Kleine aanpassing in de leesbaarheid

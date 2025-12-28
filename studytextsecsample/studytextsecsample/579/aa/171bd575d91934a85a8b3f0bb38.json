@@ -1,0 +1,10 @@
+{
+  "id": "579aa171-bd57-5d91-934a-85a8b3f0bb38",
+  "Content": [
+    {
+      "Language": "nl-NL",
+      "Content": "[$BOX]\n    [$CELL]\n        [$BLOCK]\n\n            <h3>Differentiaaldiagnose</h3>\n            <p>Als je bij een zorgvrager met benauwdheid de diagnose astma exacerbatie wil stellen, moet je ook nadenken of het misschien een andere longaandoening kan zijn. De ziektes waar je aan denkt bij het stellen van de diagnose, noemen we samen de differenti&euml;le diagnose.</p>\n\n        [$/BLOCK]\n    [$/CELL]\n    [$CELL]\n\n        [$IMG(\"/media/Images/shutterstock_284441261.jpg\";200,300)]\n\n    [$/CELL]\n[$/BOX]\n[$BOX]\n\t[$CELL]\n\t\t[$BLOCK]\n\n\t\t\t<p>Bij het diagnosticeren van een astma exacerbatie moet je bij de differenti&euml;le diagnose onder andere denken aan een:</p>\n\t\t\t<ul>\n                <li>ontsteking van de vertakkingen van de luchtwegen. Dit noemen we bronchiolitis;</li>\n                <li>ontsteking van het longweefsel. Dit noemen we ook wel een longontsteking of een pneumonie;</li>\n                <li>voorwerp dat in de luchtwegen is vast komen te zitten. Dit noemen we een corpus alienum. Dit kan bijvoorbeeld gebeuren als een peuter een muntje of een knikker in de mond stopt;</li>\n                <li>ernstige allergische reactie waarbij de keel van de zorgvrager opgezwollen raakt. Dit noemen we een anafylactische reactie. Een voorbeeld van een anafylactische reactie is wanneer een zorgvrager met een pinda-allergie pinda&rsquo;s heeft gegeten;</li>\n                <li>Dit noemen we een pneumothorax. Een klaplong ontstaat meestal na een ernstig ongeluk of na een steekwond in de borstkas, maar soms ontstaat een klaplong plotseling zonder duidelijke oorzaak;</li>\n                <li>aanval waarbij de zorgvrager te snel ademhaalt. Dit noemen we hyperventilatie. Dit kan bijvoorbeeld gebeuren wanneer een zorgvrager in paniek is of erg angstig is.</li>\n            </ul>\n\n\t\t[$/BLOCK]\n\t[$/CELL]\n[$/BOX] ",
+      "Name": "Differentiaaldiagnose"
+    }
+  ]
+}

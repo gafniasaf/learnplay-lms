@@ -77,6 +77,8 @@ iwr https://<your-domain>/install-factory.ps1 -UseBasicParsing | iex
 ```
 When prompted, paste the latest signed link. The script installs Git, Node LTS, Docker Desktop, Supabase CLI, GitHub Desktop, and unpacks the zip into `~/IgniteZero`. Walk away and let it do the chores.
 
+> **Note**: Docker Desktop is now **automatically started** when needed by the system. You don't need to manually start it before running commands.
+
 ---
 
 ## 5 · Running the Factory + Lovable preview
@@ -143,8 +145,9 @@ If Supabase storage is under maintenance, the script will warn you. Just rerun o
 | Download button says “Unauthorized” | Session cookie expired or you opened a private window. | Log back in at `/auth`, then revisit `/setup`. |
 | PowerShell bootstrap fails saying ReleaseUrl missing | The signed link timed out. | Click the download button again, copy the new URL, rerun `install-factory.ps1 -ReleaseUrl "<link>"`. |
 | Supabase CLI errors during `release:publish` | Supabase maintenance window or stale CLI login. | Re-auth the CLI (see `docs/DEPLOYMENT_MAGIC.md`), then rerun once status.supabase.com is green again. |
-| Watchtower is empty | MCP server isn’t running or jobs haven’t started. | Start `npm run mcp:ensure` or check `lms-mcp` logs. |
-| Playwright tests bypass auth | We intentionally set `VITE_BYPASS_AUTH=true` only for Playwright’s web server. | Ignore in CI; production builds never set this flag. |
+| Watchtower is empty | MCP server isn't running or jobs haven't started. | Start `npm run mcp:ensure` (Docker auto-starts if needed) or check `lms-mcp` logs. |
+| Docker won't start | Docker Desktop installation issue or system resources. | Run `npm run docker:check` to diagnose, or manually open Docker Desktop. See `docs/DOCKER_AUTO_START.md`. |
+| Playwright tests bypass auth | We intentionally set `VITE_BYPASS_AUTH=true` only for Playwright's web server. | Ignore in CI; production builds never set this flag. |
 
 ---
 

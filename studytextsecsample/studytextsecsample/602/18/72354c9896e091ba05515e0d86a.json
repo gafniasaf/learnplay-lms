@@ -1,0 +1,10 @@
+{
+  "id": "60218723-54c9-896e-091b-a05515e0d86a",
+  "Content": [
+    {
+      "Language": "nl-NL",
+      "Content": "[$BOX]\n\t[$CELL]\n\t\t[$BLOCK]\n\n\t\t\t<h3>Hemofiltratie</h3>\n\t\t\t<p>E&eacute;n van de behandelingen om de functie van de nieren te vervangen is <strong>hemofiltratie. </strong>Het komt niet veel voor, omdat het duurder is dan hemodialyse. Alleen wanneer de zorgvrager niet behandeld kan worden met hemodialyse, wordt hemofiltratie gebruikt.</p>\n            <p>Je bloed bestaat uit de volgende onderdelen:</p>\n            <ul>\n               <li>plasma. Dit is een geelachtige doorzichtige vloeistof;</li>\n               <li>witte bloedcellen;</li>\n               <li>rode bloedcellen.</li>\n           </ul>\n           <p>In je plasma zijn zouten en afvalstoffen opgelost, maar bij nierproblemen zit de giftige stof ureum hier ook in. Hemofiltratie scheidt het plasma van de rest van het bloed door het bloed van de zorgvrager door een filter te persen. Het plasma wordt daarna vervangen door een andere vloeistof zodat alle afvalstoffen uit het bloed zijn gefilterd.</p> \n\n\t\t[$/BLOCK]\n\t[$/CELL]\n\t[$CELL]\n\n\t\t[$IMG(\"/media/Images/shutterstock_198860405.jpg\";450,300)]\n\n\t[$/CELL]\n[$/BOX]\n",
+      "Name": "Hemofiltratie"
+    }
+  ]
+}

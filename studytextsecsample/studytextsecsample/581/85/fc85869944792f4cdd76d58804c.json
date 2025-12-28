@@ -1,0 +1,10 @@
+{
+  "id": "58185fc8-5869-9447-92f4-cdd76d58804c",
+  "Content": [
+    {
+      "Language": "nl-NL",
+      "Content": "[$BOX]\n\t[$CELL]\n\t\t[$BLOCK]\n\n\t\t\t<h3>4.5.6 Polyfarmacie</h3>\n\t\t\t<p>Wanneer een zorgvrager vijf of meer geneesmiddelen per dag uit verschillende therapeutische groepen chronisch gebruikt, spreekt men van polyfarmacie. Hierbij worden dermatologische zalven en cr&egrave;mes niet meegerekend. Ook tijdelijke medicijnen (zoals een antibioticakuur) tellen niet mee. </p>\n\t\t\t<p>Polyfarmacie komt voor bij een groeiend aantal zorgvragers, met name bij ouderen. Bij 30-45% van de mensen ouder dan 65 jaar is sprake van polyfarmacie.</p>\n\t\t\t<p>Polyfarmacie kan leiden tot ernstige bijwerkingen en ongewenste interacties tussen medicijnen, vaak met ziekenhuisopname tot gevolg. Bij zorgvragers waarbij sprake is van polyfarmacie is het advies om een Periodieke Medicatie Beoordeling (PMB) in te voeren. Bij een PMB beoordelen de arts, apotheker en zorgverlener het medicijngebruik van de zorgvrager en kijken ze welke alternatieven mogelijk zijn. De arts bespreekt de voorgestelde veranderingen met de zorgvrager. Als de zorgvrager hiermee akkoord gaat, worden de veranderingen doorgevoerd. Drie maanden na de aanpassingen wordt er weer ge&euml;valueerd.</p>\n\n\t\t[$/BLOCK]\n\t[$/CELL]\t\n\t[$CELL]\n\t\t\n\t\t<div style=\"display:inline-block; width:300px;\">\n\n\t\t\t[$IMG(\"/media/Images/shutterstock_56831080.jpg\";200,300)]\n\n\t\t</div>\n\n\t[$/CELL]\n[$/BOX]",
+      "Name": "4.5.6 Polyfarmacie"
+    }
+  ]
+}
