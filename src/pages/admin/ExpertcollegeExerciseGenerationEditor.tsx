@@ -33,13 +33,34 @@ type GenerationRun = {
   };
 };
 
-function sanitizeIdFragment(v: string): string {
+function sanitizeIdFragment(v: string, maxLen: number): string {
   return String(v || "")
     .trim()
     .toLowerCase()
-    .replace(/[^a-z0-9-_]+/g, "-")
+    // Course ids are constrained by `idStr` (a-z0-9- only, max 64 chars)
+    .replace(/[^a-z0-9-]+/g, "-")
+    .replace(/-+/g, "-")
     .replace(/^-+|-+$/g, "")
-    .slice(0, 32);
+    .slice(0, Math.max(1, Math.floor(maxLen)));
+}
+
+function makeTempCourseId(args: { courseId: string; studyTextId: string; index: number }): string {
+  const prefix = "ecgen";
+  // Compact, url-safe entropy to avoid collisions while staying under 64 chars
+  const tail = `${Date.now().toString(36)}${Math.max(0, args.index).toString(36)}`;
+  const maxLen = 64;
+
+  // prefix-course-study-tail => 3 separators
+  const remaining = maxLen - (prefix.length + tail.length + 3);
+  const coursePartMax = Math.max(8, Math.floor(remaining * 0.6));
+  const studyPartMax = Math.max(6, remaining - coursePartMax);
+
+  const coursePart = sanitizeIdFragment(args.courseId, coursePartMax) || "course";
+  const studyPart = sanitizeIdFragment(args.studyTextId, studyPartMax) || "study";
+
+  const raw = `${prefix}-${coursePart}-${studyPart}-${tail}`.replace(/-+/g, "-").replace(/^-+|-+$/g, "");
+  if (raw.length <= maxLen) return raw;
+  return raw.slice(0, maxLen).replace(/-+$/g, "");
 }
 
 function stripHtml(s: string): string {
@@ -221,16 +242,7 @@ export default function ExpertcollegeExerciseGenerationEditor() {
         continue;
       }
 
-      const tempCourseId = [
-        "ecgen",
-        sanitizeIdFragment(courseId),
-        sanitizeIdFragment(stId),
-        String(Date.now()),
-        String(i + 1),
-      ]
-        .filter(Boolean)
-        .join("-")
-        .slice(0, 80);
+      const tempCourseId = makeTempCourseId({ courseId, studyTextId: stId, index: i });
 
       try {
         const resp = await mcp.enqueueJob("ai_course_generate", {
