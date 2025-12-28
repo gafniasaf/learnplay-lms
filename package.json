@@ -14,7 +14,7 @@
     "ingest": "npx tsx scripts/ingest-lovable.ts",
     "build:dev": "vite build --mode development",
     "start": "node server.mjs",
-    "prepare": "husky install",
+    "prepare": "node -e \"try{require('fs').statSync('.git')}catch{process.exit(0)}\" && git config core.hooksPath .husky",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",
