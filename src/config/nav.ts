@@ -50,6 +50,13 @@ export const navSections: NavSection[] = [
       { id: "admin", label: "Admin Home", path: "/admin", icon: "Shield", roles: ["admin"] },
       { id: "ai-pipeline", label: "AI Pipeline", path: "/admin/ai-pipeline", icon: "Sparkles", roles: ["admin"] },
       { id: "course-editor", label: "Course Editor", path: "/admin/courses/select", icon: "Edit", roles: ["admin"] },
+      {
+        id: "expertcollege-exercise-generation-editor",
+        label: "Expertcollege exercise generation editor",
+        path: "/admin/expertcollege-exercise-generation/select",
+        icon: "Sparkles",
+        roles: ["admin"],
+      },
       { id: "logs", label: "System Logs", path: "/admin/logs", icon: "ScrollText", roles: ["admin"] },
       { id: "tag-management", label: "Tag Management", path: "/admin/tags", icon: "Tags", roles: ["admin"] },
       { id: "tag-approval", label: "Tag Approval Queue", path: "/admin/tags/approve", icon: "CheckSquare", roles: ["admin"] },

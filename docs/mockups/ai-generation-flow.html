@@ -1,0 +1,2039 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Exercise Generation - LearnPlay</title>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #fafafa;
+            --bg-card: #ffffff;
+            --bg-hover: #f0f0f2;
+            --bg-active: #e8e8ec;
+            --bg-sunken: #f0f0f2;
+            
+            --border: #e2e2e6;
+            --border-strong: #ccc;
+            
+            --text: #1a1a1c;
+            --text-2: #4a4a52;
+            --text-3: #7a7a84;
+            --text-4: #a0a0a8;
+            
+            --accent: #6b5ccd;
+            --accent-hover: #5a4bb8;
+            --accent-soft: #f0eef8;
+            --accent-muted: #e4e0f4;
+            
+            --green: #1a9a6a;
+            --green-soft: #e6f5ef;
+            --orange: #d97b0d;
+            --orange-soft: #fef4e6;
+            --red: #d14343;
+            --red-soft: #fef0f0;
+            --blue: #2563eb;
+            --blue-soft: #eff6ff;
+            
+            --radius: 8px;
+            --radius-lg: 12px;
+            --transition: 150ms ease;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'DM Sans', system-ui, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            font-size: 14px;
+            line-height: 1.5;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* ════════════════════════════════════════════════════════════
+           HEADER
+        ════════════════════════════════════════════════════════════ */
+        .header {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            height: 56px;
+            padding: 0 20px;
+            background: var(--bg-card);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .back-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 36px;
+            height: 36px;
+            border-radius: var(--radius);
+            border: none;
+            background: transparent;
+            color: var(--text-2);
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .back-btn:hover { background: var(--bg-hover); color: var(--text); }
+        .back-btn svg { width: 20px; height: 20px; }
+
+        .page-title {
+            font-size: 16px;
+            font-weight: 700;
+        }
+
+        .page-subtitle {
+            font-size: 13px;
+            color: var(--text-3);
+            margin-left: 12px;
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            height: 36px;
+            padding: 0 16px;
+            border-radius: var(--radius);
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            border: none;
+        }
+
+        .btn svg { width: 16px; height: 16px; }
+
+        .btn-ghost { background: transparent; color: var(--text-2); }
+        .btn-ghost:hover { background: var(--bg-hover); color: var(--text); }
+
+        .btn-outline { background: var(--bg-card); border: 1px solid var(--border); color: var(--text); }
+        .btn-outline:hover { background: var(--bg-hover); border-color: var(--border-strong); }
+
+        .btn-primary { background: var(--accent); color: white; }
+        .btn-primary:hover { background: var(--accent-hover); }
+
+        .btn-success { background: var(--green); color: white; }
+        .btn-success:hover { background: #158a5c; }
+
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        /* ════════════════════════════════════════════════════════════
+           DEMO STATE SWITCHER
+        ════════════════════════════════════════════════════════════ */
+        .demo-switcher {
+            position: fixed;
+            top: 70px;
+            right: 20px;
+            z-index: 200;
+            background: var(--text);
+            color: white;
+            padding: 12px 16px;
+            border-radius: var(--radius-lg);
+            font-size: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+        }
+
+        .demo-switcher-title {
+            font-weight: 700;
+            margin-bottom: 8px;
+            opacity: 0.7;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-size: 10px;
+        }
+
+        .demo-switcher-btns {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+
+        .demo-switcher-btn {
+            padding: 8px 14px;
+            border-radius: 6px;
+            border: none;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            background: rgba(255,255,255,0.1);
+            color: white;
+        }
+
+        .demo-switcher-btn:hover { background: rgba(255,255,255,0.2); }
+        .demo-switcher-btn.active { background: white; color: var(--text); }
+
+        /* ════════════════════════════════════════════════════════════
+           MAIN LAYOUT
+        ════════════════════════════════════════════════════════════ */
+        .main-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 32px 24px;
+        }
+
+        /* ════════════════════════════════════════════════════════════
+           STATE 1: SELECTION
+        ════════════════════════════════════════════════════════════ */
+        .state-selection,
+        .state-generating,
+        .state-review {
+            display: none;
+        }
+
+        .state-selection.active,
+        .state-generating.active,
+        .state-review.active {
+            display: block;
+        }
+
+        .selection-header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .selection-header h1 {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .selection-header p {
+            font-size: 15px;
+            color: var(--text-3);
+        }
+
+        .selection-options {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+
+        .selection-card {
+            background: var(--bg-card);
+            border: 2px solid var(--border);
+            border-radius: var(--radius-lg);
+            padding: 24px;
+            cursor: pointer;
+            transition: var(--transition);
+            text-align: center;
+        }
+
+        .selection-card:hover {
+            border-color: var(--accent);
+            box-shadow: 0 4px 16px rgba(107, 92, 205, 0.1);
+        }
+
+        .selection-card.selected {
+            border-color: var(--accent);
+            background: var(--accent-soft);
+        }
+
+        .selection-card-icon {
+            width: 56px;
+            height: 56px;
+            background: var(--bg-sunken);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 16px;
+        }
+
+        .selection-card.selected .selection-card-icon {
+            background: var(--accent);
+            color: white;
+        }
+
+        .selection-card-icon svg { width: 24px; height: 24px; color: var(--text-3); }
+        .selection-card.selected .selection-card-icon svg { color: white; }
+
+        .selection-card h3 {
+            font-size: 16px;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .selection-card p {
+            font-size: 13px;
+            color: var(--text-3);
+        }
+
+        /* Study text list */
+        .study-text-list {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            overflow: hidden;
+        }
+
+        .study-text-list-header {
+            padding: 16px 20px;
+            background: var(--bg-sunken);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .study-text-list-title {
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--text-2);
+        }
+
+        .study-text-list-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .study-text-item {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--border);
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .study-text-item:last-child { border-bottom: none; }
+        .study-text-item:hover { background: var(--bg-hover); }
+
+        .study-text-item.selected { background: var(--accent-soft); }
+
+        .study-text-checkbox {
+            width: 20px;
+            height: 20px;
+            border: 2px solid var(--border-strong);
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            transition: var(--transition);
+        }
+
+        .study-text-item.selected .study-text-checkbox {
+            background: var(--accent);
+            border-color: var(--accent);
+        }
+
+        .study-text-checkbox svg { width: 12px; height: 12px; color: white; opacity: 0; }
+        .study-text-item.selected .study-text-checkbox svg { opacity: 1; }
+
+        .study-text-icon {
+            width: 36px;
+            height: 36px;
+            background: var(--blue-soft);
+            border-radius: var(--radius);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .study-text-icon svg { width: 18px; height: 18px; color: var(--blue); }
+
+        .study-text-content {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .study-text-name {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .study-text-meta {
+            font-size: 12px;
+            color: var(--text-3);
+        }
+
+        .study-text-badge {
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            padding: 4px 8px;
+            border-radius: 4px;
+            background: var(--green-soft);
+            color: var(--green);
+        }
+
+        .study-text-badge.pending {
+            background: var(--orange-soft);
+            color: var(--orange);
+        }
+
+        .selection-footer {
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+            margin-top: 32px;
+        }
+
+        /* ════════════════════════════════════════════════════════════
+           STATE 2: GENERATING (Progress)
+        ════════════════════════════════════════════════════════════ */
+        .generating-container {
+            max-width: 640px;
+            margin: 0 auto;
+            text-align: center;
+        }
+
+        .generating-header {
+            margin-bottom: 48px;
+        }
+
+        .generating-header h1 {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .generating-header p {
+            font-size: 14px;
+            color: var(--text-3);
+        }
+
+        .generating-visual {
+            width: 120px;
+            height: 120px;
+            margin: 0 auto 32px;
+            position: relative;
+        }
+
+        .generating-ring {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            border: 6px solid var(--bg-sunken);
+            position: relative;
+        }
+
+        .generating-ring::before {
+            content: '';
+            position: absolute;
+            top: -6px;
+            left: -6px;
+            right: -6px;
+            bottom: -6px;
+            border-radius: 50%;
+            border: 6px solid transparent;
+            border-top-color: var(--accent);
+            animation: spin 1.2s linear infinite;
+        }
+
+        @keyframes spin {
+            100% { transform: rotate(360deg); }
+        }
+
+        .generating-percent {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--accent);
+        }
+
+        .generating-steps {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            overflow: hidden;
+            text-align: left;
+        }
+
+        .generating-step {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .generating-step:last-child { border-bottom: none; }
+
+        .generating-step-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            background: var(--bg-sunken);
+            color: var(--text-4);
+        }
+
+        .generating-step-icon svg { width: 16px; height: 16px; }
+
+        .generating-step.complete .generating-step-icon {
+            background: var(--green);
+            color: white;
+        }
+
+        .generating-step.active .generating-step-icon {
+            background: var(--accent);
+            color: white;
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(107, 92, 205, 0.4); }
+            50% { box-shadow: 0 0 0 8px rgba(107, 92, 205, 0); }
+        }
+
+        .generating-step-content {
+            flex: 1;
+        }
+
+        .generating-step-title {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 2px;
+        }
+
+        .generating-step-subtitle {
+            font-size: 12px;
+            color: var(--text-3);
+        }
+
+        .generating-step-progress {
+            width: 100px;
+            height: 4px;
+            background: var(--bg-sunken);
+            border-radius: 2px;
+            overflow: hidden;
+        }
+
+        .generating-step-progress-fill {
+            height: 100%;
+            background: var(--accent);
+            transition: width 0.3s;
+        }
+
+        .generating-step.complete .generating-step-progress-fill {
+            background: var(--green);
+            width: 100%;
+        }
+
+        /* ════════════════════════════════════════════════════════════
+           STATE 3: REVIEW
+        ════════════════════════════════════════════════════════════ */
+        .review-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 24px;
+        }
+
+        .review-header-left h1 {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+
+        .review-header-left p {
+            font-size: 14px;
+            color: var(--text-3);
+        }
+
+        .review-stats {
+            display: flex;
+            gap: 24px;
+        }
+
+        .review-stat {
+            text-align: center;
+        }
+
+        .review-stat-value {
+            font-size: 32px;
+            font-weight: 700;
+            color: var(--accent);
+        }
+
+        .review-stat-label {
+            font-size: 12px;
+            color: var(--text-3);
+        }
+
+        .review-toolbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 16px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            margin-bottom: 16px;
+        }
+
+        .review-toolbar-left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .review-toolbar-checkbox {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+        }
+
+        .review-toolbar-checkbox input {
+            width: 18px;
+            height: 18px;
+            accent-color: var(--accent);
+        }
+
+        .review-toolbar-checkbox span {
+            font-size: 13px;
+            font-weight: 500;
+        }
+
+        .review-toolbar-divider {
+            width: 1px;
+            height: 20px;
+            background: var(--border);
+        }
+
+        .review-toolbar-count {
+            font-size: 13px;
+            color: var(--text-3);
+        }
+
+        .review-toolbar-right {
+            display: flex;
+            gap: 8px;
+        }
+
+        /* Exercise groups */
+        .review-group {
+            margin-bottom: 24px;
+        }
+
+        .review-group-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 0;
+            border-bottom: 2px solid var(--border);
+            margin-bottom: 12px;
+        }
+
+        .review-group-icon {
+            width: 32px;
+            height: 32px;
+            background: var(--blue-soft);
+            border-radius: var(--radius);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .review-group-icon svg { width: 16px; height: 16px; color: var(--blue); }
+
+        .review-group-title {
+            flex: 1;
+        }
+
+        .review-group-title h3 {
+            font-size: 15px;
+            font-weight: 700;
+        }
+
+        .review-group-title span {
+            font-size: 12px;
+            color: var(--text-3);
+        }
+
+        .review-group-badge {
+            font-size: 11px;
+            font-weight: 700;
+            padding: 4px 10px;
+            border-radius: 20px;
+            background: var(--green-soft);
+            color: var(--green);
+        }
+
+        /* Exercise items */
+        .review-exercises {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .review-exercise {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            overflow: hidden;
+            transition: var(--transition);
+        }
+
+        .review-exercise:hover {
+            border-color: var(--accent);
+            box-shadow: 0 2px 8px rgba(107, 92, 205, 0.08);
+        }
+
+        .review-exercise.excluded {
+            opacity: 0.5;
+            background: var(--bg-sunken);
+        }
+
+        .review-exercise-header {
+            display: flex;
+            align-items: flex-start;
+            gap: 16px;
+            padding: 16px 20px;
+            cursor: pointer;
+        }
+
+        .review-exercise-checkbox {
+            width: 22px;
+            height: 22px;
+            border: 2px solid var(--border-strong);
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            margin-top: 2px;
+            transition: var(--transition);
+        }
+
+        .review-exercise.checked .review-exercise-checkbox {
+            background: var(--accent);
+            border-color: var(--accent);
+        }
+
+        .review-exercise-checkbox svg { width: 14px; height: 14px; color: white; opacity: 0; }
+        .review-exercise.checked .review-exercise-checkbox svg { opacity: 1; }
+
+        .review-exercise-content {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .review-exercise-stem {
+            font-size: 14px;
+            font-weight: 500;
+            margin-bottom: 8px;
+            line-height: 1.5;
+        }
+
+        .review-exercise-stem .blank {
+            background: var(--accent-soft);
+            color: var(--accent);
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-weight: 600;
+        }
+
+        .review-exercise-meta {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .review-exercise-tag {
+            font-size: 11px;
+            font-weight: 600;
+            padding: 3px 8px;
+            border-radius: 4px;
+            background: var(--accent-soft);
+            color: var(--accent);
+        }
+
+        .review-exercise-variants {
+            font-size: 12px;
+            color: var(--text-3);
+        }
+
+        .review-exercise-expand {
+            width: 32px;
+            height: 32px;
+            border-radius: var(--radius);
+            border: none;
+            background: transparent;
+            color: var(--text-4);
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .review-exercise-expand:hover {
+            background: var(--bg-hover);
+            color: var(--text-2);
+        }
+
+        .review-exercise-expand svg { width: 16px; height: 16px; }
+
+        /* Expanded exercise detail */
+        .review-exercise-detail {
+            display: none;
+            padding: 0 20px 20px;
+            border-top: 1px solid var(--border);
+            margin-top: -1px;
+        }
+
+        .review-exercise.expanded .review-exercise-detail {
+            display: block;
+        }
+
+        .review-exercise-options {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-top: 16px;
+        }
+
+        .review-exercise-option {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 14px;
+            background: var(--bg-sunken);
+            border-radius: var(--radius);
+            font-size: 13px;
+        }
+
+        .review-exercise-option.correct {
+            background: var(--green-soft);
+        }
+
+        .review-exercise-option-indicator {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            border: 2px solid var(--border-strong);
+            flex-shrink: 0;
+        }
+
+        .review-exercise-option.correct .review-exercise-option-indicator {
+            background: var(--green);
+            border-color: var(--green);
+        }
+
+        .review-exercise-explanation {
+            margin-top: 16px;
+            padding: 12px 14px;
+            background: var(--bg-sunken);
+            border-radius: var(--radius);
+            border-left: 3px solid var(--accent);
+        }
+
+        .review-exercise-explanation-label {
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--text-4);
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+            margin-bottom: 4px;
+        }
+
+        .review-exercise-explanation-text {
+            font-size: 13px;
+            color: var(--text-2);
+        }
+
+        /* AI Action Buttons */
+        .field-ai {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            padding: 6px 10px;
+            border-radius: 6px;
+            border: none;
+            background: var(--accent-soft);
+            color: var(--accent);
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .field-ai:hover { background: var(--accent-muted); }
+        .field-ai svg { width: 14px; height: 14px; }
+
+        .field-ai.secondary {
+            background: var(--bg-sunken);
+            color: var(--text-2);
+        }
+
+        .field-ai.secondary:hover {
+            background: var(--bg-hover);
+            color: var(--text);
+        }
+
+        .review-exercise-actions {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 16px;
+            padding-top: 16px;
+            border-top: 1px solid var(--border);
+        }
+
+        .review-exercise-section {
+            margin-top: 16px;
+        }
+
+        .review-exercise-section-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 8px;
+        }
+
+        .review-exercise-section-label {
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--text-4);
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+
+        .review-exercise-section-actions {
+            display: flex;
+            gap: 6px;
+        }
+
+        /* Option action buttons */
+        .review-exercise-option-actions {
+            display: flex;
+            gap: 4px;
+            margin-left: auto;
+            opacity: 0;
+            transition: var(--transition);
+        }
+
+        .review-exercise-option:hover .review-exercise-option-actions {
+            opacity: 1;
+        }
+
+        .option-action-btn {
+            width: 26px;
+            height: 26px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 5px;
+            border: none;
+            background: transparent;
+            color: var(--text-4);
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .option-action-btn:hover {
+            background: var(--bg-card);
+            color: var(--accent);
+        }
+
+        .option-action-btn svg { width: 14px; height: 14px; }
+
+        /* Media upload area */
+        .review-exercise-media {
+            margin-top: 16px;
+        }
+
+        .media-upload-area {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            padding: 24px 16px;
+            border: 2px dashed var(--border);
+            border-radius: var(--radius);
+            color: var(--text-3);
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .media-upload-area:hover {
+            border-color: var(--accent);
+            background: var(--accent-soft);
+            color: var(--accent);
+        }
+
+        .media-upload-area svg { width: 20px; height: 20px; }
+
+        .media-preview {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .media-preview-item {
+            position: relative;
+            width: 120px;
+            height: 80px;
+            border-radius: var(--radius);
+            overflow: hidden;
+            background: var(--bg-sunken);
+        }
+
+        .media-preview-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .media-preview-item-remove {
+            position: absolute;
+            top: 4px;
+            right: 4px;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            border: none;
+            background: rgba(0,0,0,0.6);
+            color: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .media-preview-item-remove svg { width: 12px; height: 12px; }
+
+        /* Add option button */
+        .add-option-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            padding: 12px;
+            border: 2px dashed var(--border);
+            border-radius: var(--radius);
+            color: var(--text-3);
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: var(--transition);
+            margin-top: 8px;
+        }
+
+        .add-option-btn:hover {
+            border-color: var(--accent);
+            background: var(--accent-soft);
+            color: var(--accent);
+        }
+
+        .add-option-btn svg { width: 16px; height: 16px; }
+
+        /* Review footer */
+        .review-footer {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: var(--bg-card);
+            border-top: 1px solid var(--border);
+            padding: 16px 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            z-index: 50;
+        }
+
+        .review-footer-left {
+            font-size: 14px;
+            color: var(--text-2);
+        }
+
+        .review-footer-left strong {
+            color: var(--accent);
+        }
+
+        .review-footer-right {
+            display: flex;
+            gap: 12px;
+        }
+
+        /* ════════════════════════════════════════════════════════════
+           NOTIFICATIONS
+        ════════════════════════════════════════════════════════════ */
+        .notifications {
+            position: fixed;
+            top: 70px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 300;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            pointer-events: none;
+        }
+
+        .notification {
+            background: var(--text);
+            color: white;
+            padding: 12px 20px;
+            border-radius: var(--radius);
+            font-size: 13px;
+            font-weight: 500;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            animation: slideDown 0.3s ease, fadeOut 0.3s ease 2.7s forwards;
+            pointer-events: auto;
+        }
+
+        @keyframes slideDown {
+            from { opacity: 0; transform: translateY(-12px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes fadeOut {
+            to { opacity: 0; transform: translateY(-8px); }
+        }
+
+        .notification.success {
+            background: var(--green);
+        }
+
+        .notification.info {
+            background: var(--blue);
+        }
+
+        .notification.warning {
+            background: var(--orange);
+        }
+
+        .notification svg { width: 16px; height: 16px; }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--text-4); }
+
+        /* Footer padding */
+        .main-container { padding-bottom: 100px; }
+    </style>
+</head>
+<body data-route="/admin/expertcollege-exercise-generation/:courseId">
+
+<!-- ════════════════════════════════════════════════════════════ HEADER ════════════════════════════════════════════════════════════ -->
+<header class="header">
+    <div class="header-left">
+        <button class="back-btn" title="Back to editor" data-cta-id="cta-ecgen-back" data-action="navigate">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+            </svg>
+        </button>
+        <h1 class="page-title">AI Exercise Generator</h1>
+        <span class="page-subtitle">HBO Pathologie - Menstruatiestoornissen</span>
+    </div>
+    <div class="header-right">
+        <button class="btn btn-ghost">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            Help
+        </button>
+    </div>
+</header>
+
+<!-- ════════════════════════════════════════════════════════════ DEMO SWITCHER ════════════════════════════════════════════════════════════ -->
+<div class="demo-switcher">
+    <div class="demo-switcher-title">View State</div>
+    <div class="demo-switcher-btns">
+        <button class="demo-switcher-btn active" onclick="showState('selection')">1. Selection</button>
+        <button class="demo-switcher-btn" onclick="showState('generating')">2. Generating</button>
+        <button class="demo-switcher-btn" onclick="showState('review')">3. Review</button>
+    </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════ NOTIFICATIONS ════════════════════════════════════════════════════════════ -->
+<div class="notifications" id="notifications"></div>
+
+<div class="main-container">
+
+    <!-- ════════════════════════════════════════════════════════════ STATE 1: SELECTION ════════════════════════════════════════════════════════════ -->
+    <div class="state-selection active" id="state-selection">
+        <div class="selection-header">
+            <h1>Generate Exercises</h1>
+            <p>Select the study texts you want to create exercises for</p>
+        </div>
+
+        <div class="selection-options">
+            <div class="selection-card" onclick="selectScope(this, 'single')" data-cta-id="cta-ecgen-scope-single" data-action="select">
+                <div class="selection-card-icon">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                    </svg>
+                </div>
+                <h3>From One Study Text</h3>
+                <p>Create exercises based on a single topic</p>
+            </div>
+
+            <div class="selection-card selected" onclick="selectScope(this, 'group')" data-cta-id="cta-ecgen-scope-selected" data-action="select">
+                <div class="selection-card-icon">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/>
+                    </svg>
+                </div>
+                <h3>From Selected Study Texts</h3>
+                <p>Pick multiple topics to generate exercises for</p>
+            </div>
+
+            <div class="selection-card" onclick="selectScope(this, 'full')" data-cta-id="cta-ecgen-scope-course" data-action="select">
+                <div class="selection-card-icon">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
+                    </svg>
+                </div>
+                <h3>From All Study Texts</h3>
+                <p>Generate exercises for the entire course at once</p>
+            </div>
+        </div>
+
+        <div class="study-text-list">
+            <div class="study-text-list-header">
+                <span class="study-text-list-title">Source Study Texts (3 selected for exercise generation)</span>
+                <div class="study-text-list-actions">
+                    <button class="btn btn-ghost" onclick="selectAll()" data-cta-id="cta-ecgen-select-all" data-action="action">Select All</button>
+                    <button class="btn btn-ghost" onclick="deselectAll()" data-cta-id="cta-ecgen-clear" data-action="action">Clear</button>
+                </div>
+            </div>
+
+            <div class="study-text-item selected" onclick="toggleStudyText(this)">
+                <div class="study-text-checkbox">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/>
+                    </svg>
+                </div>
+                <div class="study-text-icon">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                    </svg>
+                </div>
+                <div class="study-text-content">
+                    <div class="study-text-name">1. Inleiding Menstruatie</div>
+                    <div class="study-text-meta">~850 woorden • Hoofdstuk 1</div>
+                </div>
+                <span class="study-text-badge">Has 6 exercises</span>
+            </div>
+
+            <div class="study-text-item selected" onclick="toggleStudyText(this)">
+                <div class="study-text-checkbox">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/>
+                    </svg>
+                </div>
+                <div class="study-text-icon">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                    </svg>
+                </div>
+                <div class="study-text-content">
+                    <div class="study-text-name">2. Menarche en Vruchtbare Periode</div>
+                    <div class="study-text-meta">~1.200 woorden • Hoofdstuk 1</div>
+                </div>
+                <span class="study-text-badge">Has 9 exercises</span>
+            </div>
+
+            <div class="study-text-item selected" onclick="toggleStudyText(this)">
+                <div class="study-text-checkbox">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/>
+                    </svg>
+                </div>
+                <div class="study-text-icon">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                    </svg>
+                </div>
+                <div class="study-text-content">
+                    <div class="study-text-name">3. Menstruatiestoornissen</div>
+                    <div class="study-text-meta">~980 woorden • Hoofdstuk 2</div>
+                </div>
+                <span class="study-text-badge pending">No exercises yet</span>
+            </div>
+
+            <div class="study-text-item" onclick="toggleStudyText(this)">
+                <div class="study-text-checkbox">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/>
+                    </svg>
+                </div>
+                <div class="study-text-icon">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                    </svg>
+                </div>
+                <div class="study-text-content">
+                    <div class="study-text-name">4. Diagnose en Behandeling</div>
+                    <div class="study-text-meta">~1.450 woorden • Hoofdstuk 3</div>
+                </div>
+                <span class="study-text-badge pending">No exercises yet</span>
+            </div>
+
+            <div class="study-text-item" onclick="toggleStudyText(this)">
+                <div class="study-text-checkbox">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/>
+                    </svg>
+                </div>
+                <div class="study-text-icon">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                    </svg>
+                </div>
+                <div class="study-text-content">
+                    <div class="study-text-name">5. Patiëntbegeleiding</div>
+                    <div class="study-text-meta">~720 woorden • Hoofdstuk 3</div>
+                </div>
+                <span class="study-text-badge pending">No exercises yet</span>
+            </div>
+        </div>
+
+        <div class="selection-footer">
+            <button class="btn btn-outline" onclick="showState('selection')">Cancel</button>
+            <button class="btn btn-primary" onclick="startGeneration()" data-cta-id="cta-ecgen-start" data-action="action">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                </svg>
+                Generate Exercises from Selected Texts
+            </button>
+        </div>
+    </div>
+
+    <!-- ════════════════════════════════════════════════════════════ STATE 2: GENERATING ════════════════════════════════════════════════════════════ -->
+    <div class="state-generating" id="state-generating">
+        <div class="generating-container">
+            <div class="generating-header">
+                <h1>Creating Exercises...</h1>
+                <p>Analyzing study texts and generating exercises for each learning objective</p>
+            </div>
+
+            <div class="generating-visual">
+                <div class="generating-ring"></div>
+                <div class="generating-percent">67%</div>
+            </div>
+
+            <div class="generating-steps">
+                <div class="generating-step complete">
+                    <div class="generating-step-icon">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                        </svg>
+                    </div>
+                    <div class="generating-step-content">
+                        <div class="generating-step-title">1. Inleiding Menstruatie</div>
+                        <div class="generating-step-subtitle">✓ 6 exercises created from 2 learning objectives</div>
+                    </div>
+                    <div class="generating-step-progress">
+                        <div class="generating-step-progress-fill" style="width: 100%"></div>
+                    </div>
+                </div>
+
+                <div class="generating-step active">
+                    <div class="generating-step-icon">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                    </div>
+                    <div class="generating-step-content">
+                        <div class="generating-step-title">2. Menarche en Vruchtbare Periode</div>
+                        <div class="generating-step-subtitle">Creating exercises from learning objectives...</div>
+                    </div>
+                    <div class="generating-step-progress">
+                        <div class="generating-step-progress-fill" style="width: 45%"></div>
+                    </div>
+                </div>
+
+                <div class="generating-step">
+                    <div class="generating-step-icon">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                    </div>
+                    <div class="generating-step-content">
+                        <div class="generating-step-title">3. Menstruatiestoornissen</div>
+                        <div class="generating-step-subtitle">Queued for exercise generation...</div>
+                    </div>
+                    <div class="generating-step-progress">
+                        <div class="generating-step-progress-fill" style="width: 0%"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ════════════════════════════════════════════════════════════ STATE 3: REVIEW ════════════════════════════════════════════════════════════ -->
+    <div class="state-review" id="state-review">
+        <div class="review-header">
+            <div class="review-header-left">
+                <h1>Review Generated Exercises</h1>
+                <p>All exercises are selected by default. Uncheck any you don't want to keep.</p>
+            </div>
+            <div class="review-stats">
+                <div class="review-stat">
+                    <div class="review-stat-value">21</div>
+                    <div class="review-stat-label">Exercises</div>
+                </div>
+                <div class="review-stat">
+                    <div class="review-stat-value">7</div>
+                    <div class="review-stat-label">Objectives</div>
+                </div>
+                <div class="review-stat">
+                    <div class="review-stat-value">3</div>
+                    <div class="review-stat-label">Study Texts</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="review-toolbar">
+            <div class="review-toolbar-left">
+                <label class="review-toolbar-checkbox">
+                    <input type="checkbox" checked onchange="toggleAll(this)">
+                    <span>Select All</span>
+                </label>
+                <div class="review-toolbar-divider"></div>
+                <span class="review-toolbar-count"><strong>19</strong> of 21 selected</span>
+            </div>
+            <div class="review-toolbar-right">
+                <button class="btn btn-ghost">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"/>
+                    </svg>
+                    Filter
+                </button>
+                <button class="btn btn-ghost">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M4 6h16M4 12h16m-7 6h7"/>
+                    </svg>
+                    Group by
+                </button>
+            </div>
+        </div>
+
+        <!-- Group 1 -->
+        <div class="review-group">
+            <div class="review-group-header">
+                <div class="review-group-icon">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                    </svg>
+                </div>
+                <div class="review-group-title">
+                    <h3>1. Inleiding Menstruatie</h3>
+                    <span>2 learning objectives • 6 exercises</span>
+                </div>
+                <span class="review-group-badge">All selected</span>
+            </div>
+
+            <div class="review-exercises">
+                <div class="review-exercise checked expanded" onclick="toggleExercise(this)">
+                    <div class="review-exercise-header">
+                        <div class="review-exercise-checkbox" onclick="toggleCheck(event, this.parentElement.parentElement)">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/>
+                            </svg>
+                        </div>
+                        <div class="review-exercise-content">
+                            <div class="review-exercise-stem">De eerste menstruatie in het leven van een meisje wordt <span class="blank">____</span> genoemd.</div>
+                            <div class="review-exercise-meta">
+                                <span class="review-exercise-tag">MCQ</span>
+                                <span class="review-exercise-variants">3 variants</span>
+                            </div>
+                        </div>
+                        <button class="review-exercise-expand">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                            </svg>
+                        </button>
+                    </div>
+                    <div class="review-exercise-detail">
+                        <!-- Stem Section with AI Actions -->
+                        <div class="review-exercise-section">
+                            <div class="review-exercise-section-header">
+                                <span class="review-exercise-section-label">Vraag</span>
+                                <div class="review-exercise-section-actions">
+                                    <button class="field-ai" onclick="aiRewriteStem(event)">
+                                        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L14.09 8.26L20 9.27L15.55 14.14L16.91 20.02L12 16.77L7.09 20.02L8.45 14.14L4 9.27L9.91 8.26L12 2Z"/></svg>
+                                        AI Rewrite
+                                    </button>
+                                    <button class="field-ai" onclick="aiImageStem(event)">
+                                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                                        AI Image
+                                    </button>
+                                    <button class="field-ai secondary" onclick="uploadStemImage(event)">
+                                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+                                        Upload
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="review-exercise-stem-editable" contenteditable="true" style="padding: 12px; background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); font-size: 14px;">
+                                De eerste menstruatie in het leven van een meisje wordt <span class="blank">____</span> genoemd.
+                            </div>
+                        </div>
+
+                        <!-- Options Section with AI Actions per option -->
+                        <div class="review-exercise-section">
+                            <div class="review-exercise-section-header">
+                                <span class="review-exercise-section-label">Antwoordopties</span>
+                                <div class="review-exercise-section-actions">
+                                    <button class="field-ai" onclick="aiImproveAllOptions(event)">
+                                        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L14.09 8.26L20 9.27L15.55 14.14L16.91 20.02L12 16.77L7.09 20.02L8.45 14.14L4 9.27L9.91 8.26L12 2Z"/></svg>
+                                        AI Improve All
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="review-exercise-options">
+                                <div class="review-exercise-option correct">
+                                    <div class="review-exercise-option-indicator"></div>
+                                    <span contenteditable="true">menarche</span>
+                                    <div class="review-exercise-option-actions">
+                                        <button class="option-action-btn" title="AI Rewrite" onclick="aiRewriteOption(event)">
+                                            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L14.09 8.26L20 9.27L15.55 14.14L16.91 20.02L12 16.77L7.09 20.02L8.45 14.14L4 9.27L9.91 8.26L12 2Z"/></svg>
+                                        </button>
+                                        <button class="option-action-btn" title="AI Image" onclick="aiImageOption(event)">
+                                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                                        </button>
+                                        <button class="option-action-btn" title="Upload Image" onclick="uploadOptionImage(event)">
+                                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+                                        </button>
+                                        <button class="option-action-btn" title="Delete" onclick="deleteOption(event)">
+                                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="review-exercise-option">
+                                    <div class="review-exercise-option-indicator"></div>
+                                    <span contenteditable="true">menopauze</span>
+                                    <div class="review-exercise-option-actions">
+                                        <button class="option-action-btn" title="AI Rewrite" onclick="aiRewriteOption(event)">
+                                            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L14.09 8.26L20 9.27L15.55 14.14L16.91 20.02L12 16.77L7.09 20.02L8.45 14.14L4 9.27L9.91 8.26L12 2Z"/></svg>
+                                        </button>
+                                        <button class="option-action-btn" title="AI Image" onclick="aiImageOption(event)">
+                                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                                        </button>
+                                        <button class="option-action-btn" title="Upload Image" onclick="uploadOptionImage(event)">
+                                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+                                        </button>
+                                        <button class="option-action-btn" title="Delete" onclick="deleteOption(event)">
+                                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="review-exercise-option">
+                                    <div class="review-exercise-option-indicator"></div>
+                                    <span contenteditable="true">menstruatiecyclus</span>
+                                    <div class="review-exercise-option-actions">
+                                        <button class="option-action-btn" title="AI Rewrite" onclick="aiRewriteOption(event)">
+                                            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L14.09 8.26L20 9.27L15.55 14.14L16.91 20.02L12 16.77L7.09 20.02L8.45 14.14L4 9.27L9.91 8.26L12 2Z"/></svg>
+                                        </button>
+                                        <button class="option-action-btn" title="AI Image" onclick="aiImageOption(event)">
+                                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                                        </button>
+                                        <button class="option-action-btn" title="Upload Image" onclick="uploadOptionImage(event)">
+                                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+                                        </button>
+                                        <button class="option-action-btn" title="Delete" onclick="deleteOption(event)">
+                                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="review-exercise-option">
+                                    <div class="review-exercise-option-indicator"></div>
+                                    <span contenteditable="true">puberteit</span>
+                                    <div class="review-exercise-option-actions">
+                                        <button class="option-action-btn" title="AI Rewrite" onclick="aiRewriteOption(event)">
+                                            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L14.09 8.26L20 9.27L15.55 14.14L16.91 20.02L12 16.77L7.09 20.02L8.45 14.14L4 9.27L9.91 8.26L12 2Z"/></svg>
+                                        </button>
+                                        <button class="option-action-btn" title="AI Image" onclick="aiImageOption(event)">
+                                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                                        </button>
+                                        <button class="option-action-btn" title="Upload Image" onclick="uploadOptionImage(event)">
+                                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+                                        </button>
+                                        <button class="option-action-btn" title="Delete" onclick="deleteOption(event)">
+                                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="add-option-btn" onclick="addOption(event)">
+                                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                                    Add option
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Explanation Section with AI Actions -->
+                        <div class="review-exercise-section">
+                            <div class="review-exercise-section-header">
+                                <span class="review-exercise-section-label">Uitleg</span>
+                                <div class="review-exercise-section-actions">
+                                    <button class="field-ai" onclick="aiRewriteExplanation(event)">
+                                        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L14.09 8.26L20 9.27L15.55 14.14L16.91 20.02L12 16.77L7.09 20.02L8.45 14.14L4 9.27L9.91 8.26L12 2Z"/></svg>
+                                        AI Rewrite
+                                    </button>
+                                    <button class="field-ai" onclick="aiImageExplanation(event)">
+                                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                                        AI Image
+                                    </button>
+                                    <button class="field-ai secondary" onclick="uploadExplanationImage(event)">
+                                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+                                        Upload
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="review-exercise-explanation-text" contenteditable="true" style="padding: 12px; background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius);">
+                                De eerste menstruatie heet menarche. Dit gebeurt tijdens de puberteit, meestal tussen de leeftijd van tien tot zestien jaar.
+                            </div>
+                        </div>
+
+                        <!-- Media Section -->
+                        <div class="review-exercise-section">
+                            <div class="review-exercise-section-header">
+                                <span class="review-exercise-section-label">Media (optioneel)</span>
+                                <div class="review-exercise-section-actions">
+                                    <button class="field-ai" onclick="aiGenerateImage(event)">
+                                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                                        AI Image
+                                    </button>
+                                    <button class="field-ai secondary" onclick="uploadImage(event)">
+                                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+                                        Upload
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="media-upload-area" onclick="uploadImage(event)">
+                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                                <span>Drop image here or click to upload</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="review-exercise checked" onclick="toggleExercise(this)">
+                    <div class="review-exercise-header">
+                        <div class="review-exercise-checkbox" onclick="toggleCheck(event, this.parentElement.parentElement)">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/>
+                            </svg>
+                        </div>
+                        <div class="review-exercise-content">
+                            <div class="review-exercise-stem">De vruchtbare periode van een vrouw begint met <span class="blank">____</span>.</div>
+                            <div class="review-exercise-meta">
+                                <span class="review-exercise-tag">MCQ</span>
+                                <span class="review-exercise-variants">3 variants</span>
+                            </div>
+                        </div>
+                        <button class="review-exercise-expand">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Group 2 -->
+        <div class="review-group">
+            <div class="review-group-header">
+                <div class="review-group-icon">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                    </svg>
+                </div>
+                <div class="review-group-title">
+                    <h3>2. Menarche en Vruchtbare Periode</h3>
+                    <span>3 learning objectives • 9 exercises</span>
+                </div>
+                <span class="review-group-badge">8 of 9 selected</span>
+            </div>
+
+            <div class="review-exercises">
+                <div class="review-exercise checked" onclick="toggleExercise(this)">
+                    <div class="review-exercise-header">
+                        <div class="review-exercise-checkbox" onclick="toggleCheck(event, this.parentElement.parentElement)">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/>
+                            </svg>
+                        </div>
+                        <div class="review-exercise-content">
+                            <div class="review-exercise-stem">De menstruatie verschilt per vrouw op verschillende gebieden. Eén van deze gebieden is <span class="blank">____</span>.</div>
+                            <div class="review-exercise-meta">
+                                <span class="review-exercise-tag">MCQ</span>
+                                <span class="review-exercise-variants">3 variants</span>
+                            </div>
+                        </div>
+                        <button class="review-exercise-expand">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="review-exercise excluded" onclick="toggleExercise(this)">
+                    <div class="review-exercise-header">
+                        <div class="review-exercise-checkbox" onclick="toggleCheck(event, this.parentElement.parentElement)">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/>
+                            </svg>
+                        </div>
+                        <div class="review-exercise-content">
+                            <div class="review-exercise-stem">De menarche markeert <span class="blank">____</span> in het leven van een vrouw.</div>
+                            <div class="review-exercise-meta">
+                                <span class="review-exercise-tag">MCQ</span>
+                                <span class="review-exercise-variants">3 variants</span>
+                            </div>
+                        </div>
+                        <button class="review-exercise-expand">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="review-exercise checked" onclick="toggleExercise(this)">
+                    <div class="review-exercise-header">
+                        <div class="review-exercise-checkbox" onclick="toggleCheck(event, this.parentElement.parentElement)">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/>
+                            </svg>
+                        </div>
+                        <div class="review-exercise-content">
+                            <div class="review-exercise-stem">Het einde van de vruchtbare periode wordt gemarkeerd door <span class="blank">____</span>.</div>
+                            <div class="review-exercise-meta">
+                                <span class="review-exercise-tag">MCQ</span>
+                                <span class="review-exercise-variants">3 variants</span>
+                            </div>
+                        </div>
+                        <button class="review-exercise-expand">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Group 3 -->
+        <div class="review-group">
+            <div class="review-group-header">
+                <div class="review-group-icon">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                    </svg>
+                </div>
+                <div class="review-group-title">
+                    <h3>3. Menstruatiestoornissen</h3>
+                    <span>2 learning objectives • 6 exercises</span>
+                </div>
+                <span class="review-group-badge">All selected</span>
+            </div>
+
+            <div class="review-exercises">
+                <div class="review-exercise checked" onclick="toggleExercise(this)">
+                    <div class="review-exercise-header">
+                        <div class="review-exercise-checkbox" onclick="toggleCheck(event, this.parentElement.parentElement)">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/>
+                            </svg>
+                        </div>
+                        <div class="review-exercise-content">
+                            <div class="review-exercise-stem">Een menstruatiestoornis waarbij de menstruatie te vaak voorkomt heet <span class="blank">____</span>.</div>
+                            <div class="review-exercise-meta">
+                                <span class="review-exercise-tag">MCQ</span>
+                                <span class="review-exercise-variants">3 variants</span>
+                            </div>
+                        </div>
+                        <button class="review-exercise-expand">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="review-exercise checked" onclick="toggleExercise(this)">
+                    <div class="review-exercise-header">
+                        <div class="review-exercise-checkbox" onclick="toggleCheck(event, this.parentElement.parentElement)">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/>
+                            </svg>
+                        </div>
+                        <div class="review-exercise-content">
+                            <div class="review-exercise-stem">Bij hypermenorroe is er sprake van <span class="blank">____</span>.</div>
+                            <div class="review-exercise-meta">
+                                <span class="review-exercise-tag">MCQ</span>
+                                <span class="review-exercise-variants">3 variants</span>
+                            </div>
+                        </div>
+                        <button class="review-exercise-expand">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- ════════════════════════════════════════════════════════════ REVIEW FOOTER ════════════════════════════════════════════════════════════ -->
+<div class="review-footer" id="review-footer" style="display: none;">
+    <div class="review-footer-left">
+        <strong>19 exercises</strong> selected to add to course
+    </div>
+    <div class="review-footer-right">
+        <button class="btn btn-outline" onclick="showState('selection')">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+            </svg>
+            Regenerate
+        </button>
+        <button class="btn btn-success" onclick="saveToCourse()" data-cta-id="cta-ecgen-save-to-course" data-action="action">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+            </svg>
+            Save to Course
+        </button>
+    </div>
+</div>
+
+<script>
+    // Demo: State switching
+    function showState(state) {
+        document.querySelectorAll('.state-selection, .state-generating, .state-review').forEach(el => el.classList.remove('active'));
+        document.getElementById('state-' + state).classList.add('active');
+        
+        document.querySelectorAll('.demo-switcher-btn').forEach(btn => btn.classList.remove('active'));
+        event.target.classList.add('active');
+
+        // Show/hide footer
+        document.getElementById('review-footer').style.display = state === 'review' ? 'flex' : 'none';
+
+        // Show notifications on state change
+        if (state === 'generating') {
+            showNotification('info', 'Creating exercises from 3 study texts...');
+        }
+        if (state === 'review') {
+            showNotification('success', '21 exercises generated! Review and save to your course.');
+        }
+    }
+
+    // Selection scope
+    function selectScope(el, scope) {
+        document.querySelectorAll('.selection-card').forEach(card => card.classList.remove('selected'));
+        el.classList.add('selected');
+    }
+
+    // Study text toggle
+    function toggleStudyText(el) {
+        el.classList.toggle('selected');
+        updateStudyTextCount();
+    }
+
+    function selectAll() {
+        document.querySelectorAll('.study-text-item').forEach(item => item.classList.add('selected'));
+        updateStudyTextCount();
+    }
+
+    function deselectAll() {
+        document.querySelectorAll('.study-text-item').forEach(item => item.classList.remove('selected'));
+        updateStudyTextCount();
+    }
+
+    function updateStudyTextCount() {
+        const count = document.querySelectorAll('.study-text-item.selected').length;
+        document.querySelector('.study-text-list-title').textContent = `Source Study Texts (${count} selected for exercise generation)`;
+    }
+
+    // Start generation
+    function startGeneration() {
+        showState('generating');
+        document.querySelectorAll('.demo-switcher-btn').forEach(btn => btn.classList.remove('active'));
+        document.querySelectorAll('.demo-switcher-btn')[1].classList.add('active');
+        
+        // Simulate progress
+        setTimeout(() => {
+            showNotification('success', 'Study text 1 complete: 6 exercises generated');
+        }, 1500);
+    }
+
+    // Review exercise toggle
+    function toggleExercise(el) {
+        el.classList.toggle('expanded');
+    }
+
+    function toggleCheck(event, el) {
+        event.stopPropagation();
+        el.classList.toggle('checked');
+        el.classList.toggle('excluded', !el.classList.contains('checked'));
+        updateSelectedCount();
+    }
+
+    function toggleAll(checkbox) {
+        document.querySelectorAll('.review-exercise').forEach(ex => {
+            if (checkbox.checked) {
+                ex.classList.add('checked');
+                ex.classList.remove('excluded');
+            } else {
+                ex.classList.remove('checked');
+                ex.classList.add('excluded');
+            }
+        });
+        updateSelectedCount();
+    }
+
+    function updateSelectedCount() {
+        const total = document.querySelectorAll('.review-exercise').length;
+        const selected = document.querySelectorAll('.review-exercise.checked').length;
+        document.querySelector('.review-toolbar-count').innerHTML = `<strong>${selected}</strong> of ${total} selected`;
+        document.querySelector('.review-footer-left').innerHTML = `<strong>${selected} exercises</strong> selected to add to course`;
+    }
+
+    // Save
+    function saveToCourse() {
+        showNotification('success', '19 exercises saved to course!');
+        setTimeout(() => {
+            showNotification('info', 'Redirecting to course editor...');
+        }, 1000);
+    }
+
+    // AI Actions - Stem
+    function aiRewriteStem(event) {
+        event.stopPropagation();
+        showNotification('info', 'AI is rewriting the question...');
+        setTimeout(() => showNotification('success', 'Question rewritten!'), 1500);
+    }
+
+    function aiImageStem(event) {
+        event.stopPropagation();
+        showNotification('info', 'AI is generating an image for the question...');
+        setTimeout(() => showNotification('success', 'Question image generated!'), 2000);
+    }
+
+    function uploadStemImage(event) {
+        event.stopPropagation();
+        showNotification('info', 'Opening file picker for question image...');
+    }
+
+    // AI Actions - Options
+    function aiImproveAllOptions(event) {
+        event.stopPropagation();
+        showNotification('info', 'AI is improving all options...');
+        setTimeout(() => showNotification('success', 'All options improved!'), 2000);
+    }
+
+    function aiRewriteOption(event) {
+        event.stopPropagation();
+        showNotification('info', 'AI is rewriting this option...');
+        setTimeout(() => showNotification('success', 'Option rewritten!'), 1500);
+    }
+
+    function aiImageOption(event) {
+        event.stopPropagation();
+        showNotification('info', 'AI is generating an option image...');
+        setTimeout(() => showNotification('success', 'Option image generated!'), 2000);
+    }
+
+    function uploadOptionImage(event) {
+        event.stopPropagation();
+        showNotification('info', 'Opening file picker for option image...');
+    }
+
+    function deleteOption(event) {
+        event.stopPropagation();
+        showNotification('warning', 'Option deleted');
+    }
+
+    function addOption(event) {
+        event.stopPropagation();
+        showNotification('info', 'New option added');
+    }
+
+    // AI Actions - Explanation
+    function aiRewriteExplanation(event) {
+        event.stopPropagation();
+        showNotification('info', 'AI is improving the explanation...');
+        setTimeout(() => showNotification('success', 'Explanation improved!'), 1500);
+    }
+
+    function aiImageExplanation(event) {
+        event.stopPropagation();
+        showNotification('info', 'AI is generating an image for the explanation...');
+        setTimeout(() => showNotification('success', 'Explanation image generated!'), 2000);
+    }
+
+    function uploadExplanationImage(event) {
+        event.stopPropagation();
+        showNotification('info', 'Opening file picker for explanation image...');
+    }
+
+    // AI Actions - Media
+    function aiGenerateImage(event) {
+        event.stopPropagation();
+        showNotification('info', 'AI is generating an image...');
+        setTimeout(() => showNotification('success', 'Image generated!'), 2000);
+    }
+
+    function uploadImage(event) {
+        event.stopPropagation();
+        showNotification('info', 'Opening file picker...');
+    }
+
+    // Notifications
+    function showNotification(type, message) {
+        const container = document.getElementById('notifications');
+        const notif = document.createElement('div');
+        notif.className = `notification ${type}`;
+        
+        let icon = '';
+        if (type === 'success') icon = '<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>';
+        if (type === 'info') icon = '<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>';
+        if (type === 'warning') icon = '<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>';
+        
+        notif.innerHTML = icon + message;
+        container.appendChild(notif);
+        
+        setTimeout(() => notif.remove(), 3000);
+    }
+</script>
+
+</body>
+</html>
+

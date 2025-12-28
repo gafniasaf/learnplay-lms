@@ -156,6 +156,10 @@ serve(async (req: Request): Promise<Response> => {
           : null;
     const notes =
       typeof (payload as any).notes === "string" ? String((payload as any).notes).trim() : "";
+    const studyText =
+      (typeof (payload as any).study_text === "string" && String((payload as any).study_text).trim()) ||
+      (typeof (payload as any).studyText === "string" && String((payload as any).studyText).trim()) ||
+      "";
 
     if (!courseId) {
       return json({ ok: false, error: { code: "invalid_request", message: "course_id is required in payload" }, httpStatus: 400, requestId }, 200);
@@ -220,19 +224,32 @@ serve(async (req: Request): Promise<Response> => {
 
     const jobId = (stableJobId ?? (inserted.data.id as string)) as string;
 
-    // Persist special requests (notes) alongside the job in Storage (no DB schema changes required).
-    // This enables generate-course to honor the user’s requests even when the worker only has jobId,
+    // Extract protocol from payload
+    const protocol =
+      typeof (payload as any).protocol === "string" ? String((payload as any).protocol).trim() : null;
+
+    // Persist special requests (notes), protocol selection, and optional studyText alongside the job in Storage (no DB schema changes required).
+    // This enables generate-course to honor the user's requests even when the worker only has jobId,
     // and works even if `job_events` is not deployed / not in PostgREST schema cache.
-    if (notes) {
+    // Always persist if either notes or protocol is provided (protocol alone is valid)
+    if (notes || protocol || studyText) {
       try {
         const path = `debug/jobs/${jobId}/special_requests.json`;
-        const payload = {
+        const storagePayload: Record<string, unknown> = {
           jobId,
-          notes,
           requestId,
           createdAt: new Date().toISOString(),
         };
-        const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+        if (notes) {
+          storagePayload.notes = notes;
+        }
+        if (studyText) {
+          storagePayload.studyText = studyText;
+        }
+        if (protocol) {
+          storagePayload.protocol = protocol;
+        }
+        const blob = new Blob([JSON.stringify(storagePayload, null, 2)], { type: "application/json" });
         const { error: upErr } = await adminSupabase.storage
           .from("courses")
           .upload(path, blob, { upsert: true, contentType: "application/json" });
@@ -240,7 +257,7 @@ serve(async (req: Request): Promise<Response> => {
           throw new Error(`Storage upload failed: ${upErr.message ?? String(upErr)}`);
         }
       } catch (e) {
-        // Fail loud: if the user provided notes but we couldn't persist them, generation would silently ignore them.
+        // Fail loud: if the user provided notes/protocol but we couldn't persist them, generation would silently ignore them.
         const msg = e instanceof Error ? e.message : String(e);
         await adminSupabase
           .from("ai_course_jobs")

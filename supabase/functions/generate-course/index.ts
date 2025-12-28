@@ -44,6 +44,11 @@ const InputSchema = z.object({
   studyTextsCount: z.number().int().min(1).max(12).optional(),
   // Optional explicit toggle (else derived from notes).
   generateStudyTextImages: z.boolean().optional(),
+  // Protocol ID for exercise generation (e.g., 'standard', 'ec-expert')
+  protocol: z.string().max(50).optional(),
+  // Optional explicit study text used by protocol-based generation (e.g., EC Expert).
+  // This is distinct from `notes` (special requests) to avoid conflation.
+  studyText: z.string().max(20000).optional(),
 });
 
 function normalizeSubjectForSafety(subject: string, gradeBand: string): string {
@@ -92,6 +97,54 @@ async function fetchJobNotes(supabase: any, jobId: string): Promise<string | nul
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
     throw new Error(`Failed to load special requests for ${jobId}: ${msg}`);
+  }
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function fetchJobProtocol(supabase: any, jobId: string): Promise<string | null> {
+  // Protocol is stored alongside notes in special_requests.json
+  try {
+    const path = `debug/jobs/${jobId}/special_requests.json`;
+    const { data: file, error } = await supabase.storage.from("courses").download(path);
+    if (error) {
+      const msg = String((error as any)?.message || "").toLowerCase();
+      const status = Number((error as any)?.statusCode || (error as any)?.status || 0);
+      // If missing, treat as "no protocol" (protocol is optional).
+      if (status === 404 || msg.includes("not found") || msg.includes("does not exist")) return null;
+      return null; // Non-fatal
+    }
+    if (!file) return null;
+    const text = await file.text();
+    const parsed = JSON.parse(text);
+    const protocol = typeof parsed?.protocol === "string" ? String(parsed.protocol).trim() : "";
+    return protocol || null;
+  } catch (e) {
+    // Non-fatal: protocol is optional
+    return null;
+  }
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function fetchJobStudyText(supabase: any, jobId: string): Promise<string | null> {
+  // studyText is stored alongside notes in special_requests.json
+  try {
+    const path = `debug/jobs/${jobId}/special_requests.json`;
+    const { data: file, error } = await supabase.storage.from("courses").download(path);
+    if (error) {
+      const msg = String((error as any)?.message || "").toLowerCase();
+      const status = Number((error as any)?.statusCode || (error as any)?.status || 0);
+      // If missing, treat as "no studyText" (optional).
+      if (status === 404 || msg.includes("not found") || msg.includes("does not exist")) return null;
+      return null; // Non-fatal
+    }
+    if (!file) return null;
+    const text = await file.text();
+    const parsed = JSON.parse(text);
+    const studyText = typeof parsed?.studyText === "string" ? String(parsed.studyText).trim() : "";
+    return studyText || null;
+  } catch {
+    // Non-fatal: studyText is optional
+    return null;
   }
 }
 
@@ -583,9 +636,25 @@ Deno.serve(
           ? wantsStudyTextImagesFromNotes(notes)
           : false;
 
+    // Read protocol from input or job storage
+    const protocolFromInput = input.protocol;
+    const protocolFromJob = jobId ? await fetchJobProtocol(supabase, jobId) : null;
+    const protocol = protocolFromInput || protocolFromJob || undefined;
+
+    // Read optional studyText (distinct from notes) from input or job storage.
+    const studyTextFromInput = typeof input.studyText === "string" ? input.studyText.trim() : "";
+    const studyTextFromJob = jobId && !studyTextFromInput ? await fetchJobStudyText(supabase, jobId) : null;
+    const studyText = studyTextFromInput || studyTextFromJob || undefined;
+
+    // For EC Expert, we treat the provided studyText as the canonical reference material and keep a single study text section.
+    const effectiveStudyTextsCount =
+      protocol === "ec-expert" && typeof studyText === "string" && studyText.trim().length > 0
+        ? 1
+        : derivedStudyTextsCount;
+
     const runGeneration = createGenerationRunner({
       selectStrategy: (strategyInput) =>
-        selectGenerationStrategy(strategyInput, {
+        selectGenerationStrategy({ ...strategyInput, protocol }, {
           generateCourseDeterministic,
           buildSkeleton,
         }),
@@ -691,8 +760,10 @@ Deno.serve(
           format: 'practice',
           grade: input.grade ?? null,
           notes,
-          studyTextsCount: derivedStudyTextsCount,
+          studyTextsCount: effectiveStudyTextsCount,
           generateStudyTextImages: derivedGenerateStudyTextImages,
+          protocol,
+          studyText,
         } as any,
         requestId,
         jobId,

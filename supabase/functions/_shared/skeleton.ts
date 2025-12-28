@@ -136,7 +136,28 @@ function capitalize(s: string): string {
 
 // Sanitize ID
 function sanitizeId(s: string): string {
-  return s.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+  return s
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "");
+}
+
+function makeClusterId(groupName: string, groupId: number, clusterIndex: number): string {
+  const baseRaw = sanitizeId(groupName);
+  const prefix = `g${groupId}-`;
+  const suffix = `-cluster-${clusterIndex}`;
+
+  // Course schema constrains clusterId max length to 64 characters.
+  // Ensure we never exceed it, even for long subjects/group names.
+  const maxBaseLen = Math.max(1, 64 - prefix.length - suffix.length);
+  let base = baseRaw.length > maxBaseLen ? baseRaw.slice(0, maxBaseLen) : baseRaw;
+  base = base.replace(/-+$/g, "");
+  if (!base) base = `group-${groupId}`;
+
+  const out = `${prefix}${base}${suffix}`;
+  return out.length > 64 ? out.slice(0, 64) : out;
 }
 
 // Build groups from subject
@@ -183,7 +204,7 @@ export function buildSkeleton(params: SkeletonParams): SkeletonCourse {
         id: itemId,
         text: "__FILL__",
         groupId: group.id,
-        clusterId: `${sanitizeId(group.name)}-cluster-${Math.floor(j / 3)}`,
+        clusterId: makeClusterId(group.name, group.id, Math.floor(j / 3)),
         variant: (((j % 3) + 1).toString()) as "1" | "2" | "3",
         mode,
       };

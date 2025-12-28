@@ -234,6 +234,46 @@ export function extractJsonFromText(text: string): any {
     }
   }
 
+  // Special repair: brace-less single-key objects (common when using JSON prefill).
+  // Example: \n  "objectives": [ ... ]\n}
+  // or: \n  "exercises": [ ... ]\n}
+  const braceLessStart = !s.trim().startsWith('{') && !s.trim().startsWith('[');
+  const hasObjectives = /\"objectives\"\s*:\s*\[/i.test(s);
+  const hasExercises = /\"exercises\"\s*:\s*\[/i.test(s);
+  const hasComments = /\"comments\"\s*:\s*\[/i.test(s);
+  if (braceLessStart && (hasObjectives || hasExercises)) {
+    function extractArrayAfterKey(input: string, key: string): string | null {
+      const keyIdx = input.search(new RegExp(`\\"${key}\\"\\s*:\\s*\\[`, 'i'));
+      if (keyIdx === -1) return null;
+      const bracketStart = input.indexOf('[', keyIdx);
+      const region = extractBalanced(input, '[', ']', bracketStart);
+      return region?.text || null;
+    }
+    // Multi-key brace-less object: comments + exercises (used by senior revision step)
+    if (hasComments && hasExercises) {
+      const cArr = extractArrayAfterKey(s, 'comments');
+      const eArr = extractArrayAfterKey(s, 'exercises');
+      if (cArr && eArr) {
+        const reconstructed = `{\n  \"comments\": ${cArr},\n  \"exercises\": ${eArr}\n}`;
+        try { return JSON.parse(reconstructed); } catch (_) { /* continue */ }
+      }
+    }
+    if (hasObjectives) {
+      const arr = extractArrayAfterKey(s, 'objectives');
+      if (arr) {
+        const reconstructed = `{\n  "objectives": ${arr}\n}`;
+        try { return JSON.parse(reconstructed); } catch (_) { /* continue */ }
+      }
+    }
+    if (hasExercises) {
+      const arr = extractArrayAfterKey(s, 'exercises');
+      if (arr) {
+        const reconstructed = `{\n  "exercises": ${arr}\n}`;
+        try { return JSON.parse(reconstructed); } catch (_) { /* continue */ }
+      }
+    }
+  }
+
   const objRegion = extractBalanced(s, '{', '}');
   if (objRegion) {
     // Attempt parse with basic repairs

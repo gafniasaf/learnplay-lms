@@ -34,8 +34,44 @@ function legacyHtmlToStudyTextMarkers(args: { title: string; html: string }): st
 
   s = s.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
 
-  // Convert images into explicit markers.
+  // Convert custom [$IMG(...)] syntax to [IMAGE:...] markers
+  // Format: [$IMG("/media/Images/file.jpg";200,300)] -> [IMAGE:/media/Images/file.jpg]
+  s = s.replace(/\$IMG\(["']([^"']+)["'][^;]*\)/gi, (_m, path) => `\n[IMAGE:${path}]\n`);
+
+  // Convert standard HTML images into explicit markers.
   s = s.replace(/<img\s+[^>]*src="([^"]+)"[^>]*>/gi, (_m, src) => `\n[IMAGE:${src}]\n`);
+
+  // Convert HTML5 animations/interactive content into markers
+  // iframe (HTML5 animations, embedded content)
+  s = s.replace(/<iframe[^>]*src="([^"]+)"[^>]*>.*?<\/iframe>/gis, (_m, src) => `\n[ANIMATION:${src}]\n`);
+  
+  // embed (Flash, HTML5)
+  s = s.replace(/<embed[^>]*src="([^"]+)"[^>]*>/gi, (_m, src) => `\n[ANIMATION:${src}]\n`);
+  
+  // object (Flash, HTML5)
+  s = s.replace(/<object[^>]*data="([^"]+)"[^>]*>.*?<\/object>/gis, (_m, data) => `\n[ANIMATION:${data}]\n`);
+  
+  // video
+  s = s.replace(/<video[^>]*src="([^"]+)"[^>]*>.*?<\/video>/gis, (_m, src) => `\n[VIDEO:${src}]\n`);
+  
+  // YouTube/Vimeo links (detect via text matching)
+  s = s.replace(/(https?:\/\/(?:www\.)?(?:youtube\.com\/watch\?v=|youtu\.be\/|vimeo\.com\/)[^\s<>"']+)/gi, 
+    (url) => `\n[VIDEO:${url}]\n`);
+  
+  // HTML file links (HTML5 animations)
+  s = s.replace(/<a[^>]*href=["']([^"']*\.html[^"']*)["'][^>]*>(.*?)<\/a>/gi, (_m, href, text) => {
+    const linkText = text.trim() || 'Animation';
+    return `\n[ANIMATION:${href}]\n${linkText}\n`;
+  });
+
+  // Preserve custom block syntax markers (convert to readable format but keep structure)
+  // [$BOX], [$CELL], [$BLOCK], etc. - convert to section markers
+  s = s.replace(/\$BOX\]/gi, '\n[BOX]\n');
+  s = s.replace(/\$\/BOX\]/gi, '\n[/BOX]\n');
+  s = s.replace(/\$CELL\]/gi, '\n[CELL]\n');
+  s = s.replace(/\$\/CELL\]/gi, '\n[/CELL]\n');
+  s = s.replace(/\$BLOCK\]/gi, '\n[BLOCK]\n');
+  s = s.replace(/\$\/BLOCK\]/gi, '\n[/BLOCK]\n');
 
   // Convert common block-ish tags into line breaks.
   s = s.replace(/<br\s*\/?>/gi, '\n');
@@ -46,7 +82,7 @@ function legacyHtmlToStudyTextMarkers(args: { title: string; html: string }): st
   // Make list items readable.
   s = s.replace(/<li\s*[^>]*>/gi, '- ');
 
-  // Remove remaining tags.
+  // Remove remaining HTML tags (but preserve marker content).
   s = s.replace(/<[^>]+>/g, '');
 
   // Decode a minimal set of entities.
@@ -334,7 +370,11 @@ function transformSubjectsToStudyTexts(
     if (!subject.mes_studytext_id) continue;
 
     const title = subject.mes_subject_name || subject.mes_resource_displayname || `Section ${order + 1}`;
-    let content = subject.mes_resource_content_text || '';
+    // Check all possible content fields (SQL function may return content in different fields)
+    // The study_text field contains the full HTML with embedded multimedia
+    let content = (subject as any).study_text || 
+                  (subject as any).regexp_replace || 
+                  subject.mes_resource_content_text || '';
     
     // Apply image URL mapping if provided
     if (imageUrlMapper) {
@@ -367,8 +407,17 @@ function migrateImagesInContent(
   content: string,
   imageUrlMapper: (originalUrl: string) => string
 ): string {
+  // Match custom [$IMG(...)] syntax: [$IMG("/media/Images/file.jpg";200,300)]
+  content = content.replace(
+    /\$IMG\(["']([^"']+)["'][^;]*\)/gi,
+    (match, path) => {
+      const newUrl = imageUrlMapper(path);
+      return `[$IMG("${newUrl}")]`;
+    }
+  );
+  
   // Match <img src="..."> patterns
-  return content.replace(
+  content = content.replace(
     /<img\s+([^>]*?)src="([^"]+)"([^>]*)>/gi,
     (match, before, src, after) => {
       const newUrl = imageUrlMapper(src);
@@ -415,14 +464,52 @@ export function extractImageUrls(legacy: LegacyCourseContent): string[] {
     urls.add(course.image);
   }
 
-  // Images in study texts
+  // Images and multimedia in study texts
   for (const subject of legacy.subjects) {
-    if (!subject.mes_resource_content_text) continue;
+    // Check all possible content fields (SQL function may return content in different fields)
+    const content = (subject as any).study_text || 
+                    (subject as any).regexp_replace || 
+                    subject.mes_resource_content_text || '';
+    if (!content) continue;
     
-    const imgMatches = subject.mes_resource_content_text.matchAll(
-      /<img\s+[^>]*src="([^"]+)"[^>]*>/gi
-    );
+    // Extract custom [$IMG(...)] syntax: [$IMG("/media/Images/file.jpg";200,300)]
+    const customImgMatches = content.matchAll(/\$IMG\(["']([^"']+)["']/gi);
+    for (const match of customImgMatches) {
+      urls.add(match[1]);
+    }
+    
+    // Extract image URLs from standard HTML
+    const imgMatches = content.matchAll(/<img\s+[^>]*src="([^"]+)"[^>]*>/gi);
     for (const match of imgMatches) {
+      urls.add(match[1]);
+    }
+    
+    // Extract iframe/embed sources (HTML5 animations)
+    const iframeMatches = content.matchAll(/<iframe[^>]*src="([^"]+)"[^>]*>/gi);
+    for (const match of iframeMatches) {
+      urls.add(match[1]);
+    }
+    
+    const embedMatches = content.matchAll(/<embed[^>]*src="([^"]+)"[^>]*>/gi);
+    for (const match of embedMatches) {
+      urls.add(match[1]);
+    }
+    
+    // Extract object data (Flash/HTML5)
+    const objectMatches = content.matchAll(/<object[^>]*data="([^"]+)"[^>]*>/gi);
+    for (const match of objectMatches) {
+      urls.add(match[1]);
+    }
+    
+    // Extract video sources
+    const videoMatches = content.matchAll(/<video[^>]*src="([^"]+)"[^>]*>/gi);
+    for (const match of videoMatches) {
+      urls.add(match[1]);
+    }
+    
+    // Extract HTML file links (HTML5 animations)
+    const htmlLinkMatches = content.matchAll(/href=["']([^"']*\.html[^"']*)["']/gi);
+    for (const match of htmlLinkMatches) {
       urls.add(match[1]);
     }
   }

@@ -10,6 +10,8 @@
 import React from "react";
 import { Route } from "react-router-dom";
 import CourseSelector from "./pages/admin/CourseSelector";
+import ExpertcollegeExerciseGenerationSelector from "./pages/admin/ExpertcollegeExerciseGenerationSelector";
+import ExpertcollegeExerciseGenerationEditor from "./pages/admin/ExpertcollegeExerciseGenerationEditor";
 
 // Workspace Entity Editors (Manifest-First pattern)
 const LearnerProfileEditor = React.lazy(() => import("./pages/workspace/LearnerProfileEditor"));
@@ -101,6 +103,16 @@ export const generatedRouteElements = [
   <Route key="gen-admin-pipeline" path="/admin/ai-pipeline" element={<AIPipeline />} />,
   <Route key="gen-admin-course-select" path="/admin/courses/select" element={<CourseSelector />} />,
   <Route key="gen-admin-editor" path="/admin/editor/:courseId" element={<CourseEditor />} />,
+  <Route
+    key="gen-admin-expertcollege-select"
+    path="/admin/expertcollege-exercise-generation/select"
+    element={<ExpertcollegeExerciseGenerationSelector />}
+  />,
+  <Route
+    key="gen-admin-expertcollege-editor"
+    path="/admin/expertcollege-exercise-generation/:courseId"
+    element={<ExpertcollegeExerciseGenerationEditor />}
+  />,
   <Route key="gen-admin-versions" path="/admin/courses/:courseId/versions" element={<CourseVersionHistory />} />,
   <Route key="gen-admin-jobs" path="/admin/jobs" element={<JobsDashboard />} />,
   <Route key="gen-admin-logs" path="/admin/logs" element={<Logs />} />,

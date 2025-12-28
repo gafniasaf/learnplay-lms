@@ -192,6 +192,24 @@
       "prompt_template": "Execute the LearnPlay regression checklist (CTA clicks, guard job, accessibility). Return JSON {\"total_tests\": number, \"passed\": number, \"failed\": number, \"details\": [{\"name\": string, \"status\": string, \"notes\": string}]}."
     }
   ],
+  "generation": {
+    "default_protocol": "standard",
+    "protocols": {
+      "ec-expert": {
+        "name": "ExpertCollege Exercise Protocol",
+        "description": "Two-pass generation: Extract learning objectives from study text, then generate 3-5 exercise variants per objective using Bloom's taxonomy. Output in Dutch.",
+        "requires_study_text": true,
+        "locale": "nl-NL",
+        "output_structure": "objectives_with_sets"
+      },
+      "standard": {
+        "name": "Standard Generation",
+        "description": "Traditional skeleton + filler approach for course generation",
+        "requires_study_text": false,
+        "output_structure": "flat_items"
+      }
+    }
+  },
   "edge_functions": [
     { "id": "validate-course-structure", "input": { "courseId": "string" }, "output": { "ok": "boolean" } },
     { "id": "generate-variants-audit", "input": { "courseId": "string" }, "output": { "ok": "boolean", "coverage": "number" } },

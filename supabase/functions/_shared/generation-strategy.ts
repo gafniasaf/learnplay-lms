@@ -11,6 +11,8 @@ export interface GenerationInput {
   notes?: string;
   studyTextsCount?: number;
   generateStudyTextImages?: boolean;
+  protocol?: string; // Protocol ID (e.g., 'standard', 'ec-expert')
+  studyText?: string; // Optional explicit study text for protocol-based generation
 }
 
 export interface GenerationDependencies {

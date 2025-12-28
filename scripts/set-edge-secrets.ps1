@@ -14,14 +14,17 @@ if (-not (Test-Path $envFile)) {
   exit 1
 }
 
-# Read OpenAI key from learnplay.env
+# Read OpenAI key and LEGACY_DATABASE_URL from learnplay.env
 $content = Get-Content $envFile -Raw
 $openaiKey = $null
+$legacyDbUrl = $null
 $lines = $content -split "`n"
 for ($i = 0; $i -lt $lines.Length; $i++) {
   if ($lines[$i] -match "openai key" -and $i + 1 -lt $lines.Length) {
     $openaiKey = $lines[$i + 1].Trim()
-    break
+  }
+  if ($lines[$i] -match "^LEGACY_DATABASE_URL=") {
+    $legacyDbUrl = ($lines[$i] -replace '^LEGACY_DATABASE_URL=','').Trim()
   }
 }
 
@@ -71,9 +74,37 @@ if ($exitCode -eq 0 -or ($filteredResult -match "success" -or $filteredResult -m
   }
 } else {
   Write-Host "Output: $filteredResult"
-  Write-Error "Failed to set secret. Exit code: $exitCode"
+  Write-Error "Failed to set OPENAI_API_KEY secret. Exit code: $exitCode"
   exit 1
 }
 
+# Set LEGACY_DATABASE_URL secret if found
+if ($legacyDbUrl) {
+  Write-Host ""
+  Write-Host "Setting LEGACY_DATABASE_URL secret..."
+  $escapedDbUrl = $legacyDbUrl -replace '"', '`"'
+  $command = "supabase secrets set `"LEGACY_DATABASE_URL=$escapedDbUrl`" --project-ref $projectRef --yes"
+  Write-Host "Running: supabase secrets set LEGACY_DATABASE_URL=*** --project-ref $projectRef --yes"
+  
+  $result = & cmd /c "$command 2>&1"
+  $exitCode = $LASTEXITCODE
+  $filteredResult = $result | Where-Object { $_ -notmatch "A new version" }
+  
+  if ($exitCode -eq 0 -or ($filteredResult -match "success" -or $filteredResult -match "Secret set")) {
+    Write-Host "✅ LEGACY_DATABASE_URL secret set successfully"
+    if ($filteredResult) {
+      Write-Host $filteredResult
+    }
+  } else {
+    Write-Host "Output: $filteredResult"
+    Write-Warning "Failed to set LEGACY_DATABASE_URL secret. Exit code: $exitCode"
+    Write-Warning "You may need to set it manually: supabase secrets set LEGACY_DATABASE_URL='...' --project-ref $projectRef"
+  }
+} else {
+  Write-Host ""
+  Write-Warning "LEGACY_DATABASE_URL not found in learnplay.env - skipping"
+}
+
+Write-Host ""
 Write-Host "✅ All secrets configured"
 

@@ -6,6 +6,8 @@ import { enforceCourseId } from "../_shared/course-identity.ts";
 import { generateJson } from "../_shared/ai.ts";
 import { buildRepairPrompt, SYSTEM_PROMPT } from "../_shared/prompts.ts";
 import { extractJsonFromText, normalizeOptionsItem, normalizeNumericItem } from "../_shared/generation-utils.ts";
+import { getProtocol, validateProtocolInput } from "../_shared/protocol-registry.ts";
+import type { ProtocolInput } from "../_shared/protocols/types.ts";
 
 type DeterministicPackInfo = {
   packId?: string;
@@ -228,32 +230,76 @@ export function createGenerationRunner(deps: GenerationRunnerDeps) {
       course = selection.course;
     } else {
       deterministicErrors = selection.deterministicErrors;
-      await deps.updateJobProgress(jobId, "building_skeleton", 20, "Building course skeleton...");
-      await deps.updateJobProgress(jobId, "filling_content", 40, "Filling course content with AI...");
-      let fillResult = await deps.fillSkeleton(selection.skeleton, {
-        requestId,
-        functionName: "generate-course",
-      });
-      if (!fillResult.ok && /json_parse_failed|missing_studyTexts/i.test(fillResult.error)) {
-        // Light retry once
-        await deps.updateJobProgress(jobId, "filling_content", 45, "Retrying content fill...");
-        fillResult = await deps.fillSkeleton(selection.skeleton, {
+      
+      // Check if a protocol is specified
+      const protocolId = (input as GenerationInput & { protocol?: string }).protocol;
+      
+      if (protocolId) {
+        // Use protocol-based generation
+        await deps.updateJobProgress(jobId, "protocol_generation", 30, `Using ${protocolId} protocol...`);
+        
+        const protocol = getProtocol(protocolId);
+
+        const protocolInput: ProtocolInput = {
+          // For now, EC Expert consumes the explicit studyText field (NOT notes).
+          // This avoids conflating special requests with the reference material.
+          studyText: input.studyText,
+          audience: input.gradeBand,
+          subject: input.subject,
+          theme: input.title || input.subject,
+          // EC Expert is Dutch-first. If we later add locale to the job payload, wire it through here.
+          locale: "nl-NL",
+          notes: input.notes,
+        };
+
+        const validation = validateProtocolInput(protocolId, protocolInput);
+        if (!validation.valid) {
+          throw new Error(`protocol_invalid_input: ${validation.errors.join(", ")}`);
+        }
+
+        // Fill the provided skeleton via protocol implementation (identity fields preserved).
+        const protocolRes = await protocol.fillCourse({
+          skeleton: selection.skeleton,
+          ctx: { requestId, functionName: "generate-course" },
+          input: protocolInput,
+          timeoutMs: 120_000,
+        });
+
+        if (!protocolRes.ok) {
+          throw new Error(`protocol_fill_failed: ${protocolRes.error}`);
+        }
+
+        course = protocolRes.course;
+        source = "skeleton+llm";
+      } else {
+        // Standard filler path
+        await deps.updateJobProgress(jobId, "building_skeleton", 20, "Building course skeleton...");
+        await deps.updateJobProgress(jobId, "filling_content", 40, "Filling course content with AI...");
+        let fillResult = await deps.fillSkeleton(selection.skeleton, {
           requestId,
           functionName: "generate-course",
-          retry: true,
-        } as any);
-      }
-      if (!fillResult.ok) {
-        // If the provider refused the request (content policy), surface it as an invalid_request
-        // so the UI can instruct the user to rephrase (no term lists, no silent fallback).
-        if (/^content_policy_violation\s*:/i.test(fillResult.error)) {
-          const msg = fillResult.error.replace(/^content_policy_violation\s*:\s*/i, "").trim();
-          throw new Error(`invalid_request: ${msg || "Subject rejected by content policy. Please rephrase."}`);
+        });
+        if (!fillResult.ok && /json_parse_failed|missing_studyTexts/i.test(fillResult.error)) {
+          // Light retry once
+          await deps.updateJobProgress(jobId, "filling_content", 45, "Retrying content fill...");
+          fillResult = await deps.fillSkeleton(selection.skeleton, {
+            requestId,
+            functionName: "generate-course",
+            retry: true,
+          } as any);
         }
-        // NO PLACEHOLDERS POLICY: fail loud so callers can see the real error and retry.
-        throw new Error(`llm_fill_failed: ${fillResult.error}`);
+        if (!fillResult.ok) {
+          // If the provider refused the request (content policy), surface it as an invalid_request
+          // so the UI can instruct the user to rephrase (no term lists, no silent fallback).
+          if (/^content_policy_violation\s*:/i.test(fillResult.error)) {
+            const msg = fillResult.error.replace(/^content_policy_violation\s*:\s*/i, "").trim();
+            throw new Error(`invalid_request: ${msg || "Subject rejected by content policy. Please rephrase."}`);
+          }
+          // NO PLACEHOLDERS POLICY: fail loud so callers can see the real error and retry.
+          throw new Error(`llm_fill_failed: ${fillResult.error}`);
+        }
+        course = fillResult.course;
       }
-      course = fillResult.course;
     }
 
     const canonicalCourseId = expectedCourseId ?? course?.id;

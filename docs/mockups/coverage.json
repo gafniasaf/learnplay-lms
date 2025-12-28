@@ -218,6 +218,49 @@
       ]
     },
     {
+      "path": "/admin/expertcollege-exercise-generation/:courseId",
+      "name": "Expertcollege exercise generation editor",
+      "description": "Generate exercises from study texts with review and save flow",
+      "states": [
+        {
+          "id": "default",
+          "file": "ai-generation-flow.html",
+          "description": "Default state",
+          "required": true
+        }
+      ],
+      "requiredCTAs": [
+        {
+          "id": "cta-ecgen-scope-single",
+          "target": "select"
+        },
+        {
+          "id": "cta-ecgen-scope-selected",
+          "target": "select"
+        },
+        {
+          "id": "cta-ecgen-scope-course",
+          "target": "select"
+        },
+        {
+          "id": "cta-ecgen-select-all",
+          "target": "action"
+        },
+        {
+          "id": "cta-ecgen-clear",
+          "target": "action"
+        },
+        {
+          "id": "cta-ecgen-start",
+          "target": "action"
+        },
+        {
+          "id": "cta-ecgen-save-to-course",
+          "target": "action"
+        }
+      ]
+    },
+    {
       "path": "/admin/editor/demo-course",
       "name": "Course Editor",
       "description": "Course Editor",
