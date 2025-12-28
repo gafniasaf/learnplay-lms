@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, HashRouter, Routes, Route, Navigate } from "react-router-dom";
 import { lazy, Suspense, Component, ReactNode, useEffect, useMemo, useState } from "react";
 import { generatedRouteElements, GeneratedFallback } from "./routes.generated";
 import { useSentryUser } from "./hooks/useSentryUser";
@@ -401,6 +401,20 @@ const DevAgentSetupGate = ({ children }: { children: React.ReactNode }) => {
 };
 
 const App = () => {
+  const useHashRouter = useMemo(() => isLovableHost(), []);
+  const Router = useHashRouter ? HashRouter : BrowserRouter;
+
+  // Lovable preview can intermittently fail to load deep links directly (e.g. HTTP 412).
+  // Using hash routing in Lovable-hosted previews avoids server-side routing constraints.
+  useEffect(() => {
+    if (!useHashRouter || typeof window === "undefined") return;
+    if (window.location.hash) return;
+    const path = window.location.pathname || "/";
+    if (path === "/" || path === "") return;
+    const next = `/#${path}${window.location.search || ""}`;
+    window.location.replace(next);
+  }, [useHashRouter]);
+
   return (
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
@@ -408,7 +422,7 @@ const App = () => {
           <DawnDataProvider>
             <Toaster />
             <Sonner />
-            <BrowserRouter>
+            <Router>
               <SentryUserProvider>
                 <DevAgentSetupGate>
                   <Layout>
@@ -444,7 +458,7 @@ const App = () => {
                   </Layout>
                 </DevAgentSetupGate>
               </SentryUserProvider>
-            </BrowserRouter>
+            </Router>
           </DawnDataProvider>
         </TooltipProvider>
       </QueryClientProvider>
