@@ -3,7 +3,7 @@ import { URL, pathToFileURL } from "node:url";
 import path from "node:path";
 import { config } from "./config.js";
 import { callJson } from "./http.js";
-import "./polyfill.ts"; // Polyfill Deno for local strategies
+import "./polyfill.js"; // Polyfill Deno for local strategies (extension must be .js for NodeNext)
 
 const METHODS = ["lms.health", "lms.enqueueJob", "lms.listJobs", "lms.getJob", "lms.logs", "lms.saveRecord", "lms.getRecord", "lms.listRecords"] as const;
 
