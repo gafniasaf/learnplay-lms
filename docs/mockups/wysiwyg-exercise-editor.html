@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Wysiwyg Exercise Editor</title>
+  </head>
+  <body>
+    <div class="app-container" data-route="/admin/wysiwyg-exercise-editor/:courseId">
+      <header>
+        <button data-cta-id="cta-wysiwyg-back-to-select" data-action="navigate">Back</button>
+        <button data-cta-id="cta-wysiwyg-save" data-action="action">Save</button>
+        <button data-cta-id="cta-wysiwyg-retry-load" data-action="action">Retry Load</button>
+      </header>
+
+      <aside>
+        <button data-cta-id="cta-wysiwyg-nav-item-0-0" data-action="navigate">Item 0-0</button>
+        <button data-cta-id="cta-wysiwyg-nav-item-0-1" data-action="navigate">Item 0-1</button>
+        <button data-cta-id="cta-wysiwyg-nav-item-0-2" data-action="navigate">Item 0-2</button>
+        <button data-cta-id="cta-wysiwyg-nav-item-0-3" data-action="navigate">Item 0-3</button>
+        <button data-cta-id="cta-wysiwyg-nav-item-0-4" data-action="navigate">Item 0-4</button>
+        <button data-cta-id="cta-wysiwyg-nav-item-0-5" data-action="navigate">Item 0-5</button>
+        <button data-cta-id="cta-wysiwyg-nav-item-1-0" data-action="navigate">Item 1-0</button>
+        <button data-cta-id="cta-wysiwyg-nav-item-1-1" data-action="navigate">Item 1-1</button>
+      </aside>
+
+      <main>
+        <section>
+          <div
+            contenteditable="true"
+            data-cta-id="cta-wysiwyg-stem-edit"
+            data-action="edit"
+          >
+            Stem (editable)
+          </div>
+          <button data-cta-id="cta-wysiwyg-stem-ai-rewrite" data-action="action">✨</button>
+          <button data-cta-id="cta-wysiwyg-stem-ai-image" data-action="action">🎨</button>
+          <button data-cta-id="cta-wysiwyg-stem-upload-media" data-action="action">🖼️</button>
+        </section>
+
+        <section>
+          <div contenteditable="true" data-cta-id="cta-wysiwyg-option-edit-0" data-action="edit">Option A</div>
+          <button data-cta-id="cta-wysiwyg-option-ai-rewrite-0" data-action="action">✨</button>
+          <button data-cta-id="cta-wysiwyg-option-ai-image-0" data-action="action">🎨</button>
+          <button data-cta-id="cta-wysiwyg-option-media-upload-0" data-action="action">🖼️</button>
+          <button data-cta-id="cta-wysiwyg-option-set-correct-0" data-action="action">✓</button>
+
+          <div contenteditable="true" data-cta-id="cta-wysiwyg-option-edit-1" data-action="edit">Option B</div>
+          <button data-cta-id="cta-wysiwyg-option-ai-rewrite-1" data-action="action">✨</button>
+          <button data-cta-id="cta-wysiwyg-option-ai-image-1" data-action="action">🎨</button>
+          <button data-cta-id="cta-wysiwyg-option-media-upload-1" data-action="action">🖼️</button>
+          <button data-cta-id="cta-wysiwyg-option-set-correct-1" data-action="action">✓</button>
+
+          <div contenteditable="true" data-cta-id="cta-wysiwyg-option-edit-2" data-action="edit">Option C</div>
+          <button data-cta-id="cta-wysiwyg-option-ai-rewrite-2" data-action="action">✨</button>
+          <button data-cta-id="cta-wysiwyg-option-ai-image-2" data-action="action">🎨</button>
+          <button data-cta-id="cta-wysiwyg-option-media-upload-2" data-action="action">🖼️</button>
+          <button data-cta-id="cta-wysiwyg-option-set-correct-2" data-action="action">✓</button>
+
+          <div contenteditable="true" data-cta-id="cta-wysiwyg-option-edit-3" data-action="edit">Option D</div>
+          <button data-cta-id="cta-wysiwyg-option-ai-rewrite-3" data-action="action">✨</button>
+          <button data-cta-id="cta-wysiwyg-option-ai-image-3" data-action="action">🎨</button>
+          <button data-cta-id="cta-wysiwyg-option-media-upload-3" data-action="action">🖼️</button>
+          <button data-cta-id="cta-wysiwyg-option-set-correct-3" data-action="action">✓</button>
+        </section>
+
+        <section>
+          <div
+            contenteditable="true"
+            data-cta-id="cta-wysiwyg-explanation-edit"
+            data-action="edit"
+          >
+            Explanation (editable)
+          </div>
+          <button data-cta-id="cta-wysiwyg-explanation-ai-rewrite" data-action="action">✨</button>
+          <button data-cta-id="cta-wysiwyg-explanation-ai-image" data-action="action">🎨</button>
+          <button data-cta-id="cta-wysiwyg-explanation-upload-media" data-action="action">🖼️</button>
+        </section>
+
+        <footer>
+          <button data-cta-id="cta-wysiwyg-prev" data-action="navigate">Prev</button>
+          <button data-cta-id="cta-wysiwyg-next" data-action="navigate">Next</button>
+        </footer>
+      </main>
+    </div>
+  </body>
+</html>
+
+

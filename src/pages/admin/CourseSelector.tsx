@@ -36,6 +36,14 @@ type CategoryFilter = 'all' | 'expertcollege' | 'standard';
 type SortField = 'title' | 'subject' | 'updated' | 'items';
 type SortDirection = 'asc' | 'desc';
 
+export interface CourseSelectorProps {
+  /** Base path for the editor route. Example: `/admin/editor` */
+  editorBasePath?: string;
+  title?: string;
+  description?: string;
+  editLabel?: string;
+}
+
 // Helper to detect Expertcollege courses
 function isExpertcollegeCourse(course: CourseCatalogItem): boolean {
   const title = (course.title || '').toLowerCase();
@@ -62,7 +70,12 @@ function getUniqueSubjects(courses: CourseCatalogItem[]): string[] {
   return Array.from(subjects).sort();
 }
 
-const CourseSelector = () => {
+const CourseSelector = ({
+  editorBasePath = '/admin/editor',
+  title = 'Select Course to Edit',
+  description = 'Choose a course to open in the Course Editor',
+  editLabel = 'Edit',
+}: CourseSelectorProps) => {
   const navigate = useNavigate();
   const { user, role } = useAuth();
   const { toast } = useToast();
@@ -191,7 +204,8 @@ const CourseSelector = () => {
   };
 
   const handleSelectCourse = (courseId: string) => {
-    navigate(`/admin/editor/${courseId}`);
+    const base = editorBasePath.replace(/\/$/, '');
+    navigate(`${base}/${courseId}`);
   };
 
   const toggleSort = (field: SortField) => {
@@ -221,10 +235,10 @@ const CourseSelector = () => {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Edit className="h-6 w-6" />
-              Select Course to Edit
+              {title}
             </CardTitle>
             <CardDescription>
-              Choose a course to open in the Course Editor
+              {description}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
@@ -423,7 +437,7 @@ const CourseSelector = () => {
                         )}
                       >
                         <Edit className="h-4 w-4 mr-2" />
-                        Edit
+                        {editLabel}
                       </Button>
                     </div>
                   );

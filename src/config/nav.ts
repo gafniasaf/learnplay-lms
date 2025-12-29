@@ -51,6 +51,13 @@ export const navSections: NavSection[] = [
       { id: "ai-pipeline", label: "AI Pipeline", path: "/admin/ai-pipeline", icon: "Sparkles", roles: ["admin"] },
       { id: "course-editor", label: "Course Editor", path: "/admin/courses/select", icon: "Edit", roles: ["admin"] },
       {
+        id: "wysiwyg-exercise-editor",
+        label: "Wysiwyg exercise editor",
+        path: "/admin/wysiwyg-exercise-editor/select",
+        icon: "Edit",
+        roles: ["admin"],
+      },
+      {
         id: "expertcollege-exercise-generation-editor",
         label: "Expertcollege exercise generation editor",
         path: "/admin/expertcollege-exercise-generation/select",

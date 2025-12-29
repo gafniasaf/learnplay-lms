@@ -12,6 +12,7 @@ import { Route } from "react-router-dom";
 import CourseSelector from "./pages/admin/CourseSelector";
 import ExpertcollegeExerciseGenerationSelector from "./pages/admin/ExpertcollegeExerciseGenerationSelector";
 import ExpertcollegeExerciseGenerationEditor from "./pages/admin/ExpertcollegeExerciseGenerationEditor";
+import WysiwygExerciseEditorSelector from "./pages/admin/WysiwygExerciseEditorSelector";
 
 // Workspace Entity Editors (Manifest-First pattern)
 const LearnerProfileEditor = React.lazy(() => import("./pages/workspace/LearnerProfileEditor"));
@@ -35,6 +36,7 @@ const AuthPage = React.lazy(() => import("./pages/Auth"));
 const AdminConsole = React.lazy(() => import("./pages/Admin"));
 const AIPipeline = React.lazy(() => import("./pages/admin/AIPipelineV2"));
 const CourseEditor = React.lazy(() => import("./pages/admin/CourseEditorV3"));
+const WysiwygExerciseEditor = React.lazy(() => import("./pages/admin/WysiwygExerciseEditor"));
 const CourseVersionHistory = React.lazy(() => import("./pages/admin/CourseVersionHistory"));
 const JobsDashboard = React.lazy(() => import("./pages/admin/JobsDashboard"));
 const Logs = React.lazy(() => import("./pages/admin/Logs"));
@@ -84,7 +86,7 @@ const PlayMedia = React.lazy(() => import("./pages/generated/pages/play-session-
 const Settings = React.lazy(() => import("./pages/generated/pages/settings"));
 const TeacherControl = React.lazy(() => import("./pages/generated/pages/teacher-control"));
 
-const generatedRouteCount = 45;
+const generatedRouteCount = 47;
 
 export const generatedRouteElements = [
   // Landing
@@ -103,6 +105,8 @@ export const generatedRouteElements = [
   <Route key="gen-admin-pipeline" path="/admin/ai-pipeline" element={<AIPipeline />} />,
   <Route key="gen-admin-course-select" path="/admin/courses/select" element={<CourseSelector />} />,
   <Route key="gen-admin-editor" path="/admin/editor/:courseId" element={<CourseEditor />} />,
+  <Route key="gen-admin-wysiwyg-select" path="/admin/wysiwyg-exercise-editor/select" element={<WysiwygExerciseEditorSelector />} />,
+  <Route key="gen-admin-wysiwyg-editor" path="/admin/wysiwyg-exercise-editor/:courseId" element={<WysiwygExerciseEditor />} />,
   <Route
     key="gen-admin-expertcollege-select"
     path="/admin/expertcollege-exercise-generation/select"

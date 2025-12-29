@@ -261,6 +261,247 @@
       ]
     },
     {
+      "path": "/admin/wysiwyg-exercise-editor/select",
+      "name": "Wysiwyg Exercise Editor Selector",
+      "description": "Select course for Wysiwyg exercise editor",
+      "states": [
+        {
+          "id": "default",
+          "file": "admin/wysiwyg-exercise-editor/select/default.html",
+          "description": "Default state",
+          "required": true
+        }
+      ],
+      "requiredCTAs": [
+        {
+          "id": "nav-kids",
+          "target": "/kids"
+        },
+        {
+          "id": "nav-parents",
+          "target": "/parent/dashboard"
+        },
+        {
+          "id": "nav-schools",
+          "target": "/schools"
+        },
+        {
+          "id": "nav-admin",
+          "target": "/admin"
+        }
+      ]
+    },
+    {
+      "path": "/admin/wysiwyg-exercise-editor/demo-course",
+      "name": "Wysiwyg Exercise Editor",
+      "description": "Wysiwyg exercise editor",
+      "states": [
+        {
+          "id": "default",
+          "file": "admin/wysiwyg-exercise-editor/demo-course/default.html",
+          "description": "Default state",
+          "required": true
+        }
+      ],
+      "requiredCTAs": [
+        {
+          "id": "nav-kids",
+          "target": "/kids"
+        },
+        {
+          "id": "nav-parents",
+          "target": "/parent/dashboard"
+        },
+        {
+          "id": "nav-schools",
+          "target": "/schools"
+        },
+        {
+          "id": "nav-admin",
+          "target": "/admin"
+        }
+      ]
+    },
+    {
+      "path": "/admin/wysiwyg-exercise-editor/:courseId",
+      "name": "Wysiwyg Exercise Editor",
+      "description": "Wysiwyg exercise editor (Play-identical editing)",
+      "states": [
+        {
+          "id": "default",
+          "file": "wysiwyg-exercise-editor.html",
+          "description": "Default state",
+          "required": true
+        }
+      ],
+      "requiredCTAs": [
+        {
+          "id": "cta-wysiwyg-back-to-select",
+          "target": "navigate"
+        },
+        {
+          "id": "cta-wysiwyg-save",
+          "target": "action"
+        },
+        {
+          "id": "cta-wysiwyg-retry-load",
+          "target": "action"
+        },
+        {
+          "id": "cta-wysiwyg-nav-item-0-0",
+          "target": "navigate"
+        },
+        {
+          "id": "cta-wysiwyg-nav-item-0-1",
+          "target": "navigate"
+        },
+        {
+          "id": "cta-wysiwyg-nav-item-0-2",
+          "target": "navigate"
+        },
+        {
+          "id": "cta-wysiwyg-nav-item-0-3",
+          "target": "navigate"
+        },
+        {
+          "id": "cta-wysiwyg-nav-item-0-4",
+          "target": "navigate"
+        },
+        {
+          "id": "cta-wysiwyg-nav-item-0-5",
+          "target": "navigate"
+        },
+        {
+          "id": "cta-wysiwyg-nav-item-1-0",
+          "target": "navigate"
+        },
+        {
+          "id": "cta-wysiwyg-nav-item-1-1",
+          "target": "navigate"
+        },
+        {
+          "id": "cta-wysiwyg-stem-edit",
+          "target": "edit"
+        },
+        {
+          "id": "cta-wysiwyg-stem-ai-rewrite",
+          "target": "action"
+        },
+        {
+          "id": "cta-wysiwyg-stem-ai-image",
+          "target": "action"
+        },
+        {
+          "id": "cta-wysiwyg-stem-upload-media",
+          "target": "action"
+        },
+        {
+          "id": "cta-wysiwyg-option-edit-0",
+          "target": "edit"
+        },
+        {
+          "id": "cta-wysiwyg-option-ai-rewrite-0",
+          "target": "action"
+        },
+        {
+          "id": "cta-wysiwyg-option-ai-image-0",
+          "target": "action"
+        },
+        {
+          "id": "cta-wysiwyg-option-media-upload-0",
+          "target": "action"
+        },
+        {
+          "id": "cta-wysiwyg-option-set-correct-0",
+          "target": "action"
+        },
+        {
+          "id": "cta-wysiwyg-option-edit-1",
+          "target": "edit"
+        },
+        {
+          "id": "cta-wysiwyg-option-ai-rewrite-1",
+          "target": "action"
+        },
+        {
+          "id": "cta-wysiwyg-option-ai-image-1",
+          "target": "action"
+        },
+        {
+          "id": "cta-wysiwyg-option-media-upload-1",
+          "target": "action"
+        },
+        {
+          "id": "cta-wysiwyg-option-set-correct-1",
+          "target": "action"
+        },
+        {
+          "id": "cta-wysiwyg-option-edit-2",
+          "target": "edit"
+        },
+        {
+          "id": "cta-wysiwyg-option-ai-rewrite-2",
+          "target": "action"
+        },
+        {
+          "id": "cta-wysiwyg-option-ai-image-2",
+          "target": "action"
+        },
+        {
+          "id": "cta-wysiwyg-option-media-upload-2",
+          "target": "action"
+        },
+        {
+          "id": "cta-wysiwyg-option-set-correct-2",
+          "target": "action"
+        },
+        {
+          "id": "cta-wysiwyg-option-edit-3",
+          "target": "edit"
+        },
+        {
+          "id": "cta-wysiwyg-option-ai-rewrite-3",
+          "target": "action"
+        },
+        {
+          "id": "cta-wysiwyg-option-ai-image-3",
+          "target": "action"
+        },
+        {
+          "id": "cta-wysiwyg-option-media-upload-3",
+          "target": "action"
+        },
+        {
+          "id": "cta-wysiwyg-option-set-correct-3",
+          "target": "action"
+        },
+        {
+          "id": "cta-wysiwyg-explanation-edit",
+          "target": "edit"
+        },
+        {
+          "id": "cta-wysiwyg-explanation-ai-rewrite",
+          "target": "action"
+        },
+        {
+          "id": "cta-wysiwyg-explanation-ai-image",
+          "target": "action"
+        },
+        {
+          "id": "cta-wysiwyg-explanation-upload-media",
+          "target": "action"
+        },
+        {
+          "id": "cta-wysiwyg-prev",
+          "target": "navigate"
+        },
+        {
+          "id": "cta-wysiwyg-next",
+          "target": "navigate"
+        }
+      ]
+    },
+    {
       "path": "/admin/editor/demo-course",
       "name": "Course Editor",
       "description": "Course Editor",
