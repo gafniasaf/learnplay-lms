@@ -52,6 +52,13 @@ cursor-playground/workspaces/
 # Archived legacy code
 _archive/
 
+# Local book image dumps (very large; never commit)
+/books/
+extracted_images.zip
+
+# Local book render artifacts / previews
+tmp/
+
 # Environment files with secrets
 learnplay.env
 *.env

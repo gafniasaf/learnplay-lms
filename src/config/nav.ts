@@ -50,6 +50,7 @@ export const navSections: NavSection[] = [
       { id: "admin", label: "Admin Home", path: "/admin", icon: "Shield", roles: ["admin"] },
       { id: "ai-pipeline", label: "AI Pipeline", path: "/admin/ai-pipeline", icon: "Sparkles", roles: ["admin"] },
       { id: "course-editor", label: "Course Editor", path: "/admin/courses/select", icon: "Edit", roles: ["admin"] },
+      { id: "books", label: "Books", path: "/admin/books", icon: "Book", roles: ["admin"] },
       {
         id: "wysiwyg-exercise-editor",
         label: "Wysiwyg exercise editor",

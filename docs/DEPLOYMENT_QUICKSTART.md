@@ -28,7 +28,7 @@ npx supabase --version
 #    Get values from: Supabase Dashboard > Project Settings > API
 
 # 2. Set access token
-$env:SUPABASE_ACCESS_TOKEN = "sbp_YOUR_TOKEN_HERE"
+$env:SUPABASE_ACCESS_TOKEN = "SUPABASE_PAT_HERE"
 #    Get from: Supabase Dashboard > Account > Access Tokens
 
 # If you see "401 Unauthorized" despite a valid token, run:

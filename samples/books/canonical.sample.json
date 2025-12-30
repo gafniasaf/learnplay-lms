@@ -1,0 +1,70 @@
+{
+  "meta": {
+    "id": "sample-book-n3",
+    "title": "Sample Book (N3)",
+    "level": "n3"
+  },
+  "chapters": [
+    {
+      "title": "Chapter 1 — Foundations",
+      "sections": [
+        {
+          "title": "1.1 Intro",
+          "content": [
+            {
+              "type": "paragraph",
+              "id": "8befd569-7961-4648-b28c-460533225b6a",
+              "paragraphNumber": 1,
+              "basis": "Net als dieren zijn we levende wezens. We hebben cellen nodig om te functioneren en energie om in leven te blijven.",
+              "praktijk": "In de praktijk let je bij observaties op tekenen van uitdroging en ondervoeding, omdat die direct invloed hebben op energie en herstel.",
+              "verdieping": "Cellen gebruiken glucose en zuurstof om ATP te maken. ATP is de directe energiebron voor processen in het lichaam.",
+              "images": [
+                {
+                  "src": "figures/sample/figure_1.svg",
+                  "alt": "Simple figure placeholder",
+                  "figureNumber": "1.2",
+                  "caption": "Placeholder figuur uit assets.zip."
+                }
+              ]
+            },
+            {
+              "type": "subparagraph",
+              "title": "Microheading: Energie",
+              "content": [
+                {
+                  "type": "paragraph",
+                  "id": "2d5b21f6-5d4c-4c34-9c1f-2d3f2c5b8a11",
+                  "paragraphNumber": 2,
+                  "basis": "Energie in het lichaam komt uit voeding. De verbranding levert energie voor bewegen, denken en herstel."
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Chapter 2 — Applied",
+      "sections": [
+        {
+          "title": "2.1 Basics",
+          "content": [
+            {
+              "type": "paragraph",
+              "id": "a6c6e2d1-7b2d-4a3b-9b0c-6ddc8b6b8b32",
+              "paragraphNumber": 3,
+              "basis": "Een zorgverlener gebruikt vitale functies om snel te beoordelen hoe het met iemand gaat."
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "export": {
+    "exportedAt": "2025-12-29T00:00:00.000Z",
+    "source": "SAMPLE",
+    "schemaVersion": "1.0"
+  }
+}
+
+

@@ -19,6 +19,25 @@ if (!SUPABASE_SERVICE_ROLE_KEY) {
   process.exit(1);
 }
 
+function resolveProjectRef(): string {
+  const fromEnv = process.env.SUPABASE_PROJECT_REF;
+  if (fromEnv && typeof fromEnv === "string" && fromEnv.trim()) return fromEnv.trim();
+
+  const m = SUPABASE_URL.match(/^https?:\/\/([a-z0-9-]+)\.supabase\.co/i);
+  if (m?.[1]) return m[1];
+
+  try {
+    const toml = fs.readFileSync(path.join(process.cwd(), "supabase", "config.toml"), "utf-8");
+    const m2 = toml.match(/^\s*project_id\s*=\s*\"([a-z0-9]+)\"\s*$/m);
+    if (m2?.[1]) return m2[1];
+  } catch {
+    // ignore
+  }
+
+  console.error("❌ SUPABASE_PROJECT_REF is REQUIRED (or SUPABASE_URL must be set to https://<ref>.supabase.co)");
+  process.exit(1);
+}
+
 async function main() {
   const migrationFile = process.argv[2];
   
@@ -59,15 +78,23 @@ async function main() {
   if (!response.ok) {
     // exec_sql might not exist, try direct pg connection via management API
     console.log("exec_sql RPC not available, trying alternative...");
+
+    const SUPABASE_ACCESS_TOKEN = process.env.SUPABASE_ACCESS_TOKEN;
+    if (!SUPABASE_ACCESS_TOKEN) {
+      console.error("❌ SUPABASE_ACCESS_TOKEN is REQUIRED to use the Supabase Management API fallback");
+      process.exit(1);
+    }
+
+    const projectRef = resolveProjectRef();
     
     // Alternative: use the management API
     const mgmtResponse = await fetch(
-      `https://api.supabase.com/v1/projects/eidcegehaswbtzrwzvfa/database/query`,
+      `https://api.supabase.com/v1/projects/${encodeURIComponent(projectRef)}/database/query`,
       {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer sbp_26da40b93963c303358083b9131f5febe0950f16`,
+          "Authorization": `Bearer ${SUPABASE_ACCESS_TOKEN}`,
         },
         body: JSON.stringify({ query: sql }),
       }

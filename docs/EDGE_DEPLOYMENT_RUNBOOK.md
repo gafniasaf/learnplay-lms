@@ -123,10 +123,10 @@ npx supabase --version
 
 ```powershell
 # Set access token for session (REQUIRED)
-$env:SUPABASE_ACCESS_TOKEN = "sbp_your_token_here"
+$env:SUPABASE_ACCESS_TOKEN = "SUPABASE_PAT_HERE"
 
 # Or in bash
-export SUPABASE_ACCESS_TOKEN="sbp_your_token_here"
+export SUPABASE_ACCESS_TOKEN="SUPABASE_PAT_HERE"
 ```
 
 ### Deploy All Functions

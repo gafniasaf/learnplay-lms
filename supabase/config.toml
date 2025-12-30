@@ -255,3 +255,54 @@ verify_jwt = false
 
 [functions.validate-course-structure]
 verify_jwt = false
+
+[functions.book-ingest-version]
+verify_jwt = false
+
+[functions.book-enqueue-render]
+verify_jwt = false
+
+[functions.book-list]
+verify_jwt = false
+
+[functions.book-claim-job]
+verify_jwt = false
+
+[functions.book-job-heartbeat]
+verify_jwt = false
+
+[functions.book-job-upload-url]
+verify_jwt = false
+
+[functions.book-job-apply-result]
+verify_jwt = false
+
+[functions.book-version-input-urls]
+verify_jwt = false
+
+[functions.book-version-upload-url]
+verify_jwt = false
+
+[functions.book-artifact-url]
+verify_jwt = false
+
+[functions.book-create-overlay]
+verify_jwt = false
+
+[functions.book-save-overlay]
+verify_jwt = false
+
+[functions.book-export-studytexts]
+verify_jwt = false
+
+[functions.book-register-derived-course]
+verify_jwt = false
+
+[functions.book-library-upload-url]
+verify_jwt = false
+
+[functions.book-library-upsert-index]
+verify_jwt = false
+
+[functions.book-library-generate-image]
+verify_jwt = false

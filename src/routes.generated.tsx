@@ -37,6 +37,11 @@ const AdminConsole = React.lazy(() => import("./pages/Admin"));
 const AIPipeline = React.lazy(() => import("./pages/admin/AIPipelineV2"));
 const CourseEditor = React.lazy(() => import("./pages/admin/CourseEditorV3"));
 const WysiwygExerciseEditor = React.lazy(() => import("./pages/admin/WysiwygExerciseEditor"));
+const BooksLibrary = React.lazy(() => import("./pages/admin/BooksLibrary"));
+const BookDetail = React.lazy(() => import("./pages/admin/BookDetail"));
+const BookVersionDetail = React.lazy(() => import("./pages/admin/BookVersionDetail"));
+const BookRunDetail = React.lazy(() => import("./pages/admin/BookRunDetail"));
+const BookOverlayEditor = React.lazy(() => import("./pages/admin/BookOverlayEditor"));
 const CourseVersionHistory = React.lazy(() => import("./pages/admin/CourseVersionHistory"));
 const JobsDashboard = React.lazy(() => import("./pages/admin/JobsDashboard"));
 const Logs = React.lazy(() => import("./pages/admin/Logs"));
@@ -104,6 +109,15 @@ export const generatedRouteElements = [
   <Route key="gen-admin-console" path="/admin/console" element={<AdminConsole />} />,
   <Route key="gen-admin-pipeline" path="/admin/ai-pipeline" element={<AIPipeline />} />,
   <Route key="gen-admin-course-select" path="/admin/courses/select" element={<CourseSelector />} />,
+  <Route key="gen-admin-books" path="/admin/books" element={<BooksLibrary />} />,
+  <Route key="gen-admin-book-detail" path="/admin/books/:bookId" element={<BookDetail />} />,
+  <Route key="gen-admin-book-version" path="/admin/books/:bookId/versions/:bookVersionId" element={<BookVersionDetail />} />,
+  <Route key="gen-admin-book-run" path="/admin/books/:bookId/runs/:runId" element={<BookRunDetail />} />,
+  <Route
+    key="gen-admin-book-overlay-editor"
+    path="/admin/books/:bookId/versions/:bookVersionId/overlays/:overlayId"
+    element={<BookOverlayEditor />}
+  />,
   <Route key="gen-admin-editor" path="/admin/editor/:courseId" element={<CourseEditor />} />,
   <Route key="gen-admin-wysiwyg-select" path="/admin/wysiwyg-exercise-editor/select" element={<WysiwygExerciseEditorSelector />} />,
   <Route key="gen-admin-wysiwyg-editor" path="/admin/wysiwyg-exercise-editor/:courseId" element={<WysiwygExerciseEditor />} />,

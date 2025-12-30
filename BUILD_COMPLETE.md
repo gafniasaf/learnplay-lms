@@ -167,7 +167,7 @@ MCP_AUTH_TOKEN=learnplay-local-secret
 SUPABASE_URL=https://eidcegehaswbtzrwzvfa.supabase.co
 SUPABASE_ANON_KEY=<anon_key>
 SUPABASE_SERVICE_ROLE_KEY=<service_role_key>
-SUPABASE_ACCESS_TOKEN=sbp_26da40b93963c303358083b9131f5febe0950f16
+SUPABASE_ACCESS_TOKEN=SUPABASE_PAT_HERE
 AGENT_TOKEN=learnplay-agent-token
 ORGANIZATION_ID=4d7b0a5c-3cf1-49e5-9ad7-bf6c1f8a2f58
 ```

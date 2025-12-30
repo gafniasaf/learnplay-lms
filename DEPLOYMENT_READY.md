@@ -53,7 +53,7 @@ All code, scripts, and documentation are ready for deployment. The system is pre
 .\scripts\deployment-checklist.ps1
 
 # Set access token
-$env:SUPABASE_ACCESS_TOKEN = "sbp_YOUR_TOKEN_HERE"
+$env:SUPABASE_ACCESS_TOKEN = "SUPABASE_PAT_HERE"
 
 # Deploy all functions
 .\scripts\ci\deploy-functions.ps1 -EnvPath supabase/.deploy.env

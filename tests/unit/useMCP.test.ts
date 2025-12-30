@@ -15,24 +15,33 @@ describe('JOB_MODES configuration', () => {
     expect(JOB_MODES.ai_course_generate).toBe('async');
     expect(JOB_MODES.compile_mockups).toBe('async');
     expect(JOB_MODES.plan_matrix_run).toBe('async');
+    expect(JOB_MODES.book_ingest_version).toBe('async');
+    expect(JOB_MODES.book_render_chapter).toBe('async');
+    expect(JOB_MODES.book_render_full).toBe('async');
   });
 
-  it('has all 5 job types defined', () => {
+  it('has all 8 job types defined', () => {
     const jobTypes = Object.keys(JOB_MODES);
-    expect(jobTypes).toHaveLength(5);
+    expect(jobTypes).toHaveLength(8);
     expect(jobTypes).toContain('draft_assignment_plan');
     expect(jobTypes).toContain('ai_course_generate');
     expect(jobTypes).toContain('guard_course');
     expect(jobTypes).toContain('compile_mockups');
     expect(jobTypes).toContain('plan_matrix_run');
+    expect(jobTypes).toContain('book_ingest_version');
+    expect(jobTypes).toContain('book_render_chapter');
+    expect(jobTypes).toContain('book_render_full');
   });
 });
 
 describe('ENTITY_FIELDS configuration', () => {
-  it('has all 11 entities defined', () => {
+  it('has all 14 entities defined', () => {
     const entities = Object.keys(ENTITY_FIELDS);
-    expect(entities).toHaveLength(11);
+    expect(entities).toHaveLength(14);
     expect(entities).toContain('LearnerProfile');
+    expect(entities).toContain('Book');
+    expect(entities).toContain('BookVersion');
+    expect(entities).toContain('BookRun');
     expect(entities).toContain('Assignment');
     expect(entities).toContain('CourseBlueprint');
     expect(entities).toContain('GameSession');
@@ -100,6 +109,9 @@ describe('MCP method naming conventions', () => {
     // Test slug generation for entity CRUD operations
     const slugPatterns = {
       'learner-profile': 'LearnerProfile',
+      'book': 'Book',
+      'book-version': 'BookVersion',
+      'book-run': 'BookRun',
       'assignment': 'Assignment',
       'course-blueprint': 'CourseBlueprint',
       'game-session': 'GameSession',

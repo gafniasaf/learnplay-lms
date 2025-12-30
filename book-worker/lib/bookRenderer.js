@@ -1,0 +1,1379 @@
+import { spawn } from "node:child_process";
+import { writeFile } from "node:fs/promises";
+
+export function applyRewritesOverlay(canonical, overlay) {
+  if (!overlay || typeof overlay !== "object") return canonical;
+  const entries = Array.isArray(overlay.paragraphs) ? overlay.paragraphs : [];
+  const map = new Map();
+  for (const e of entries) {
+    const pid = e?.paragraph_id;
+    const rewritten = e?.rewritten;
+    if (typeof pid === "string" && typeof rewritten === "string") {
+      map.set(pid, rewritten);
+    }
+  }
+  if (map.size === 0) return canonical;
+
+  function walk(node) {
+    if (!node) return node;
+    if (Array.isArray(node)) {
+      for (const item of node) walk(item);
+      return node;
+    }
+    if (typeof node !== "object") return node;
+
+    const id = node.id;
+    if (typeof id === "string" && typeof node.basis === "string" && map.has(id)) {
+      node.basis = map.get(id);
+    }
+
+    for (const v of Object.values(node)) walk(v);
+    return node;
+  }
+
+  // NOTE: Use a JSON clone (canonical inputs are JSON) to avoid relying on structuredClone
+  // across different test/runtime environments.
+  return walk(JSON.parse(JSON.stringify(canonical)));
+}
+
+export function escapeHtml(s) {
+  return String(s)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/\"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function sanitizeInlineBookHtml(raw) {
+  let html = String(raw ?? "");
+  // Normalize newlines into <br/> so they survive in Prince output.
+  html = html.replace(/\r?\n/g, "<br/>");
+
+  // Drop clearly dangerous/irrelevant tags entirely.
+  html = html.replace(/<\s*(script|style|iframe|object|embed)\b[\s\S]*?<\s*\/\s*\1\s*>/gi, "");
+  html = html.replace(/<\s*img\b[^>]*>/gi, ""); // images must be explicit figure blocks, not inline text
+
+  // Allow only <span class="box-lead"> for lead phrases; strip any other span attrs.
+  html = html.replace(/<\s*span\b[^>]*class=\"[^\"]*box-lead[^\"]*\"[^>]*>/gi, '<span class="box-lead">');
+  html = html.replace(/<\s*span\b[^>]*>/gi, "<span>");
+
+  // Allow only a small set of inline tags, and strip attributes from them.
+  html = html.replace(/<\s*(strong|em|b|i|sup|sub|span)\b[^>]*>/gi, "<$1>");
+  html = html.replace(/<\s*\/\s*(strong|em|b|i|sup|sub|span)\s*>/gi, "</$1>");
+  html = html.replace(/<\s*br\b[^>]*\/?>/gi, "<br/>");
+
+  // Strip all remaining tags (keep text content).
+  html = html.replace(/<(?!\/?(?:strong|em|b|i|sup|sub|span|br)\b)[^>]+>/gi, "");
+
+  return html;
+}
+
+function isHttpUrl(s) {
+  return /^https?:\/\//i.test(String(s));
+}
+
+function isDataUrl(s) {
+  return /^data:/i.test(String(s));
+}
+
+function isFileUrl(s) {
+  return /^file:\/\//i.test(String(s));
+}
+
+function isWindowsAbsPath(s) {
+  return /^[a-zA-Z]:[\\/]/.test(String(s));
+}
+
+function isPosixAbsPath(s) {
+  return String(s).startsWith("/");
+}
+
+function resolveAssetSrc(raw, { assetsBaseUrl = "assets", srcMap } = {}) {
+  const src = String(raw || "").trim();
+  if (!src) return null;
+
+  if (isDataUrl(src) || isHttpUrl(src) || isFileUrl(src)) return src;
+
+  const base = String(assetsBaseUrl || "").trim().replace(/\/$/, "");
+  // If caller already provided an assets-prefixed relative path, keep it.
+  if (base && (src === base || src.startsWith(`${base}/`))) return src;
+
+  if (srcMap && typeof srcMap === "object" && typeof srcMap[src] === "string" && srcMap[src].trim()) {
+    const mapped = srcMap[src].trim();
+    if (isDataUrl(mapped) || isHttpUrl(mapped) || isFileUrl(mapped)) return mapped;
+    if (isWindowsAbsPath(mapped) || isPosixAbsPath(mapped)) {
+      throw new Error(
+        `BLOCKED: figures.srcMap produced an absolute path (${mapped}). Use relative paths inside the assets bundle or a URL.`,
+      );
+    }
+    if (base && (mapped === base || mapped.startsWith(`${base}/`))) return mapped;
+    return `${base || "assets"}/${mapped.replace(/^\//, "")}`;
+  }
+
+  if (isWindowsAbsPath(src) || isPosixAbsPath(src)) {
+    throw new Error(
+      `BLOCKED: Image src is an absolute path (${src}). Provide figures.srcMap for this bookVersion or use relative paths inside the assets bundle.`,
+    );
+  }
+
+  return `${base || "assets"}/${src.replace(/^\//, "")}`;
+}
+
+function splitNumberedTitle(raw) {
+  const t = String(raw || "").trim();
+  const m = t.match(/^(\d+(?:\.\d+)*)\s+(.+)$/);
+  if (!m) return { number: null, title: t };
+  return { number: m[1], title: m[2] };
+}
+
+function stripChapterNumberPrefix(raw) {
+  const t = String(raw || "").trim();
+  const m = t.match(/^\d+\.\s+(.+)$/);
+  return m ? m[1] : t;
+}
+
+function isLikelySubparagraphNumberedHeading(raw) {
+  const t = String(raw || "").trim();
+  return /^\d+(?:\.\d+){2,}\s+/.test(t); // e.g. "1.1.1 Title"
+}
+
+export function renderBookHtml(
+  canonical,
+  { target, chapterIndex, assetsBaseUrl = "assets", figures, designTokens, chapterOpeners } = {},
+) {
+  // Prince-first textbook layout (PASS2-inspired).
+  // NOTE: Prefer open fonts. If you want exact InDesign fonts, include them in the worker image/host OS.
+  const css = `
+@font-face {
+  font-family: "Source Sans 3";
+  src: local("Source Sans 3"), local("SourceSans3-Regular"), local("Source Sans Pro");
+  font-weight: 400;
+  font-style: normal;
+}
+@font-face {
+  font-family: "Source Sans 3";
+  src: local("Source Sans 3 Bold"), local("SourceSans3-Bold"), local("Source Sans Pro Bold");
+  font-weight: 700;
+  font-style: normal;
+}
+@font-face {
+  font-family: "Source Sans 3";
+  src: local("Source Sans 3 Italic"), local("SourceSans3-Italic"), local("Source Sans Pro Italic");
+  font-weight: 400;
+  font-style: italic;
+}
+@font-face {
+  font-family: "Source Serif 4";
+  src: local("Source Serif 4"), local("SourceSerif4-Regular"), local("Source Serif Pro");
+  font-weight: 400;
+  font-style: normal;
+}
+
+:root {
+  --page-width: 195mm;
+  --page-height: 265mm;
+  --margin-top: 20mm;
+  --margin-bottom: 20mm;
+  --margin-inner: 15mm;
+  --margin-outer: 15mm;
+
+  --font-body: "FreightSans Pro", "Source Sans 3", "Helvetica Neue", Arial, sans-serif;
+  --font-sans: "Facit", "Source Sans 3", "Helvetica Neue", Arial, sans-serif;
+
+  --page-bg: #fdfcfa;
+  --text: #111;
+  --muted: #555;
+  --rule: #c9c9c9;
+  --accent: cmyk(77%, 7%, 56%, 0%);
+
+  --body-size: 12pt;
+  --body-leading: 1.25;
+
+  --h1: 35pt;
+  --h2: 18pt;
+  --h3: 14pt;
+
+  --p-space-after: 2mm;
+  --p-space-after-extra: 0.8mm;
+  --block-gap: calc(var(--p-space-after) + var(--p-space-after-extra));
+  --h2-space-before: 4mm;
+  --h2-space-after: 2mm;
+  --h3-space-before: 2mm;
+  --h3-space-after: 1mm;
+  --h3-space-before-scale: 1.25;
+
+  --praktijk-bg: cmyk(10%, 0%, 10%, 0%);
+  --praktijk-border: cmyk(22%, 0%, 22%, 0%);
+  --praktijk-accent: var(--accent);
+  --verdieping-bg: cmyk(0%, 10%, 14%, 0%);
+  --verdieping-border: cmyk(0%, 22%, 28%, 0%);
+  --verdieping-accent: cmyk(0%, 60%, 70%, 25%);
+
+  --bullet-marker-gap: 1.2mm;
+  --box-inline-icon-size: 4.2mm;
+  --box-inline-icon-gap: 1.2mm;
+  --box-pad-top: 2.5mm;
+  --box-pad-x: 5mm;
+  --box-pad-bottom: 3mm;
+  --box-label-gap: 0.8mm;
+
+  --orphans: 3;
+  --widows: 3;
+
+  --body-columns: 2;
+  --col-gap: 9mm;
+}
+
+@page {
+  size: var(--page-width) var(--page-height);
+  margin: var(--margin-top) var(--margin-outer) var(--margin-bottom) var(--margin-inner);
+  background: var(--page-bg);
+
+  @bottom-center {
+    content: counter(page);
+    font-family: var(--font-sans);
+    font-size: 9pt;
+    color: var(--muted);
+  }
+}
+
+@page :left {
+  margin-left: var(--margin-outer);
+  margin-right: var(--margin-inner);
+
+  @top-left {
+    content: string(section-title);
+    font-family: var(--font-sans);
+    font-size: 8pt;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    border-bottom: 0.5pt solid var(--rule);
+    padding-bottom: 2mm;
+    width: 100%;
+  }
+  @top-right { content: none; }
+  @top-center { content: none; }
+
+  @bottom-left {
+    content: counter(page);
+    font-family: var(--font-sans);
+    font-size: 9pt;
+    color: var(--muted);
+  }
+  @bottom-center { content: none; }
+  @bottom-right { content: none; }
+}
+
+@page :right {
+  margin-left: var(--margin-inner);
+  margin-right: var(--margin-outer);
+
+  @top-right {
+    content: string(chapter-title);
+    font-family: var(--font-sans);
+    font-size: 8pt;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    border-bottom: 0.5pt solid var(--rule);
+    padding-bottom: 2mm;
+    width: 100%;
+  }
+  @top-left { content: none; }
+  @top-center { content: none; }
+
+  @bottom-right {
+    content: counter(page);
+    font-family: var(--font-sans);
+    font-size: 9pt;
+    color: var(--muted);
+  }
+  @bottom-center { content: none; }
+  @bottom-left { content: none; }
+}
+
+@page chapter-first {
+  margin: 0;
+  @top-left { content: none; }
+  @top-right { content: none; }
+  @top-center { content: none; }
+  @bottom-center { content: none; }
+  @bottom-left { content: none; }
+  @bottom-right { content: none; }
+}
+@page chapter-first:left {
+  @top-left { content: none; }
+  @top-right { content: none; }
+  @top-center { content: none; }
+  @bottom-center { content: none; }
+  @bottom-left { content: none; }
+  @bottom-right { content: none; }
+}
+@page chapter-first:right {
+  @top-left { content: none; }
+  @top-right { content: none; }
+  @top-center { content: none; }
+  @bottom-center { content: none; }
+  @bottom-left { content: none; }
+  @bottom-right { content: none; }
+}
+
+/* First page of each Prince page-group (chapter start): remove running headers. */
+@page :first {
+  @top-left { content: none; }
+  @top-right { content: none; }
+  @top-center { content: none; }
+}
+
+/* Frontmatter / TOC page master: no running headers, keep folios. */
+@page matter:left {
+  @top-left { content: none; }
+  @top-right { content: none; }
+  @top-center { content: none; }
+  @bottom-left {
+    content: counter(page);
+    font-family: var(--font-sans);
+    font-size: 9pt;
+    color: var(--muted);
+  }
+  @bottom-center { content: none; }
+  @bottom-right { content: none; }
+}
+@page matter:right {
+  @top-left { content: none; }
+  @top-right { content: none; }
+  @top-center { content: none; }
+  @bottom-right {
+    content: counter(page);
+    font-family: var(--font-sans);
+    font-size: 9pt;
+    color: var(--muted);
+  }
+  @bottom-center { content: none; }
+  @bottom-left { content: none; }
+}
+
+html {
+  font-family: var(--font-body);
+  font-size: var(--body-size);
+  line-height: var(--body-leading);
+  color: var(--text);
+  text-align: left;
+  hyphens: auto;
+  prince-hyphens: auto;
+  hyphenate-limit-chars: 5 2 2;
+  hyphenate-limit-lines: 2;
+  hyphenate-limit-zone: 8%;
+}
+body { margin: 0; }
+
+.toc {
+  page: matter;
+  break-before: page;
+}
+.toc:first-child { break-before: auto; }
+.toc h1 {
+  font-size: var(--h2);
+  margin: 0 0 6mm 0;
+  padding-bottom: 2mm;
+  border-bottom: 2pt solid var(--accent);
+  color: var(--accent);
+  font-family: var(--font-sans);
+  font-weight: 700;
+  prince-bookmark-level: 1;
+  prince-bookmark-label: "Inhoudsopgave";
+}
+.toc .toc-meta {
+  font-size: 10pt;
+  color: var(--muted);
+  margin: 0 0 8mm 0;
+}
+.toc-entry { margin: 0 0 2mm 0; }
+.toc-entry.toc-level-2 { margin-left: 6mm; }
+.toc-entry a {
+  color: var(--text);
+  text-decoration: none;
+}
+.toc-entry a::after {
+  content: leader('.') target-counter(attr(href), page);
+  float: right;
+  color: var(--muted);
+}
+
+/* Headings + bookmarks */
+h1, h2, h3 {
+  font-family: var(--font-sans);
+  color: var(--accent);
+  font-weight: 700;
+  line-height: 1.15;
+  break-after: avoid;
+  page-break-after: avoid;
+  break-inside: avoid;
+  hyphens: none;
+  prince-hyphens: none;
+}
+h1.chapter-title {
+  prince-bookmark-level: 1;
+  prince-bookmark-label: attr(data-bookmark);
+}
+h2.section-title {
+  prince-bookmark-level: 2;
+  prince-bookmark-label: attr(data-bookmark);
+  string-set: section-title content();
+}
+h3.subparagraph-title {
+  prince-bookmark-level: 3;
+  prince-bookmark-label: attr(data-bookmark);
+}
+
+.chapter-title-block {
+  break-before: page;
+  position: relative;
+  margin: 0 0 6mm 0;
+  padding: 0;
+  string-set: chapter-title content();
+  /* Prince: treat each chapter as a page group so @page :first can apply per-chapter */
+  prince-page-group: start;
+}
+.chapter:first-of-type .chapter-title-block { break-before: auto; }
+
+.chapter.has-opener .chapter-title-block {
+  page: chapter-first;
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 2;
+  padding: var(--margin-top) var(--margin-outer) 0 var(--margin-inner);
+  margin: 0;
+  column-span: all;
+}
+
+.chapter-number {
+  font-family: var(--font-sans);
+  font-size: 9pt;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 2mm;
+}
+h1.chapter-title {
+  font-size: var(--h1);
+  margin: 0;
+  padding-bottom: 2mm;
+  border-bottom: 2pt solid var(--accent);
+}
+h2.section-title {
+  font-size: var(--h2);
+  margin: var(--h2-space-before) 0 var(--h2-space-after) 0;
+  padding-bottom: 1.2mm;
+  border-bottom: 0.5pt solid var(--rule);
+}
+h2.section-title .section-number {
+  display: inline-block;
+  white-space: nowrap;
+  margin-right: 0.35em;
+}
+h3.subparagraph-title {
+  font-size: var(--h3);
+  margin: calc(var(--h3-space-before) * var(--h3-space-before-scale)) 0 var(--h3-space-after) 0;
+}
+p.micro-title {
+  font-family: var(--font-sans);
+  font-size: 12pt;
+  font-weight: 700;
+  color: var(--accent);
+  text-align: left;
+  margin: 4mm 0 0.5mm 0;
+  break-after: avoid;
+  page-break-after: avoid;
+  break-inside: avoid;
+  page-break-inside: avoid;
+  hyphens: none;
+  prince-hyphens: none;
+}
+
+.p {
+  margin: 0;
+  orphans: var(--orphans);
+  widows: var(--widows);
+  text-align: justify;
+}
+.p + .p { text-indent: 0; }
+.p + .p,
+.p + ul.bullets,
+.p + ol.steps,
+ul.bullets + .p,
+ol.steps + .p {
+  margin-top: var(--block-gap);
+}
+
+/* Chapter intro + recap blocks (full width) */
+.chapter-intro {
+  margin: 3mm 0 6mm 0;
+  padding: 3mm 5mm 3.5mm 5mm;
+  border-left: 3pt solid var(--accent);
+  background: cmyk(5%, 0%, 5%, 0%);
+}
+.chapter-intro .intro-title {
+  font-family: var(--font-sans);
+  font-weight: 700;
+  color: var(--accent);
+  margin: 0 0 2mm 0;
+}
+
+.chapter-recap {
+  column-span: all;
+  margin: 8mm 0 0 0;
+  padding-top: 4mm;
+  border-top: 2pt solid var(--accent);
+}
+
+/* Recap module boxes */
+.recap-module {
+  margin: 4mm 0;
+  padding: 3.5mm 5mm 4mm 5mm;
+  border: 0.5pt solid var(--rule);
+  border-left: 3pt solid var(--accent);
+  border-radius: 0 2mm 2mm 0;
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+.recap-module.doelen-check {
+  background: cmyk(5%, 0%, 8%, 0%);
+  border-left-color: var(--praktijk-accent);
+}
+.recap-module.kernsamenvatting {
+  background: cmyk(3%, 3%, 0%, 0%);
+  border-left-color: cmyk(50%, 30%, 0%, 10%);
+}
+.recap-module.begrippen {
+  background: cmyk(0%, 5%, 8%, 0%);
+  border-left-color: var(--verdieping-accent);
+}
+.recap-module.controleer {
+  background: cmyk(8%, 0%, 0%, 0%);
+  border-left-color: cmyk(70%, 20%, 0%, 0%);
+}
+.recap-module .module-title {
+  font-family: var(--font-sans);
+  font-size: 13pt;
+  font-weight: 700;
+  color: var(--accent);
+  margin: 0 0 2.5mm 0;
+  display: flex;
+  align-items: center;
+  gap: 2mm;
+}
+.recap-module .module-title::before {
+  content: "";
+  display: inline-block;
+  width: 5mm;
+  height: 5mm;
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: contain;
+}
+.recap-module.doelen-check .module-title::before {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%232D7A4E' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M9 11l3 3L22 4'/%3E%3Cpath d='M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11'/%3E%3C/svg%3E");
+}
+.recap-module.kernsamenvatting .module-title::before {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%234A6FA5' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cline x1='21' y1='10' x2='3' y2='10'/%3E%3Cline x1='21' y1='6' x2='3' y2='6'/%3E%3Cline x1='21' y1='14' x2='3' y2='14'/%3E%3Cline x1='21' y1='18' x2='3' y2='18'/%3E%3C/svg%3E");
+}
+.recap-module.begrippen .module-title::before {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%238B4B3A' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 19.5A2.5 2.5 0 016.5 17H20'/%3E%3Cpath d='M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z'/%3E%3C/svg%3E");
+}
+.recap-module.controleer .module-title::before {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%232B6CB0' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='10'/%3E%3Cpath d='M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3'/%3E%3Cline x1='12' y1='17' x2='12.01' y2='17'/%3E%3C/svg%3E");
+}
+.recap-module.kernbegrippen .module-title::before {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%232D7A4E' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolygon points='12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2'/%3E%3C/svg%3E");
+}
+.recap-module.kernbegrippen {
+  background: cmyk(5%, 0%, 5%, 0%);
+  border-left-color: var(--praktijk-accent);
+}
+.recap-module.volgende-stap {
+  background: cmyk(0%, 0%, 0%, 3%);
+  border-left-color: var(--muted);
+}
+.recap-module.volgende-stap .module-title::before {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23555' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cline x1='5' y1='12' x2='19' y2='12'/%3E%3Cpolyline points='12 5 19 12 12 19'/%3E%3C/svg%3E");
+}
+
+.recap-link {
+  color: inherit;
+  text-decoration: none;
+}
+.recap-link:hover { text-decoration: underline; }
+
+/* Checklist (Doelen-check) */
+ul.checklist {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+ul.checklist li {
+  margin: 0 0 1.5mm 0;
+  padding-left: 7mm;
+  text-indent: calc(0mm - 7mm);
+  text-align: left;
+}
+ul.checklist li::before {
+  content: "☐";
+  font-family: var(--font-sans);
+  font-weight: 700;
+  color: var(--accent);
+  display: inline-block;
+  width: 7mm;
+  text-align: right;
+  box-sizing: border-box;
+  padding-right: var(--bullet-marker-gap);
+}
+
+/* Glossary */
+.glossary { margin: 0; }
+.glossary-item {
+  margin: 0 0 2.5mm 0;
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+.glossary-term {
+  font-family: var(--font-sans);
+  font-weight: 700;
+  color: var(--accent);
+}
+.glossary-def {
+  margin-top: 0.7mm;
+  color: var(--text);
+  text-align: left;
+}
+.page-ref {
+  font-family: var(--font-sans);
+  font-size: 9pt;
+  color: var(--muted);
+  text-decoration: none;
+  white-space: nowrap;
+}
+.page-ref::before { content: "  "; }
+.page-ref::after { content: "p. " target-counter(attr(href), page); }
+
+/* Bullets / questions */
+ul.bullets {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+ul.bullets li {
+  margin: 0 0 1.5mm 0;
+  padding-left: 7mm;
+  text-indent: calc(0mm - 7mm);
+  text-align: left;
+}
+ul.bullets li::before {
+  content: "•";
+  font-family: var(--font-sans);
+  color: var(--accent);
+  display: inline-block;
+  width: 7mm;
+  text-align: right;
+  box-sizing: border-box;
+  padding-right: var(--bullet-marker-gap);
+}
+
+ol.steps {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: step;
+}
+ol.steps li {
+  margin: 0 0 1.8mm 0;
+  padding-left: 9mm;
+  position: relative;
+}
+ol.steps li::before {
+  counter-increment: step;
+  content: counter(step) ".";
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 8mm;
+  text-align: right;
+  font-family: var(--font-sans);
+  font-weight: 700;
+  color: var(--accent);
+}
+
+/* Two-column flow */
+.chapter-body {
+  column-count: var(--body-columns);
+  column-gap: var(--col-gap);
+  column-fill: balance;
+  column-fill: balance-all;
+}
+
+/* Keep boxes/figures from splitting awkwardly */
+figure,
+.box {
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+/* Figures */
+figure.figure-block {
+  margin: 5mm 0 6mm 0;
+  break-inside: avoid;
+  page-break-inside: avoid;
+  float: bottom;
+  float-placement: bottom;
+}
+figure.figure-block.full-width {
+  width: 100%;
+  float: bottom;
+  float-reference: page;
+  clear: both;
+  float-placement: bottom;
+}
+figure.figure-block.full-width.chapter-opener {
+  page: chapter-first;
+  float: none;
+  clear: none;
+  margin: 0;
+  width: var(--page-width);
+  height: var(--page-height);
+  break-after: page;
+}
+figure.figure-block.full-width.chapter-opener img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  max-height: none;
+}
+figure.figure-block img {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  height: auto;
+  max-height: calc(var(--page-height) - var(--margin-top) - var(--margin-bottom) - 28mm);
+  object-fit: contain;
+  margin: 0 auto;
+}
+figcaption.figure-caption {
+  margin-top: 3mm;
+  font-family: var(--font-sans);
+  font-size: 9pt;
+  color: var(--muted);
+  text-align: left;
+  line-height: 1.35;
+}
+.figure-label {
+  font-weight: 700;
+  color: var(--accent);
+}
+
+/* Praktijk / Verdieping boxes */
+.box {
+  margin: 5mm 0;
+  padding: var(--box-pad-top) var(--box-pad-x) var(--box-pad-bottom) var(--box-pad-x);
+  border: 0.5pt solid var(--rule);
+  border-left: 3pt solid var(--accent);
+  background: #f7f7f7;
+  border-radius: 0;
+  text-indent: 0 !important;
+  break-inside: auto;
+  page-break-inside: auto;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+}
+.box.praktijk {
+  background: var(--praktijk-bg);
+  border-color: var(--praktijk-border);
+  border-left-color: var(--praktijk-accent);
+}
+.box.verdieping {
+  background: var(--verdieping-bg);
+  border-color: var(--verdieping-border);
+  border-left-color: var(--verdieping-accent);
+}
+.box p {
+  margin: 0;
+  /* Boxes should be easy to scan: ragged-right + minimal hyphenation. */
+  text-align: left;
+  font-style: normal;
+  hyphens: none;
+  prince-hyphens: none;
+  orphans: 9;
+  widows: 9;
+}
+.box .box-lead {
+  font-style: italic;
+  font-weight: 400;
+}
+.box .box-label {
+  font-family: var(--font-sans);
+  font-weight: 700;
+  color: var(--accent);
+  display: block;
+  break-after: avoid;
+  page-break-after: avoid;
+  margin: 0 0 var(--box-label-gap) 0;
+  text-align: left;
+  white-space: nowrap;
+  font-style: normal;
+}
+.box .box-label::before {
+  content: "";
+  display: inline-block;
+  width: var(--box-inline-icon-size);
+  height: var(--box-inline-icon-size);
+  margin-right: var(--box-inline-icon-gap);
+  vertical-align: text-top;
+  background-repeat: no-repeat;
+  background-position: left center;
+  background-size: contain;
+}
+.box.praktijk .box-label::before {
+  background-image: url("data:image/svg+xml,%3Csvg%20xmlns%3D'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg'%20viewBox%3D'0%200%2024%2024'%3E%0A%20%20%3Cg%20fill%3D'none'%20stroke%3D'%232D7A4E'%20stroke-width%3D'1.8'%20stroke-linecap%3D'round'%20stroke-linejoin%3D'round'%3E%0A%20%20%20%20%3Cpath%20d%3D'M7%2010c0-2.8%202.2-5%205-5s5%202.2%205%205v7c0%202.8-2.2%205-5%205s-5-2.2-5-5v-7z'%2F%3E%0A%20%20%20%20%3Ccircle%20cx%3D'10'%20cy%3D'12'%20r%3D'1.7'%2F%3E%0A%20%20%20%20%3Ccircle%20cx%3D'14'%20cy%3D'12'%20r%3D'1.7'%2F%3E%0A%20%20%20%20%3Cpath%20d%3D'M12%2014l-1%201m1-1l1%201'%2F%3E%0A%20%20%3C%2Fg%3E%0A%3C%2Fsvg%3E");
+}
+.box.verdieping .box-label::before {
+  background-image: url("data:image/svg+xml,%3Csvg%20xmlns%3D'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg'%20viewBox%3D'0%200%2024%2024'%3E%0A%20%20%3Cg%20fill%3D'none'%20stroke%3D'%238B4B3A'%20stroke-width%3D'1.8'%20stroke-linecap%3D'round'%20stroke-linejoin%3D'round'%3E%0A%20%20%20%20%3Cpath%20d%3D'M9%2021h6'%2F%3E%0A%20%20%20%20%3Cpath%20d%3D'M10%2018h4'%2F%3E%0A%20%20%20%20%3Cpath%20d%3D'M6%2011a6%206%200%201%201%2012%200c0%202.2-1.2%203.6-2.4%204.8-.7.7-1.2%201.2-1.4%202.2H10c-.2-1-0.7-1.5-1.4-2.2C7.2%2014.6%206%2013.2%206%2011z'%2F%3E%0A%20%20%3C%2Fg%3E%0A%3C%2Fsvg%3E");
+}
+.box.praktijk .box-label { color: var(--praktijk-accent); }
+.box.verdieping .box-label { color: var(--verdieping-accent); }
+  `.trim();
+
+  function renderContentBlocks(blocks) {
+    if (!Array.isArray(blocks)) return "";
+    let out = "";
+    for (const b of blocks) {
+      if (!b || typeof b !== "object") continue;
+      const t = typeof b.type === "string" ? b.type : "";
+
+      if (t === "paragraph") {
+        const basis = typeof b.basis === "string" ? b.basis : "";
+        const pidRaw = typeof b.id === "string" ? b.id : "";
+        const pid = pidRaw ? `pid-${toSafeDomId(pidRaw)}` : "";
+        if (basis.trim()) {
+          out += `<p class="p role-body"${pid ? ` id="${escapeHtml(pid)}"` : ""}>${sanitizeInlineBookHtml(basis)}</p>\n`;
+        }
+
+        if (typeof b.praktijk === "string" && b.praktijk.trim()) {
+          out += `<div class="box praktijk"><p><span class="box-label">In de praktijk:</span>${sanitizeInlineBookHtml(b.praktijk)}</p></div>\n`;
+        }
+        if (typeof b.verdieping === "string" && b.verdieping.trim()) {
+          out += `<div class="box verdieping"><p><span class="box-label">Verdieping:</span>${sanitizeInlineBookHtml(b.verdieping)}</p></div>\n`;
+        }
+
+        const images = Array.isArray(b.images) ? b.images : [];
+        for (const img of images) {
+          if (!img || typeof img !== "object") continue;
+          const src = typeof img.src === "string" ? img.src : null;
+          if (!src) continue;
+          const alt = typeof img.alt === "string" ? img.alt : "";
+          const caption = typeof img.caption === "string" ? img.caption : "";
+          const figureNumber = typeof img.figureNumber === "string" ? img.figureNumber : "";
+          const resolvedSrc = resolveAssetSrc(src, { assetsBaseUrl, srcMap: figures?.srcMap || figures?.src_map });
+          out += `<figure class="figure-block full-width"><img src="${escapeHtml(resolvedSrc)}" alt="${escapeHtml(alt)}" />`;
+          if (caption || figureNumber) {
+            const label = figureNumber ? `Afbeelding ${figureNumber}:` : "";
+            out += `<figcaption class="figure-caption">${label ? `<span class="figure-label">${escapeHtml(label)}</span> ` : ""}${escapeHtml(caption)}</figcaption>`;
+          }
+          out += `</figure>\n`;
+        }
+        continue;
+      }
+
+      if (t === "subparagraph") {
+        const title = typeof b.title === "string" ? b.title : "";
+        if (title) {
+          if (isLikelySubparagraphNumberedHeading(title)) {
+            const id = typeof b.id === "string" ? b.id : "";
+            const safeId = id ? `sub-${escapeHtml(id)}` : "";
+            out += `<h3 class="subparagraph-title"${safeId ? ` id="${safeId}"` : ""} data-bookmark="${escapeHtml(title)}">${escapeHtml(title)}</h3>\n`;
+          } else {
+            out += `<p class="micro-title">${escapeHtml(title)}</p>\n`;
+          }
+        }
+        out += renderContentBlocks(b.content || b.blocks || b.items);
+        continue;
+      }
+
+      // Fallback: try common keys
+      if (Array.isArray(b.content)) {
+        out += renderContentBlocks(b.content);
+      } else if (typeof b.basis === "string") {
+        out += `<p class="p role-body">${sanitizeInlineBookHtml(b.basis)}</p>\n`;
+      }
+    }
+    return out;
+  }
+
+  function normalizeWhitespace(s) {
+    return String(s || "").replace(/\s+/g, " ").trim();
+  }
+
+  function stripHtmlToText(raw) {
+    const s = String(raw || "")
+      .replace(/<\s*br\b[^>]*\/?>/gi, " ")
+      .replace(/<[^>]+>/g, " ");
+    return normalizeWhitespace(s);
+  }
+
+  function toSafeDomId(raw) {
+    const s = String(raw || "").trim();
+    if (!s) return "";
+    // Stable + HTML-id safe: letters/numbers/_/-
+    return s
+      .toLowerCase()
+      .replace(/[^a-z0-9_-]+/g, "-")
+      .replace(/-+/g, "-")
+      .replace(/^-+|-+$/g, "");
+  }
+
+  function firstSentence(text) {
+    const t = normalizeWhitespace(text);
+    if (!t) return "";
+    const parts = t.split(/(?<=[.!?])\s+/);
+    const s = (parts[0] || t).trim();
+    return s.length > 280 ? `${s.slice(0, 277).trim()}…` : s;
+  }
+
+  function sentenceContaining(text, term) {
+    const t = normalizeWhitespace(text);
+    const needle = String(term || "").trim().toLowerCase();
+    if (!t || !needle) return "";
+    const parts = t.split(/(?<=[.!?])\s+/);
+    for (const p of parts) {
+      if (String(p).toLowerCase().includes(needle)) {
+        const s = String(p).trim();
+        return s.length > 320 ? `${s.slice(0, 317).trim()}…` : s;
+      }
+    }
+    return firstSentence(t);
+  }
+
+  function extractStrongTermsFromHtml(raw) {
+    const html = String(raw || "");
+    const re = /<\s*(strong|b)\s*>([\s\S]*?)<\s*\/\s*\1\s*>/gi;
+    const out = [];
+    let m;
+    while ((m = re.exec(html))) {
+      const t = stripHtmlToText(m[2]);
+      if (!t) continue;
+      // Trim trailing punctuation
+      const cleaned = t.replace(/[.,;:!?]+$/g, "").trim();
+      if (cleaned) out.push(cleaned);
+    }
+    return out;
+  }
+
+  function collectKeyTermsFromBlocks(blocks, acc) {
+    if (!Array.isArray(blocks)) return;
+    for (const b of blocks) {
+      if (!b || typeof b !== "object") continue;
+
+      if (typeof b.basis === "string") {
+        for (const t of extractStrongTermsFromHtml(b.basis)) acc.push(t);
+      }
+      if (typeof b.praktijk === "string") {
+        for (const t of extractStrongTermsFromHtml(b.praktijk)) acc.push(t);
+      }
+      if (typeof b.verdieping === "string") {
+        for (const t of extractStrongTermsFromHtml(b.verdieping)) acc.push(t);
+      }
+
+      const child = b.content || b.blocks || b.items;
+      if (Array.isArray(child)) collectKeyTermsFromBlocks(child, acc);
+    }
+  }
+
+  function deriveKeyTermsForChapter(ch) {
+    const terms = [];
+    const sections = Array.isArray(ch?.sections) ? ch.sections : [];
+    for (const s of sections) {
+      collectKeyTermsFromBlocks(s?.content || s?.blocks || s?.items, terms);
+    }
+    if (!sections.length) {
+      collectKeyTermsFromBlocks(ch?.content || ch?.blocks || ch?.items, terms);
+    }
+
+    // De-dupe while preserving order (case-insensitive).
+    const seen = new Set();
+    const uniq = [];
+    for (const t of terms) {
+      const key = String(t || "").toLowerCase();
+      if (!key) continue;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      uniq.push(String(t));
+    }
+    return uniq;
+  }
+
+  function deriveLearningObjectivesFromSections(sections, max = 4) {
+    const out = [];
+    for (const s of sections.slice(0, max)) {
+      const rawSt = s?.title || s?.meta?.title || "";
+      if (!rawSt) continue;
+      const { title } = splitNumberedTitle(rawSt);
+      const t = normalizeWhitespace(title);
+      if (!t) continue;
+
+      // A lightweight, deterministic objective from the heading.
+      const lowered = t.length > 1 ? t[0].toLowerCase() + t.slice(1) : t.toLowerCase();
+      if (/verschillen tussen/i.test(t)) {
+        out.push(`Je kunt de verschillen tussen ${lowered.replace(/verschillen tussen\s*/i, "")} uitleggen.`);
+      } else if (/van\s+.+\s+naar\s+.+/i.test(t)) {
+        out.push(`Je kunt beschrijven hoe ${lowered} werkt.`);
+      } else if (/^de\s|^het\s|^een\s/i.test(t)) {
+        out.push(`Je kunt uitleggen wat ${lowered} is.`);
+      } else {
+        out.push(`Je kunt de hoofdpunten van ${lowered} uitleggen.`);
+      }
+    }
+    return out;
+  }
+
+  function deriveLearningObjectivesWithRefs(sections, { chapterIndex, max = 6 } = {}) {
+    const out = [];
+    const idx = typeof chapterIndex === "number" && Number.isFinite(chapterIndex) ? chapterIndex : 0;
+    const list = Array.isArray(sections) ? sections : [];
+    for (let j = 0; j < list.length && out.length < max; j++) {
+      const s = list[j];
+      const rawSt = s?.title || s?.meta?.title || "";
+      if (!rawSt) continue;
+      const objective = deriveLearningObjectivesFromSections([s], 1)[0];
+      if (!objective) continue;
+
+      const secId = typeof s.id === "string" && s.id.trim() ? s.id.trim() : `${idx + 1}.${j + 1}`;
+      out.push({ objective, href: `#sec-${secId}` });
+    }
+    return out;
+  }
+
+  function toIkKan(s) {
+    const t = normalizeWhitespace(s);
+    if (!t) return "";
+    return t.replace(/^Je kunt\s+/i, "Ik kan ");
+  }
+
+  function collectParagraphRefsFromBlocks(blocks, acc) {
+    if (!Array.isArray(blocks)) return;
+    for (const b of blocks) {
+      if (!b || typeof b !== "object") continue;
+      const t = typeof b.type === "string" ? b.type : "";
+      if (t === "paragraph") {
+        const id = typeof b.id === "string" && b.id.trim() ? b.id.trim() : "";
+        const basis = typeof b.basis === "string" ? stripHtmlToText(b.basis) : "";
+        if (id && basis) acc.push({ id, text: basis });
+      }
+      const child = b.content || b.blocks || b.items;
+      if (Array.isArray(child)) collectParagraphRefsFromBlocks(child, acc);
+    }
+  }
+
+  function collectParagraphRefsForChapter(ch) {
+    const out = [];
+    const sections = Array.isArray(ch?.sections) ? ch.sections : [];
+    if (sections.length) {
+      for (const s of sections) {
+        collectParagraphRefsFromBlocks(s?.content || s?.blocks || s?.items, out);
+      }
+    } else {
+      collectParagraphRefsFromBlocks(ch?.content || ch?.blocks || ch?.items, out);
+    }
+    return out;
+  }
+
+  function firstParagraphSentenceForSection(s) {
+    const acc = [];
+    collectParagraphRefsFromBlocks(s?.content || s?.blocks || s?.items, acc);
+    if (!acc.length) return { sentence: "", href: "" };
+    const p = acc[0];
+    return { sentence: firstSentence(p.text), href: p.id ? `#pid-${toSafeDomId(p.id)}` : "" };
+  }
+
+  function deriveSectionSummaries(sections, { max = 6 } = {}) {
+    const out = [];
+    const list = Array.isArray(sections) ? sections : [];
+    for (let j = 0; j < list.length && out.length < max; j++) {
+      const s = list[j];
+      const rawSt = s?.title || s?.meta?.title || "";
+      const { number, title } = splitNumberedTitle(rawSt);
+      const label = normalizeWhitespace(number ? `${number} ${title}` : title) || `Sectie ${j + 1}`;
+      const { sentence, href } = firstParagraphSentenceForSection(s);
+      if (!sentence) continue;
+      out.push({ label, sentence, href });
+    }
+    return out;
+  }
+
+  function deriveGlossaryItems({ keyTerms, paragraphs, max = 10 }) {
+    const out = [];
+    const terms = Array.isArray(keyTerms) ? keyTerms : [];
+    const paras = Array.isArray(paragraphs) ? paragraphs : [];
+    for (const term of terms) {
+      if (out.length >= max) break;
+      const needle = String(term || "").trim();
+      if (!needle) continue;
+      const found = paras.find((p) => String(p?.text || "").toLowerCase().includes(needle.toLowerCase()));
+      if (!found) continue;
+      const def = sentenceContaining(found.text, needle);
+      if (!def) continue;
+      const href = found.id ? `#pid-${toSafeDomId(found.id)}` : "";
+      out.push({ term: needle, definition: def, href });
+    }
+    return out;
+  }
+
+  function deriveCheckQuestions({ sections, keyTerms, max = 4 }) {
+    const qs = [];
+    const terms = Array.isArray(keyTerms) ? keyTerms : [];
+    const secTitles = Array.isArray(sections) ? sections.map((s) => splitNumberedTitle(s?.title || "").title).filter(Boolean) : [];
+
+    if (terms[0]) qs.push(`Wat bedoelen we met “${terms[0]}”?`);
+    if (terms[1]) qs.push(`Wat is het verschil tussen “${terms[0]}” en “${terms[1]}”?`);
+    if (secTitles[0]) qs.push(`Vat de kern van “${secTitles[0]}” samen in twee zinnen.`);
+    if (terms[2]) qs.push(`Noem een voorbeeld van “${terms[2]}” in het lichaam.`);
+
+    return qs.slice(0, max);
+  }
+
+  function renderChapter(ch, idx) {
+    const rawTitle = ch?.title || ch?.meta?.title || `Hoofdstuk ${idx + 1}`;
+    const displayTitle = stripChapterNumberPrefix(rawTitle);
+    const bookmark = `${idx + 1}. ${displayTitle}`;
+
+    const openerRaw =
+      (chapterOpeners && typeof chapterOpeners === "object" ? chapterOpeners[idx] : null) ||
+      ch?.openerImage ||
+      ch?.opener_image ||
+      null;
+    const openerSrc = openerRaw
+      ? resolveAssetSrc(openerRaw, { assetsBaseUrl, srcMap: figures?.srcMap || figures?.src_map })
+      : null;
+
+    let out = `<div class="chapter${openerSrc ? " has-opener" : ""}" id="ch-${idx + 1}">\n`;
+    out += `  <div class="chapter-title-block">\n`;
+    out += `    <div class="chapter-number">Hoofdstuk ${idx + 1}</div>\n`;
+    out += `    <h1 class="chapter-title" data-bookmark="${escapeHtml(bookmark)}">${escapeHtml(displayTitle)}</h1>\n`;
+    out += `  </div>\n\n`;
+
+    if (openerSrc) {
+      out += `  <figure class="figure-block full-width chapter-opener">\n`;
+      out += `    <img src="${escapeHtml(openerSrc)}" alt="${escapeHtml(`Hoofdstuk ${idx + 1} opener`)}">\n`;
+      out += `  </figure>\n\n`;
+    }
+
+    const sections = Array.isArray(ch?.sections) ? ch.sections : [];
+    const objectives = deriveLearningObjectivesFromSections(sections, 4);
+    if (objectives.length) {
+      out += `  <div class="chapter-intro">\n`;
+      out += `    <div class="intro-title">In dit hoofdstuk leer je:</div>\n`;
+      out += `    <ul class="bullets">\n`;
+      for (const o of objectives) out += `      <li>${escapeHtml(o)}</li>\n`;
+      out += `    </ul>\n`;
+      out += `  </div>\n\n`;
+    }
+
+    out += `  <div class="chapter-body">\n`;
+
+    for (const s of sections) {
+      if (!s || typeof s !== "object") continue;
+      const rawSt = s.title || s.meta?.title || "";
+      if (rawSt) {
+        const { number, title } = splitNumberedTitle(rawSt);
+        const secId = typeof s.id === "string" && s.id.trim() ? s.id.trim() : `${idx + 1}.${sections.indexOf(s) + 1}`;
+        const bookmarkLabel = number ? `${number} ${title}` : title;
+        out += `    <h2 class="section-title" id="sec-${escapeHtml(secId)}" data-bookmark="${escapeHtml(bookmarkLabel)}">`;
+        if (number) out += `<span class="section-number">${escapeHtml(number)}</span> `;
+        out += `${escapeHtml(title)}</h2>\n`;
+      }
+      out += renderContentBlocks(s.content || s.blocks || s.items);
+    }
+
+    // Some sources may put blocks directly under chapter
+    if (sections.length === 0) {
+      out += renderContentBlocks(ch?.content || ch?.blocks || ch?.items);
+    }
+
+    // Chapter recap (deterministic, content-derived; no AI / no placeholders).
+    const keyTerms = deriveKeyTermsForChapter(ch).slice(0, 10);
+    const questions = deriveCheckQuestions({ sections, keyTerms, max: 4 });
+    const objectivesWithRefs = deriveLearningObjectivesWithRefs(sections, { chapterIndex: idx, max: 6 });
+    const summaries = deriveSectionSummaries(sections, { max: 6 });
+    const paragraphs = collectParagraphRefsForChapter(ch);
+    const glossary = deriveGlossaryItems({ keyTerms, paragraphs, max: 10 });
+
+    const allChapters = Array.isArray(canonical?.chapters) ? canonical.chapters : [];
+    const nextChapterRaw = allChapters[idx + 1]?.title || allChapters[idx + 1]?.meta?.title || "";
+    const nextChapterLabel = nextChapterRaw ? `${idx + 2}. ${stripChapterNumberPrefix(nextChapterRaw)}` : "";
+
+    if (keyTerms.length || questions.length || objectivesWithRefs.length || summaries.length || glossary.length || nextChapterLabel) {
+      out += `\n    <div class="chapter-recap">\n`;
+
+      if (objectivesWithRefs.length) {
+        out += `      <div class="recap-module doelen-check">\n`;
+        out += `        <div class="module-title">Doelen-check</div>\n`;
+        out += `        <ul class="checklist">\n`;
+        for (const o of objectivesWithRefs) {
+          const txt = toIkKan(o.objective);
+          const href = typeof o.href === "string" ? o.href : "";
+          out += `          <li>${href ? `<a class="recap-link" href="${escapeHtml(href)}">${escapeHtml(txt)}</a>` : escapeHtml(txt)}</li>\n`;
+        }
+        out += `        </ul>\n`;
+        out += `      </div>\n`;
+      }
+
+      if (summaries.length) {
+        out += `      <div class="recap-module kernsamenvatting">\n`;
+        out += `        <div class="module-title">Kernsamenvatting</div>\n`;
+        out += `        <ul class="bullets">\n`;
+        for (const s of summaries) {
+          const href = typeof s.href === "string" ? s.href : "";
+          const line = `${s.label} — ${s.sentence}`;
+          out += `          <li>${href ? `<a class="recap-link" href="${escapeHtml(href)}">${escapeHtml(line)}</a>` : escapeHtml(line)}</li>\n`;
+        }
+        out += `        </ul>\n`;
+        out += `      </div>\n`;
+      }
+
+      if (keyTerms.length) {
+        out += `      <div class="recap-module kernbegrippen">\n`;
+        out += `        <div class="module-title">Kernbegrippen</div>\n`;
+        out += `        <ul class="bullets">\n`;
+        for (const t of keyTerms) out += `          <li><strong>${escapeHtml(t)}</strong></li>\n`;
+        out += `        </ul>\n`;
+        out += `      </div>\n`;
+      }
+
+      if (glossary.length) {
+        out += `      <div class="recap-module begrippen">\n`;
+        out += `        <div class="module-title">Begrippen (kort uitgelegd)</div>\n`;
+        out += `        <div class="glossary">\n`;
+        for (const g of glossary) {
+          const href = typeof g.href === "string" ? g.href : "";
+          out += `          <div class="glossary-item">\n`;
+          out += `            <div class="glossary-term">${escapeHtml(g.term)}</div>\n`;
+          out += `            <div class="glossary-def">${escapeHtml(g.definition)}${href ? ` <a class="page-ref" href="${escapeHtml(href)}"></a>` : ""}</div>\n`;
+          out += `          </div>\n`;
+        }
+        out += `        </div>\n`;
+        out += `      </div>\n`;
+      }
+
+      if (questions.length) {
+        out += `      <div class="recap-module controleer">\n`;
+        out += `        <div class="module-title">Controleer jezelf</div>\n`;
+        out += `        <ol class="steps">\n`;
+        for (const q of questions) out += `          <li>${escapeHtml(q)}</li>\n`;
+        out += `        </ol>\n`;
+        out += `      </div>\n`;
+      }
+
+      if (nextChapterLabel) {
+        out += `      <div class="recap-module volgende-stap">\n`;
+        out += `        <div class="module-title">Volgende stap</div>\n`;
+        out += `        <ul class="bullets">\n`;
+        out += `          <li>Volgend hoofdstuk: <strong>${escapeHtml(nextChapterLabel)}</strong></li>\n`;
+        out += `        </ul>\n`;
+        out += `      </div>\n`;
+      }
+
+      out += `    </div>\n`;
+    }
+
+    out += `  </div>\n</div>\n`;
+    return out;
+  }
+
+  const chapters = Array.isArray(canonical?.chapters) ? canonical.chapters : [];
+  const selected =
+    target === "chapter" && typeof chapterIndex === "number"
+      ? (chapters[chapterIndex] ? [{ ch: chapters[chapterIndex], idx: chapterIndex }] : [])
+      : chapters.map((ch, idx) => ({ ch, idx }));
+
+  const body = selected.map(({ ch, idx }) => renderChapter(ch, idx)).join("\n");
+
+  const metaTitle = canonical?.meta?.title || "Book";
+  const metaLevel = canonical?.meta?.level ? String(canonical.meta.level).toUpperCase() : "";
+
+  function renderToc() {
+    if (target === "chapter") return "";
+    let out = `<div class="toc">\n`;
+    out += `  <div class="toc-meta">\n`;
+    out += `    <div>${escapeHtml(metaTitle)}</div>\n`;
+    if (metaLevel) out += `    <div>Niveau ${escapeHtml(metaLevel)}</div>\n`;
+    out += `  </div>\n`;
+    out += `  <h1>Inhoudsopgave</h1>\n`;
+
+    for (let i = 0; i < chapters.length; i++) {
+      const ch = chapters[i];
+      const rawTitle = ch?.title || ch?.meta?.title || `Hoofdstuk ${i + 1}`;
+      const displayTitle = stripChapterNumberPrefix(rawTitle);
+      out += `  <div class="toc-entry toc-level-1"><a href="#ch-${i + 1}">${escapeHtml(`${i + 1}. ${displayTitle}`)}</a></div>\n`;
+
+      const sections = Array.isArray(ch?.sections) ? ch.sections : [];
+      for (let j = 0; j < sections.length; j++) {
+        const s = sections[j];
+        const rawSt = s?.title || s?.meta?.title || "";
+        if (!rawSt) continue;
+        const { number, title } = splitNumberedTitle(rawSt);
+        const secId = typeof s.id === "string" && s.id.trim() ? s.id.trim() : `${i + 1}.${j + 1}`;
+        const label = number ? `${number} ${title}` : title;
+        out += `  <div class="toc-entry toc-level-2"><a href="#sec-${escapeHtml(secId)}">${escapeHtml(label)}</a></div>\n`;
+      }
+    }
+
+    out += `</div>\n`;
+    return out;
+  }
+
+  return `<!doctype html>
+<html lang="nl">
+  <head>
+    <meta charset="utf-8" />
+    <title>${escapeHtml(metaTitle)}</title>
+    <style>${css}</style>
+  </head>
+  <body>
+    ${renderToc()}
+    ${body}
+  </body>
+</html>`;
+}
+
+export function resolvePrinceCmd() {
+  const raw = process.env.PRINCE_PATH;
+  if (raw && typeof raw === "string" && raw.trim()) return raw.trim();
+  return "prince";
+}
+
+export async function runPrince({ htmlPath, pdfPath, logPath }) {
+  const princeCmd = resolvePrinceCmd();
+  const args = [htmlPath, "-o", pdfPath];
+  const start = Date.now();
+
+  await new Promise((resolve, reject) => {
+    const child = spawn(princeCmd, args, { stdio: ["ignore", "pipe", "pipe"] });
+    let out = "";
+    let err = "";
+    child.stdout.on("data", (d) => { out += d.toString(); });
+    child.stderr.on("data", (d) => { err += d.toString(); });
+    child.on("error", (e) => reject(e));
+    child.on("close", (code) => {
+      const combined = [out, err].filter(Boolean).join("\n");
+      writeFile(logPath, combined || "(no prince output)\n").catch(() => {});
+      if (code === 0) return resolve();
+      reject(new Error(`Prince failed (exit ${code}). See log: ${logPath}`));
+    });
+  });
+
+  const durationMs = Date.now() - start;
+  return { durationMs };
+}
+
+

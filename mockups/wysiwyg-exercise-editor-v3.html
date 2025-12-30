@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Exercise Studio - Identical to Play UI</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Inter', sans-serif; }
+  </style>
+</head>
+<body class="h-screen overflow-hidden bg-gradient-to-br from-violet-50 via-white to-amber-50">
+  <!-- Compact Header -->
+  <header class="bg-white border-b border-gray-200 px-3 py-1.5 flex items-center justify-between h-10 sticky top-0 z-50">
+    <div class="flex items-center gap-2">
+      <span class="text-lg">✦</span>
+      <button class="text-gray-600 hover:text-gray-900 text-base px-1">‹</button>
+      <span class="text-xs font-semibold">15.2 Autonome zenuwstelsel</span>
+      <span class="bg-gray-100 text-gray-600 text-[10px] px-1.5 py-0.5 rounded">HBO</span>
+    </div>
+
+    <div class="flex bg-gray-100 rounded p-0.5">
+      <button class="px-2 py-1 text-[11px] rounded text-gray-500 flex items-center gap-1">📊 Overview</button>
+      <button class="px-2 py-1 text-[11px] rounded bg-white shadow-sm text-gray-900 flex items-center gap-1">✏️ Focus</button>
+      <button class="px-2 py-1 text-[11px] rounded text-gray-500 flex items-center gap-1">📝 Exercises</button>
+      <button class="px-2 py-1 text-[11px] rounded text-gray-500 flex items-center gap-1">📖 Study</button>
+    </div>
+
+    <div class="flex items-center gap-2">
+      <span class="text-[10px] text-gray-400 flex items-center gap-1"><span class="w-1.5 h-1.5 bg-green-500 rounded-full"></span>Saved</span>
+      <button class="bg-violet-600 hover:bg-violet-700 text-white px-3 py-1 rounded text-[11px] font-medium">Publish</button>
+    </div>
+  </header>
+
+  <!-- Main Layout -->
+  <div class="flex" style="height: calc(100vh - 40px);">
+    <!-- Sidebar -->
+    <aside class="w-48 bg-white border-r border-gray-200 p-2 overflow-y-auto flex-shrink-0">
+      <div class="flex justify-between items-center mb-1">
+        <span class="text-[9px] font-semibold text-gray-500 tracking-wide uppercase">Exercises</span>
+        <span class="text-[10px] text-gray-400">6/6</span>
+      </div>
+      <div class="h-0.5 bg-gray-200 rounded-full mb-2">
+        <div class="h-full bg-green-500 rounded-full w-full"></div>
+      </div>
+      <div class="space-y-0.5">
+        <div class="text-[10px] font-medium text-gray-500 p-2 rounded cursor-pointer hover:bg-gray-100">15.2 FOUNDATIONS</div>
+        <div class="text-[10px] font-medium text-gray-900 p-2 rounded bg-gray-100 border-l-2 border-amber-500 cursor-pointer">15.2 APPLY</div>
+        <div class="text-[10px] font-medium text-gray-500 p-2 rounded cursor-pointer hover:bg-gray-100">15.2 CLINICAL</div>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="flex-1 overflow-y-auto p-2 flex justify-center">
+      <div class="w-full max-w-4xl flex flex-col">
+        <!-- Student View Bar -->
+        <div class="flex justify-between items-center mb-1">
+          <span class="text-[9px] font-semibold text-gray-400 tracking-wide flex items-center gap-1">👁 STUDENT VIEW</span>
+          <button class="text-[10px] text-gray-500 border border-gray-200 px-1.5 py-0.5 rounded hover:bg-gray-50">← Editor</button>
+        </div>
+
+        <!-- Content -->
+        <div class="flex flex-col items-center gap-3 w-full">
+          
+          <!-- STEM - Compact bar with always-visible buttons -->
+          <div class="w-full max-w-3xl relative">
+            <div class="flex gap-4 items-center h-24 bg-gray-50 rounded-xl p-3 border border-gray-200">
+              <!-- Image placeholder -->
+              <div class="flex-shrink-0 w-32 h-18 bg-gray-100 border border-dashed border-gray-300 rounded-lg flex items-center justify-center cursor-pointer hover:border-violet-500 transition-all">
+                <span class="text-xl opacity-30">🖼️</span>
+              </div>
+              <!-- Text -->
+              <div class="flex-1 min-w-0">
+                <p contenteditable="true" class="text-sm font-semibold leading-snug text-gray-900 outline-none focus:bg-white rounded p-1 -m-1 border border-transparent focus:border-violet-500 transition-all">Welke structuur is verantwoordelijk voor de productie van progesteron tijdens de luteale fase van de menstruatiecyclus?</p>
+              </div>
+            </div>
+            <!-- Always-visible buttons - bottom right -->
+            <div class="absolute bottom-2 right-2 flex gap-1">
+              <button class="w-7 h-7 flex items-center justify-center bg-white border border-gray-200 rounded-md hover:bg-gray-100 shadow-sm" title="AI rewrite">✨</button>
+              <button class="w-7 h-7 flex items-center justify-center bg-white border border-gray-200 rounded-md hover:bg-gray-100 shadow-sm" title="AI image">🎨</button>
+              <button class="w-7 h-7 flex items-center justify-center bg-white border border-gray-200 rounded-md hover:bg-gray-100 shadow-sm" title="Upload image">🖼️</button>
+            </div>
+          </div>
+
+          <!-- OPTIONS GRID - 2x2 compact -->
+          <div class="grid w-full max-w-3xl grid-cols-2 gap-3 px-4 mt-2">
+            
+            <!-- Option A - Correct -->
+            <div class="w-full relative" style="aspect-ratio: 16/9;">
+              <div class="absolute inset-0 rounded-xl border-2 border-green-500 bg-green-50/50 overflow-hidden transition-all hover:shadow-lg cursor-pointer">
+                <img src="https://images.unsplash.com/photo-1530026405186-ed1f139313f8?w=400&h=225&fit=crop" class="w-full h-full object-cover">
+                <span class="absolute top-1.5 left-1.5 bg-white/90 text-[10px] font-bold px-1.5 py-0.5 rounded">A</span>
+                <span class="absolute top-1.5 right-1.5 bg-green-600 text-white w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold">✓</span>
+                <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-2">
+                  <span contenteditable="true" class="text-white font-semibold text-xs drop-shadow outline-none">Corpus luteum</span>
+                </div>
+              </div>
+              <!-- Always-visible buttons - bottom right -->
+              <div class="absolute bottom-2 right-2 flex gap-1 z-10">
+                <button class="w-6 h-6 flex items-center justify-center bg-white/90 border border-gray-200 rounded text-[11px] hover:bg-white shadow-sm" title="AI rewrite">✨</button>
+                <button class="w-6 h-6 flex items-center justify-center bg-white/90 border border-gray-200 rounded text-[11px] hover:bg-white shadow-sm" title="AI image">🎨</button>
+                <button class="w-6 h-6 flex items-center justify-center bg-white/90 border border-gray-200 rounded text-[11px] hover:bg-white shadow-sm" title="Upload image">🖼️</button>
+              </div>
+            </div>
+
+            <!-- Option B -->
+            <div class="w-full relative" style="aspect-ratio: 16/9;">
+              <div class="absolute inset-0 rounded-xl border border-gray-200 bg-white overflow-hidden transition-all hover:border-violet-500 hover:shadow-lg cursor-pointer">
+                <div class="w-full h-full bg-gray-50 flex flex-col items-center justify-center">
+                  <span class="text-2xl opacity-30">🖼️</span>
+                  <span class="text-[9px] text-gray-400">Add image</span>
+                </div>
+                <span class="absolute top-1.5 left-1.5 bg-white text-[10px] font-bold px-1.5 py-0.5 rounded border">B</span>
+                <div class="absolute bottom-0 left-0 right-0 bg-white border-t p-2">
+                  <span contenteditable="true" class="text-gray-900 font-semibold text-xs outline-none">Follikel</span>
+                </div>
+              </div>
+              <!-- Always-visible buttons -->
+              <div class="absolute bottom-2 right-2 flex gap-1 z-10">
+                <button class="w-6 h-6 flex items-center justify-center bg-white border border-gray-200 rounded text-[11px] hover:bg-gray-100 shadow-sm" title="AI rewrite">✨</button>
+                <button class="w-6 h-6 flex items-center justify-center bg-white border border-gray-200 rounded text-[11px] hover:bg-gray-100 shadow-sm" title="AI image">🎨</button>
+                <button class="w-6 h-6 flex items-center justify-center bg-white border border-gray-200 rounded text-[11px] hover:bg-gray-100 shadow-sm" title="Upload image">🖼️</button>
+              </div>
+            </div>
+
+            <!-- Option C -->
+            <div class="w-full relative" style="aspect-ratio: 16/9;">
+              <div class="absolute inset-0 rounded-xl border border-gray-200 bg-white overflow-hidden transition-all hover:border-violet-500 hover:shadow-lg cursor-pointer">
+                <div class="w-full h-full bg-gray-50 flex flex-col items-center justify-center">
+                  <span class="text-2xl opacity-30">🖼️</span>
+                  <span class="text-[9px] text-gray-400">Add image</span>
+                </div>
+                <span class="absolute top-1.5 left-1.5 bg-white text-[10px] font-bold px-1.5 py-0.5 rounded border">C</span>
+                <div class="absolute bottom-0 left-0 right-0 bg-white border-t p-2">
+                  <span contenteditable="true" class="text-gray-900 font-semibold text-xs outline-none">Endometrium</span>
+                </div>
+              </div>
+              <!-- Always-visible buttons -->
+              <div class="absolute bottom-2 right-2 flex gap-1 z-10">
+                <button class="w-6 h-6 flex items-center justify-center bg-white border border-gray-200 rounded text-[11px] hover:bg-gray-100 shadow-sm" title="AI rewrite">✨</button>
+                <button class="w-6 h-6 flex items-center justify-center bg-white border border-gray-200 rounded text-[11px] hover:bg-gray-100 shadow-sm" title="AI image">🎨</button>
+                <button class="w-6 h-6 flex items-center justify-center bg-white border border-gray-200 rounded text-[11px] hover:bg-gray-100 shadow-sm" title="Upload image">🖼️</button>
+              </div>
+            </div>
+
+            <!-- Option D -->
+            <div class="w-full relative" style="aspect-ratio: 16/9;">
+              <div class="absolute inset-0 rounded-xl border border-gray-200 bg-white overflow-hidden transition-all hover:border-violet-500 hover:shadow-lg cursor-pointer">
+                <div class="w-full h-full bg-gray-50 flex flex-col items-center justify-center">
+                  <span class="text-2xl opacity-30">🖼️</span>
+                  <span class="text-[9px] text-gray-400">Add image</span>
+                </div>
+                <span class="absolute top-1.5 left-1.5 bg-white text-[10px] font-bold px-1.5 py-0.5 rounded border">D</span>
+                <div class="absolute bottom-0 left-0 right-0 bg-white border-t p-2">
+                  <span contenteditable="true" class="text-gray-900 font-semibold text-xs outline-none">Hypofyse</span>
+                </div>
+              </div>
+              <!-- Always-visible buttons -->
+              <div class="absolute bottom-2 right-2 flex gap-1 z-10">
+                <button class="w-6 h-6 flex items-center justify-center bg-white border border-gray-200 rounded text-[11px] hover:bg-gray-100 shadow-sm" title="AI rewrite">✨</button>
+                <button class="w-6 h-6 flex items-center justify-center bg-white border border-gray-200 rounded text-[11px] hover:bg-gray-100 shadow-sm" title="AI image">🎨</button>
+                <button class="w-6 h-6 flex items-center justify-center bg-white border border-gray-200 rounded text-[11px] hover:bg-gray-100 shadow-sm" title="Upload image">🖼️</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Explanation - Compact with always-visible buttons -->
+          <div class="w-full max-w-3xl mt-2 relative">
+            <div class="bg-white rounded-xl p-3 shadow-sm border-l-4 border-green-500">
+              <div class="flex items-center gap-2 mb-1.5">
+                <span class="text-[11px] font-semibold text-green-600 flex items-center gap-1">💡 Explanation</span>
+              </div>
+              <div class="flex gap-3">
+                <!-- Optional image for explanation -->
+                <div class="flex-shrink-0 w-20 h-14 bg-gray-100 border border-dashed border-gray-300 rounded-lg flex items-center justify-center cursor-pointer hover:border-violet-500 transition-all">
+                  <span class="text-lg opacity-30">🖼️</span>
+                </div>
+                <!-- Text -->
+                <p contenteditable="true" class="flex-1 text-xs leading-relaxed text-gray-700 outline-none focus:bg-green-50 rounded p-1 -m-1 border border-transparent focus:border-green-500 transition-all">Het <strong>corpus luteum</strong> is de structuur die ontstaat uit de geruptureerde follikel na de ovulatie. Het produceert progesteron tijdens de luteale fase.</p>
+              </div>
+            </div>
+            <!-- Always-visible buttons - bottom right -->
+            <div class="absolute bottom-2 right-2 flex gap-1">
+              <button class="w-6 h-6 flex items-center justify-center bg-white border border-gray-200 rounded text-[11px] hover:bg-gray-100 shadow-sm" title="AI rewrite">✨</button>
+              <button class="w-6 h-6 flex items-center justify-center bg-white border border-gray-200 rounded text-[11px] hover:bg-gray-100 shadow-sm" title="AI image">🎨</button>
+              <button class="w-6 h-6 flex items-center justify-center bg-white border border-gray-200 rounded text-[11px] hover:bg-gray-100 shadow-sm" title="Upload image">🖼️</button>
+            </div>
+          </div>
+
+          <!-- Navigation - Compact -->
+          <div class="w-full max-w-3xl flex justify-between items-center pt-2 border-t border-gray-100 mt-1">
+            <button class="border border-gray-200 px-3 py-1 rounded text-[11px] text-gray-600 hover:bg-gray-50">← Prev</button>
+            <span class="text-[10px] text-gray-400">3 / 12</span>
+            <button class="border border-gray-200 px-3 py-1 rounded text-[11px] text-gray-600 hover:bg-gray-50">Next →</button>
+          </div>
+
+        </div>
+      </div>
+    </main>
+  </div>
+</body>
+</html>

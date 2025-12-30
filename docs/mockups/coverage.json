@@ -218,6 +218,119 @@
       ]
     },
     {
+      "path": "/admin/books",
+      "name": "Books",
+      "description": "Books library + ingest",
+      "states": [
+        {
+          "id": "default",
+          "file": "admin/books/default.html",
+          "description": "Default state",
+          "required": true
+        }
+      ],
+      "requiredCTAs": [
+        { "id": "nav-admin", "target": "/admin" },
+        { "id": "cta-admin-books-refresh", "target": "action" },
+        { "id": "cta-admin-books-ingest-bookid", "target": "edit" },
+        { "id": "cta-admin-books-ingest-title", "target": "edit" },
+        { "id": "cta-admin-books-ingest-level", "target": "edit" },
+        { "id": "cta-admin-books-ingest-source", "target": "edit" },
+        { "id": "cta-admin-books-ingest-canonical-file", "target": "upload" },
+        { "id": "cta-admin-books-ingest-figures-file", "target": "upload" },
+        { "id": "cta-admin-books-ingest-tokens-file", "target": "upload" },
+        { "id": "cta-admin-books-ingest", "target": "action" }
+      ]
+    },
+    {
+      "path": "/admin/books/:bookId",
+      "name": "Book Detail",
+      "description": "Book details + versions",
+      "states": [
+        {
+          "id": "default",
+          "file": "admin/books/book/default.html",
+          "description": "Default state",
+          "required": true
+        }
+      ],
+      "requiredCTAs": [
+        { "id": "cta-admin-book-back", "target": "navigate" },
+        { "id": "cta-admin-book-refresh", "target": "action" }
+      ]
+    },
+    {
+      "path": "/admin/books/:bookId/versions/:bookVersionId",
+      "name": "Book Version Detail",
+      "description": "Book version details + runs + overlays + export",
+      "states": [
+        {
+          "id": "default",
+          "file": "admin/books/version/default.html",
+          "description": "Default state",
+          "required": true
+        }
+      ],
+      "requiredCTAs": [
+        { "id": "cta-admin-bookversion-back", "target": "navigate" },
+        { "id": "cta-admin-bookversion-refresh", "target": "action" },
+        { "id": "cta-admin-bookversion-chapterindex", "target": "edit" },
+        { "id": "cta-admin-bookversion-overlayid", "target": "edit" },
+        { "id": "cta-admin-bookversion-render-provider", "target": "edit" },
+        { "id": "cta-admin-bookversion-allow-missing-images", "target": "action" },
+        { "id": "cta-admin-bookversion-enqueue-chapter", "target": "action" },
+        { "id": "cta-admin-bookversion-enqueue-book", "target": "action" },
+        { "id": "cta-admin-bookversion-new-overlay-label", "target": "edit" },
+        { "id": "cta-admin-bookversion-create-overlay", "target": "action" },
+        { "id": "cta-admin-bookversion-export-courseid", "target": "edit" },
+        { "id": "cta-admin-bookversion-export-studytexts", "target": "action" }
+      ]
+    },
+    {
+      "path": "/admin/books/:bookId/runs/:runId",
+      "name": "Book Run Detail",
+      "description": "Run status + artifacts",
+      "states": [
+        {
+          "id": "default",
+          "file": "admin/books/run/default.html",
+          "description": "Default state",
+          "required": true
+        }
+      ],
+      "requiredCTAs": [
+        { "id": "cta-admin-bookrun-back", "target": "navigate" },
+        { "id": "cta-admin-bookrun-refresh", "target": "action" },
+        { "id": "cta-admin-bookrun-missing-refresh", "target": "action" },
+        { "id": "cta-admin-bookrun-missing-upload", "target": "action" },
+        { "id": "cta-admin-bookrun-missing-ai-generate", "target": "action" }
+      ]
+    },
+    {
+      "path": "/admin/books/:bookId/versions/:bookVersionId/overlays/:overlayId",
+      "name": "Book Overlay Editor",
+      "description": "Paragraph overlay editor + exercise generation",
+      "states": [
+        {
+          "id": "default",
+          "file": "admin/books/overlay/default.html",
+          "description": "Default state",
+          "required": true
+        }
+      ],
+      "requiredCTAs": [
+        { "id": "cta-admin-overlay-back", "target": "navigate" },
+        { "id": "cta-admin-overlay-refresh", "target": "action" },
+        { "id": "cta-admin-overlay-save", "target": "action" },
+        { "id": "cta-admin-overlay-search", "target": "edit" },
+        { "id": "cta-admin-overlay-only-edited", "target": "action" },
+        { "id": "cta-admin-overlay-select-all", "target": "action" },
+        { "id": "cta-admin-overlay-clear-selection", "target": "action" },
+        { "id": "cta-admin-overlay-derived-courseid", "target": "edit" },
+        { "id": "cta-admin-overlay-generate-exercises", "target": "action" }
+      ]
+    },
+    {
       "path": "/admin/expertcollege-exercise-generation/:courseId",
       "name": "Expertcollege exercise generation editor",
       "description": "Generate exercises from study texts with review and save flow",

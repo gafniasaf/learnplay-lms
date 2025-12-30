@@ -89,14 +89,6 @@ export function requireOrganizationId(context: AuthContext): string {
   const organizationId = context.organizationId;
   if (organizationId) return organizationId;
 
-  // In agent-token mode, allow falling back to a configured default org id.
-  // This keeps non-UI agent calls (smoke tests, cron/worker utilities) from needing to
-  // always provide X-Organization-Id, while still enforcing org scoping.
-  if (context.type === "agent") {
-    const fallback = Deno.env.get("ORGANIZATION_ID");
-    if (fallback) return fallback;
-  }
-
   throw new Error("Missing organization_id");
 }
 

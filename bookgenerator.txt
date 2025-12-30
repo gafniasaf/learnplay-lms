@@ -1,0 +1,1727 @@
+# Golden Prompts Generator - Ideal Input Format Specification
+ 
+## Overview
+ 
+This document describes the ideal input format for an AI agent interacting with the **BookGen Pro (Prince-first)** system.
+ 
+The system takes **InDesign source exports** (IDML + chapter opener images) plus a **multi-book manifest** and produces:
+- Canonical JSON (chapter/section/subparagraph structure)
+- Skeleton-first rewrite artifacts (skeleton, rewrites, assembled JSON)
+- Prince HTML + student-facing PDF output
+- Validation reports (numbering/structure/layout)
+- Real-time run telemetry to Supabase (runs/chapters/logs/issues)
+ 
+**Important scope constraint**: This specification covers **only the Prince-first pipeline** (`new_pipeline/`). It must **not** introduce any InDesign “apply rewrites back into INDD” legacy flow.
+ 
+---
+ 
+## System Purpose
+ 
+BookGen Pro is a “skeleton-first” book generation pipeline that:
+1. Uses a canonical N4 source as the numbering/topic backbone (via a canonical IDML snapshot)
+2. Converts content into a canonical JSON schema
+3. Extracts a skeleton that pre-defines microheadings + box placement (Praktijk/Verdieping)
+4. Runs LLM rewriting deterministically from the skeleton (Pass 1)
+5. Assembles and renders a student-facing PDF via Prince XML
+6. Runs mandatory validation gates
+7. Reports progress and issues to Supabase for a real-time dashboard
+ 
+**Output target**: student-facing PDFs only (KD-free).
+ 
+---
+ 
+## Ideal Input Structure
+ 
+### Phase 1: Initial App Description
+ 
+The ideal first message should include:
+ 
+```
+I want to build a Prince-first “book generation system” that converts InDesign IDML exports into validated student PDFs.
+ 
+Books to support:
+- [Book slug 1] (title: ...)
+- [Book slug 2] (title: ...)
+ 
+Inputs available per book:
+- Canonical IDML snapshot path: [...]
+- Optional chapter opener images folder path: [...]
+- Optional figures mapping JSON path: [...]
+ 
+Key features:
+- Skeleton-first rewriting (microheadings + Praktijk generated, Verdieping selected from existing units)
+- Deterministic output artifacts per chapter (skeleton/rewrites/assembled/html/pdf)
+- Mandatory validation gates (numbering, JSON preflight, Prince layout suite)
+- Supabase run telemetry (runs/chapters/logs/issues) + web dashboard
+ 
+Users should be able to:
+- Start a full-book run or per-chapter/per-section run
+- See real-time progress, ETA, logs, and warnings/errors
+- Resume/retry failed chapters without losing previous outputs
+```
+ 
+#### Required Elements
+ 
+| Element | Description | Example |
+|---------|-------------|---------|
+| **Pipeline Mode** | Must be Prince-first only | “Prince-first; no InDesign apply” |
+| **Source of Truth** | Multi-book manifest for scaling | `books/manifest.json` |
+| **Canonical Snapshot** | Deterministic N4 IDML snapshot | `./_source_exports/...FROM_DOWNLOADS.idml` |
+| **Output Target** | Student PDF (KD-free) | “student-facing PDFs only” |
+| **Validation Gates** | Must be green before “validated” | numbering gate + JSON preflight + Prince validation suite |
+| **LLM Provider/Models** | Models for planning + rewriting | planning: OpenAI `gpt-4o-mini`; rewriting: Anthropic `claude-sonnet-4-5-20250929` |
+| **Telemetry** | Real Supabase (no dummy keys) | Supabase Realtime + Edge functions |
+ 
+---
+ 
+### Phase 2: Answering Clarifying Questions
+ 
+The system will ask 3–7 clarifying questions. Ideal responses should be:
+ 
+```
+[Question topic]: [Specific answer]
+ 
+Details:
+- [Specification 1]
+- [Specification 2]
+ 
+Priority: [High/Medium/Low]
+```
+ 
+#### Common Clarifying Questions & Ideal Responses (BookGen Pro)
+ 
+**1. Book Source-of-Truth & Scaling**
+```
+Q: What is the source of truth for book selection and numbering?
+ 
+Ideal Answer:
+Source of truth:
+- Multi-book: books/manifest.json
+- Numbering backbone: canonical N4 IDML snapshot exported from the canonical INDD
+ 
+Details:
+- Only chapter/paragraph/subparagraph keys that exist in the N4 snapshot may be used.
+- subparagraph_number must exist (can be null).
+ 
+Priority: High
+```
+ 
+**2. Primary Outputs**
+```
+Q: What are the required outputs per chapter and per book?
+ 
+Ideal Answer:
+Per chapter:
+- canonical_chN_with_figures.json
+- skeleton_chN.json
+- rewrites_chN.json
+- canonical_chN_with_figures.assembled.json
+- canonical_chN_professional.pdf + prince log + html
+ 
+Per book:
+- canonical_book_with_figures.json
+- canonical_book_with_figures.rewritten.json
+- book_professional.pdf
+ 
+Priority: High
+```
+ 
+**3. LLM Behavior & Box Semantics**
+```
+Q: How should Praktijk and Verdieping work?
+ 
+Ideal Answer:
+- Praktijk: LLM-generated extra unit inserted into skeleton (new content). Must be SKIPPED if not relevant.
+- Verdieping: Selection of existing units (no new content). Minimum ~65 words; should be relatively complex.
+- Microheadings: planned in skeleton before rewriting; applied as micro-title markers.
+ 
+Priority: High
+```
+ 
+**4. Validation & “Green Gates”**
+```
+Q: What is required to call a run “validated”?
+ 
+Ideal Answer:
+Mandatory gates:
+- Numbering gate: scripts/verify-json-numbering-vs-n4.py
+- JSON structural gate: npm run preflight:json -- <json>
+- Prince layout validation suite in new_pipeline/validate/ on the newest PDF
+ 
+Priority: High
+```
+ 
+**5. Supabase/Edge Telemetry (Real-time Monitor)**
+```
+Q: What should the monitor store and show?
+ 
+Ideal Answer:
+Store:
+- pipeline_runs, chapter_progress, log_entries, build_issues
+ 
+Show:
+- overall progress % + ETA
+- per-chapter progress + section counts
+- pass1/pass2/assembly/pdf status
+- errors/warnings live stream
+ 
+Priority: High
+```
+ 
+**6. Terminology & Student-facing Constraints**
+```
+Q: What terminology and student-facing constraints are non-negotiable?
+ 
+Ideal Answer:
+- Always use “zorgvrager” and “zorgprofessional”
+- Never: patiënt/patient/cliënt/client/verpleegkundige
+- Student output must be KD-free (no KD codes/tags/mentions)
+ 
+Priority: High
+```
+ 
+---
+ 
+### Phase 3: Triggering Prompt Generation
+ 
+When ready to generate, use clear trigger phrases:
+ 
+**Ideal Triggers:**
+```
+Generate my Golden Plan
+I'm ready for the prompts
+Create the prompt sequence
+Generate the build prompts
+```
+ 
+**With Preferences:**
+```
+Generate my Golden Plan with focus on:
+- Prince-first pipeline only
+- Deterministic artifacts per chapter (no overwrites)
+- Supabase realtime dashboard with run history
+- Full prompt inventory included for reverse engineering
+```
+ 
+---
+ 
+## Input Quality Spectrum
+ 
+### Poor Input (Avoid)
+ 
+```
+Build a book generator.
+```
+ 
+**Problems:**
+- No source of truth defined
+- No gates/validations specified
+- No clear LLM semantics for Praktijk/Verdieping
+- No telemetry requirements
+ 
+---
+ 
+### Acceptable Input (Minimum Viable)
+ 
+```
+I want a pipeline that converts IDML to PDFs and tracks progress.
+```
+ 
+**Issues:**
+- Missing deterministic artifact contract
+- Missing numbering gate requirements
+- Missing exact LLM prompt constraints
+ 
+---
+ 
+### Good Input (Recommended)
+ 
+```
+I want a Prince-first pipeline that takes canonical IDML snapshots and produces student PDFs.
+It must extract a skeleton, run LLM rewrites from the skeleton, and validate output with our gates.
+Also push run progress + logs to Supabase for a dashboard.
+```
+ 
+---
+ 
+### Excellent Input (Ideal)
+ 
+```
+I want to build “BookGen Pro” — a Prince-first book generation system.
+ 
+## Source of truth
+- Multi-book manifest: books/manifest.json
+- Canonical backbone: N4 IDML snapshot at ./_source_exports/...FROM_DOWNLOADS.idml
+ 
+## Inputs per book
+- IDML snapshot path (required)
+- Chapter opener images folder (optional)
+- Figures mapping JSON (optional)
+ 
+## Pipeline (Prince-first only)
+- Canonical JSON export/loading
+- Skeleton extraction + planning (microheadings + verdieping selection + praktijk injection)
+- Rewrite from skeleton (LLM)
+- Assemble rewritten canonical JSON
+- Render PDF via Prince
+- Run mandatory validation gates
+ 
+## LLM constraints
+- N3 style everywhere (simple, direct)
+- Praktijk generated only when relevant; otherwise SKIP
+- Verdieping is selection of existing content; min ~65 words; no microheading inside
+- Allowed markers: <<BOLD_START>>..<<BOLD_END>>, <<MICRO_TITLE>>..<<MICRO_TITLE_END>>
+ 
+## Telemetry
+- Real Supabase tables: runs/chapters/logs/issues
+- Edge endpoints for starting runs and reporting progress/logs
+ 
+## Out of scope
+- InDesign apply (legacy)
+- Teacher PDFs / KD appendix in student output
+```
+ 
+---
+ 
+## Data Format Specifications
+ 
+### Describing Entities
+ 
+Use this structure for each data entity:
+ 
+```
+## Entity: BookManifestEntry
+ 
+Purpose: One book’s canonical inputs and profiles used by the pipeline.
+ 
+Fields:
+| Field Name | Type | Required | Default | Notes |
+|------------|------|----------|---------|-------|
+| slug | string | yes | - | Stable identifier |
+| title | string | yes | - | Book title |
+| canonical_indd | string | yes | - | Canonical backbone reference (path) |
+| canonical_idml | string | yes | - | Deterministic IDML snapshot |
+| template_profile | string | yes | - | Prince template + token baseline |
+ 
+Access Rules:
+- Pipeline reads this as source of truth.
+- No ad-hoc per-run overrides that bypass manifest unless explicitly recorded.
+```
+ 
+```
+## Entity: PipelineRun
+ 
+Purpose: A single execution of the pipeline for a book.
+ 
+Fields:
+| Field Name | Type | Required | Default | Notes |
+|------------|------|----------|---------|-------|
+| id | uuid | auto | generated | Primary key |
+| book_slug | string | yes | - | Ties to manifest |
+| status | enum | yes | 'running' | running, completed, failed |
+| phase | enum | yes | - | tokens, canonical, skeleton, pass1, assembly, render, validate |
+| progress_pct | number | yes | 0 | 0–100 |
+| started_at | timestamp | auto | now() | - |
+| completed_at | timestamp | no | - | - |
+ 
+Access Rules:
+- Admin-only in MVP.
+```
+ 
+### Describing Screens
+ 
+```
+## Screen: Dashboard
+ 
+Route: /
+Auth Required: yes
+User Roles: Admin
+ 
+UI Reference:
+- pipeline-monitor/mockup.html (pixel-perfect HTML mockup for styling/layout)
+ 
+Components:
+1. Run summary card - book, phase, progress, ETA
+2. Chapters grid - per-chapter progress + status
+3. Activity log - streaming last N lines
+4. Issues panel - errors/warnings (non-blocking vs blocking)
+ 
+Actions Available:
+- Start new run
+- Stop run (best-effort)
+- Retry chapter
+```
+ 
+### Describing User Flows
+ 
+```
+## Flow: Start Full Book Run
+ 
+Trigger: Admin clicks “Start run”
+ 
+Steps:
+1. Admin selects book_slug → System creates pipeline_run
+2. Runner picks up run → begins chapter loop
+3. Runner streams progress/logs/issues to Supabase
+4. System renders final PDF and runs validations
+ 
+Success State: pipeline_run.status = completed; artifacts linked
+Error States:
+- LLM failure: retry with backoff; mark chapter failed if exceeds max
+- Validation failure: mark as warning (non-blocking) vs blocking gate depending on class
+```
+ 
+---
+ 
+## Conversation Examples
+ 
+### Example 1: One-book MVP (Prince-first) + Supabase telemetry
+ 
+**User Input:**
+ 
+```
+I want to build a Prince-first “book generation system” that converts InDesign IDML exports into validated student PDFs.
+ 
+Books to support:
+- pathologie_n4 (title: Pathologie N4, chapters: 12)
+ 
+Inputs available:
+- Canonical IDML snapshot path: ./_source_exports/pathologie_n4__FROM_DOWNLOADS.idml
+- Chapter opener images folder: new_pipeline/assets/images/pathologie_n4_chapter_openers/
+ 
+Key features:
+- Skeleton-first rewriting (microheadings + Praktijk generated, Verdieping selected from existing units)
+- Deterministic artifacts per chapter in new_pipeline/output/
+- Mandatory gates: numbering gate + JSON preflight + Prince validation suite
+- Supabase realtime dashboard with runs/chapters/logs/issues
+ 
+Users should be able to:
+- Start a full-book run and see ETA + per-chapter progress
+- Rerun one chapter without overwriting other chapters
+```
+ 
+**System Response (expected):**
+- Asks about authentication model for dashboard (single admin vs multiple users)
+- Asks what constitutes a “blocking” vs “non-blocking” validation
+- Asks which LLM models to pin for planning vs rewriting
+ 
+---
+ 
+### Example 2: Multi-book scalable system (12 books)
+ 
+**User Input:**
+ 
+```
+I want to build BookGen Pro for 12 books using books/manifest.json as the source of truth.
+ 
+Each book declares:
+- canonical_idml snapshot path
+- template profile / CSS base
+- baseline token extraction chapter
+ 
+The system should:
+- run per-chapter (for speed + retry)
+- accumulate outputs into a stable per-run folder (timestamped)
+- publish telemetry to Supabase Realtime
+- keep student output KD-free
+ 
+Design preference:
+- Dark monitor UI based on pipeline-monitor mockup
+```
+ 
+**System Response (expected):**
+- Asks how to map “book slug” → manifest entry + assets
+- Asks where to store run artifacts (local disk + optional Supabase Storage)
+- Asks how retries should work (chapter-level idempotency rules)
+ 
+---
+ 
+## Anti-Patterns to Avoid
+ 
+### 1. Introducing Legacy Apply-to-InDesign
+```
+Avoid any plan that writes back into INDD or relies on InDesign apply flows.
+This system is Prince-first only.
+```
+ 
+### 2. Dropping Validation Gates
+```
+Avoid “we’ll validate later”.
+Gates must be part of the pipeline contract.
+```
+ 
+### 3. “Invent new prompts” without audit
+```
+Avoid rewriting prompt templates ad-hoc.
+Prompt strings must be extracted and preserved (see docs/BOOKGEN_PROMPTS_AUDIT.md).
+```
+ 
+---
+ 
+## Output Expectations
+ 
+After processing ideal input, the system generates:
+ 
+1. **12–15 Sequential Golden Prompts** to build BookGen Pro MVP, covering:
+   - Repo setup + Supabase schema + Edge endpoints
+   - Prince-first pipeline runner
+   - Deterministic artifact layout
+   - LLM orchestration (planning + rewrite + editorial pass)
+   - Validation gates
+   - Realtime dashboard
+   - Documentation (HANDOFF_SPEC.md)
+ 
+2. **Each Prompt Includes:**
+   - Clear, single-focus instruction
+   - CONSTRAINTS section (what NOT to do)
+   - VERIFICATION section (self-check items)
+ 
+3. **Prompt Inventory Requirement**
+   - The output must include (or link to) a verbatim prompt audit:
+     - Planning prompt(s)
+     - Rewrite prompt(s)
+     - Editorial pass prompt(s)
+     - Marker policies
+   - Source: `docs/BOOKGEN_PROMPTS_AUDIT.md` (generated from this repo).
+ 
+---
+ 
+## Summary Checklist
+ 
+Before submitting to the Golden Prompts Generator, ensure you've defined:
+ 
+- [ ] Pipeline is **Prince-first only** (no InDesign apply)
+- [ ] Multi-book source of truth is `books/manifest.json`
+- [ ] Canonical N4 snapshot is declared (IDML path)
+- [ ] Mandatory validation gates are listed
+- [ ] LLM semantics are explicit (Praktijk generated/skip, Verdieping selection, microheadings planned in skeleton)
+- [ ] Deterministic artifact contract is defined (paths and filenames)
+- [ ] Supabase telemetry schema and realtime needs are defined
+- [ ] Out-of-scope items are explicitly stated
+ 
+---
+ 
+## Version
+ 
+Document Version: 1.0
+Last Updated: 2025-12-29
+Compatible With: BookGen Pro (Prince-first `new_pipeline/`)
+ 
+ 
+ 
+ 
+# BookGen Pro — Prompt Inventory (Prince-first `new_pipeline/`)
+ 
+## Overview
+ 
+This document lists the **exact** LLM prompt templates currently used by the Prince-first pipeline (`new_pipeline/`), so the system can be reverse engineered and reproduced.
+ 
+Scope:
+- Included: `new_pipeline/scripts/extract-skeleton.ts`, `new_pipeline/scripts/generate-from-skeleton.ts`, `new_pipeline/scripts/pass2-verdieping-microheadings.ts`
+- Excluded: any InDesign “apply rewrites back into INDD” flow (legacy; not part of the Prince-first pipeline)
+ 
+Important notes:
+- These prompts are **source-of-truth**: changing prompt text changes outputs and invalidates deterministic comparisons.
+- Some behaviors are **prompt + deterministic post-processing** (e.g., splitting long boxes using `[[BOX_SPLIT]]`).
+ 
+---
+ 
+## Prompt 1 — Skeleton Planning (Microheadings + Verdieping Selection)
+ 
+### Where it lives
+ 
+- File: `new_pipeline/scripts/extract-skeleton.ts`
+- Function: `planMicroHeadingsAndVerdieping(...)`
+- Called when:
+  - `tsx new_pipeline/scripts/extract-skeleton.ts ...` runs without `--no-classify`
+  - AND `OPENAI_API_KEY` is present in env
+ 
+### Provider + model parameters
+ 
+- Provider: `openai`
+- Model: `gpt-4o-mini`
+- Temperature: `0.2`
+- Max tokens: `4000`
+ 
+### System prompt (verbatim)
+ 
+```
+You are planning a skeleton for a Dutch MBO textbook rewrite pipeline.
+ 
+You decide, BEFORE writing happens:
+1) MICRO-HEADINGS: short topic labels above body text blocks (for scannability).
+2) VERDIEPING selection: choose EXISTING units (do NOT inject new verdieping content). These units will be moved into Verdieping boxes.
+ 
+MICRO-HEADING RULES:
+- Dutch, 2–4 words, no colon, no punctuation, no quotes, no markers.
+- Must be a TOPIC LABEL, not the start of a sentence.
+  - GOOD: "Functies van [onderwerp]", "De [onderwerp]", "Kenmerken en eigenschappen"
+  - BAD: "Een [onderwerp] is een" (sentence fragment - never start with "Een")
+  - BAD: "[Onderwerp] uitleg" (generic word "uitleg")
+  - BAD: Single technical term without context
+- Do NOT use generic filler words: uitleg, beschrijving, informatie, overzicht, introductie, tekst.
+- You MUST assign a micro-heading for EVERY unit_id in micro_heading_candidates.
+- Do NOT assign micro-headings to units you select as Verdieping.
+ 
+VERDIEPING RULES:
+- Select units that are MORE complex relative to the rest (formulas, mechanisms, multi-step reasoning).
+- Spread them out (not adjacent; avoid the very first units).
+- NEVER label any unit as Praktijk here.
+ 
+Return STRICT JSON ONLY:
+{
+  "micro_headings": [{"unit_id":"...","title":"..."}],
+  "verdieping_unit_ids": ["..."],
+  "notes": "..."
+}
+```
+ 
+### User message template (verbatim structure)
+ 
+User message is generated as:
+ 
+```
+INPUT JSON:
+{ ...stringified JSON... }
+```
+ 
+The JSON payload includes:
+- `book_title`
+- `avg_words_per_unit`
+- `micro_heading_candidates` (unit_id + order + section/subsection + approx_words + preview)
+- `verdieping_candidates` (unit_id + order + section/subsection + approx_words + preview)
+- `targets.verdieping_range` (min/max target counts)
+ 
+### Deterministic post-processing (non-LLM)
+ 
+After parsing the JSON, the script:
+- Clears all existing `unit.content.micro_heading`
+- Applies returned `micro_headings` to units
+- Selects existing units as `box_verdieping`:
+  - Enforces a `verdiepingMax` cap (trims by a deterministic complexity score)
+  - Enforces a `verdiepingMin` floor (fills from candidates with spacing rules)
+  - Removes `micro_heading` from any unit selected as `box_verdieping`
+- Ensures every above-average unit gets a micro-heading unless it became a Verdieping box (fallback title generation)
+ 
+---
+ 
+## Prompt 2 — Rewrite / Generate Text From Skeleton Units (Pass 1)
+ 
+### Where it lives
+ 
+- File: `new_pipeline/scripts/generate-from-skeleton.ts`
+- Function: `generateUnitText(...)`
+- Called when:
+  - `tsx new_pipeline/scripts/generate-from-skeleton.ts --skeleton ... --out ...`
+  - Usually orchestrated by `new_pipeline/scripts/build-chapter.ts` in `--rewrite-mode skeleton`
+ 
+### Provider + model parameters
+ 
+These are CLI-selected:
+- Provider: `--provider anthropic|openai`
+- Model: `--model <name>`
+ 
+Call parameters in code:
+- Temperature: `0.3`
+- Max tokens: `1024`
+ 
+### Global system prompt (verbatim)
+ 
+```
+You are writing Dutch educational content for MBO N3 level students (age 16-20).
+ 
+CRITICAL: Write like a REAL Dutch MBO N3 textbook.
+1. SENTENCES: Short, direct. One fact per sentence.
+2. VOICE: Use "je" (not "jouw"). Use "we" for introductions.
+3. CONCISENESS: No filler. No "namelijk", "bijzondere", "belangrijke".
+4. STANDALONE: The text must make sense on its own. If the input facts are fragments (e.g. starting with lowercase verbs), restructure them into complete sentences with proper context.
+5. TERMINOLOGY (student-facing): use "zorgvrager" and "zorgprofessional". Never use: verpleegkundige, cliënt, client, patiënt, patient.
+6. MARKERS (VERY IMPORTANT):
+   - Allowed markers are ONLY:
+     <<BOLD_START>>, <<BOLD_END>>, <<MICRO_TITLE>>, <<MICRO_TITLE_END>>
+   - Do NOT output ANY other <<...>> markers. In particular, never output <<term>>.
+   - Preserve any existing <<BOLD_START>>...<<BOLD_END>> spans from the facts exactly as-is.
+   - Do NOT invent new bold spans.
+7. MICRO-HEADINGS: Micro-headings are preplanned in the skeleton. Only use the provided start marker if instructed. Otherwise do not output any <<MICRO_TITLE>> markers.
+ 
+Output ONLY the rewritten Dutch text.
+```
+ 
+### User message template (verbatim structure)
+ 
+User message is constructed as:
+ 
+```
+CONTEXT:
+  Book: <bookTitle>
+  Section: <sectionId> <sectionTitle>
+  Subsection: <subsectionId> <subsectionTitle>
+ 
+  INPUT FACTS:
+  1. <fact 1>
+  2. <fact 2>
+  ...
+ 
+  INSTRUCTION:
+  <instruction based on unit.type>
+ 
+  Write now (Dutch):
+```
+ 
+### Instruction blocks (verbatim)
+ 
+The `INSTRUCTION:` section is chosen by `unit.type`:
+ 
+#### 2.1 `composite_list`
+ 
+```
+This is a composite list block (Intro + Items).
+    Write this in the most natural N3 style.
+    Option A: A running paragraph (if items are explanatory).
+    Option B: A semicolon list (if items are short/parallel).
+ 
+    Content Level: MBO N3 (Vocational).
+    CRITICAL: SIMPLIFY complex theory into accessible explanations.
+    Constraint: Do NOT split the intro from the content. It must be ONE coherent text block.
+ 
+    IMPORTANT: Preserve any <<BOLD_START>>...<<BOLD_END>> spans exactly as they appear in the facts. Do NOT invent any new markers.
+```
+ 
+#### 2.2 `box_verdieping`
+ 
+```
+This block is classified as **Verdieping** (Deepening) - more advanced detail.
+    
+    CRITICAL: The input facts may be LIST FRAGMENTS (starting with lowercase verbs). You MUST:
+    1. First INTRODUCE what subject these facts are about (use the section context).
+    2. Then explain each fact as a COMPLETE, STANDALONE sentence.
+    
+    BAD: "zorgen dat X deelt. geven signalen aan Y."
+    GOOD: "[Subject] heeft verschillende functies. Het zorgt ervoor dat X deelt. Ook geeft het signalen aan Y."
+    
+    Task: Rewrite into clear N3 Dutch with proper context and complete sentences.
+    Style: Short sentences. Active voice.
+    DO NOT write meta-introductions like: "In deze sectie...", "In dit hoofdstuk...", "Hier leer je...".
+    Start directly with the content (the concept/mechanism), as if it's a normal textbook paragraph.
+    Do NOT add any labels like "Verdieping:" (layout handles it).
+```
+ 
+#### 2.3 `box_praktijk` (generated; inserted by skeleton as extra unit)
+ 
+This branch is used when `unit.type === 'box_praktijk'` AND the unit facts contain `GENERATE_PRAKTIJK`:
+ 
+```
+Generate a NEW **In de praktijk** box (nursing practice) for this subsection.
+      Context:
+      - Book: "<bookTitle>"
+      - Section: <sectionId> <sectionTitle>
+      - Subsection: <subsectionId> <subsectionTitle>
+ 
+      FIRST: Decide if a praktijk box is RELEVANT for this subsection topic.
+      - Ask: "Is there a realistic nursing scenario where this topic matters?"
+      - If NO sensible connection exists, respond with exactly: SKIP
+      - If YES, write the praktijk box.
+ 
+      Requirements (if not skipping):
+      - Perspective: write from the reader perspective using "je".
+      - Always refer to the person as "zorgvrager" (not: verpleegkundige, cliënt, patiënt).
+      - Start with "Je" and a concrete nursing moment with a zorgvrager.
+      - The scenario MUST be topically relevant to THIS subsection.
+        - The reader should think: "Ah, this is why I need to understand [subsection topic]."
+        - Do NOT write a generic scenario that could fit any chapter.
+      - Do NOT explain mechanisms to the zorgvrager. Show how your knowledge informs practical care.
+      - Add 2–3 concrete details (what you do/observe/ask/record).
+      - Keep it short: ~4–7 sentences, single paragraph.
+      - Do NOT add the label "In de praktijk:" (layout handles it).
+      
+      Respond with SKIP or the praktijk text (nothing else).
+```
+ 
+#### 2.4 `box_praktijk` (rewrite existing; not generated)
+ 
+```
+This block is **In de praktijk** (Nursing Practice).
+      Content: It contains nursing examples or clinical context.
+      Task: Rewrite this text in clear, simple N3 Dutch.
+      Style: Write from the reader perspective using "je". Be concrete and professional but accessible.
+      Avoid generic openers like "In een zorginstelling..." and avoid "de zorgprofessional".
+      Do NOT add the label "In de praktijk:" (layout handles it).
+```
+ 
+#### 2.5 Default (prose)
+ 
+```
+Write a concise paragraph using these facts.
+    Target Level: MBO N3 (Vocational).
+    CRITICAL: SIMPLIFY complex details into accessible explanations.
+    Style: Short sentences. Active voice. "Je" form.
+    Preserve any existing <<BOLD_START>>...<<BOLD_END>> spans from the facts exactly as-is. Do NOT invent any new markers.
+```
+ 
+### Microheading marker behavior (prompt-level)
+ 
+If `unit.content.micro_heading` is present:
+- For non-box units, the instruction appends:
+  - `Start exactly with: <<MICRO_TITLE>>...<<MICRO_TITLE_END>> ...`
+- For box units, instruction appends:
+  - `Do NOT include any <<MICRO_TITLE>> markers in the output.`
+ 
+If no `micro_heading`:
+- Instruction appends:
+  - `Do NOT include any <<MICRO_TITLE>> markers in the output.`
+ 
+---
+ 
+## Prompt 3 — Praktijk Editorial Pass (De-duplication + Quality)
+ 
+### Where it lives
+ 
+- File: `new_pipeline/scripts/generate-from-skeleton.ts`
+- Function: `llmEditorialPassPraktijk(...)`
+- Called when:
+  - Generated Praktijk boxes exist in a section (units inserted by skeleton)
+  - After initial generation, per section, as a batch map `{ unit_id -> revised_text }`
+ 
+### Provider + model parameters
+ 
+- Provider/model: same CLI selection as generation
+- Temperature: `0.2`
+- Max tokens: `2000`
+ 
+### System prompt (verbatim)
+ 
+```
+You are the editorial pass for "In de praktijk" boxes in a Dutch MBO N3 nursing textbook.
+ 
+Goal: Reduce repetition across the set while keeping each box useful and realistic.
+ 
+Hard requirements (apply to EVERY box):
+- Keep "je" perspective.
+- Always use "zorgvrager". You may use "in je werk als zorgprofessional" at most once per box. Never write "de zorgprofessional".
+- Remove boilerplate admin endings ("noteer...", "bespreek met je team", "in het dossier") unless it is truly essential for the scenario.
+- Avoid repeating opener templates across boxes. In particular, do NOT start most boxes with "Je helpt een zorgvrager met ..."; vary the opening action naturally (observe / begeleid / controleer / leg uit (patient-relevant) / meet / ondersteun / etc).
+- Patient-facing explanations: ONLY explain what is relevant for the zorgvrager to understand. Avoid deep technical jargon unless it directly supports adherence/symptoms/recovery/self-care.
+  If a concept is too technical, keep it as your own understanding ("Je weet dat ...") and translate it into a practical action instead of teaching the mechanism.
+- Keep each box 4–7 sentences, single paragraph.
+- Do NOT add labels like "In de praktijk:" (layout handles it).
+- Allowed markers ONLY: <<BOLD_START>>, <<BOLD_END>>. Do NOT output any other <<...>> markers.
+- Preserve any existing <<BOLD_START>>...<<BOLD_END>> spans exactly as-is; do not invent new bold spans.
+ 
+Return STRICT JSON ONLY:
+{ "rewritten": { "unit_id": "text", ... } }
+```
+ 
+### User message template
+ 
+```
+INPUT JSON:
+{ ...stringified JSON... }
+```
+ 
+The JSON includes:
+- `book_title`
+- `section_id`, `section_title`
+- `boxes[]` each containing:
+  - `unit_id`, `subsection_id`, `subsection_title`
+  - `facts[]` (without the `GENERATE_PRAKTIJK` sentinel)
+  - `text` (the initially generated praktijk text)
+ 
+---
+ 
+## Prompt 4 — Pass2 Utility (Microheadings + Verdieping Marking)
+ 
+### Where it lives
+ 
+- File: `new_pipeline/scripts/pass2-verdieping-microheadings.ts`
+- Function: `planSectionMicroheadingsAndVerdieping(...)`
+ 
+Important: This script is a **separate utility** pass. It is not invoked by `build-chapter.ts --rewrite-mode skeleton`.
+ 
+### Provider + model parameters
+ 
+- Provider: `--provider=anthropic|openai` (defaults to anthropic in script)
+- Model: `--model=<name>` (defaults to `claude-sonnet-4-5-20250929`)
+- Temperature: `0.3` (in wrapper)
+ 
+### System message (verbatim)
+ 
+```
+You are a Dutch textbook editor. Respond with valid JSON only.
+```
+ 
+### User prompt (verbatim template)
+ 
+```
+You are planning microheadings and verdieping (deepening) blocks for a Dutch MBO healthcare textbook section.
+ 
+BOOK: "<bookTitle>"
+SECTION: <section.id> - <section.title>
+ 
+## Units in this section (id | words | preview):
+<list>
+ 
+## MICROHEADING CANDIDATES (above-average length, ≥55 words):
+<comma-separated ids or 'none'>
+ 
+## VERDIEPING CANDIDATES (≥65 words, complex content):
+<comma-separated ids or 'none'>
+ 
+## YOUR TASK:
+ 
+1. **Microheadings**: Select ~30-40% of the microheading candidates to receive a micro-title.
+   - Micro-titles should be 2-4 word TOPIC LABELS (e.g., "De celmembraan", "Bloeddruk meten")
+   - DO NOT use sentence fragments like "Een lysosoom is een"
+   - DO NOT use generic words like "uitleg", "beschrijving", "functie"
+   - Spread them evenly through the section
+ 
+2. **Verdieping**: Select 1-2 units from verdieping candidates that contain the MOST COMPLEX content.
+   - Look for: formulas, mechanisms, multi-step processes, technical depth
+   - These will become highlighted "Verdieping" boxes
+   - Spread them out (don't select adjacent units)
+   - Skip if no genuinely complex content exists
+ 
+Respond with JSON only:
+{
+  "microheadings": {
+    "unit-id-1": "Topic Label",
+    "unit-id-2": "Another Topic"
+  },
+  "verdieping_ids": ["unit-id-x", "unit-id-y"]
+}
+```
+ 
+### Post-processing behavior
+ 
+This pass:
+- prepends `<<MICRO_TITLE>>...<<MICRO_TITLE_END>>` to rewritten unit text
+- wraps Verdieping-selected unit text with `<<VERDIEPING_BOX>>...<<VERDIEPING_BOX_END>>`
+ 
+Those `<<VERDIEPING_BOX>>` markers are later interpreted by:
+- `new_pipeline/scripts/assemble-skeleton-rewrites.ts` (extracts the box content into `block.verdieping`)
+ 
+---
+ 
+## Marker and Token Policies (Pipeline-level invariants)
+ 
+### Allowed output markers (LLM output)
+ 
+From `generate-from-skeleton.ts`:
+- Allowed: `<<BOLD_START>>`, `<<BOLD_END>>`, `<<MICRO_TITLE>>`, `<<MICRO_TITLE_END>>`
+- Forbidden: any other `<<...>>` marker, especially `<<term>>`
+ 
+### Pipeline-only tokens (not produced by LLM)
+ 
+- `[[BOX_SPLIT]]`:
+  - inserted deterministically into long box text to split rendering into multiple boxes
+  - interpreted by `new_pipeline/renderer/render-prince-pdf.ts` in `renderLayerBoxes(...)`
+ 
+- `GENERATE_PRAKTIJK`:
+  - sentinel fact inserted into skeleton Praktijk units
+  - triggers “SKIP or generate” behavior in Praktijk prompt branch
+ 
+---
+ 
+## Repro Notes
+ 
+To reproduce outputs deterministically, you must control:
+- LLM provider/model versions
+- temperature/maxTokens per call
+- concurrency + retry strategy (`new_pipeline/lib/llm.ts` `withRetries`)
+- canonical inputs (`output/*.json`, skeleton, rewrites, errata pack)
+ 
+ 
+ 
+ 
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pipeline Monitor - Mockup</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap%22 rel="stylesheet">
+  <style>
+    :root {
+      --bg-dark: #0f0f12;
+      --bg-card: #18181f;
+      --bg-elevated: #1f1f28;
+      --border: #2a2a35;
+      --text: #f0f0f5;
+      --text-dim: #6b6b80;
+      --accent: #6366f1;
+      --accent-glow: rgba(99, 102, 241, 0.3);
+      --success: #10b981;
+      --warning: #f59e0b;
+      --error: #ef4444;
+    }
+ 
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+ 
+    body {
+      font-family: 'Inter', -apple-system, sans-serif;
+      background: var(--bg-dark);
+      color: var(--text);
+      height: 100vh;
+      overflow: hidden;
+    }
+ 
+    .dashboard {
+      height: 100vh;
+      display: grid;
+      grid-template-rows: 60px 1fr;
+      grid-template-columns: 1fr;
+    }
+ 
+    /* Header */
+    .header {
+      background: var(--bg-card);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 24px;
+    }
+ 
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+ 
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 600;
+      font-size: 15px;
+    }
+ 
+    .logo-icon {
+      width: 32px;
+      height: 32px;
+      background: linear-gradient(135deg, var(--accent), #8b5cf6);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+    }
+ 
+    .status-badge {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(16, 185, 129, 0.1);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      color: var(--success);
+    }
+ 
+    .status-dot {
+      width: 6px;
+      height: 6px;
+      background: var(--success);
+      border-radius: 50%;
+      animation: pulse 2s infinite;
+    }
+ 
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+ 
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+ 
+    .time {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px;
+      color: var(--text-dim);
+    }
+ 
+    /* Main Content */
+    .main {
+      display: grid;
+      grid-template-columns: 300px 1fr 280px;
+      gap: 16px;
+      padding: 16px;
+      overflow: hidden;
+    }
+ 
+    /* Left Panel - Progress */
+    .progress-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+ 
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+ 
+    .card-header {
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border);
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text-dim);
+    }
+ 
+    .card-body {
+      padding: 16px;
+    }
+ 
+    .progress-circle-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px 0;
+    }
+ 
+    .progress-circle {
+      position: relative;
+      width: 140px;
+      height: 140px;
+    }
+ 
+    .progress-circle svg {
+      transform: rotate(-90deg);
+      width: 140px;
+      height: 140px;
+    }
+ 
+    .progress-circle circle {
+      fill: none;
+      stroke-width: 10;
+    }
+ 
+    .progress-bg {
+      stroke: var(--bg-elevated);
+    }
+ 
+    .progress-fg {
+      stroke: url(#gradient);
+      stroke-linecap: round;
+      stroke-dasharray: 377;
+      stroke-dashoffset: 283;
+      transition: stroke-dashoffset 1s ease;
+    }
+ 
+    .progress-value {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      text-align: center;
+    }
+ 
+    .progress-pct {
+      font-size: 36px;
+      font-weight: 700;
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+ 
+    .progress-label {
+      font-size: 11px;
+      color: var(--text-dim);
+      margin-top: 4px;
+    }
+ 
+    .stats-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-top: 16px;
+    }
+ 
+    .stat-box {
+      background: var(--bg-elevated);
+      border-radius: 8px;
+      padding: 12px;
+      text-align: center;
+    }
+ 
+    .stat-value {
+      font-size: 20px;
+      font-weight: 600;
+      font-family: 'JetBrains Mono', monospace;
+    }
+ 
+    .stat-value.purple { color: #a78bfa; }
+    .stat-value.green { color: var(--success); }
+    .stat-value.blue { color: #60a5fa; }
+ 
+    .stat-label {
+      font-size: 10px;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      margin-top: 4px;
+    }
+ 
+    /* Center Panel - Main Content */
+    .center-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      overflow: hidden;
+    }
+ 
+    /* Current Activity */
+    .current-activity {
+      background: linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(139, 92, 246, 0.05));
+      border: 1px solid rgba(99, 102, 241, 0.3);
+    }
+ 
+    .activity-content {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+ 
+    .chapter-badge {
+      background: var(--accent);
+      color: white;
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 14px;
+      white-space: nowrap;
+    }
+ 
+    .activity-info {
+      flex: 1;
+    }
+ 
+    .activity-section {
+      font-size: 15px;
+      font-weight: 500;
+    }
+ 
+    .activity-unit {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      color: var(--text-dim);
+      margin-top: 4px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+ 
+    .activity-progress {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+ 
+    .mini-progress {
+      width: 100px;
+      height: 4px;
+      background: var(--bg-elevated);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+ 
+    .mini-progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent), #8b5cf6);
+      border-radius: 2px;
+      width: 65%;
+    }
+ 
+    .progress-text {
+      font-size: 12px;
+      color: var(--text-dim);
+      font-family: 'JetBrains Mono', monospace;
+    }
+ 
+    /* Chapters Grid */
+    .chapters-grid {
+      display: grid;
+      grid-template-columns: repeat(12, 1fr);
+      gap: 8px;
+    }
+ 
+    .chapter-box {
+      aspect-ratio: 1;
+      background: var(--bg-elevated);
+      border: 2px solid var(--border);
+      border-radius: 8px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
+      font-size: 14px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      position: relative;
+    }
+ 
+    .chapter-box:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    }
+ 
+    .chapter-box.done {
+      background: rgba(16, 185, 129, 0.15);
+      border-color: var(--success);
+      color: var(--success);
+    }
+ 
+    .chapter-box.active {
+      background: rgba(99, 102, 241, 0.15);
+      border-color: var(--accent);
+      color: var(--accent);
+      animation: glow 2s ease-in-out infinite;
+    }
+ 
+    @keyframes glow {
+      0%, 100% { box-shadow: 0 0 0 0 var(--accent-glow); }
+      50% { box-shadow: 0 0 20px 4px var(--accent-glow); }
+    }
+ 
+    .chapter-box.pending {
+      color: var(--text-dim);
+    }
+ 
+    .chapter-box .ch-label {
+      font-size: 9px;
+      color: var(--text-dim);
+      margin-top: 2px;
+    }
+ 
+    .chapter-box.done .ch-label,
+    .chapter-box.active .ch-label {
+      color: inherit;
+      opacity: 0.7;
+    }
+ 
+    /* Pipeline Phases */
+    .phases-row {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+    }
+ 
+    .phase-card {
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      opacity: 0.5;
+      transition: all 0.3s ease;
+    }
+ 
+    .phase-card.active {
+      opacity: 1;
+      border-color: var(--accent);
+      background: rgba(99, 102, 241, 0.1);
+    }
+ 
+    .phase-card.complete {
+      opacity: 1;
+      border-color: var(--success);
+      background: rgba(16, 185, 129, 0.1);
+    }
+ 
+    .phase-icon {
+      width: 36px;
+      height: 36px;
+      background: var(--bg-card);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+    }
+ 
+    .phase-info {
+      flex: 1;
+    }
+ 
+    .phase-name {
+      font-size: 12px;
+      font-weight: 500;
+    }
+ 
+    .phase-status {
+      font-size: 11px;
+      color: var(--text-dim);
+      margin-top: 2px;
+    }
+ 
+    .phase-bar {
+      height: 3px;
+      background: var(--bg-card);
+      border-radius: 2px;
+      margin-top: 6px;
+      overflow: hidden;
+    }
+ 
+    .phase-bar-fill {
+      height: 100%;
+      background: var(--accent);
+      border-radius: 2px;
+    }
+ 
+    .phase-card.complete .phase-bar-fill {
+      background: var(--success);
+    }
+ 
+    /* Log Panel */
+    .log-panel {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+    }
+ 
+    .log-content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 12px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      line-height: 1.6;
+    }
+ 
+    .log-line {
+      padding: 4px 8px;
+      border-radius: 4px;
+      margin-bottom: 2px;
+    }
+ 
+    .log-line.success { color: var(--success); background: rgba(16, 185, 129, 0.1); }
+    .log-line.info { color: #60a5fa; }
+    .log-line.processing { color: var(--accent); }
+ 
+    /* Right Panel - Issues */
+    .issues-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+ 
+    .issue-card {
+      padding: 10px 12px;
+      border-radius: 8px;
+      font-size: 11px;
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+    }
+ 
+    .issue-card.error {
+      background: rgba(239, 68, 68, 0.1);
+      border-left: 3px solid var(--error);
+    }
+ 
+    .issue-card.warning {
+      background: rgba(245, 158, 11, 0.1);
+      border-left: 3px solid var(--warning);
+    }
+ 
+    .issue-icon {
+      font-size: 14px;
+      flex-shrink: 0;
+    }
+ 
+    .issue-text {
+      color: var(--text-dim);
+      line-height: 1.4;
+    }
+ 
+    .issue-chapter {
+      font-weight: 600;
+      color: var(--text);
+    }
+ 
+    .issues-summary {
+      display: flex;
+      gap: 12px;
+      padding: 12px;
+      background: var(--bg-elevated);
+      border-radius: 8px;
+    }
+ 
+    .summary-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+    }
+ 
+    .summary-count {
+      font-weight: 600;
+      font-family: 'JetBrains Mono', monospace;
+    }
+ 
+    .summary-count.error { color: var(--error); }
+    .summary-count.warning { color: var(--warning); }
+ 
+    /* Scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+    }
+ 
+    ::-webkit-scrollbar-track {
+      background: var(--bg-elevated);
+      border-radius: 3px;
+    }
+ 
+    ::-webkit-scrollbar-thumb {
+      background: var(--border);
+      border-radius: 3px;
+    }
+ 
+    ::-webkit-scrollbar-thumb:hover {
+      background: #3a3a45;
+    }
+  </style>
+</head>
+<body>
+  <div class="dashboard">
+    <!-- Header -->
+    <header class="header">
+      <div class="header-left">
+        <div class="logo">
+          <div class="logo-icon">📚</div>
+          <span>Pathologie N4</span>
+        </div>
+        <div class="status-badge">
+          <div class="status-dot"></div>
+          Building
+        </div>
+      </div>
+      <div class="header-right">
+        <div class="time">1:35:42 PM</div>
+      </div>
+    </header>
+ 
+    <!-- Main Content -->
+    <main class="main">
+      <!-- Left Panel -->
+      <div class="progress-panel">
+        <div class="card">
+          <div class="card-header">Overall Progress</div>
+          <div class="card-body">
+            <div class="progress-circle-container">
+              <div class="progress-circle">
+                <svg viewBox="0 0 140 140">
+                  <defs>
+                    <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                      <stop offset="0%" stop-color="#6366f1"/>
+                      <stop offset="100%" stop-color="#8b5cf6"/>
+                    </linearGradient>
+                  </defs>
+                  <circle class="progress-bg" cx="70" cy="70" r="60"/>
+                  <circle class="progress-fg" cx="70" cy="70" r="60"/>
+                </svg>
+                <div class="progress-value">
+                  <div class="progress-pct">25%</div>
+                  <div class="progress-label">Complete</div>
+                </div>
+              </div>
+            </div>
+ 
+            <div class="stats-grid">
+              <div class="stat-box">
+                <div class="stat-value purple">0:42</div>
+                <div class="stat-label">Elapsed</div>
+              </div>
+              <div class="stat-box">
+                <div class="stat-value green">1:48</div>
+                <div class="stat-label">Remaining</div>
+              </div>
+              <div class="stat-box">
+                <div class="stat-value">2/12</div>
+                <div class="stat-label">Chapters</div>
+              </div>
+              <div class="stat-box">
+                <div class="stat-value blue">12.3</div>
+                <div class="stat-label">Units/min</div>
+              </div>
+            </div>
+          </div>
+        </div>
+ 
+        <div class="card" style="flex: 1;">
+          <div class="card-header">Pipeline Phases</div>
+          <div class="card-body" style="display: flex; flex-direction: column; gap: 8px;">
+            <div class="phase-card active">
+              <div class="phase-icon">1️⃣</div>
+              <div class="phase-info">
+                <div class="phase-name">Skeleton Rewrite</div>
+                <div class="phase-status">2 of 12 chapters</div>
+                <div class="phase-bar"><div class="phase-bar-fill" style="width: 17%"></div></div>
+              </div>
+            </div>
+            <div class="phase-card">
+              <div class="phase-icon">2️⃣</div>
+              <div class="phase-info">
+                <div class="phase-name">Verdieping & Microheadings</div>
+                <div class="phase-status">1 of 12 chapters</div>
+                <div class="phase-bar"><div class="phase-bar-fill" style="width: 8%"></div></div>
+              </div>
+            </div>
+            <div class="phase-card">
+              <div class="phase-icon">📦</div>
+              <div class="phase-info">
+                <div class="phase-name">Assembly</div>
+                <div class="phase-status">Waiting...</div>
+              </div>
+            </div>
+            <div class="phase-card">
+              <div class="phase-icon">📄</div>
+              <div class="phase-info">
+                <div class="phase-name">PDF Generation</div>
+                <div class="phase-status">Waiting...</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+ 
+      <!-- Center Panel -->
+      <div class="center-panel">
+        <!-- Current Activity -->
+        <div class="card current-activity">
+          <div class="card-body">
+            <div class="activity-content">
+              <div class="chapter-badge">CH 3</div>
+              <div class="activity-info">
+                <div class="activity-section">3.12: Afwijkende reflexen</div>
+                <div class="activity-unit">
+                  <span>Unit 8020139d-b843-41c...</span>
+                  <span style="color: var(--accent)">composite_list</span>
+                </div>
+              </div>
+              <div class="activity-progress">
+                <div class="mini-progress">
+                  <div class="mini-progress-fill"></div>
+                </div>
+                <span class="progress-text">18/28</span>
+              </div>
+            </div>
+          </div>
+        </div>
+ 
+        <!-- Chapters -->
+        <div class="card">
+          <div class="card-header">Chapters</div>
+          <div class="card-body">
+            <div class="chapters-grid">
+              <div class="chapter-box pending">1<span class="ch-label">24s</span></div>
+              <div class="chapter-box done">2<span class="ch-label">✓</span></div>
+              <div class="chapter-box active">3<span class="ch-label">65%</span></div>
+              <div class="chapter-box pending">4<span class="ch-label">4s</span></div>
+              <div class="chapter-box pending">5<span class="ch-label">6s</span></div>
+              <div class="chapter-box pending">6<span class="ch-label">7s</span></div>
+              <div class="chapter-box pending">7<span class="ch-label">10s</span></div>
+              <div class="chapter-box pending">8<span class="ch-label">6s</span></div>
+              <div class="chapter-box pending">9<span class="ch-label">10s</span></div>
+              <div class="chapter-box pending">10<span class="ch-label">6s</span></div>
+              <div class="chapter-box pending">11<span class="ch-label">14s</span></div>
+              <div class="chapter-box pending">12<span class="ch-label">15s</span></div>
+            </div>
+          </div>
+        </div>
+ 
+        <!-- Activity Log -->
+        <div class="card log-panel">
+          <div class="card-header">Activity Log</div>
+          <div class="log-content">
+            <div class="log-line success">✓ Unit b8361b07... Done (201 words)</div>
+            <div class="log-line success">✓ Unit 9b4f45d7... Done (81 words)</div>
+            <div class="log-line info">Processing Section 3.12: Afwijkende reflexen</div>
+            <div class="log-line info">Subsection 3.12.root: 28 units</div>
+            <div class="log-line processing">→ Unit 8020139d... (composite_list)</div>
+            <div class="log-line success">✓ Unit c88e2b72... Done (46 words)</div>
+            <div class="log-line success">✓ Unit 2456740f... Done (29 words)</div>
+            <div class="log-line success">✓ Unit 34b5973c... Done (81 words)</div>
+            <div class="log-line success">✓ Unit f6937ce1... Done (46 words)</div>
+            <div class="log-line success">✓ Unit 105b891b... Done (15 words)</div>
+          </div>
+        </div>
+      </div>
+ 
+      <!-- Right Panel -->
+      <div class="issues-panel">
+        <div class="card" style="flex: 1; display: flex; flex-direction: column;">
+          <div class="card-header">Build Issues</div>
+          <div class="card-body" style="flex: 1; overflow-y: auto;">
+            <div class="issues-summary">
+              <div class="summary-item">
+                <span class="summary-count error">4</span>
+                <span style="color: var(--text-dim)">Errors</span>
+              </div>
+              <div class="summary-item">
+                <span class="summary-count warning">3</span>
+                <span style="color: var(--text-dim)">Warnings</span>
+              </div>
+            </div>
+ 
+            <div style="margin-top: 12px; display: flex; flex-direction: column; gap: 8px;">
+              <div class="issue-card error">
+                <span class="issue-icon">✕</span>
+                <div class="issue-text">
+                  <span class="issue-chapter">Ch 2</span> Page fill gate failed: 6 pages below 0.50 ratio
+                </div>
+              </div>
+              <div class="issue-card error">
+                <span class="issue-icon">✕</span>
+                <div class="issue-text">
+                  <span class="issue-chapter">Ch 2</span> Flow Safety FAILED: intro paragraph followed by box
+                </div>
+              </div>
+              <div class="issue-card error">
+                <span class="issue-icon">✕</span>
+                <div class="issue-text">
+                  <span class="issue-chapter">Ch 3</span> Skeleton Validation failed
+                </div>
+              </div>
+              <div class="issue-card warning">
+                <span class="issue-icon">⚠</span>
+                <div class="issue-text">
+                  <span class="issue-chapter">Ch 3</span> KD WARNING: Unit contains 'verpleegkundige'
+                </div>
+              </div>
+              <div class="issue-card warning">
+                <span class="issue-icon">⚠</span>
+                <div class="issue-text">
+                  <span class="issue-chapter">Ch 3</span> LLM planning failed, using fallback
+                </div>
+              </div>
+            </div>
+ 
+            <div style="margin-top: 16px; padding: 12px; background: var(--bg-elevated); border-radius: 8px; font-size: 11px; color: var(--text-dim);">
+              <strong style="color: var(--text);">ℹ️ Note:</strong> These issues are non-blocking. Layout issues are fixed in post-processing.
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+</body>
+</html>
+ 
+ 
+ 

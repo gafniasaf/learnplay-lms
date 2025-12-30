@@ -1,5 +1,43 @@
 // Seed minimal parent/child/student data for live parent endpoints.
 // Requires auth users already created (parent@example.com, child@example.com).
+// SECURITY: requires env vars; no hardcoded secrets.
+
+import fs from "node:fs";
+import path from "node:path";
+
+function requireEnv(name) {
+  const v = process.env[name];
+  if (!v || typeof v !== "string" || !v.trim()) {
+    console.error(`❌ ${name} is REQUIRED - set env var before running`);
+    process.exit(1);
+  }
+  return v.trim();
+}
+
+function resolveProjectRef() {
+  const fromEnv = process.env.SUPABASE_PROJECT_REF;
+  if (fromEnv && typeof fromEnv === "string" && fromEnv.trim()) return fromEnv.trim();
+
+  const url = process.env.SUPABASE_URL;
+  if (url && typeof url === "string") {
+    const m = url.match(/^https?:\/\/([a-z0-9-]+)\.supabase\.co/i);
+    if (m?.[1]) return m[1];
+  }
+
+  try {
+    const toml = fs.readFileSync(path.join(process.cwd(), "supabase", "config.toml"), "utf-8");
+    const m = toml.match(/^\s*project_id\s*=\s*\"([a-z0-9]+)\"\s*$/m);
+    if (m?.[1]) return m[1];
+  } catch {
+    // ignore
+  }
+
+  console.error("❌ SUPABASE_PROJECT_REF is REQUIRED (or set SUPABASE_URL, or ensure supabase/config.toml has project_id)");
+  process.exit(1);
+}
+
+const SUPABASE_ACCESS_TOKEN = requireEnv("SUPABASE_ACCESS_TOKEN");
+const SUPABASE_PROJECT_REF = resolveProjectRef();
 
 const sql = `
 DO $$
@@ -57,28 +95,31 @@ BEGIN
   -- activity
   INSERT INTO public.student_activity_log (id, student_id, event_type, description, metadata, occurred_at)
   VALUES
-    (gen_random_uuid(), c_id, 'assignment_completed', 'Completed Fractions Drill', '{"course":"math-101"}', now() - interval '2 days'),
+    (gen_random_uuid(), c_id, 'assignment_completed', 'Completed Fractions Drill', '{\"course\":\"math-101\"}', now() - interval '2 days'),
     (gen_random_uuid(), c_id, 'login', 'Logged in', '{}', now() - interval '1 days'),
-    (gen_random_uuid(), c_id, 'assignment_completed', 'Finished Reading Chapter 3', '{"course":"reading"}', now() - interval '4 days')
+    (gen_random_uuid(), c_id, 'assignment_completed', 'Finished Reading Chapter 3', '{\"course\":\"reading\"}', now() - interval '4 days')
   ON CONFLICT DO NOTHING;
 END $$;
 `;
 
-const response = await fetch('https://api.supabase.com/v1/projects/eidcegehaswbtzrwzvfa/database/query', {
-  method: 'POST',
+const response = await fetch(`https://api.supabase.com/v1/projects/${encodeURIComponent(SUPABASE_PROJECT_REF)}/database/query`, {
+  method: "POST",
   headers: {
-    'Content-Type': 'application/json',
-    'Authorization': 'Bearer sbp_26da40b93963c303358083b9131f5febe0950f16'
+    "Content-Type": "application/json",
+    "Authorization": `Bearer ${SUPABASE_ACCESS_TOKEN}`,
   },
-  body: JSON.stringify({ query: sql })
+  body: JSON.stringify({ query: sql }),
 });
 
-console.log('Status:', response.status);
+console.log("Status:", response.status);
 const text = await response.text();
 try {
   const data = JSON.parse(text);
-  console.log('Result:', JSON.stringify(data, null, 2));
+  console.log("Result:", JSON.stringify(data, null, 2));
+  if (!response.ok) process.exit(1);
 } catch {
-  console.log('Response:', text);
+  console.log("Response:", text.slice(0, 500));
+  if (!response.ok) process.exit(1);
 }
+
 

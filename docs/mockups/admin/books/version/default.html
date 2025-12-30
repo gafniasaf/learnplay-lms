@@ -1,0 +1,56 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Book Version</title>
+  </head>
+  <body data-route="/admin/books/:bookId/versions/:bookVersionId">
+    <main>
+      <h1>Book Version</h1>
+      <a data-cta-id="cta-admin-bookversion-back" data-action="navigate" href="/admin/books/demo-book">Back</a>
+      <button data-cta-id="cta-admin-bookversion-refresh" data-action="action">Refresh</button>
+
+      <section>
+        <h2>Render</h2>
+        <label>
+          Chapter index
+          <input data-cta-id="cta-admin-bookversion-chapterindex" data-action="edit" />
+        </label>
+        <label>
+          Overlay id
+          <input data-cta-id="cta-admin-bookversion-overlayid" data-action="edit" />
+        </label>
+        <label>
+          Render provider
+          <input data-cta-id="cta-admin-bookversion-render-provider" data-action="edit" />
+        </label>
+        <label>
+          Allow missing images (placeholders)
+          <input type="checkbox" data-cta-id="cta-admin-bookversion-allow-missing-images" data-action="action" />
+        </label>
+        <button data-cta-id="cta-admin-bookversion-enqueue-chapter" data-action="action">Render Chapter</button>
+        <button data-cta-id="cta-admin-bookversion-enqueue-book" data-action="action">Render Book</button>
+      </section>
+
+      <section>
+        <h2>Overlays</h2>
+        <label>
+          New overlay label
+          <input data-cta-id="cta-admin-bookversion-new-overlay-label" data-action="edit" />
+        </label>
+        <button data-cta-id="cta-admin-bookversion-create-overlay" data-action="action">Create overlay</button>
+      </section>
+
+      <section>
+        <h2>Export</h2>
+        <label>
+          Target course id
+          <input data-cta-id="cta-admin-bookversion-export-courseid" data-action="edit" />
+        </label>
+        <button data-cta-id="cta-admin-bookversion-export-studytexts" data-action="action">Export StudyTexts</button>
+      </section>
+    </main>
+  </body>
+</html>
+
+

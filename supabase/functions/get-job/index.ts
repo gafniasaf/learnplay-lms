@@ -96,18 +96,28 @@ serve(async (req: Request): Promise<Response> => {
     );
   }
 
-  const organizationId = requireOrganizationId(auth);
+  // Require org context for consistency across Edge functions (even if some legacy tables
+  // don't have organization_id columns in PostgREST schema cache yet).
+  requireOrganizationId(auth);
 
   // Prefer ai_course_jobs (current pipeline), fall back to ai_agent_jobs (legacy).
   let job: any | null = null;
   let jobSource: "ai_course_jobs" | "ai_agent_jobs" | null = null;
 
-  const { data: courseJob, error: courseErr } = await supabase
+  // IMPORTANT: Do not filter by organization_id at query-time here.
+  // Some deployments may not expose newer columns via PostgREST schema cache immediately.
+  // Instead, enforce visibility via auth type:
+  // - User auth: only allow jobs created by that user
+  // - Agent auth: trusted internal caller (worker/tests)
+  let courseQuery = supabase
     .from("ai_course_jobs")
     .select("*")
-    .eq("id", id)
-    .eq("organization_id", organizationId)
-    .maybeSingle();
+    .eq("id", id);
+  if (auth.type === "user" && auth.userId) {
+    courseQuery = courseQuery.eq("created_by", auth.userId);
+  }
+
+  const { data: courseJob, error: courseErr } = await courseQuery.maybeSingle();
 
   if (courseErr && (courseErr as any)?.code !== "PGRST116") {
     return new Response(JSON.stringify({ error: courseErr.message }), {
@@ -120,12 +130,15 @@ serve(async (req: Request): Promise<Response> => {
     job = courseJob;
     jobSource = "ai_course_jobs";
   } else {
-    const { data: agentJob, error: agentErr } = await supabase
+    let agentQuery = supabase
       .from("ai_agent_jobs")
       .select("*")
-      .eq("id", id)
-      .eq("organization_id", organizationId)
-      .maybeSingle();
+      .eq("id", id);
+    if (auth.type === "user" && auth.userId) {
+      agentQuery = agentQuery.eq("created_by", auth.userId);
+    }
+
+    const { data: agentJob, error: agentErr } = await agentQuery.maybeSingle();
 
     if (agentErr) {
       return new Response(JSON.stringify({ error: agentErr.message }), {

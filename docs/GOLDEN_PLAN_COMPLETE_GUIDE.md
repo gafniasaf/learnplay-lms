@@ -1354,7 +1354,7 @@ npx supabase storage create media --public
 npx supabase functions deploy my-function
 
 # ✅ CORRECT - Set token FIRST
-$env:SUPABASE_ACCESS_TOKEN = "sbp_your_token_here"
+$env:SUPABASE_ACCESS_TOKEN = "SUPABASE_PAT_HERE"
 npx supabase functions deploy my-function --project-ref [your-ref]
 ```
 
@@ -1481,17 +1481,17 @@ serve(async (req: Request): Promise<Response> => {
 **Deploy All Functions:**
 ```powershell
 # PowerShell (Windows)
-$env:SUPABASE_ACCESS_TOKEN = "sbp_your_token"
+$env:SUPABASE_ACCESS_TOKEN = "SUPABASE_PAT_HERE"
 .\scripts\ci\deploy-functions.ps1 -EnvPath supabase/.deploy.env
 
 # Bash (Mac/Linux)
-export SUPABASE_ACCESS_TOKEN="sbp_your_token"
+export SUPABASE_ACCESS_TOKEN="SUPABASE_PAT_HERE"
 ./scripts/ci/deploy-functions.sh
 ```
 
 **Deploy Single Function:**
 ```powershell
-$env:SUPABASE_ACCESS_TOKEN = "sbp_your_token"
+$env:SUPABASE_ACCESS_TOKEN = "SUPABASE_PAT_HERE"
 npx supabase functions deploy save-record --project-ref [your-ref]
 ```
 

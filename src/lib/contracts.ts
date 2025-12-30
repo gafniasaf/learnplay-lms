@@ -23,6 +23,57 @@ export const LearnerProfileSchema = z.object({
 export type LearnerProfile = z.infer<typeof LearnerProfileSchema>;
 
 
+export const BookSchema = z.object({
+  id: z.string().uuid(),
+  organization_id: z.string().uuid(),
+  created_at: z.string().datetime().optional(),
+  updated_at: z.string().datetime().optional(),
+  version: z.number().int().default(1),
+  format: z.string().default('v1'),
+  title: z.string().optional(),
+  level: z.enum(['n3', 'n4']),
+  source: z.string().optional()
+});
+export type Book = z.infer<typeof BookSchema>;
+
+
+export const BookVersionSchema = z.object({
+  id: z.string().uuid(),
+  organization_id: z.string().uuid(),
+  created_at: z.string().datetime().optional(),
+  updated_at: z.string().datetime().optional(),
+  version: z.number().int().default(1),
+  format: z.string().default('v1'),
+  book_id: z.string().optional(),
+  book_version_id: z.string().optional(),
+  schema_version: z.string().optional(),
+  exported_at: z.string().datetime().optional(),
+  canonical_path: z.string().optional(),
+  figures_path: z.string().optional(),
+  design_tokens_path: z.string().optional(),
+  status: z.enum(['active', 'archived'])
+});
+export type BookVersion = z.infer<typeof BookVersionSchema>;
+
+
+export const BookRunSchema = z.object({
+  id: z.string().uuid(),
+  organization_id: z.string().uuid(),
+  created_at: z.string().datetime().optional(),
+  updated_at: z.string().datetime().optional(),
+  version: z.number().int().default(1),
+  format: z.string().default('v1'),
+  book_id: z.string().optional(),
+  book_version_id: z.string().optional(),
+  overlay_id: z.string().optional(),
+  target: z.enum(['chapter', 'book']),
+  status: z.enum(['queued', 'running', 'completed', 'failed']),
+  progress_pct: z.number().optional(),
+  result: z.any().optional()
+});
+export type BookRun = z.infer<typeof BookRunSchema>;
+
+
 export const AssignmentSchema = z.object({
   id: z.string().uuid(),
   organization_id: z.string().uuid(),
@@ -201,6 +252,24 @@ export type GoalUpdate = z.infer<typeof GoalUpdateSchema>;
 export const JobPayloadSchema = z.discriminatedUnion('jobType', [
 
   z.object({
+    jobType: z.literal('book_ingest_version'),
+    learnerprofileId: z.string().uuid().optional(), 
+    payload: z.record(z.any()).optional().describe("Input for book_ingest_version")
+  }),
+
+  z.object({
+    jobType: z.literal('book_render_chapter'),
+    learnerprofileId: z.string().uuid().optional(), 
+    payload: z.record(z.any()).optional().describe("Input for book_render_chapter")
+  }),
+
+  z.object({
+    jobType: z.literal('book_render_full'),
+    learnerprofileId: z.string().uuid().optional(), 
+    payload: z.record(z.any()).optional().describe("Input for book_render_full")
+  }),
+
+  z.object({
     jobType: z.literal('draft_assignment_plan'),
     learnerprofileId: z.string().uuid().optional(), 
     payload: z.record(z.any()).optional().describe("Input for draft_assignment_plan")
@@ -262,6 +331,102 @@ export const ENTITY_FIELDS = {
     },
     {
       "key": "insights_snapshot",
+      "type": "json"
+    }
+  ],
+  "Book": [
+    {
+      "key": "title",
+      "type": "string"
+    },
+    {
+      "key": "level",
+      "type": "enum",
+      "options": [
+        "n3",
+        "n4"
+      ]
+    },
+    {
+      "key": "source",
+      "type": "string"
+    }
+  ],
+  "BookVersion": [
+    {
+      "key": "book_id",
+      "type": "string"
+    },
+    {
+      "key": "book_version_id",
+      "type": "string"
+    },
+    {
+      "key": "schema_version",
+      "type": "string"
+    },
+    {
+      "key": "exported_at",
+      "type": "date"
+    },
+    {
+      "key": "canonical_path",
+      "type": "string"
+    },
+    {
+      "key": "figures_path",
+      "type": "string"
+    },
+    {
+      "key": "design_tokens_path",
+      "type": "string"
+    },
+    {
+      "key": "status",
+      "type": "enum",
+      "options": [
+        "active",
+        "archived"
+      ]
+    }
+  ],
+  "BookRun": [
+    {
+      "key": "book_id",
+      "type": "string"
+    },
+    {
+      "key": "book_version_id",
+      "type": "string"
+    },
+    {
+      "key": "overlay_id",
+      "type": "string"
+    },
+    {
+      "key": "target",
+      "type": "enum",
+      "options": [
+        "chapter",
+        "book"
+      ]
+    },
+    {
+      "key": "status",
+      "type": "enum",
+      "options": [
+        "queued",
+        "running",
+        "completed",
+        "failed"
+      ]
+    },
+    {
+      "key": "progress_pct",
+      "type": "number"
+    },
+    {
+      "key": "result",
       "type": "json"
     }
   ],
@@ -601,6 +766,9 @@ export const ENTITY_FIELDS = {
 
 // --- Job Execution Modes ---
 export const JOB_MODES = {
+  "book_ingest_version": "async",
+  "book_render_chapter": "async",
+  "book_render_full": "async",
   "draft_assignment_plan": "synchronous",
   "ai_course_generate": "async",
   "guard_course": "synchronous",

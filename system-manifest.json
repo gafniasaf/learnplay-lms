@@ -19,6 +19,42 @@
         ]
       },
       {
+        "name": "Book",
+        "slug": "book",
+        "fields": [
+          { "name": "title", "type": "string" },
+          { "name": "level", "type": "enum", "options": ["n3", "n4"] },
+          { "name": "source", "type": "string" }
+        ]
+      },
+      {
+        "name": "BookVersion",
+        "slug": "book-version",
+        "fields": [
+          { "name": "book_id", "type": "string" },
+          { "name": "book_version_id", "type": "string" },
+          { "name": "schema_version", "type": "string" },
+          { "name": "exported_at", "type": "date" },
+          { "name": "canonical_path", "type": "string" },
+          { "name": "figures_path", "type": "string" },
+          { "name": "design_tokens_path", "type": "string" },
+          { "name": "status", "type": "enum", "options": ["active", "archived"] }
+        ]
+      },
+      {
+        "name": "BookRun",
+        "slug": "book-run",
+        "fields": [
+          { "name": "book_id", "type": "string" },
+          { "name": "book_version_id", "type": "string" },
+          { "name": "overlay_id", "type": "string" },
+          { "name": "target", "type": "enum", "options": ["chapter", "book"] },
+          { "name": "status", "type": "enum", "options": ["queued", "running", "completed", "failed"] },
+          { "name": "progress_pct", "type": "number" },
+          { "name": "result", "type": "json" }
+        ]
+      },
+      {
         "name": "Assignment",
         "slug": "assignment",
         "fields": [
@@ -146,6 +182,39 @@
     ]
   },
   "agent_jobs": [
+    {
+      "id": "book_ingest_version",
+      "target_entity": "BookVersion",
+      "execution_mode": "async",
+      "ui": {
+        "label": "Ingest Book Version",
+        "icon": "Upload",
+        "placement": "admin"
+      },
+      "prompt_template": "Create a versioned canonical book record from uploaded inputs. Return JSON {\"book_version_id\": string, \"canonical_path\": string}."
+    },
+    {
+      "id": "book_render_chapter",
+      "target_entity": "BookRun",
+      "execution_mode": "async",
+      "ui": {
+        "label": "Render Chapter PDF",
+        "icon": "FileText",
+        "placement": "admin"
+      },
+      "prompt_template": "Enqueue a chapter render job for a canonical book version. Return JSON {\"run_id\": string, \"chapter_index\": number}."
+    },
+    {
+      "id": "book_render_full",
+      "target_entity": "BookRun",
+      "execution_mode": "async",
+      "ui": {
+        "label": "Render Book PDF",
+        "icon": "BookOpen",
+        "placement": "admin"
+      },
+      "prompt_template": "Enqueue a full book render job for a canonical book version. Return JSON {\"run_id\": string}."
+    },
     {
       "id": "draft_assignment_plan",
       "target_entity": "Assignment",
