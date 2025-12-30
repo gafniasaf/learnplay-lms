@@ -1,0 +1,48 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Book Missing Images</title>
+  </head>
+  <body data-route="/admin/books/missing-images">
+    <main>
+      <h1>Book Missing Images</h1>
+
+      <a data-cta-id="cta-admin-bookmissing-back" data-action="navigate" href="/admin/books">Back to Books</a>
+      <button data-cta-id="cta-admin-bookmissing-refresh" data-action="action">Refresh</button>
+      <button data-cta-id="cta-admin-bookmissing-rerender" data-action="action">Re-render PDF</button>
+
+      <section>
+        <h2>Select</h2>
+        <label>
+          Book
+          <select data-cta-id="cta-admin-bookmissing-book-select" data-action="select">
+            <option>Choose…</option>
+          </select>
+        </label>
+        <label>
+          Run
+          <select data-cta-id="cta-admin-bookmissing-run-select" data-action="select">
+            <option>Choose…</option>
+          </select>
+        </label>
+        <button data-cta-id="cta-admin-bookmissing-open-pdf" data-action="action">Open PDF</button>
+      </section>
+
+      <section>
+        <h2>Missing images</h2>
+        <button data-cta-id="cta-admin-bookrun-missing-refresh" data-action="action">Refresh report</button>
+        <button data-cta-id="cta-admin-bookrun-missing-upload" data-action="action">Upload image</button>
+        <button data-cta-id="cta-admin-bookrun-missing-ai-generate" data-action="action">AI generate</button>
+      </section>
+
+      <section>
+        <h2>Artifacts</h2>
+        <button data-cta-id="cta-admin-bookrun-refresh" data-action="action">Refresh artifacts</button>
+        <button data-cta-id="cta-admin-bookmissing-artifact-open" data-action="action">Open artifact</button>
+      </section>
+    </main>
+  </body>
+</html>
+
+

@@ -307,6 +307,32 @@
       ]
     },
     {
+      "path": "/admin/books/missing-images",
+      "name": "Book Missing Images",
+      "description": "Resolve missing book images via upload/AI generation and re-render",
+      "states": [
+        {
+          "id": "default",
+          "file": "admin/books/missing-images/default.html",
+          "description": "Default state",
+          "required": true
+        }
+      ],
+      "requiredCTAs": [
+        { "id": "cta-admin-bookmissing-back", "target": "navigate" },
+        { "id": "cta-admin-bookmissing-refresh", "target": "action" },
+        { "id": "cta-admin-bookmissing-rerender", "target": "action" },
+        { "id": "cta-admin-bookmissing-book-select", "target": "select" },
+        { "id": "cta-admin-bookmissing-run-select", "target": "select" },
+        { "id": "cta-admin-bookmissing-open-pdf", "target": "action" },
+        { "id": "cta-admin-bookrun-missing-refresh", "target": "action" },
+        { "id": "cta-admin-bookrun-missing-upload", "target": "action" },
+        { "id": "cta-admin-bookrun-missing-ai-generate", "target": "action" },
+        { "id": "cta-admin-bookrun-refresh", "target": "action" },
+        { "id": "cta-admin-bookmissing-artifact-open", "target": "action" }
+      ]
+    },
+    {
       "path": "/admin/books/:bookId/versions/:bookVersionId/overlays/:overlayId",
       "name": "Book Overlay Editor",
       "description": "Paragraph overlay editor + exercise generation",

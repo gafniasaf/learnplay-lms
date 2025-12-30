@@ -41,6 +41,7 @@ const BooksLibrary = React.lazy(() => import("./pages/admin/BooksLibrary"));
 const BookDetail = React.lazy(() => import("./pages/admin/BookDetail"));
 const BookVersionDetail = React.lazy(() => import("./pages/admin/BookVersionDetail"));
 const BookRunDetail = React.lazy(() => import("./pages/admin/BookRunDetail"));
+const BookMissingImages = React.lazy(() => import("./pages/admin/BookMissingImages"));
 const BookOverlayEditor = React.lazy(() => import("./pages/admin/BookOverlayEditor"));
 const CourseVersionHistory = React.lazy(() => import("./pages/admin/CourseVersionHistory"));
 const JobsDashboard = React.lazy(() => import("./pages/admin/JobsDashboard"));
@@ -91,7 +92,7 @@ const PlayMedia = React.lazy(() => import("./pages/generated/pages/play-session-
 const Settings = React.lazy(() => import("./pages/generated/pages/settings"));
 const TeacherControl = React.lazy(() => import("./pages/generated/pages/teacher-control"));
 
-const generatedRouteCount = 47;
+const generatedRouteCount = 48;
 
 export const generatedRouteElements = [
   // Landing
@@ -110,6 +111,7 @@ export const generatedRouteElements = [
   <Route key="gen-admin-pipeline" path="/admin/ai-pipeline" element={<AIPipeline />} />,
   <Route key="gen-admin-course-select" path="/admin/courses/select" element={<CourseSelector />} />,
   <Route key="gen-admin-books" path="/admin/books" element={<BooksLibrary />} />,
+  <Route key="gen-admin-books-missing-images" path="/admin/books/missing-images" element={<BookMissingImages />} />,
   <Route key="gen-admin-book-detail" path="/admin/books/:bookId" element={<BookDetail />} />,
   <Route key="gen-admin-book-version" path="/admin/books/:bookId/versions/:bookVersionId" element={<BookVersionDetail />} />,
   <Route key="gen-admin-book-run" path="/admin/books/:bookId/runs/:runId" element={<BookRunDetail />} />,

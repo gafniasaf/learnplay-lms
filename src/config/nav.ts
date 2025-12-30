@@ -52,6 +52,13 @@ export const navSections: NavSection[] = [
       { id: "course-editor", label: "Course Editor", path: "/admin/courses/select", icon: "Edit", roles: ["admin"] },
       { id: "books", label: "Books", path: "/admin/books", icon: "Book", roles: ["admin"] },
       {
+        id: "book-missing-images",
+        label: "Book missing images",
+        path: "/admin/books/missing-images",
+        icon: "Image",
+        roles: ["admin"],
+      },
+      {
         id: "wysiwyg-exercise-editor",
         label: "Wysiwyg exercise editor",
         path: "/admin/wysiwyg-exercise-editor/select",
