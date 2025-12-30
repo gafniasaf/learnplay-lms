@@ -162,7 +162,9 @@ export default function BooksLibrary() {
   }, [canonicalFile, figuresFile, tokensFile, bookId, title, level, source, toast, mcp, navigate, loadBooks]);
 
   const sortedBooks = useMemo(() => {
-    return [...books].sort((a, b) => String(b.updated_at || "").localeCompare(String(a.updated_at || "")));
+    // Hide E2E-only books by default (they’re useful for tests but noisy for admins).
+    const filtered = books.filter((b) => String(b?.source || "").trim().toLowerCase() !== "e2e");
+    return [...filtered].sort((a, b) => String(b.updated_at || "").localeCompare(String(a.updated_at || "")));
   }, [books]);
 
   return (

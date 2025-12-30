@@ -12,6 +12,7 @@ type BookRow = {
   id: string;
   title?: string | null;
   level?: string | null;
+  source?: string | null;
   updated_at?: string | null;
   created_at?: string | null;
 };
@@ -256,6 +257,20 @@ export default function BookMissingImages() {
   useEffect(() => {
     void loadLayoutReport();
   }, [loadLayoutReport]);
+
+  const visibleBooks = useMemo(() => {
+    // Hide E2E-only books by default (they’re useful for tests but noisy for admins).
+    const isE2E = (b: BookRow): boolean => String(b?.source || "").trim().toLowerCase() === "e2e";
+    const filtered = books.filter((b) => !isE2E(b));
+
+    // Keep deep-links stable: if the selected book is E2E, still show it in the dropdown.
+    if (selectedBookId && !filtered.some((b) => b.id === selectedBookId)) {
+      const selected = books.find((b) => b.id === selectedBookId);
+      if (selected) return [selected, ...filtered];
+    }
+
+    return filtered;
+  }, [books, selectedBookId]);
 
   const selectedBook = useMemo(() => {
     return books.find((b) => b.id === selectedBookId) || null;
@@ -521,7 +536,7 @@ export default function BookMissingImages() {
                   data-action="select"
                 >
                   <option value="">{loadingBooks ? "Loading…" : "Select a book…"}</option>
-                  {books.map((b) => (
+                  {visibleBooks.map((b) => (
                     <option key={b.id} value={b.id}>
                       {b.title ? `${b.title}${b.level ? ` (${b.level})` : ""}` : b.id}
                     </option>
