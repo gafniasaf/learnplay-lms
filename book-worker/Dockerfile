@@ -11,10 +11,10 @@ RUN apt-get update \
   && apt-get install -y --no-install-recommends unzip \
   && rm -rf /var/lib/apt/lists/*
 
-COPY book-worker/worker.mjs ./worker.mjs
+COPY book-worker/ ./book-worker/
 
 ENV NODE_ENV=production
 
-CMD ["node", "./worker.mjs"]
+CMD ["node", "./book-worker/worker.mjs"]
 
 

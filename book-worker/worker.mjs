@@ -369,6 +369,8 @@ async function processJob(job) {
   const renderProvider = job.render_provider === "docraptor_api" ? "docraptor_api" : "prince_local";
   const payload = job && typeof job.payload === "object" && job.payload && !Array.isArray(job.payload) ? job.payload : {};
   const allowMissingImages = payload.allowMissingImages === true;
+  const pipelineMode = typeof payload.pipelineMode === "string" ? String(payload.pipelineMode) : "";
+  const isBookGenPro = pipelineMode === "bookgen_pro";
 
   if (!jobId || !runId || !orgId || !bookId || !bookVersionId || !target) {
     throw new Error("Job missing required fields");
@@ -396,7 +398,34 @@ async function processJob(job) {
       return x && typeof x === "object" && !Array.isArray(x) ? x : null;
     }
 
+    const reportProgress = async ({ stage, percent, message }) => {
+      await callEdge(
+        "book-job-progress",
+        {
+          jobId,
+          ...(typeof stage === "string" ? { progressStage: stage } : {}),
+          ...(typeof percent === "number" ? { progressPercent: percent } : {}),
+          ...(typeof message === "string" ? { progressMessage: message } : {}),
+        },
+        { orgId }
+      );
+    };
+
+    const requireEnvForBookGen = (name) => {
+      const v = process.env[name];
+      if (!v || typeof v !== "string" || !v.trim()) {
+        throw new Error(`BLOCKED: ${name} is REQUIRED for BookGen Pro - set env var before running`);
+      }
+      return v.trim();
+    };
+
     // 1) Get signed input URLs
+    await reportProgress({
+      stage: isBookGenPro ? "bookgen:init" : "render:init",
+      percent: 1,
+      message: isBookGenPro ? "BookGen Pro: initializing…" : "Initializing…",
+    }).catch(() => {});
+
     const inputs = await callEdge(
       "book-version-input-urls",
       { bookId, bookVersionId, overlayId, target, chapterIndex, allowMissingImages },
@@ -451,7 +480,581 @@ async function processJob(job) {
     }
 
     // 2) Apply overlay
-    const assembled = applyRewritesOverlay(canonical, overlay);
+    let assembled = applyRewritesOverlay(canonical, overlay);
+
+    // 2b) Optional BookGen Pro pipeline (skeleton → rewrite → assemble)
+    let bookgenArtifacts = [];
+    if (isBookGenPro) {
+      // BookGen planning uses OpenAI; rewriting can use OpenAI or Anthropic.
+      const OPENAI_API_KEY = requireEnvForBookGen("OPENAI_API_KEY");
+      const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY && String(process.env.ANTHROPIC_API_KEY).trim()
+        ? String(process.env.ANTHROPIC_API_KEY).trim()
+        : null;
+
+      const planModel = typeof payload.planModel === "string" && payload.planModel.trim()
+        ? payload.planModel.trim()
+        : "gpt-4o-mini";
+      const rewriteProvider = typeof payload.rewriteProvider === "string" && payload.rewriteProvider.trim()
+        ? payload.rewriteProvider.trim()
+        : (ANTHROPIC_API_KEY ? "anthropic" : "openai");
+      const rewriteModel = typeof payload.rewriteModel === "string" && payload.rewriteModel.trim()
+        ? payload.rewriteModel.trim()
+        : (rewriteProvider === "anthropic" ? "claude-3-5-sonnet-20241022" : "gpt-4o-mini");
+
+      if (rewriteProvider === "anthropic" && !ANTHROPIC_API_KEY) {
+        throw new Error("BLOCKED: rewriteProvider=anthropic but ANTHROPIC_API_KEY is missing");
+      }
+
+      const escapeJsonForLog = (obj) => {
+        try {
+          return JSON.stringify(obj, null, 2);
+        } catch {
+          return String(obj);
+        }
+      };
+
+      const BOOKGEN_PROMPT_PLAN_SYSTEM = `You are planning a skeleton for a Dutch MBO textbook rewrite pipeline.
+
+You decide, BEFORE writing happens:
+1) MICRO-HEADINGS: short topic labels above body text blocks (for scannability).
+2) VERDIEPING selection: choose EXISTING units (do NOT inject new verdieping content). These units will be moved into Verdieping boxes.
+
+MICRO-HEADING RULES:
+- Dutch, 2–4 words, no colon, no punctuation, no quotes, no markers.
+- Must be a TOPIC LABEL, not the start of a sentence.
+  - GOOD: "Functies van [onderwerp]", "De [onderwerp]", "Kenmerken en eigenschappen"
+  - BAD: "Een [onderwerp] is een" (sentence fragment - never start with "Een")
+  - BAD: "[Onderwerp] uitleg" (generic word "uitleg")
+  - BAD: Single technical term without context
+- Do NOT use generic filler words: uitleg, beschrijving, informatie, overzicht, introductie, tekst.
+- You MUST assign a micro-heading for EVERY unit_id in micro_heading_candidates.
+- Do NOT assign micro-headings to units you select as Verdieping.
+
+VERDIEPING RULES:
+- Select units that are MORE complex relative to the rest (formulas, mechanisms, multi-step reasoning).
+- Spread them out (not adjacent; avoid the very first units).
+- NEVER label any unit as Praktijk here.
+
+Return STRICT JSON ONLY:
+{
+  "micro_headings": [{"unit_id":"...","title":"..."}],
+  "verdieping_unit_ids": ["..."],
+  "notes": "..."
+}`;
+
+      const BOOKGEN_PROMPT_GENERATE_SYSTEM = `You are writing Dutch educational content for MBO N3 level students (age 16-20).
+
+CRITICAL: Write like a REAL Dutch MBO N3 textbook.
+1. SENTENCES: Short, direct. One fact per sentence.
+2. VOICE: Use "je" (not "jouw"). Use "we" for introductions.
+3. CONCISENESS: No filler. No "namelijk", "bijzondere", "belangrijke".
+4. STANDALONE: The text must make sense on its own. If the input facts are fragments (e.g. starting with lowercase verbs), restructure them into complete sentences with proper context.
+5. TERMINOLOGY (student-facing): use "zorgvrager" and "zorgprofessional". Never use: verpleegkundige, cliënt, client, patiënt, patient.
+6. MARKERS (VERY IMPORTANT):
+   - Allowed markers are ONLY:
+     <<BOLD_START>>, <<BOLD_END>>, <<MICRO_TITLE>>, <<MICRO_TITLE_END>>
+   - Do NOT output ANY other <<...>> markers. In particular, never output <<term>>.
+   - Preserve any existing <<BOLD_START>>...<<BOLD_END>> spans from the facts exactly as-is.
+   - Do NOT invent new bold spans.
+7. MICRO-HEADINGS: Micro-headings are preplanned in the skeleton. Only use the provided start marker if instructed. Otherwise do not output any <<MICRO_TITLE>> markers.
+
+Output ONLY the rewritten Dutch text.`;
+
+      const BOOKGEN_PROMPT_PRAKTIJK_EDITORIAL_SYSTEM = `You are the editorial pass for "In de praktijk" boxes in a Dutch MBO N3 nursing textbook.
+
+Goal: Reduce repetition across the set while keeping each box useful and realistic.
+
+Hard requirements (apply to EVERY box):
+- Keep "je" perspective.
+- Always use "zorgvrager". You may use "in je werk als zorgprofessional" at most once per box. Never write "de zorgprofessional".
+- Remove boilerplate admin endings ("noteer...", "bespreek met je team", "in het dossier") unless it is truly essential for the scenario.
+- Avoid repeating opener templates across boxes. In particular, do NOT start most boxes with "Je helpt een zorgvrager met ..."; vary the opening action naturally (observe / begeleid / controleer / leg uit (patient-relevant) / meet / ondersteun / etc).
+- Patient-facing explanations: ONLY explain what is relevant for the zorgvrager to understand. Avoid deep technical jargon unless it directly supports adherence/symptoms/recovery/self-care.
+  If a concept is too technical, keep it as your own understanding ("Je weet dat ...") and translate it into a practical action instead of teaching the mechanism.
+- Keep each box 4–7 sentences, single paragraph.
+- Do NOT add labels like "In de praktijk:" (layout handles it).
+- Allowed markers ONLY: <<BOLD_START>>, <<BOLD_END>>. Do NOT output any other <<...>> markers.
+- Preserve any existing <<BOLD_START>>...<<BOLD_END>> spans exactly as-is; do not invent new bold spans.
+
+Return STRICT JSON ONLY:
+{ "rewritten": { "unit_id": "text", ... } }`;
+
+      const normalizeWs = (s) => String(s || "").replace(/\s+/g, " ").trim();
+      const stripHtml = (s) => normalizeWs(String(s || "").replace(/<\s*br\b[^>]*\/?>/gi, " ").replace(/<[^>]+>/g, " "));
+      const words = (s) => stripHtml(s).split(/\s+/).filter(Boolean);
+      const wordCount = (s) => words(s).length;
+
+      const toFacts = (raw) => {
+        const t = stripHtml(raw);
+        if (!t) return [];
+        // Split by sentence-ish boundaries, keep short.
+        const parts = t.split(/(?<=[.!?])\s+/).map((x) => x.trim()).filter(Boolean);
+        if (parts.length <= 1) return [t];
+        return parts.slice(0, 12);
+      };
+
+      function safeJsonParse(raw) {
+        const t = String(raw || "").trim();
+        if (!t) return null;
+        try {
+          return JSON.parse(t);
+        } catch {
+          return null;
+        }
+      }
+
+      async function openaiChatJson({ system, user, model, temperature, maxTokens }) {
+        const resp = await fetch("https://api.openai.com/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${OPENAI_API_KEY}`,
+          },
+          body: JSON.stringify({
+            model,
+            temperature,
+            max_tokens: maxTokens,
+            response_format: { type: "json_object" },
+            messages: [
+              { role: "system", content: system },
+              { role: "user", content: user },
+            ],
+          }),
+        });
+        const text = await resp.text().catch(() => "");
+        if (!resp.ok) {
+          throw new Error(`OpenAI failed (${resp.status}): ${text.slice(0, 800)}`);
+        }
+        const j = safeJsonParse(text);
+        const content = j?.choices?.[0]?.message?.content;
+        const parsed = safeJsonParse(content);
+        if (!parsed) {
+          throw new Error(`OpenAI returned non-JSON: ${String(content || "").slice(0, 800)}`);
+        }
+        return parsed;
+      }
+
+      async function openaiChatText({ system, user, model, temperature, maxTokens }) {
+        const resp = await fetch("https://api.openai.com/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${OPENAI_API_KEY}`,
+          },
+          body: JSON.stringify({
+            model,
+            temperature,
+            max_tokens: maxTokens,
+            messages: [
+              { role: "system", content: system },
+              { role: "user", content: user },
+            ],
+          }),
+        });
+        const text = await resp.text().catch(() => "");
+        if (!resp.ok) {
+          throw new Error(`OpenAI failed (${resp.status}): ${text.slice(0, 800)}`);
+        }
+        const j = safeJsonParse(text);
+        const content = j?.choices?.[0]?.message?.content;
+        if (!content || typeof content !== "string") {
+          throw new Error("OpenAI returned empty content");
+        }
+        return content;
+      }
+
+      async function anthropicText({ system, user, model, temperature, maxTokens }) {
+        const resp = await fetch("https://api.anthropic.com/v1/messages", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-api-key": ANTHROPIC_API_KEY,
+            "anthropic-version": "2023-06-01",
+          },
+          body: JSON.stringify({
+            model,
+            temperature,
+            max_tokens: maxTokens,
+            system,
+            messages: [{ role: "user", content: user }],
+          }),
+        });
+        const text = await resp.text().catch(() => "");
+        if (!resp.ok) {
+          throw new Error(`Anthropic failed (${resp.status}): ${text.slice(0, 800)}`);
+        }
+        const j = safeJsonParse(text);
+        const contentArr = Array.isArray(j?.content) ? j.content : [];
+        const first = contentArr.find((c) => c && c.type === "text" && typeof c.text === "string");
+        const out = first?.text;
+        if (!out || typeof out !== "string") {
+          throw new Error("Anthropic returned empty content");
+        }
+        return out;
+      }
+
+      const pickChapter = (canon, idx) => {
+        const chapters = Array.isArray(canon?.chapters) ? canon.chapters : [];
+        if (typeof idx !== "number") return null;
+        return chapters[idx] || null;
+      };
+
+      const chapter = target === "chapter" ? pickChapter(assembled, chapterIndex) : null;
+      if (target === "chapter" && !chapter) {
+        throw new Error("BookGen Pro requires a valid chapterIndex for chapter target");
+      }
+
+      const bookTitle = String(assembled?.meta?.title || bookId);
+
+      // Build unit list from paragraphs in this chapter.
+      const units = [];
+      const walkBlocks = (blocks, ctx) => {
+        if (!Array.isArray(blocks)) return;
+        for (const b of blocks) {
+          if (!b || typeof b !== "object") continue;
+          const t = typeof b.type === "string" ? b.type : "";
+          if (t === "paragraph" && typeof b.id === "string" && typeof b.basis === "string") {
+            units.push({
+              unit_id: b.id,
+              section: ctx.section,
+              subsection: ctx.subsection,
+              order: units.length + 1,
+              approx_words: wordCount(b.basis),
+              preview: stripHtml(b.basis).slice(0, 220),
+              basis: b.basis,
+            });
+          } else if (t === "subparagraph") {
+            const title = typeof b.title === "string" ? b.title : "";
+            const next = {
+              section: ctx.section,
+              subsection: title ? (ctx.subsection ? `${ctx.subsection} / ${title}` : title) : ctx.subsection,
+            };
+            walkBlocks(b.content || b.blocks || b.items, next);
+          } else {
+            // fallback recursion
+            if (Array.isArray(b.content)) walkBlocks(b.content, ctx);
+            if (Array.isArray(b.blocks)) walkBlocks(b.blocks, ctx);
+            if (Array.isArray(b.items)) walkBlocks(b.items, ctx);
+          }
+        }
+      };
+
+      if (target === "chapter") {
+        const sections = Array.isArray(chapter?.sections) ? chapter.sections : [];
+        for (const s of sections) {
+          const sectionTitle = typeof s?.title === "string" ? s.title : "";
+          walkBlocks(s?.content, { section: sectionTitle, subsection: "" });
+        }
+      } else {
+        // Book target: flatten all chapters (heavy). For now, block explicitly.
+        throw new Error("BLOCKED: BookGen Pro currently supports target=chapter only (enqueue per-chapter runs).");
+      }
+
+      if (units.length === 0) {
+        throw new Error("No paragraph units found to rewrite");
+      }
+
+      const avgWords = Math.round(units.reduce((acc, u) => acc + (u.approx_words || 0), 0) / Math.max(1, units.length));
+      const microCandidates = units
+        .filter((u) => (u.approx_words || 0) >= Math.max(40, avgWords))
+        .map((u) => ({
+          unit_id: u.unit_id,
+          order: u.order,
+          section: u.section,
+          subsection: u.subsection,
+          approx_words: u.approx_words,
+          preview: u.preview,
+        }));
+      const verdiepingCandidates = units
+        .filter((u) => (u.approx_words || 0) >= 65)
+        .map((u) => ({
+          unit_id: u.unit_id,
+          order: u.order,
+          section: u.section,
+          subsection: u.subsection,
+          approx_words: u.approx_words,
+          preview: u.preview,
+        }));
+
+      const planInput = {
+        book_title: bookTitle,
+        avg_words_per_unit: avgWords,
+        micro_heading_candidates: microCandidates,
+        verdieping_candidates: verdiepingCandidates,
+        targets: { verdieping_range: { min: 1, max: 2 } },
+      };
+
+      await reportProgress({ stage: "bookgen:plan", percent: 5, message: "BookGen Pro: planning microheadings & verdieping…" }).catch(() => {});
+
+      const plan = await openaiChatJson({
+        system: BOOKGEN_PROMPT_PLAN_SYSTEM,
+        user: `INPUT JSON:\n${JSON.stringify(planInput)}`,
+        model: planModel,
+        temperature: 0.2,
+        maxTokens: 4000,
+      });
+
+      const microHeadingsArr = Array.isArray(plan?.micro_headings) ? plan.micro_headings : [];
+      const rawVerd = Array.isArray(plan?.verdieping_unit_ids) ? plan.verdieping_unit_ids : [];
+
+      const microMap = new Map();
+      for (const mh of microHeadingsArr) {
+        const uid = mh?.unit_id;
+        const title = mh?.title;
+        if (typeof uid === "string" && typeof title === "string" && title.trim()) {
+          microMap.set(uid, title.trim());
+        }
+      }
+
+      // Ensure every micro candidate has a microheading (deterministic fallback)
+      const stop = new Set(["een", "de", "het", "en", "van", "in", "op", "met", "voor", "bij", "naar", "of", "je", "we"]);
+      const fallbackMicro = (text) => {
+        const toks = words(text).map((w) => w.replace(/[^\p{L}\p{N}-]+/gu, "").toLowerCase()).filter(Boolean);
+        const keep = toks.filter((w) => !stop.has(w)).slice(0, 4);
+        const title = keep.slice(0, Math.max(2, Math.min(4, keep.length))).join(" ");
+        const cleaned = title.trim();
+        if (!cleaned) return "Belangrijk onderwerp";
+        // Capitalize first letter only (avoid punctuation).
+        return cleaned.charAt(0).toUpperCase() + cleaned.slice(1);
+      };
+      for (const c of microCandidates) {
+        if (!microMap.has(c.unit_id)) {
+          const u = units.find((x) => x.unit_id === c.unit_id);
+          microMap.set(c.unit_id, fallbackMicro(u?.basis || u?.preview || ""));
+        }
+      }
+
+      // Determine verdieping selection with simple deterministic trimming.
+      const verdSet = new Set(rawVerd.map((x) => String(x || "").trim()).filter(Boolean));
+      // Cap max
+      const verdMax = 2;
+      if (verdSet.size > verdMax) {
+        const sorted = Array.from(verdSet).sort((a, b) => {
+          const aw = units.find((u) => u.unit_id === a)?.approx_words || 0;
+          const bw = units.find((u) => u.unit_id === b)?.approx_words || 0;
+          // Prefer longer (proxy for complexity)
+          if (bw !== aw) return bw - aw;
+          return a.localeCompare(b);
+        });
+        verdSet.clear();
+        sorted.slice(0, verdMax).forEach((x) => verdSet.add(x));
+      }
+      // Ensure min
+      const verdMin = 1;
+      if (verdSet.size < verdMin) {
+        const candidates = verdiepingCandidates
+          .map((c) => c.unit_id)
+          .filter((id) => !verdSet.has(id))
+          .sort((a, b) => {
+            const aw = units.find((u) => u.unit_id === a)?.approx_words || 0;
+            const bw = units.find((u) => u.unit_id === b)?.approx_words || 0;
+            if (bw !== aw) return bw - aw;
+            return a.localeCompare(b);
+          });
+        for (const id of candidates) {
+          verdSet.add(id);
+          if (verdSet.size >= verdMin) break;
+        }
+      }
+
+      // Remove microheadings for verdieping units
+      for (const id of verdSet) microMap.delete(id);
+
+      const skeleton = {
+        generatedAt: new Date().toISOString(),
+        bookId,
+        bookVersionId,
+        target,
+        chapterIndex,
+        planModel,
+        rewriteProvider,
+        rewriteModel,
+        avgWordsPerUnit: avgWords,
+        microHeadings: Array.from(microMap.entries()).map(([unit_id, title]) => ({ unit_id, title })),
+        verdiepingUnitIds: Array.from(verdSet),
+        notes: typeof plan?.notes === "string" ? plan.notes : "",
+      };
+
+      const skeletonBuf = Buffer.from(JSON.stringify(skeleton, null, 2), "utf-8");
+      bookgenArtifacts.push({
+        kind: "debug",
+        ...(await uploadArtifact({ orgId, jobId, fileName: "skeleton.json", buf: skeletonBuf, contentType: "application/json" })),
+        chapterIndex,
+      });
+
+      await reportProgress({ stage: "bookgen:rewrite", percent: 12, message: `BookGen Pro: rewriting ${units.length} unit(s)…` }).catch(() => {});
+
+      const rewrittenById = new Map();
+      const verdiepingById = new Map();
+
+      for (let i = 0; i < units.length; i++) {
+        const u = units[i];
+        const isVerd = verdSet.has(u.unit_id);
+        const micro = microMap.get(u.unit_id) || null;
+
+        const instruction = isVerd
+          ? `This block is classified as **Verdieping** (Deepening) - more advanced detail.
+    
+    CRITICAL: The input facts may be LIST FRAGMENTS (starting with lowercase verbs). You MUST:
+    1. First INTRODUCE what subject these facts are about (use the section context).
+    2. Then explain each fact as a COMPLETE, STANDALONE sentence.
+    
+    BAD: "zorgen dat X deelt. geven signalen aan Y."
+    GOOD: "[Subject] heeft verschillende functies. Het zorgt ervoor dat X deelt. Ook geeft het signalen aan Y."
+    
+    Task: Rewrite into clear N3 Dutch with proper context and complete sentences.
+    Style: Short sentences. Active voice.
+    DO NOT write meta-introductions like: "In deze sectie...", "In dit hoofdstuk...", "Hier leer je...".
+    Start directly with the content (the concept/mechanism), as if it's a normal textbook paragraph.
+    Do NOT add any labels like "Verdieping:" (layout handles it).`
+          : `Write a concise paragraph using these facts.
+    Target Level: MBO N3 (Vocational).
+    CRITICAL: SIMPLIFY complex details into accessible explanations.
+    Style: Short sentences. Active voice. "Je" form.
+    Preserve any existing <<BOLD_START>>...<<BOLD_END>> spans from the facts exactly as-is. Do NOT invent any new markers.`;
+
+        const microHint = micro
+          ? `Start exactly with: <<MICRO_TITLE>>${micro}<<MICRO_TITLE_END>> `
+          : `Do NOT include any <<MICRO_TITLE>> markers in the output.`;
+
+        const facts = toFacts(u.basis);
+        const userMsg =
+`CONTEXT:
+  Book: ${bookTitle}
+  Section: ${u.section || ""}
+  Subsection: ${u.subsection || ""}
+
+  INPUT FACTS:
+${facts.map((f, idx) => `  ${idx + 1}. ${f}`).join("\n")}
+
+  INSTRUCTION:
+  ${instruction}
+  ${microHint}
+
+  Write now (Dutch):`;
+
+        let outText;
+        if (rewriteProvider === "anthropic") {
+          outText = await anthropicText({ system: BOOKGEN_PROMPT_GENERATE_SYSTEM, user: userMsg, model: rewriteModel, temperature: 0.3, maxTokens: 1024 });
+        } else {
+          outText = await openaiChatText({ system: BOOKGEN_PROMPT_GENERATE_SYSTEM, user: userMsg, model: rewriteModel, temperature: 0.3, maxTokens: 1024 });
+        }
+
+        const rawOut = String(outText || "").trim();
+        if (!rawOut) throw new Error(`Empty rewrite for unit ${u.unit_id}`);
+
+        // Extract micro title markers (if present) and strip from body.
+        let bodyText = rawOut;
+        if (bodyText.startsWith("<<MICRO_TITLE>>")) {
+          const end = bodyText.indexOf("<<MICRO_TITLE_END>>");
+          if (end !== -1) {
+            // Keep planned micro title; discard marker span.
+            bodyText = bodyText.slice(end + "<<MICRO_TITLE_END>>".length).trim();
+          }
+        }
+        // Convert bold markers to HTML strong tags for renderer.
+        bodyText = bodyText
+          .replace(/<<BOLD_START>>/g, "<strong>")
+          .replace(/<<BOLD_END>>/g, "</strong>");
+
+        if (isVerd) {
+          verdiepingById.set(u.unit_id, bodyText);
+        } else {
+          rewrittenById.set(u.unit_id, bodyText);
+        }
+
+        if ((i + 1) % 5 === 0 || i === units.length - 1) {
+          const pct = 12 + Math.round(((i + 1) / units.length) * 48);
+          await reportProgress({ stage: "bookgen:rewrite", percent: pct, message: `BookGen Pro: rewritten ${i + 1}/${units.length}` }).catch(() => {});
+        }
+      }
+
+      const rewritesOut = {
+        generatedAt: new Date().toISOString(),
+        bookId,
+        bookVersionId,
+        chapterIndex,
+        rewriteProvider,
+        rewriteModel,
+        rewritten: Object.fromEntries(rewrittenById.entries()),
+        verdieping: Object.fromEntries(verdiepingById.entries()),
+      };
+
+      const rewritesBuf = Buffer.from(JSON.stringify(rewritesOut, null, 2), "utf-8");
+      bookgenArtifacts.push({
+        kind: "debug",
+        ...(await uploadArtifact({ orgId, jobId, fileName: "rewrites.json", buf: rewritesBuf, contentType: "application/json" })),
+        chapterIndex,
+      });
+
+      await reportProgress({ stage: "bookgen:assemble", percent: 65, message: "BookGen Pro: assembling rewritten chapter…" }).catch(() => {});
+
+      // Assemble: apply basis rewrites + insert microheadings by wrapping paragraphs into subparagraph blocks.
+      const assembledClone = JSON.parse(JSON.stringify(assembled));
+
+      const applyToBlocks = (blocks) => {
+        if (!Array.isArray(blocks)) return blocks;
+        const out = [];
+        for (const b of blocks) {
+          if (!b || typeof b !== "object") continue;
+          const t = typeof b.type === "string" ? b.type : "";
+          if (t === "paragraph" && typeof b.id === "string") {
+            const pid = b.id;
+            const micro = microMap.get(pid) || null;
+            const isVerd = verdSet.has(pid);
+            const nextPara = { ...b };
+            if (isVerd) {
+              const v = verdiepingById.get(pid);
+              if (typeof v === "string") {
+                nextPara.basis = ""; // moved into box
+                nextPara.verdieping = v;
+              }
+            } else {
+              const r = rewrittenById.get(pid);
+              if (typeof r === "string") nextPara.basis = r;
+            }
+
+            if (micro) {
+              out.push({
+                type: "subparagraph",
+                title: micro,
+                content: [nextPara],
+              });
+            } else {
+              out.push(nextPara);
+            }
+            continue;
+          }
+
+          if (t === "subparagraph") {
+            const next = { ...b };
+            const inner = b.content || b.blocks || b.items;
+            next.content = applyToBlocks(inner);
+            out.push(next);
+            continue;
+          }
+
+          // Fallback recursion
+          const next = { ...b };
+          if (Array.isArray(b.content)) next.content = applyToBlocks(b.content);
+          out.push(next);
+        }
+        return out;
+      };
+
+      if (target === "chapter") {
+        const ch = assembledClone.chapters?.[chapterIndex];
+        if (ch && Array.isArray(ch.sections)) {
+          ch.sections = ch.sections.map((s) => ({
+            ...s,
+            content: applyToBlocks(s.content),
+          }));
+        }
+      }
+
+      assembled = assembledClone;
+      await reportProgress({ stage: "bookgen:assemble", percent: 72, message: "BookGen Pro: assembled chapter ready" }).catch(() => {});
+    }
 
     // 3) Render HTML
     // If the edge function provided an imageSrcMap (canonical src -> signed URL),
@@ -575,6 +1178,11 @@ async function processJob(job) {
         ...(await uploadArtifact({ orgId, jobId, fileName: "layout_report.json", buf: reportBuf, contentType: "application/json" })),
         chapterIndex,
       });
+    }
+
+    // Include BookGen artifacts (skeleton/rewrites) if any.
+    if (Array.isArray(bookgenArtifacts) && bookgenArtifacts.length) {
+      for (const a of bookgenArtifacts) uploaded.push(a);
     }
 
     const processingDurationMs = Date.now() - startedAt;

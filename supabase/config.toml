@@ -277,6 +277,9 @@ verify_jwt = false
 [functions.book-job-apply-result]
 verify_jwt = false
 
+[functions.book-job-progress]
+verify_jwt = false
+
 [functions.book-version-input-urls]
 verify_jwt = false
 

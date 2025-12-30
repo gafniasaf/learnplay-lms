@@ -30,6 +30,8 @@ This runbook covers **operations**, **monitoring**, and **retention** for the bo
   - `PRINCE_PATH` (defaults to `prince` in PATH)
   - `DOCRAPTOR_API_KEY` (required only when render provider is `docraptor_api`)
   - `DOCRAPTOR_TEST_MODE` (`true|false`)
+  - `OPENAI_API_KEY` (required only for BookGen Pro pipeline jobs)
+  - `ANTHROPIC_API_KEY` (optional; if set, BookGen Pro can use Anthropic for rewrites)
 
 The worker **does not** need a global `ORGANIZATION_ID` env var: it reads `organization_id` from the claimed job row and forwards it as `x-organization-id` to functions that require org scoping.
 

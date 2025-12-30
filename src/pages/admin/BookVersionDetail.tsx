@@ -99,6 +99,7 @@ export default function BookVersionDetail() {
   const [exporting, setExporting] = useState(false);
   const [renderProvider, setRenderProvider] = useState<"prince_local" | "docraptor_api">("prince_local");
   const [allowMissingImages, setAllowMissingImages] = useState(true);
+  const [bookgenPro, setBookgenPro] = useState(false);
 
   const load = useCallback(async () => {
     if (!bookId || !bookVersionId) return;
@@ -161,6 +162,7 @@ export default function BookVersionDetail() {
       };
       payload.renderProvider = renderProvider;
       if (allowMissingImages) payload.allowMissingImages = true;
+      if (bookgenPro) payload.pipelineMode = "bookgen_pro";
       if (selectedOverlayId && selectedOverlayId !== "none") {
         payload.overlayId = selectedOverlayId;
       }
@@ -193,7 +195,7 @@ export default function BookVersionDetail() {
     } finally {
       setEnqueueing(false);
     }
-  }, [bookId, bookVersionId, chapterIndexRaw, selectedOverlayId, renderProvider, allowMissingImages, mcp, toast, load, navigate]);
+  }, [bookId, bookVersionId, chapterIndexRaw, selectedOverlayId, renderProvider, allowMissingImages, bookgenPro, mcp, toast, load, navigate]);
 
   const createOverlay = useCallback(async () => {
     if (!bookId || !bookVersionId) return;
@@ -369,6 +371,18 @@ export default function BookVersionDetail() {
                   />
                   <Label htmlFor="allowMissingImages" className="cursor-pointer">
                     Allow missing images (placeholders)
+                  </Label>
+                </div>
+                <div className="flex items-center gap-2 pt-1">
+                  <Checkbox
+                    id="bookgenPro"
+                    checked={bookgenPro}
+                    onCheckedChange={(v) => setBookgenPro(v === true)}
+                    data-cta-id="cta-admin-bookversion-bookgen-pro"
+                    data-action="action"
+                  />
+                  <Label htmlFor="bookgenPro" className="cursor-pointer">
+                    BookGen Pro (rewrite + render)
                   </Label>
                 </div>
               </div>

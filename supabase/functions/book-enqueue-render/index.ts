@@ -35,6 +35,12 @@ interface EnqueueBody {
   chapterIndex?: number;
   renderProvider?: "prince_local" | "docraptor_api";
   /**
+   * Optional pipeline mode. When set to "bookgen_pro", the worker will run the
+   * BookGen Pro pipeline (skeleton → rewrite → assemble → render) instead of
+   * doing a render-only job.
+   */
+  pipelineMode?: "bookgen_pro" | "render_only";
+  /**
    * If true, the worker will replace missing images with visible placeholders
    * and still produce a draft PDF + a missing-assets report.
    */
@@ -91,6 +97,9 @@ serve(async (req: Request): Promise<Response> => {
     }
     if (body.renderProvider && !["prince_local", "docraptor_api"].includes(body.renderProvider)) {
       return json({ ok: false, error: { code: "invalid_request", message: "renderProvider must be prince_local or docraptor_api" }, httpStatus: 400, requestId }, 200);
+    }
+    if (body.pipelineMode !== undefined && !["bookgen_pro", "render_only"].includes(body.pipelineMode)) {
+      return json({ ok: false, error: { code: "invalid_request", message: "pipelineMode must be bookgen_pro or render_only" }, httpStatus: 400, requestId }, 200);
     }
     if (body.allowMissingImages !== undefined && typeof body.allowMissingImages !== "boolean") {
       return json({ ok: false, error: { code: "invalid_request", message: "allowMissingImages must be a boolean" }, httpStatus: 400, requestId }, 200);
@@ -188,6 +197,7 @@ serve(async (req: Request): Promise<Response> => {
       chapter_index: body.target === "chapter" ? body.chapterIndex : null,
       status: "pending",
       payload: {
+        ...(body.pipelineMode === "bookgen_pro" ? { pipelineMode: "bookgen_pro" } : {}),
         ...(body.allowMissingImages === true ? { allowMissingImages: true } : {}),
       },
     };

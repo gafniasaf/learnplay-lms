@@ -278,6 +278,7 @@
         { "id": "cta-admin-bookversion-overlayid", "target": "edit" },
         { "id": "cta-admin-bookversion-render-provider", "target": "edit" },
         { "id": "cta-admin-bookversion-allow-missing-images", "target": "action" },
+        { "id": "cta-admin-bookversion-bookgen-pro", "target": "action" },
         { "id": "cta-admin-bookversion-enqueue-chapter", "target": "action" },
         { "id": "cta-admin-bookversion-enqueue-book", "target": "action" },
         { "id": "cta-admin-bookversion-new-overlay-label", "target": "edit" },
