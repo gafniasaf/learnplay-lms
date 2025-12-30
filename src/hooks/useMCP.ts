@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState, useMemo } from 'react';
 import { JOB_MODES } from '@/lib/contracts';
 import { callEdgeFunction, callEdgeFunctionGet, isDevAgentMode, callEdgeFunctionGetRaw } from '@/lib/api/common';
 import { getRuntimeConfigSync } from '@/lib/runtimeConfig';
+import { isE2ECourseId } from "@/lib/utils/e2eFilters";
 import type {
   SaveRecordResponse,
   GetRecordResponse,
@@ -933,7 +934,9 @@ export function useMCP() {
       const items = response?.items || [];
       
       // Transform to catalog format
-      const courses = items.map(item => ({
+      const courses = items
+        .filter((item) => !isE2ECourseId(item?.id))
+        .map(item => ({
         id: item.id,
         title: item.title || item.id,
         subject: item.subject || 'General',

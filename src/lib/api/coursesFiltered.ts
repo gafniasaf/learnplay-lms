@@ -3,6 +3,7 @@
  */
 
 import { supabase } from '@/integrations/supabase/client';
+import { isE2ECourseId } from "@/lib/utils/e2eFilters";
 
 export interface CourseMetadata {
   id: string;
@@ -73,6 +74,10 @@ export async function getCoursesByTags(
     throw new Error(`Failed to fetch courses: ${error.message}`);
   }
 
-  return data as CoursesFilteredResponse;
+  const res = data as CoursesFilteredResponse;
+  return {
+    ...res,
+    courses: Array.isArray(res?.courses) ? res.courses.filter((c) => !isE2ECourseId(c?.id)) : [],
+  };
 }
 

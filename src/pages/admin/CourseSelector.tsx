@@ -53,9 +53,7 @@ function isExpertcollegeCourse(course: CourseCatalogItem): boolean {
   return (
     title.includes('expertcollege') ||
     subject.includes('expertcollege') ||
-    id.includes('expertcollege') ||
-    id.includes('e2e') ||
-    title.includes('e2e ')
+    id.includes('expertcollege')
   );
 }
 

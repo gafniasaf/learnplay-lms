@@ -128,19 +128,14 @@ test("live: Expertcollege exercise generation editor generates + edits + saves e
     },
   });
 
-  // Open the selector page and navigate to the generator for this course
-  await page.goto("/admin/expertcollege-exercise-generation/select");
-  await page.locator('[data-cta-id="cta-ecgen-search"]').waitFor({ state: "visible", timeout: 60_000 });
-  await page.locator('[data-cta-id="cta-ecgen-search"]').fill(courseId);
-
-  // Click the course row after filtering (the nested Open button may not bubble click reliably)
-  const row = page.locator('[data-cta-id^="cta-ecgen-select-course-"]').first();
-  await row.waitFor({ state: "visible", timeout: 60_000 });
-  await row.click();
+  // E2E courses are intentionally hidden from user-facing selectors (to keep the UI clean).
+  // Navigate directly to the editor for this course.
+  await page.goto(`/admin/expertcollege-exercise-generation/${encodeURIComponent(courseId)}`);
   await expect(page).toHaveURL(
     new RegExp(`/admin/expertcollege-exercise-generation/${courseId.replace(/[-/\\.^$*+?()[\]{}|]/g, "\\$&")}$`),
     { timeout: 60_000 }
   );
+  await page.locator('[data-cta-id="cta-ecgen-start"]').waitFor({ state: "visible", timeout: 60_000 });
 
   // Start generation (single study text)
   await page.locator('[data-cta-id="cta-ecgen-start"]').click();

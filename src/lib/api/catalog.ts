@@ -1,6 +1,7 @@
 import type { CourseCatalog } from "../types/courseCatalog";
 import { fetchWithTimeout, ApiError, getSupabaseUrl, callEdgeFunctionGetRaw } from "./common";
 import { createLogger } from "../logger";
+import { isE2ECourseId } from "../utils/e2eFilters";
 
 const log = createLogger("api/catalog");
 
@@ -41,7 +42,13 @@ export async function getCourseCatalog(): Promise<
   const storedEtag = localStorage.getItem("catalogEtag") || "";
 
   if (cachedJson) {
-    const cached = JSON.parse(cachedJson) as CourseCatalog;
+    const cachedRaw = JSON.parse(cachedJson) as CourseCatalog;
+    const cached: CourseCatalog = {
+      ...cachedRaw,
+      courses: Array.isArray((cachedRaw as any)?.courses)
+        ? (cachedRaw as any).courses.filter((c: any) => !isE2ECourseId(c?.id))
+        : [],
+    };
 
     // Validate cache - clear if item counts are wrong
     const hasInvalidItemCount = cached.courses.some((c) => c.itemCount === 12);
@@ -119,8 +126,9 @@ async function revalidateCatalogWithVersionCheck(
   if (res.ok) {
     const apiJson = await res.json() as any;
     const items = Array.isArray(apiJson.items) ? apiJson.items : [];
+    const visibleItems = items.filter((it: any) => !isE2ECourseId(it?.id));
     const catalog: CourseCatalog = {
-      courses: items.map((it: any) => ({
+      courses: visibleItems.map((it: any) => ({
         id: it.id,
         title: it.title || it.id,
         subject: it.subject || 'General',
@@ -257,8 +265,9 @@ async function fetchFreshCatalog(
 
     const apiData = await res.json() as any;
     const items = Array.isArray(apiData.items) ? apiData.items : [];
+    const visibleItems = items.filter((it: any) => !isE2ECourseId(it?.id));
     const catalog: CourseCatalog = {
-      courses: items.map((it: any) => ({
+      courses: visibleItems.map((it: any) => ({
         id: it.id,
         title: it.title || it.id,
         subject: it.subject || 'General',
