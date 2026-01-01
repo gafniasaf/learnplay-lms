@@ -28,8 +28,7 @@ import type { LegacyCourseContent, ImportResult } from './legacy-import/types';
 // CONFIGURATION
 // ═══════════════════════════════════════════════════════════════════════════
 
-const DEFAULT_MES_SUPABASE_URL = 'https://yqpqdtedhoffgmurpped.supabase.co';
-const DEFAULT_MES_ANON_KEY = 'sb_publishable_s6WSybdYV_UqHRGLltgQgg_XZGHY-gD';
+// NOTE: No defaults here (ABSOLUTE NO-FALLBACK POLICY). Use `mes-migration.env` locally.
 
 const CHECKPOINT_PATH = path.resolve(process.cwd(), 'artifacts/mes-migration-checkpoint.json');
 const STATUS_PATH = path.resolve(process.cwd(), 'artifacts/mes-migration-status.json');
@@ -269,8 +268,8 @@ function releaseLock(): void {
 // ═══════════════════════════════════════════════════════════════════════════
 
 function createMesClient(): SupabaseClient {
-  const url = process.env.MES_SUPABASE_URL || DEFAULT_MES_SUPABASE_URL;
-  const key = process.env.MES_ANON_KEY || DEFAULT_MES_ANON_KEY;
+  const url = mustEnv('MES_SUPABASE_URL');
+  const key = mustEnv('MES_ANON_KEY');
   return createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } });
 }
 

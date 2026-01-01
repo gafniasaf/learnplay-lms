@@ -27,9 +27,9 @@
  *   SUPABASE_SERVICE_ROLE_KEY  - Your target service role key
  *   ORGANIZATION_ID            - Your organization ID (for multi-tenant scoping)
  * 
- * Optional env vars:
- *   MES_SUPABASE_URL           - Kevin's MES Supabase URL (defaults to known value)
- *   MES_ANON_KEY               - Kevin's MES anon key (defaults to known value)
+ * Required env vars (source MES DB):
+ *   MES_SUPABASE_URL           - Kevin's MES Supabase URL
+ *   MES_ANON_KEY               - Kevin's MES anon key (publishable)
  */
 
 import fs from 'node:fs';
@@ -44,11 +44,7 @@ import type { LegacyCourseContent, ImportResult } from './legacy-import/types';
 // KEVIN'S MES DATABASE (Source)
 // ═══════════════════════════════════════════════════════════════════════════
 
-const DEFAULT_MES_SUPABASE_URL = 'https://yqpqdtedhoffgmurpped.supabase.co';
-const DEFAULT_MES_ANON_KEY = 'sb_publishable_s6WSybdYV_UqHRGLltgQgg_XZGHY-gD';
-
-// Alternative: Direct PostgreSQL connection (if Supabase client doesn't work)
-// const MES_POSTGRES_URL = 'postgresql://postgres.yqpqdtedhoffgmurpped:d584WwaNjJbcQxHs@aws-1-eu-west-3.pooler.supabase.com:6543/postgres';
+// NOTE: No defaults here (ABSOLUTE NO-FALLBACK POLICY). Use `mes-migration.env` locally.
 
 // ═══════════════════════════════════════════════════════════════════════════
 // AZURE BLOB STORAGE (Multimedia)
@@ -166,8 +162,8 @@ function writeCheckpoint(cpPath: string, cp: Checkpoint): void {
 // ═══════════════════════════════════════════════════════════════════════════
 
 function createMesClient(): SupabaseClient {
-  const url = process.env.MES_SUPABASE_URL || DEFAULT_MES_SUPABASE_URL;
-  const key = process.env.MES_ANON_KEY || DEFAULT_MES_ANON_KEY;
+  const url = mustEnv('MES_SUPABASE_URL');
+  const key = mustEnv('MES_ANON_KEY');
   
   console.log(`📡 Connecting to MES Supabase: ${url}`);
   
