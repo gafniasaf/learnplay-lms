@@ -51,7 +51,7 @@ export const navSections: NavSection[] = [
       { id: "ai-pipeline", label: "AI Pipeline", path: "/admin/ai-pipeline", icon: "Sparkles", roles: ["admin"] },
       { id: "course-editor", label: "Course Editor", path: "/admin/courses/select", icon: "Edit", roles: ["admin"] },
       { id: "library-courses", label: "Library Courses", path: "/admin/library-courses", icon: "Library", roles: ["admin"] },
-      { id: "books", label: "Books", path: "/admin/books", icon: "Book", roles: ["admin"] },
+      { id: "book-studio", label: "Book Studio", path: "/admin/book-studio", icon: "BookOpen", roles: ["admin"] },
       {
         id: "book-missing-images",
         label: "Book missing images",
