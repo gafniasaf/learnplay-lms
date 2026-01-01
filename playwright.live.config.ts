@@ -139,7 +139,9 @@ const config: PlaywrightTestConfig = {
       use: {
         storageState: 'playwright/.auth/admin.json',
       },
-      dependencies: ['setup-admin'],
+      // Some specs (e.g. dashboard-loading.spec.ts) switch storageState at runtime per describe block.
+      // Ensure those role sessions are always freshly provisioned before running any authenticated tests.
+      dependencies: ['setup-admin', 'setup-student', 'setup-teacher', 'setup-parent'],
     },
   ],
 };

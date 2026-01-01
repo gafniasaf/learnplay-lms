@@ -83,20 +83,8 @@ setup('authenticate as admin', async ({ page }) => {
       auth: { autoRefreshToken: false, persistSession: false },
     });
 
-    // Prefer explicit ORGANIZATION_ID (seeded/test canonical org), fallback to first org in DB.
-    let orgId = process.env.ORGANIZATION_ID;
-    if (!orgId) {
-      const { data: orgRow, error: orgErr } = await (adminClient as any)
-        .from('organizations')
-        .select('id')
-        .order('created_at', { ascending: true })
-        .limit(1)
-        .maybeSingle();
-      if (orgErr || !orgRow?.id) {
-        throw new Error(orgErr?.message || 'No organizations found');
-      }
-      orgId = String(orgRow.id);
-    }
+    // Per no-fallback policy: require explicit ORGANIZATION_ID for deterministic E2E isolation.
+    const orgId = requireEnvVar('ORGANIZATION_ID');
 
     const { data: existingRoles, error: rolesErr } = await (adminClient as any)
       .from('user_roles')
@@ -114,6 +102,29 @@ setup('authenticate as admin', async ({ page }) => {
         .from('user_roles')
         .insert({ user_id: session.user.id, organization_id: orgId, role: 'org_admin' });
       if (insErr) throw new Error(insErr.message || 'Failed to insert org_admin role');
+    }
+
+    // Ensure organization_id claim is present in auth metadata (used by RLS / auth hook).
+    // Note: do not print the token; only enforce deterministic metadata.
+    const { error: metaErr } = await (adminClient as any).auth.admin.updateUserById(session.user.id, {
+      app_metadata: { organization_id: orgId },
+      user_metadata: { organization_id: orgId },
+    });
+    if (metaErr) throw new Error(metaErr.message || 'Failed to set organization_id metadata');
+
+    // Ensure org membership exists in organization_users (some endpoints authorize via org_role).
+    const { data: orgUser, error: orgUserErr } = await (adminClient as any)
+      .from('organization_users')
+      .select('org_role')
+      .eq('org_id', orgId)
+      .eq('user_id', session.user.id)
+      .maybeSingle();
+    if (orgUserErr) throw new Error(orgUserErr.message || 'Failed to query organization_users');
+    if (!orgUser) {
+      const { error: insErr } = await (adminClient as any)
+        .from('organization_users')
+        .insert({ org_id: orgId, user_id: session.user.id, org_role: 'school_admin' });
+      if (insErr) throw new Error(insErr.message || 'Failed to insert organization_users row');
     }
   } catch (e: any) {
     throw new Error(`Failed to ensure admin user_roles: ${String(e?.message || e)}`);

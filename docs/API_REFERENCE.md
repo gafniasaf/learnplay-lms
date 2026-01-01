@@ -39,8 +39,10 @@ Some legacy endpoints still return `Access-Control-Allow-Origin: *` for compatib
 
 | Endpoint | Method | Auth | Description |
 |----------|--------|------|-------------|
-| `/list-courses` | GET | ✓ | List courses with pagination/filtering |
+| `/list-courses` | GET | ✓ | List courses with pagination/filtering (supports `format` filter via `course_metadata.tags.__format`) |
 | `/list-courses-filtered` | GET | ✓ | List courses with advanced filters |
+| `/search-courses` | GET | ✓ | Search courses by id/title/subject (supports `format` filter) |
+| `/get-course` | GET | ✓ | Fetch a single `course.json` (returns an envelope when present; playable flows assume `format=practice`) |
 | `/play-session` | POST/GET/PATCH | ✓ | Manage play sessions |
 | `/assignment-metadata` | GET | ✓ | Get assignment metadata |
 | `/results-detail` | GET | ✓/Public | Get detailed round results |

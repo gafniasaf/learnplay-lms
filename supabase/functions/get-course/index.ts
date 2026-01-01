@@ -255,8 +255,11 @@ Deno.serve(withCors(async (req) => {
     const etag = `W/"${hashArray.map(b => b.toString(16).padStart(2, "0")).join("")}"`;
     
     // Build cache headers only; CORS headers are injected by withCors
+    // IMPORTANT: course.json can be mutated shortly after first load (e.g. media-runner attaching stimuli).
+    // Shared caching (CDN) must not serve stale course payloads for minutes after a mutation.
+    // We keep ETag support for conditional requests, but require revalidation on every shared-cache hit.
     const cacheHeaders: Record<string, string> = {
-      "Cache-Control": "public, max-age=60, s-maxage=300, stale-while-revalidate=600",
+      "Cache-Control": "public, max-age=0, s-maxage=0, must-revalidate",
       "ETag": etag,
       "Age": "0",
       "X-Request-Id": reqId,

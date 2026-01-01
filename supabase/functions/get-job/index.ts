@@ -12,7 +12,7 @@ if (!SUPABASE_URL || !SERVICE_ROLE_KEY) {
 
 const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
 
-function isMissingJobEventsTable(err: unknown): boolean {
+function isMissingEventsTable(err: unknown): boolean {
   const msg =
     typeof (err as any)?.message === "string"
       ? String((err as any).message)
@@ -20,10 +20,14 @@ function isMissingJobEventsTable(err: unknown): boolean {
         ? err
         : "";
   // PostgREST schema cache errors vary by deployment; keep matching permissive.
-  return msg.includes("Could not find the table") || msg.includes("job_events");
+  return (
+    msg.includes("Could not find the table") ||
+    msg.includes("job_events") ||
+    msg.includes("agent_job_events")
+  );
 }
 
-async function tryLoadJobEvents(jobId: string, limit: number): Promise<any[]> {
+async function tryLoadCourseJobEvents(jobId: string, limit: number): Promise<any[]> {
   if (!Number.isFinite(limit) || limit <= 0) return [];
   const safeLimit = Math.min(200, Math.max(1, Math.floor(limit)));
 
@@ -35,12 +39,34 @@ async function tryLoadJobEvents(jobId: string, limit: number): Promise<any[]> {
       .order("created_at", { ascending: true })
       .limit(safeLimit);
     if (error) {
-      if (isMissingJobEventsTable(error)) return [];
+      if (isMissingEventsTable(error)) return [];
       throw error;
     }
     return Array.isArray(events) ? events : [];
   } catch (e) {
-    if (isMissingJobEventsTable(e)) return [];
+    if (isMissingEventsTable(e)) return [];
+    throw e;
+  }
+}
+
+async function tryLoadAgentJobEvents(jobId: string, limit: number): Promise<any[]> {
+  if (!Number.isFinite(limit) || limit <= 0) return [];
+  const safeLimit = Math.min(200, Math.max(1, Math.floor(limit)));
+
+  try {
+    const { data: events, error } = await supabase
+      .from("agent_job_events")
+      .select("*")
+      .eq("job_id", jobId)
+      .order("created_at", { ascending: true })
+      .limit(safeLimit);
+    if (error) {
+      if (isMissingEventsTable(error)) return [];
+      throw error;
+    }
+    return Array.isArray(events) ? events : [];
+  } catch (e) {
+    if (isMissingEventsTable(e)) return [];
     throw e;
   }
 }
@@ -98,7 +124,7 @@ serve(async (req: Request): Promise<Response> => {
 
   // Require org context for consistency across Edge functions (even if some legacy tables
   // don't have organization_id columns in PostgREST schema cache yet).
-  requireOrganizationId(auth);
+  const organizationId = requireOrganizationId(auth);
 
   // Prefer ai_course_jobs (current pipeline), fall back to ai_agent_jobs (legacy).
   let job: any | null = null;
@@ -134,9 +160,6 @@ serve(async (req: Request): Promise<Response> => {
       .from("ai_agent_jobs")
       .select("*")
       .eq("id", id);
-    if (auth.type === "user" && auth.userId) {
-      agentQuery = agentQuery.eq("created_by", auth.userId);
-    }
 
     const { data: agentJob, error: agentErr } = await agentQuery.maybeSingle();
 
@@ -148,6 +171,17 @@ serve(async (req: Request): Promise<Response> => {
     }
 
     if (agentJob) {
+      // Enforce org isolation for ai_agent_jobs even when using service role.
+      // Do NOT rely on query-time filters (schema-cache drift).
+      if (auth.type === "user") {
+        const jobOrgId = (agentJob as any).organization_id as string | null | undefined;
+        if (!jobOrgId || jobOrgId !== organizationId) {
+          return new Response(JSON.stringify({ error: "Job not found" }), {
+            status: 404,
+            headers: stdHeaders(req, { "Content-Type": "application/json" }),
+          });
+        }
+      }
       job = agentJob;
       jobSource = "ai_agent_jobs";
     }
@@ -165,7 +199,10 @@ serve(async (req: Request): Promise<Response> => {
     const n = Number(eventsLimitRaw);
     if (Number.isFinite(n)) eventsLimit = Math.max(0, Math.floor(n));
   }
-  const events = await tryLoadJobEvents(id, eventsLimit);
+  const events =
+    jobSource === "ai_agent_jobs"
+      ? await tryLoadAgentJobEvents(id, eventsLimit)
+      : await tryLoadCourseJobEvents(id, eventsLimit);
 
   let artifacts: Record<string, unknown> | undefined = undefined;
   if (includeArtifacts) {

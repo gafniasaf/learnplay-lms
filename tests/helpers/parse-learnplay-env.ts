@@ -45,6 +45,13 @@ export function parseLearnPlayEnv(): LearnPlayEnv {
   try {
     const envContent = readFileSync(envFile, 'utf-8');
     const lines = envContent.split('\n');
+    const nextNonEmptyLine = (startIdx: number): string => {
+      for (let j = startIdx; j < lines.length; j++) {
+        const v = lines[j]?.trim() ?? "";
+        if (v) return v;
+      }
+      return "";
+    };
 
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i].trim();
@@ -100,90 +107,90 @@ export function parseLearnPlayEnv(): LearnPlayEnv {
       
       // Project URL -> SUPABASE_URL
       if (line.includes('Project url') && i + 1 < lines.length) {
-        result.SUPABASE_URL = lines[i + 1].trim();
+        result.SUPABASE_URL = nextNonEmptyLine(i + 1);
       }
       
       // anon public -> SUPABASE_ANON_KEY
       if (line.includes('anon public') && i + 1 < lines.length) {
-        result.SUPABASE_ANON_KEY = lines[i + 1].trim();
+        result.SUPABASE_ANON_KEY = nextNonEmptyLine(i + 1);
       }
       
       // service role key -> SUPABASE_SERVICE_ROLE_KEY
       if (line.includes('service role key') && i + 1 < lines.length) {
-        result.SUPABASE_SERVICE_ROLE_KEY = lines[i + 1].trim();
+        result.SUPABASE_SERVICE_ROLE_KEY = nextNonEmptyLine(i + 1);
       }
       
       // supabase token -> SUPABASE_ACCESS_TOKEN
       if (line.includes('supabase token') && i + 1 < lines.length) {
-        result.SUPABASE_ACCESS_TOKEN = lines[i + 1].trim();
+        result.SUPABASE_ACCESS_TOKEN = nextNonEmptyLine(i + 1);
       }
       
       // openai key -> OPENAI_API_KEY
       if (line.includes('openai key') && i + 1 < lines.length) {
-        result.OPENAI_API_KEY = lines[i + 1].trim();
+        result.OPENAI_API_KEY = nextNonEmptyLine(i + 1);
       }
       
       // anthropic api key -> ANTHROPIC_API_KEY
       if (line.includes('anthropic api key') && i + 1 < lines.length) {
-        result.ANTHROPIC_API_KEY = lines[i + 1].trim();
+        result.ANTHROPIC_API_KEY = nextNonEmptyLine(i + 1);
       }
 
       // agent token -> AGENT_TOKEN
       if (line.includes('agent token') && i + 1 < lines.length) {
-        result.AGENT_TOKEN = lines[i + 1].trim();
+        result.AGENT_TOKEN = nextNonEmptyLine(i + 1);
       }
 
       // organization id -> ORGANIZATION_ID
       if (line.includes('organization id') && i + 1 < lines.length) {
-        result.ORGANIZATION_ID = lines[i + 1].trim();
+        result.ORGANIZATION_ID = nextNonEmptyLine(i + 1);
       }
 
       // user id -> USER_ID
       if ((line.includes('user id') || line.includes('test user id')) && i + 1 < lines.length) {
-        result.USER_ID = lines[i + 1].trim();
+        result.USER_ID = nextNonEmptyLine(i + 1);
       }
 
       // student id -> STUDENT_ID
       if (line.includes('student id') && i + 1 < lines.length) {
-        result.STUDENT_ID = lines[i + 1].trim();
+        result.STUDENT_ID = nextNonEmptyLine(i + 1);
       }
 
       // parent id -> PARENT_ID
       if (line.includes('parent id') && i + 1 < lines.length) {
-        result.PARENT_ID = lines[i + 1].trim();
+        result.PARENT_ID = nextNonEmptyLine(i + 1);
       }
       
       // project id -> PROJECT_ID
       if (line.includes('project id') && i + 1 < lines.length) {
-        result.PROJECT_ID = lines[i + 1].trim();
+        result.PROJECT_ID = nextNonEmptyLine(i + 1);
       }
 
       // e2e admin email/password (heading-style)
       if (line.includes('e2e admin email') && i + 1 < lines.length) {
-        result.E2E_ADMIN_EMAIL = lines[i + 1].trim();
+        result.E2E_ADMIN_EMAIL = nextNonEmptyLine(i + 1);
       }
       if (line.includes('e2e admin password') && i + 1 < lines.length) {
-        result.E2E_ADMIN_PASSWORD = lines[i + 1].trim();
+        result.E2E_ADMIN_PASSWORD = nextNonEmptyLine(i + 1);
       }
 
       // e2e teacher/student/parent credentials (heading-style)
       if (line.includes('e2e teacher email') && i + 1 < lines.length) {
-        result.E2E_TEACHER_EMAIL = lines[i + 1].trim();
+        result.E2E_TEACHER_EMAIL = nextNonEmptyLine(i + 1);
       }
       if (line.includes('e2e teacher password') && i + 1 < lines.length) {
-        result.E2E_TEACHER_PASSWORD = lines[i + 1].trim();
+        result.E2E_TEACHER_PASSWORD = nextNonEmptyLine(i + 1);
       }
       if (line.includes('e2e student email') && i + 1 < lines.length) {
-        result.E2E_STUDENT_EMAIL = lines[i + 1].trim();
+        result.E2E_STUDENT_EMAIL = nextNonEmptyLine(i + 1);
       }
       if (line.includes('e2e student password') && i + 1 < lines.length) {
-        result.E2E_STUDENT_PASSWORD = lines[i + 1].trim();
+        result.E2E_STUDENT_PASSWORD = nextNonEmptyLine(i + 1);
       }
       if (line.includes('e2e parent email') && i + 1 < lines.length) {
-        result.E2E_PARENT_EMAIL = lines[i + 1].trim();
+        result.E2E_PARENT_EMAIL = nextNonEmptyLine(i + 1);
       }
       if (line.includes('e2e parent password') && i + 1 < lines.length) {
-        result.E2E_PARENT_PASSWORD = lines[i + 1].trim();
+        result.E2E_PARENT_PASSWORD = nextNonEmptyLine(i + 1);
       }
     }
   } catch (error) {

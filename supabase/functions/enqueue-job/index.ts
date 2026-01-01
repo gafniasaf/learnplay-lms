@@ -122,13 +122,70 @@ serve(async (req: Request): Promise<Response> => {
     const payload = body.payload ?? {};
     // For now, we only validate org presence (even if this function doesn't yet filter by it).
     // This keeps the system consistent with hybrid auth expectations.
-    requireOrganizationId(auth);
+    const organizationId = requireOrganizationId(auth);
 
-    // We currently support the primary factory job used by the UI: ai_course_generate.
-    // (Other job types have dedicated endpoints.)
-    if (body.jobType !== "ai_course_generate") {
+    // Supported job types: ai_course_generate uses ai_course_jobs; others use ai_agent_jobs.
+    const FACTORY_JOB_TYPES = ["lessonkit_build", "material_ingest", "material_analyze", "standards_ingest", "standards_map", "standards_export"];
+    const isFactoryJob = FACTORY_JOB_TYPES.includes(body.jobType);
+
+    if (body.jobType !== "ai_course_generate" && !isFactoryJob) {
       return json({ ok: false, error: { code: "invalid_request", message: `Unsupported jobType: ${body.jobType}` }, httpStatus: 400, requestId }, 200);
     }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // FACTORY JOBS (lessonkit_build, material_ingest, material_analyze, etc.)
+    // ─────────────────────────────────────────────────────────────────────────
+    if (isFactoryJob) {
+      // Optional idempotency
+      const idempotencyKeyRaw = req.headers.get("Idempotency-Key") || req.headers.get("idempotency-key");
+      const idempotencyKey = typeof idempotencyKeyRaw === "string" ? idempotencyKeyRaw.trim() : "";
+      const stableJobId = idempotencyKey ? await deterministicJobIdFromKey(idempotencyKey) : null;
+
+      const insertRow: Record<string, unknown> = {
+        job_type: body.jobType,
+        payload: payload,
+        organization_id: organizationId,
+        status: "queued",
+      };
+      if (stableJobId) {
+        insertRow.id = stableJobId;
+      }
+
+      const inserted = await adminSupabase
+        .from("ai_agent_jobs")
+        .insert(insertRow)
+        .select("id")
+        .single();
+
+      if (inserted.error || !inserted.data?.id) {
+        if (stableJobId && inserted.error && isDuplicateKeyError(inserted.error)) {
+          console.log(`[enqueue-job] Idempotent replay for factory job ${stableJobId} (${requestId})`);
+          return json({
+            ok: true,
+            jobId: stableJobId,
+            status: "queued",
+            message: "Job already queued (idempotent replay). Poll /get-job to track status.",
+            requestId,
+          }, 200);
+        }
+        return json({ ok: false, error: { code: "internal_error", message: inserted.error?.message || "Failed to enqueue factory job" }, httpStatus: 500, requestId }, 200);
+      }
+
+      const jobId = (stableJobId ?? (inserted.data.id as string)) as string;
+      console.log(`[enqueue-job] Factory job ${jobId} queued: ${body.jobType} (${requestId})`);
+
+      return json({
+        ok: true,
+        jobId,
+        status: "queued",
+        message: "Job queued for processing. Poll /get-job to track status.",
+        requestId,
+      }, 200);
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // AI_COURSE_GENERATE (legacy path using ai_course_jobs)
+    // ─────────────────────────────────────────────────────────────────────────
 
     // Derive required fields from payload (accept a couple legacy key names)
     const courseId =

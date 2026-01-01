@@ -6,6 +6,12 @@
 import { createClient } from "@supabase/supabase-js";
 import * as fs from "fs";
 import * as path from "path";
+import { loadLocalEnvForTests } from "../tests/helpers/load-local-env";
+import { loadLearnPlayEnv } from "../tests/helpers/parse-learnplay-env";
+
+// Attempt to auto-resolve required env vars from local env files (supabase/.deploy.env, learnplay.env), without printing secrets.
+loadLocalEnvForTests();
+loadLearnPlayEnv();
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 if (!SUPABASE_URL) {

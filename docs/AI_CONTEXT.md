@@ -6,6 +6,34 @@
 2. `docs/AGENT_BUILD_PROTOCOL.md` - **MANDATORY** build sequence
 3. `PLAN.md` - Complete system specification
 
+## 🆕 Recent Modifications (2025-12-30)
+
+These changes were added during the Teacherbuddy → LearnPlay port phases. New agents MUST account for them.
+
+### Library Courses (Imported / Non‑playable Content)
+
+- **Edge Functions**
+  - `list-courses` now supports optional `format` query param. It filters on `course_metadata.tags.__format`.
+  - `search-courses` now supports optional `format` query param (same filter).
+- **Frontend**
+  - `useMCP.getCourseCatalog()` now requests `format=practice` so imported library formats (e.g. `mes`) do **not** enter learner/admin playable catalogs and break Play flows.
+  - New admin UI routes for browsing imported/reference content:
+    - `/admin/library-courses` (server-side pagination/search + format filter)
+    - `/admin/library-courses/:courseId` (raw `course.json` envelope viewer)
+- **MCP**
+  - New MCP methods: `lms.listLibraryCourses`, `lms.searchLibraryCourses`, `lms.getLibraryCourseContent`.
+
+### Lesson Kit Pipeline (3‑Pass Port)
+
+- **Shared module added**: `supabase/functions/_shared/lesson-kit/*`
+  - Pass 1: extract ground truth (no LLM)
+  - Pass 2: constrained LLM transform via `supabase/functions/_shared/ai.ts`
+  - Pass 3: validate + (optional) repair
+- **Policy**: There is **NO silent fallback** on LLM failures. Missing provider MUST fail with a clear `BLOCKED` error. `skipLLM=true` is an explicit debug mode only.
+- **Next wiring step**: Implement a manual `ai-job-runner` strategy at `supabase/functions/ai-job-runner/strategies/lessonkit_build.ts` (manual strategies override generated `gen-*` stubs).
+
+See `docs/TEACHERBUDDY_PORT_STATUS.md` for a single high-signal mapping of ported components + next steps.
+
 ## 🚨 BUILD PROTOCOL (READ FIRST)
 
 **When asked to "Build," "Implement," "Create pages," or "Make it work":**

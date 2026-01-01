@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Book Studio - Library</title>
+  <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:wght@400;500;600;700&family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-deep: #0a0a0f;
+      --bg-surface: #12121a;
+      --bg-card: #1a1a24;
+      --bg-elevated: #22222e;
+      --bg-hover: #2a2a38;
+      --border: #2d2d3a;
+      --border-accent: #3d3d4a;
+      --text: #f5f5f7;
+      --text-secondary: #a0a0b0;
+      --text-muted: #6b6b7a;
+      --accent-gold: #d4a853;
+      --accent-gold-dim: rgba(212, 168, 83, 0.15);
+      --accent-emerald: #34d399;
+      --accent-rose: #f472b6;
+      --accent-blue: #60a5fa;
+      --shadow-glow: 0 0 60px rgba(212, 168, 83, 0.08);
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'DM Sans', -apple-system, sans-serif;
+      background: var(--bg-deep);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    /* Header */
+    .header {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(10, 10, 15, 0.85);
+      backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--border);
+      padding: 0 32px;
+      height: 72px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 24px;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .logo-icon {
+      width: 40px;
+      height: 40px;
+      background: linear-gradient(135deg, var(--accent-gold), #b8860b);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      box-shadow: 0 4px 16px rgba(212, 168, 83, 0.25);
+    }
+
+    .logo-text {
+      font-family: 'Crimson Pro', serif;
+      font-size: 22px;
+      font-weight: 600;
+      letter-spacing: -0.5px;
+    }
+
+    .nav-breadcrumb {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 14px;
+      color: var(--text-muted);
+    }
+
+    .nav-breadcrumb a {
+      color: var(--text-secondary);
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+
+    .nav-breadcrumb a:hover {
+      color: var(--accent-gold);
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 18px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+      border: none;
+      font-family: inherit;
+    }
+
+    .btn-outline {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text-secondary);
+    }
+
+    .btn-outline:hover {
+      background: var(--bg-hover);
+      border-color: var(--border-accent);
+      color: var(--text);
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--accent-gold), #b8860b);
+      color: #0a0a0f;
+      font-weight: 600;
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 20px rgba(212, 168, 83, 0.3);
+    }
+
+    .search-bar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px 16px;
+      width: 280px;
+      transition: all 0.2s;
+    }
+
+    .search-bar:focus-within {
+      border-color: var(--accent-gold);
+      box-shadow: 0 0 0 3px var(--accent-gold-dim);
+    }
+
+    .search-bar input {
+      flex: 1;
+      background: none;
+      border: none;
+      color: var(--text);
+      font-size: 14px;
+      outline: none;
+    }
+
+    .search-bar input::placeholder {
+      color: var(--text-muted);
+    }
+
+    .search-icon {
+      color: var(--text-muted);
+      font-size: 16px;
+    }
+
+    /* Main Content */
+    .main {
+      padding: 40px 32px;
+      max-width: 1600px;
+      margin: 0 auto;
+    }
+
+    .page-header {
+      margin-bottom: 40px;
+    }
+
+    .page-title {
+      font-family: 'Crimson Pro', serif;
+      font-size: 36px;
+      font-weight: 600;
+      letter-spacing: -0.5px;
+      margin-bottom: 8px;
+    }
+
+    .page-subtitle {
+      color: var(--text-secondary);
+      font-size: 16px;
+    }
+
+    /* Stats Bar */
+    .stats-bar {
+      display: flex;
+      gap: 24px;
+      margin-bottom: 40px;
+    }
+
+    .stat-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px 24px;
+      min-width: 180px;
+    }
+
+    .stat-value {
+      font-size: 28px;
+      font-weight: 700;
+      font-family: 'JetBrains Mono', monospace;
+      margin-bottom: 4px;
+    }
+
+    .stat-value.gold { color: var(--accent-gold); }
+    .stat-value.emerald { color: var(--accent-emerald); }
+    .stat-value.blue { color: var(--accent-blue); }
+    .stat-value.rose { color: var(--accent-rose); }
+
+    .stat-label {
+      font-size: 13px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    /* Filter Bar */
+    .filter-bar {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 32px;
+    }
+
+    .filter-chip {
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--text-secondary);
+    }
+
+    .filter-chip:hover {
+      border-color: var(--border-accent);
+      color: var(--text);
+    }
+
+    .filter-chip.active {
+      background: var(--accent-gold-dim);
+      border-color: var(--accent-gold);
+      color: var(--accent-gold);
+    }
+
+    /* Book Grid */
+    .book-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+      gap: 28px;
+    }
+
+    .book-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      overflow: hidden;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      position: relative;
+    }
+
+    .book-card:hover {
+      transform: translateY(-6px);
+      border-color: var(--accent-gold);
+      box-shadow: var(--shadow-glow);
+    }
+
+    .book-cover {
+      aspect-ratio: 3/4;
+      background: linear-gradient(145deg, #1e1e2a, #2a2a38);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .book-cover img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .book-cover-placeholder {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      background: linear-gradient(145deg, #1a1a26, #252532);
+    }
+
+    .book-cover-placeholder .icon {
+      font-size: 48px;
+      opacity: 0.4;
+    }
+
+    .book-cover-placeholder .hint {
+      font-size: 12px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .book-badge {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .book-badge.n3 {
+      background: rgba(96, 165, 250, 0.2);
+      color: var(--accent-blue);
+    }
+
+    .book-badge.n4 {
+      background: rgba(52, 211, 153, 0.2);
+      color: var(--accent-emerald);
+    }
+
+    .book-info {
+      padding: 20px;
+    }
+
+    .book-title {
+      font-family: 'Crimson Pro', serif;
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 8px;
+      line-height: 1.3;
+    }
+
+    .book-meta {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    .book-meta-item {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .book-progress {
+      margin-top: 16px;
+      height: 4px;
+      background: var(--bg-elevated);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+
+    .book-progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent-gold), #e8c874);
+      border-radius: 2px;
+      transition: width 0.5s ease;
+    }
+
+    .book-status {
+      margin-top: 12px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+    }
+
+    .status-dot.complete { background: var(--accent-emerald); }
+    .status-dot.in-progress { background: var(--accent-gold); animation: pulse 2s infinite; }
+    .status-dot.draft { background: var(--text-muted); }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+
+    /* Add Book Card */
+    .book-card-add {
+      background: transparent;
+      border: 2px dashed var(--border);
+      border-radius: 16px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      min-height: 380px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .book-card-add:hover {
+      border-color: var(--accent-gold);
+      background: var(--accent-gold-dim);
+    }
+
+    .book-card-add .add-icon {
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      background: var(--bg-card);
+      border: 2px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 28px;
+      color: var(--text-muted);
+      transition: all 0.2s;
+    }
+
+    .book-card-add:hover .add-icon {
+      background: var(--accent-gold);
+      border-color: var(--accent-gold);
+      color: var(--bg-deep);
+    }
+
+    .book-card-add .add-text {
+      font-size: 15px;
+      font-weight: 500;
+      color: var(--text-muted);
+      transition: color 0.2s;
+    }
+
+    .book-card-add:hover .add-text {
+      color: var(--accent-gold);
+    }
+  </style>
+</head>
+<body data-route="/admin/book-studio">
+  <!-- Header -->
+  <header class="header">
+    <div class="header-left">
+      <div class="logo">
+        <div class="logo-icon">📚</div>
+        <span class="logo-text">Book Studio</span>
+      </div>
+      <nav class="nav-breadcrumb">
+        <a href="/admin" data-cta-id="nav-admin" data-action="navigate">Admin</a>
+        <span>/</span>
+        <span style="color: var(--text);">Library</span>
+      </nav>
+    </div>
+    <div class="header-actions">
+      <div class="search-bar">
+        <span class="search-icon">🔍</span>
+        <input 
+          type="text" 
+          placeholder="Search books..." 
+          data-cta-id="cta-bookstudio-search" 
+          data-action="edit"
+        />
+      </div>
+      <button class="btn btn-outline" data-cta-id="cta-bookstudio-refresh" data-action="action">
+        ↻ Refresh
+      </button>
+      <button class="btn btn-primary" data-cta-id="cta-bookstudio-ingest-new" data-action="action">
+        + Ingest Book
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="main">
+    <div class="page-header">
+      <h1 class="page-title">Book Library</h1>
+      <p class="page-subtitle">Manage your book catalog, edit chapters, and generate content</p>
+    </div>
+
+    <!-- Stats Bar -->
+    <div class="stats-bar">
+      <div class="stat-card">
+        <div class="stat-value gold">12</div>
+        <div class="stat-label">Total Books</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value emerald">8</div>
+        <div class="stat-label">Published</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value blue">3</div>
+        <div class="stat-label">In Progress</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value rose">156</div>
+        <div class="stat-label">Total Chapters</div>
+      </div>
+    </div>
+
+    <!-- Filter Bar -->
+    <div class="filter-bar">
+      <button class="filter-chip active" data-cta-id="cta-bookstudio-filter-all" data-action="action">All Books</button>
+      <button class="filter-chip" data-cta-id="cta-bookstudio-filter-n3" data-action="action">N3 Level</button>
+      <button class="filter-chip" data-cta-id="cta-bookstudio-filter-n4" data-action="action">N4 Level</button>
+      <button class="filter-chip" data-cta-id="cta-bookstudio-filter-published" data-action="action">Published</button>
+      <button class="filter-chip" data-cta-id="cta-bookstudio-filter-draft" data-action="action">Drafts</button>
+    </div>
+
+    <!-- Book Grid -->
+    <div class="book-grid">
+      <!-- Book 1: With Cover -->
+      <a href="/admin/book-studio/pathologie_n4" class="book-card" data-cta-id="cta-bookstudio-open-pathologie_n4" data-action="navigate">
+        <div class="book-cover">
+          <div class="book-cover-placeholder">
+            <span class="icon">🫀</span>
+            <span class="hint">Pathologie</span>
+          </div>
+          <span class="book-badge n4">N4</span>
+        </div>
+        <div class="book-info">
+          <h3 class="book-title">Pathologie N4</h3>
+          <div class="book-meta">
+            <span class="book-meta-item">📑 12 chapters</span>
+            <span class="book-meta-item">✎ v3</span>
+          </div>
+          <div class="book-progress">
+            <div class="book-progress-fill" style="width: 75%"></div>
+          </div>
+          <div class="book-status">
+            <span class="status-dot in-progress"></span>
+            <span style="color: var(--accent-gold);">Building Ch 9...</span>
+          </div>
+        </div>
+      </a>
+
+      <!-- Book 2 -->
+      <a href="/admin/book-studio/anatomie_n3" class="book-card" data-cta-id="cta-bookstudio-open-anatomie_n3" data-action="navigate">
+        <div class="book-cover">
+          <div class="book-cover-placeholder">
+            <span class="icon">🦴</span>
+            <span class="hint">Anatomie</span>
+          </div>
+          <span class="book-badge n3">N3</span>
+        </div>
+        <div class="book-info">
+          <h3 class="book-title">Anatomie & Fysiologie N3</h3>
+          <div class="book-meta">
+            <span class="book-meta-item">📑 15 chapters</span>
+            <span class="book-meta-item">✎ v5</span>
+          </div>
+          <div class="book-progress">
+            <div class="book-progress-fill" style="width: 100%"></div>
+          </div>
+          <div class="book-status">
+            <span class="status-dot complete"></span>
+            <span style="color: var(--accent-emerald);">Published</span>
+          </div>
+        </div>
+      </a>
+
+      <!-- Book 3 -->
+      <a href="/admin/book-studio/verpleegkunde_n4" class="book-card" data-cta-id="cta-bookstudio-open-verpleegkunde_n4" data-action="navigate">
+        <div class="book-cover">
+          <div class="book-cover-placeholder">
+            <span class="icon">💉</span>
+            <span class="hint">Verpleegkunde</span>
+          </div>
+          <span class="book-badge n4">N4</span>
+        </div>
+        <div class="book-info">
+          <h3 class="book-title">Verpleegkundige Vaardigheden N4</h3>
+          <div class="book-meta">
+            <span class="book-meta-item">📑 18 chapters</span>
+            <span class="book-meta-item">✎ v2</span>
+          </div>
+          <div class="book-progress">
+            <div class="book-progress-fill" style="width: 100%"></div>
+          </div>
+          <div class="book-status">
+            <span class="status-dot complete"></span>
+            <span style="color: var(--accent-emerald);">Published</span>
+          </div>
+        </div>
+      </a>
+
+      <!-- Book 4 -->
+      <a href="/admin/book-studio/farmacologie_n4" class="book-card" data-cta-id="cta-bookstudio-open-farmacologie_n4" data-action="navigate">
+        <div class="book-cover">
+          <div class="book-cover-placeholder">
+            <span class="icon">💊</span>
+            <span class="hint">Farmacologie</span>
+          </div>
+          <span class="book-badge n4">N4</span>
+        </div>
+        <div class="book-info">
+          <h3 class="book-title">Farmacologie N4</h3>
+          <div class="book-meta">
+            <span class="book-meta-item">📑 10 chapters</span>
+            <span class="book-meta-item">✎ v1</span>
+          </div>
+          <div class="book-progress">
+            <div class="book-progress-fill" style="width: 30%"></div>
+          </div>
+          <div class="book-status">
+            <span class="status-dot draft"></span>
+            <span style="color: var(--text-muted);">Draft</span>
+          </div>
+        </div>
+      </a>
+
+      <!-- Book 5 -->
+      <a href="/admin/book-studio/psychiatrie_n3" class="book-card" data-cta-id="cta-bookstudio-open-psychiatrie_n3" data-action="navigate">
+        <div class="book-cover">
+          <div class="book-cover-placeholder">
+            <span class="icon">🧠</span>
+            <span class="hint">Psychiatrie</span>
+          </div>
+          <span class="book-badge n3">N3</span>
+        </div>
+        <div class="book-info">
+          <h3 class="book-title">Psychiatrie N3</h3>
+          <div class="book-meta">
+            <span class="book-meta-item">📑 14 chapters</span>
+            <span class="book-meta-item">✎ v4</span>
+          </div>
+          <div class="book-progress">
+            <div class="book-progress-fill" style="width: 100%"></div>
+          </div>
+          <div class="book-status">
+            <span class="status-dot complete"></span>
+            <span style="color: var(--accent-emerald);">Published</span>
+          </div>
+        </div>
+      </a>
+
+      <!-- Add Book Card -->
+      <div class="book-card-add" data-cta-id="cta-bookstudio-add-book" data-action="action">
+        <div class="add-icon">+</div>
+        <span class="add-text">Add New Book</span>
+      </div>
+    </div>
+  </main>
+</body>
+</html>
+

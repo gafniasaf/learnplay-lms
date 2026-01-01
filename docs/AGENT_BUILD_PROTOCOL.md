@@ -31,6 +31,26 @@ If it's not in the plan, don't build it. Update the plan first if needed.
 
 ---
 
+## 🆕 Repo Extensions You Must Preserve (Teacherbuddy Port Phases)
+
+Some functionality was intentionally added outside the mockup-compiler flow as admin utilities and port scaffolding. New agents MUST NOT delete or “refactor away” these without replacing them with an equivalent generated solution.
+
+### Library Courses (Imported / Non‑playable)
+
+- **Why**: Imported library formats (e.g. `mes`) must not enter the playable course catalog/Play flow.
+- **Key behavior**:
+  - `supabase/functions/list-courses` + `supabase/functions/search-courses` support optional `?format=` filtering (via `course_metadata.tags.__format`).
+  - `src/hooks/useMCP.ts` `getCourseCatalog()` requests `format=practice` by default.
+- **Admin routes (hand-authored pages)**:
+  - `/admin/library-courses` → `src/pages/admin/LibraryCourses.tsx`
+  - `/admin/library-courses/:courseId` → `src/pages/admin/LibraryCourseDetail.tsx`
+
+### Lesson Kit Pipeline (Ported Shared Module)
+
+- **Shared module location**: `supabase/functions/_shared/lesson-kit/*`
+- **Fail-loud policy**: No silent fallback kits on LLM failure. Missing provider must raise a clear `BLOCKED` error.
+- **Strategy wiring rule**: For complex jobs, create a manual strategy file at `supabase/functions/ai-job-runner/strategies/<jobId>.ts` to override generated `gen-*.ts` stubs. Do NOT hand-edit `registry.ts` (it is generated).
+
 ## ✅ CORRECT BUILD SEQUENCE
 
 ### Phase 1: Verify Prerequisites

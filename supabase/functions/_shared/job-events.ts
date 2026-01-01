@@ -50,4 +50,30 @@ export async function emitJobEvent(
   });
 }
 
+/**
+ * Emit progress events for ai_agent_jobs (non-course factory jobs).
+ *
+ * Uses public.agent_job_events + public.next_agent_job_event_seq.
+ */
+export async function emitAgentJobEvent(
+  jobId: string,
+  step: JobEventStep,
+  progress: number,
+  message = "",
+  meta: Record<string, unknown> = {}
+) {
+  const supabase = createClient(SUPABASE_URL!, SUPABASE_SERVICE_ROLE_KEY!);
+  const { data: nextSeqData } = await supabase.rpc("next_agent_job_event_seq", { p_job_id: jobId });
+  const seq = (nextSeqData as number) ?? 1;
+  await supabase.from("agent_job_events").insert({
+    job_id: jobId,
+    seq,
+    step,
+    status: step === "failed" ? "error" : step === "done" ? "success" : "info",
+    progress,
+    message,
+    meta,
+  });
+}
+
 

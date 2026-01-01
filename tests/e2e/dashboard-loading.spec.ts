@@ -119,7 +119,12 @@ test.describe('Dashboard Loading - Student', () => {
 
     // Verify dashboard content is present (must show actual data, not just page exists)
     const hasHeading = await page.getByRole('heading', { name: /learning|dashboard/i }).isVisible({ timeout: 5000 }).catch(() => false);
-    const hasStats = await page.getByText(/minutes|streak|accuracy|points|active|completed/i).isVisible({ timeout: 5000 }).catch(() => false);
+    // Use `.first()` to avoid strict-mode errors when multiple matching texts exist.
+    const hasStats = await page
+      .getByText(/minutes|streak|accuracy|points|active|completed/i)
+      .first()
+      .isVisible({ timeout: 5000 })
+      .catch(() => false);
     const hasErrorMsg = await page.getByText(/unable to load|failed to fetch|try again/i).isVisible({ timeout: 2000 }).catch(() => false);
     
     // Fail if error message is shown
@@ -242,7 +247,12 @@ test.describe('Dashboard Loading - Parent', () => {
       throw new Error('Error boundary triggered on parent dashboard');
     }
 
-    const hasContent = await page.getByText(/parent|children|dashboard|active|minutes|streak/i).isVisible({ timeout: 5000 }).catch(() => false);
+    // Use `.first()` to avoid strict-mode errors when multiple matching texts exist.
+    const hasContent = await page
+      .getByText(/parent|children|dashboard|active|minutes|streak/i)
+      .first()
+      .isVisible({ timeout: 5000 })
+      .catch(() => false);
     const hasErrorMsg = await page.getByText(/unable to load|failed to fetch/i).isVisible({ timeout: 2000 }).catch(() => false);
     
     if (hasErrorMsg) {
@@ -265,16 +275,34 @@ test.describe('Dashboard Loading - Teacher', () => {
       }
     });
 
-    const apiCalls: { url: string; status: number }[] = [];
+    const apiCalls: { url: string; status: number; method: string }[] = [];
     page.on('response', response => {
-      if (response.url().includes('/functions/v1/get-dashboard')) {
-        apiCalls.push({ url: response.url(), status: response.status() });
+      const url = response.url();
+      const method = response.request().method();
+      // Ignore CORS preflight responses; we only care about the actual data requests.
+      if (method === 'OPTIONS') return;
+      // Teacher dashboard is composed from multiple list endpoints (see useTeacherDashboard).
+      if (
+        url.includes('/functions/v1/list-assignments') ||
+        url.includes('/functions/v1/list-classes') ||
+        url.includes('/functions/v1/list-org-students')
+      ) {
+        apiCalls.push({ url: response.url(), status: response.status(), method });
       }
     });
 
     await page.goto('/teacher/dashboard');
     await page.waitForLoadState('domcontentloaded');
-    await page.waitForTimeout(3000);
+    // Allow API calls + React Query to resolve and the dashboard to render.
+    // Under full-suite load (many parallel live tests), Edge calls can take longer than a few seconds.
+    const start = Date.now();
+    while (Date.now() - start < 20000) {
+      const assignmentsCall = apiCalls.find(call => call.url.includes('/functions/v1/list-assignments'));
+      const classesCall = apiCalls.find(call => call.url.includes('/functions/v1/list-classes'));
+      const studentsCall = apiCalls.find(call => call.url.includes('/functions/v1/list-org-students'));
+      if (assignmentsCall && classesCall && studentsCall) break;
+      await page.waitForTimeout(1000);
+    }
 
     // Check authentication
     const isAuthPage = page.url().includes('/auth');
@@ -282,31 +310,24 @@ test.describe('Dashboard Loading - Teacher', () => {
       return; // Skip if not authenticated
     }
 
-    const teacherDashboardCall = apiCalls.find(call => call.url.includes('get-dashboard'));
-    if (!teacherDashboardCall) {
-      const loadingVisible = await page.getByText(/loading/i).isVisible({ timeout: 1000 }).catch(() => false);
-      const errorVisible = await page.getByText(/error|failed|unable/i).isVisible({ timeout: 1000 }).catch(() => false);
-      if (loadingVisible || errorVisible) {
-        throw new Error('Teacher dashboard API call not made - dashboard may be stuck or showing error');
-      }
-      throw new Error('No API call detected for get-dashboard');
+    // Teacher dashboard should call all three list endpoints.
+    const assignmentsCall = apiCalls.find(call => call.url.includes('/functions/v1/list-assignments'));
+    const classesCall = apiCalls.find(call => call.url.includes('/functions/v1/list-classes'));
+    const studentsCall = apiCalls.find(call => call.url.includes('/functions/v1/list-org-students'));
+
+    if (!assignmentsCall || !classesCall || !studentsCall) {
+      throw new Error(
+        `Missing expected teacher dashboard API calls. ` +
+          `assignments=${!!assignmentsCall} classes=${!!classesCall} students=${!!studentsCall}`,
+      );
     }
-    
-    expect(teacherDashboardCall.status).toBe(200);
-    
-    // Verify API response shape
-    const response = await page.waitForResponse(
-      resp => resp.url().includes('/functions/v1/get-dashboard') && resp.status() === 200,
-      { timeout: 5000 }
-    ).catch(() => null);
-    
-    if (response) {
-      const responseBody = await response.json();
-      expect(responseBody).toHaveProperty('role');
-      expect(responseBody).toHaveProperty('stats');
-      expect(responseBody.stats).toHaveProperty('sessions');
-      expect(responseBody.stats).toHaveProperty('rounds');
-    }
+
+    expect(assignmentsCall.status).toBe(200);
+    expect(classesCall.status).toBe(200);
+    expect(studentsCall.status).toBe(200);
+
+    // Ensure the dashboard actually rendered (not stuck in skeletons).
+    await expect(page.getByRole('heading', { name: /teacher dashboard/i })).toBeVisible({ timeout: 15000 });
 
     const loadingVisible = await page.getByText(/loading/i).isVisible({ timeout: 1000 }).catch(() => false);
     if (loadingVisible) {
@@ -318,7 +339,12 @@ test.describe('Dashboard Loading - Teacher', () => {
       throw new Error('Error boundary triggered on teacher dashboard');
     }
 
-    const hasContent = await page.getByText(/teacher|dashboard|class|student|sessions|rounds/i).isVisible({ timeout: 5000 }).catch(() => false);
+    // Use `.first()` to avoid strict-mode errors when multiple matching texts exist.
+    const hasContent = await page
+      .getByText(/teacher|dashboard|class|student|sessions|rounds/i)
+      .first()
+      .isVisible({ timeout: 5000 })
+      .catch(() => false);
     const hasErrorMsg = await page.getByText(/unable to load|failed to fetch/i).isVisible({ timeout: 2000 }).catch(() => false);
     
     if (hasErrorMsg) {

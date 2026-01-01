@@ -28,6 +28,9 @@ This runbook covers **operations**, **monitoring**, and **retention** for the bo
 - **Env vars (optional)**:
   - `POLL_INTERVAL_MS` (default 3000)
   - `PRINCE_PATH` (defaults to `prince` in PATH)
+  - `BOOK_WORKER_RUN_ONCE` (`true|false`) — if `true`, the worker exits after completing 1 job (or exits immediately if no jobs are pending). Useful for local smoke tests.
+  - `BOOK_WORKER_STOP_AFTER_JOB_ID` (`<uuid>`) — if set, the worker will keep processing jobs until it completes this job id, then exit.
+  - `BOOK_WORKER_MAX_JOBS` (`<number>`) — optional safety cap when using `BOOK_WORKER_STOP_AFTER_JOB_ID` (or for batch smoke runs); worker exits after N processed jobs.
   - `DOCRAPTOR_API_KEY` (required only when render provider is `docraptor_api`)
   - `DOCRAPTOR_TEST_MODE` (`true|false`)
   - `OPENAI_API_KEY` (required only for BookGen Pro pipeline jobs)
@@ -63,6 +66,19 @@ docker run -d --restart=always --name ignitezero-book-worker \
   -e SUPABASE_ANON_KEY="..." \
   -e AGENT_TOKEN="..." \
   ignitezero-book-worker
+```
+
+## Local smoke runs (run once)
+
+For local debugging / smoke runs, you can run the worker **once** (exit after 1 job) while auto-loading env from local files:
+
+- Loads env (no secret printing) from:
+  - `supabase/.deploy.env` (KEY=VALUE)
+  - `learnplay.env` (KEY=VALUE + legacy heading-style)
+  - `.env*` (KEY=VALUE)
+
+```bash
+node scripts/books/run-book-worker-once.cjs
 ```
 
 ## Monitoring checklist

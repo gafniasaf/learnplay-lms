@@ -50,6 +50,7 @@ export const navSections: NavSection[] = [
       { id: "admin", label: "Admin Home", path: "/admin", icon: "Shield", roles: ["admin"] },
       { id: "ai-pipeline", label: "AI Pipeline", path: "/admin/ai-pipeline", icon: "Sparkles", roles: ["admin"] },
       { id: "course-editor", label: "Course Editor", path: "/admin/courses/select", icon: "Edit", roles: ["admin"] },
+      { id: "library-courses", label: "Library Courses", path: "/admin/library-courses", icon: "Library", roles: ["admin"] },
       { id: "books", label: "Books", path: "/admin/books", icon: "Book", roles: ["admin"] },
       {
         id: "book-missing-images",
@@ -89,6 +90,9 @@ export const navSections: NavSection[] = [
       { id: "classes", label: "Classes", path: "/teacher/classes", icon: "GraduationCap", roles: ["teacher"] },
       { id: "class-progress", label: "Class Progress", path: "/teacher/class-progress", icon: "Activity", roles: ["teacher"] },
       { id: "assignments", label: "Assignments", path: "/teacher/assignments", icon: "ClipboardList", roles: ["teacher"] },
+      { id: "lesson-kits", label: "Lesson Kits", path: "/teacher/lesson-kits", icon: "WandSparkles", roles: ["teacher", "admin"] },
+      { id: "materials", label: "Materials", path: "/teacher/materials", icon: "FileText", roles: ["teacher", "admin"] },
+      { id: "standards", label: "Standards", path: "/teacher/standards", icon: "ScrollText", roles: ["teacher", "admin"] },
       { id: "assignment-progress", label: "Assignment Progress", path: "/teacher/assignments/:id/progress", icon: "Award", roles: ["teacher"] },
       { id: "analytics", label: "Analytics", path: "/teacher/analytics", icon: "BarChart", roles: ["teacher"] },
     ],

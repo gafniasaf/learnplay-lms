@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Standards</title>
+  </head>
+  <body>
+    <main data-route="/teacher/standards">
+      <header>
+        <nav>
+          <a data-cta-id="nav-kids" data-action="navigate" href="/kids">Kids</a>
+          <a data-cta-id="nav-parents" data-action="navigate" href="/parent/dashboard">Parents</a>
+          <a data-cta-id="nav-schools" data-action="navigate" href="/schools">Schools</a>
+          <a data-cta-id="nav-admin" data-action="navigate" href="/admin">Admin</a>
+        </nav>
+        <h1>Standards</h1>
+        <p>Upload standards, map materials to them, and export a CSV mapping.</p>
+      </header>
+
+      <section>
+        <h2>Upload &amp; Ingest</h2>
+
+        <label>
+          Title
+          <input data-cta-id="cta-teacher-standards-title" data-action="edit" placeholder="KD 2025" />
+        </label>
+
+        <label>
+          Locale
+          <input data-cta-id="cta-teacher-standards-locale" data-action="edit" placeholder="nl-NL" />
+        </label>
+
+        <label>
+          Standards File
+          <input data-cta-id="cta-teacher-standards-file" data-action="edit" type="file" />
+        </label>
+
+        <button data-cta-id="cta-teacher-standards-upload" data-action="action" type="button">
+          Upload &amp; Ingest
+        </button>
+      </section>
+
+      <section>
+        <h2>Map</h2>
+
+        <label>
+          Standards Document
+          <select data-cta-id="cta-teacher-standards-select-standards" data-action="select">
+            <option value="">Select…</option>
+          </select>
+        </label>
+
+        <label>
+          Material
+          <select data-cta-id="cta-teacher-standards-select-material" data-action="select">
+            <option value="">Select…</option>
+          </select>
+        </label>
+
+        <button data-cta-id="cta-teacher-standards-map" data-action="action" type="button">
+          Map
+        </button>
+
+        <button data-cta-id="cta-teacher-standards-export" data-action="action" type="button">
+          Export CSV
+        </button>
+      </section>
+
+      <section>
+        <h2>Controls</h2>
+        <button data-cta-id="cta-teacher-standards-refresh" data-action="action" type="button">Refresh</button>
+        <button data-cta-id="cta-teacher-standards-reset" data-action="action" type="button">Reset</button>
+      </section>
+    </main>
+  </body>
+</html>
+
+
+

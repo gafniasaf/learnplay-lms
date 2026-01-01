@@ -136,10 +136,22 @@ export async function generateJson(
         return { ok: false, error: await resp.text(), metrics: { provider: 'anthropic', model: getModel(), latency_ms, attempts, success: false } };
       }
       const data = await resp.json();
-      const text = (Array.isArray(data?.content) ? data.content : [])
+      let text = (Array.isArray(data?.content) ? data.content : [])
         .filter((b: any) => b?.type === 'text' && b?.text)
         .map((b: any) => b.text)
         .join('\n');
+
+      // Anthropic "prefill" trick: we seeded the assistant with '{' as the last message.
+      // The model often continues from that prefix WITHOUT re-emitting it in the response,
+      // so we must re-add it to produce valid JSON.
+      if (prefillJson) {
+        const trimmedStart = text.trimStart();
+        if (trimmedStart && !trimmedStart.startsWith('{')) {
+          text = `{${trimmedStart}`;
+        } else {
+          text = trimmedStart;
+        }
+      }
       const latency_ms = Date.now() - startTime;
       const tokens = data?.usage?.input_tokens + data?.usage?.output_tokens;
       if (!text?.trim()) return { ok: false, error: 'empty', metrics: { provider: 'anthropic', model: getModel(), tokens, latency_ms, attempts, success: false } };

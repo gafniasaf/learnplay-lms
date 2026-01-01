@@ -110,7 +110,11 @@ test.describe('Live AI Pipeline: Course Creation', () => {
       },
       timeout: 600000, // allow long generation
     });
-    expect(generateRes.ok()).toBeTruthy();
+    if (!generateRes.ok()) {
+      const status = generateRes.status();
+      const bodyText = await generateRes.text().catch(() => "");
+      throw new Error(`generate-course failed (HTTP ${status}): ${bodyText.slice(0, 2000)}`);
+    }
 
     // Step 4: Poll job status via list-course-jobs (real DB), up to 5 minutes
     const maxWaitTime = 300000;
@@ -218,15 +222,32 @@ test.describe('Live AI Pipeline: Course Creation', () => {
       }
       expect(mediaStatus).toBe('done');
 
-      const after = await page.request.get(`${url}/functions/v1/get-course?courseId=${encodeURIComponent(courseId)}`, {
-        headers: { apikey: anonKey },
-      });
-      expect(after.ok()).toBeTruthy();
-      const afterJson = await after.json();
-      const coursePayload = afterJson?.content ?? afterJson;
-      const stim = coursePayload?.items?.[0]?.stimulus;
-      expect(stim?.type).toBe('image');
-      expect(typeof stim?.url).toBe('string');
+      // Storage + CDN propagation can be slightly delayed even after the media job row flips to "done".
+      // Poll get-course briefly until the stimulus is visible on the first item.
+      let stim: any = null;
+      let lastAfterJson: any = null;
+      for (let i = 0; i < 15; i++) {
+        const after = await page.request.get(`${url}/functions/v1/get-course?courseId=${encodeURIComponent(courseId)}`, {
+          headers: { apikey: anonKey, 'Cache-Control': 'no-cache' },
+        });
+        expect(after.ok()).toBeTruthy();
+        lastAfterJson = await after.json().catch(() => null);
+        const coursePayload = lastAfterJson?.content ?? lastAfterJson;
+        const items: any[] = Array.isArray(coursePayload?.items) ? coursePayload.items : [];
+        const first = items.find((it: any) => it?.id === 0) || items[0] || null;
+        stim = first?.stimulus ?? null;
+        if (stim?.type === 'image' && typeof stim?.url === 'string' && stim.url.trim()) {
+          break;
+        }
+        await page.waitForTimeout(2000);
+      }
+
+      if (!(stim?.type === 'image' && typeof stim?.url === 'string')) {
+        throw new Error(
+          `Stimulus not attached after media job done. courseId=${courseId} mediaJobId=${mediaJobId} mediaStatus=${mediaStatus} ` +
+          `afterJson=${JSON.stringify(lastAfterJson)?.slice(0, 1500)}`
+        );
+      }
     }
   }, 600000); // 10 minute timeout for full pipeline
 });
@@ -333,10 +354,19 @@ test.describe('Live AI Pipeline: Storage & Retrieval', () => {
   test.use({ storageState: 'playwright/.auth/admin.json' });
 
   test('created course is stored and retrievable', async ({ page }) => {
-    // Verify via Edge Functions (real storage), not UI lists (route drift/polling)
+    // Verify via Edge Functions (real storage), not UI lists (route drift/polling).
+    // Pick a real catalog course id rather than relying on a specific seed (live DB may differ).
     const { url, anonKey } = getSupabaseBase();
-    const res = await page.request.get(`${url}/functions/v1/get-course?courseId=english-grammar-foundations`, {
+    const list = await page.request.get(`${url}/functions/v1/list-courses?limit=1`, {
       headers: { apikey: anonKey },
+    });
+    expect(list.ok()).toBeTruthy();
+    const listJson = await list.json().catch(() => null);
+    const firstId = listJson?.items?.[0]?.id;
+    expect(typeof firstId).toBe('string');
+
+    const res = await page.request.get(`${url}/functions/v1/get-course?courseId=${encodeURIComponent(firstId)}`, {
+      headers: { apikey: anonKey, 'Cache-Control': 'no-cache' },
     });
     expect(res.ok()).toBeTruthy();
   });
@@ -348,8 +378,10 @@ test.describe('Live AI Pipeline: Storage & Retrieval', () => {
     });
     expect(res.ok()).toBeTruthy();
     const data = await res.json();
-    const ids = (data.items || []).map((it: any) => it.id);
-    expect(ids).toContain('english-grammar-foundations');
+    const items: any[] = Array.isArray(data.items) ? data.items : [];
+    expect(items.length).toBeGreaterThan(0);
+    const ids = items.map((it: any) => it?.id).filter(Boolean);
+    expect(ids.length).toBeGreaterThan(0);
   });
 });
 
@@ -361,28 +393,87 @@ test.describe('Live AI Pipeline: Image Generation', () => {
     const { url, anonKey } = getSupabaseBase();
     const agentToken = requireEnv('AGENT_TOKEN');
 
-    const enqueueRes = await page.request.post(`${url}/functions/v1/enqueue-course-media`, {
-      headers: { 'Content-Type': 'application/json', 'x-agent-token': agentToken, apikey: anonKey, Authorization: `Bearer ${anonKey}` },
-      data: { courseId: 'english-grammar-foundations', itemId: 0, prompt: 'A kid-friendly illustration for the first question', provider: 'openai-dalle3' },
-    });
-    expect(enqueueRes.ok()).toBeTruthy();
-
-    const runRes = await page.request.post(`${url}/functions/v1/media-runner?n=1`, {
-      headers: { 'Content-Type': 'application/json', 'x-agent-token': agentToken },
-      data: {},
-      timeout: 180000,
-    });
-    expect(runRes.ok()).toBeTruthy();
-
-    const after = await page.request.get(`${url}/functions/v1/get-course?courseId=english-grammar-foundations`, {
+    // Pick a real, visible course and a concrete item id.
+    const list = await page.request.get(`${url}/functions/v1/list-courses?limit=1`, {
       headers: { apikey: anonKey },
     });
-    expect(after.ok()).toBeTruthy();
-    const afterJson = await after.json();
-    const payload = afterJson?.content ?? afterJson;
-    const stim = payload?.items?.[0]?.stimulus;
-    expect(stim?.type).toBe('image');
-    expect(typeof stim?.url).toBe('string');
+    expect(list.ok()).toBeTruthy();
+    const listJson = await list.json().catch(() => null);
+    const courseId: string = listJson?.items?.[0]?.id;
+    expect(typeof courseId).toBe('string');
+
+    const get = await page.request.get(`${url}/functions/v1/get-course?courseId=${encodeURIComponent(courseId)}`, {
+      headers: { apikey: anonKey, 'Cache-Control': 'no-cache' },
+    });
+    expect(get.ok()).toBeTruthy();
+    const getJson = await get.json().catch(() => null);
+    const payload = getJson?.content ?? getJson;
+    const items: any[] = Array.isArray(payload?.items) ? payload.items : [];
+    expect(items.length).toBeGreaterThan(0);
+    const itemId = items[0]?.id;
+    expect(typeof itemId).toBe('number');
+
+    const enqueueRes = await page.request.post(`${url}/functions/v1/enqueue-course-media`, {
+      headers: { 'Content-Type': 'application/json', 'x-agent-token': agentToken, apikey: anonKey, Authorization: `Bearer ${anonKey}` },
+      data: { courseId, itemId, prompt: 'A kid-friendly illustration for the first question', provider: 'openai-dalle3' },
+    });
+    expect(enqueueRes.ok()).toBeTruthy();
+    const enqueueJson = await enqueueRes.json().catch(() => null);
+    expect(enqueueJson?.ok).toBeTruthy();
+    const mediaJobId: string = enqueueJson?.mediaJobId;
+    expect(typeof mediaJobId).toBe('string');
+
+    // Poll until OUR job is done (or failed), invoking the runner in small batches.
+    const mediaStart = Date.now();
+    let mediaStatus: string | null = null;
+    let mediaError: string | null = null;
+    while (Date.now() - mediaStart < 240000) {
+      const runRes = await page.request.post(`${url}/functions/v1/media-runner?n=5`, {
+        headers: { 'Content-Type': 'application/json', 'x-agent-token': agentToken },
+        data: {},
+        timeout: 180000,
+      });
+      expect(runRes.ok()).toBeTruthy();
+
+      const listRes = await page.request.get(`${url}/functions/v1/list-media-jobs?courseId=${encodeURIComponent(courseId)}&limit=50`, {
+        headers: { apikey: anonKey },
+      });
+      expect(listRes.ok()).toBeTruthy();
+      const listJson2 = await listRes.json().catch(() => null);
+      const jobs: any[] = Array.isArray(listJson2?.jobs) ? listJson2.jobs : [];
+      const mine = jobs.find((j: any) => j?.id === mediaJobId) || null;
+      mediaStatus = mine?.status ?? null;
+      mediaError = mine?.error ?? null;
+      if (mediaStatus === 'done') break;
+      if (mediaStatus === 'failed') throw new Error(`Media job failed: ${mediaError || 'unknown error'}`);
+      await page.waitForTimeout(3000);
+    }
+    expect(mediaStatus).toBe('done');
+
+    // Poll get-course until stimulus appears on the targeted item id.
+    let stim: any = null;
+    let lastAfterJson: any = null;
+    for (let i = 0; i < 15; i++) {
+      const after = await page.request.get(`${url}/functions/v1/get-course?courseId=${encodeURIComponent(courseId)}`, {
+        headers: { apikey: anonKey, 'Cache-Control': 'no-cache' },
+      });
+      expect(after.ok()).toBeTruthy();
+      lastAfterJson = await after.json().catch(() => null);
+      const afterPayload = lastAfterJson?.content ?? lastAfterJson;
+      const afterItems: any[] = Array.isArray(afterPayload?.items) ? afterPayload.items : [];
+      const target = afterItems.find((it: any) => it?.id === itemId) || null;
+      stim = target?.stimulus ?? null;
+      if (stim?.type === 'image' && typeof stim?.url === 'string' && stim.url.trim()) {
+        break;
+      }
+      await page.waitForTimeout(2000);
+    }
+    if (!(stim?.type === 'image' && typeof stim?.url === 'string')) {
+      throw new Error(
+        `Stimulus not attached after image generation. courseId=${courseId} itemId=${itemId} mediaJobId=${mediaJobId} ` +
+        `afterJson=${JSON.stringify(lastAfterJson)?.slice(0, 1500)}`
+      );
+    }
   });
 });
 

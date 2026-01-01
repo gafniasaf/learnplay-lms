@@ -1,9 +1,11 @@
 import { createClient } from '@supabase/supabase-js';
+import { loadLocalEnvForTests } from '../tests/helpers/load-local-env';
+import { loadLearnPlayEnv } from '../tests/helpers/parse-learnplay-env';
 
 // Seed deterministic data for real-db E2E tests.
 // Requires:
 //  - SUPABASE_URL (or VITE_SUPABASE_URL)
-//  - SUPABASE_SERVICE_ROLE_KEY (recommended)
+//  - SUPABASE_SERVICE_ROLE_KEY (required; no fallbacks)
 
 function envOrThrow(name, alt) {
   const v = process.env[name] ?? (alt ? process.env[alt] : undefined);
@@ -12,21 +14,29 @@ function envOrThrow(name, alt) {
 }
 
 async function run() {
+  // Attempt to auto-resolve required env vars from local env files (supabase/.deploy.env, learnplay.env), without printing secrets.
+  loadLocalEnvForTests();
+  loadLearnPlayEnv();
+
   const url = envOrThrow('SUPABASE_URL', 'VITE_SUPABASE_URL');
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY
-    ?? process.env.SUPABASE_ANON_KEY
-    ?? process.env.VITE_SUPABASE_PUBLISHABLE_KEY;
-  if (!key) throw new Error('Missing env: SUPABASE_SERVICE_ROLE_KEY (preferred).');
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!key) throw new Error('Missing env: SUPABASE_SERVICE_ROLE_KEY (required).');
 
   const supabase = createClient(url, key);
 
   // Resolve a test user to assign as created_by for RLS visibility
-  const ownerEmail = process.env.E2E_EMAIL;
+  const ownerEmail = process.env.E2E_EMAIL || process.env.E2E_ADMIN_EMAIL;
   if (!ownerEmail) {
-    console.error('❌ E2E_EMAIL is REQUIRED - set env var before running');
-    console.error('   Example: E2E_EMAIL=admin@demo.academy');
+    console.error('❌ E2E_EMAIL (or E2E_ADMIN_EMAIL) is REQUIRED - set env var before running');
     process.exit(1);
   }
+
+  const orgId = process.env.ORGANIZATION_ID;
+  if (!orgId) {
+    console.error('❌ ORGANIZATION_ID is REQUIRED - set env var before running');
+    process.exit(1);
+  }
+
   let ownerId = null;
   try {
     const { data: users, error: listErr } = await supabase.auth.admin.listUsers({ page: 1, perPage: 1000 });
@@ -38,37 +48,9 @@ async function run() {
   }
 
   if (!ownerId) {
-    // Fallback: read Playwright storageState to extract current user id
-    try {
-      const fs = await import('node:fs');
-      const path = 'playwright/.auth/user.json';
-      if (fs.existsSync(path)) {
-        const raw = fs.readFileSync(path, 'utf8');
-        const state = JSON.parse(raw);
-        const origins = state.origins || [];
-        for (const origin of origins) {
-          for (const item of origin.localStorage || []) {
-            if (item.name && item.name.includes('-auth-token') && item.value) {
-              try {
-                const tokenObj = JSON.parse(item.value);
-                const userId = tokenObj?.currentSession?.user?.id || tokenObj?.user?.id;
-                if (userId) {
-                  ownerId = userId;
-                  break;
-                }
-              } catch {}
-            }
-          }
-          if (ownerId) break;
-        }
-      }
-    } catch (e) {
-      console.warn('⚠️ Could not extract user id from storageState:', e?.message || e);
-    }
-  }
-
-  if (!ownerId) {
-    console.warn('⚠️ ownerId unresolved; seeded jobs may be hidden by RLS.');
+    console.error('❌ BLOCKED: ownerId unresolved for seeded jobs (RLS visibility).');
+    console.error('   Fix: run `npx tsx scripts/provision-e2e-users.ts` first, then re-run this seed.');
+    process.exit(1);
   }
 
   const now = new Date();
@@ -79,6 +61,7 @@ async function run() {
       id: '00000000-0000-0000-0000-0000000000a1',
       course_id: 'e2e-gen-course',
       subject: 'E2E Generating Job',
+      organization_id: orgId,
       created_by: ownerId,
       grade: '3-5',
       grade_band: '3-5',
@@ -94,6 +77,7 @@ async function run() {
       id: '00000000-0000-0000-0000-0000000000b1',
       course_id: 'e2e-fail-course',
       subject: 'E2E Failed Job',
+      organization_id: orgId,
       created_by: ownerId,
       grade: '6-8',
       grade_band: '6-8',
@@ -105,6 +89,7 @@ async function run() {
       id: '00000000-0000-0000-0000-0000000000c1',
       course_id: 'e2e-stuck-course',
       subject: 'E2E Stuck Job',
+      organization_id: orgId,
       created_by: ownerId,
       grade: '9-12',
       grade_band: '9-12',
@@ -116,6 +101,7 @@ async function run() {
       id: '00000000-0000-0000-0000-0000000000d1',
       course_id: 'e2e-review-course',
       subject: 'E2E Needs Attention Job',
+      organization_id: orgId,
       created_by: ownerId,
       grade: '3-5',
       grade_band: '3-5',

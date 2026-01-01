@@ -129,6 +129,8 @@ Set environment variables:
 1. **Run Tests:** Execute the test suite against production Supabase
 2. **Fix Failures:** Address any test failures (likely parameter mismatches or missing auth)
 3. **Expand Coverage:** Add tests for remaining hooks and Edge Functions
+   - Add coverage for `list-courses` / `search-courses` `format` filtering (playable vs imported library formats)
+   - Add coverage for `lessonkit_build` once the ai-job-runner strategy + UI are wired
 4. **CI Integration:** Add to CI pipeline (with appropriate safeguards for production testing)
 
 ## Success Criteria Met

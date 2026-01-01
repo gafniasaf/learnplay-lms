@@ -189,6 +189,21 @@ export function useMCP() {
           .catch((e) => console.warn("[enqueueJob] generate-course kick failed:", e));
       }
 
+      // Dev/Preview safety net (generic factory jobs):
+      // If we queued a non-course async job (lessonkit/material/etc.) and no worker is running,
+      // kick the Dawn-style worker once to pick the next pending job.
+      if (result?.ok && result.jobId && jobType !== "ai_course_generate" && isDevAgentMode()) {
+        void callEdgeFunction(
+          "ai-job-runner?worker=1&queue=agent",
+          { worker: true, queue: "agent" },
+          { timeoutMs: 600000, maxRetries: 0 }
+        )
+          .then(() => {
+            console.log("[enqueueJob] ai-job-runner worker kicked");
+          })
+          .catch((e) => console.warn("[enqueueJob] ai-job-runner worker kick failed:", e));
+      }
+
       return result;
     } finally {
       setLoading(false);
@@ -930,7 +945,11 @@ export function useMCP() {
       // Fetch from list-courses Edge Function (not static file)
       // This ensures we only show courses that exist in the database
       console.log('[MCP] getCourseCatalog - fetching from Edge Function');
-      const response = await callEdgeFunctionGet<{ items: Array<{ id: string; title?: string; subject?: string; grade?: string; contentVersion?: string; itemCount?: number }> }>('list-courses');
+      // IMPORTANT: Only include playable course formats in the learner/admin catalog.
+      // Library/ingested content (e.g. format=mes) must be accessed via dedicated library UIs.
+      const response = await callEdgeFunctionGet<{
+        items: Array<{ id: string; title?: string; subject?: string; grade?: string; contentVersion?: string; itemCount?: number }>;
+      }>('list-courses', { format: 'practice' });
       const items = response?.items || [];
       
       // Transform to catalog format
@@ -955,6 +974,77 @@ export function useMCP() {
       console.error('[MCP] getCourseCatalog - failed:', error);
       // Return empty catalog on error - don't use static fallback with demo courses
       return { courses: [], subjects: [] };
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Library Courses (non-playable / imported / reference content)
+  type ListCoursesResponse = {
+    items: Array<{
+      id: string;
+      title?: string;
+      description?: string;
+      grade?: string | null;
+      subject?: string | null;
+      itemCount?: number;
+      visibility?: 'org' | 'global';
+      organizationId?: string;
+      format?: string;
+      createdAt?: string;
+      updatedAt?: string;
+    }>;
+    total: number;
+    page: number;
+    pageSize: number;
+    totalPages: number;
+  };
+
+  const listLibraryCourses = async (opts: { page: number; limit: number; search?: string; format?: string }) => {
+    setLoading(true);
+    try {
+      const page = Math.max(1, Math.floor(opts.page));
+      const limit = Math.min(100, Math.max(1, Math.floor(opts.limit)));
+      const format = (opts.format ?? 'mes').trim() || 'mes';
+      const search = (opts.search ?? '').trim();
+
+      if (shouldUseMCPProxy()) {
+        return await callMCP<ListCoursesResponse>('lms.listLibraryCourses', {
+          page,
+          limit,
+          search,
+          format,
+        });
+      }
+
+      const params: Record<string, string> = {
+        page: String(page),
+        limit: String(limit),
+        sort: 'newest',
+        format,
+      };
+      if (search) params.search = search;
+
+      return await callEdgeFunctionGet<ListCoursesResponse>('list-courses', params);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getLibraryCourseContent = async (courseId: string) => {
+    setLoading(true);
+    try {
+      if (!courseId || !courseId.trim()) {
+        throw new Error('courseId is required');
+      }
+
+      if (shouldUseMCPProxy()) {
+        return await callMCP<any>('lms.getLibraryCourseContent', { courseId: courseId.trim() });
+      }
+
+      // NOTE: This intentionally bypasses `getCourse()` format/item validations.
+      // Library course payloads may not be playable (no items[]) and may have non-practice formats.
+      return await callEdgeFunctionGet<any>('get-course', { courseId: courseId.trim() }, { timeoutMs: 60000, maxRetries: 1 });
     } finally {
       setLoading(false);
     }
@@ -1224,6 +1314,8 @@ export function useMCP() {
     // Course Management methods
     getCourse,
     getCourseCatalog,
+    listLibraryCourses,
+    getLibraryCourseContent,
     searchCourses,
     updateCourse,
     publishCourse,

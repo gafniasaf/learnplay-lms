@@ -46,21 +46,39 @@ export default function Metrics() {
     <PageContainer>
       <div className="p-6">
         <h1 className="text-xl font-semibold mb-4">MCP Metrics</h1>
+        <p className="text-sm text-muted-foreground mb-4">
+          Live aggregate stats for MCP calls (count, error rate, and latency percentiles). If you see “No metrics yet”,
+          generate traffic (open dashboards, enqueue jobs) and refresh.
+        </p>
         {error && <div className="text-red-600 mb-3">{error}</div>}
         {!data && !error && <div>Loading…</div>}
         {data && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {Object.entries(data.summary).map(([method, s]) => (
-              <div key={method} className="border rounded p-4 bg-white">
-                <div className="font-medium mb-2">{method}</div>
-                <div className="text-sm text-muted-foreground">count: {s.count}</div>
-                <div className="text-sm text-muted-foreground">errors: {(s.errorRate * 100).toFixed(1)}%</div>
-                <div className="text-sm text-muted-foreground">p50: {s.p50}ms</div>
-                <div className="text-sm text-muted-foreground">p95: {s.p95}ms</div>
-                <div className="text-sm text-muted-foreground">p99: {s.p99}ms</div>
+          (() => {
+            const entries = Object.entries(data.summary || {});
+            if (entries.length === 0) {
+              return (
+                <div className="text-sm text-muted-foreground">
+                  No metrics recorded yet. This usually means the metrics proxy has not received any calls in the current
+                  window, or aggregation hasn’t run yet. Try navigating around the app for a minute, then refresh this
+                  page.
+                </div>
+              );
+            }
+            return (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {entries.map(([method, s]) => (
+                  <div key={method} className="border rounded p-4 bg-white">
+                    <div className="font-medium mb-2">{method}</div>
+                    <div className="text-sm text-muted-foreground">count: {s.count}</div>
+                    <div className="text-sm text-muted-foreground">errors: {(s.errorRate * 100).toFixed(1)}%</div>
+                    <div className="text-sm text-muted-foreground">p50: {s.p50}ms</div>
+                    <div className="text-sm text-muted-foreground">p95: {s.p95}ms</div>
+                    <div className="text-sm text-muted-foreground">p99: {s.p99}ms</div>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
+            );
+          })()
         )}
       </div>
     </PageContainer>

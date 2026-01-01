@@ -218,6 +218,45 @@
       ]
     },
     {
+      "path": "/admin/library-courses",
+      "name": "Library Courses",
+      "description": "Browse imported/non-playable courses (library)",
+      "states": [
+        {
+          "id": "default",
+          "file": "admin/library-courses/default.html",
+          "description": "Default state",
+          "required": true
+        }
+      ],
+      "requiredCTAs": [
+        { "id": "nav-admin", "target": "/admin" },
+        { "id": "cta-admin-library-courses-search", "target": "edit" },
+        { "id": "cta-admin-library-courses-refresh", "target": "action" },
+        { "id": "cta-admin-library-courses-format", "target": "select" },
+        { "id": "cta-admin-library-courses-page-size", "target": "select" },
+        { "id": "cta-admin-library-courses-open", "target": "navigate" },
+        { "id": "cta-admin-library-courses-prev", "target": "navigate" },
+        { "id": "cta-admin-library-courses-next", "target": "navigate" }
+      ]
+    },
+    {
+      "path": "/admin/library-courses/:courseId",
+      "name": "Library Course Detail",
+      "description": "View raw imported course envelope",
+      "states": [
+        {
+          "id": "default",
+          "file": "admin/library-courses/demo-course/default.html",
+          "description": "Default state",
+          "required": true
+        }
+      ],
+      "requiredCTAs": [
+        { "id": "cta-admin-library-course-back", "target": "navigate" }
+      ]
+    },
+    {
       "path": "/admin/books",
       "name": "Books",
       "description": "Books library + ingest",
@@ -1143,6 +1182,179 @@
       ]
     },
     {
+      "path": "/teacher/lesson-kits",
+      "name": "Lesson Kits",
+      "description": "Build and review lesson kits from HTML content",
+      "states": [
+        {
+          "id": "default",
+          "file": "teacher/lesson-kits/default.html",
+          "description": "Default state",
+          "required": true
+        }
+      ],
+      "requiredCTAs": [
+        {
+          "id": "nav-kids",
+          "target": "/kids"
+        },
+        {
+          "id": "nav-parents",
+          "target": "/parent/dashboard"
+        },
+        {
+          "id": "nav-schools",
+          "target": "/schools"
+        },
+        {
+          "id": "nav-admin",
+          "target": "/admin"
+        },
+        {
+          "id": "cta-teacher-lesson-kits-module-id",
+          "target": "edit"
+        },
+        {
+          "id": "cta-teacher-lesson-kits-protocol",
+          "target": "select"
+        },
+        {
+          "id": "cta-teacher-lesson-kits-auto-repair",
+          "target": "toggle"
+        },
+        {
+          "id": "cta-teacher-lesson-kits-html",
+          "target": "edit"
+        },
+        {
+          "id": "cta-teacher-lesson-kits-submit",
+          "target": "action"
+        }
+      ]
+    },
+    {
+      "path": "/teacher/materials",
+      "name": "Materials",
+      "description": "Upload teacher materials and run ingest/analyze pipeline",
+      "states": [
+        {
+          "id": "default",
+          "file": "teacher/materials/default.html",
+          "description": "Default state",
+          "required": true
+        }
+      ],
+      "requiredCTAs": [
+        {
+          "id": "nav-kids",
+          "target": "/kids"
+        },
+        {
+          "id": "nav-parents",
+          "target": "/parent/dashboard"
+        },
+        {
+          "id": "nav-schools",
+          "target": "/schools"
+        },
+        {
+          "id": "nav-admin",
+          "target": "/admin"
+        },
+        {
+          "id": "cta-teacher-materials-title",
+          "target": "edit"
+        },
+        {
+          "id": "cta-teacher-materials-file",
+          "target": "edit"
+        },
+        {
+          "id": "cta-teacher-materials-upload-and-ingest",
+          "target": "action"
+        },
+        {
+          "id": "cta-teacher-materials-refresh",
+          "target": "action"
+        },
+        {
+          "id": "cta-teacher-materials-reset",
+          "target": "action"
+        }
+      ]
+    },
+    {
+      "path": "/teacher/standards",
+      "name": "Standards",
+      "description": "Upload standards, map materials, and export CSV",
+      "states": [
+        {
+          "id": "default",
+          "file": "teacher/standards/default.html",
+          "description": "Default state",
+          "required": true
+        }
+      ],
+      "requiredCTAs": [
+        {
+          "id": "nav-kids",
+          "target": "/kids"
+        },
+        {
+          "id": "nav-parents",
+          "target": "/parent/dashboard"
+        },
+        {
+          "id": "nav-schools",
+          "target": "/schools"
+        },
+        {
+          "id": "nav-admin",
+          "target": "/admin"
+        },
+        {
+          "id": "cta-teacher-standards-title",
+          "target": "edit"
+        },
+        {
+          "id": "cta-teacher-standards-locale",
+          "target": "edit"
+        },
+        {
+          "id": "cta-teacher-standards-file",
+          "target": "edit"
+        },
+        {
+          "id": "cta-teacher-standards-upload",
+          "target": "action"
+        },
+        {
+          "id": "cta-teacher-standards-select-standards",
+          "target": "select"
+        },
+        {
+          "id": "cta-teacher-standards-select-material",
+          "target": "select"
+        },
+        {
+          "id": "cta-teacher-standards-map",
+          "target": "action"
+        },
+        {
+          "id": "cta-teacher-standards-export",
+          "target": "action"
+        },
+        {
+          "id": "cta-teacher-standards-refresh",
+          "target": "action"
+        },
+        {
+          "id": "cta-teacher-standards-reset",
+          "target": "action"
+        }
+      ]
+    },
+    {
       "path": "/teacher/assignments/demo-assignment/progress",
       "name": "Assignment Progress",
       "description": "Assignment Progress",
@@ -1828,6 +2040,148 @@
           "id": "nav-admin",
           "target": "/admin"
         }
+      ]
+    },
+    {
+      "path": "/admin/book-studio",
+      "name": "Book Studio Library",
+      "description": "Book library with tile view of all books, covers, and quick stats",
+      "states": [
+        {
+          "id": "default",
+          "file": "admin/book-studio/default.html",
+          "description": "Default state - tile grid of books",
+          "required": true
+        }
+      ],
+      "requiredCTAs": [
+        { "id": "nav-admin", "target": "/admin" },
+        { "id": "cta-bookstudio-search", "target": "edit" },
+        { "id": "cta-bookstudio-refresh", "target": "action" },
+        { "id": "cta-bookstudio-ingest-new", "target": "action" },
+        { "id": "cta-bookstudio-filter-all", "target": "action" },
+        { "id": "cta-bookstudio-filter-n3", "target": "action" },
+        { "id": "cta-bookstudio-filter-n4", "target": "action" },
+        { "id": "cta-bookstudio-filter-published", "target": "action" },
+        { "id": "cta-bookstudio-filter-draft", "target": "action" },
+        { "id": "cta-bookstudio-add-book", "target": "action" },
+        { "id": "cta-bookstudio-open-pathologie_n4", "target": "navigate" },
+        { "id": "cta-bookstudio-open-anatomie_n3", "target": "navigate" },
+        { "id": "cta-bookstudio-open-verpleegkunde_n4", "target": "navigate" },
+        { "id": "cta-bookstudio-open-farmacologie_n4", "target": "navigate" },
+        { "id": "cta-bookstudio-open-psychiatrie_n3", "target": "navigate" }
+      ]
+    },
+    {
+      "path": "/admin/book-studio/:bookId",
+      "name": "Book Studio - Book Detail",
+      "description": "Single book view with cover, chapter list, and book-level actions",
+      "states": [
+        {
+          "id": "default",
+          "file": "admin/book-studio/book/default.html",
+          "description": "Default state - book detail with chapters",
+          "required": true
+        }
+      ],
+      "requiredCTAs": [
+        { "id": "cta-bookstudio-back-to-library", "target": "navigate" },
+        { "id": "cta-bookstudio-book-refresh", "target": "action" },
+        { "id": "cta-bookstudio-book-versions", "target": "navigate" },
+        { "id": "cta-bookstudio-book-render", "target": "action" },
+        { "id": "cta-bookstudio-cover-upload", "target": "action" },
+        { "id": "cta-bookstudio-cover-ai", "target": "action" },
+        { "id": "cta-bookstudio-book-export", "target": "action" },
+        { "id": "cta-bookstudio-book-runs", "target": "navigate" },
+        { "id": "cta-bookstudio-book-missing-images", "target": "navigate" },
+        { "id": "cta-bookstudio-book-archive", "target": "action" },
+        { "id": "cta-bookstudio-version-compare", "target": "action" },
+        { "id": "cta-bookstudio-version-publish", "target": "action" },
+        { "id": "cta-bookstudio-rewrite-all-book", "target": "action" },
+        { "id": "cta-bookstudio-chapter-edit-0", "target": "navigate" },
+        { "id": "cta-bookstudio-chapter-edit-1", "target": "navigate" },
+        { "id": "cta-bookstudio-chapter-edit-2", "target": "navigate" },
+        { "id": "cta-bookstudio-chapter-edit-3", "target": "navigate" },
+        { "id": "cta-bookstudio-chapter-edit-4", "target": "navigate" },
+        { "id": "cta-bookstudio-chapter-edit-5", "target": "navigate" },
+        { "id": "cta-bookstudio-chapter-opener-0", "target": "action" },
+        { "id": "cta-bookstudio-chapter-opener-1", "target": "action" },
+        { "id": "cta-bookstudio-chapter-opener-2", "target": "action" },
+        { "id": "cta-bookstudio-chapter-opener-3", "target": "action" },
+        { "id": "cta-bookstudio-chapter-opener-4", "target": "action" },
+        { "id": "cta-bookstudio-chapter-opener-5", "target": "action" }
+      ]
+    },
+    {
+      "path": "/admin/book-studio/:bookId/chapters/:chapterIndex",
+      "name": "Book Studio - Chapter Editor",
+      "description": "Full chapter editing UI with paragraph rewrite, images, microheadings, and version management",
+      "states": [
+        {
+          "id": "default",
+          "file": "admin/book-studio/chapter/default.html",
+          "description": "Default state - chapter content editor",
+          "required": true
+        }
+      ],
+      "requiredCTAs": [
+        { "id": "cta-bookstudio-back-to-book", "target": "navigate" },
+        { "id": "cta-bookstudio-chapter-ai-rewrite-all", "target": "action" },
+        { "id": "cta-bookstudio-chapter-discard", "target": "action" },
+        { "id": "cta-bookstudio-chapter-save", "target": "action" },
+        { "id": "cta-bookstudio-nav-section-0", "target": "navigate" },
+        { "id": "cta-bookstudio-nav-section-1", "target": "navigate" },
+        { "id": "cta-bookstudio-nav-section-2", "target": "navigate" },
+        { "id": "cta-bookstudio-nav-section-3", "target": "navigate" },
+        { "id": "cta-bookstudio-nav-section-4", "target": "navigate" },
+        { "id": "cta-bookstudio-section-ai-rewrite", "target": "action" },
+        { "id": "cta-bookstudio-section-add-image", "target": "action" },
+        { "id": "cta-bookstudio-para-microhead-0", "target": "edit" },
+        { "id": "cta-bookstudio-para-suggest-microhead-0", "target": "action" },
+        { "id": "cta-bookstudio-para-edit-0", "target": "action" },
+        { "id": "cta-bookstudio-para-ai-rewrite-0", "target": "action" },
+        { "id": "cta-bookstudio-para-select-rewrite-0", "target": "action" },
+        { "id": "cta-bookstudio-para-revert-0", "target": "action" },
+        { "id": "cta-bookstudio-para-text-1", "target": "edit" },
+        { "id": "cta-bookstudio-para-image-upload-1", "target": "action" },
+        { "id": "cta-bookstudio-para-image-ai-1", "target": "action" },
+        { "id": "cta-bookstudio-para-save-1", "target": "action" },
+        { "id": "cta-bookstudio-para-ai-rewrite-1", "target": "action" },
+        { "id": "cta-bookstudio-para-revert-1", "target": "action" },
+        { "id": "cta-bookstudio-para-edit-2", "target": "action" },
+        { "id": "cta-bookstudio-para-ai-rewrite-2", "target": "action" },
+        { "id": "cta-bookstudio-para-image-replace-2", "target": "action" },
+        { "id": "cta-bookstudio-para-image-remove-2", "target": "action" },
+        { "id": "cta-bookstudio-para-revert-2", "target": "action" },
+        { "id": "cta-bookstudio-version-select-2", "target": "action" },
+        { "id": "cta-bookstudio-version-diff-2", "target": "action" },
+        { "id": "cta-bookstudio-version-revert-2", "target": "action" },
+        { "id": "cta-bookstudio-version-select-1", "target": "action" },
+        { "id": "cta-bookstudio-version-diff-1", "target": "action" },
+        { "id": "cta-bookstudio-version-revert-1", "target": "action" }
+      ]
+    },
+    {
+      "path": "/admin/book-studio/:bookId/versions",
+      "name": "Book Studio - Version History",
+      "description": "Version timeline with diff viewer and revert functionality",
+      "states": [
+        {
+          "id": "default",
+          "file": "admin/book-studio/versions/default.html",
+          "description": "Default state - version timeline and diff",
+          "required": true
+        }
+      ],
+      "requiredCTAs": [
+        { "id": "cta-bookstudio-versions-back", "target": "navigate" },
+        { "id": "cta-bookstudio-versions-export", "target": "action" },
+        { "id": "cta-bookstudio-version-item-3", "target": "action" },
+        { "id": "cta-bookstudio-version-item-2", "target": "action" },
+        { "id": "cta-bookstudio-version-item-1", "target": "action" },
+        { "id": "cta-bookstudio-diff-toggle-unified", "target": "action" },
+        { "id": "cta-bookstudio-diff-toggle-split", "target": "action" },
+        { "id": "cta-bookstudio-revert-to-v2", "target": "action" }
       ]
     }
   ],

@@ -27,6 +27,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - AI Providers documentation (`docs/AI_PROVIDERS.md`)
 - Job Queue Operations runbook (`docs/JOB_QUEUE_OPERATIONS.md`)
 
+### Added (Phase 4-5)
+- Library Courses format isolation:
+  - `list-courses` + `search-courses` now accept optional `format` query param (filters on `course_metadata.tags.__format`)
+  - `useMCP.getCourseCatalog()` now requests `format=practice` to keep imported library formats out of playable catalogs
+- Admin Library Courses UI:
+  - `/admin/library-courses` (server-side pagination/search + format filter)
+  - `/admin/library-courses/:courseId` (raw course envelope viewer)
+- MCP support for library browsing:
+  - `lms.listLibraryCourses`, `lms.searchLibraryCourses`, `lms.getLibraryCourseContent`
+- Teacherbuddy lesson-kit pipeline port (shared module):
+  - Added `supabase/functions/_shared/lesson-kit/*` (3-pass: extract → transform → validate/repair)
+  - Uses shared provider abstraction (`supabase/functions/_shared/ai.ts`) and fails loud when provider is missing
+
 ### Changed
 - Enhanced `README.md` with current architecture, features, and environment modes
 - Updated `ApiError` class to include `requestId` for distributed tracing

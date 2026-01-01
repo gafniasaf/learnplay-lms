@@ -30,7 +30,12 @@ const AdminCourseSelector = AdminCourseSelectorPage;
 const AdminMediaManager = lazy(() => import("./pages/admin/MediaManager"));
 const AdminTagApprovalQueue = lazy(() => import("./pages/admin/TagApprovalQueue"));
 const AdminImportLegacyCourse = lazy(() => import("./pages/admin/ImportLegacyCourse"));
+const AdminLibraryCourses = lazy(() => import("./pages/admin/LibraryCourses"));
+const AdminLibraryCourseDetail = lazy(() => import("./pages/admin/LibraryCourseDetail"));
 const TeacherAssignments = lazy(() => import("./pages/teacher/Assignments"));
+const TeacherLessonKits = lazy(() => import("./pages/teacher/LessonKits"));
+const TeacherMaterials = lazy(() => import("./pages/teacher/Materials"));
+const TeacherStandards = lazy(() => import("./pages/teacher/Standards"));
 const MessagesInbox = lazy(() => import("./pages/messages/Inbox"));
 const Play = lazy(() => import("./pages/Play"));
 
@@ -436,7 +441,12 @@ const App = () => {
                       <Route path="/admin/tag-approval" element={<AdminTagApprovalQueue />} />
                       <Route path="/admin/import-legacy" element={<AdminImportLegacyCourse />} />
                       <Route path="/admin/metrics" element={<AdminMetrics />} />
+                      <Route path="/admin/library-courses" element={<AdminLibraryCourses />} />
+                      <Route path="/admin/library-courses/:courseId" element={<AdminLibraryCourseDetail />} />
                       <Route path="/teacher/assignment-progress" element={<TeacherAssignments />} />
+                      <Route path="/teacher/lesson-kits" element={<TeacherLessonKits />} />
+                      <Route path="/teacher/materials" element={<TeacherMaterials />} />
+                      <Route path="/teacher/standards" element={<TeacherStandards />} />
                       <Route path="/play/welcome" element={<Play />} />
                       <Route path="/messages/inbox" element={<MessagesInbox />} />
                       <Route path="/auth" element={<Auth />} />

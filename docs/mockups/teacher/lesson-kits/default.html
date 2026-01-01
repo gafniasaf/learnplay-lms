@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Lesson Kits</title>
+  </head>
+  <body>
+    <main data-route="/teacher/lesson-kits">
+      <header>
+        <nav>
+          <a data-cta-id="nav-kids" data-action="navigate" href="/kids">Kids</a>
+          <a data-cta-id="nav-parents" data-action="navigate" href="/parent/dashboard">Parents</a>
+          <a data-cta-id="nav-schools" data-action="navigate" href="/schools">Schools</a>
+          <a data-cta-id="nav-admin" data-action="navigate" href="/admin">Admin</a>
+        </nav>
+        <h1>Lesson Kits</h1>
+        <p>Build and review grounded lesson kits from material/course HTML.</p>
+      </header>
+
+      <section>
+        <label>
+          Module ID
+          <input data-cta-id="cta-teacher-lesson-kits-module-id" data-action="edit" placeholder="module_id" />
+        </label>
+
+        <label>
+          Protocol
+          <select data-cta-id="cta-teacher-lesson-kits-protocol" data-action="select">
+            <option value="auto">Auto-detect</option>
+            <option value="procedural">Procedural</option>
+            <option value="communication">Communication</option>
+            <option value="theory">Theory</option>
+          </select>
+        </label>
+
+        <label>
+          Auto-repair
+          <input data-cta-id="cta-teacher-lesson-kits-auto-repair" data-action="toggle" type="checkbox" checked />
+        </label>
+
+        <label>
+          HTML Content
+          <textarea data-cta-id="cta-teacher-lesson-kits-html" data-action="edit" rows="8"></textarea>
+        </label>
+
+        <button data-cta-id="cta-teacher-lesson-kits-submit" data-action="action" type="button">
+          Build Lesson Kit
+        </button>
+      </section>
+    </main>
+  </body>
+</html>
+
+
+

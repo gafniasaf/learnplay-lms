@@ -24,6 +24,39 @@ function safeNowId(prefix: string): string {
   return `${prefix}-${Date.now()}`;
 }
 
+function isHttpUrl(s: string): boolean {
+  return /^https?:\/\//i.test(String(s || ""));
+}
+function isDataUrl(s: string): boolean {
+  return /^data:/i.test(String(s || ""));
+}
+function isFileUrl(s: string): boolean {
+  return /^file:\/\//i.test(String(s || ""));
+}
+function collectImageSrcs(node: unknown, out: Set<string>): void {
+  if (!node) return;
+  if (Array.isArray(node)) {
+    for (const v of node) collectImageSrcs(v, out);
+    return;
+  }
+  if (typeof node !== "object") return;
+  const anyNode = node as Record<string, unknown>;
+
+  const opener = anyNode.openerImage ?? anyNode.opener_image;
+  if (typeof opener === "string" && opener.trim()) out.add(opener.trim());
+
+  const imgs = anyNode.images;
+  if (Array.isArray(imgs)) {
+    for (const img of imgs) {
+      if (!img || typeof img !== "object") continue;
+      const src = (img as any)?.src;
+      if (typeof src === "string" && src.trim()) out.add(src.trim());
+    }
+  }
+
+  for (const v of Object.values(anyNode)) collectImageSrcs(v, out);
+}
+
 async function extractZip(zipPath: string, destDir: string): Promise<void> {
   await import("node:fs/promises").then((m) => m.mkdir(destDir, { recursive: true }));
 
@@ -81,6 +114,18 @@ test("live: book ingest + AI rewrite overlay + local Prince render (real DB + re
   canonical.meta.id = bookId;
   canonical.meta.title = bookTitle;
 
+  // Provide figures mapping so ingest does not require a pre-uploaded image library index.
+  // This keeps the test self-contained while still exercising the real assets.zip render path.
+  const imageSrcs = new Set<string>();
+  collectImageSrcs(canonical, imageSrcs);
+  const localImageSrcs = Array.from(imageSrcs)
+    .map((s) => String(s || "").trim())
+    .filter((s) => !!s)
+    .filter((s) => !isHttpUrl(s) && !isDataUrl(s) && !isFileUrl(s));
+  const figures = localImageSrcs.length
+    ? { srcMap: Object.fromEntries(localImageSrcs.map((src) => [src, src])) }
+    : undefined;
+
   // Pick a stable paragraph to rewrite (first paragraph in sample)
   const paragraphId = "8befd569-7961-4648-b28c-460533225b6a";
   const originalBasis: unknown = canonical?.chapters?.[0]?.sections?.[0]?.content?.[0]?.basis;
@@ -105,12 +150,15 @@ test("live: book ingest + AI rewrite overlay + local Prince render (real DB + re
       level: "n3",
       source: "E2E",
       canonical,
+      figures,
     },
     timeout: 60_000,
   });
   const ingestJson = (await ingestResp.json().catch(() => null)) as any;
   expect(ingestResp.ok()).toBeTruthy();
-  expect(ingestJson?.ok).toBe(true);
+  if (ingestJson?.ok !== true) {
+    throw new Error(`book-ingest-version returned ok=false: ${JSON.stringify(ingestJson).slice(0, 2000)}`);
+  }
   const bookVersionId = String(ingestJson?.bookVersionId || "").trim();
   expect(bookVersionId.length).toBeGreaterThan(10);
 
@@ -301,7 +349,13 @@ test("live: book ingest + AI rewrite overlay + local Prince render (real DB + re
       data: buf,
       timeout: 60_000,
     });
-    expect(putResp.ok()).toBeTruthy();
+    if (!putResp.ok()) {
+      const status = putResp.status();
+      const bodyText = await putResp.text().catch(() => "");
+      throw new Error(
+        `Signed upload failed for ${fileName} (HTTP ${status}): ${bodyText.slice(0, 1000)}`,
+      );
+    }
 
     return { path: objectPath, bytes: buf.byteLength, contentType };
   }

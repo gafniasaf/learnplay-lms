@@ -83,9 +83,15 @@ test('live: ec-expert protocol generates exercises from study text (real DB + re
     `${SUPABASE_URL}/functions/v1/process-pending-jobs?jobId=${encodeURIComponent(String(jobId))}&mediaN=0`,
     { headers: { 'x-agent-token': AGENT_TOKEN }, timeout: 10 * 60_000 }
   );
+  if (!procResp.ok()) {
+    const status = procResp.status();
+    const bodyText = await procResp.text().catch(() => "");
+    throw new Error(`process-pending-jobs failed (HTTP ${status}): ${bodyText.slice(0, 2000)}`);
+  }
   const procJson = (await procResp.json().catch(() => null)) as any;
-  expect(procResp.ok()).toBeTruthy();
-  expect(procJson?.ok).toBe(true);
+  if (procJson?.ok !== true) {
+    throw new Error(`process-pending-jobs returned ok=false: ${JSON.stringify(procJson).slice(0, 2000)}`);
+  }
 
   // Wait for course.json to be persisted.
   const _storedCourse = await poll({

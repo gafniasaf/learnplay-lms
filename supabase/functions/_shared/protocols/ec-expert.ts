@@ -1090,6 +1090,8 @@ function buildAnalysisPrompt(args: {
   // Ask for more candidates than we ultimately need so we can skip "hard to write well" objectives.
   // Keep bounded to avoid token blow-ups.
   const maxCandidates = Math.min(12, Math.max(4, total * 3));
+  // Prefer maximum candidates (bounded) so we have enough slack to fill all clusters even under retries/filters.
+  const desiredCandidates = maxCandidates;
   const countsByGroup = new Map<number, { name: string; n: number }>();
   for (const c of clusterPlan) {
     const prev = countsByGroup.get(c.groupId) || { name: c.groupName, n: 0 };
@@ -1106,9 +1108,9 @@ ONDERWERP: ${subject}
 DOELGROEP: ${audience}
 
 CONTEXT:
-- Het systeem gebruikt uiteindelijk MAX ${total} leerdoelen (1 leerdoel → 3 oefenvarianten).
-- Je MAG tussen 1 en ${maxCandidates} leerdoelen teruggeven als kandidaat (wij selecteren de beste).
-- Je MAG ook minder teruggeven als het echt niet lukt om goede, discussie-vrije afleiders te bedenken.
+- We moeten ${total} clusters vullen (1 leerdoel per cluster → 3 oefenvarianten).
+- Geef bij voorkeur MINIMAAL ${desiredCandidates} leerdoelen (max ${maxCandidates}) zodat we genoeg keuze hebben om alle clusters te vullen.
+- Geef alleen minder als het echt niet lukt om goede, discussie-vrije afleiders te bedenken.
 - Vul NIET op met vage of twijfelachtige leerdoelen. Als het lastig is om goede afleiders te bedenken zonder discussie, neem dat leerdoel dan niet op.
 
 RICHTLIJNEN VOOR GOEDE LEERDOELEN:
@@ -1529,6 +1531,84 @@ export const ecExpertProtocol: GenerationProtocol = {
     }
     // Keep legacy validator check as a guardrail (should always pass if extractObjectives succeeded).
     if (!isValidObjectiveList(objectives)) return { ok: false, error: "analysis_invalid_objectives" };
+
+    // If we don't have enough candidates to reliably fill all clusters, ask for additional objectives.
+    // We do this BEFORE exercise generation so later clusters don't starve.
+    const desiredCandidateObjectives = maxCandidateObjectives;
+    if (objectives.length < desiredCandidateObjectives) {
+      const need = desiredCandidateObjectives - objectives.length;
+      const existingLines = objectives.map((o) => `- ${o.description}`).join("\n");
+      const topUpPrompt = `Je vorige output bevatte te weinig leerdoelen om alle clusters te vullen.
+
+ONDERWERP: ${input.subject}
+DOELGROEP: ${input.audience}
+
+We hebben al deze leerdoelen:
+${existingLines || "(geen)"}
+
+TAAK:
+- Bedenk EXACT ${need} EXTRA leerdoelen die duidelijk verschillend zijn van de bovenstaande.
+- Elk leerdoel moet goed toetsbaar zijn met 3 oefenvarianten (MCQ met 3-4 opties) en EXACT 1 [blank].
+- Vermijd 'niet/geen', dubbele ontkenning, en telvragen ("hoeveel/aantal ...").
+- Blijf strikt binnen de gegeven tekst (geen extra kennis toevoegen).
+
+STUDIETEKST:
+${studyText}
+
+OUTPUT FORMAAT (JSON):
+{
+  "objectives": [
+    {
+      "id": "obj-extra-1",
+      "description": "De student weet dat ...",
+      "bloomLevel": "remember" | "understand" | "apply" | "analyze" | "evaluate" | "create",
+      "exerciseable": true,
+      "whyEasy": "1 zin waarom dit goed toetsbaar is zonder discussie",
+      "evidenceQuote": "Letterlijke quote uit de studietekst die dit leerdoel ondersteunt"
+    }
+  ]
+}
+
+BELANGRIJK:
+- Output ALLEEN geldige JSON (geen markdown).
+- Geef EXACT ${need} leerdoelen.`;
+
+      const topUpRes = await generateJson({
+        system: EC_EXPERT_SYSTEM_PROMPT,
+        prompt: topUpPrompt,
+        maxTokens: 1700,
+        temperature: 0.2,
+        prefillJson: true,
+        timeoutMs: Math.min(timeoutMs, 70_000),
+      });
+
+      if (topUpRes.ok) {
+        try {
+          const parsedTopUp = extractJsonFromText(topUpRes.text);
+          const extra = extractObjectives(parsedTopUp, need);
+          if (Array.isArray(extra) && extra.length > 0) {
+            // Merge, prefer original order, dedupe by description, and ensure stable unique ids.
+            const merged: LearningObjective[] = [];
+            const seen = new Set<string>();
+            for (const o of [...objectives, ...extra]) {
+              const desc = typeof o?.description === "string" ? o.description.trim() : "";
+              if (!desc) continue;
+              const key = normalizeForCompare(desc);
+              if (seen.has(key)) continue;
+              seen.add(key);
+              merged.push({
+                ...o,
+                id: `obj-${merged.length + 1}`,
+                description: desc,
+              });
+            }
+            objectives = merged.slice(0, desiredCandidateObjectives);
+          }
+        } catch {
+          // Best-effort only; continue with whatever we already have.
+        }
+      }
+    }
 
     // PASS 2: We attempt to generate exercises only for objectives that are "not too hard".
     // If an objective is hard to turn into debate-free MCQs (or the revisor can't fix it),

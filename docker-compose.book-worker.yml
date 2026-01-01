@@ -1,0 +1,41 @@
+services:
+  ignitezero-book-worker:
+    build:
+      context: .
+      dockerfile: book-worker/Dockerfile
+    image: ignitezero-book-worker:latest
+    container_name: ignitezero-book-worker
+    restart: unless-stopped
+
+    # NOTE: If you're running Supabase locally, set SUPABASE_URL to:
+    #   http://host.docker.internal:54321
+    # (127.0.0.1 inside the container is NOT your host.)
+    environment:
+      SUPABASE_URL: ${SUPABASE_URL:?SUPABASE_URL is required}
+      SUPABASE_ANON_KEY: ${SUPABASE_ANON_KEY:?SUPABASE_ANON_KEY is required}
+      AGENT_TOKEN: ${AGENT_TOKEN:?AGENT_TOKEN is required}
+
+      # Optional tuning / stability:
+      POLL_INTERVAL_MS: ${POLL_INTERVAL_MS-}
+      BOOK_WORKER_DNS_RESULT_ORDER: ${BOOK_WORKER_DNS_RESULT_ORDER-}
+
+      # Optional (required only for BookGen Pro jobs, depending on provider selection):
+      OPENAI_API_KEY: ${OPENAI_API_KEY-}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY-}
+
+      # Optional (required only if you enqueue jobs with render_provider=docraptor_api):
+      DOCRAPTOR_API_KEY: ${DOCRAPTOR_API_KEY-}
+      DOCRAPTOR_TEST_MODE: ${DOCRAPTOR_TEST_MODE-}
+
+      # Optional (required only if your image contains Prince and it's not on PATH):
+      PRINCE_PATH: ${PRINCE_PATH-}
+
+      # Optional run-once controls (useful for smoke runs):
+      BOOK_WORKER_RUN_ONCE: ${BOOK_WORKER_RUN_ONCE-}
+      BOOK_WORKER_STOP_AFTER_JOB_ID: ${BOOK_WORKER_STOP_AFTER_JOB_ID-}
+      BOOK_WORKER_MAX_JOBS: ${BOOK_WORKER_MAX_JOBS-}
+
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+

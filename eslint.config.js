@@ -21,6 +21,7 @@ export default tseslint.config(
       "public/**/*.zip",
       "_archive/**",
       "dawn-react-starter/**",
+      "external/**",
     ],
   },
   {

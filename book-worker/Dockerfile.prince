@@ -1,0 +1,38 @@
+FROM node:20-bookworm-slim
+
+WORKDIR /app
+
+# PrinceXML is proprietary software.
+# This Dockerfile does NOT ship Prince itself — you must provide your own Linux installer package
+# in the build context (gitignored) and build this derived image locally.
+#
+# Example:
+#   mkdir -p book-worker/private/prince
+#   # put a Prince Linux .deb there (name doesn't matter if you pass --build-arg)
+#   docker build -f book-worker/Dockerfile.prince -t ignitezero-book-worker:prince \
+#     --build-arg PRINCE_DEB_PATH=book-worker/private/prince/prince.deb .
+#
+# If you cannot install Prince in Docker (licensing), use:
+# - render_provider=docraptor_api (requires DOCRAPTOR_API_KEY), OR
+# - run Prince locally on the host (see docs/BOOK_WORKER_RUNBOOK.md).
+
+ARG PRINCE_DEB_PATH=book-worker/private/prince/prince.deb
+
+# Required for assets.zip extraction in Linux containers + basic TLS
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends unzip ca-certificates \
+  && rm -rf /var/lib/apt/lists/*
+
+# Install Prince from a user-provided .deb (will fail loudly if missing)
+COPY ${PRINCE_DEB_PATH} /tmp/prince.deb
+RUN dpkg -i /tmp/prince.deb \
+  || (apt-get update && apt-get install -y --no-install-recommends -f && rm -rf /var/lib/apt/lists/*) \
+  && rm -f /tmp/prince.deb
+
+COPY book-worker/ ./book-worker/
+
+ENV NODE_ENV=production
+
+CMD ["node", "./book-worker/worker.mjs"]
+
+

@@ -86,7 +86,17 @@ async function fetchJobNotes(supabase: any, jobId: string): Promise<string | nul
       const msg = String((error as any)?.message || "").toLowerCase();
       const status = Number((error as any)?.statusCode || (error as any)?.status || 0);
       // If missing, treat as "no notes" (notes are optional).
-      if (status === 404 || msg.includes("not found") || msg.includes("does not exist")) return null;
+      // NOTE: Some Storage deployments return `{}` as the error "message" for missing objects (status=400).
+      // Treat that as "missing" to keep notes optional and avoid false-negative failures in live E2E.
+      const normalizedMsg = msg.replace(/\s+/g, "");
+      const looksMissing =
+        status === 404 ||
+        msg.includes("not found") ||
+        msg.includes("does not exist") ||
+        msg.includes("object not found") ||
+        normalizedMsg === "{}" ||
+        (status === 400 && (msg === ""));
+      if (looksMissing) return null;
       throw new Error(error.message ?? String(error));
     }
     if (!file) return null;
@@ -557,9 +567,89 @@ function createJobHelpers(supabase: any) {
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function createPersistenceHelpers(supabase: any) {
+  function isEnvelope(x: any): x is { content: any; format: string } {
+    return !!x && typeof x === "object" && "content" in x && "format" in x;
+  }
+
+  function coerceItemId(id: unknown): number | null {
+    if (typeof id === "number" && Number.isFinite(id)) return Math.floor(id);
+    if (typeof id === "string" && id.trim()) {
+      const n = Number(id);
+      return Number.isFinite(n) ? Math.floor(n) : null;
+    }
+    return null;
+  }
+
+  function isStimulus(x: unknown): x is { type: string; url: string } {
+    return (
+      !!x &&
+      typeof x === "object" &&
+      typeof (x as any).type === "string" &&
+      typeof (x as any).url === "string" &&
+      String((x as any).url).trim().length > 0
+    );
+  }
+
+  async function mergeExistingItemStimuli(coursePath: string, payload: any): Promise<any> {
+    // Course JSON can be rewritten during long-running generation. Preserve already-attached stimuli (e.g. from media-runner)
+    // so concurrent writes do not drop item media.
+    let existingJson: any | null = null;
+    try {
+      const { data: existingFile, error: dlErr } = await supabase.storage.from("courses").download(coursePath);
+      if (!dlErr && existingFile) {
+        const existingText = await existingFile.text();
+        existingJson = JSON.parse(existingText);
+      }
+    } catch {
+      existingJson = null;
+    }
+
+    if (!existingJson) return payload;
+
+    const existingContent = isEnvelope(existingJson) ? existingJson.content : existingJson;
+    const existingItems: any[] = Array.isArray(existingContent?.items) ? existingContent.items : [];
+    if (existingItems.length === 0) return payload;
+
+    const stimulusById = new Map<number, any>();
+    for (const it of existingItems) {
+      const id = coerceItemId((it as any)?.id);
+      if (id === null) continue;
+      const stim = (it as any)?.stimulus;
+      if (isStimulus(stim)) {
+        // Keep the first observed stimulus for this id.
+        if (!stimulusById.has(id)) stimulusById.set(id, stim);
+      }
+    }
+    if (stimulusById.size === 0) return payload;
+
+    const payloadIsEnv = isEnvelope(payload);
+    const payloadContent = payloadIsEnv ? (payload as any).content : payload;
+    const payloadItems: any[] = Array.isArray(payloadContent?.items) ? payloadContent.items : [];
+    if (payloadItems.length === 0) return payload;
+
+    let changed = false;
+    const mergedItems = payloadItems.map((it: any) => {
+      const id = coerceItemId(it?.id);
+      if (id === null) return it;
+      const stim = stimulusById.get(id);
+      if (!stim) return it;
+
+      const currentStim = (it as any)?.stimulus;
+      if (currentStim == null) {
+        changed = true;
+        return { ...it, stimulus: stim };
+      }
+      return it;
+    });
+
+    if (!changed) return payload;
+    return payloadIsEnv ? { ...payload, content: { ...payloadContent, items: mergedItems } } : { ...payloadContent, items: mergedItems };
+  }
+
   async function uploadCourseJson(courseId: string, payload: any) {
     const coursePath = `${courseId}/course.json`;
-    const blob = new Blob([JSON.stringify(payload, null, 2)], {
+    const mergedPayload = await mergeExistingItemStimuli(coursePath, payload);
+    const blob = new Blob([JSON.stringify(mergedPayload, null, 2)], {
       type: "application/json",
     });
     const { error } = await supabase.storage

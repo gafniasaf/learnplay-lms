@@ -243,16 +243,35 @@ test.describe('Course Editor V2: Real DB + Real LLM', () => {
       return;
     }
 
+    const stemTextarea = page.locator('#courseeditor-section-stem textarea').first();
+    const hasStemTextarea = await stemTextarea.isVisible({ timeout: 5000 }).catch(() => false);
+    if (!hasStemTextarea) {
+      test.skip('Stem textarea not found');
+      return;
+    }
+    const beforeStem = await stemTextarea.inputValue().catch(() => '');
+
+    // Wait for the actual Edge call (real LLM) to complete.
+    const rewriteRespPromise = page
+      .waitForResponse(
+        (resp) => resp.url().includes('/functions/v1/ai-rewrite-text') && resp.status() === 200,
+        { timeout: 60000 }
+      )
+      .catch(() => null);
+
     // Click AI Rewrite button
     await aiRewriteButton.click();
     await page.waitForTimeout(1000);
 
-    // Wait for LLM response (can take 10-30 seconds)
-    await expect(
-      page.locator('text=/rewritten|generated|complete|applied/i').or(
-        page.locator('.toast-success')
-      )
-    ).toBeVisible({ timeout: 60000 });
+    const rewriteResp = await rewriteRespPromise;
+    expect(rewriteResp, 'Expected /functions/v1/ai-rewrite-text to be called').toBeTruthy();
+
+    // Wait for UI to reflect the rewrite (either toast or textarea value change).
+    const successToast = page.getByText(/AI rewrite applied/i).first();
+    const hasSuccessToast = await successToast.isVisible({ timeout: 5000 }).catch(() => false);
+    if (!hasSuccessToast) {
+      await expect.poll(async () => await stemTextarea.inputValue().catch(() => ''), { timeout: 60000 }).not.toBe(beforeStem);
+    }
 
     // Verify a real LLM call was made
     console.log('[DEBUG] LLM Requests made:', llmRequests);

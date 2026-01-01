@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Book Studio - Version History</title>
+  <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:wght@400;500;600;700&family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-deep: #0a0a0f;
+      --bg-surface: #12121a;
+      --bg-card: #1a1a24;
+      --bg-elevated: #22222e;
+      --bg-hover: #2a2a38;
+      --border: #2d2d3a;
+      --text: #f5f5f7;
+      --text-secondary: #a0a0b0;
+      --text-muted: #6b6b7a;
+      --accent-gold: #d4a853;
+      --accent-gold-dim: rgba(212, 168, 83, 0.15);
+      --accent-emerald: #34d399;
+      --accent-rose: #f472b6;
+      --accent-blue: #60a5fa;
+      --diff-add: rgba(52, 211, 153, 0.15);
+      --diff-remove: rgba(244, 114, 182, 0.15);
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'DM Sans', -apple-system, sans-serif;
+      background: var(--bg-deep);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    .header {
+      position: sticky; top: 0; z-index: 100;
+      background: rgba(10, 10, 15, 0.9);
+      backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--border);
+      padding: 0 32px; height: 64px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .header-left { display: flex; align-items: center; gap: 20px; }
+    .back-btn {
+      display: flex; align-items: center; gap: 6px;
+      padding: 8px 14px; border-radius: 6px; font-size: 13px;
+      color: var(--text-secondary); text-decoration: none;
+      border: 1px solid var(--border); transition: all 0.2s;
+    }
+    .back-btn:hover { background: var(--bg-hover); color: var(--text); }
+    .page-title {
+      font-family: 'Crimson Pro', serif;
+      font-size: 20px; font-weight: 600;
+    }
+    .btn {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 8px 16px; border-radius: 6px; font-size: 13px;
+      font-weight: 500; cursor: pointer; border: none; transition: all 0.2s;
+    }
+    .btn-outline {
+      background: transparent; border: 1px solid var(--border);
+      color: var(--text-secondary);
+    }
+    .btn-outline:hover { background: var(--bg-hover); color: var(--text); }
+    .btn-primary {
+      background: linear-gradient(135deg, var(--accent-gold), #b8860b);
+      color: #0a0a0f; font-weight: 600;
+    }
+
+    .main { display: grid; grid-template-columns: 360px 1fr; height: calc(100vh - 64px); }
+
+    /* Timeline */
+    .timeline {
+      background: var(--bg-surface);
+      border-right: 1px solid var(--border);
+      padding: 24px; overflow-y: auto;
+    }
+    .timeline-title {
+      font-size: 12px; font-weight: 600;
+      text-transform: uppercase; letter-spacing: 0.5px;
+      color: var(--text-muted); margin-bottom: 20px;
+    }
+    .version-item {
+      position: relative;
+      padding: 16px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      margin-bottom: 12px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .version-item:hover { border-color: var(--accent-gold); }
+    .version-item.selected { border-color: var(--accent-gold); background: var(--accent-gold-dim); }
+    .version-item.current::before {
+      content: '';
+      position: absolute; left: -24px; top: 50%;
+      width: 8px; height: 8px;
+      background: var(--accent-emerald);
+      border-radius: 50%;
+      transform: translateY(-50%);
+    }
+    .version-header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 8px;
+    }
+    .version-tag {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 15px; font-weight: 700;
+    }
+    .version-badge {
+      padding: 3px 8px; border-radius: 4px; font-size: 10px;
+      font-weight: 600; text-transform: uppercase;
+    }
+    .version-badge.current { background: rgba(52, 211, 153, 0.2); color: var(--accent-emerald); }
+    .version-badge.published { background: rgba(96, 165, 250, 0.2); color: var(--accent-blue); }
+    .version-meta { font-size: 12px; color: var(--text-muted); margin-bottom: 10px; }
+    .version-stats { display: flex; gap: 16px; font-size: 12px; }
+    .stat { display: flex; align-items: center; gap: 4px; }
+    .stat.add { color: var(--accent-emerald); }
+    .stat.remove { color: var(--accent-rose); }
+    .stat.change { color: var(--accent-gold); }
+
+    /* Diff Viewer */
+    .diff-viewer { padding: 24px; overflow-y: auto; }
+    .diff-header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 24px;
+    }
+    .diff-title { font-size: 18px; font-weight: 600; }
+    .diff-controls { display: flex; gap: 10px; }
+
+    .diff-summary {
+      display: flex; gap: 16px;
+      padding: 16px 20px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      margin-bottom: 24px;
+    }
+    .diff-stat {
+      display: flex; flex-direction: column; gap: 4px;
+    }
+    .diff-stat-value {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 24px; font-weight: 700;
+    }
+    .diff-stat-value.add { color: var(--accent-emerald); }
+    .diff-stat-value.remove { color: var(--accent-rose); }
+    .diff-stat-value.change { color: var(--accent-gold); }
+    .diff-stat-label { font-size: 12px; color: var(--text-muted); }
+
+    .diff-section {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      margin-bottom: 16px; overflow: hidden;
+    }
+    .diff-section-header {
+      padding: 12px 16px;
+      background: var(--bg-elevated);
+      border-bottom: 1px solid var(--border);
+      font-size: 13px; font-weight: 600;
+    }
+    .diff-line {
+      padding: 8px 16px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px; line-height: 1.6;
+      border-bottom: 1px solid var(--border);
+    }
+    .diff-line:last-child { border-bottom: none; }
+    .diff-line.add { background: var(--diff-add); }
+    .diff-line.remove { background: var(--diff-remove); text-decoration: line-through; opacity: 0.7; }
+    .diff-line.context { color: var(--text-muted); }
+    .diff-prefix { 
+      display: inline-block; width: 20px;
+      color: var(--text-muted); font-weight: 600;
+    }
+    .diff-line.add .diff-prefix { color: var(--accent-emerald); }
+    .diff-line.remove .diff-prefix { color: var(--accent-rose); }
+
+    .revert-banner {
+      padding: 16px 20px;
+      background: rgba(244, 114, 182, 0.1);
+      border: 1px solid var(--accent-rose);
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .revert-text { font-size: 14px; }
+    .revert-text strong { color: var(--accent-rose); }
+  </style>
+</head>
+<body data-route="/admin/book-studio/:bookId/versions">
+  <header class="header">
+    <div class="header-left">
+      <a href="/admin/book-studio/pathologie_n4" class="back-btn" data-cta-id="cta-bookstudio-versions-back" data-action="navigate">← Back to Book</a>
+      <h1 class="page-title">Version History — Pathologie N4</h1>
+    </div>
+    <div style="display: flex; gap: 10px;">
+      <button class="btn btn-outline" data-cta-id="cta-bookstudio-versions-export" data-action="action">📥 Export Version</button>
+    </div>
+  </header>
+
+  <main class="main">
+    <aside class="timeline">
+      <div class="timeline-title">All Versions</div>
+
+      <div class="version-item current selected" data-cta-id="cta-bookstudio-version-item-3" data-action="action">
+        <div class="version-header">
+          <span class="version-tag">v3</span>
+          <span class="version-badge current">Current</span>
+        </div>
+        <div class="version-meta">Dec 29, 2025 at 14:32 • Auto-save</div>
+        <div class="version-stats">
+          <span class="stat add">+24 added</span>
+          <span class="stat change">~18 changed</span>
+          <span class="stat remove">-3 removed</span>
+        </div>
+      </div>
+
+      <div class="version-item" data-cta-id="cta-bookstudio-version-item-2" data-action="action">
+        <div class="version-header">
+          <span class="version-tag">v2</span>
+          <span class="version-badge published">Published</span>
+        </div>
+        <div class="version-meta">Dec 28, 2025 at 11:05 • Manual save</div>
+        <div class="version-stats">
+          <span class="stat add">+156 added</span>
+          <span class="stat change">~42 changed</span>
+        </div>
+      </div>
+
+      <div class="version-item" data-cta-id="cta-bookstudio-version-item-1" data-action="action">
+        <div class="version-header">
+          <span class="version-tag">v1</span>
+        </div>
+        <div class="version-meta">Dec 27, 2025 at 09:22 • Initial import</div>
+        <div class="version-stats">
+          <span class="stat add">+847 paragraphs</span>
+        </div>
+      </div>
+    </aside>
+
+    <div class="diff-viewer">
+      <div class="diff-header">
+        <div class="diff-title">Comparing v2 → v3</div>
+        <div class="diff-controls">
+          <button class="btn btn-outline" data-cta-id="cta-bookstudio-diff-toggle-unified" data-action="action">Unified View</button>
+          <button class="btn btn-outline" data-cta-id="cta-bookstudio-diff-toggle-split" data-action="action">Split View</button>
+        </div>
+      </div>
+
+      <div class="diff-summary">
+        <div class="diff-stat">
+          <div class="diff-stat-value add">+24</div>
+          <div class="diff-stat-label">Paragraphs added</div>
+        </div>
+        <div class="diff-stat">
+          <div class="diff-stat-value change">~18</div>
+          <div class="diff-stat-label">Paragraphs modified</div>
+        </div>
+        <div class="diff-stat">
+          <div class="diff-stat-value remove">-3</div>
+          <div class="diff-stat-label">Paragraphs removed</div>
+        </div>
+      </div>
+
+      <div class="revert-banner">
+        <div class="revert-text">
+          <strong>Revert to v2?</strong> This will create a new v4 with the content from v2.
+        </div>
+        <button class="btn btn-primary" data-cta-id="cta-bookstudio-revert-to-v2" data-action="action">↩ Revert to v2</button>
+      </div>
+
+      <div style="height: 24px;"></div>
+
+      <div class="diff-section">
+        <div class="diff-section-header">Chapter 3 / Section 3.2 / para-9b4f45d7-2a1c</div>
+        <div class="diff-line context"><span class="diff-prefix"></span>Het schakelcentrum bevindt zich in het ruggenmerg.</div>
+        <div class="diff-line remove"><span class="diff-prefix">-</span>Hier wordt de prikkel verwerkt.</div>
+        <div class="diff-line add"><span class="diff-prefix">+</span>Hier wordt de prikkel verwerkt en doorgestuurd naar de motorische zenuw.</div>
+        <div class="diff-line context"><span class="diff-prefix"></span>De motorische zenuw brengt het signaal naar de effector.</div>
+      </div>
+
+      <div class="diff-section">
+        <div class="diff-section-header">Chapter 3 / Section 3.3 / para-f6937ce1-8a2b (NEW)</div>
+        <div class="diff-line add"><span class="diff-prefix">+</span>Bij het neurologisch onderzoek test de arts verschillende reflexen.</div>
+        <div class="diff-line add"><span class="diff-prefix">+</span>De kniepeesreflex is een veelgebruikte test voor de functie van het ruggenmerg.</div>
+      </div>
+
+      <div class="diff-section">
+        <div class="diff-section-header">Chapter 3 / Section 3.4 / para-2456740f-c3d1</div>
+        <div class="diff-line remove"><span class="diff-prefix">-</span>Afwijkende reflexen kunnen wijzen op neurologische problemen.</div>
+        <div class="diff-line add"><span class="diff-prefix">+</span>Afwijkende reflexen, zoals hyperreflexie of areflexie, kunnen wijzen op neurologische aandoeningen.</div>
+      </div>
+    </div>
+  </main>
+</body>
+</html>
+

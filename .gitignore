@@ -56,12 +56,29 @@ _archive/
 /books/
 extracted_images.zip
 
+# Updated images package (very large; never commit)
+Updated images.zip
+/Updated images/
+
+# Local canonical JSON dumps (very large; never commit)
+/canonicaljsonsfrommacbook/
+
 # Local book render artifacts / previews
 tmp/
+
+# Local-only Docker build inputs (NEVER commit binaries like Prince installers)
+book-worker/private/
 
 # Environment files with secrets
 learnplay.env
 *.env
+.env.learnplay.generated
 !.env.example
 !.env.local.example
 !.deploy.env.example
+!mes-migration.env.example
+
+# Local scratch / imported dumps (NEVER commit)
+/external/
+/figures/
+*.rar

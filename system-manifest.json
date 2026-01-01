@@ -154,6 +154,74 @@
           { "name": "user_id", "type": "string" },
           { "name": "role", "type": "enum", "options": ["student", "teacher"] }
         ]
+      },
+      {
+        "name": "LibraryCourse",
+        "slug": "library-course",
+        "fields": [
+          { "name": "title", "type": "string" },
+          { "name": "source", "type": "string" },
+          { "name": "source_course_id", "type": "string" },
+          { "name": "locale", "type": "string" },
+          { "name": "category_path", "type": "string" },
+          { "name": "education_level", "type": "string" },
+          { "name": "course_ref", "type": "string" },
+          { "name": "status", "type": "enum", "options": ["active", "archived"] }
+        ]
+      },
+      {
+        "name": "LibraryMaterial",
+        "slug": "library-material",
+        "fields": [
+          { "name": "title", "type": "string" },
+          { "name": "source", "type": "string" },
+          { "name": "file_name", "type": "string" },
+          { "name": "content_type", "type": "string" },
+          { "name": "storage_path", "type": "string" },
+          { "name": "status", "type": "enum", "options": ["uploaded", "ingesting", "ready", "failed"] },
+          { "name": "analysis_summary", "type": "json" }
+        ]
+      },
+      {
+        "name": "LessonKit",
+        "slug": "lesson-kit",
+        "fields": [
+          { "name": "title", "type": "string" },
+          { "name": "material_id", "type": "string" },
+          { "name": "source_course_id", "type": "string" },
+          { "name": "locale", "type": "string" },
+          { "name": "status", "type": "enum", "options": ["draft", "ready", "failed"] },
+          { "name": "kit", "type": "json" },
+          { "name": "guard_report", "type": "json" }
+        ]
+      },
+      {
+        "name": "StandardsDocument",
+        "slug": "standards-document",
+        "fields": [
+          { "name": "title", "type": "string" },
+          { "name": "source", "type": "string" },
+          { "name": "locale", "type": "string" },
+          { "name": "file_name", "type": "string" },
+          { "name": "content_type", "type": "string" },
+          { "name": "storage_path", "type": "string" },
+          { "name": "status", "type": "enum", "options": ["uploaded", "ingesting", "ready", "failed"] },
+          { "name": "item_count", "type": "number" },
+          { "name": "items", "type": "json" },
+          { "name": "ingest_summary", "type": "json" }
+        ]
+      },
+      {
+        "name": "StandardsMapping",
+        "slug": "standards-mapping",
+        "fields": [
+          { "name": "title", "type": "string" },
+          { "name": "standards_document_id", "type": "string" },
+          { "name": "material_id", "type": "string" },
+          { "name": "status", "type": "enum", "options": ["queued", "mapping", "ready", "failed"] },
+          { "name": "mapping", "type": "json" },
+          { "name": "export", "type": "json" }
+        ]
       }
     ],
     "child_entities": [
@@ -259,6 +327,72 @@
       "target_entity": "JobTicket",
       "execution_mode": "async",
       "prompt_template": "Execute the LearnPlay regression checklist (CTA clicks, guard job, accessibility). Return JSON {\"total_tests\": number, \"passed\": number, \"failed\": number, \"details\": [{\"name\": string, \"status\": string, \"notes\": string}]}."
+    },
+    {
+      "id": "material_ingest",
+      "target_entity": "LibraryMaterial",
+      "execution_mode": "async",
+      "ui": {
+        "label": "Ingest Material",
+        "icon": "Upload",
+        "placement": "teacher"
+      },
+      "prompt_template": "Ingest the uploaded material at {{storage_path}} into chunks and embeddings. Return JSON {\"material_id\": string, \"chunk_count\": number}."
+    },
+    {
+      "id": "material_analyze",
+      "target_entity": "LibraryMaterial",
+      "execution_mode": "async",
+      "ui": {
+        "label": "Analyze Material",
+        "icon": "Sparkles",
+        "placement": "teacher"
+      },
+      "prompt_template": "Analyze the ingested material and produce a teacher-facing summary plus recommended next actions. Return JSON {\"summary\": string, \"key_concepts\": string[], \"suggested_assignments\": string[]}."
+    },
+    {
+      "id": "lessonkit_build",
+      "target_entity": "LessonKit",
+      "execution_mode": "async",
+      "ui": {
+        "label": "Build Lesson Kit",
+        "icon": "WandSparkles",
+        "placement": "teacher"
+      },
+      "prompt_template": "Build a grounded lesson kit from the provided material/course context. Return JSON {\"lesson_kit\": json, \"status\": \"ready\"|\"failed\", \"notes\": string}."
+    },
+    {
+      "id": "standards_ingest",
+      "target_entity": "StandardsDocument",
+      "execution_mode": "async",
+      "ui": {
+        "label": "Ingest Standards",
+        "icon": "Upload",
+        "placement": "teacher"
+      },
+      "prompt_template": "Ingest the uploaded standards document at {{storage_path}} and parse it into standards items. Return JSON {\"standards_document_id\": string, \"item_count\": number}."
+    },
+    {
+      "id": "standards_map",
+      "target_entity": "StandardsMapping",
+      "execution_mode": "async",
+      "ui": {
+        "label": "Map Standards",
+        "icon": "Link",
+        "placement": "teacher"
+      },
+      "prompt_template": "Map the ingested material {{material_id}} to the standards document {{standards_document_id}} using embeddings. Return JSON {\"mapping_id\": string, \"matches\": number}."
+    },
+    {
+      "id": "standards_export",
+      "target_entity": "StandardsMapping",
+      "execution_mode": "async",
+      "ui": {
+        "label": "Export Standards Mapping",
+        "icon": "FileDown",
+        "placement": "teacher"
+      },
+      "prompt_template": "Export the standards mapping {{mapping_id}} to CSV and return JSON {\"export_path\": string}."
     }
   ],
   "generation": {

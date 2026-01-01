@@ -41,6 +41,18 @@ interface EnqueueBody {
    */
   pipelineMode?: "bookgen_pro" | "render_only";
   /**
+   * Optional BookGen Pro planning provider/model controls.
+   * These are only used when pipelineMode="bookgen_pro".
+   */
+  planProvider?: "openai" | "anthropic";
+  planModel?: string;
+  /**
+   * Optional BookGen Pro rewrite provider/model controls.
+   * These are only used when pipelineMode="bookgen_pro".
+   */
+  rewriteProvider?: "openai" | "anthropic";
+  rewriteModel?: string;
+  /**
    * If true, the worker will replace missing images with visible placeholders
    * and still produce a draft PDF + a missing-assets report.
    */
@@ -100,6 +112,18 @@ serve(async (req: Request): Promise<Response> => {
     }
     if (body.pipelineMode !== undefined && !["bookgen_pro", "render_only"].includes(body.pipelineMode)) {
       return json({ ok: false, error: { code: "invalid_request", message: "pipelineMode must be bookgen_pro or render_only" }, httpStatus: 400, requestId }, 200);
+    }
+    if (body.planProvider !== undefined && !["openai", "anthropic"].includes(body.planProvider)) {
+      return json({ ok: false, error: { code: "invalid_request", message: "planProvider must be openai or anthropic" }, httpStatus: 400, requestId }, 200);
+    }
+    if (body.rewriteProvider !== undefined && !["openai", "anthropic"].includes(body.rewriteProvider)) {
+      return json({ ok: false, error: { code: "invalid_request", message: "rewriteProvider must be openai or anthropic" }, httpStatus: 400, requestId }, 200);
+    }
+    if (body.planModel !== undefined && typeof body.planModel !== "string") {
+      return json({ ok: false, error: { code: "invalid_request", message: "planModel must be a string" }, httpStatus: 400, requestId }, 200);
+    }
+    if (body.rewriteModel !== undefined && typeof body.rewriteModel !== "string") {
+      return json({ ok: false, error: { code: "invalid_request", message: "rewriteModel must be a string" }, httpStatus: 400, requestId }, 200);
     }
     if (body.allowMissingImages !== undefined && typeof body.allowMissingImages !== "boolean") {
       return json({ ok: false, error: { code: "invalid_request", message: "allowMissingImages must be a boolean" }, httpStatus: 400, requestId }, 200);
@@ -198,6 +222,10 @@ serve(async (req: Request): Promise<Response> => {
       status: "pending",
       payload: {
         ...(body.pipelineMode === "bookgen_pro" ? { pipelineMode: "bookgen_pro" } : {}),
+        ...(body.pipelineMode === "bookgen_pro" && body.planProvider ? { planProvider: body.planProvider } : {}),
+        ...(body.pipelineMode === "bookgen_pro" && body.planModel && body.planModel.trim() ? { planModel: body.planModel.trim() } : {}),
+        ...(body.pipelineMode === "bookgen_pro" && body.rewriteProvider ? { rewriteProvider: body.rewriteProvider } : {}),
+        ...(body.pipelineMode === "bookgen_pro" && body.rewriteModel && body.rewriteModel.trim() ? { rewriteModel: body.rewriteModel.trim() } : {}),
         ...(body.allowMissingImages === true ? { allowMissingImages: true } : {}),
       },
     };

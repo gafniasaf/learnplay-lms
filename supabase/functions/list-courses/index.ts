@@ -80,8 +80,16 @@ serve(withCors(async (req) => {
     const tags = tagsParam ? tagsParam.split(',').filter(t => t.trim()) : [];
     const sort = (url.searchParams.get('sort') || 'newest') as CourseListParams['sort'];
     const search = url.searchParams.get('search') || null;
+    // Optional course format filter (based on course_metadata.tags.__format).
+    // - format=all disables filtering
+    // - If omitted, no format filtering is applied (backwards compatible).
+    const formatParamRaw = (url.searchParams.get('format') || '').trim();
+    const formatFilter =
+      formatParamRaw && formatParamRaw.toLowerCase() !== 'all'
+        ? formatParamRaw
+        : null;
 
-    console.log('[list-courses] Params:', { page, limit, tags, sort, search, userId, userOrgId });
+    console.log('[list-courses] Params:', { page, limit, tags, sort, search, format: formatFilter, userId, userOrgId });
 
     // Build query
     let query = supabase
@@ -115,6 +123,21 @@ serve(withCors(async (req) => {
     query = query.is('deleted_at', null);
     if (!(includeArchived && isSuperadmin)) {
       query = query.is('archived_at', null);
+    }
+
+    // Apply format filter (server-side) if requested.
+    // NOTE: This relies on `course_metadata.tags.__format` being maintained by save-course metadata upserts.
+    if (formatFilter) {
+      // Conservative validation to avoid query-string injection through PostgREST filters.
+      // Allow only [a-zA-Z0-9_-] formats.
+      const safe = /^[a-zA-Z0-9_-]{1,40}$/.test(formatFilter);
+      if (!safe) {
+        return new Response(
+          JSON.stringify({ error: `Invalid format filter '${formatFilter}'. Expected alphanumeric/dash/underscore.` }),
+          { status: 400, headers: { 'Content-Type': 'application/json' } }
+        );
+      }
+      query = query.contains('tags', { __format: formatFilter });
     }
 
     // Apply tag filter

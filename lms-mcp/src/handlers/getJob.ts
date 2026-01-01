@@ -2,10 +2,13 @@ import { config } from '../config.js';
 import { fetchJson } from '../http.js';
 
 export async function getJob({ params }: { params: { jobId: string } }) {
+  if (!config.organizationId) {
+    throw new Error('BLOCKED: ORGANIZATION_ID is REQUIRED for getJob (agent auth requires org scope)');
+  }
   const url = `${config.supabaseUrl}/functions/v1/get-job?id=${encodeURIComponent(params.jobId)}`;
   const res = await fetchJson(url, {
     method: 'GET',
-    headers: { 'X-Agent-Token': config.agentToken },
+    headers: { 'X-Agent-Token': config.agentToken, 'X-Organization-Id': config.organizationId },
   });
   if (!res.ok) {
     throw new Error(`getJob failed (${res.status}) ${res.text || ''}`);

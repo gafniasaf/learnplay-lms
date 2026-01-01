@@ -47,8 +47,22 @@ export function escapeHtml(s) {
 
 function sanitizeInlineBookHtml(raw) {
   let html = String(raw ?? "");
-  // Normalize newlines into <br/> so they survive in Prince output.
-  html = html.replace(/\r?\n/g, "<br/>");
+
+  // Canonical markup: Convert deterministic tokens into real inline HTML before sanitizing.
+  // Without this, tokens like `<<BOLD_START>>...<<BOLD_END>>` get partially stripped as if
+  // they were tags, leaving visible `>` artifacts in the rendered PDF (e.g. `>Diffusie>`).
+  html = html.replace(/<<BOLD_START>>/g, "<strong>");
+  html = html.replace(/<<BOLD_END>>/g, "</strong>");
+
+  // Canonical text often uses `\n` between sentences (from extraction). Converting those into
+  // `<br/>` inside a justified paragraph causes ugly word spacing because Prince justifies the
+  // line before each forced break. Treat newlines as regular spaces for prose.
+  //
+  // If we later introduce explicit line-break semantics, do it at the block level (multiple <p>)
+  // rather than hard breaks inside a justified paragraph.
+  html = html.replace(/\r?\n/g, " ");
+  // Collapse repeated whitespace introduced by newline-to-space conversion.
+  html = html.replace(/[ \t]{2,}/g, " ");
 
   // Drop clearly dangerous/irrelevant tags entirely.
   html = html.replace(/<\s*(script|style|iframe|object|embed)\b[\s\S]*?<\s*\/\s*\1\s*>/gi, "");
@@ -181,7 +195,8 @@ export function renderBookHtml(
   --font-body: "FreightSans Pro", "Source Sans 3", "Helvetica Neue", Arial, sans-serif;
   --font-sans: "Facit", "Source Sans 3", "Helvetica Neue", Arial, sans-serif;
 
-  --page-bg: #fdfcfa;
+  /* Pure white background (avoid "yellowish/old paper" look) */
+  --page-bg: #ffffff;
   --text: #111;
   --muted: #555;
   --rule: #c9c9c9;
@@ -565,13 +580,14 @@ ol.steps + .p {
   margin: 0 0 2.5mm 0;
   display: flex;
   align-items: center;
-  gap: 2mm;
 }
 .recap-module .module-title::before {
   content: "";
   display: inline-block;
   width: 5mm;
   height: 5mm;
+  /* PrinceXML does not support flexbox gap; use margins for consistent spacing. */
+  margin-right: 2mm;
   background-repeat: no-repeat;
   background-position: center;
   background-size: contain;
@@ -727,15 +743,14 @@ figure.figure-block {
   margin: 5mm 0 6mm 0;
   break-inside: avoid;
   page-break-inside: avoid;
-  float: bottom;
-  float-placement: bottom;
 }
 figure.figure-block.full-width {
   width: 100%;
-  float: bottom;
-  float-reference: page;
+  max-width: 100%;
+  /* In a multi-column container, use column-span instead of Prince page-referenced floats.
+     Page-referenced floats can overlap adjacent columns (text paints over the image). */
+  column-span: all;
   clear: both;
-  float-placement: bottom;
 }
 figure.figure-block.full-width.chapter-opener {
   page: chapter-first;
@@ -848,6 +863,29 @@ figcaption.figure-caption {
   function renderContentBlocks(blocks) {
     if (!Array.isArray(blocks)) return "";
     let out = "";
+
+    function renderFiguresFromBlock(b) {
+      const images = Array.isArray(b?.images) ? b.images : [];
+      if (!images.length) return "";
+      let figOut = "";
+      for (const img of images) {
+        if (!img || typeof img !== "object") continue;
+        const src = typeof img.src === "string" ? img.src : null;
+        if (!src) continue;
+        const alt = typeof img.alt === "string" ? img.alt : "";
+        const caption = typeof img.caption === "string" ? img.caption : "";
+        const figureNumber = typeof img.figureNumber === "string" ? img.figureNumber : "";
+        const resolvedSrc = resolveAssetSrc(src, { assetsBaseUrl, srcMap: figures?.srcMap || figures?.src_map });
+        figOut += `<figure class="figure-block full-width"><img src="${escapeHtml(resolvedSrc)}" alt="${escapeHtml(alt)}" />`;
+        if (caption || figureNumber) {
+          const label = figureNumber ? `Afbeelding ${figureNumber}:` : "";
+          figOut += `<figcaption class="figure-caption">${label ? `<span class="figure-label">${escapeHtml(label)}</span> ` : ""}${escapeHtml(caption)}</figcaption>`;
+        }
+        figOut += `</figure>\n`;
+      }
+      return figOut;
+    }
+
     for (const b of blocks) {
       if (!b || typeof b !== "object") continue;
       const t = typeof b.type === "string" ? b.type : "";
@@ -861,28 +899,48 @@ figcaption.figure-caption {
         }
 
         if (typeof b.praktijk === "string" && b.praktijk.trim()) {
-          out += `<div class="box praktijk"><p><span class="box-label">In de praktijk:</span>${sanitizeInlineBookHtml(b.praktijk)}</p></div>\n`;
+          out += `<div class="box praktijk"><p><span class="box-label">In de praktijk:</span> ${sanitizeInlineBookHtml(b.praktijk)}</p></div>\n`;
         }
         if (typeof b.verdieping === "string" && b.verdieping.trim()) {
-          out += `<div class="box verdieping"><p><span class="box-label">Verdieping:</span>${sanitizeInlineBookHtml(b.verdieping)}</p></div>\n`;
+          out += `<div class="box verdieping"><p><span class="box-label">Verdieping:</span> ${sanitizeInlineBookHtml(b.verdieping)}</p></div>\n`;
         }
 
-        const images = Array.isArray(b.images) ? b.images : [];
-        for (const img of images) {
-          if (!img || typeof img !== "object") continue;
-          const src = typeof img.src === "string" ? img.src : null;
-          if (!src) continue;
-          const alt = typeof img.alt === "string" ? img.alt : "";
-          const caption = typeof img.caption === "string" ? img.caption : "";
-          const figureNumber = typeof img.figureNumber === "string" ? img.figureNumber : "";
-          const resolvedSrc = resolveAssetSrc(src, { assetsBaseUrl, srcMap: figures?.srcMap || figures?.src_map });
-          out += `<figure class="figure-block full-width"><img src="${escapeHtml(resolvedSrc)}" alt="${escapeHtml(alt)}" />`;
-          if (caption || figureNumber) {
-            const label = figureNumber ? `Afbeelding ${figureNumber}:` : "";
-            out += `<figcaption class="figure-caption">${label ? `<span class="figure-label">${escapeHtml(label)}</span> ` : ""}${escapeHtml(caption)}</figcaption>`;
+        out += renderFiguresFromBlock(b);
+        continue;
+      }
+
+      if (t === "list") {
+        const items = Array.isArray(b.items) ? b.items : [];
+        const ordered = b.ordered === true;
+        const clean = items
+          .map((x) => (typeof x === "string" ? x.trim() : ""))
+          .filter((x) => !!x);
+        if (clean.length) {
+          if (ordered) {
+            out += `<ol class="steps">\n`;
+            for (const it of clean) out += `  <li>${sanitizeInlineBookHtml(it)}</li>\n`;
+            out += `</ol>\n`;
+          } else {
+            out += `<ul class="bullets">\n`;
+            for (const it of clean) out += `  <li>${sanitizeInlineBookHtml(it)}</li>\n`;
+            out += `</ul>\n`;
           }
-          out += `</figure>\n`;
         }
+        out += renderFiguresFromBlock(b);
+        continue;
+      }
+
+      if (t === "steps") {
+        const items = Array.isArray(b.items) ? b.items : [];
+        const clean = items
+          .map((x) => (typeof x === "string" ? x.trim() : ""))
+          .filter((x) => !!x);
+        if (clean.length) {
+          out += `<ol class="steps">\n`;
+          for (const it of clean) out += `  <li>${sanitizeInlineBookHtml(it)}</li>\n`;
+          out += `</ol>\n`;
+        }
+        out += renderFiguresFromBlock(b);
         continue;
       }
 
@@ -1096,17 +1154,111 @@ figcaption.figure-caption {
     return { sentence: firstSentence(p.text), href: p.id ? `#pid-${toSafeDomId(p.id)}` : "" };
   }
 
-  function deriveSectionSummaries(sections, { max = 6 } = {}) {
+  function deriveSectionSummaries(sections, { max = 6, keyTerms = [] } = {}) {
     const out = [];
     const list = Array.isArray(sections) ? sections : [];
+    const globalTerms = (Array.isArray(keyTerms) ? keyTerms : [])
+      .map((t) => String(t || "").trim())
+      .filter(Boolean)
+      .slice(0, 20);
+
+    const stop = new Set(["de", "het", "een", "en", "van", "voor", "in", "op", "bij", "naar", "uit", "met", "om", "te", "je", "we"]);
+    const titleTokens = (title) =>
+      String(title || "")
+        .toLowerCase()
+        .split(/\s+/)
+        .map((w) => w.replace(/[^\p{L}\p{N}-]+/gu, ""))
+        .filter((w) => w.length >= 3 && !stop.has(w));
+
+    const splitSentences = (text) => {
+      const t = normalizeWhitespace(text);
+      if (!t) return [];
+      return t.split(/(?<=[.!?])\s+/).map((s) => String(s || "").trim()).filter(Boolean);
+    };
+
+    const countWords = (text) => normalizeWhitespace(text).split(/\s+/).filter(Boolean).length;
+
+    const scoreSentence = (sentence, { tokens, termNeedles }) => {
+      const s = normalizeWhitespace(sentence);
+      if (!s) return -9999;
+      const lower = s.toLowerCase();
+
+      // Drop pure boilerplate.
+      if (/^in dit hoofdstuk\b/i.test(s) || /^hier leer\b/i.test(s) || /^in deze sectie\b/i.test(s)) return -9999;
+
+      let score = 0;
+
+      // Prefer definitional / explanatory sentences.
+      if (/\b(is|zijn|heet|noem je|betekent)\b/i.test(s)) score += 2;
+
+      // Prefer sentences that mention the section topic.
+      const hasTitleToken = tokens.some((tok) => tok && lower.includes(tok));
+      if (hasTitleToken) score += 2;
+
+      // Prefer sentences that include bold-derived key terms (more specific).
+      let hits = 0;
+      for (const term of termNeedles) {
+        if (term && lower.includes(term)) hits++;
+      }
+      if (hits) score += 6 + Math.min(3, hits);
+
+      // Penalize generic openers.
+      if (/^net als\b/i.test(s)) score -= 6;
+
+      // Length sweet-spot (single, useful sentence).
+      const wc = countWords(s);
+      if (wc >= 10 && wc <= 22) score += 2;
+      else if (wc >= 7 && wc <= 28) score += 1;
+      else if (wc < 7) score -= 5;
+      else if (wc > 34) score -= 2;
+
+      // If it doesn't mention the section topic OR any key term, it's probably too generic.
+      if (!hasTitleToken && hits === 0) score -= 3;
+
+      return score;
+    };
+
     for (let j = 0; j < list.length && out.length < max; j++) {
       const s = list[j];
       const rawSt = s?.title || s?.meta?.title || "";
       const { number, title } = splitNumberedTitle(rawSt);
       const label = normalizeWhitespace(number ? `${number} ${title}` : title) || `Sectie ${j + 1}`;
-      const { sentence, href } = firstParagraphSentenceForSection(s);
-      if (!sentence) continue;
-      out.push({ label, sentence, href });
+
+      // Gather paragraph text for the section.
+      const paras = [];
+      collectParagraphRefsFromBlocks(s?.content || s?.blocks || s?.items, paras);
+
+      // Gather bold-derived terms for the section (higher precision than global terms).
+      const sectionTermsRaw = [];
+      collectKeyTermsFromBlocks(s?.content || s?.blocks || s?.items, sectionTermsRaw);
+      const sectionTerms = sectionTermsRaw.map((t) => String(t || "").trim()).filter(Boolean).slice(0, 20);
+
+      const needles = Array.from(new Set([...sectionTerms, ...globalTerms].map((t) => t.toLowerCase())))
+        .filter((t) => t.length >= 3);
+      const tokens = titleTokens(title);
+
+      let best = { score: -9999, sentence: "", href: "" };
+      for (const p of paras) {
+        const sentences = splitSentences(p.text);
+        for (const sent of sentences.slice(0, 3)) {
+          const sc = scoreSentence(sent, { tokens, termNeedles: needles });
+          if (sc > best.score) {
+            best = { score: sc, sentence: sent, href: p.id ? `#pid-${toSafeDomId(p.id)}` : "" };
+          }
+          // Early exit when we find a very good, specific sentence.
+          if (best.score >= 11) break;
+        }
+        if (best.score >= 11) break;
+      }
+
+      if (!best.sentence) {
+        const fallback = firstParagraphSentenceForSection(s);
+        if (fallback?.sentence) out.push({ label, sentence: fallback.sentence, href: fallback.href });
+        continue;
+      }
+
+      const clipped = best.sentence.length > 280 ? `${best.sentence.slice(0, 277).trim()}…` : best.sentence;
+      out.push({ label, sentence: clipped, href: best.href });
     }
     return out;
   }
@@ -1204,15 +1356,11 @@ figcaption.figure-caption {
     const keyTerms = deriveKeyTermsForChapter(ch).slice(0, 10);
     const questions = deriveCheckQuestions({ sections, keyTerms, max: 4 });
     const objectivesWithRefs = deriveLearningObjectivesWithRefs(sections, { chapterIndex: idx, max: 6 });
-    const summaries = deriveSectionSummaries(sections, { max: 6 });
+    const summaries = deriveSectionSummaries(sections, { max: 6, keyTerms });
     const paragraphs = collectParagraphRefsForChapter(ch);
     const glossary = deriveGlossaryItems({ keyTerms, paragraphs, max: 10 });
 
-    const allChapters = Array.isArray(canonical?.chapters) ? canonical.chapters : [];
-    const nextChapterRaw = allChapters[idx + 1]?.title || allChapters[idx + 1]?.meta?.title || "";
-    const nextChapterLabel = nextChapterRaw ? `${idx + 2}. ${stripChapterNumberPrefix(nextChapterRaw)}` : "";
-
-    if (keyTerms.length || questions.length || objectivesWithRefs.length || summaries.length || glossary.length || nextChapterLabel) {
+    if (keyTerms.length || questions.length || objectivesWithRefs.length || summaries.length || glossary.length) {
       out += `\n    <div class="chapter-recap">\n`;
 
       if (objectivesWithRefs.length) {
@@ -1241,7 +1389,9 @@ figcaption.figure-caption {
         out += `      </div>\n`;
       }
 
-      if (keyTerms.length) {
+      // "Kernbegrippen" is redundant when we already render definitions below.
+      // Keep it only as a fallback when we couldn't derive any glossary items.
+      if (keyTerms.length && glossary.length === 0) {
         out += `      <div class="recap-module kernbegrippen">\n`;
         out += `        <div class="module-title">Kernbegrippen</div>\n`;
         out += `        <ul class="bullets">\n`;
@@ -1271,15 +1421,6 @@ figcaption.figure-caption {
         out += `        <ol class="steps">\n`;
         for (const q of questions) out += `          <li>${escapeHtml(q)}</li>\n`;
         out += `        </ol>\n`;
-        out += `      </div>\n`;
-      }
-
-      if (nextChapterLabel) {
-        out += `      <div class="recap-module volgende-stap">\n`;
-        out += `        <div class="module-title">Volgende stap</div>\n`;
-        out += `        <ul class="bullets">\n`;
-        out += `          <li>Volgend hoofdstuk: <strong>${escapeHtml(nextChapterLabel)}</strong></li>\n`;
-        out += `        </ul>\n`;
         out += `      </div>\n`;
       }
 

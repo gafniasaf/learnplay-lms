@@ -167,7 +167,10 @@ function makeMissingImageDataUri(label) {
 }
 
 async function findMissingLocalImageAssets({ html, workDir }) {
-  const matches = [...String(html || "").matchAll(/<img[^>]+src=\"([^\"]+)\"/g)];
+  // IMPORTANT: match the actual `src="..."` attribute, not attributes that merely contain "src"
+  // like `data-missing-src="..."`. Also use non-greedy matching so we don't accidentally capture
+  // the last "src" occurrence in the tag.
+  const matches = [...String(html || "").matchAll(/<img\b[^>]*?\ssrc=\"([^\"]+)\"/gi)];
   const srcs = matches.map((m) => String(m[1] || "").trim()).filter(Boolean);
 
   const local = srcs.filter((s) => !isHttpUrl(s) && !isDataUrl(s) && !isFileUrl(s));
@@ -204,7 +207,8 @@ function applyMissingImagePlaceholders({ html, missingSrcs }) {
   if (missingSet.size === 0) return { html, replacements: 0 };
 
   let replacements = 0;
-  const nextHtml = String(html || "").replace(/<img([^>]*?)\bsrc=\"([^\"]+)\"([^>]*)>/g, (full, pre, src, post) => {
+  // Preserve the whitespace before `src="..."` so we don't end up with `<imgsrc="...">`.
+  const nextHtml = String(html || "").replace(/<img([^>]*?\s)src=\"([^\"]+)\"([^>]*)>/g, (full, pre, src, post) => {
     const s = String(src || "").trim();
     if (!missingSet.has(s)) return full;
     const label = basenameLike(s) || s;

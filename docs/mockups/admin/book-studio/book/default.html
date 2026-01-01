@@ -1,0 +1,784 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Book Studio - Pathologie N4</title>
+  <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:wght@400;500;600;700&family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-deep: #0a0a0f;
+      --bg-surface: #12121a;
+      --bg-card: #1a1a24;
+      --bg-elevated: #22222e;
+      --bg-hover: #2a2a38;
+      --border: #2d2d3a;
+      --border-accent: #3d3d4a;
+      --text: #f5f5f7;
+      --text-secondary: #a0a0b0;
+      --text-muted: #6b6b7a;
+      --accent-gold: #d4a853;
+      --accent-gold-dim: rgba(212, 168, 83, 0.15);
+      --accent-emerald: #34d399;
+      --accent-rose: #f472b6;
+      --accent-blue: #60a5fa;
+      --accent-purple: #a78bfa;
+      --shadow-glow: 0 0 60px rgba(212, 168, 83, 0.08);
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'DM Sans', -apple-system, sans-serif;
+      background: var(--bg-deep);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    /* Header */
+    .header {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(10, 10, 15, 0.85);
+      backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--border);
+      padding: 0 32px;
+      height: 72px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 24px;
+    }
+
+    .back-btn {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-size: 14px;
+      color: var(--text-secondary);
+      text-decoration: none;
+      transition: all 0.2s;
+      border: 1px solid var(--border);
+    }
+
+    .back-btn:hover {
+      background: var(--bg-hover);
+      color: var(--text);
+    }
+
+    .book-header-info h1 {
+      font-family: 'Crimson Pro', serif;
+      font-size: 22px;
+      font-weight: 600;
+    }
+
+    .book-header-meta {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    .badge {
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+
+    .badge-n4 {
+      background: rgba(52, 211, 153, 0.15);
+      color: var(--accent-emerald);
+    }
+
+    .header-actions {
+      display: flex;
+      gap: 12px;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 18px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+      border: none;
+      font-family: inherit;
+      text-decoration: none;
+    }
+
+    .btn-outline {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text-secondary);
+    }
+
+    .btn-outline:hover {
+      background: var(--bg-hover);
+      border-color: var(--border-accent);
+      color: var(--text);
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--accent-gold), #b8860b);
+      color: #0a0a0f;
+      font-weight: 600;
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 20px rgba(212, 168, 83, 0.3);
+    }
+
+    .btn-ghost {
+      background: transparent;
+      color: var(--text-secondary);
+      padding: 8px 12px;
+    }
+
+    .btn-ghost:hover {
+      color: var(--text);
+      background: var(--bg-hover);
+    }
+
+    /* Main Layout */
+    .main {
+      display: grid;
+      grid-template-columns: 320px 1fr;
+      min-height: calc(100vh - 72px);
+    }
+
+    /* Sidebar - Book Cover & Info */
+    .sidebar {
+      background: var(--bg-surface);
+      border-right: 1px solid var(--border);
+      padding: 32px;
+    }
+
+    .cover-section {
+      margin-bottom: 32px;
+    }
+
+    .cover-container {
+      aspect-ratio: 3/4;
+      background: linear-gradient(145deg, #1e1e2a, #2a2a38);
+      border-radius: 12px;
+      overflow: hidden;
+      position: relative;
+      border: 1px solid var(--border);
+    }
+
+    .cover-placeholder {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+    }
+
+    .cover-placeholder .icon {
+      font-size: 64px;
+      opacity: 0.5;
+    }
+
+    .cover-overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(0,0,0,0.7);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+
+    .cover-container:hover .cover-overlay {
+      opacity: 1;
+    }
+
+    .cover-btn {
+      padding: 10px 20px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-size: 13px;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .cover-btn:hover {
+      background: var(--accent-gold);
+      color: var(--bg-deep);
+      border-color: var(--accent-gold);
+    }
+
+    .book-details {
+      margin-bottom: 32px;
+    }
+
+    .detail-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 12px 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 14px;
+    }
+
+    .detail-label {
+      color: var(--text-muted);
+    }
+
+    .detail-value {
+      color: var(--text);
+      font-weight: 500;
+    }
+
+    .sidebar-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .sidebar-btn {
+      width: 100%;
+      padding: 12px 16px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+    }
+
+    .sidebar-btn:hover {
+      background: var(--bg-hover);
+      border-color: var(--border-accent);
+    }
+
+    .sidebar-btn.danger {
+      color: var(--accent-rose);
+    }
+
+    .sidebar-btn.danger:hover {
+      background: rgba(244, 114, 182, 0.1);
+      border-color: var(--accent-rose);
+    }
+
+    /* Content Area */
+    .content {
+      padding: 32px;
+      overflow-y: auto;
+    }
+
+    .section {
+      margin-bottom: 40px;
+    }
+
+    .section-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 20px;
+    }
+
+    .section-title {
+      font-family: 'Crimson Pro', serif;
+      font-size: 24px;
+      font-weight: 600;
+    }
+
+    /* Chapter Grid */
+    .chapter-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 16px;
+    }
+
+    .chapter-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+      transition: all 0.2s;
+      text-decoration: none;
+      color: inherit;
+    }
+
+    .chapter-card:hover {
+      border-color: var(--accent-gold);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 30px rgba(0,0,0,0.3);
+    }
+
+    .chapter-opener {
+      height: 100px;
+      background: linear-gradient(135deg, #252532, #1a1a24);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .chapter-opener img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .chapter-opener-placeholder {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 32px;
+      opacity: 0.3;
+    }
+
+    .chapter-number {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      width: 32px;
+      height: 32px;
+      background: var(--bg-card);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      font-weight: 700;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .chapter-status-badge {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+
+    .chapter-status-badge.complete {
+      background: rgba(52, 211, 153, 0.2);
+      color: var(--accent-emerald);
+    }
+
+    .chapter-status-badge.building {
+      background: rgba(212, 168, 83, 0.2);
+      color: var(--accent-gold);
+    }
+
+    .chapter-status-badge.draft {
+      background: rgba(107, 107, 122, 0.2);
+      color: var(--text-muted);
+    }
+
+    .chapter-info {
+      padding: 16px;
+    }
+
+    .chapter-title {
+      font-size: 15px;
+      font-weight: 600;
+      margin-bottom: 8px;
+      line-height: 1.4;
+    }
+
+    .chapter-meta {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    .chapter-actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px solid var(--border);
+    }
+
+    .chapter-action-btn {
+      flex: 1;
+      padding: 8px 12px;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text-secondary);
+      font-size: 12px;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      text-decoration: none;
+    }
+
+    .chapter-action-btn:hover {
+      background: var(--bg-hover);
+      color: var(--text);
+      border-color: var(--border-accent);
+    }
+
+    .chapter-action-btn.primary {
+      background: var(--accent-gold-dim);
+      border-color: var(--accent-gold);
+      color: var(--accent-gold);
+    }
+
+    .chapter-action-btn.primary:hover {
+      background: var(--accent-gold);
+      color: var(--bg-deep);
+    }
+
+    /* Version Panel */
+    .version-banner {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 24px;
+    }
+
+    .version-info {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .version-tag {
+      padding: 8px 16px;
+      background: var(--accent-gold-dim);
+      border: 1px solid var(--accent-gold);
+      border-radius: 8px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--accent-gold);
+    }
+
+    .version-details {
+      font-size: 14px;
+    }
+
+    .version-details .date {
+      color: var(--text-muted);
+    }
+
+    .version-actions {
+      display: flex;
+      gap: 10px;
+    }
+  </style>
+</head>
+<body data-route="/admin/book-studio/:bookId">
+  <!-- Header -->
+  <header class="header">
+    <div class="header-left">
+      <a href="/admin/book-studio" class="back-btn" data-cta-id="cta-bookstudio-back-to-library" data-action="navigate">
+        ← Library
+      </a>
+      <div class="book-header-info">
+        <h1>Pathologie N4</h1>
+        <div class="book-header-meta">
+          <span class="badge badge-n4">N4</span>
+          <span>12 chapters</span>
+          <span>•</span>
+          <span>Last edited 2h ago</span>
+        </div>
+      </div>
+    </div>
+    <div class="header-actions">
+      <button class="btn btn-outline" data-cta-id="cta-bookstudio-book-refresh" data-action="action">
+        ↻ Refresh
+      </button>
+      <a href="/admin/book-studio/pathologie_n4/versions" class="btn btn-outline" data-cta-id="cta-bookstudio-book-versions" data-action="navigate">
+        📋 Versions
+      </a>
+      <button class="btn btn-primary" data-cta-id="cta-bookstudio-book-render" data-action="action">
+        🖨️ Render PDF
+      </button>
+    </div>
+  </header>
+
+  <!-- Main -->
+  <main class="main">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="cover-section">
+        <div class="cover-container">
+          <div class="cover-placeholder">
+            <span class="icon">🫀</span>
+          </div>
+          <div class="cover-overlay">
+            <button class="cover-btn" data-cta-id="cta-bookstudio-cover-upload" data-action="action">
+              📤 Upload Cover
+            </button>
+            <button class="cover-btn" data-cta-id="cta-bookstudio-cover-ai" data-action="action">
+              🎨 AI Generate
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="book-details">
+        <div class="detail-row">
+          <span class="detail-label">Book ID</span>
+          <span class="detail-value" style="font-family: 'JetBrains Mono', monospace; font-size: 12px;">pathologie_n4</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">Level</span>
+          <span class="detail-value">N4</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">Chapters</span>
+          <span class="detail-value">12</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">Paragraphs</span>
+          <span class="detail-value">847</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">Images</span>
+          <span class="detail-value">124 / 156</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">Version</span>
+          <span class="detail-value">v3</span>
+        </div>
+      </div>
+
+      <div class="sidebar-actions">
+        <button class="sidebar-btn" data-cta-id="cta-bookstudio-book-export" data-action="action">
+          📥 Export JSON
+        </button>
+        <a href="/admin/books/pathologie_n4/runs/latest" class="sidebar-btn" data-cta-id="cta-bookstudio-book-runs" data-action="navigate">
+          🔄 View Runs
+        </a>
+        <a href="/admin/book-studio/pathologie_n4/missing-images" class="sidebar-btn" data-cta-id="cta-bookstudio-book-missing-images" data-action="navigate">
+          🖼️ Missing Images
+        </a>
+        <button class="sidebar-btn danger" data-cta-id="cta-bookstudio-book-archive" data-action="action">
+          🗃️ Archive Book
+        </button>
+      </div>
+    </aside>
+
+    <!-- Content -->
+    <div class="content">
+      <!-- Version Banner -->
+      <div class="version-banner">
+        <div class="version-info">
+          <div class="version-tag">v3</div>
+          <div class="version-details">
+            Current working version <span class="date">• Last saved Dec 29, 2025 at 14:32</span>
+          </div>
+        </div>
+        <div class="version-actions">
+          <button class="btn btn-ghost" data-cta-id="cta-bookstudio-version-compare" data-action="action">
+            Compare v2
+          </button>
+          <button class="btn btn-outline" data-cta-id="cta-bookstudio-version-publish" data-action="action">
+            Publish v3
+          </button>
+        </div>
+      </div>
+
+      <!-- Chapters Section -->
+      <section class="section">
+        <div class="section-header">
+          <h2 class="section-title">Chapters</h2>
+          <div style="display: flex; gap: 10px;">
+            <button class="btn btn-outline" data-cta-id="cta-bookstudio-rewrite-all-book" data-action="action">
+              🤖 AI Rewrite All
+            </button>
+          </div>
+        </div>
+
+        <div class="chapter-grid">
+          <!-- Chapter 1 -->
+          <div class="chapter-card">
+            <div class="chapter-opener">
+              <div class="chapter-opener-placeholder">🔬</div>
+              <div class="chapter-number">1</div>
+              <span class="chapter-status-badge complete">Complete</span>
+            </div>
+            <div class="chapter-info">
+              <h3 class="chapter-title">Inleiding tot pathologie</h3>
+              <div class="chapter-meta">
+                <span>42 paragraphs</span>
+                <span>12 images</span>
+              </div>
+              <div class="chapter-actions">
+                <a href="/admin/book-studio/pathologie_n4/chapters/0" class="chapter-action-btn primary" data-cta-id="cta-bookstudio-chapter-edit-0" data-action="navigate">
+                  ✏️ Edit
+                </a>
+                <button class="chapter-action-btn" data-cta-id="cta-bookstudio-chapter-opener-0" data-action="action">
+                  🖼️ Opener
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Chapter 2 -->
+          <div class="chapter-card">
+            <div class="chapter-opener">
+              <div class="chapter-opener-placeholder">🦠</div>
+              <div class="chapter-number">2</div>
+              <span class="chapter-status-badge complete">Complete</span>
+            </div>
+            <div class="chapter-info">
+              <h3 class="chapter-title">Celbeschadiging en celdood</h3>
+              <div class="chapter-meta">
+                <span>68 paragraphs</span>
+                <span>18 images</span>
+              </div>
+              <div class="chapter-actions">
+                <a href="/admin/book-studio/pathologie_n4/chapters/1" class="chapter-action-btn primary" data-cta-id="cta-bookstudio-chapter-edit-1" data-action="navigate">
+                  ✏️ Edit
+                </a>
+                <button class="chapter-action-btn" data-cta-id="cta-bookstudio-chapter-opener-1" data-action="action">
+                  🖼️ Opener
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Chapter 3 - Building -->
+          <div class="chapter-card">
+            <div class="chapter-opener">
+              <div class="chapter-opener-placeholder">🧬</div>
+              <div class="chapter-number">3</div>
+              <span class="chapter-status-badge building">Building...</span>
+            </div>
+            <div class="chapter-info">
+              <h3 class="chapter-title">Afwijkende reflexen</h3>
+              <div class="chapter-meta">
+                <span>55 paragraphs</span>
+                <span>8 / 14 images</span>
+              </div>
+              <div class="chapter-actions">
+                <a href="/admin/book-studio/pathologie_n4/chapters/2" class="chapter-action-btn primary" data-cta-id="cta-bookstudio-chapter-edit-2" data-action="navigate">
+                  ✏️ Edit
+                </a>
+                <button class="chapter-action-btn" data-cta-id="cta-bookstudio-chapter-opener-2" data-action="action">
+                  🖼️ Opener
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Chapter 4 -->
+          <div class="chapter-card">
+            <div class="chapter-opener">
+              <div class="chapter-opener-placeholder">🩸</div>
+              <div class="chapter-number">4</div>
+              <span class="chapter-status-badge draft">Draft</span>
+            </div>
+            <div class="chapter-info">
+              <h3 class="chapter-title">Bloedstolling en hemostase</h3>
+              <div class="chapter-meta">
+                <span>71 paragraphs</span>
+                <span>0 / 16 images</span>
+              </div>
+              <div class="chapter-actions">
+                <a href="/admin/book-studio/pathologie_n4/chapters/3" class="chapter-action-btn primary" data-cta-id="cta-bookstudio-chapter-edit-3" data-action="navigate">
+                  ✏️ Edit
+                </a>
+                <button class="chapter-action-btn" data-cta-id="cta-bookstudio-chapter-opener-3" data-action="action">
+                  🖼️ Opener
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Chapter 5-12 abbreviated -->
+          <div class="chapter-card">
+            <div class="chapter-opener">
+              <div class="chapter-opener-placeholder">❤️</div>
+              <div class="chapter-number">5</div>
+              <span class="chapter-status-badge draft">Draft</span>
+            </div>
+            <div class="chapter-info">
+              <h3 class="chapter-title">Hart- en vaatziekten</h3>
+              <div class="chapter-meta">
+                <span>89 paragraphs</span>
+                <span>0 / 22 images</span>
+              </div>
+              <div class="chapter-actions">
+                <a href="/admin/book-studio/pathologie_n4/chapters/4" class="chapter-action-btn primary" data-cta-id="cta-bookstudio-chapter-edit-4" data-action="navigate">
+                  ✏️ Edit
+                </a>
+                <button class="chapter-action-btn" data-cta-id="cta-bookstudio-chapter-opener-4" data-action="action">
+                  🖼️ Opener
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div class="chapter-card">
+            <div class="chapter-opener">
+              <div class="chapter-opener-placeholder">🫁</div>
+              <div class="chapter-number">6</div>
+              <span class="chapter-status-badge draft">Draft</span>
+            </div>
+            <div class="chapter-info">
+              <h3 class="chapter-title">Longziekten</h3>
+              <div class="chapter-meta">
+                <span>64 paragraphs</span>
+                <span>0 / 18 images</span>
+              </div>
+              <div class="chapter-actions">
+                <a href="/admin/book-studio/pathologie_n4/chapters/5" class="chapter-action-btn primary" data-cta-id="cta-bookstudio-chapter-edit-5" data-action="navigate">
+                  ✏️ Edit
+                </a>
+                <button class="chapter-action-btn" data-cta-id="cta-bookstudio-chapter-opener-5" data-action="action">
+                  🖼️ Opener
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+  </main>
+</body>
+</html>
+

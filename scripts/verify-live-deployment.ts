@@ -39,6 +39,7 @@ const SUPABASE_ANON_KEY =
   process.env.SUPABASE_ANON_KEY ||
   process.env.VITE_SUPABASE_ANON_KEY ||
   process.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 // REQUIRED: Set via env var or learnplay.env: AGENT_TOKEN=...
 // Per IgniteZero rules: No fallback tokens - fail loudly if not configured
@@ -57,11 +58,19 @@ if (!AGENT_TOKEN) {
   process.exit(1);
 }
 
+// REQUIRED for DB schema verification (prevents PostgREST schema-cache surprises for new pipelines)
+if (!SUPABASE_SERVICE_ROLE_KEY) {
+  console.error("❌ SUPABASE_SERVICE_ROLE_KEY is REQUIRED for verify-live deployment checks");
+  console.error("   Add it to supabase/.deploy.env or learnplay.env (gitignored), or export it in your shell.");
+  process.exit(1);
+}
+
 // Some Edge functions require a concrete acting user id when using agent auth.
 // Provide via learnplay.env: "user id" (or "student id") or via env: VERIFY_USER_ID=...
 const VERIFY_USER_ID = process.env.VERIFY_USER_ID;
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const adminSupabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false } });
 
 // Test tracking
 let totalTests = 0;
@@ -220,6 +229,55 @@ async function main() {
   console.log(`   ORGANIZATION_ID: ${ORGANIZATION_ID}`);
   console.log(`   VERIFY_USER_ID: ${VERIFY_USER_ID ?? "—"}`);
   console.log(`   SUPABASE_URL: ${SUPABASE_URL}\n`);
+
+  // ============================================
+  // SECTION 0: DB Prerequisites (Schema + Buckets)
+  // ============================================
+  console.log("═══════════════════════════════════════════════════");
+  console.log("🧱 SECTION 0: DB Prerequisites");
+  console.log("═══════════════════════════════════════════════════");
+
+  // 0.1 content_embeddings table must exist (used by materials + standards mapping)
+  try {
+    const { error } = await adminSupabase.from("content_embeddings").select("id").limit(1);
+    if (error) {
+      fail("db-content_embeddings", error.message || "Unknown error");
+    } else {
+      pass("db-content_embeddings", "OK");
+    }
+  } catch (e) {
+    fail("db-content_embeddings", e instanceof Error ? e.message : String(e));
+  }
+
+  // 0.2 match_content_embeddings RPC must exist (used by standards_map)
+  try {
+    const zeros = Array.from({ length: 1536 }, () => 0);
+    const { error } = await adminSupabase.rpc("match_content_embeddings", {
+      p_organization_id: ORGANIZATION_ID,
+      p_course_id: "material:__verify__",
+      p_query_embedding: zeros,
+      p_limit: 1,
+    });
+    if (error) {
+      fail("db-match_content_embeddings", error.message || "Unknown error");
+    } else {
+      pass("db-match_content_embeddings", "OK");
+    }
+  } catch (e) {
+    fail("db-match_content_embeddings", e instanceof Error ? e.message : String(e));
+  }
+
+  // 0.3 materials bucket must exist (used by materials + standards artifacts)
+  try {
+    const { error } = await adminSupabase.storage.getBucket("materials");
+    if (error) {
+      fail("storage-bucket-materials", error.message || "Unknown error");
+    } else {
+      pass("storage-bucket-materials", "OK");
+    }
+  } catch (e) {
+    fail("storage-bucket-materials", e instanceof Error ? e.message : String(e));
+  }
 
   // Store IDs for cross-referencing tests
   let testPlanId: string | null = null;

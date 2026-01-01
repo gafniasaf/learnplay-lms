@@ -39,6 +39,24 @@ interface Body {
    */
   target?: "book" | "chapter";
   chapterIndex?: number;
+  /**
+   * If true, attempt to resolve (and sign) chapter opener images from the shared
+   * image library index so the worker can render the correct opener per chapter.
+   *
+   * NOTE: This is especially important for canonicals that store openers in
+   * non-rendered fields (e.g. chapter-level `images`) or use conventional src
+   * keys like `Book_chapter_opener.jpg`.
+   */
+  includeChapterOpeners?: boolean;
+  /**
+   * If true, and the canonical appears to be "text-only" (very few embedded
+   * image references), try to auto-attach per-chapter figures from the shared
+   * image library by inferring chapter/figure numbers from filenames.
+   *
+   * This is a best-effort bridge for older exports where figures were not
+   * embedded into the canonical JSON.
+   */
+  autoAttachLibraryImages?: boolean;
 }
 
 function isHttpUrl(s: string): boolean {
@@ -100,6 +118,96 @@ function collectImageSrcs(node: unknown, out: Set<string>): void {
   }
 }
 
+function stripHashPrefix(raw: string): string {
+  // Many uploaded image names are prefixed like: "1b8d11d9d526__Image 2.7 ....png"
+  return String(raw || "").replace(/^[0-9a-f]{8,}__+/i, "");
+}
+function stripExtension(raw: string): string {
+  return String(raw || "").replace(/\.[a-z0-9]{2,6}$/i, "");
+}
+function normalizeLabel(raw: string): string {
+  return stripExtension(stripHashPrefix(String(raw || "")))
+    .replace(/_/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+function isLikelyLogoName(raw: string): boolean {
+  const s = normalizeLabel(raw).toLowerCase();
+  if (!s) return true;
+  if (s.includes("ec logo")) return true;
+  if (s.includes("ec_logo")) return true;
+  if (s === "mbologo" || s.includes("mbo logo") || s.includes("mbo_logo")) return true;
+  return false;
+}
+function isLikelyChapterOpenerName(raw: string): boolean {
+  const s = normalizeLabel(raw);
+  const lower = s.toLowerCase();
+  if (lower.includes("chapteropener")) return true;
+  if (lower.includes("book_chapter_opener")) return true;
+  if (/\b0deel\s*\d{1,3}\b/i.test(s)) return true;
+  // E.g. "11. Zorg bieden" (full-page chapter opener images)
+  if (/^[0-9]{1,3}\s*\.\s+\S+/.test(s)) return true;
+  return false;
+}
+function inferOpenerChapterNumber(raw: string): number | null {
+  const s = normalizeLabel(raw);
+  const m1 = s.match(/\bChapterOpener\s*([0-9]{1,3})\b/i);
+  if (m1?.[1]) {
+    const n = Number(m1[1]);
+    return Number.isFinite(n) && n > 0 ? n : null;
+  }
+  const m2 = s.match(/\b0Deel\s*([0-9]{1,3})\b/i);
+  if (m2?.[1]) {
+    const n = Number(m2[1]);
+    return Number.isFinite(n) && n > 0 ? n : null;
+  }
+  const m3 = s.match(/^([0-9]{1,3})\s*\.\s+\S+/);
+  if (m3?.[1]) {
+    const n = Number(m3[1]);
+    return Number.isFinite(n) && n > 0 ? n : null;
+  }
+  return null;
+}
+function inferFigureNumber(raw: string): string | null {
+  const s = normalizeLabel(raw);
+  // Strong signal: "Image 2.7 ..." / "Afbeelding 4.13 ..."
+  const m1 = s.match(/\b(?:Image|Afbeelding)\s*([0-9]{1,3})\s*[._]\s*([0-9]{1,3})(?:\s*-\s*([0-9]+))?/i);
+  if (m1?.[1] && m1?.[2]) {
+    const a = Number(m1[1]);
+    const b = Number(m1[2]);
+    const c = m1[3] ? Number(m1[3]) : null;
+    if (!Number.isFinite(a) || !Number.isFinite(b)) return null;
+    return `${a}.${b}${c !== null && Number.isFinite(c) ? `-${c}` : ""}`;
+  }
+  // Fallback: any "12.34" style token in the filename
+  const m2 = s.match(/\b([0-9]{1,3})\s*[._]\s*([0-9]{1,3})(?:\s*-\s*([0-9]+))?\b/);
+  if (m2?.[1] && m2?.[2]) {
+    const a = Number(m2[1]);
+    const b = Number(m2[2]);
+    const c = m2[3] ? Number(m2[3]) : null;
+    if (!Number.isFinite(a) || !Number.isFinite(b)) return null;
+    return `${a}.${b}${c !== null && Number.isFinite(c) ? `-${c}` : ""}`;
+  }
+  return null;
+}
+function inferChapterNumberFromFigureNumber(fig: string | null): number | null {
+  if (!fig) return null;
+  const major = String(fig).split(".")[0] || "";
+  const n = Number(major);
+  return Number.isFinite(n) && n > 0 ? n : null;
+}
+function deriveCaption(rawName: string, figNum: string | null): string {
+  const s = normalizeLabel(rawName);
+  if (!s) return "";
+  let out = s;
+  if (figNum) {
+    const safe = figNum.replace(/\./g, "\\.");
+    out = out.replace(new RegExp(`\\b(?:Image|Afbeelding)\\s*${safe}\\b`, "i"), "");
+  }
+  out = out.replace(/^[\s\-:]+/, "").trim();
+  return out;
+}
+
 serve(async (req: Request): Promise<Response> => {
   const requestId = crypto.randomUUID();
 
@@ -145,6 +253,8 @@ serve(async (req: Request): Promise<Response> => {
 
     const expiresIn = typeof body.expiresIn === "number" && body.expiresIn > 0 ? Math.min(body.expiresIn, 60 * 60 * 24) : 3600;
     const allowMissingImages = body.allowMissingImages === true;
+    const includeChapterOpeners = body.includeChapterOpeners === true;
+    const autoAttachLibraryImages = body.autoAttachLibraryImages === true;
 
     // Verify book belongs to org
     const { data: book, error: bookErr } = await adminSupabase
@@ -208,6 +318,12 @@ serve(async (req: Request): Promise<Response> => {
       ? Math.floor(body.chapterIndex)
       : null;
 
+    // Extra outputs for the worker:
+    // - chapterOpeners: chapterIndex -> canonical src key (resolved via imageSrcMap)
+    // - autoChapterFigures: chapterIndex -> list of figure descriptors to inject when canonicals lack embedded figures
+    let chapterOpeners: Record<number, string> | null = null;
+    let autoChapterFigures: Record<number, Array<{ src: string; alt?: string; caption?: string; figureNumber?: string }>> | null = null;
+
     if (wantsImageMap) {
       // 1) Download canonical JSON to discover referenced images (scoped by target/chapterIndex).
       const { data: canonBlob, error: canonDlErr } = await adminSupabase.storage
@@ -221,6 +337,14 @@ serve(async (req: Request): Promise<Response> => {
           canonicalJson = text ? JSON.parse(text) : null;
         } catch {
           canonicalJson = null;
+        }
+        if (!canonicalJson || typeof canonicalJson !== "object") {
+          return json({
+            ok: false,
+            error: { code: "invalid_canonical", message: "BLOCKED: canonical.json could not be parsed" },
+            httpStatus: 409,
+            requestId,
+          }, 200);
         }
 
         // Collect referenced image src strings
@@ -238,14 +362,165 @@ serve(async (req: Request): Promise<Response> => {
           .filter((s) => !!s)
           .filter((s) => !isHttpUrl(s) && !isDataUrl(s) && !isFileUrl(s));
 
-        if (needed.length) {
-          // 2) Load image library index (generated by scripts/books/upload-book-image-library.py)
-          const libraryIndexPath = `library/${body.bookId}/images-index.json`;
-          const { data: idxBlob, error: idxErr } = await adminSupabase.storage
-            .from("books")
-            .download(libraryIndexPath);
+        // Load the shared image library index if:
+        // - canonical references local images, OR
+        // - caller requests chapter openers, OR
+        // - caller requests auto-attach of figures for text-only canonicals.
+        const wantsLibraryIndex = needed.length > 0 || includeChapterOpeners || autoAttachLibraryImages;
+        const libraryIndexPath = `library/${body.bookId}/images-index.json`;
+        let idxBlob: Blob | null = null;
+        let idxErr: any = null;
+        let idxJson: any = null;
+        let idxSrcMap: Record<string, string> = {};
 
+        if (wantsLibraryIndex) {
+          const dl = await adminSupabase.storage.from("books").download(libraryIndexPath);
+          idxBlob = dl.data ?? null;
+          idxErr = dl.error ?? null;
           if (idxErr || !idxBlob) {
+            // If no assets.zip and we need library-based resolution, fail loudly unless allowMissingImages=true.
+            if (!assetsZip) {
+              if (!allowMissingImages) {
+                return json({
+                  ok: false,
+                  error: {
+                    code: "missing_image_library",
+                    message:
+                      `BLOCKED: Image library index is missing at ${libraryIndexPath}. ` +
+                      `Upload it (script: scripts/books/upload-book-image-library.py) or provide assets.zip for this bookVersion.`,
+                  },
+                  httpStatus: 409,
+                  requestId,
+                }, 200);
+              }
+            }
+          } else {
+            try {
+              const text = await idxBlob.text();
+              idxJson = text ? JSON.parse(text) : null;
+            } catch {
+              idxJson = null;
+            }
+            idxSrcMap =
+              (idxJson && typeof idxJson === "object" && (idxJson.srcMap || idxJson.src_map) && typeof (idxJson.srcMap || idxJson.src_map) === "object")
+                ? (idxJson.srcMap || idxJson.src_map)
+                : {};
+          }
+        }
+
+        // Derive chapter openers + (optional) auto figures from the library index.
+        // IMPORTANT: We only ever choose images from THIS book's library index.
+        const chaptersAll = Array.isArray(canonicalJson?.chapters) ? canonicalJson.chapters : [];
+        const selectedChapterIndices =
+          body.target === "chapter" && imageMapChapterIndex !== null
+            ? [imageMapChapterIndex]
+            : chaptersAll.map((_, i) => i);
+
+        const extraNeeded = new Set<string>();
+
+        if (includeChapterOpeners && idxJson && typeof idxJson === "object") {
+          const originals = Array.isArray(idxJson.entries)
+            ? idxJson.entries
+              .map((e: any) => (e && typeof e.originalName === "string" ? e.originalName.trim() : ""))
+              .filter((s: string) => !!s)
+            : Object.keys(idxSrcMap).filter((k) => typeof k === "string" && !k.includes("/") && !!k.trim());
+
+          let genericOpener: string | null = null;
+          const byChapter = new Map<number, string[]>();
+          for (const name of originals) {
+            const clean = normalizeLabel(name);
+            const lower = clean.toLowerCase();
+            if (lower.includes("book_chapter_opener") && !genericOpener) {
+              genericOpener = name;
+            }
+            if (!isLikelyChapterOpenerName(name)) continue;
+            const chNum = inferOpenerChapterNumber(name);
+            if (!chNum) continue;
+            const list = byChapter.get(chNum) || [];
+            list.push(name);
+            byChapter.set(chNum, list);
+          }
+
+          const pickBest = (candidates: string[]): string => {
+            const scored = candidates
+              .map((n) => {
+                const c = normalizeLabel(n).toLowerCase();
+                const rank = c.includes("chapteropener") ? 3 : (/\b0deel\s*\d+\b/i.test(c) ? 2 : (/^[0-9]{1,3}\s*\.\s+/.test(c) ? 1 : 0));
+                return { n, rank, len: c.length };
+              })
+              .sort((a, b) => (b.rank - a.rank) || (a.len - b.len) || a.n.localeCompare(b.n));
+            return scored[0]?.n || candidates[0]!;
+          };
+
+          chapterOpeners = {};
+          for (const idx of selectedChapterIndices) {
+            const rawNum = String(chaptersAll?.[idx]?.number || "").trim();
+            const n = rawNum && /^\d+$/.test(rawNum) ? Number(rawNum) : null;
+            const candidates = n !== null ? (byChapter.get(n) || []) : [];
+            const chosen = candidates.length ? pickBest(candidates) : (genericOpener || null);
+            if (chosen) {
+              chapterOpeners[idx] = chosen;
+              extraNeeded.add(chosen);
+            }
+          }
+        }
+
+        if (autoAttachLibraryImages && idxJson && typeof idxJson === "object") {
+          // Heuristic guard: only run when the canonical is near-empty of embedded images.
+          // (Avoid duplicating figures for image-rich canonicals.)
+          const canonicalImageCount = needed.length;
+          if (canonicalImageCount <= 3) {
+            const originals = Array.isArray(idxJson.entries)
+              ? idxJson.entries
+                .map((e: any) => (e && typeof e.originalName === "string" ? e.originalName.trim() : ""))
+                .filter((s: string) => !!s)
+              : Object.keys(idxSrcMap).filter((k) => typeof k === "string" && !k.includes("/") && !!k.trim());
+
+            const byChapter = new Map<number, Array<{ src: string; alt?: string; caption?: string; figureNumber?: string }>>();
+            for (const name of originals) {
+              if (isLikelyLogoName(name)) continue;
+              if (isLikelyChapterOpenerName(name)) continue;
+              const figNum = inferFigureNumber(name);
+              const chNum = inferChapterNumberFromFigureNumber(figNum);
+              if (!figNum || !chNum) continue;
+              const caption = deriveCaption(name, figNum);
+              const alt = caption || (figNum ? `Afbeelding ${figNum}` : "");
+              const list = byChapter.get(chNum) || [];
+              list.push({ src: name, figureNumber: figNum, caption, alt });
+              byChapter.set(chNum, list);
+            }
+
+            autoChapterFigures = {};
+            for (const idx of selectedChapterIndices) {
+              const rawNum = String(chaptersAll?.[idx]?.number || "").trim();
+              const n = rawNum && /^\d+$/.test(rawNum) ? Number(rawNum) : null;
+              if (n === null) continue;
+              const figs = byChapter.get(n) || [];
+              if (!figs.length) continue;
+              // Deterministic order: by figureNumber then caption
+              figs.sort((a, b) => {
+                const an = String(a.figureNumber || "");
+                const bn = String(b.figureNumber || "");
+                if (an !== bn) return an.localeCompare(bn, "en", { numeric: true });
+                return String(a.caption || "").localeCompare(String(b.caption || ""));
+              });
+              autoChapterFigures[idx] = figs;
+              for (const f of figs) {
+                if (f?.src) extraNeeded.add(f.src);
+              }
+            }
+          }
+        }
+
+        const neededAll = Array.from(new Set([...needed, ...Array.from(extraNeeded)]));
+
+        if (neededAll.length) {
+          // 2) Load image library index (generated by scripts/books/upload-book-image-library.py)
+          const { data: idxBlob2, error: idxErr2 } = wantsLibraryIndex
+            ? { data: idxBlob, error: idxErr }
+            : await adminSupabase.storage.from("books").download(libraryIndexPath);
+
+          if (idxErr2 || !idxBlob2) {
             // If no assets.zip and canonical needs local images, fail loudly.
             if (!assetsZip) {
               if (!allowMissingImages) {
@@ -254,7 +529,7 @@ serve(async (req: Request): Promise<Response> => {
                   error: {
                     code: "missing_image_library",
                     message:
-                      `BLOCKED: Canonical references ${needed.length} image(s) but no assets.zip was found and ` +
+                      `BLOCKED: Canonical references ${needed.length} image(s) (plus library-derived openers/figures) but no assets.zip was found and ` +
                       `the image library index is missing at ${libraryIndexPath}. ` +
                       `Upload it (script: scripts/books/upload-book-image-library.py) or provide figures.json srcMap.`,
                   },
@@ -267,7 +542,7 @@ serve(async (req: Request): Promise<Response> => {
               // library/{bookId}/images/{basename} so users can fix missing images without index updates.
               imageSrcMap = imageSrcMap || {};
               const stillMissing: string[] = [];
-              for (const rawSrc of needed) {
+              for (const rawSrc of neededAll) {
                 const base = basenameLike(rawSrc);
                 if (!base) {
                   stillMissing.push(rawSrc);
@@ -284,18 +559,19 @@ serve(async (req: Request): Promise<Response> => {
               missingImageSrcs = stillMissing.length ? stillMissing : null;
             }
           } else {
-            let idxJson: any = null;
-            try {
-              const text = await idxBlob.text();
-              idxJson = text ? JSON.parse(text) : null;
-            } catch {
-              idxJson = null;
+            // idxJson/idxSrcMap were parsed above when wantsLibraryIndex=true, but keep a fallback for safety.
+            if (!idxJson || typeof idxJson !== "object" || !idxSrcMap || typeof idxSrcMap !== "object") {
+              try {
+                const text = await idxBlob2.text();
+                idxJson = text ? JSON.parse(text) : null;
+              } catch {
+                idxJson = null;
+              }
+              idxSrcMap =
+                (idxJson && typeof idxJson === "object" && (idxJson.srcMap || idxJson.src_map) && typeof (idxJson.srcMap || idxJson.src_map) === "object")
+                  ? (idxJson.srcMap || idxJson.src_map)
+                  : {};
             }
-
-            const idxSrcMap: Record<string, string> =
-              (idxJson && typeof idxJson === "object" && (idxJson.srcMap || idxJson.src_map) && typeof (idxJson.srcMap || idxJson.src_map) === "object")
-                ? (idxJson.srcMap || idxJson.src_map)
-                : {};
 
             // Map canonical src -> storage path
             const neededPaths = new Map<string, string>(); // canonicalSrc -> storagePath
@@ -306,7 +582,7 @@ serve(async (req: Request): Promise<Response> => {
               if (!stem) continue;
               if (stemMap[stem] === undefined) stemMap[stem] = v;
             }
-            for (const rawSrc of needed) {
+            for (const rawSrc of neededAll) {
               const direct = typeof idxSrcMap[rawSrc] === "string" ? idxSrcMap[rawSrc] : null;
               const byBase = (() => {
                 const b = basenameLike(rawSrc);
@@ -437,6 +713,12 @@ serve(async (req: Request): Promise<Response> => {
       // Optional resolved image map for renderers/workers:
       // canonical img.src (as stored) -> signed URL to the uploaded library image.
       imageSrcMap,
+      // Optional chapter opener mapping (chapterIndex -> canonical src key).
+      // Workers can pass this into the renderer to ensure openers are from the correct book library.
+      chapterOpeners,
+      // Optional inferred per-chapter figures (chapterIndex -> array of figure descriptors).
+      // When present, workers may inject these as figure blocks for "text-only" canonicals.
+      autoChapterFigures,
       // If allowMissingImages=true, this can be populated so the worker can render placeholders + a report.
       missingImageSrcs,
       requestId,

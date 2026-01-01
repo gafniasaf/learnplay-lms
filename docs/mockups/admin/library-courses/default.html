@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Library Courses</title>
+  </head>
+  <body>
+    <main data-route="/admin/library-courses">
+      <header>
+        <a data-cta-id="nav-admin" data-action="navigate" href="/admin">Admin</a>
+        <h1>Library Courses</h1>
+        <p>Browse imported/non-playable courses (e.g. MES cache) without impacting Play catalogs.</p>
+      </header>
+
+      <section>
+        <label>
+          Search
+          <input
+            data-cta-id="cta-admin-library-courses-search"
+            data-action="edit"
+            placeholder="Search by title/subject/id..."
+          />
+        </label>
+
+        <button data-cta-id="cta-admin-library-courses-refresh" data-action="action" type="button">
+          Refresh
+        </button>
+
+        <label>
+          Format
+          <select data-cta-id="cta-admin-library-courses-format" data-action="select">
+            <option value="mes">MES</option>
+            <option value="library">Library</option>
+            <option value="all">All</option>
+          </select>
+        </label>
+
+        <label>
+          Page Size
+          <select data-cta-id="cta-admin-library-courses-page-size" data-action="select">
+            <option value="20">20</option>
+            <option value="50">50</option>
+            <option value="100">100</option>
+          </select>
+        </label>
+      </section>
+
+      <section>
+        <h2>Results</h2>
+        <div>
+          <div>
+            <div>Demo Library Course</div>
+            <div>demo-course • format=mes</div>
+          </div>
+          <a
+            data-cta-id="cta-admin-library-courses-open"
+            data-action="navigate"
+            href="/admin/library-courses/demo-course"
+          >
+            Open
+          </a>
+        </div>
+      </section>
+
+      <footer>
+        <button data-cta-id="cta-admin-library-courses-prev" data-action="navigate" type="button">
+          Prev
+        </button>
+        <button data-cta-id="cta-admin-library-courses-next" data-action="navigate" type="button">
+          Next
+        </button>
+      </footer>
+    </main>
+  </body>
+</html>
+
+
+

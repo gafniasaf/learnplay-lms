@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Teacher Materials</title>
+  </head>
+  <body>
+    <main data-route="/teacher/materials">
+      <header>
+        <nav>
+          <a data-cta-id="nav-kids" data-action="navigate" href="/kids">Kids</a>
+          <a data-cta-id="nav-parents" data-action="navigate" href="/parent/dashboard">Parents</a>
+          <a data-cta-id="nav-schools" data-action="navigate" href="/schools">Schools</a>
+          <a data-cta-id="nav-admin" data-action="navigate" href="/admin">Admin</a>
+        </nav>
+        <h1>Materials</h1>
+        <p>Upload teacher materials, ingest + embed, then analyze with a real LLM.</p>
+      </header>
+
+      <section>
+        <label>
+          Title (optional)
+          <input data-cta-id="cta-teacher-materials-title" data-action="edit" placeholder="Title" />
+        </label>
+
+        <label>
+          File
+          <input data-cta-id="cta-teacher-materials-file" data-action="edit" type="file" />
+        </label>
+
+        <button data-cta-id="cta-teacher-materials-upload-and-ingest" data-action="action" type="button">
+          Upload &amp; Ingest
+        </button>
+
+        <button data-cta-id="cta-teacher-materials-refresh" data-action="action" type="button">
+          Refresh
+        </button>
+
+        <button data-cta-id="cta-teacher-materials-reset" data-action="action" type="button">
+          Reset
+        </button>
+      </section>
+    </main>
+  </body>
+</html>
+
+
+

@@ -19,9 +19,10 @@ This is a high-signal index of additional Edge Functions present in `supabase/fu
   - list-messages (GET), list-conversations (GET) — Inbox/conversations
 
 - Catalog / Content
-  - list-courses (GET) — Paginated catalog (global + org)
+  - list-courses (GET) — Paginated catalog (global + org). Supports `?format=` filter via `course_metadata.tags.__format` (e.g. `format=practice` for playable catalogs, `format=mes` for imported library browsing).
   - list-courses-filtered (GET) — Tag/org/visibility filters
   - get-course (GET), publish-course (POST), restore-course-version (POST)
+  - search-courses (GET) — Metadata search (id/title/subject). Supports `?format=` filter (same as list-courses).
   - update-course (POST), apply-course-patch (POST), fix-catalog-entry (POST)
   - update-catalog (POST), debug-catalog (GET), debug-storage (GET)
 

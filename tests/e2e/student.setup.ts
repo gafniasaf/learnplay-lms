@@ -30,6 +30,7 @@ function requireEnvVar(name: string): string {
 setup('authenticate as student', async ({ page }) => {
   const studentEmail = requireEnvVar('E2E_STUDENT_EMAIL');
   const studentPassword = requireEnvVar('E2E_STUDENT_PASSWORD');
+  const orgId = requireEnvVar('ORGANIZATION_ID');
 
   const supabaseUrl = requireEnvVar('VITE_SUPABASE_URL');
   const supabaseAnonKey =
@@ -74,16 +75,41 @@ setup('authenticate as student', async ({ page }) => {
     const admin = createClient(supabaseUrl, serviceRoleKey, {
       auth: { autoRefreshToken: false, persistSession: false },
     });
-    const { error: createErr } = await admin.auth.admin.createUser({
+    const { data: created, error: createErr } = await admin.auth.admin.createUser({
       email: studentEmail,
       password: studentPassword,
       email_confirm: true,
-      user_metadata: { role: 'student' },
+      user_metadata: { role: 'student', organization_id: orgId },
     });
     if (createErr) {
       const msg = createErr.message || '';
       const alreadyExists = msg.toLowerCase().includes('already') || msg.toLowerCase().includes('exists');
       if (!alreadyExists) throw new Error(`Failed to auto-provision student user: ${createErr.message}`);
+    }
+
+    // Ensure org claim is present in auth metadata (required by RLS / auth hook).
+    const userId = created?.user?.id;
+    if (userId) {
+      const { error: metaErr } = await admin.auth.admin.updateUserById(userId, {
+        app_metadata: { organization_id: orgId },
+        user_metadata: { organization_id: orgId, role: 'student' },
+      });
+      if (metaErr) throw new Error(`Failed to set student organization_id: ${metaErr.message}`);
+
+      const { data: existingRoles, error: rolesErr } = await (admin as any)
+        .from('user_roles')
+        .select('id')
+        .eq('user_id', userId)
+        .eq('organization_id', orgId)
+        .eq('role', 'viewer')
+        .limit(1);
+      if (rolesErr) throw new Error(`Failed to query student user_roles: ${rolesErr.message}`);
+      if (!Array.isArray(existingRoles) || existingRoles.length === 0) {
+        const { error: insErr } = await (admin as any)
+          .from('user_roles')
+          .insert({ user_id: userId, organization_id: orgId, role: 'viewer' });
+        if (insErr) throw new Error(`Failed to insert student viewer role: ${insErr.message}`);
+      }
     }
     session = await login();
   }

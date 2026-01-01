@@ -215,6 +215,99 @@ export const ClassMembershipSchema = z.object({
 export type ClassMembership = z.infer<typeof ClassMembershipSchema>;
 
 
+export const LibraryCourseSchema = z.object({
+  id: z.string().uuid(),
+  organization_id: z.string().uuid(),
+  created_at: z.string().datetime().optional(),
+  updated_at: z.string().datetime().optional(),
+  version: z.number().int().default(1),
+  format: z.string().default('v1'),
+  title: z.string().optional(),
+  source: z.string().optional(),
+  source_course_id: z.string().optional(),
+  locale: z.string().optional(),
+  category_path: z.string().optional(),
+  education_level: z.string().optional(),
+  course_ref: z.string().optional(),
+  status: z.enum(['active', 'archived'])
+});
+export type LibraryCourse = z.infer<typeof LibraryCourseSchema>;
+
+
+export const LibraryMaterialSchema = z.object({
+  id: z.string().uuid(),
+  organization_id: z.string().uuid(),
+  created_at: z.string().datetime().optional(),
+  updated_at: z.string().datetime().optional(),
+  version: z.number().int().default(1),
+  format: z.string().default('v1'),
+  title: z.string().optional(),
+  source: z.string().optional(),
+  file_name: z.string().optional(),
+  content_type: z.string().optional(),
+  storage_path: z.string().optional(),
+  status: z.enum(['uploaded', 'ingesting', 'ready', 'failed']),
+  analysis_summary: z.any().optional()
+});
+export type LibraryMaterial = z.infer<typeof LibraryMaterialSchema>;
+
+
+export const LessonKitSchema = z.object({
+  id: z.string().uuid(),
+  organization_id: z.string().uuid(),
+  created_at: z.string().datetime().optional(),
+  updated_at: z.string().datetime().optional(),
+  version: z.number().int().default(1),
+  format: z.string().default('v1'),
+  title: z.string().optional(),
+  material_id: z.string().optional(),
+  source_course_id: z.string().optional(),
+  locale: z.string().optional(),
+  status: z.enum(['draft', 'ready', 'failed']),
+  kit: z.any().optional(),
+  guard_report: z.any().optional()
+});
+export type LessonKit = z.infer<typeof LessonKitSchema>;
+
+
+export const StandardsDocumentSchema = z.object({
+  id: z.string().uuid(),
+  organization_id: z.string().uuid(),
+  created_at: z.string().datetime().optional(),
+  updated_at: z.string().datetime().optional(),
+  version: z.number().int().default(1),
+  format: z.string().default('v1'),
+  title: z.string().optional(),
+  source: z.string().optional(),
+  locale: z.string().optional(),
+  file_name: z.string().optional(),
+  content_type: z.string().optional(),
+  storage_path: z.string().optional(),
+  status: z.enum(['uploaded', 'ingesting', 'ready', 'failed']),
+  item_count: z.number().optional(),
+  items: z.any().optional(),
+  ingest_summary: z.any().optional()
+});
+export type StandardsDocument = z.infer<typeof StandardsDocumentSchema>;
+
+
+export const StandardsMappingSchema = z.object({
+  id: z.string().uuid(),
+  organization_id: z.string().uuid(),
+  created_at: z.string().datetime().optional(),
+  updated_at: z.string().datetime().optional(),
+  version: z.number().int().default(1),
+  format: z.string().default('v1'),
+  title: z.string().optional(),
+  standards_document_id: z.string().optional(),
+  material_id: z.string().optional(),
+  status: z.enum(['queued', 'mapping', 'ready', 'failed']),
+  mapping: z.any().optional(),
+  export: z.any().optional()
+});
+export type StandardsMapping = z.infer<typeof StandardsMappingSchema>;
+
+
 export const SessionEventSchema = z.object({
   id: z.string().uuid(),
   organization_id: z.string().uuid(),
@@ -297,6 +390,42 @@ export const JobPayloadSchema = z.discriminatedUnion('jobType', [
     jobType: z.literal('plan_matrix_run'),
     learnerprofileId: z.string().uuid().optional(), 
     payload: z.record(z.any()).optional().describe("Input for plan_matrix_run")
+  }),
+
+  z.object({
+    jobType: z.literal('material_ingest'),
+    learnerprofileId: z.string().uuid().optional(), 
+    payload: z.record(z.any()).optional().describe("Input for material_ingest")
+  }),
+
+  z.object({
+    jobType: z.literal('material_analyze'),
+    learnerprofileId: z.string().uuid().optional(), 
+    payload: z.record(z.any()).optional().describe("Input for material_analyze")
+  }),
+
+  z.object({
+    jobType: z.literal('lessonkit_build'),
+    learnerprofileId: z.string().uuid().optional(), 
+    payload: z.record(z.any()).optional().describe("Input for lessonkit_build")
+  }),
+
+  z.object({
+    jobType: z.literal('standards_ingest'),
+    learnerprofileId: z.string().uuid().optional(), 
+    payload: z.record(z.any()).optional().describe("Input for standards_ingest")
+  }),
+
+  z.object({
+    jobType: z.literal('standards_map'),
+    learnerprofileId: z.string().uuid().optional(), 
+    payload: z.record(z.any()).optional().describe("Input for standards_map")
+  }),
+
+  z.object({
+    jobType: z.literal('standards_export'),
+    learnerprofileId: z.string().uuid().optional(), 
+    payload: z.record(z.any()).optional().describe("Input for standards_export")
   })
 ]);
 export type JobPayload = z.infer<typeof JobPayloadSchema>;
@@ -712,6 +841,195 @@ export const ENTITY_FIELDS = {
       ]
     }
   ],
+  "LibraryCourse": [
+    {
+      "key": "title",
+      "type": "string"
+    },
+    {
+      "key": "source",
+      "type": "string"
+    },
+    {
+      "key": "source_course_id",
+      "type": "string"
+    },
+    {
+      "key": "locale",
+      "type": "string"
+    },
+    {
+      "key": "category_path",
+      "type": "string"
+    },
+    {
+      "key": "education_level",
+      "type": "string"
+    },
+    {
+      "key": "course_ref",
+      "type": "string"
+    },
+    {
+      "key": "status",
+      "type": "enum",
+      "options": [
+        "active",
+        "archived"
+      ]
+    }
+  ],
+  "LibraryMaterial": [
+    {
+      "key": "title",
+      "type": "string"
+    },
+    {
+      "key": "source",
+      "type": "string"
+    },
+    {
+      "key": "file_name",
+      "type": "string"
+    },
+    {
+      "key": "content_type",
+      "type": "string"
+    },
+    {
+      "key": "storage_path",
+      "type": "string"
+    },
+    {
+      "key": "status",
+      "type": "enum",
+      "options": [
+        "uploaded",
+        "ingesting",
+        "ready",
+        "failed"
+      ]
+    },
+    {
+      "key": "analysis_summary",
+      "type": "json"
+    }
+  ],
+  "LessonKit": [
+    {
+      "key": "title",
+      "type": "string"
+    },
+    {
+      "key": "material_id",
+      "type": "string"
+    },
+    {
+      "key": "source_course_id",
+      "type": "string"
+    },
+    {
+      "key": "locale",
+      "type": "string"
+    },
+    {
+      "key": "status",
+      "type": "enum",
+      "options": [
+        "draft",
+        "ready",
+        "failed"
+      ]
+    },
+    {
+      "key": "kit",
+      "type": "json"
+    },
+    {
+      "key": "guard_report",
+      "type": "json"
+    }
+  ],
+  "StandardsDocument": [
+    {
+      "key": "title",
+      "type": "string"
+    },
+    {
+      "key": "source",
+      "type": "string"
+    },
+    {
+      "key": "locale",
+      "type": "string"
+    },
+    {
+      "key": "file_name",
+      "type": "string"
+    },
+    {
+      "key": "content_type",
+      "type": "string"
+    },
+    {
+      "key": "storage_path",
+      "type": "string"
+    },
+    {
+      "key": "status",
+      "type": "enum",
+      "options": [
+        "uploaded",
+        "ingesting",
+        "ready",
+        "failed"
+      ]
+    },
+    {
+      "key": "item_count",
+      "type": "number"
+    },
+    {
+      "key": "items",
+      "type": "json"
+    },
+    {
+      "key": "ingest_summary",
+      "type": "json"
+    }
+  ],
+  "StandardsMapping": [
+    {
+      "key": "title",
+      "type": "string"
+    },
+    {
+      "key": "standards_document_id",
+      "type": "string"
+    },
+    {
+      "key": "material_id",
+      "type": "string"
+    },
+    {
+      "key": "status",
+      "type": "enum",
+      "options": [
+        "queued",
+        "mapping",
+        "ready",
+        "failed"
+      ]
+    },
+    {
+      "key": "mapping",
+      "type": "json"
+    },
+    {
+      "key": "export",
+      "type": "json"
+    }
+  ],
   "SessionEvent": [
     {
       "key": "assignment_id",
@@ -773,7 +1091,13 @@ export const JOB_MODES = {
   "ai_course_generate": "async",
   "guard_course": "synchronous",
   "compile_mockups": "async",
-  "plan_matrix_run": "async"
+  "plan_matrix_run": "async",
+  "material_ingest": "async",
+  "material_analyze": "async",
+  "lessonkit_build": "async",
+  "standards_ingest": "async",
+  "standards_map": "async",
+  "standards_export": "async"
 } as const;
 
 // --- Edge Function Schemas (for MCP typing) ---

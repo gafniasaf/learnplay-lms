@@ -89,6 +89,14 @@
 
 ---
 
+### 6.5 **Library Courses** (`/admin/library-courses`)
+**Status**: ✅ **Keep**
+- Dedicated browsing for imported/non-playable course formats (e.g. `mes`, `library`)
+- Prevents imported content from polluting playable catalogs and breaking Play flows
+- Intended for teacher/admin review and downstream lesson-kit/material workflows
+
+---
+
 ### 7. **Tag Management** + **Tag Approval Queue**
 **Status**: ✅ **Keep**
 - Unique functionality

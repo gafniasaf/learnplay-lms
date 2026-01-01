@@ -18,11 +18,14 @@ describe('JOB_MODES configuration', () => {
     expect(JOB_MODES.book_ingest_version).toBe('async');
     expect(JOB_MODES.book_render_chapter).toBe('async');
     expect(JOB_MODES.book_render_full).toBe('async');
+    expect(JOB_MODES.material_ingest).toBe('async');
+    expect(JOB_MODES.material_analyze).toBe('async');
+    expect(JOB_MODES.lessonkit_build).toBe('async');
   });
 
-  it('has all 8 job types defined', () => {
+  it('has all 14 job types defined', () => {
     const jobTypes = Object.keys(JOB_MODES);
-    expect(jobTypes).toHaveLength(8);
+    expect(jobTypes).toHaveLength(14);
     expect(jobTypes).toContain('draft_assignment_plan');
     expect(jobTypes).toContain('ai_course_generate');
     expect(jobTypes).toContain('guard_course');
@@ -31,13 +34,19 @@ describe('JOB_MODES configuration', () => {
     expect(jobTypes).toContain('book_ingest_version');
     expect(jobTypes).toContain('book_render_chapter');
     expect(jobTypes).toContain('book_render_full');
+    expect(jobTypes).toContain('material_ingest');
+    expect(jobTypes).toContain('material_analyze');
+    expect(jobTypes).toContain('lessonkit_build');
+    expect(jobTypes).toContain('standards_ingest');
+    expect(jobTypes).toContain('standards_map');
+    expect(jobTypes).toContain('standards_export');
   });
 });
 
 describe('ENTITY_FIELDS configuration', () => {
-  it('has all 14 entities defined', () => {
+  it('has all 19 entities defined', () => {
     const entities = Object.keys(ENTITY_FIELDS);
-    expect(entities).toHaveLength(14);
+    expect(entities).toHaveLength(19);
     expect(entities).toContain('LearnerProfile');
     expect(entities).toContain('Book');
     expect(entities).toContain('BookVersion');
@@ -52,6 +61,11 @@ describe('ENTITY_FIELDS configuration', () => {
     expect(entities).toContain('ClassMembership');
     expect(entities).toContain('SessionEvent');
     expect(entities).toContain('GoalUpdate');
+    expect(entities).toContain('LibraryCourse');
+    expect(entities).toContain('LibraryMaterial');
+    expect(entities).toContain('LessonKit');
+    expect(entities).toContain('StandardsDocument');
+    expect(entities).toContain('StandardsMapping');
   });
 
   it('LearnerProfile has all required fields', () => {
@@ -122,6 +136,9 @@ describe('MCP method naming conventions', () => {
       'class-membership': 'ClassMembership',
       'session-event': 'SessionEvent',
       'goal-update': 'GoalUpdate',
+      'library-course': 'LibraryCourse',
+      'library-material': 'LibraryMaterial',
+      'lesson-kit': 'LessonKit',
     };
 
     Object.entries(slugPatterns).forEach(([slug, entityName]) => {

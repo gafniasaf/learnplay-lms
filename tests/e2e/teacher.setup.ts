@@ -30,6 +30,7 @@ function requireEnvVar(name: string): string {
 setup('authenticate as teacher', async ({ page }) => {
   const teacherEmail = requireEnvVar('E2E_TEACHER_EMAIL');
   const teacherPassword = requireEnvVar('E2E_TEACHER_PASSWORD');
+  const orgId = requireEnvVar('ORGANIZATION_ID');
 
   const supabaseUrl = requireEnvVar('VITE_SUPABASE_URL');
   const supabaseAnonKey =
@@ -70,18 +71,83 @@ setup('authenticate as teacher', async ({ page }) => {
     const admin = createClient(supabaseUrl, serviceRoleKey, {
       auth: { autoRefreshToken: false, persistSession: false },
     });
-    const { error: createErr } = await admin.auth.admin.createUser({
+    const { data: created, error: createErr } = await admin.auth.admin.createUser({
       email: teacherEmail,
       password: teacherPassword,
       email_confirm: true,
-      user_metadata: { role: 'teacher' },
+      user_metadata: { role: 'teacher', organization_id: orgId },
     });
     if (createErr) {
       const msg = createErr.message || '';
       const alreadyExists = msg.toLowerCase().includes('already') || msg.toLowerCase().includes('exists');
       if (!alreadyExists) throw new Error(`Failed to auto-provision teacher user: ${createErr.message}`);
     }
+
+    // Ensure org claim is present in auth metadata (required by RLS / auth hook).
+    const userId = created?.user?.id;
+    if (userId) {
+      const { error: metaErr } = await admin.auth.admin.updateUserById(userId, {
+        app_metadata: { organization_id: orgId },
+        user_metadata: { organization_id: orgId, role: 'teacher' },
+      });
+      if (metaErr) throw new Error(`Failed to set teacher organization_id: ${metaErr.message}`);
+
+      // Ensure at least viewer role in org for deterministic access to org-scoped resources.
+      const { data: existingRoles, error: rolesErr } = await (admin as any)
+        .from('user_roles')
+        .select('id')
+        .eq('user_id', userId)
+        .eq('organization_id', orgId)
+        .eq('role', 'viewer')
+        .limit(1);
+      if (rolesErr) throw new Error(`Failed to query teacher user_roles: ${rolesErr.message}`);
+      if (!Array.isArray(existingRoles) || existingRoles.length === 0) {
+        const { error: insErr } = await (admin as any)
+          .from('user_roles')
+          .insert({ user_id: userId, organization_id: orgId, role: 'viewer' });
+        if (insErr) throw new Error(`Failed to insert teacher viewer role: ${insErr.message}`);
+      }
+    }
     session = await login();
+  }
+
+  // Ensure teacher has required org membership/roles even if the user already existed.
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!serviceRoleKey) {
+    throw new Error('SUPABASE_SERVICE_ROLE_KEY is required to provision teacher org membership for real-db e2e');
+  }
+  const adminClient = createClient(supabaseUrl, serviceRoleKey, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  });
+  const teacherUserId = session.user.id;
+
+  // Ensure org claim is present in auth metadata (required by auth hook / RLS).
+  const { error: metaErr } = await adminClient.auth.admin.updateUserById(teacherUserId, {
+    app_metadata: { organization_id: orgId },
+    user_metadata: { organization_id: orgId, role: 'teacher' },
+  });
+  if (metaErr) throw new Error(`Failed to set teacher organization_id: ${metaErr.message}`);
+
+  // Ensure org membership + role exists in organization_users (required by teacher endpoints).
+  const { data: orgUser, error: orgUserErr } = await (adminClient as any)
+    .from('organization_users')
+    .select('org_role')
+    .eq('org_id', orgId)
+    .eq('user_id', teacherUserId)
+    .maybeSingle();
+  if (orgUserErr) throw new Error(`Failed to query teacher organization_users: ${orgUserErr.message}`);
+  if (!orgUser) {
+    const { error: insErr } = await (adminClient as any)
+      .from('organization_users')
+      .insert({ org_id: orgId, user_id: teacherUserId, org_role: 'teacher' });
+    if (insErr) throw new Error(`Failed to insert teacher organization_users row: ${insErr.message}`);
+  } else if ((orgUser as any).org_role !== 'teacher' && (orgUser as any).org_role !== 'school_admin') {
+    const { error: updErr } = await (adminClient as any)
+      .from('organization_users')
+      .update({ org_role: 'teacher' })
+      .eq('org_id', orgId)
+      .eq('user_id', teacherUserId);
+    if (updErr) throw new Error(`Failed to update teacher org_role: ${updErr.message}`);
   }
 
   const projectRef = new URL(supabaseUrl).hostname.split('.')[0];

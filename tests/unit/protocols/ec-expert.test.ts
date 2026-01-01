@@ -44,12 +44,15 @@ De pH-schaal loopt van 0 tot 14, waarbij 7 neutraal is.
   it('fillCourse performs two-pass generation and fills the skeleton', async () => {
     const { ecExpertProtocol } = await import('../../../supabase/functions/_shared/protocols/ec-expert.ts');
 
-    // Pass 1: objectives (must match cluster count = 1)
+    // Pass 1: objectives (protocol may request extra candidates to avoid low-quality objectives)
     mockGenerateJson.mockResolvedValueOnce({
       ok: true,
       text: JSON.stringify({
         objectives: [
           { id: 'obj-1', groupId: 0, description: 'Leg uit wat pH betekent.', bloomLevel: 'understand' },
+          { id: 'obj-2', groupId: 0, description: 'De student weet dat pH 7 neutraal is.', bloomLevel: 'remember' },
+          { id: 'obj-3', groupId: 0, description: 'De pH-schaal loopt van 0 tot 14.', bloomLevel: 'remember' },
+          { id: 'obj-4', groupId: 0, description: 'Bloed is licht basisch rond pH 7,4.', bloomLevel: 'understand' },
         ],
       }),
     });
@@ -58,7 +61,6 @@ De pH-schaal loopt van 0 tot 14, waarbij 7 neutraal is.
     mockGenerateJson.mockResolvedValueOnce({
       ok: true,
       text: JSON.stringify({
-        comments: [{ location: 'Variant 1 → Antwoordopties', comment: 'Idem.' }],
         exercises: [
           {
             stem: 'De pH-schaal heeft als neutrale waarde [blank].',
@@ -81,20 +83,6 @@ De pH-schaal loopt van 0 tot 14, waarbij 7 neutraal is.
             explanation: 'Lage pH = zuur.',
             hints: { nudge: 'Denk aan citroen.', guide: 'pH onder 7.', reveal: 'Zuur.' },
           },
-        ],
-      }),
-    });
-
-    // Quality audit: ok + evidence quotes (exact substrings required by validator)
-    const quote = 'De pH-schaal loopt van 0 tot 14, waarbij 7 neutraal is.';
-    mockGenerateJson.mockResolvedValueOnce({
-      ok: true,
-      text: JSON.stringify({
-        ok: true,
-        evidence: [
-          { exerciseIndex: 0, correctQuote: quote, distractors: [{ optionIndex: 1, quote }, { optionIndex: 2, quote }, { optionIndex: 3, quote }] },
-          { exerciseIndex: 1, correctQuote: quote, distractors: [{ optionIndex: 1, quote }, { optionIndex: 2, quote }, { optionIndex: 3, quote }] },
-          { exerciseIndex: 2, correctQuote: quote, distractors: [{ optionIndex: 1, quote }, { optionIndex: 2, quote }, { optionIndex: 3, quote }] },
         ],
       }),
     });
@@ -141,6 +129,8 @@ De pH-schaal loopt van 0 tot 14, waarbij 7 neutraal is.
         objectives: [
           { id: 'obj-1', description: 'Kies het juiste antwoord.', bloomLevel: 'understand' },
           { id: 'obj-2', description: 'Leg uit wat pH betekent.', bloomLevel: 'understand' },
+          { id: 'obj-3', description: 'De pH-schaal loopt van 0 tot 14.', bloomLevel: 'remember' },
+          { id: 'obj-4', description: 'De student weet dat pH 7 neutraal is.', bloomLevel: 'remember' },
         ],
       }),
     });

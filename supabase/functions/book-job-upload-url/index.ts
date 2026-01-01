@@ -93,7 +93,9 @@ serve(async (req: Request): Promise<Response> => {
 
     const { data, error } = await adminSupabase.storage
       .from("books")
-      .createSignedUploadUrl(objectPath);
+      // IMPORTANT: Jobs can be retried. Allow overwriting existing objects at the same path.
+      // Without upsert, retries fail with "The resource already exists".
+      .createSignedUploadUrl(objectPath, { upsert: true });
 
     if (error || !data?.signedUrl) {
       console.error("[book-job-upload-url] createSignedUploadUrl error:", error);

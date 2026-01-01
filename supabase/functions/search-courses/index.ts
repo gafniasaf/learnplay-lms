@@ -32,6 +32,19 @@ serve(
 
     // Validate BEFORE auth (search is allowed without auth; visibility enforced server-side)
     const url = new URL(req.url);
+    const formatParamRaw = (url.searchParams.get("format") ?? "").trim();
+    const formatFilter =
+      formatParamRaw && formatParamRaw.toLowerCase() !== "all"
+        ? formatParamRaw
+        : null;
+    if (formatFilter && !/^[a-zA-Z0-9_-]{1,40}$/.test(formatFilter)) {
+      return Errors.invalidRequest(
+        `Invalid format filter '${formatFilter}'. Expected alphanumeric/dash/underscore.`,
+        requestId,
+        req,
+      );
+    }
+
     const parsed = QuerySchema.safeParse({
       query: url.searchParams.get("query") ?? "",
       limit: url.searchParams.get("limit") ?? undefined,
@@ -71,6 +84,11 @@ serve(
       metaQuery = metaQuery.or("visibility.eq.global");
     }
 
+    if (formatFilter) {
+      // Filter by metadata tag `__format` (set by save-course metadata upserts).
+      metaQuery = metaQuery.contains("tags", { __format: formatFilter } as any);
+    }
+
     // Try a lightweight DB search first (if title/subject exists); always fall back to id search.
     // Note: Some schemas may not have title/subject columns; PostgREST will error if referenced.
     const filters = [
@@ -87,12 +105,18 @@ serve(
     if (metaErr) {
       // If title/subject columns don't exist, retry with id-only filter (still loud in logs)
       console.warn("[search-courses] Metadata search failed; retrying id-only", { message: metaErr.message, requestId });
-      const { data: retry, error: retryErr, count: retryCount } = await supabase
+      let retryQuery = supabase
         .from("course_metadata")
         .select("*", { count: "exact" })
         .is("deleted_at", null)
         .or(userOrgId ? `organization_id.eq.${userOrgId},visibility.eq.global` : "visibility.eq.global")
-        .ilike("id", `%${query}%`)
+        .ilike("id", `%${query}%`);
+
+      if (formatFilter) {
+        retryQuery = retryQuery.contains("tags", { __format: formatFilter } as any);
+      }
+
+      const { data: retry, error: retryErr, count: retryCount } = await retryQuery
         .order("updated_at", { ascending: false })
         .limit(limit);
 

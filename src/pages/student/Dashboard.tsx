@@ -80,32 +80,6 @@ export default function StudentDashboard() {
     );
   }
 
-  if (!studentId) {
-    return (
-      <PageContainer>
-        <StudentLayout>
-          <div className="space-y-4">
-            <Alert className="border-warning bg-warning/10">
-              <AlertCircle className="h-4 w-4 text-warning" />
-              <AlertDescription>
-                This dashboard needs a learner id. Add <code>?studentId=&lt;id&gt;</code> (or{" "}
-                <code>?learnerId=&lt;id&gt;</code>) to the URL, or create a learner profile.
-              </AlertDescription>
-            </Alert>
-            <div className="flex flex-wrap gap-2">
-              <Button variant="default" onClick={() => navigate("/workspace/learner-profile/new")}>
-                Create Learner Profile
-              </Button>
-              <Button variant="outline" onClick={() => navigate("/admin/system-health")}>
-                Check System Health
-              </Button>
-            </div>
-          </div>
-        </StudentLayout>
-      </PageContainer>
-    );
-  }
-
   const studentDashboard: StudentDashboardType | null =
     dashboard && dashboard.role === "student" ? (dashboard as StudentDashboardType) : null;
 
@@ -119,6 +93,27 @@ export default function StudentDashboard() {
     <PageContainer>
       <StudentLayout>
         <div className="space-y-6">
+          {/* Missing learner profile guidance (do not block rendering) */}
+          {!studentId && (
+            <div className="space-y-4">
+              <Alert className="border-warning bg-warning/10">
+                <AlertCircle className="h-4 w-4 text-warning" />
+                <AlertDescription>
+                  This dashboard needs a learner id. Add <code>?studentId=&lt;id&gt;</code> (or{" "}
+                  <code>?learnerId=&lt;id&gt;</code>) to the URL, or create a learner profile.
+                </AlertDescription>
+              </Alert>
+              <div className="flex flex-wrap gap-2">
+                <Button variant="default" onClick={() => navigate("/workspace/learner-profile/new")}>
+                  Create Learner Profile
+                </Button>
+                <Button variant="outline" onClick={() => navigate("/admin/system-health")}>
+                  Check System Health
+                </Button>
+              </div>
+            </div>
+          )}
+
           {/* Due Today Banner */}
           {hasDueToday && !bannerDismissed && (
             <Alert className="border-warning bg-warning/10">

@@ -4,8 +4,23 @@ import path from "node:path";
 import { config } from "./config.js";
 import { callJson } from "./http.js";
 import "./polyfill.js"; // Polyfill Deno for local strategies (extension must be .js for NodeNext)
+import { listLibraryCourses } from "./handlers/listLibraryCourses.js";
+import { searchLibraryCourses } from "./handlers/searchLibraryCourses.js";
+import { getLibraryCourseContent } from "./handlers/getLibraryCourseContent.js";
 
-const METHODS = ["lms.health", "lms.enqueueJob", "lms.listJobs", "lms.getJob", "lms.logs", "lms.saveRecord", "lms.getRecord", "lms.listRecords"] as const;
+const METHODS = [
+  "lms.health",
+  "lms.enqueueJob",
+  "lms.listJobs",
+  "lms.getJob",
+  "lms.logs",
+  "lms.saveRecord",
+  "lms.getRecord",
+  "lms.listRecords",
+  "lms.listLibraryCourses",
+  "lms.searchLibraryCourses",
+  "lms.getLibraryCourseContent",
+] as const;
 
 const server = http.createServer(async (req, res) => {
   // CORS Headers
@@ -75,6 +90,18 @@ const server = http.createServer(async (req, res) => {
         const result = await listRecords(params);
         return send(res, 200, { ok: true, result });
       }
+      case "lms.listLibraryCourses": {
+        const result = await listLibraryCourses({ params });
+        return send(res, 200, { ok: true, result });
+      }
+      case "lms.searchLibraryCourses": {
+        const result = await searchLibraryCourses({ params });
+        return send(res, 200, { ok: true, result });
+      }
+      case "lms.getLibraryCourseContent": {
+        const result = await getLibraryCourseContent({ params });
+        return send(res, 200, { ok: true, result });
+      }
       default:
         return send(res, 404, { ok: false, error: `Unknown method: ${method}` });
     }
@@ -88,6 +115,13 @@ const server = http.createServer(async (req, res) => {
 server.listen(config.port, config.host, () => {
   console.log(`MCP server listening on http://${config.host}:${config.port}`);
 });
+
+function requireOrganizationId(): string {
+  if (!config.organizationId) {
+    throw new Error("BLOCKED: ORGANIZATION_ID is REQUIRED for MCP proxy calls (agent auth requires org scope)");
+  }
+  return config.organizationId;
+}
 
 async function enqueueJob(params: any) {
   const jobType = params?.jobType;
@@ -122,7 +156,7 @@ async function enqueueJob(params: any) {
 
   return supabaseFetch("enqueue-job", {
     method: "POST",
-    headers: { "X-Agent-Token": config.agentToken },
+    headers: { "X-Agent-Token": config.agentToken, "X-Organization-Id": requireOrganizationId() },
     body: { jobType, payload },
   });
 }
@@ -132,7 +166,7 @@ async function listJobs(params: any) {
   try {
     return await supabaseFetch(`list-jobs?limit=${limit}`, { 
       method: "GET",
-      headers: { "X-Agent-Token": config.agentToken },
+      headers: { "X-Agent-Token": config.agentToken, "X-Organization-Id": requireOrganizationId() },
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
@@ -151,7 +185,7 @@ async function getJob(params: any) {
   }
   return supabaseFetch(`get-job?id=${encodeURIComponent(id)}`, { 
     method: "GET",
-    headers: { "X-Agent-Token": config.agentToken },
+    headers: { "X-Agent-Token": config.agentToken, "X-Organization-Id": requireOrganizationId() },
   });
 }
 
@@ -171,7 +205,7 @@ async function logs(params: any) {
     `get-job?id=${encodeURIComponent(jobId)}&eventsLimit=${encodeURIComponent(String(limit))}`,
     {
       method: "GET",
-      headers: { "X-Agent-Token": config.agentToken },
+      headers: { "X-Agent-Token": config.agentToken, "X-Organization-Id": requireOrganizationId() },
     }
   );
 
@@ -195,7 +229,7 @@ async function saveRecord(params: any) {
   }
   return supabaseFetch("save-record", {
     method: "POST",
-    headers: { "X-Agent-Token": config.agentToken },
+    headers: { "X-Agent-Token": config.agentToken, "X-Organization-Id": requireOrganizationId() },
     body: { entity, values },
   });
 }
@@ -207,7 +241,7 @@ async function getRecord(params: any) {
   if (!id || typeof id !== "string") throw new Error("id is required");
   return supabaseFetch(`get-record?entity=${entity}&id=${id}`, { 
     method: "GET",
-    headers: { "X-Agent-Token": config.agentToken },
+    headers: { "X-Agent-Token": config.agentToken, "X-Organization-Id": requireOrganizationId() },
   });
 }
 
@@ -219,7 +253,7 @@ async function listRecords(params: any) {
   const limit = Math.min(100, Math.max(1, Number(params?.limit ?? 20)));
   return supabaseFetch("list-records", {
     method: "POST",
-    headers: { "X-Agent-Token": config.agentToken },
+    headers: { "X-Agent-Token": config.agentToken, "X-Organization-Id": requireOrganizationId() },
     body: { entity, limit },
   });
 }
