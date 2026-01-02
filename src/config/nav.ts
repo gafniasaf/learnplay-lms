@@ -90,11 +90,16 @@ export const navSections: NavSection[] = [
       { id: "classes", label: "Classes", path: "/teacher/classes", icon: "GraduationCap", roles: ["teacher"] },
       { id: "class-progress", label: "Class Progress", path: "/teacher/class-progress", icon: "Activity", roles: ["teacher"] },
       { id: "assignments", label: "Assignments", path: "/teacher/assignments", icon: "ClipboardList", roles: ["teacher"] },
+      { id: "assignment-progress", label: "Assignment Progress", path: "/teacher/assignments/:id/progress", icon: "Award", roles: ["teacher"] },
+      { id: "analytics", label: "Analytics", path: "/teacher/analytics", icon: "BarChart", roles: ["teacher"] },
+    ],
+  },
+  {
+    title: "TeacherGPT",
+    items: [
       { id: "lesson-kits", label: "Lesson Kits", path: "/teacher/lesson-kits", icon: "WandSparkles", roles: ["teacher", "admin"] },
       { id: "materials", label: "Materials", path: "/teacher/materials", icon: "FileText", roles: ["teacher", "admin"] },
       { id: "standards", label: "Standards", path: "/teacher/standards", icon: "ScrollText", roles: ["teacher", "admin"] },
-      { id: "assignment-progress", label: "Assignment Progress", path: "/teacher/assignments/:id/progress", icon: "Award", roles: ["teacher"] },
-      { id: "analytics", label: "Analytics", path: "/teacher/analytics", icon: "BarChart", roles: ["teacher"] },
     ],
   },
   {
