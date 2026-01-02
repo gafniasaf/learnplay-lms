@@ -4,6 +4,7 @@ import { spawn } from "node:child_process";
 import { mkdir, readFile, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { applyRewritesOverlay, renderBookHtml, runPrince } from "./lib/bookRenderer.js";
+import { validateBookSkeleton, compileSkeletonToCanonical } from "../src/lib/books/bookSkeletonCore.js";
 
 // Optional networking tweak:
 // Some Windows / ISP / corporate networks have broken TLS over IPv6 for specific hosts.
@@ -457,6 +458,7 @@ async function processJob(job) {
   const allowMissingImages = payload.allowMissingImages === true;
   const pipelineMode = typeof payload.pipelineMode === "string" ? String(payload.pipelineMode) : "";
   const isBookGenPro = pipelineMode === "bookgen_pro";
+  const isSkeletonFirst = pipelineMode === "skeleton_first";
   const placeholdersOnly =
     (() => {
       if (typeof payload.placeholdersOnly === "boolean") return payload.placeholdersOnly;
@@ -533,9 +535,9 @@ async function processJob(job) {
 
     // 1) Get signed input URLs
     await reportProgress({
-      stage: isBookGenPro ? "bookgen:init" : "render:init",
+      stage: isSkeletonFirst ? "skeleton:init" : (isBookGenPro ? "bookgen:init" : "render:init"),
       percent: 1,
-      message: isBookGenPro ? "BookGen Pro: initializing…" : "Initializing…",
+      message: isSkeletonFirst ? "Skeleton-first: initializing…" : (isBookGenPro ? "BookGen Pro: initializing…" : "Initializing…"),
     }).catch(() => {});
 
     const inputs = await callEdge(
@@ -580,7 +582,7 @@ async function processJob(job) {
     const canonicalUrl = inputs?.urls?.canonical?.signedUrl;
     if (!canonicalUrl) throw new Error("Missing canonical signedUrl");
 
-    const canonical = await withRetries(() => downloadJsonFromSignedUrl(canonicalUrl), { attempts: 3 });
+    let canonical = await withRetries(() => downloadJsonFromSignedUrl(canonicalUrl), { attempts: 3 });
     const figures = inputs?.urls?.figures?.signedUrl
       ? await withRetries(() => downloadJsonFromSignedUrl(inputs.urls.figures.signedUrl), { attempts: 3 })
       : null;
@@ -593,6 +595,26 @@ async function processJob(job) {
     const overlay = inputs?.urls?.overlay?.signedUrl
       ? await withRetries(() => downloadJsonFromSignedUrl(inputs.urls.overlay.signedUrl), { attempts: 3 })
       : null;
+
+    // 1a-skeleton) Skeleton-first: load skeleton and authoring metadata when present
+    const skeletonUrl = inputs?.urls?.skeleton?.signedUrl || null;
+    const compiledCanonicalUrl = inputs?.urls?.compiledCanonical?.signedUrl || null;
+    const authoringMode = inputs?.authoringMode ?? "legacy";
+    const skeletonSchemaVersion = inputs?.skeletonSchemaVersion ?? null;
+    const promptPackId = inputs?.promptPackId ?? null;
+    const promptPackVersion = inputs?.promptPackVersion ?? null;
+
+    // Skeleton-first: when the version is in skeleton authoring mode, prefer the compiled canonical for rendering.
+    if (authoringMode === "skeleton" && compiledCanonicalUrl) {
+      canonical = await withRetries(() => downloadJsonFromSignedUrl(compiledCanonicalUrl), { attempts: 3 });
+      console.log("[book-worker] Using compiled canonical (authoringMode=skeleton)");
+    }
+
+    let skeleton = null;
+    if (isSkeletonFirst && skeletonUrl) {
+      skeleton = await withRetries(() => downloadJsonFromSignedUrl(skeletonUrl), { attempts: 3 });
+      console.log(`[book-worker] Loaded skeleton (schemaVersion=${skeletonSchemaVersion}, promptPack=${promptPackId}@${promptPackVersion})`);
+    }
 
     // 1b) Optional assets bundle (zip) for figures + chapter openers + fonts.
     const assetsZipUrl = inputs?.urls?.assetsZip?.signedUrl || null;
@@ -631,6 +653,58 @@ async function processJob(job) {
 
     // 2) Apply overlay
     let assembled = applyRewritesOverlay(canonical, overlay);
+
+    // 2a) Optional Skeleton-first pipeline (validate → write pass1 → compile → render)
+    let skeletonArtifacts = [];
+    if (isSkeletonFirst && skeleton) {
+      await reportProgress({ stage: "skeleton:validate", percent: 5, message: "Validating skeleton…" }).catch(() => {});
+
+      const skVal = validateBookSkeleton(skeleton);
+      if (!skVal.ok) {
+        const details = skVal.issues
+          .filter((i) => i && i.severity === "error")
+          .slice(0, 8)
+          .map((i) => `${i.code}: ${i.message}${Array.isArray(i.path) && i.path.length ? ` @ ${i.path.join(".")}` : ""}`)
+          .join("; ");
+        const errMsg = `Skeleton validation failed: ${details || "Unknown error"}`;
+        console.error(`[book-worker] ${errMsg}`);
+        throw new Error(errMsg);
+      }
+      const warnings = skVal.issues.filter((i) => i && i.severity === "warning");
+      if (warnings.length) {
+        console.warn(
+          `[book-worker] Skeleton validation warnings (${warnings.length}): ${warnings
+            .slice(0, 5)
+            .map((i) => i.message)
+            .join("; ")}`,
+        );
+      }
+
+      // --- Per-stage model selection from job payload ---
+      const skeletonProvider = payload.skeletonProvider || payload.planProvider || "openai";
+      const skeletonModel = payload.skeletonModel || payload.planModel || "gpt-4o-mini";
+      const validateProvider = payload.validateProvider || skeletonProvider;
+      const validateModel = payload.validateModel || skeletonModel;
+      const writeProvider = payload.writeProvider || payload.rewriteProvider || "anthropic";
+      const writeModel = payload.writeModel || payload.rewriteModel || "claude-sonnet-4-5";
+      const passesProvider = payload.passesProvider || writeProvider;
+      const passesModel = payload.passesModel || writeModel;
+
+      console.log(`[book-worker] Skeleton-first pipeline: skeletonProvider=${skeletonProvider}/${skeletonModel}, writeProvider=${writeProvider}/${writeModel}`);
+
+      await reportProgress({ stage: "skeleton:pass1", percent: 10, message: "Skeleton Pass 1: rewriting blocks…" }).catch(() => {});
+
+      // For now, skeleton_first just compiles to canonical (Pass 1 writing is TODO for full implementation)
+      // TODO: Implement actual LLM rewriting of skeleton.chapters[*].sections[*].blocks[*].basisHtml
+
+      // --- Compile skeleton to canonical ---
+      const compiledFromSkeleton = compileSkeletonToCanonical(skVal.skeleton);
+      assembled = compiledFromSkeleton;
+      skeletonArtifacts.push({ name: "skeleton.json", buf: Buffer.from(JSON.stringify(skVal.skeleton, null, 2), "utf8"), type: "application/json" });
+      skeletonArtifacts.push({ name: "compiled_canonical.json", buf: Buffer.from(JSON.stringify(compiledFromSkeleton, null, 2), "utf8"), type: "application/json" });
+
+      await reportProgress({ stage: "skeleton:compiled", percent: 30, message: "Skeleton compiled to canonical" }).catch(() => {});
+    }
 
     // 2b) Optional BookGen Pro pipeline (skeleton → rewrite → assemble)
     let bookgenArtifacts = [];
@@ -2810,6 +2884,20 @@ Return STRICT JSON ONLY:
         })),
         chapterIndex,
       });
+    }
+
+    // Include Skeleton-first artifacts if any.
+    if (Array.isArray(skeletonArtifacts) && skeletonArtifacts.length) {
+      for (const skArt of skeletonArtifacts) {
+        const uploadedSk = await uploadArtifact({
+          runId,
+          jobId,
+          filename: fileNameForAttempt(skArt.name),
+          buf: skArt.buf,
+          contentType: skArt.type,
+        });
+        uploaded.push({ kind: "debug", ...uploadedSk, chapterIndex });
+      }
     }
 
     // Include BookGen artifacts (skeleton/rewrites) if any.

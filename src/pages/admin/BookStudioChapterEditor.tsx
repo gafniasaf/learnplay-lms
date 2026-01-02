@@ -43,7 +43,15 @@ type BookVersionInputUrlsResponse =
         figures: { path: string; signedUrl: string } | null;
         designTokens: { path: string; signedUrl: string } | null;
         assetsZip: { path: string; signedUrl: string } | null;
+        // Skeleton-first URLs (when authoringMode='skeleton')
+        skeleton?: { path: string; signedUrl: string } | null;
+        compiledCanonical?: { path: string; signedUrl: string } | null;
       };
+      // Skeleton-first metadata
+      authoringMode?: "legacy" | "skeleton";
+      skeletonSchemaVersion?: string | null;
+      promptPackId?: string | null;
+      promptPackVersion?: number | null;
       imageSrcMap?: Record<string, string> | null;
       missingImageSrcs?: string[] | null;
       chapterOpeners?: Record<string, string> | null;
@@ -386,6 +394,19 @@ export default function BookStudioChapterEditor() {
   const [missingImageSrcs, setMissingImageSrcs] = useState<string[] | null>(null);
   const [chapterOpeners, setChapterOpeners] = useState<Record<string, string> | null>(null);
 
+  // Skeleton-first state
+  const [skeleton, setSkeleton] = useState<any>(null);
+  const [authoringMode, setAuthoringMode] = useState<"legacy" | "skeleton">("legacy");
+  const [draftSkeleton, setDraftSkeleton] = useState<any>(null);
+  const [skeletonDirty, setSkeletonDirty] = useState(false);
+
+  // Per-stage model selection (for skeleton-first pipeline)
+  const [skeletonModel, setSkeletonModel] = useState<string>("gpt-4o-mini");
+  const [validateModel, setValidateModel] = useState<string>("gpt-4o-mini");
+  const [writeModel, setWriteModel] = useState<string>("claude-sonnet-4-5-20250929");
+  const [passesModel, setPassesModel] = useState<string>("claude-sonnet-4-5-20250929");
+  const [userInstructions, setUserInstructions] = useState<string>("");
+
   // loadedRewrites/draftRewrites store ONLY non-empty rewrites.
   const [loadedRewrites, setLoadedRewrites] = useState<Record<string, string>>({});
   const [draftRewrites, setDraftRewrites] = useState<Record<string, string>>({});
@@ -476,7 +497,11 @@ export default function BookStudioChapterEditor() {
       })) as BookVersionInputUrlsResponse;
       if (res.ok !== true) throw new Error((res as any)?.error?.message || "Failed to fetch signed URLs");
 
-      const canonicalUrl = res.urls.canonical?.signedUrl;
+      const resAuthoringMode = (res as any)?.authoringMode || "legacy";
+      const canonicalUrl =
+        resAuthoringMode === "skeleton" && res.urls.compiledCanonical?.signedUrl
+          ? res.urls.compiledCanonical.signedUrl
+          : res.urls.canonical?.signedUrl;
       const overlayUrl = res.urls.overlay?.signedUrl;
       if (!canonicalUrl) throw new Error("Missing canonical signed URL");
       if (!overlayUrl) throw new Error("Missing overlay signed URL");
@@ -515,6 +540,29 @@ export default function BookStudioChapterEditor() {
 
       setCanonical(canonicalJson);
       setDesignTokens(tokensJson);
+
+      // Skeleton-first: load skeleton when available
+      setAuthoringMode(resAuthoringMode);
+      if (resAuthoringMode === "skeleton" && res.urls.skeleton?.signedUrl) {
+        try {
+          const skeletonJson = await fetch(res.urls.skeleton.signedUrl).then(async (r) => {
+            if (!r.ok) throw new Error(`Skeleton download failed (${r.status})`);
+            return await r.json();
+          });
+          setSkeleton(skeletonJson);
+          setDraftSkeleton(skeletonJson);
+          setSkeletonDirty(false);
+          console.log("[BookStudioChapterEditor] Loaded skeleton (skeleton-first mode)");
+        } catch (skErr) {
+          console.warn("[BookStudioChapterEditor] Failed to load skeleton:", skErr);
+          setSkeleton(null);
+          setDraftSkeleton(null);
+        }
+      } else {
+        setSkeleton(null);
+        setDraftSkeleton(null);
+      }
+
       // Merge the chapter-scoped imageSrcMap with cover (book-scoped via library index).
       const baseMap = ((res as any)?.imageSrcMap || null) as Record<string, string> | null;
       const merged: Record<string, string> = { ...(baseMap || {}) };
@@ -1030,6 +1078,43 @@ export default function BookStudioChapterEditor() {
     }
   }, [overlayId, draftRewrites, mcp, toast]);
 
+  // Skeleton-first: save skeleton to server
+  const saveSkeleton = useCallback(async () => {
+    if (!bookId || !bookVersionId || !draftSkeleton) return;
+    setSaving(true);
+    try {
+      const res = await mcp.call("lms.bookVersionSaveSkeleton", {
+        bookId,
+        bookVersionId,
+        skeleton: draftSkeleton,
+        note: `Book Studio edit at ${new Date().toISOString()}`,
+        compileCanonical: true,
+      });
+      if (!(res as any)?.ok) throw new Error((res as any)?.error?.message || "Save failed");
+
+      toast({ title: "Saved", description: "Skeleton saved and compiled." });
+      setSkeleton(draftSkeleton);
+      setSkeletonDirty(false);
+    } catch (e) {
+      toast({
+        title: "Save failed",
+        description: e instanceof Error ? e.message : "Unknown error",
+        variant: "destructive",
+      });
+    } finally {
+      setSaving(false);
+    }
+  }, [bookId, bookVersionId, draftSkeleton, mcp, toast]);
+
+  // Unified save: use skeleton or overlay based on authoring mode
+  const saveChanges = useCallback(async () => {
+    if (authoringMode === "skeleton") {
+      await saveSkeleton();
+    } else {
+      await saveOverlay();
+    }
+  }, [authoringMode, saveSkeleton, saveOverlay]);
+
   const discardChanges = useCallback(async () => {
     await load();
     toast({ title: "Discarded", description: "Reloaded chapter from server." });
@@ -1205,8 +1290,8 @@ export default function BookStudioChapterEditor() {
             </Button>
             <Button
               size="sm"
-              onClick={() => void saveOverlay()}
-              disabled={saving || !overlayId}
+              onClick={() => void saveChanges()}
+              disabled={saving || (authoringMode === "skeleton" ? !draftSkeleton : !overlayId)}
               data-cta-id="cta-bookstudio-chapter-save"
               data-action="action"
             >
@@ -1232,6 +1317,91 @@ export default function BookStudioChapterEditor() {
               {missingImageSrcs.slice(0, 8).join(", ")}
               {missingImageSrcs.length > 8 ? " …" : ""}
             </div>
+          </div>
+        )}
+
+        {/* Skeleton-first: Authoring mode indicator + model selection */}
+        {authoringMode === "skeleton" && (
+          <div className="mb-3 rounded-lg border border-blue-500/30 bg-blue-500/10 p-3 text-sm">
+            <div className="flex items-center gap-2 mb-2">
+              <Badge variant="outline" className="text-blue-600 border-blue-500">Skeleton-first</Badge>
+              <span className="text-xs text-muted-foreground">Editing skeleton directly. Changes compile to canonical on save.</span>
+            </div>
+            <details className="text-xs">
+              <summary className="cursor-pointer text-muted-foreground hover:text-foreground">AI Model Configuration</summary>
+              <div className="mt-2 grid grid-cols-2 sm:grid-cols-4 gap-2">
+                <div>
+                  <label className="block text-[10px] text-muted-foreground mb-1">Skeleton Gen</label>
+                  <select
+                    value={skeletonModel}
+                    onChange={(e) => setSkeletonModel(e.target.value)}
+                    className="w-full text-xs border rounded px-2 py-1 bg-background"
+                    data-cta-id="cta-bookstudio-model-skeleton"
+                  >
+                    <option value="gpt-4o-mini">gpt-4o-mini</option>
+                    <option value="gpt-4o">gpt-4o</option>
+                    <option value="o1">o1</option>
+                    <option value="claude-sonnet-4-5-20250929">claude-sonnet-4.5</option>
+                    <option value="claude-haiku-4-5-20251001">claude-haiku-4.5</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-[10px] text-muted-foreground mb-1">Validation</label>
+                  <select
+                    value={validateModel}
+                    onChange={(e) => setValidateModel(e.target.value)}
+                    className="w-full text-xs border rounded px-2 py-1 bg-background"
+                    data-cta-id="cta-bookstudio-model-validate"
+                  >
+                    <option value="gpt-4o-mini">gpt-4o-mini</option>
+                    <option value="gpt-4o">gpt-4o</option>
+                    <option value="o1">o1</option>
+                    <option value="claude-sonnet-4-5-20250929">claude-sonnet-4.5</option>
+                    <option value="claude-haiku-4-5-20251001">claude-haiku-4.5</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-[10px] text-muted-foreground mb-1">Pass 1 Write</label>
+                  <select
+                    value={writeModel}
+                    onChange={(e) => setWriteModel(e.target.value)}
+                    className="w-full text-xs border rounded px-2 py-1 bg-background"
+                    data-cta-id="cta-bookstudio-model-write"
+                  >
+                    <option value="gpt-4o-mini">gpt-4o-mini</option>
+                    <option value="gpt-4o">gpt-4o</option>
+                    <option value="o1">o1</option>
+                    <option value="claude-sonnet-4-5-20250929">claude-sonnet-4.5</option>
+                    <option value="claude-haiku-4-5-20251001">claude-haiku-4.5</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-[10px] text-muted-foreground mb-1">Additional Passes</label>
+                  <select
+                    value={passesModel}
+                    onChange={(e) => setPassesModel(e.target.value)}
+                    className="w-full text-xs border rounded px-2 py-1 bg-background"
+                    data-cta-id="cta-bookstudio-model-passes"
+                  >
+                    <option value="gpt-4o-mini">gpt-4o-mini</option>
+                    <option value="gpt-4o">gpt-4o</option>
+                    <option value="o1">o1</option>
+                    <option value="claude-sonnet-4-5-20250929">claude-sonnet-4.5</option>
+                    <option value="claude-haiku-4-5-20251001">claude-haiku-4.5</option>
+                  </select>
+                </div>
+              </div>
+              <div className="mt-2">
+                <label className="block text-[10px] text-muted-foreground mb-1">User Instructions (appended to prompts)</label>
+                <textarea
+                  value={userInstructions}
+                  onChange={(e) => setUserInstructions(e.target.value)}
+                  placeholder="Optional: Add specific instructions for AI rewrites…"
+                  className="w-full text-xs border rounded px-2 py-1 bg-background resize-none h-16"
+                  data-cta-id="cta-bookstudio-user-instructions"
+                />
+              </div>
+            </details>
           </div>
         )}
 

@@ -333,6 +333,112 @@ describe("Book Edge Functions", () => {
       expect(requiresAuth !== undefined).toBe(true);
     });
   });
+
+  describe("book-version-save-skeleton", () => {
+    test("requires authentication", async () => {
+      const requiresAuth = await verifyRequiresAuth(
+        "book-version-save-skeleton",
+        {
+          bookId: "test-book",
+          bookVersionId: "test-version",
+          skeleton: { meta: { bookId: "test", schemaVersion: "skeleton_v1" }, chapters: [] },
+        },
+        { method: "POST", timeout: 10000 }
+      );
+      expect(requiresAuth !== undefined).toBe(true);
+    });
+
+    test.skipIf(!AGENT_TOKEN || !ORGANIZATION_ID)("validates required fields (agent token)", async () => {
+      const response = await callEdgeFunction(
+        "book-version-save-skeleton",
+        {},
+        {
+          method: "POST",
+          headers: {
+            "x-agent-token": AGENT_TOKEN!,
+            "x-organization-id": ORGANIZATION_ID!,
+          },
+          timeout: 10000,
+        }
+      );
+
+      expect(response.status).toBe(200);
+      expect((response.body as any)?.ok).toBe(false);
+      expect((response.body as any)?.httpStatus).toBe(400);
+    });
+
+    test.skipIf(!AGENT_TOKEN || !ORGANIZATION_ID)("rejects invalid skeleton (agent token)", async () => {
+      const response = await callEdgeFunction(
+        "book-version-save-skeleton",
+        {
+          bookId: "test-book",
+          bookVersionId: "test-version",
+          skeleton: { meta: {}, chapters: [] }, // Missing required bookId
+        },
+        {
+          method: "POST",
+          headers: {
+            "x-agent-token": AGENT_TOKEN!,
+            "x-organization-id": ORGANIZATION_ID!,
+          },
+          timeout: 10000,
+        }
+      );
+
+      expect(response.status).toBe(200);
+      // Should fail: either not found (book doesn't exist) or validation error
+      expect((response.body as any)?.ok).toBe(false);
+    });
+  });
+
+  describe("book-version-input-urls (skeleton support)", () => {
+    test.skipIf(!AGENT_TOKEN || !ORGANIZATION_ID)("returns skeleton metadata fields", async () => {
+      // Get a book to test with (if any)
+      const listResponse = await callEdgeFunction(
+        "book-list",
+        { scope: "versions", limit: 1, offset: 0 },
+        {
+          method: "GET",
+          headers: {
+            "x-agent-token": AGENT_TOKEN!,
+            "x-organization-id": ORGANIZATION_ID!,
+          },
+          timeout: 30000,
+        }
+      );
+
+      if ((listResponse.body as any)?.ok !== true) {
+        console.warn("Skipping skeleton metadata test - no books available");
+        return;
+      }
+
+      const versions = (listResponse.body as any)?.versions || [];
+      if (versions.length === 0) {
+        console.warn("Skipping skeleton metadata test - no book versions available");
+        return;
+      }
+
+      const { book_id: bookId, book_version_id: bookVersionId } = versions[0];
+
+      const response = await callEdgeFunction(
+        "book-version-input-urls",
+        { bookId, bookVersionId, allowMissingImages: true, expiresIn: 60 },
+        {
+          method: "POST",
+          headers: {
+            "x-agent-token": AGENT_TOKEN!,
+            "x-organization-id": ORGANIZATION_ID!,
+          },
+          timeout: 30000,
+        }
+      );
+
+      expect(response.status).toBe(200);
+      expect((response.body as any)?.ok).toBe(true);
+      // Should include authoringMode even if legacy
+      expect(typeof (response.body as any)?.authoringMode).toBe("string");
+    });
+  });
 });
 
 

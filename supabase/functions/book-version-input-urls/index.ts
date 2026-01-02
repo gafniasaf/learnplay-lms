@@ -274,10 +274,10 @@ serve(async (req: Request): Promise<Response> => {
       return json({ ok: false, error: { code: "not_found", message: "Book not found" }, httpStatus: 404, requestId }, 200);
     }
 
-    // Fetch version paths
+    // Fetch version paths (including skeleton-first columns)
     const { data: version, error: versionErr } = await adminSupabase
       .from("book_versions")
-      .select("canonical_path, figures_path, design_tokens_path, figure_placements, figure_placements_updated_at")
+      .select("canonical_path, figures_path, design_tokens_path, figure_placements, figure_placements_updated_at, skeleton_path, compiled_canonical_path, authoring_mode, skeleton_schema_version, prompt_pack_id, prompt_pack_version")
       .eq("book_id", body.bookId)
       .eq("book_version_id", body.bookVersionId)
       .single();
@@ -316,6 +316,14 @@ serve(async (req: Request): Promise<Response> => {
       : "";
     const assetsZip = await signedOptional(basePath ? `${basePath}/assets.zip` : null);
 
+    // Skeleton-first: sign skeleton and compiled canonical URLs when present
+    const skeleton = await signedOptional((version as any).skeleton_path ?? null);
+    const compiledCanonical = await signedOptional((version as any).compiled_canonical_path ?? null);
+    const authoringMode = (version as any).authoring_mode ?? "legacy";
+    const skeletonSchemaVersion = (version as any).skeleton_schema_version ?? null;
+    const promptPackId = (version as any).prompt_pack_id ?? null;
+    const promptPackVersion = (version as any).prompt_pack_version ?? null;
+
     // Optional: resolve canonical image src -> signed URL (avoid requiring assets.zip for large books).
     let imageSrcMap: Record<string, string> | null = null;
     let missingImageSrcs: string[] | null = null;
@@ -334,9 +342,15 @@ serve(async (req: Request): Promise<Response> => {
 
     if (wantsImageMap) {
       // 1) Download canonical JSON to discover referenced images (scoped by target/chapterIndex).
+      // Skeleton-first: prefer compiled canonical when present so image signing reflects the skeleton source of truth.
+      const canonicalPathForDiscovery =
+        authoringMode === "skeleton" && typeof (version as any).compiled_canonical_path === "string" && (version as any).compiled_canonical_path.trim()
+          ? (version as any).compiled_canonical_path.trim()
+          : version.canonical_path;
+
       const { data: canonBlob, error: canonDlErr } = await adminSupabase.storage
         .from("books")
-        .download(version.canonical_path);
+        .download(canonicalPathForDiscovery);
 
       if (!canonDlErr && canonBlob) {
         let canonicalJson: any = null;
@@ -751,7 +765,15 @@ serve(async (req: Request): Promise<Response> => {
         designTokens,
         assetsZip,
         overlay,
+        // Skeleton-first: when authoringMode='skeleton', these contain the primary source of truth
+        skeleton,
+        compiledCanonical,
       },
+      // Skeleton-first metadata
+      authoringMode,
+      skeletonSchemaVersion,
+      promptPackId,
+      promptPackVersion,
       // Optional resolved image map for renderers/workers:
       // canonical img.src (as stored) -> signed URL to the uploaded library image.
       imageSrcMap,

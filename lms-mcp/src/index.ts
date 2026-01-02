@@ -17,12 +17,40 @@ const METHODS = [
   "lms.saveRecord",
   "lms.getRecord",
   "lms.listRecords",
+  // Books (Book Studio / BookGen Pro)
+  "lms.bookList",
+  "lms.bookVersionInputUrls",
+  "lms.bookVersionSaveSkeleton",
+  "lms.bookCreateOverlay",
+  "lms.bookSaveOverlay",
+  "lms.bookEnqueueRender",
+  "lms.bookArtifactUrl",
+  "lms.bookLibraryImageUrl",
+  "lms.bookLibraryUploadUrl",
+  "lms.bookLibraryStorageUrl",
+  "lms.bookLibraryUpsertIndex",
+  "lms.bookLibraryGenerateImage",
   "lms.listLibraryCourses",
   "lms.searchLibraryCourses",
   "lms.getLibraryCourseContent",
   "lms.recommendMesContent",
   "lms.teacherChatAssistant",
 ] as const;
+
+const BOOK_METHODS: Record<string, { edgeFunction: string; method: "GET" | "POST" }> = {
+  "lms.bookList": { edgeFunction: "book-list", method: "GET" },
+  "lms.bookVersionInputUrls": { edgeFunction: "book-version-input-urls", method: "POST" },
+  "lms.bookVersionSaveSkeleton": { edgeFunction: "book-version-save-skeleton", method: "POST" },
+  "lms.bookCreateOverlay": { edgeFunction: "book-create-overlay", method: "POST" },
+  "lms.bookSaveOverlay": { edgeFunction: "book-save-overlay", method: "POST" },
+  "lms.bookEnqueueRender": { edgeFunction: "book-enqueue-render", method: "POST" },
+  "lms.bookArtifactUrl": { edgeFunction: "book-artifact-url", method: "POST" },
+  "lms.bookLibraryImageUrl": { edgeFunction: "book-library-image-url", method: "POST" },
+  "lms.bookLibraryUploadUrl": { edgeFunction: "book-library-upload-url", method: "POST" },
+  "lms.bookLibraryStorageUrl": { edgeFunction: "book-library-storage-url", method: "POST" },
+  "lms.bookLibraryUpsertIndex": { edgeFunction: "book-library-upsert-index", method: "POST" },
+  "lms.bookLibraryGenerateImage": { edgeFunction: "book-library-generate-image", method: "POST" },
+};
 
 const server = http.createServer(async (req, res) => {
   // CORS Headers
@@ -113,6 +141,10 @@ const server = http.createServer(async (req, res) => {
         return send(res, 200, { ok: true, result });
       }
       default:
+        if (BOOK_METHODS[method]) {
+          const result = await callBookMethod({ method, params });
+          return send(res, 200, { ok: true, result });
+        }
         return send(res, 404, { ok: false, error: `Unknown method: ${method}` });
     }
   } catch (error) {
@@ -293,6 +325,39 @@ async function teacherChatAssistant(params: any) {
     headers: { "X-Agent-Token": config.agentToken, "X-Organization-Id": requireOrganizationId() },
     body: { messages, scope, ...(materialId ? { materialId } : {}) },
   });
+}
+
+async function callBookMethod({ method, params }: { method: string; params: any }) {
+  const spec = BOOK_METHODS[method];
+  if (!spec) {
+    throw new Error(`Unknown book method: ${method}`);
+  }
+
+  const headers = {
+    "X-Agent-Token": config.agentToken,
+    "X-Organization-Id": requireOrganizationId(),
+  };
+
+  if (spec.method === "GET") {
+    const qs = new URLSearchParams();
+    const obj = params && typeof params === "object" && !Array.isArray(params) ? params : {};
+    for (const [k, v] of Object.entries(obj)) {
+      if (v === undefined || v === null) continue;
+      qs.set(k, String(v));
+    }
+    const path = qs.toString() ? `${spec.edgeFunction}?${qs.toString()}` : spec.edgeFunction;
+    const resp = await supabaseFetch(path, { method: "GET", headers });
+    if (!resp.ok) {
+      throw new Error(`[${method}] ${resp.status}: ${resp.text || ""}`);
+    }
+    return resp.json;
+  }
+
+  const resp = await supabaseFetch(spec.edgeFunction, { method: "POST", headers, body: params ?? {} });
+  if (!resp.ok) {
+    throw new Error(`[${method}] ${resp.status}: ${resp.text || ""}`);
+  }
+  return resp.json;
 }
 
 function supabaseFetch(path: string, opts: { method?: "GET" | "POST"; headers?: Record<string, string>; body?: unknown } = {}) {
