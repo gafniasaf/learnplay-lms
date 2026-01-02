@@ -19,6 +19,24 @@ interface LLMCallOptions {
   timeoutMs?: number;
 }
 
+function sleep(ms: number): Promise<void> {
+  return new Promise((r) => setTimeout(r, ms));
+}
+
+function isTransientLLMError(msg: string): boolean {
+  const m = String(msg || "").toLowerCase();
+  return (
+    m.includes("error reading a body") ||
+    m.includes("connection") ||
+    m.includes("connection reset") ||
+    m.includes("unexpected eof") ||
+    m.includes("timeout") ||
+    m.includes("timed out") ||
+    m.includes("temporarily unavailable") ||
+    m.includes("503")
+  );
+}
+
 function tryParseJsonLoose(raw: string): unknown | null {
   const t0 = raw.trim();
   const stripFences = (s: string) =>
@@ -66,13 +84,25 @@ async function callLLM(systemPrompt: string, userPrompt: string, options: LLMCal
 
   let lastRaw = "";
   for (let attempt = 0; attempt < prompts.length; attempt++) {
-    const res = await generateJson({
+    let res = await generateJson({
       system: systemPrompt,
       prompt: prompts[attempt],
       temperature: attempt === 0 ? temperature : 0,
       maxTokens,
       timeoutMs,
     });
+
+    // Retry once or twice on transient transport failures (no fallbacks; still fails loud if persistent).
+    for (let retry = 0; !res.ok && retry < 2 && isTransientLLMError(res.error); retry++) {
+      await sleep(750 * (retry + 1));
+      res = await generateJson({
+        system: systemPrompt,
+        prompt: prompts[attempt],
+        temperature: attempt === 0 ? temperature : 0,
+        maxTokens,
+        timeoutMs,
+      });
+    }
 
     if (!res.ok) {
       if (res.error === "no_provider") {
@@ -98,6 +128,42 @@ async function callLLM(systemPrompt: string, userPrompt: string, options: LLMCal
     });
     if (repair.ok) {
       lastRaw = typeof repair.text === "string" ? repair.text : lastRaw;
+      const parsed = tryParseJsonLoose(lastRaw);
+      if (parsed !== null) return parsed;
+    }
+  }
+
+  // Last resort (still LLM-based; not a fallback kit): ask for a minimal, shorter JSON kit to avoid truncation.
+  // This is specifically to handle models with smaller output limits (e.g., fast/cheap tiers) that may truncate
+  // large lesson kits mid-object, causing invalid JSON.
+  {
+    const minimal = await generateJson({
+      system: systemPrompt,
+      prompt: [
+        userPrompt,
+        "",
+        "MINIMAL OUTPUT REQUIREMENT (keep it SHORT to avoid truncation):",
+        "- teacherScript: max 10 items",
+        "- discussionQuestions: max 5 items",
+        "- groupWork.steps: max 5 items",
+        "- studentHandout.exercises: max 5 items",
+        "- slideAssets: max 6 items",
+        "",
+        "Return ONLY a single valid JSON object (no markdown, no trailing commas).",
+        "If you cannot include everything, keep required keys present and use short strings/arrays.",
+      ].join("\n"),
+      temperature: 0,
+      maxTokens: Math.min(maxTokens, 2500),
+      timeoutMs,
+    });
+
+    if (!minimal.ok) {
+      if (minimal.error === "no_provider") {
+        throw new Error("BLOCKED: No LLM provider configured. Set OPENAI_API_KEY (or ANTHROPIC_API_KEY).");
+      }
+      // Fall through to final error below
+    } else {
+      lastRaw = typeof minimal.text === "string" ? minimal.text : lastRaw;
       const parsed = tryParseJsonLoose(lastRaw);
       if (parsed !== null) return parsed;
     }
