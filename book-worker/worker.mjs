@@ -540,7 +540,7 @@ async function processJob(job) {
       message: isSkeletonFirst ? "Skeleton-first: initializing…" : (isBookGenPro ? "BookGen Pro: initializing…" : "Initializing…"),
     }).catch(() => {});
 
-    const inputs = await callEdge(
+    let inputs = await callEdge(
       "book-version-input-urls",
       {
         bookId,
@@ -549,6 +549,8 @@ async function processJob(job) {
         target,
         chapterIndex,
         allowMissingImages,
+        // Prefer persisted semantic figure placements when available (avoids filename heuristics).
+        includeFigurePlacements: true,
         // Ensure openers always resolve from THIS book's image library (prevents cross-book opener mistakes).
         includeChapterOpeners: true,
         // For older "text-only" canonicals, auto-attach library figures by inferring chapter/figure numbers.
@@ -586,9 +588,10 @@ async function processJob(job) {
     const figures = inputs?.urls?.figures?.signedUrl
       ? await withRetries(() => downloadJsonFromSignedUrl(inputs.urls.figures.signedUrl), { attempts: 3 })
       : null;
-    const imageSrcMap = asPlainObject(inputs?.imageSrcMap);
-    const chapterOpenersFromEdge = asPlainObject(inputs?.chapterOpeners);
-    const autoChapterFigures = asPlainObject(inputs?.autoChapterFigures);
+    let imageSrcMap = asPlainObject(inputs?.imageSrcMap);
+    let chapterOpenersFromEdge = asPlainObject(inputs?.chapterOpeners);
+    let autoChapterFigures = asPlainObject(inputs?.autoChapterFigures);
+    let figurePlacementsFromEdge = asPlainObject(inputs?.figurePlacements);
     const designTokens = inputs?.urls?.designTokens?.signedUrl
       ? await withRetries(() => downloadJsonFromSignedUrl(inputs.urls.designTokens.signedUrl), { attempts: 3 })
       : null;
@@ -653,6 +656,467 @@ async function processJob(job) {
 
     // 2) Apply overlay
     let assembled = applyRewritesOverlay(canonical, overlay);
+
+    // 2a) Semantic figure membership (persisted):
+    // If a book uses the shared image library (text-only canonical), we MUST avoid filename-based heuristics.
+    // We persist semantic placements (src -> paragraph_id + chapter_index) once onto book_versions.figure_placements,
+    // then use those placements to decide which figures belong to the requested chapter.
+    const normalizeWsForFigures = (s) => String(s || "").replace(/\s+/g, " ").trim();
+    const stripHtmlForFigures = (s) =>
+      normalizeWsForFigures(String(s || "").replace(/<\s*br\b[^>]*\/?>/gi, " ").replace(/<[^>]+>/g, " "));
+
+    const safeJsonParseForFigures = (raw) => {
+      const t = String(raw || "").trim();
+      if (!t) return null;
+      try {
+        return JSON.parse(t);
+      } catch {
+        return null;
+      }
+    };
+
+    const redactSecretsForFigures = (raw) => {
+      const s = String(raw ?? "");
+      return s
+        .replace(/sk-[A-Za-z0-9_-]{10,}/g, "sk-[REDACTED]")
+        .replace(/sbp_[A-Za-z0-9_-]{10,}/g, "sbp_[REDACTED]")
+        .replace(/Bearer\\s+[A-Za-z0-9._-]{10,}/gi, "Bearer [REDACTED]");
+    };
+
+    const requireEnvForFigurePlacement = (name) => {
+      const v = process.env[name];
+      if (!v || typeof v !== "string" || !v.trim()) {
+        throw new Error(`BLOCKED: ${name} is REQUIRED for semantic figure placement - set env var before running`);
+      }
+      return v.trim();
+    };
+
+    const normalizeLabelForFigures = (raw) => {
+      const s = String(raw || "").trim();
+      if (!s) return "";
+      const noExt = s.replace(/\.(svg|png|jpe?g|webp|gif)$/i, "");
+      return normalizeWsForFigures(noExt.replace(/[_-]+/g, " ").replace(/[()]+/g, " "));
+    };
+    const inferFigureNumberForFigures = (raw) => {
+      const s = normalizeLabelForFigures(raw);
+      const m1 = s.match(/\b(?:Image|Afbeelding)\s*([0-9]{1,3})\s*[._]\s*([0-9]{1,3})(?:\s*-\s*([0-9]+))?/i);
+      if (m1?.[1] && m1?.[2]) {
+        const a = Number(m1[1]);
+        const b = Number(m1[2]);
+        const c = m1[3] ? Number(m1[3]) : null;
+        if (!Number.isFinite(a) || !Number.isFinite(b)) return null;
+        return `${a}.${b}${c !== null && Number.isFinite(c) ? `-${c}` : ""}`;
+      }
+      const m2 = s.match(/\b([0-9]{1,3})\s*[._]\s*([0-9]{1,3})(?:\s*-\s*([0-9]+))?\b/);
+      if (m2?.[1] && m2?.[2]) {
+        const a = Number(m2[1]);
+        const b = Number(m2[2]);
+        const c = m2[3] ? Number(m2[3]) : null;
+        if (!Number.isFinite(a) || !Number.isFinite(b)) return null;
+        return `${a}.${b}${c !== null && Number.isFinite(c) ? `-${c}` : ""}`;
+      }
+      return null;
+    };
+    const deriveCaptionForFigures = (rawName, figNum) => {
+      const s = normalizeLabelForFigures(rawName);
+      if (!s) return "";
+      let out = s;
+      if (figNum) {
+        const safe = String(figNum).replace(/\./g, "\\.");
+        out = out.replace(new RegExp(`\\b(?:Image|Afbeelding)\\s*${safe}\\b`, "i"), "");
+      }
+      out = out.replace(/^[\s\-:]+/, "").trim();
+      return out;
+    };
+
+    const asFigurePlacements = (raw) => {
+      const obj = asPlainObject(raw);
+      if (!obj) return null;
+      const placements = asPlainObject(obj.placements);
+      if (!placements) return null;
+      return { ...obj, placements };
+    };
+
+    let semanticFigurePlacements = asFigurePlacements(figurePlacementsFromEdge);
+
+    const buildAutoChapterFiguresFromPlacements = (fp) => {
+      const placements = asPlainObject(fp?.placements);
+      if (!placements) return null;
+      const byChapter = {};
+      for (const [srcRaw, metaRaw] of Object.entries(placements)) {
+        const src = typeof srcRaw === "string" ? srcRaw.trim() : "";
+        const meta = metaRaw && typeof metaRaw === "object" ? metaRaw : null;
+        const chapterIdx = meta && typeof meta.chapter_index === "number" ? meta.chapter_index : null;
+        if (!src || chapterIdx === null || !Number.isFinite(chapterIdx) || chapterIdx < 0) continue;
+        const figNum = inferFigureNumberForFigures(src);
+        const caption = deriveCaptionForFigures(src, figNum);
+        const alt = caption || (figNum ? `Afbeelding ${figNum}` : "");
+        const list = Array.isArray(byChapter[chapterIdx]) ? byChapter[chapterIdx] : [];
+        list.push({ src, figureNumber: figNum || "", caption, alt });
+        byChapter[chapterIdx] = list;
+      }
+      // Deterministic order: by figureNumber then caption
+      for (const [k, arr] of Object.entries(byChapter)) {
+        if (!Array.isArray(arr)) continue;
+        arr.sort((a, b) => {
+          const an = String(a.figureNumber || "");
+          const bn = String(b.figureNumber || "");
+          if (an !== bn) return an.localeCompare(bn, "en", { numeric: true });
+          return String(a.caption || "").localeCompare(String(b.caption || ""));
+        });
+        byChapter[k] = arr;
+      }
+      return byChapter;
+    };
+
+    const collectParagraphCandidatesForFigures = (canon) => {
+      const out = [];
+      const chapters = Array.isArray(canon?.chapters) ? canon.chapters : [];
+      for (let chIdx = 0; chIdx < chapters.length; chIdx++) {
+        const ch = chapters[chIdx];
+        if (!ch || typeof ch !== "object") continue;
+        const chapterTitle = stripHtmlForFigures(String(ch.title || ch.meta?.title || `Hoofdstuk ${chIdx + 1}`));
+        let sectionLabel = "";
+        let subLabel = "";
+
+        const walk = (blocks) => {
+          if (!Array.isArray(blocks)) return;
+          for (const b of blocks) {
+            if (!b || typeof b !== "object") continue;
+            const t = typeof b.type === "string" ? b.type : "";
+
+            if (t === "paragraph") {
+              const id = typeof b.id === "string" ? b.id.trim() : "";
+              if (!id) continue;
+              const basis = typeof b.basis === "string" ? b.basis : "";
+              const praktijk = typeof b.praktijk === "string" ? b.praktijk : "";
+              const verdieping = typeof b.verdieping === "string" ? b.verdieping : "";
+              const combinedRaw = [basis, praktijk, verdieping].filter((x) => typeof x === "string" && x.trim()).join("\n\n");
+              const combined = stripHtmlForFigures(combinedRaw);
+              const role = typeof b.role === "string" ? b.role : "";
+              if (!combined) continue;
+              const text = combined.length > 420 ? `${combined.slice(0, 417).trim()}…` : combined;
+              out.push({
+                paragraph_id: id,
+                chapter_index: chIdx,
+                chapter_title: chapterTitle,
+                section: sectionLabel,
+                subheading: subLabel,
+                role,
+                text,
+              });
+              continue;
+            }
+
+            if (t === "subparagraph") {
+              const prev = subLabel;
+              const title = typeof b.title === "string" ? stripHtmlForFigures(b.title) : "";
+              if (title) subLabel = title;
+              walk(b.content || b.blocks || b.items);
+              subLabel = prev;
+              continue;
+            }
+
+            const child = b.content || b.blocks || b.items;
+            if (Array.isArray(child)) walk(child);
+          }
+        };
+
+        if (Array.isArray(ch.sections) && ch.sections.length) {
+          for (const s of ch.sections) {
+            const sn = typeof s?.number === "string" ? String(s.number).trim() : "";
+            const st = typeof s?.title === "string" ? stripHtmlForFigures(s.title) : "";
+            sectionLabel = normalizeWsForFigures([sn, st].filter(Boolean).join(" "));
+            subLabel = "";
+            walk(s?.content || s?.blocks || s?.items);
+          }
+        } else {
+          sectionLabel = "";
+          subLabel = "";
+          walk(ch?.content || ch?.blocks || ch?.items);
+        }
+      }
+      return out;
+    };
+
+    const scoreTerms = (textLower, terms) => {
+      let score = 0;
+      for (const t of terms) {
+        if (t && textLower.includes(t)) score += 1;
+      }
+      return score;
+    };
+    const figureTerms = (figure) => {
+      const raw = normalizeLabelForFigures([figure?.src, figure?.caption, figure?.alt].filter(Boolean).join(" ")).toLowerCase();
+      const cleaned = raw
+        .replace(/\b(image|afbeelding)\b/g, " ")
+        .replace(/\b[0-9]{1,3}\s*[._]\s*[0-9]{1,3}(?:\s*-\s*[0-9]+)?\b/g, " ");
+      const stop = new Set(["de", "het", "een", "en", "van", "in", "op", "voor", "met", "over", "naar", "bij", "te", "tot", "als", "dat", "die"]);
+      const parts = cleaned.split(/\s+/).map((w) => w.trim()).filter(Boolean);
+      const terms = [];
+      for (const w of parts) {
+        if (w.length < 3) continue;
+        if (stop.has(w)) continue;
+        terms.push(w);
+        if (terms.length >= 10) break;
+      }
+      return terms;
+    };
+
+    async function anthropicFigureJson({ system, user, model, temperature, maxTokens }) {
+      let resp;
+      try {
+        resp = await fetch("https://api.anthropic.com/v1/messages", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-api-key": requireEnvForFigurePlacement("ANTHROPIC_API_KEY"),
+            "anthropic-version": "2023-06-01",
+          },
+          body: JSON.stringify({
+            model,
+            temperature,
+            max_tokens: maxTokens,
+            system,
+            messages: [{ role: "user", content: user }],
+          }),
+        });
+      } catch (e) {
+        const cause = e && typeof e === "object" ? e.cause : null;
+        const code = cause && typeof cause === "object" ? cause.code : "";
+        const syscall = cause && typeof cause === "object" ? cause.syscall : "";
+        const hostname = cause && typeof cause === "object" ? cause.hostname : "";
+        const hint = [code, syscall, hostname].filter(Boolean).join(" ");
+        throw new Error(`Anthropic fetch failed: ${hint || "fetch failed"}`);
+      }
+      const text = await resp.text().catch(() => "");
+      if (!resp.ok) {
+        throw new Error(`Anthropic failed (${resp.status}): ${redactSecretsForFigures(text).slice(0, 800)}`);
+      }
+      const j = safeJsonParseForFigures(text);
+      const contentArr = Array.isArray(j?.content) ? j.content : [];
+      const first = contentArr.find((c) => c && c.type === "text" && typeof c.text === "string");
+      const raw = first?.text;
+      if (!raw || typeof raw !== "string") throw new Error("Anthropic returned empty content");
+
+      const t = String(raw || "").trim()
+        .replace(/^```json\s*/i, "")
+        .replace(/^```\s*/i, "")
+        .replace(/```$/i, "")
+        .trim();
+      const parsed = safeJsonParseForFigures(t);
+      if (!parsed) throw new Error(`Anthropic returned non-JSON: ${t.slice(0, 800)}`);
+      return parsed;
+    }
+
+    async function openaiFigureJson({ system, user, model, temperature, maxTokens }) {
+      let resp;
+      try {
+        resp = await fetch("https://api.openai.com/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${requireEnvForFigurePlacement("OPENAI_API_KEY")}`,
+          },
+          body: JSON.stringify({
+            model,
+            temperature,
+            max_tokens: maxTokens,
+            response_format: { type: "json_object" },
+            messages: [
+              { role: "system", content: system },
+              { role: "user", content: user },
+            ],
+          }),
+        });
+      } catch (e) {
+        const cause = e && typeof e === "object" ? e.cause : null;
+        const code = cause && typeof cause === "object" ? cause.code : "";
+        const syscall = cause && typeof cause === "object" ? cause.syscall : "";
+        const hostname = cause && typeof cause === "object" ? cause.hostname : "";
+        const hint = [code, syscall, hostname].filter(Boolean).join(" ");
+        throw new Error(`OpenAI fetch failed: ${hint || "fetch failed"}`);
+      }
+      const text = await resp.text().catch(() => "");
+      if (!resp.ok) {
+        throw new Error(`OpenAI failed (${resp.status}): ${redactSecretsForFigures(text).slice(0, 800)}`);
+      }
+      const j = safeJsonParseForFigures(text);
+      const content = j?.choices?.[0]?.message?.content;
+      const parsed = safeJsonParseForFigures(content);
+      if (!parsed) throw new Error(`OpenAI returned non-JSON: ${String(content || "").slice(0, 800)}`);
+      return parsed;
+    }
+
+    const computeAndPersistFigurePlacements = async () => {
+      // Only attempt when the edge helper indicates we are in "text-only canonical" mode (autoChapterFigures populated),
+      // and the version has no persisted placements yet.
+      if (!autoChapterFigures || typeof autoChapterFigures !== "object") return false;
+
+      const providerRaw = String(process.env.BOOK_FIGURE_PLACEMENT_PROVIDER || "").trim().toLowerCase();
+      const provider = providerRaw || (process.env.ANTHROPIC_API_KEY ? "anthropic" : (process.env.OPENAI_API_KEY ? "openai" : ""));
+      if (!provider) {
+        throw new Error("BLOCKED: BOOK_FIGURE_PLACEMENT_PROVIDER is REQUIRED for semantic figure placement (set to 'anthropic' or 'openai')");
+      }
+      if (!["anthropic", "openai"].includes(provider)) {
+        throw new Error(`Invalid BOOK_FIGURE_PLACEMENT_PROVIDER: ${providerRaw}`);
+      }
+      const modelRaw = String(process.env.BOOK_FIGURE_PLACEMENT_MODEL || "").trim();
+      const model = modelRaw || (provider === "anthropic" ? "claude-sonnet-4-5" : "gpt-4o-mini");
+      if (provider === "anthropic") requireEnvForFigurePlacement("ANTHROPIC_API_KEY");
+      if (provider === "openai") requireEnvForFigurePlacement("OPENAI_API_KEY");
+
+      // Discover all numbered library figures across the full book (avoid chapter-scoped heuristics).
+      const discovery = await callEdge(
+        "book-version-input-urls",
+        {
+          bookId,
+          bookVersionId,
+          overlayId,
+          target: "book",
+          allowMissingImages,
+          includeChapterOpeners: false,
+          autoAttachLibraryImages: true,
+        },
+        { orgId }
+      );
+      const autoAll = asPlainObject(discovery?.autoChapterFigures) || {};
+      const allFigures = [];
+      const seen = new Set();
+      for (const v of Object.values(autoAll)) {
+        if (!Array.isArray(v)) continue;
+        for (const f of v) {
+          if (!f || typeof f !== "object") continue;
+          const src = typeof f.src === "string" ? f.src.trim() : "";
+          if (!src) continue;
+          const key = src.toLowerCase();
+          if (seen.has(key)) continue;
+          seen.add(key);
+          allFigures.push({
+            src,
+            figureNumber: typeof f.figureNumber === "string" ? f.figureNumber : (inferFigureNumberForFigures(src) || ""),
+            caption: typeof f.caption === "string" ? f.caption : "",
+            alt: typeof f.alt === "string" ? f.alt : "",
+          });
+        }
+      }
+
+      if (allFigures.length === 0) return false;
+
+      await reportProgress({ stage: "figures:semantic", percent: 8, message: `Semantic figure membership: placing ${allFigures.length} figure(s)…` }).catch(() => {});
+
+      const paragraphsAll = collectParagraphCandidatesForFigures(assembled);
+      if (!paragraphsAll.length) {
+        throw new Error("BLOCKED: No paragraph candidates found for semantic figure placement");
+      }
+      const byId = new Map(paragraphsAll.map((p) => [p.paragraph_id, p]));
+
+      const pickParagraph = async (fig) => {
+        const terms = figureTerms(fig);
+        const scored = paragraphsAll.map((p) => {
+          const textLower = String(p.text || "").toLowerCase();
+          const score = terms.length ? scoreTerms(textLower, terms) : 0;
+          return { p, score };
+        }).sort((a, b) => (b.score - a.score) || (a.p.chapter_index - b.p.chapter_index));
+
+        const top = scored.slice(0, 25).map((x) => x.p);
+        const input = {
+          figure: {
+            src: fig.src,
+            figureNumber: fig.figureNumber || "",
+            caption: stripHtmlForFigures(fig.caption || ""),
+            alt: stripHtmlForFigures(fig.alt || ""),
+          },
+          paragraphs: top.map((p, i) => ({
+            paragraph_id: p.paragraph_id,
+            chapter_index: p.chapter_index,
+            chapter_title: p.chapter_title || "",
+            section: p.section || "",
+            subheading: p.subheading || "",
+            role: p.role || "",
+            paragraph_index: i,
+            text: p.text || "",
+          })),
+        };
+
+        const system = `You are assigning ONE figure to the best matching paragraph in a Dutch MBO textbook.
+
+Hard requirements:
+- Choose exactly ONE paragraph_id from the provided paragraphs list.
+- Return STRICT JSON ONLY: { "paragraph_id": "..." }`;
+        const user = `INPUT JSON:\n${JSON.stringify(input)}`;
+
+        const call = async () => {
+          return provider === "anthropic"
+            ? await anthropicFigureJson({ system, user, model, temperature: 0.1, maxTokens: 600 })
+            : await openaiFigureJson({ system, user, model, temperature: 0.1, maxTokens: 600 });
+        };
+
+        const planned = await withRetries(() => call(), { attempts: 3 });
+        const pid = typeof planned?.paragraph_id === "string" ? planned.paragraph_id.trim() : "";
+        if (!pid) throw new Error(`BLOCKED: Figure placement missing paragraph_id for src=${fig.src}`);
+        if (!byId.has(pid)) {
+          throw new Error(`BLOCKED: Figure placement referenced unknown paragraph_id=${pid} for src=${fig.src}`);
+        }
+        return pid;
+      };
+
+      const placements = {};
+      for (const fig of allFigures.slice(0, 200)) {
+        const pid = await pickParagraph(fig);
+        const meta = byId.get(pid);
+        placements[fig.src] = { paragraph_id: pid, chapter_index: meta.chapter_index };
+      }
+
+      const fpPayload = {
+        schemaVersion: "figure_placements_v1",
+        generatedAt: new Date().toISOString(),
+        provider,
+        model,
+        placements,
+      };
+
+      await callEdge(
+        "book-version-save-figure-placements",
+        { bookId, bookVersionId, figurePlacements: fpPayload },
+        { orgId }
+      );
+
+      return true;
+    };
+
+    if (!semanticFigurePlacements) {
+      const didPersist = await computeAndPersistFigurePlacements();
+      if (didPersist) {
+        // Refresh inputs so imageSrcMap includes the now-persisted placements (and avoid heuristic auto-attach).
+        inputs = await callEdge(
+          "book-version-input-urls",
+          {
+            bookId,
+            bookVersionId,
+            overlayId,
+            target,
+            chapterIndex,
+            allowMissingImages,
+            includeFigurePlacements: true,
+            includeChapterOpeners: true,
+            autoAttachLibraryImages: false,
+          },
+          { orgId }
+        );
+        imageSrcMap = asPlainObject(inputs?.imageSrcMap);
+        chapterOpenersFromEdge = asPlainObject(inputs?.chapterOpeners);
+        autoChapterFigures = asPlainObject(inputs?.autoChapterFigures);
+        figurePlacementsFromEdge = asPlainObject(inputs?.figurePlacements);
+        semanticFigurePlacements = asFigurePlacements(figurePlacementsFromEdge);
+      }
+    }
+
+    if (semanticFigurePlacements) {
+      // Override heuristic autoChapterFigures with semantic placements (even if empty for this chapter).
+      const semanticAuto = buildAutoChapterFiguresFromPlacements(semanticFigurePlacements);
+      if (semanticAuto) autoChapterFigures = semanticAuto;
+    }
 
     // 2a) Optional Skeleton-first pipeline (validate → write pass1 → compile → render)
     let skeletonArtifacts = [];

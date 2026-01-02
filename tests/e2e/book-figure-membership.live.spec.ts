@@ -60,6 +60,8 @@ async function runWorkerUntilDone(jobId: string, env: Record<string, string>, ti
 }
 
 test("live: semantic figure membership persists and beats filename numbering (real DB + real LLM)", async ({ request }) => {
+  // This test runs a full book render + semantic figure placement (real LLM) and can take longer than the suite default.
+  test.setTimeout(15 * 60_000);
   const SUPABASE_URL = process.env.VITE_SUPABASE_URL || requireEnv("SUPABASE_URL");
   const SUPABASE_ANON_KEY =
     process.env.VITE_SUPABASE_PUBLISHABLE_KEY ||

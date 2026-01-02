@@ -20,21 +20,44 @@ test.describe('Student Play Session - Complete Flow', () => {
     test.setTimeout(5 * 60_000);
 
     // Step 1: Find an existing course (prefer this to avoid rate limits / long LLM generation).
-    await page.goto('/admin/courses', { waitUntil: 'domcontentloaded' });
+    // The Course Selector route is the most stable way to obtain a valid courseId in live runs.
+    let courseId: string | null = null;
+    await page.goto('/admin/courses/select', { waitUntil: 'domcontentloaded' });
     try {
       await page.waitForLoadState('networkidle', { timeout: 30_000 });
     } catch {
       // Some environments keep long-polling connections open; continue anyway.
     }
+    await page.waitForTimeout(2000);
 
-    let courseId: string | null = null;
-    const existingLink = page
-      .locator('a[href*="/admin/editor/"], a[href*="/admin/courses/"], [data-testid*="course"] a')
-      .first();
-    if (await existingLink.isVisible({ timeout: 5000 }).catch(() => false)) {
-      const href = await existingLink.getAttribute('href');
-      const m = String(href || '').match(/\/admin\/editor\/([^/]+)/);
-      if (m?.[1]) courseId = m[1];
+    const editExisting = page.getByRole('button', { name: /^Edit$/ }).first();
+    if (await editExisting.isVisible({ timeout: 15_000 }).catch(() => false)) {
+      await editExisting.click();
+      await page.waitForURL(/\/admin\/editor\//, { timeout: 60_000 });
+      const m = page.url().match(/\/admin\/editor\/([^/?#]+)/);
+      if (m?.[1]) courseId = decodeURIComponent(m[1]);
+    }
+
+    // Fallback: attempt to extract from the courses listing (older builds).
+    if (!courseId) {
+      await page.goto('/admin/courses', { waitUntil: 'domcontentloaded' });
+      try {
+        await page.waitForLoadState('networkidle', { timeout: 30_000 });
+      } catch {
+        // Continue anyway.
+      }
+
+      const existingLink = page
+        .locator('a[href*="/admin/editor/"], a[href*="/admin/courses/"], [data-testid*="course"] a')
+        .first();
+      if (await existingLink.isVisible({ timeout: 10_000 }).catch(() => false)) {
+        const href = await existingLink.getAttribute('href');
+        const hrefStr = String(href || '');
+        const m =
+          hrefStr.match(/\/admin\/editor\/([^/?#]+)/) ||
+          hrefStr.match(/\/admin\/courses\/([^/?#]+)/);
+        if (m?.[1]) courseId = decodeURIComponent(m[1]);
+      }
     }
 
     // If no course exists, create one via the AI Pipeline UI (real DB + real LLM).
@@ -49,6 +72,7 @@ test.describe('Student Play Session - Complete Flow', () => {
       const subjectInput = page
         .locator('[data-cta-id="ai-course-subject"]')
         .or(page.locator('input#subject'))
+        .or(page.locator('input[placeholder*="Photosynthesis"], input[placeholder*="subject" i]'))
         .first();
       if (!(await subjectInput.isVisible({ timeout: 10_000 }).catch(() => false))) {
         test.skip('No course creation UI available');
@@ -79,8 +103,10 @@ test.describe('Student Play Session - Complete Flow', () => {
       await createButton.click();
 
       // Wait for completion UI, then navigate to editor to extract courseId.
-      await page.getByText(/Course Generated/i).first().waitFor({ timeout: 4 * 60_000 });
-      await page.getByRole('button', { name: /^Edit$/ }).first().click();
+      // Some builds don't surface the exact "Course Generated" text, so key off the Edit CTA.
+      const editBtn = page.getByRole('button', { name: /^Edit$/ }).first();
+      await editBtn.waitFor({ timeout: 6 * 60_000 });
+      await editBtn.click();
       await page.waitForURL(/\/admin\/editor\//, { timeout: 60_000 });
 
       const url = page.url();
