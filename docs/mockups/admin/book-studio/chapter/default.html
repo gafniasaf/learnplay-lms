@@ -276,6 +276,10 @@
       </div>
     </div>
     <div class="header-actions">
+      <button class="btn btn-outline" data-cta-id="cta-bookstudio-book-versions" data-action="navigate">📜 Versions</button>
+      <button class="btn btn-outline" data-cta-id="cta-bookstudio-view-edit" data-action="action">Edit</button>
+      <button class="btn btn-outline" data-cta-id="cta-bookstudio-view-proof" data-action="action">Proof</button>
+      <button class="btn btn-outline" data-cta-id="cta-bookstudio-book-render" data-action="action">📄 Render PDF</button>
       <button class="btn btn-ai" data-cta-id="cta-bookstudio-chapter-ai-rewrite-all" data-action="action">🤖 AI Rewrite Chapter</button>
       <button class="btn btn-outline" data-cta-id="cta-bookstudio-chapter-discard" data-action="action">Discard</button>
       <button class="btn btn-primary" data-cta-id="cta-bookstudio-chapter-save" data-action="action">💾 Save All</button>
@@ -283,6 +287,37 @@
   </header>
 
   <main class="main">
+    <!-- New WYSIWYG (PDF-like) controls placeholder (kept in sync with React editor CTAs) -->
+    <div style="margin: 16px 24px; padding: 12px; border: 1px dashed var(--border-accent); border-radius: 10px; background: rgba(212, 168, 83, 0.06);">
+      <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+        <div style="font-size:12px; color: var(--text-secondary); font-weight: 600;">PDF-like WYSIWYG</div>
+        <div style="display:flex; align-items:center; gap:8px;">
+          <span style="font-size:12px; color: var(--text-secondary);">Zoom</span>
+          <input type="range" min="50" max="200" step="25" value="100" data-cta-id="cta-bookstudio-wysiwyg-zoom" data-action="action" />
+        </div>
+        <button class="btn btn-outline" data-cta-id="cta-bookstudio-proof-refresh" data-action="action">Refresh Proof</button>
+        <button class="btn btn-outline" data-cta-id="cta-bookstudio-proof-open" data-action="action">Open PDF</button>
+        <button class="btn btn-outline" data-cta-id="cta-bookstudio-proof-open-run" data-action="navigate">Open Run</button>
+      </div>
+      <div style="display:flex; gap:16px; margin-top: 12px;">
+        <div style="flex:1; min-width: 280px;">
+          <div style="font-size:12px; color: var(--text-secondary); margin-bottom: 6px;">Preview (placeholder)</div>
+          <iframe title="Preview" style="width:100%; height: 220px; border: 1px solid var(--border); border-radius: 8px; background: white;" data-cta-id="cta-bookstudio-preview-iframe" data-action="noop"></iframe>
+        </div>
+        <div style="width: 320px; min-width: 260px;">
+          <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom: 6px;">
+            <div style="font-size:12px; color: var(--text-secondary);">Inspector (placeholder)</div>
+            <button class="btn btn-outline" style="padding: 6px 10px;" data-cta-id="cta-bookstudio-inspector-clear-selection" data-action="action">Clear</button>
+          </div>
+          <textarea style="width:100%; height: 140px; background: var(--bg-surface); border: 1px solid var(--border); color: var(--text); border-radius: 8px; padding: 10px; font-family: 'JetBrains Mono', monospace; font-size: 11px;" data-cta-id="cta-bookstudio-inspector-html" data-action="edit"></textarea>
+          <div style="display:flex; gap:8px; margin-top: 8px;">
+            <button class="btn btn-ai" style="padding: 6px 10px;" data-cta-id="cta-bookstudio-inspector-ai-rewrite" data-action="action">AI rewrite</button>
+            <button class="btn btn-outline" style="padding: 6px 10px;" data-cta-id="cta-bookstudio-inspector-revert" data-action="action">Revert</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Section Navigation -->
     <nav class="section-nav">
       <div class="nav-title">Sections</div>

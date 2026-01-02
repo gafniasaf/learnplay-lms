@@ -17,35 +17,80 @@ test.describe('Student Play Session - Complete Flow', () => {
   test.use({ storageState: 'playwright/.auth/admin.json' }); // Using admin for now, will need student auth
 
   test('student completes full learning session', async ({ page }) => {
-    // Step 1: Ensure we have a course (create or use existing)
-    await page.goto('/admin/ai-pipeline');
-    await page.waitForLoadState('networkidle');
+    test.setTimeout(5 * 60_000);
 
-    // Check if we have courses, if not create one
-    const courseLink = page.locator('a[href*="/admin/editor/"]').first();
-    const hasCourse = await courseLink.isVisible({ timeout: 5000 }).catch(() => false);
+    // Step 1: Find an existing course (prefer this to avoid rate limits / long LLM generation).
+    await page.goto('/admin/courses', { waitUntil: 'domcontentloaded' });
+    try {
+      await page.waitForLoadState('networkidle', { timeout: 30_000 });
+    } catch {
+      // Some environments keep long-polling connections open; continue anyway.
+    }
 
-    let courseId: string;
-    if (!hasCourse) {
-      // Create a course via Quick Start
-      const subjectInput = page.locator('input[placeholder*="subject"], input#subject').first();
-      if (await subjectInput.isVisible({ timeout: 5000 }).catch(() => false)) {
-        await subjectInput.fill('Test Course for Play Session');
-        await page.locator('[data-cta-id="quick-start-create"]').click();
-        
-        // Wait for course creation (simplified - in real test would poll job status)
-        await page.waitForTimeout(10000);
-        
-        // Extract courseId from page or localStorage
-        courseId = await page.evaluate(() => localStorage.getItem('selectedCourseId') || 'test-course');
-      } else {
+    let courseId: string | null = null;
+    const existingLink = page
+      .locator('a[href*="/admin/editor/"], a[href*="/admin/courses/"], [data-testid*="course"] a')
+      .first();
+    if (await existingLink.isVisible({ timeout: 5000 }).catch(() => false)) {
+      const href = await existingLink.getAttribute('href');
+      const m = String(href || '').match(/\/admin\/editor\/([^/]+)/);
+      if (m?.[1]) courseId = m[1];
+    }
+
+    // If no course exists, create one via the AI Pipeline UI (real DB + real LLM).
+    if (!courseId) {
+      await page.goto('/admin/ai-pipeline', { waitUntil: 'domcontentloaded' });
+      try {
+        await page.waitForLoadState('networkidle', { timeout: 30_000 });
+      } catch {
+        // Continue
+      }
+
+      const subjectInput = page
+        .locator('[data-cta-id="ai-course-subject"]')
+        .or(page.locator('input#subject'))
+        .first();
+      if (!(await subjectInput.isVisible({ timeout: 10_000 }).catch(() => false))) {
         test.skip('No course creation UI available');
         return;
       }
-    } else {
-      // Extract courseId from existing course link
-      const href = await courseLink.getAttribute('href');
-      courseId = href?.match(/\/admin\/editor\/([^/]+)/)?.[1] || 'test-course';
+
+      await subjectInput.fill(`Play Session Course ${Date.now()}`);
+
+      // Prefer the current AI Pipeline CTA; keep a legacy fallback for older builds.
+      const createButton = page
+        .locator('[data-cta-id="ai-course-generate"]')
+        .or(page.locator('[data-cta-id="quick-start-create"]'))
+        .or(page.getByRole('button', { name: /generate course|create course/i }))
+        .first();
+
+      const hasCreate = await createButton.isVisible({ timeout: 10_000 }).catch(() => false);
+      if (!hasCreate) {
+        test.skip('No create button available on AI Pipeline');
+        return;
+      }
+
+      // If rate limited, the button may be disabled; skip rather than hard-failing the suite.
+      if (!(await createButton.isEnabled().catch(() => false))) {
+        test.skip('Course creation is disabled (possibly rate limited)');
+        return;
+      }
+
+      await createButton.click();
+
+      // Wait for completion UI, then navigate to editor to extract courseId.
+      await page.getByText(/Course Generated/i).first().waitFor({ timeout: 4 * 60_000 });
+      await page.getByRole('button', { name: /^Edit$/ }).first().click();
+      await page.waitForURL(/\/admin\/editor\//, { timeout: 60_000 });
+
+      const url = page.url();
+      const m = url.match(/\/admin\/editor\/([^/?#]+)/);
+      courseId = m?.[1] ? decodeURIComponent(m[1]) : null;
+    }
+
+    if (!courseId) {
+      test.skip('No course available to run play session');
+      return;
     }
 
     // Step 2: Navigate to play page

@@ -8,6 +8,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { isDevAgentMode } from "@/lib/api/common";
 import { cn } from "@/lib/utils";
 import { ActionCornerButtons } from "@/components/admin/wysiwyg/ActionCornerButtons";
+import { applyRewritesOverlay, renderBookHtml, sanitizeInlineBookHtml } from "@/lib/books/bookRendererCore.js";
 
 type OverlayJsonV1 = {
   paragraphs: Array<{ paragraph_id: string; rewritten: string }>;
@@ -61,39 +62,97 @@ type BookLibraryImageUrlResponse =
 
 const COVER_CANONICAL_SRC = "__book_cover__";
 
+type PreviewToParentMessage =
+  | { type: "bookPreview.selectParagraph"; paragraphId: string }
+  | { type: "bookPreview.ready" };
+
+type ParentToPreviewMessage =
+  | { type: "bookPreview.setSelectedParagraph"; paragraphId: string | null }
+  | { type: "bookPreview.scrollToId"; id: string };
+
+function injectPreviewBridge(html: string): string {
+  // Add a tiny selection/highlight bridge without changing book HTML/CSS structure.
+  const style = `
+<style>
+  .book-preview-selected {
+    outline: 2px solid rgba(245, 158, 11, 0.9);
+    outline-offset: 2px;
+    background: rgba(245, 158, 11, 0.08);
+  }
+</style>
+  `.trim();
+
+  const script = `
+<script>
+(function(){
+  function closestParagraphEl(node){
+    var el = node;
+    while (el && el !== document.documentElement) {
+      if (el.dataset && el.dataset.paragraphId) return el;
+      el = el.parentElement;
+    }
+    return null;
+  }
+
+  function clearSelected(){
+    var prev = document.querySelectorAll('.book-preview-selected');
+    for (var i = 0; i < prev.length; i++) prev[i].classList.remove('book-preview-selected');
+  }
+
+  function selectParagraphById(pid){
+    clearSelected();
+    if (!pid) return;
+    // Avoid dynamic selector escaping issues by scanning annotated nodes (fast enough for chapter scopes).
+    var els = document.querySelectorAll('[data-paragraph-id]');
+    for (var i = 0; i < els.length; i++) {
+      var el = els[i];
+      if (el && el.dataset && el.dataset.paragraphId === pid) {
+        el.classList.add('book-preview-selected');
+        break;
+      }
+    }
+  }
+
+  document.addEventListener('click', function(ev){
+    var target = ev && ev.target ? ev.target : null;
+    var el = closestParagraphEl(target);
+    if (!el) return;
+    var pid = el.dataset.paragraphId;
+    if (!pid) return;
+    try { window.parent.postMessage({ type: 'bookPreview.selectParagraph', paragraphId: pid }, '*'); } catch (e) {}
+  }, true);
+
+  window.addEventListener('message', function(ev){
+    var data = ev && ev.data ? ev.data : null;
+    if (!data || typeof data !== 'object') return;
+    if (data.type === 'bookPreview.setSelectedParagraph') {
+      selectParagraphById(data.paragraphId || '');
+      return;
+    }
+    if (data.type === 'bookPreview.scrollToId' && data.id) {
+      var el = document.getElementById(String(data.id));
+      if (el && el.scrollIntoView) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      return;
+    }
+  });
+
+  try { window.parent.postMessage({ type: 'bookPreview.ready' }, '*'); } catch (e) {}
+})();
+</script>
+  `.trim();
+
+  let out = String(html || "");
+  if (out.includes("</head>")) out = out.replace("</head>", `${style}\n</head>`);
+  if (out.includes("</body>")) out = out.replace("</body>", `${script}\n</body>`);
+  return out;
+}
+
 function safeStr(v: unknown): string {
   return typeof v === "string" ? v : "";
 }
 
 function stripHtml(s: string): string {
   return String(s || "").replace(/<[^>]*>/g, "");
-}
-
-function sanitizeInlineBookHtml(raw: string): string {
-  let html = String(raw ?? "");
-
-  // Keep worker parity: convert bold tokens and normalize whitespace
-  html = html.replace(/<<BOLD_START>>/g, "<strong>");
-  html = html.replace(/<<BOLD_END>>/g, "</strong>");
-  html = html.replace(/\r?\n/g, " ");
-  html = html.replace(/[ \t]{2,}/g, " ");
-
-  // Remove clearly dangerous/irrelevant tags
-  html = html.replace(/<\s*(script|style|iframe|object|embed)\b[\s\S]*?<\s*\/\s*\1\s*>/gi, "");
-  html = html.replace(/<\s*img\b[^>]*>/gi, "");
-
-  // Allow only <span class="box-lead">; strip other span attrs
-  html = html.replace(/<\s*span\b[^>]*class="[^"]*box-lead[^"]*"[^>]*>/gi, '<span class="box-lead">');
-  html = html.replace(/<\s*span\b[^>]*>/gi, "<span>");
-
-  // Allow only a small set of inline tags, strip attributes
-  html = html.replace(/<\s*(strong|em|b|i|sup|sub|span)\b[^>]*>/gi, "<$1>");
-  html = html.replace(/<\s*\/\s*(strong|em|b|i|sup|sub|span)\s*>/gi, "</$1>");
-  html = html.replace(/<\s*br\b[^>]*\/?>/gi, "<br/>");
-
-  // Strip all remaining tags
-  html = html.replace(/<(?!\/?(?:strong|em|b|i|sup|sub|span|br)\b)[^>]+>/gi, "");
-  return html.trim();
 }
 
 function collectCanonicalParagraphsForChapter(canonical: any, onlyChapterIndex: number): CanonicalParagraph[] {
@@ -307,6 +366,17 @@ export default function BookStudioChapterEditor() {
   const [imageBusySrcs, setImageBusySrcs] = useState<Set<string>>(new Set());
 
   const [zoom, setZoom] = useState<number>(100);
+  const [viewMode, setViewMode] = useState<"edit" | "proof">("edit");
+  const [proofPdfUrl, setProofPdfUrl] = useState<string>("");
+  const [proofLoading, setProofLoading] = useState(false);
+  const [proofError, setProofError] = useState<string>("");
+  const [proofRunId, setProofRunId] = useState<string>("");
+  const proofPollTokenRef = useRef(0);
+  const iframeRef = useRef<HTMLIFrameElement | null>(null);
+  const [previewReady, setPreviewReady] = useState(false);
+  const [selectedParagraphId, setSelectedParagraphId] = useState<string>("");
+  const [inspectorHtml, setInspectorHtml] = useState<string>("");
+  const [inspectorFocused, setInspectorFocused] = useState(false);
   const [bookVersionId, setBookVersionId] = useState<string>(safeStr(searchParams.get("bookVersionId")));
   const [overlayId, setOverlayId] = useState<string>(safeStr(searchParams.get("overlayId")));
 
@@ -314,10 +384,12 @@ export default function BookStudioChapterEditor() {
   const [designTokens, setDesignTokens] = useState<any>(null);
   const [imageSrcMap, setImageSrcMap] = useState<Record<string, string> | null>(null);
   const [missingImageSrcs, setMissingImageSrcs] = useState<string[] | null>(null);
+  const [chapterOpeners, setChapterOpeners] = useState<Record<string, string> | null>(null);
 
   // loadedRewrites/draftRewrites store ONLY non-empty rewrites.
   const [loadedRewrites, setLoadedRewrites] = useState<Record<string, string>>({});
   const [draftRewrites, setDraftRewrites] = useState<Record<string, string>>({});
+  const [previewRewrites, setPreviewRewrites] = useState<Record<string, string>>({});
 
   const [paragraphs, setParagraphs] = useState<CanonicalParagraph[]>([]);
   const uploadInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
@@ -456,9 +528,13 @@ export default function BookStudioChapterEditor() {
       }
       setImageSrcMap(Object.keys(merged).length > 0 ? merged : null);
       setMissingImageSrcs(Array.isArray((res as any)?.missingImageSrcs) ? ((res as any).missingImageSrcs as string[]) : null);
+      setChapterOpeners(
+        (res as any)?.chapterOpeners && typeof (res as any).chapterOpeners === "object" ? ((res as any).chapterOpeners as Record<string, string>) : null
+      );
       setParagraphs(chapterParas);
       setLoadedRewrites(loaded);
       setDraftRewrites(loaded);
+      setPreviewRewrites(loaded);
     } catch (e) {
       toast({
         title: "Failed to load chapter",
@@ -479,6 +555,36 @@ export default function BookStudioChapterEditor() {
     void load();
   }, [authLoading, isAdmin, navigate, load]);
 
+  // Listen for selection events from the preview iframe.
+  useEffect(() => {
+    const handler = (e: MessageEvent) => {
+      const frameWin = iframeRef.current?.contentWindow;
+      if (!frameWin) return;
+      if (e.source !== frameWin) return;
+      const data = e.data as PreviewToParentMessage;
+      if (!data || typeof data !== "object") return;
+      if (data.type === "bookPreview.selectParagraph" && typeof (data as any).paragraphId === "string") {
+        setSelectedParagraphId(String((data as any).paragraphId));
+        return;
+      }
+      if (data.type === "bookPreview.ready") {
+        setPreviewReady(true);
+      }
+    };
+    window.addEventListener("message", handler);
+    return () => window.removeEventListener("message", handler);
+  }, []);
+
+  const postToPreview = useCallback((msg: ParentToPreviewMessage) => {
+    const frameWin = iframeRef.current?.contentWindow;
+    if (!frameWin) return;
+    try {
+      frameWin.postMessage(msg, "*");
+    } catch {
+      // ignore
+    }
+  }, []);
+
   const chapterTitle = useMemo(() => {
     if (chapterIdx === null) return "";
     const ch = Array.isArray(canonical?.chapters) ? canonical.chapters[chapterIdx] : null;
@@ -488,6 +594,77 @@ export default function BookStudioChapterEditor() {
       `Chapter ${chapterIdx + 1}`
     );
   }, [canonical, chapterIdx]);
+
+  const navEntries = useMemo(() => {
+    if (chapterIdx === null) return [] as Array<{ label: string; anchorId: string }>;
+    const ch = Array.isArray(canonical?.chapters) ? canonical.chapters[chapterIdx] : null;
+    const sections = Array.isArray((ch as any)?.sections) ? ((ch as any).sections as any[]) : [];
+    const out: Array<{ label: string; anchorId: string }> = [];
+
+    // Chapter start (title/opener)
+    out.push({ label: "Chapter opener", anchorId: `ch-${chapterIdx + 1}` });
+
+    // Section anchors match bookRendererCore: secId = section.id OR `${chapterIdx+1}.${sectionIndex+1}`
+    for (let i = 0; i < sections.length; i++) {
+      const s = sections[i];
+      const rawTitle = typeof s?.title === "string" ? s.title : (typeof s?.meta?.title === "string" ? s.meta.title : "");
+      const secId = typeof s?.id === "string" && s.id.trim() ? s.id.trim() : `${chapterIdx + 1}.${i + 1}`;
+      const label = rawTitle && rawTitle.trim() ? rawTitle.trim() : `Section ${secId} (missing title)`;
+      out.push({ label, anchorId: `sec-${secId}` });
+    }
+
+    return out;
+  }, [canonical, chapterIdx]);
+
+  const selectedParagraph = useMemo(() => {
+    if (!selectedParagraphId) return null;
+    return paragraphs.find((p) => p.id === selectedParagraphId) || null;
+  }, [paragraphs, selectedParagraphId]);
+
+  // Keep inspector text in sync when selection changes or when draft updates externally (AI / discard),
+  // but never clobber while the user is actively editing the textarea.
+  useEffect(() => {
+    if (inspectorFocused) return;
+    if (!selectedParagraphId) {
+      setInspectorHtml("");
+      return;
+    }
+    const p = paragraphs.find((x) => x.id === selectedParagraphId);
+    if (!p) {
+      setInspectorHtml("");
+      return;
+    }
+    const basisHtml = sanitizeInlineBookHtml(p.basis);
+    const draft = draftRewrites[p.id];
+    const display = typeof draft === "string" && draft.trim() ? draft : basisHtml;
+    setInspectorHtml(display);
+  }, [selectedParagraphId, inspectorFocused, paragraphs, draftRewrites]);
+
+  // Debounced commit: sanitize the inspector HTML and write to draftRewrites.
+  useEffect(() => {
+    if (!selectedParagraphId) return;
+    const p = paragraphs.find((x) => x.id === selectedParagraphId);
+    if (!p) return;
+
+    const handle = window.setTimeout(() => {
+      const basisHtml = sanitizeInlineBookHtml(p.basis);
+      const cleaned = sanitizeInlineBookHtml(inspectorHtml || "");
+      setDraftRewrites((prev) => {
+        const prevVal = typeof prev[p.id] === "string" ? prev[p.id] : "";
+        const shouldRemove = !cleaned.trim() || cleaned.trim() === basisHtml.trim();
+        if (shouldRemove) {
+          if (!prevVal) return prev;
+          const next = { ...prev };
+          delete next[p.id];
+          return next;
+        }
+        if (prevVal.trim() === cleaned.trim()) return prev;
+        return { ...prev, [p.id]: cleaned };
+      });
+    }, 350);
+
+    return () => window.clearTimeout(handle);
+  }, [inspectorHtml, selectedParagraphId, paragraphs]);
 
   const chapterOpenerSrc = useMemo(() => {
     if (chapterIdx === null) return "";
@@ -504,6 +681,48 @@ export default function BookStudioChapterEditor() {
   const coverUrl = useMemo(() => {
     return imageSrcMap?.[COVER_CANONICAL_SRC] || "";
   }, [imageSrcMap]);
+
+  // Debounce preview rendering so typing in the inspector doesn't regenerate the full HTML on every keystroke.
+  useEffect(() => {
+    const t = window.setTimeout(() => setPreviewRewrites(draftRewrites), 250);
+    return () => window.clearTimeout(t);
+  }, [draftRewrites]);
+
+  const previewSrcDoc = useMemo(() => {
+    if (!canonical || chapterIdx === null) {
+      return "<!doctype html><html><head><meta charset=\"utf-8\"/></head><body style=\"font-family:system-ui;padding:16px;\">Loading…</body></html>";
+    }
+
+    const overlayForPreview: OverlayJsonV1 = {
+      paragraphs: Object.entries(previewRewrites)
+        .map(([paragraph_id, rewritten]) => ({ paragraph_id, rewritten }))
+        .filter((p) => typeof p.paragraph_id === "string" && typeof p.rewritten === "string" && p.rewritten.trim().length > 0),
+    };
+
+    const canonicalWithOverlay = applyRewritesOverlay(canonical, overlayForPreview);
+    const html = renderBookHtml(canonicalWithOverlay, {
+      target: "chapter",
+      chapterIndex: chapterIdx,
+      figures: { srcMap: imageSrcMap || {} },
+      designTokens,
+      chapterOpeners: chapterOpeners || undefined,
+      placeholdersOnly: false,
+      coverUrl: coverUrl || null,
+    });
+
+    return injectPreviewBridge(html);
+  }, [canonical, chapterIdx, previewRewrites, imageSrcMap, designTokens, chapterOpeners, coverUrl]);
+
+  // Reset readiness whenever the preview doc changes.
+  useEffect(() => {
+    setPreviewReady(false);
+  }, [previewSrcDoc]);
+
+  // Keep the iframe highlight in sync with selected paragraph.
+  useEffect(() => {
+    if (!previewReady) return;
+    postToPreview({ type: "bookPreview.setSelectedParagraph", paragraphId: selectedParagraphId || null });
+  }, [previewReady, selectedParagraphId, postToPreview, previewSrcDoc]);
 
   const bookCssVars = useMemo(() => {
     // Baseline defaults (match book-worker/lib/bookRenderer.js)
@@ -593,8 +812,17 @@ export default function BookStudioChapterEditor() {
       });
       if (!(res as any)?.ok) throw new Error((res as any)?.error?.message || "Failed to enqueue render");
       const runId = safeStr((res as any)?.runId);
-      toast({ title: "Queued", description: "Chapter render queued. Opening run…" });
-      if (runId) navigate(`/admin/books/${encodeURIComponent(bookId)}/runs/${encodeURIComponent(runId)}`);
+      toast({ title: "Queued", description: viewMode === "proof" ? "Chapter render queued. Waiting for PDF…" : "Chapter render queued. Opening run…" });
+      if (runId) {
+        if (viewMode === "proof") {
+          setProofRunId(runId);
+          setProofPdfUrl("");
+          setProofError("");
+          setProofLoading(true);
+          return;
+        }
+        navigate(`/admin/books/${encodeURIComponent(bookId)}/runs/${encodeURIComponent(runId)}`);
+      }
     } catch (e) {
       toast({
         title: "Render failed",
@@ -602,7 +830,114 @@ export default function BookStudioChapterEditor() {
         variant: "destructive",
       });
     }
-  }, [bookId, bookVersionId, overlayId, chapterIdx, mcp, toast, navigate, resolveBookVersionAndOverlay]);
+  }, [bookId, bookVersionId, overlayId, chapterIdx, mcp, toast, navigate, resolveBookVersionAndOverlay, viewMode]);
+
+  const tryGetPdfUrlForRun = useCallback(
+    async (runId: string): Promise<string | null> => {
+      if (!bookId || chapterIdx === null) return null;
+      const list = await mcp.callGet("lms.bookList", { scope: "artifacts", runId, bookId, limit: "500", offset: "0" }) as any;
+      if (!list || list.ok !== true) return null;
+      const artifacts: any[] = Array.isArray(list.artifacts) ? list.artifacts : [];
+      const pdf = artifacts.find((a) => a && a.kind === "pdf" && typeof a.chapter_index === "number" && a.chapter_index === chapterIdx) || null;
+      const artifactId = typeof pdf?.id === "string" ? pdf.id : "";
+      if (!artifactId) return null;
+      const urlRes = await mcp.call("lms.bookArtifactUrl", { artifactId });
+      if (!(urlRes as any)?.ok) return null;
+      const signedUrl = safeStr((urlRes as any)?.signedUrl);
+      return signedUrl || null;
+    },
+    [bookId, chapterIdx, mcp]
+  );
+
+  const loadLatestProofPdf = useCallback(async () => {
+    if (!bookId || !bookVersionId || chapterIdx === null) return;
+    setProofLoading(true);
+    setProofError("");
+    try {
+      const runsRes = await mcp.callGet("lms.bookList", {
+        scope: "runs",
+        bookId,
+        bookVersionId,
+        limit: "200",
+        offset: "0",
+      }) as any;
+      if (!runsRes || runsRes.ok !== true) throw new Error(runsRes?.error?.message || "Failed to load runs");
+      const runs: any[] = Array.isArray(runsRes.runs) ? runsRes.runs : [];
+
+      const candidates = runs.filter((r) => {
+        if (!r || r.target !== "chapter") return false;
+        if (r.status !== "done" && r.status !== "completed") return false;
+        // Prefer matching overlay when present
+        if (overlayId && typeof r.overlay_id === "string") return r.overlay_id === overlayId;
+        if (overlayId && !r.overlay_id) return false;
+        return true;
+      });
+
+      for (const r of candidates) {
+        const rid = typeof r?.id === "string" ? r.id : "";
+        if (!rid) continue;
+        const url = await tryGetPdfUrlForRun(rid);
+        if (url) {
+          setProofPdfUrl(url);
+          setProofRunId(rid);
+          setProofLoading(false);
+          return;
+        }
+      }
+
+      setProofPdfUrl("");
+      setProofError("No completed PDF found yet for this chapter. Render a PDF, then refresh Proof.");
+    } catch (e) {
+      setProofPdfUrl("");
+      setProofError(e instanceof Error ? e.message : "Failed to load proof PDF");
+    } finally {
+      setProofLoading(false);
+    }
+  }, [bookId, bookVersionId, chapterIdx, overlayId, mcp, tryGetPdfUrlForRun]);
+
+  // If we're in Proof mode and we just enqueued a run, poll that run for a PDF artifact (bounded).
+  useEffect(() => {
+    if (viewMode !== "proof") return;
+    if (!proofRunId) return;
+    if (!bookId || chapterIdx === null) return;
+
+    let cancelled = false;
+    const token = (proofPollTokenRef.current += 1);
+
+    (async () => {
+      setProofLoading(true);
+      setProofError("");
+      for (let attempt = 0; attempt < 60; attempt++) {
+        if (cancelled) return;
+        if (proofPollTokenRef.current !== token) return;
+        const url = await tryGetPdfUrlForRun(proofRunId);
+        if (url) {
+          setProofPdfUrl(url);
+          setProofLoading(false);
+          return;
+        }
+        await new Promise((r) => setTimeout(r, 2000));
+      }
+      if (cancelled) return;
+      setProofLoading(false);
+      setProofError("PDF not ready yet. Open the run page to inspect progress, or refresh Proof.");
+    })().catch(() => {
+      if (cancelled) return;
+      setProofLoading(false);
+      setProofError("Proof polling failed.");
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [viewMode, proofRunId, bookId, chapterIdx, tryGetPdfUrlForRun]);
+
+  // When entering Proof mode without a known run, try to load the latest completed PDF.
+  useEffect(() => {
+    if (viewMode !== "proof") return;
+    if (proofRunId) return;
+    void loadLatestProofPdf();
+  }, [viewMode, proofRunId, loadLatestProofPdf]);
 
   const setRewrite = useCallback(
     (paragraphId: string, nextHtml: string) => {
@@ -625,7 +960,7 @@ export default function BookStudioChapterEditor() {
         const currentText = stripHtml(current);
 
         const result = await mcp.rewriteText({
-          segmentType: "reference",
+          segmentType: "book_paragraph",
           currentText,
           styleHints: [
             "Rewrite as a clear, student-friendly paragraph for this book chapter.",
@@ -827,6 +1162,26 @@ export default function BookStudioChapterEditor() {
               Versions
             </Button>
             <Button
+              size="sm"
+              variant={viewMode === "edit" ? "default" : "outline"}
+              onClick={() => setViewMode("edit")}
+              data-cta-id="cta-bookstudio-view-edit"
+              data-action="action"
+            >
+              Edit
+            </Button>
+            <Button
+              size="sm"
+              variant={viewMode === "proof" ? "default" : "outline"}
+              onClick={() => {
+                setViewMode("proof");
+              }}
+              data-cta-id="cta-bookstudio-view-proof"
+              data-action="action"
+            >
+              Proof
+            </Button>
+            <Button
               variant="outline"
               size="sm"
               onClick={() => void enqueueRenderChapter()}
@@ -899,11 +1254,11 @@ export default function BookStudioChapterEditor() {
               </div>
             </div>
             <div className="space-y-1">
-              {pages.map((p, idx) => (
+              {navEntries.map((p, idx) => (
                 <button
-                  key={p.id}
+                  key={p.anchorId}
                   type="button"
-                  onClick={() => scrollToPage(p.id)}
+                  onClick={() => postToPreview({ type: "bookPreview.scrollToId", id: p.anchorId })}
                   className={cn(
                     "w-full text-left text-[11px] font-medium p-2.5 rounded-md cursor-pointer transition-colors",
                     "text-muted-foreground hover:bg-muted/60"
@@ -911,7 +1266,7 @@ export default function BookStudioChapterEditor() {
                   data-cta-id={`cta-bookstudio-wysiwyg-nav-${idx}`}
                   data-action="navigate"
                 >
-                  {p.kind === "cover" ? "Cover" : p.kind === "opener" ? "Chapter opener" : p.title}
+                  {p.label}
                 </button>
               ))}
             </div>
@@ -920,7 +1275,84 @@ export default function BookStudioChapterEditor() {
           {/* Canvas */}
           <main className="flex-1 min-w-0">
             <div className="play-root w-full bg-gradient-to-br from-primary/5 via-background to-accent/5 p-2 sm:p-3 md:p-4 rounded-xl h-[calc(100vh-180px)] overflow-auto">
-              <div className="w-full max-w-5xl mx-auto h-full">
+              {viewMode ? (
+                <div className="w-full h-full flex flex-col items-center gap-3">
+                  <div className="w-full max-w-[1100px] flex-1 overflow-hidden rounded-xl border bg-background shadow-sm">
+                    {viewMode === "edit" ? (
+                      <iframe
+                        ref={iframeRef}
+                        title="Book preview"
+                        sandbox="allow-same-origin allow-scripts"
+                        srcDoc={previewSrcDoc}
+                        onLoad={() => setPreviewReady(true)}
+                        className="w-full h-full bg-white"
+                        style={{ transform: `scale(${zoom / 100})`, transformOrigin: "top center" }}
+                        data-cta-id="cta-bookstudio-preview-iframe"
+                        data-action="noop"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex flex-col">
+                        <div className="flex items-center justify-between gap-2 px-3 py-2 border-b bg-muted/20">
+                          <div className="text-xs text-muted-foreground truncate">
+                            {proofLoading ? "Waiting for PDF…" : proofPdfUrl ? "PDF ready" : "No PDF yet"}
+                            {proofError ? ` — ${proofError}` : ""}
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => void loadLatestProofPdf()}
+                              disabled={proofLoading}
+                              data-cta-id="cta-bookstudio-proof-refresh"
+                              data-action="action"
+                            >
+                              Refresh
+                            </Button>
+                            {proofPdfUrl ? (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => window.open(proofPdfUrl, "_blank", "noopener,noreferrer")}
+                                data-cta-id="cta-bookstudio-proof-open"
+                                data-action="action"
+                              >
+                                Open
+                              </Button>
+                            ) : null}
+                            {proofRunId ? (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => navigate(`/admin/books/${encodeURIComponent(bookId || "")}/runs/${encodeURIComponent(proofRunId)}`)}
+                                data-cta-id="cta-bookstudio-proof-open-run"
+                                data-action="navigate"
+                              >
+                                Run
+                              </Button>
+                            ) : null}
+                          </div>
+                        </div>
+                        <div className="flex-1">
+                          {proofPdfUrl ? (
+                            <iframe
+                              title="PDF proof"
+                              src={proofPdfUrl}
+                              className="w-full h-full"
+                              data-cta-id="cta-bookstudio-proof-iframe"
+                              data-action="noop"
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center text-sm text-muted-foreground">
+                              {proofLoading ? "Rendering/signing…" : "Render a PDF to verify pixel-perfect output."}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <div className="w-full max-w-5xl mx-auto h-full">
                 <style>
                   {`
                     .book-canvas {
@@ -1244,8 +1676,104 @@ export default function BookStudioChapterEditor() {
                     ))}
                 </div>
               </div>
+              )}
             </div>
           </main>
+
+          {/* Inspector (selection-based editing) */}
+          <aside className="w-80 bg-background border rounded-lg p-3 overflow-y-auto flex-shrink-0 h-[calc(100vh-180px)]">
+            <div className="flex items-center justify-between gap-2 mb-2">
+              <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Inspector</div>
+              {selectedParagraphId ? (
+                <button
+                  type="button"
+                  className="text-[10px] text-muted-foreground hover:text-foreground underline"
+                  onClick={() => setSelectedParagraphId("")}
+                  data-cta-id="cta-bookstudio-inspector-clear-selection"
+                  data-action="action"
+                >
+                  Clear
+                </button>
+              ) : null}
+            </div>
+
+            {!selectedParagraph ? (
+              <div className="text-xs text-muted-foreground">
+                Select a paragraph in the preview to edit its overlay text.
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <div className="text-[10px] font-mono text-muted-foreground break-all">
+                  {selectedParagraph.id}
+                </div>
+
+                <div className="text-xs">
+                  <div className="font-medium">{selectedParagraph.sectionTitle || "Section"}</div>
+                  {selectedParagraph.microTitle ? (
+                    <div className="text-[11px] text-muted-foreground">{selectedParagraph.microTitle}</div>
+                  ) : null}
+                </div>
+
+                <div className="space-y-1">
+                  <div className="text-[11px] font-semibold">Basis (read-only)</div>
+                  <div className="rounded-md border bg-muted/20 p-2 text-[11px] leading-relaxed whitespace-pre-wrap">
+                    {stripHtml(selectedParagraph.basis)}
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="text-[11px] font-semibold">Rewrite (HTML)</div>
+                    <Badge variant="outline" className="text-[10px]">
+                      {draftRewrites[selectedParagraph.id] ? "override" : "using basis"}
+                    </Badge>
+                  </div>
+                  <textarea
+                    value={inspectorHtml}
+                    onChange={(e) => setInspectorHtml(e.target.value)}
+                    onFocus={() => setInspectorFocused(true)}
+                    onBlur={() => setInspectorFocused(false)}
+                    rows={10}
+                    className="w-full rounded-md border bg-background p-2 font-mono text-[11px] leading-relaxed"
+                    data-cta-id="cta-bookstudio-inspector-html"
+                    data-action="edit"
+                  />
+                  <div className="flex items-center gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        setInspectorFocused(false);
+                        void aiRewriteParagraph(selectedParagraph.id, selectedParagraph.basis);
+                      }}
+                      disabled={aiBusyIds.has(selectedParagraph.id)}
+                      data-cta-id="cta-bookstudio-inspector-ai-rewrite"
+                      data-action="action"
+                    >
+                      {aiBusyIds.has(selectedParagraph.id) ? "Rewriting…" : "AI rewrite"}
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        setInspectorFocused(false);
+                        revertParagraph(selectedParagraph.id);
+                      }}
+                      data-cta-id="cta-bookstudio-inspector-revert"
+                      data-action="action"
+                    >
+                      Revert
+                    </Button>
+                  </div>
+                  <div className="text-[10px] text-muted-foreground">
+                    Allowed inline HTML: <span className="font-mono">&lt;strong&gt;</span>, <span className="font-mono">&lt;em&gt;</span>,{" "}
+                    <span className="font-mono">&lt;sup&gt;</span>, <span className="font-mono">&lt;sub&gt;</span>,{" "}
+                    <span className="font-mono">&lt;span&gt;</span>, <span className="font-mono">&lt;br/&gt;</span>.
+                  </div>
+                </div>
+              </div>
+            )}
+          </aside>
         </div>
       </div>
     </div>

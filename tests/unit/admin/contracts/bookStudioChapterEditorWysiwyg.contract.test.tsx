@@ -1,4 +1,4 @@
-import { render, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import React from "react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 
@@ -142,6 +142,33 @@ describe("BookStudioChapterEditor (WYSIWYG contract)", () => {
         canonicalSrcs: ["__book_cover__"],
       })
     );
+  });
+
+  it('clicking "Proof" triggers a runs lookup (bookList scope=runs)', async () => {
+    const BookStudioChapterEditor = (await import("@/pages/admin/BookStudioChapterEditor")).default;
+
+    render(
+      <MemoryRouter initialEntries={[`/admin/book-studio/${bookId}/chapters/0`]}>
+        <Routes>
+          <Route path="/admin/book-studio/:bookId/chapters/:chapterIndex" element={<BookStudioChapterEditor />} />
+        </Routes>
+      </MemoryRouter>
+    );
+
+    await waitFor(() => expect(call).toHaveBeenCalledWith("lms.bookVersionInputUrls", expect.anything()));
+
+    const proofBtn = await screen.findByRole("button", { name: "Proof" });
+    fireEvent.click(proofBtn);
+
+    await waitFor(() => {
+      expect(callGet).toHaveBeenCalledWith(
+        "lms.bookList",
+        expect.objectContaining({
+          scope: "runs",
+          bookId,
+        })
+      );
+    });
   });
 });
 

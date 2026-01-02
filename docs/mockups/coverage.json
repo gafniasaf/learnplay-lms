@@ -2166,9 +2166,14 @@
       ],
       "requiredCTAs": [
         { "id": "cta-bookstudio-back-to-book", "target": "navigate" },
+        { "id": "cta-bookstudio-book-versions", "target": "navigate" },
+        { "id": "cta-bookstudio-view-edit", "target": "action" },
+        { "id": "cta-bookstudio-view-proof", "target": "action" },
+        { "id": "cta-bookstudio-book-render", "target": "action" },
         { "id": "cta-bookstudio-chapter-ai-rewrite-all", "target": "action" },
         { "id": "cta-bookstudio-chapter-discard", "target": "action" },
         { "id": "cta-bookstudio-chapter-save", "target": "action" },
+        { "id": "cta-bookstudio-wysiwyg-zoom", "target": "action" },
         { "id": "cta-bookstudio-nav-section-0", "target": "navigate" },
         { "id": "cta-bookstudio-nav-section-1", "target": "navigate" },
         { "id": "cta-bookstudio-nav-section-2", "target": "navigate" },
@@ -2198,7 +2203,14 @@
         { "id": "cta-bookstudio-version-revert-2", "target": "action" },
         { "id": "cta-bookstudio-version-select-1", "target": "action" },
         { "id": "cta-bookstudio-version-diff-1", "target": "action" },
-        { "id": "cta-bookstudio-version-revert-1", "target": "action" }
+        { "id": "cta-bookstudio-version-revert-1", "target": "action" },
+        { "id": "cta-bookstudio-proof-refresh", "target": "action" },
+        { "id": "cta-bookstudio-proof-open", "target": "action" },
+        { "id": "cta-bookstudio-proof-open-run", "target": "navigate" },
+        { "id": "cta-bookstudio-inspector-clear-selection", "target": "action" },
+        { "id": "cta-bookstudio-inspector-html", "target": "edit" },
+        { "id": "cta-bookstudio-inspector-ai-rewrite", "target": "action" },
+        { "id": "cta-bookstudio-inspector-revert", "target": "action" }
       ]
     },
     {
