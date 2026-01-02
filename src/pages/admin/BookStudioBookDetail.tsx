@@ -151,6 +151,7 @@ export default function BookStudioBookDetail() {
   const [chapters, setChapters] = useState<ChapterSummary[]>([]);
   const [imageSrcMap, setImageSrcMap] = useState<Record<string, string> | null>(null);
   const [missingImageSrcs, setMissingImageSrcs] = useState<string[] | null>(null);
+  const [coverUrl, setCoverUrl] = useState<string | null>(null);
 
   const [rendering, setRendering] = useState(false);
   const [coverBusy, setCoverBusy] = useState(false);
@@ -274,6 +275,26 @@ export default function BookStudioBookDetail() {
     setChapters(summaries);
   }, [bookId, selectedBookVersionId, ensureOverlay, mcp]);
 
+  const loadCover = useCallback(async () => {
+    if (!bookId) return;
+    try {
+      const res = await mcp.call("lms.bookLibraryImageUrl", {
+        bookId,
+        canonicalSrcs: [COVER_CANONICAL_SRC],
+        expiresIn: 3600,
+      });
+      if ((res as any)?.ok === true) {
+        const url = safeStr((res as any)?.urls?.[COVER_CANONICAL_SRC]?.signedUrl);
+        setCoverUrl(url || null);
+      } else {
+        setCoverUrl(null);
+      }
+    } catch (e) {
+      console.warn("Cover lookup failed:", e);
+      setCoverUrl(null);
+    }
+  }, [bookId, mcp]);
+
   useEffect(() => {
     if (authLoading) return;
     if (!isAdmin) {
@@ -292,6 +313,7 @@ export default function BookStudioBookDetail() {
         variant: "destructive",
       });
     });
+    void loadCover();
   }, [bookId, selectedBookVersionId, loadCanonical, toast]);
 
   const selectedVersion = useMemo(() => {
@@ -411,6 +433,7 @@ export default function BookStudioBookDetail() {
         if (!(link as any)?.ok) throw new Error((link as any)?.error?.message || "Failed to link cover image");
 
         toast({ title: "Cover uploaded", description: "Cover image uploaded + linked." });
+        await loadCover();
       } catch (e) {
         toast({
           title: "Cover upload failed",
@@ -422,7 +445,7 @@ export default function BookStudioBookDetail() {
         if (coverFileRef.current) coverFileRef.current.value = "";
       }
     },
-    [bookId, mcp, toast]
+    [bookId, mcp, toast, loadCover]
   );
 
   const aiGenerateCover = useCallback(async () => {
@@ -441,6 +464,7 @@ export default function BookStudioBookDetail() {
       const signedUrl = safeStr((res as any)?.signedUrl);
       toast({ title: "Cover generated", description: "AI cover generated + linked." });
       if (signedUrl) window.open(signedUrl, "_blank", "noopener,noreferrer");
+      await loadCover();
     } catch (e) {
       toast({
         title: "Cover generation failed",
@@ -450,7 +474,7 @@ export default function BookStudioBookDetail() {
     } finally {
       setCoverBusy(false);
     }
-  }, [bookId, mcp, toast]);
+  }, [bookId, mcp, toast, loadCover]);
 
   if (authLoading || (!isAdmin && !devAgent)) {
     return (
@@ -521,10 +545,21 @@ export default function BookStudioBookDetail() {
                 className="hidden"
                 onChange={(e) => void onCoverFileChosen(e.target.files?.[0] || null)}
               />
-              <div className="aspect-[3/4] rounded-lg border bg-muted/20 flex items-center justify-center text-muted-foreground">
-                <div className="text-center text-xs">
-                  Cover preview\n(added after `book-library-image-url` endpoint)
-                </div>
+              <div className="aspect-[3/4] rounded-lg border bg-muted/20 flex items-center justify-center text-muted-foreground overflow-hidden">
+                {coverUrl ? (
+                  <img
+                    src={coverUrl}
+                    alt="Book cover"
+                    className="w-full h-full object-cover"
+                    data-cta-id="cta-bookstudio-cover-preview"
+                    data-action="noop"
+                  />
+                ) : (
+                  <div className="text-center text-xs p-4">
+                    No cover uploaded yet.<br />
+                    Upload an image or use AI Generate.
+                  </div>
+                )}
               </div>
               <div className="flex gap-2">
                 <Button

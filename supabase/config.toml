@@ -309,3 +309,21 @@ verify_jwt = false
 
 [functions.book-library-generate-image]
 verify_jwt = false
+
+[functions.book-library-storage-url]
+verify_jwt = false
+
+[functions.book-library-list-image-versions]
+verify_jwt = false
+
+[functions.book-library-image-url]
+verify_jwt = false
+
+[functions.book-overlay-list-versions]
+verify_jwt = false
+
+[functions.book-overlay-version-url]
+verify_jwt = false
+
+[functions.book-overlay-restore-version]
+verify_jwt = false
