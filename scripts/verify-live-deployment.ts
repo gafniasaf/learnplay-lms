@@ -267,7 +267,25 @@ async function main() {
     fail("db-match_content_embeddings", e instanceof Error ? e.message : String(e));
   }
 
-  // 0.3 materials bucket must exist (used by materials + standards artifacts)
+  // 0.3 match_content_embeddings_prefix RPC must exist (used by TeacherGPT retrieval over prefixes)
+  try {
+    const zeros = Array.from({ length: 1536 }, () => 0);
+    const { error } = await adminSupabase.rpc("match_content_embeddings_prefix", {
+      p_organization_id: ORGANIZATION_ID,
+      p_course_id_prefix: "material:",
+      p_query_embedding: zeros,
+      p_limit: 1,
+    });
+    if (error) {
+      fail("db-match_content_embeddings_prefix", error.message || "Unknown error");
+    } else {
+      pass("db-match_content_embeddings_prefix", "OK");
+    }
+  } catch (e) {
+    fail("db-match_content_embeddings_prefix", e instanceof Error ? e.message : String(e));
+  }
+
+  // 0.4 materials bucket must exist (used by materials + standards artifacts)
   try {
     const { error } = await adminSupabase.storage.getBucket("materials");
     if (error) {

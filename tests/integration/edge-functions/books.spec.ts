@@ -14,6 +14,7 @@ import { AGENT_TOKEN, ORGANIZATION_ID } from "../helpers/config";
  * - book-create-overlay (HYBRID AUTH, POST)
  * - book-save-overlay (HYBRID AUTH, POST)
  * - book-version-input-urls (HYBRID AUTH, POST)
+ * - book-version-save-figure-placements (HYBRID AUTH, POST)
  * - book-artifact-url (HYBRID AUTH, POST)
  *
  * Notes:
@@ -145,6 +146,137 @@ describe("Book Edge Functions", () => {
       );
       expect(requiresAuth !== undefined).toBe(true);
     });
+
+    test.skipIf(!AGENT_TOKEN || !ORGANIZATION_ID)("returns figurePlacements when requested (agent token)", async () => {
+      const bookId = `it-book-fig-placements-${Date.now()}`;
+      const canonical = {
+        meta: { id: bookId, title: "Integration Test Book" },
+        chapters: [
+          {
+            number: "2",
+            title: "Gordon en patronen",
+            sections: [
+              {
+                number: "2.1",
+                title: "Gordon basis",
+                content: [
+                  {
+                    type: "paragraph",
+                    id: "11111111-1111-1111-1111-111111111111",
+                    basis: "Dit gaat over Gordon patronen en voeding. Patroon 3 hoort hierbij.",
+                  },
+                ],
+              },
+            ],
+          },
+          {
+            number: "5",
+            title: "Persoonsgegevens en AVG",
+            sections: [
+              {
+                number: "5.1",
+                title: "AVG",
+                content: [
+                  {
+                    type: "paragraph",
+                    id: "22222222-2222-2222-2222-222222222222",
+                    basis: "Dit gaat over persoonsgegevens en de AVG in het zorg(leef)plan.",
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      };
+
+      // Ingest a text-only canonical (so figures are expected to come from the library later).
+      const ingest = await callEdgeFunction(
+        "book-ingest-version",
+        { bookId, title: "Integration Test Book", level: "n3", source: "INTEGRATION_TEST", canonical },
+        {
+          method: "POST",
+          headers: {
+            "x-agent-token": AGENT_TOKEN!,
+            "x-organization-id": ORGANIZATION_ID!,
+          },
+          timeout: 60000,
+        }
+      );
+      expect(ingest.status).toBe(200);
+      expect((ingest.body as any)?.ok).toBe(true);
+      const bookVersionId = String((ingest.body as any)?.bookVersionId || "").trim();
+      expect(bookVersionId.length).toBeGreaterThan(10);
+
+      // Persist placements (simulates the worker having computed them once).
+      const placements = {
+        schemaVersion: "1.0",
+        generatedAt: new Date().toISOString(),
+        provider: "test",
+        model: "test",
+        placements: {
+          "Image 5.1 Patroon 3 van Gordon uitscheiding.svg": {
+            paragraph_id: "11111111-1111-1111-1111-111111111111",
+            chapter_index: 0,
+            confidence: 0.9,
+            uncertain: false,
+          },
+          "Image 2.1 Schema AVG persoonsgegevens.svg": {
+            paragraph_id: "22222222-2222-2222-2222-222222222222",
+            chapter_index: 1,
+            confidence: 0.9,
+            uncertain: false,
+          },
+        },
+      };
+
+      const save = await callEdgeFunction(
+        "book-version-save-figure-placements",
+        { bookId, bookVersionId, figurePlacements: placements },
+        {
+          method: "POST",
+          headers: {
+            "x-agent-token": AGENT_TOKEN!,
+            "x-organization-id": ORGANIZATION_ID!,
+          },
+          timeout: 60000,
+        }
+      );
+      expect(save.status).toBe(200);
+      expect((save.body as any)?.ok).toBe(true);
+
+      // Input URLs should return the persisted placements when includeFigurePlacements=true.
+      // We allow missing images so this test doesn't need to upload real assets.
+      const input = await callEdgeFunction(
+        "book-version-input-urls",
+        {
+          bookId,
+          bookVersionId,
+          target: "chapter",
+          chapterIndex: 0,
+          includeFigurePlacements: true,
+          allowMissingImages: true,
+          includeChapterOpeners: false,
+          autoAttachLibraryImages: false,
+        },
+        {
+          method: "POST",
+          headers: {
+            "x-agent-token": AGENT_TOKEN!,
+            "x-organization-id": ORGANIZATION_ID!,
+          },
+          timeout: 60000,
+        }
+      );
+      expect(input.status).toBe(200);
+      expect((input.body as any)?.ok).toBe(true);
+      const fp = (input.body as any)?.figurePlacements;
+      expect(fp && typeof fp === "object").toBe(true);
+      const fpPlacements = (fp as any)?.placements;
+      expect(fpPlacements && typeof fpPlacements === "object").toBe(true);
+      expect(fpPlacements["Image 5.1 Patroon 3 van Gordon uitscheiding.svg"]).toBeTruthy();
+      // Filtered by chapterIndex=0: should NOT include the chapter_index=1 entry.
+      expect(fpPlacements["Image 2.1 Schema AVG persoonsgegevens.svg"]).toBeFalsy();
+    });
   });
 
   describe("book-version-upload-url", () => {
@@ -155,6 +287,39 @@ describe("Book Edge Functions", () => {
         { method: "POST", timeout: 10000 }
       );
       expect(requiresAuth !== undefined).toBe(true);
+    });
+  });
+
+  describe("book-version-save-figure-placements", () => {
+    test("requires authentication", async () => {
+      const requiresAuth = await verifyRequiresAuth(
+        "book-version-save-figure-placements",
+        {
+          bookId: "test-book",
+          bookVersionId: "test-version",
+          figurePlacements: { schemaVersion: "1.0", generatedAt: new Date().toISOString(), placements: {} },
+        },
+        { method: "POST", timeout: 10000 }
+      );
+      expect(requiresAuth !== undefined).toBe(true);
+    });
+
+    test.skipIf(!AGENT_TOKEN || !ORGANIZATION_ID)("validates required fields (agent token)", async () => {
+      const response = await callEdgeFunction(
+        "book-version-save-figure-placements",
+        {},
+        {
+          method: "POST",
+          headers: {
+            "x-agent-token": AGENT_TOKEN!,
+            "x-organization-id": ORGANIZATION_ID!,
+          },
+        }
+      );
+
+      expect(response.status).toBe(200);
+      expect((response.body as any)?.ok).toBe(false);
+      expect((response.body as any)?.httpStatus).toBe(400);
     });
   });
 

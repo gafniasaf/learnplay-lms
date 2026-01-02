@@ -104,6 +104,40 @@ export interface StudentAchievementsResponse {
   total: number;
 }
 
+// ---------------------------------------------------------------------------
+// TeacherGPT (Teacher-facing) Edge Function responses
+// ---------------------------------------------------------------------------
+
+export interface RecommendMesContentResponse {
+  ok: boolean;
+  query: string;
+  results: Array<{
+    doc_id: string;
+    title?: string;
+    url?: string;
+    score: number;
+    matches: Array<{
+      item_index: number;
+      similarity: number;
+      text: string;
+    }>;
+  }>;
+  requestId?: string;
+}
+
+export interface TeacherChatAssistantResponse {
+  ok: boolean;
+  answer: string;
+  citations: Array<{
+    source: 'material' | 'mes';
+    course_id: string;
+    item_index: number;
+    similarity: number;
+    text: string;
+  }>;
+  requestId?: string;
+}
+
 // Parent-related Edge Function responses
 export interface ParentChildrenResponse {
   children: Array<{

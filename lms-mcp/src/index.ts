@@ -20,6 +20,8 @@ const METHODS = [
   "lms.listLibraryCourses",
   "lms.searchLibraryCourses",
   "lms.getLibraryCourseContent",
+  "lms.recommendMesContent",
+  "lms.teacherChatAssistant",
 ] as const;
 
 const server = http.createServer(async (req, res) => {
@@ -100,6 +102,14 @@ const server = http.createServer(async (req, res) => {
       }
       case "lms.getLibraryCourseContent": {
         const result = await getLibraryCourseContent({ params });
+        return send(res, 200, { ok: true, result });
+      }
+      case "lms.recommendMesContent": {
+        const result = await recommendMesContent(params);
+        return send(res, 200, { ok: true, result });
+      }
+      case "lms.teacherChatAssistant": {
+        const result = await teacherChatAssistant(params);
         return send(res, 200, { ok: true, result });
       }
       default:
@@ -255,6 +265,33 @@ async function listRecords(params: any) {
     method: "POST",
     headers: { "X-Agent-Token": config.agentToken, "X-Organization-Id": requireOrganizationId() },
     body: { entity, limit },
+  });
+}
+
+async function recommendMesContent(params: any) {
+  const query = params?.query;
+  if (!query || typeof query !== "string") {
+    throw new Error("query is required");
+  }
+  const limit = typeof params?.limit === "number" && Number.isFinite(params.limit) ? Math.floor(params.limit) : 5;
+  return supabaseFetch("recommend-mes-content", {
+    method: "POST",
+    headers: { "X-Agent-Token": config.agentToken, "X-Organization-Id": requireOrganizationId() },
+    body: { query, limit },
+  });
+}
+
+async function teacherChatAssistant(params: any) {
+  const messages = params?.messages;
+  if (!Array.isArray(messages)) {
+    throw new Error("messages is required (array)");
+  }
+  const scope = typeof params?.scope === "string" ? params.scope : "all";
+  const materialId = typeof params?.materialId === "string" ? params.materialId : undefined;
+  return supabaseFetch("teacher-chat-assistant", {
+    method: "POST",
+    headers: { "X-Agent-Token": config.agentToken, "X-Organization-Id": requireOrganizationId() },
+    body: { messages, scope, ...(materialId ? { materialId } : {}) },
   });
 }
 

@@ -142,19 +142,23 @@ test.describe('Dashboard Loading - Student', () => {
   });
 
   test('student dashboard API response is valid', async ({ page }) => {
-    let apiResponse: any = null;
-    
-    page.on('response', async response => {
+    const apiCalls: { url: string; status: number }[] = [];
+    page.on('response', (response) => {
       if (response.url().includes('/functions/v1/student-dashboard')) {
-        if (response.status() === 200) {
-          apiResponse = await response.json();
-        }
+        apiCalls.push({ url: response.url(), status: response.status() });
       }
     });
 
+    // Start waiting for the API response BEFORE navigation to avoid races where the request completes quickly.
+    const responsePromise = page
+      .waitForResponse(
+        (resp) => resp.url().includes('/functions/v1/student-dashboard') && resp.status() === 200,
+        { timeout: 15_000 }
+      )
+      .catch(() => null);
+
     await page.goto('/student/dashboard');
     await page.waitForLoadState('domcontentloaded');
-    await page.waitForTimeout(5000); // Wait for API call
 
     // Check authentication
     const isAuthPage = page.url().includes('/auth');
@@ -162,8 +166,16 @@ test.describe('Dashboard Loading - Student', () => {
       return; // Skip if not authenticated
     }
 
+    const response = await responsePromise;
+
+    if (!response) {
+      const calls = apiCalls.length ? apiCalls.map((c) => `${c.status} ${c.url}`).join('\n') : '(none)';
+      throw new Error(`API call was not made or did not return 200 status.\nObserved student-dashboard calls:\n${calls}`);
+    }
+
+    const apiResponse = await response.json().catch(() => null);
     if (!apiResponse) {
-      throw new Error('API call was not made or did not return 200 status');
+      throw new Error('student-dashboard returned 200 but response body was not valid JSON');
     }
     
     // Verify Edge Function response shape

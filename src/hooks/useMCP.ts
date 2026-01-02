@@ -27,6 +27,8 @@ import type {
   GetClassRosterResponse,
   ListConversationsResponse,
   ListMessagesResponse,
+  RecommendMesContentResponse,
+  TeacherChatAssistantResponse,
   ListMediaJobsResponse,
   ListAssignmentsResponse,
   GetAssignmentProgressResponse,
@@ -830,6 +832,35 @@ export function useMCP() {
     }
   };
 
+  // TeacherGPT methods (live, real DB + real LLM)
+  const recommendMesContent = async (query: string, limit = 5) => {
+    setLoading(true);
+    try {
+      if (shouldUseMCPProxy()) {
+        return await callMCP<RecommendMesContentResponse>('lms.recommendMesContent', { query, limit });
+      }
+      return await callEdgeFunction<Record<string, unknown>, RecommendMesContentResponse>('recommend-mes-content', { query, limit });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const teacherChatAssistant = async (args: {
+    messages: Array<{ role: 'user' | 'assistant'; content: string }>;
+    scope?: 'materials' | 'mes' | 'all';
+    materialId?: string;
+  }) => {
+    setLoading(true);
+    try {
+      if (shouldUseMCPProxy()) {
+        return await callMCP<TeacherChatAssistantResponse>('lms.teacherChatAssistant', args as unknown as Record<string, unknown>);
+      }
+      return await callEdgeFunction<Record<string, unknown>, TeacherChatAssistantResponse>('teacher-chat-assistant', args as unknown as Record<string, unknown>);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Job Management Methods (additional)
   const listMediaJobsFiltered = async (params: {
     courseId?: string;
@@ -1303,6 +1334,9 @@ export function useMCP() {
     sendMessage,
     listConversations,
     listMessages,
+    // TeacherGPT (live)
+    recommendMesContent,
+    teacherChatAssistant,
     // Additional Job Management methods
     listMediaJobsFiltered,
     // Assignment methods

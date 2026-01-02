@@ -27,6 +27,11 @@ interface Body {
   overlayId?: string;
   expiresIn?: number;
   /**
+   * If true, return persisted semantic figure placements (when present) from book_versions.figure_placements.
+   * This allows the worker (and Book Studio) to avoid filename-based figure->chapter inference.
+   */
+  includeFigurePlacements?: boolean;
+  /**
    * If true, do NOT hard-fail when image mappings/assets are missing.
    * Instead, return partial imageSrcMap and report missingImageSrcs so the worker can
    * render draft PDFs with visible placeholders.
@@ -253,6 +258,7 @@ serve(async (req: Request): Promise<Response> => {
 
     const expiresIn = typeof body.expiresIn === "number" && body.expiresIn > 0 ? Math.min(body.expiresIn, 60 * 60 * 24) : 3600;
     const allowMissingImages = body.allowMissingImages === true;
+    const includeFigurePlacements = body.includeFigurePlacements === true;
     const includeChapterOpeners = body.includeChapterOpeners === true;
     const autoAttachLibraryImages = body.autoAttachLibraryImages === true;
 
@@ -271,7 +277,7 @@ serve(async (req: Request): Promise<Response> => {
     // Fetch version paths
     const { data: version, error: versionErr } = await adminSupabase
       .from("book_versions")
-      .select("canonical_path, figures_path, design_tokens_path")
+      .select("canonical_path, figures_path, design_tokens_path, figure_placements, figure_placements_updated_at")
       .eq("book_id", body.bookId)
       .eq("book_version_id", body.bookVersionId)
       .single();
@@ -321,8 +327,10 @@ serve(async (req: Request): Promise<Response> => {
     // Extra outputs for the worker:
     // - chapterOpeners: chapterIndex -> canonical src key (resolved via imageSrcMap)
     // - autoChapterFigures: chapterIndex -> list of figure descriptors to inject when canonicals lack embedded figures
+    // - figurePlacements: persisted semantic placements (src -> paragraph_id/chapter_index) when present and requested
     let chapterOpeners: Record<number, string> | null = null;
     let autoChapterFigures: Record<number, Array<{ src: string; alt?: string; caption?: string; figureNumber?: string }>> | null = null;
+    let figurePlacements: any = null;
 
     if (wantsImageMap) {
       // 1) Download canonical JSON to discover referenced images (scoped by target/chapterIndex).
@@ -417,6 +425,40 @@ serve(async (req: Request): Promise<Response> => {
             : chaptersAll.map((_, i) => i);
 
         const extraNeeded = new Set<string>();
+
+        // Optional: include persisted semantic placements.
+        // When present, this becomes the source of truth for which figures belong in which chapter.
+        if (includeFigurePlacements && version && typeof (version as any).figure_placements === "object" && (version as any).figure_placements) {
+          const raw = (version as any).figure_placements;
+          const placementsObj = raw?.placements;
+          if (placementsObj && typeof placementsObj === "object") {
+            // Filter returned placements by target scope to keep payloads small.
+            const filtered: Record<string, any> = {};
+            for (const [src, meta] of Object.entries(placementsObj as Record<string, any>)) {
+              const s = typeof src === "string" ? src.trim() : "";
+              if (!s) continue;
+              // Filter by requested scope to avoid signing the full library on chapter renders.
+              if (body.target === "chapter" && imageMapChapterIndex !== null) {
+                const chIdx = typeof (meta as any)?.chapter_index === "number" ? (meta as any).chapter_index : null;
+                if (chIdx !== imageMapChapterIndex) continue;
+              }
+              extraNeeded.add(s);
+              filtered[s] = meta;
+            }
+
+            figurePlacements = {
+              ...raw,
+              placements: filtered,
+              // Keep the original updatedAt if present; do not rewrite semantics here.
+              scope: body.target === "chapter" && imageMapChapterIndex !== null
+                ? { target: "chapter", chapterIndex: imageMapChapterIndex }
+                : { target: "book" },
+            };
+          } else {
+            // Keep null when shape is invalid.
+            figurePlacements = null;
+          }
+        }
 
         if (includeChapterOpeners && idxJson && typeof idxJson === "object") {
           const originals = Array.isArray(idxJson.entries)
@@ -713,6 +755,8 @@ serve(async (req: Request): Promise<Response> => {
       // Optional resolved image map for renderers/workers:
       // canonical img.src (as stored) -> signed URL to the uploaded library image.
       imageSrcMap,
+      // Optional persisted placements (when requested).
+      figurePlacements,
       // Optional chapter opener mapping (chapterIndex -> canonical src key).
       // Workers can pass this into the renderer to ensure openers are from the correct book library.
       chapterOpeners,

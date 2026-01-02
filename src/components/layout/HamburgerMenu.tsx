@@ -45,17 +45,8 @@ export const HamburgerMenu = () => {
   const [devEnabled, setDevEnabledState] = useState(isDevEnabled());
   const [currentRole, setCurrentRole] = useState<Role>(getRole());
 
-  const getInitialOpenSections = (): string[] => {
-    if (typeof window === 'undefined') return ['learn'];
-    try {
-      const stored = localStorage.getItem('menuOpen');
-      return stored ? JSON.parse(stored) : ['learn'];
-    } catch {
-      return ['learn'];
-    }
-  };
-
-  const [openSections, setOpenSections] = useState<string[]>(getInitialOpenSections());
+  // Menu groups start collapsed; users expand the group they want.
+  const [openSections, setOpenSections] = useState<string[]>([]);
 
   // Handle accordion changes with announcements
   const handleAccordionChange = (newSections: string[]) => {
@@ -74,13 +65,6 @@ export const HamburgerMenu = () => {
       setSectionAnnouncement(`${sectionName} section collapsed`);
     }
   };
-
-  // Persist open sections to localStorage
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('menuOpen', JSON.stringify(openSections));
-    }
-  }, [openSections]);
 
   // Listen for role changes
   useEffect(() => {
@@ -109,6 +93,11 @@ export const HamburgerMenu = () => {
   const handleOpenChange = (newOpen: boolean) => {
     setOpen(newOpen);
     setAnnouncement(newOpen ? "Menu opened" : "Menu closed");
+
+    // Always open with all groups collapsed (per UX request).
+    if (newOpen) {
+      setOpenSections([]);
+    }
     
     // Restore focus to trigger button when closing
     if (!newOpen) {

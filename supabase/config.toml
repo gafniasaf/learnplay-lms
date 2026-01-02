@@ -283,6 +283,9 @@ verify_jwt = false
 [functions.book-version-input-urls]
 verify_jwt = false
 
+[functions.book-version-save-figure-placements]
+verify_jwt = false
+
 [functions.book-version-upload-url]
 verify_jwt = false
 

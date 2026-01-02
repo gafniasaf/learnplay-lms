@@ -27,30 +27,9 @@ export interface NavSection {
  */
 export const navSections: NavSection[] = [
   {
-    title: "Main",
+    title: "Books",
     items: [
-      { id: "home", label: "Home", path: "/", icon: "Home" },
-      { id: "courses", label: "Courses", path: "/courses", icon: "BookOpen" },
-      { id: "kids", label: "Kids", path: "/kids", icon: "Baby" },
-      { id: "parents", label: "Parents", path: "/parent/dashboard", icon: "Users" },
-      { id: "schools", label: "Schools", path: "/schools", icon: "GraduationCap" },
-      { id: "help", label: "Help", path: "/help", icon: "HelpCircle" },
-      { id: "about", label: "About", path: "/about", icon: "Info" },
-    ],
-  },
-  {
-    title: "Messages",
-    items: [
-      { id: "inbox", label: "Inbox", path: "/messages", icon: "Mail" },
-    ],
-  },
-  {
-    title: "Admin",
-    items: [
-      { id: "admin", label: "Admin Home", path: "/admin", icon: "Shield", roles: ["admin"] },
-      { id: "ai-pipeline", label: "AI Pipeline", path: "/admin/ai-pipeline", icon: "Sparkles", roles: ["admin"] },
-      { id: "course-editor", label: "Course Editor", path: "/admin/courses/select", icon: "Edit", roles: ["admin"] },
-      { id: "library-courses", label: "Library Courses", path: "/admin/library-courses", icon: "Library", roles: ["admin"] },
+      // WYSIWYG Book Studio (admin)
       { id: "book-studio", label: "Book Studio", path: "/admin/book-studio", icon: "BookOpen", roles: ["admin"] },
       {
         id: "book-missing-images",
@@ -59,6 +38,57 @@ export const navSections: NavSection[] = [
         icon: "Image",
         roles: ["admin"],
       },
+    ],
+  },
+  {
+    title: "Courses",
+    items: [
+      // Public course browsing
+      { id: "courses", label: "Courses", path: "/courses", icon: "BookOpen" },
+
+      // Admin course pipeline/tools
+      { id: "ai-pipeline", label: "AI Pipeline", path: "/admin/ai-pipeline", icon: "Sparkles", roles: ["admin"] },
+      { id: "course-editor", label: "Course Editor", path: "/admin/courses/select", icon: "Edit", roles: ["admin"] },
+      { id: "library-courses", label: "Library Courses", path: "/admin/library-courses", icon: "Library", roles: ["admin"] },
+
+      // Teacher pages
+      { id: "teacher", label: "Dashboard", path: "/teacher", icon: "BarChart", roles: ["teacher"] },
+      { id: "students", label: "Students", path: "/teacher/students", icon: "Users", roles: ["teacher"] },
+      { id: "classes", label: "Classes", path: "/teacher/classes", icon: "GraduationCap", roles: ["teacher"] },
+      { id: "class-progress", label: "Class Progress", path: "/teacher/class-progress", icon: "Activity", roles: ["teacher"] },
+      { id: "assignments", label: "Assignments", path: "/teacher/assignments", icon: "ClipboardList", roles: ["teacher"] },
+      { id: "assignment-progress", label: "Assignment Progress", path: "/teacher/assignments/:id/progress", icon: "Award", roles: ["teacher"] },
+      { id: "analytics", label: "Analytics", path: "/teacher/analytics", icon: "BarChart", roles: ["teacher"] },
+
+      // Parent pages
+      { id: "parent-overview", label: "Parent Overview", path: "/parent/dashboard", icon: "LayoutDashboard", roles: ["parent"] },
+      { id: "parent-subjects", label: "Parent Subjects", path: "/parent/subjects", icon: "BookOpen", roles: ["parent"] },
+      { id: "parent-topics", label: "Parent Topics", path: "/parent/topics", icon: "ListChecks", roles: ["parent"] },
+      { id: "parent-timeline", label: "Parent Timeline", path: "/parent/timeline", icon: "Clock", roles: ["parent"] },
+      { id: "parent-goals", label: "Parent Goals & Alerts", path: "/parent/goals", icon: "Target", roles: ["parent"] },
+      { id: "link-child", label: "Link Child", path: "/parent/link-child", icon: "Link2", roles: ["parent"] },
+
+      // Student pages
+      { id: "student-assignments", label: "Student Assignments", path: "/student/assignments", icon: "ClipboardList", roles: ["student"] },
+      { id: "join-class", label: "Join Class", path: "/student/join-class", icon: "UserPlus", roles: ["student"] },
+    ],
+  },
+  {
+    title: "TeacherGPT",
+    items: [
+      { id: "lesson-kits", label: "Lesson Kits", path: "/teacher/lesson-kits", icon: "WandSparkles", roles: ["teacher", "admin"] },
+      { id: "materials", label: "Materials", path: "/teacher/materials", icon: "FileText", roles: ["teacher", "admin"] },
+      { id: "standards", label: "Standards", path: "/teacher/standards", icon: "ScrollText", roles: ["teacher", "admin"] },
+      { id: "teachergpt-chat", label: "Chat", path: "/teacher/teachergpt/chat", icon: "MessageSquare", roles: ["teacher", "admin"] },
+      { id: "teachergpt-mes", label: "MES Recommendations", path: "/teacher/teachergpt/mes", icon: "Search", roles: ["teacher", "admin"] },
+    ],
+  },
+  {
+    title: "System",
+    items: [
+      { id: "home", label: "Home", path: "/", icon: "Home" },
+
+      // Admin/system tools
       {
         id: "wysiwyg-exercise-editor",
         label: "Wysiwyg exercise editor",
@@ -80,44 +110,6 @@ export const navSections: NavSection[] = [
       { id: "jobs-dashboard", label: "Job Queue", path: "/admin/jobs", icon: "ListChecks", roles: ["admin"] },
       { id: "performance", label: "Performance", path: "/admin/performance", icon: "Activity", roles: ["admin"] },
       { id: "system-health", label: "System Health", path: "/admin/system-health", icon: "Activity", roles: ["admin"] },
-    ],
-  },
-  {
-    title: "Teacher",
-    items: [
-      { id: "teacher", label: "Dashboard", path: "/teacher", icon: "BarChart", roles: ["teacher"] },
-      { id: "students", label: "Students", path: "/teacher/students", icon: "Users", roles: ["teacher"] },
-      { id: "classes", label: "Classes", path: "/teacher/classes", icon: "GraduationCap", roles: ["teacher"] },
-      { id: "class-progress", label: "Class Progress", path: "/teacher/class-progress", icon: "Activity", roles: ["teacher"] },
-      { id: "assignments", label: "Assignments", path: "/teacher/assignments", icon: "ClipboardList", roles: ["teacher"] },
-      { id: "assignment-progress", label: "Assignment Progress", path: "/teacher/assignments/:id/progress", icon: "Award", roles: ["teacher"] },
-      { id: "analytics", label: "Analytics", path: "/teacher/analytics", icon: "BarChart", roles: ["teacher"] },
-    ],
-  },
-  {
-    title: "TeacherGPT",
-    items: [
-      { id: "lesson-kits", label: "Lesson Kits", path: "/teacher/lesson-kits", icon: "WandSparkles", roles: ["teacher", "admin"] },
-      { id: "materials", label: "Materials", path: "/teacher/materials", icon: "FileText", roles: ["teacher", "admin"] },
-      { id: "standards", label: "Standards", path: "/teacher/standards", icon: "ScrollText", roles: ["teacher", "admin"] },
-    ],
-  },
-  {
-    title: "Parent",
-    items: [
-      { id: "parent-overview", label: "Overview", path: "/parent/dashboard", icon: "LayoutDashboard", roles: ["parent"] },
-      { id: "parent-subjects", label: "Subjects", path: "/parent/subjects", icon: "BookOpen", roles: ["parent"] },
-      { id: "parent-topics", label: "Topics", path: "/parent/topics", icon: "ListChecks", roles: ["parent"] },
-      { id: "parent-timeline", label: "Timeline", path: "/parent/timeline", icon: "Clock", roles: ["parent"] },
-      { id: "parent-goals", label: "Goals & Alerts", path: "/parent/goals", icon: "Target", roles: ["parent"] },
-      { id: "link-child", label: "Link Child", path: "/parent/link-child", icon: "Link2", roles: ["parent"] },
-    ],
-  },
-  {
-    title: "Student",
-    items: [
-      { id: "student-assignments", label: "Assignments", path: "/student/assignments", icon: "ClipboardList", roles: ["student"] },
-      { id: "join-class", label: "Join Class", path: "/student/join-class", icon: "UserPlus", roles: ["student"] },
     ],
   },
 ];

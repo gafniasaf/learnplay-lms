@@ -36,6 +36,8 @@ const TeacherAssignments = lazy(() => import("./pages/teacher/Assignments"));
 const TeacherLessonKits = lazy(() => import("./pages/teacher/LessonKits"));
 const TeacherMaterials = lazy(() => import("./pages/teacher/Materials"));
 const TeacherStandards = lazy(() => import("./pages/teacher/Standards"));
+const TeacherChat = lazy(() => import("./pages/teacher/TeacherChat"));
+const TeacherMesRecommendations = lazy(() => import("./pages/teacher/MesRecommendations"));
 const MessagesInbox = lazy(() => import("./pages/messages/Inbox"));
 const Play = lazy(() => import("./pages/Play"));
 
@@ -447,6 +449,8 @@ const App = () => {
                       <Route path="/teacher/lesson-kits" element={<TeacherLessonKits />} />
                       <Route path="/teacher/materials" element={<TeacherMaterials />} />
                       <Route path="/teacher/standards" element={<TeacherStandards />} />
+                      <Route path="/teacher/teachergpt/chat" element={<TeacherChat />} />
+                      <Route path="/teacher/teachergpt/mes" element={<TeacherMesRecommendations />} />
                       <Route path="/play/welcome" element={<Play />} />
                       <Route path="/messages/inbox" element={<MessagesInbox />} />
                       <Route path="/auth" element={<Auth />} />

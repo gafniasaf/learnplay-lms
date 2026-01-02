@@ -154,8 +154,11 @@ test("live: Expertcollege exercise generation editor generates + edits + saves e
     `${SUPABASE_URL}/functions/v1/process-pending-jobs?jobId=${encodeURIComponent(jobId)}&mediaN=0`,
     { headers: { "x-agent-token": AGENT_TOKEN }, timeout: 10 * 60_000 }
   );
+  if (!procResp.ok()) {
+    const bodyText = await procResp.text().catch(() => "");
+    throw new Error(`process-pending-jobs failed (HTTP ${procResp.status()}): ${bodyText.slice(0, 800)}`);
+  }
   const procJson = (await procResp.json().catch(() => null)) as any;
-  expect(procResp.ok()).toBeTruthy();
   expect(procJson?.ok).toBe(true);
 
   // Wait for review state in UI

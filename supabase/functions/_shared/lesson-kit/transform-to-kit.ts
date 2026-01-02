@@ -55,7 +55,9 @@ function tryParseJsonLoose(raw: string): unknown | null {
 }
 
 async function callLLM(systemPrompt: string, userPrompt: string, options: LLMCallOptions = {}): Promise<unknown> {
-  const { temperature = 0.3, maxTokens = 4000, timeoutMs = 110000 } = options;
+  // Lesson kits can be fairly verbose (teacher script + handouts). Prefer a higher output cap to
+  // reduce truncation-induced JSON parse failures (still fail loud if unrecoverable).
+  const { temperature = 0.3, maxTokens = 6000, timeoutMs = 110000 } = options;
 
   const prompts = [
     userPrompt,
@@ -74,7 +76,7 @@ async function callLLM(systemPrompt: string, userPrompt: string, options: LLMCal
 
     if (!res.ok) {
       if (res.error === "no_provider") {
-        throw new Error("BLOCKED: No LLM provider configured. Set OPENAI_API_KEY (or ANTHROPIC_API_KEY / AZURE_OPENAI_API_KEY).");
+        throw new Error("BLOCKED: No LLM provider configured. Set OPENAI_API_KEY (or ANTHROPIC_API_KEY).");
       }
       throw new Error(`LLM call failed: ${res.error}`);
     }
@@ -82,6 +84,23 @@ async function callLLM(systemPrompt: string, userPrompt: string, options: LLMCal
     lastRaw = typeof res.text === "string" ? res.text : "";
     const parsed = tryParseJsonLoose(lastRaw);
     if (parsed !== null) return parsed;
+  }
+
+  // Final repair attempt: ask the model to repair/complete the invalid JSON into a single valid object.
+  if (lastRaw.trim()) {
+    const repair = await generateJson({
+      system:
+        "You repair invalid or truncated JSON into a single valid JSON object. Return ONLY the JSON object (no markdown, no commentary).",
+      prompt: `Fix this into a single valid JSON object.\n\nINVALID_JSON:\n${lastRaw}`,
+      temperature: 0,
+      maxTokens,
+      timeoutMs,
+    });
+    if (repair.ok) {
+      lastRaw = typeof repair.text === "string" ? repair.text : lastRaw;
+      const parsed = tryParseJsonLoose(lastRaw);
+      if (parsed !== null) return parsed;
+    }
   }
 
   const snippet = lastRaw.trim().slice(0, 500);

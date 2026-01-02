@@ -1355,6 +1355,46 @@
       ]
     },
     {
+      "path": "/teacher/teachergpt/chat",
+      "name": "TeacherGPT Chat",
+      "description": "TeacherGPT chat assistant (retrieval over materials + MES)",
+      "states": [
+        {
+          "id": "default",
+          "file": "teacher/teachergpt-chat/default.html",
+          "description": "Default state",
+          "required": true
+        }
+      ],
+      "requiredCTAs": [
+        { "id": "cta-teachergpt-chat-scope", "target": "select" },
+        { "id": "cta-teachergpt-chat-material-select", "target": "select" },
+        { "id": "cta-teachergpt-chat-input", "target": "edit" },
+        { "id": "cta-teachergpt-chat-send", "target": "action" },
+        { "id": "cta-teachergpt-chat-clear", "target": "action" }
+      ]
+    },
+    {
+      "path": "/teacher/teachergpt/mes",
+      "name": "MES Recommendations",
+      "description": "Semantic MES recommendations (requires mes_corpus_index)",
+      "states": [
+        {
+          "id": "default",
+          "file": "teacher/mes-recommendations/default.html",
+          "description": "Default state",
+          "required": true
+        }
+      ],
+      "requiredCTAs": [
+        { "id": "cta-teachergpt-mes-query", "target": "edit" },
+        { "id": "cta-teachergpt-mes-limit", "target": "edit" },
+        { "id": "cta-teachergpt-mes-search", "target": "action" },
+        { "id": "cta-teachergpt-mes-index-docs", "target": "edit" },
+        { "id": "cta-teachergpt-mes-index-run", "target": "action" }
+      ]
+    },
+    {
       "path": "/teacher/assignments/demo-assignment/progress",
       "name": "Assignment Progress",
       "description": "Assignment Progress",

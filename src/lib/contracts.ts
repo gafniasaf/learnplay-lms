@@ -426,6 +426,12 @@ export const JobPayloadSchema = z.discriminatedUnion('jobType', [
     jobType: z.literal('standards_export'),
     learnerprofileId: z.string().uuid().optional(), 
     payload: z.record(z.any()).optional().describe("Input for standards_export")
+  }),
+
+  z.object({
+    jobType: z.literal('mes_corpus_index'),
+    learnerprofileId: z.string().uuid().optional(), 
+    payload: z.record(z.any()).optional().describe("Input for mes_corpus_index")
   })
 ]);
 export type JobPayload = z.infer<typeof JobPayloadSchema>;
@@ -1097,7 +1103,8 @@ export const JOB_MODES = {
   "lessonkit_build": "async",
   "standards_ingest": "async",
   "standards_map": "async",
-  "standards_export": "async"
+  "standards_export": "async",
+  "mes_corpus_index": "async"
 } as const;
 
 // --- Edge Function Schemas (for MCP typing) ---
@@ -1409,6 +1416,30 @@ export const EDGE_FUNCTION_SCHEMAS = [
     "output": {
       "messages": "json",
       "nextCursor": "string"
+    }
+  },
+  {
+    "id": "recommend-mes-content",
+    "input": {
+      "query": "string",
+      "limit": "number"
+    },
+    "output": {
+      "ok": "boolean",
+      "results": "json"
+    }
+  },
+  {
+    "id": "teacher-chat-assistant",
+    "input": {
+      "messages": "json",
+      "scope": "string",
+      "materialId": "string"
+    },
+    "output": {
+      "ok": "boolean",
+      "answer": "string",
+      "citations": "json"
     }
   }
 ] as const;

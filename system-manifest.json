@@ -393,6 +393,17 @@
         "placement": "teacher"
       },
       "prompt_template": "Export the standards mapping {{mapping_id}} to CSV and return JSON {\"export_path\": string}."
+    },
+    {
+      "id": "mes_corpus_index",
+      "target_entity": "JobTicket",
+      "execution_mode": "async",
+      "ui": {
+        "label": "Index MES Corpus",
+        "icon": "Database",
+        "placement": "teacher"
+      },
+      "prompt_template": "Index MES corpus documents into org-scoped embeddings for semantic search. Return JSON {\"indexed\": number}."
     }
   ],
   "generation": {
@@ -442,7 +453,17 @@
     { "id": "link-child", "input": { "code": "string" }, "output": { "success": "boolean", "childId": "string" } },
     { "id": "send-message", "input": { "recipientId": "string", "content": "string" }, "output": { "messageId": "string", "success": "boolean" } },
     { "id": "list-conversations", "input": {}, "output": { "conversations": "json" } },
-    { "id": "list-messages", "input": { "conversationWith": "string", "limit": "number" }, "output": { "messages": "json", "nextCursor": "string" } }
+    { "id": "list-messages", "input": { "conversationWith": "string", "limit": "number" }, "output": { "messages": "json", "nextCursor": "string" } },
+    {
+      "id": "recommend-mes-content",
+      "input": { "query": "string", "limit": "number" },
+      "output": { "ok": "boolean", "results": "json" }
+    },
+    {
+      "id": "teacher-chat-assistant",
+      "input": { "messages": "json", "scope": "string", "materialId": "string" },
+      "output": { "ok": "boolean", "answer": "string", "citations": "json" }
+    }
   ]
 }
 

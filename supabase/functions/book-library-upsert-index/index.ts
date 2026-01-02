@@ -61,11 +61,6 @@ async function requireOrgEditor(auth: { type: "agent" | "user"; userId?: string 
   }
 }
 
-function isObjectNotFoundErrorMessage(msg: string): boolean {
-  const m = String(msg || "").toLowerCase();
-  return m.includes("not found") || m.includes("object not found");
-}
-
 serve(async (req: Request): Promise<Response> => {
   const requestId = crypto.randomUUID();
 
@@ -129,10 +124,8 @@ serve(async (req: Request): Promise<Response> => {
     let idx: any = null;
     const { data: blob, error: dlErr } = await adminSupabase.storage.from("books").download(indexPath);
     if (dlErr || !blob) {
-      const msg = dlErr?.message || "";
-      if (!isObjectNotFoundErrorMessage(msg)) {
-        return json({ ok: false, error: { code: "storage_error", message: msg || "Failed to download index" }, httpStatus: 500, requestId }, 200);
-      }
+      // Treat missing/failed downloads as "index does not exist yet" and proceed to create it.
+      // Storage error reporting from Supabase can sometimes be an empty JSON "{}" message even on 404.
       idx = { bookSlug: body.bookId, updatedAt: new Date().toISOString(), srcMap: {} };
     } else {
       try {
@@ -171,7 +164,13 @@ serve(async (req: Request): Promise<Response> => {
       cacheControl: "no-cache",
     });
     if (upErr) {
-      return json({ ok: false, error: { code: "storage_error", message: upErr.message }, httpStatus: 500, requestId }, 200);
+      const meta = JSON.stringify({
+        message: (upErr as any)?.message ?? "",
+        error: (upErr as any)?.error ?? "",
+        statusCode: (upErr as any)?.statusCode ?? (upErr as any)?.status ?? null,
+      });
+      const msg = upErr.message && upErr.message !== "{}" ? upErr.message : meta;
+      return json({ ok: false, error: { code: "storage_error", message: msg || "Storage upload failed" }, httpStatus: 500, requestId }, 200);
     }
 
     return json({ ok: true, updated, indexPath, requestId }, 200);

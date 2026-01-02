@@ -31,35 +31,33 @@ export async function runNavConfigTests(): Promise<{
     const hasTeacherDashboard = teacherItems.some(
       (item) => item.id === "teacher"
     );
-    const hasAdminDashboard = teacherItems.some((item) => item.id === "admin");
+    const hasAdminPipeline = teacherItems.some((item) => item.id === "ai-pipeline");
     const teacherHasDevItems = teacherItems.some((item) => item.devOnly);
 
     const test2Pass =
-      hasTeacherDashboard && !hasAdminDashboard && !teacherHasDevItems;
+      hasTeacherDashboard && !hasAdminPipeline && !teacherHasDevItems;
 
     // Test 3: Admin role, dev disabled - should see admin items
     const adminNav = filterNav({ role: "admin", devEnabled: false });
     const adminItems = adminNav.flatMap((s) => s.items);
-    const hasAdminItems = adminItems.some((item) => item.id === "admin");
+    const hasAdminItems = adminItems.some((item) => item.id === "ai-pipeline");
     const adminHasDevItems = adminItems.some((item) => item.devOnly);
 
     const test3Pass = hasAdminItems && !adminHasDevItems;
 
-    // Test 4: Dev enabled - should see dev items
+    // Test 4: Dev enabled - should still respect role gates when role is not provided
     const devNav = filterNav({ devEnabled: true });
     const devItems = devNav.flatMap((s) => s.items);
-    const hasTestRunner = devItems.some((item) => item.id === "tests");
-    const hasHealth = devItems.some((item) => item.id === "health");
+    const devHasRoleItems = devItems.some((item) => item.roles && item.roles.length > 0);
+    const test4Pass = !devHasRoleItems;
 
-    const test4Pass = hasTestRunner && hasHealth;
-
-    // Test 5: Student role - should see kids dashboard
+    // Test 5: Student role - should see student items
     const studentNav = filterNav({ role: "student", devEnabled: false });
     const studentItems = studentNav.flatMap((s) => s.items);
-    const hasKidsDashboard = studentItems.some((item) => item.id === "kids");
+    const hasStudentAssignments = studentItems.some((item) => item.id === "student-assignments");
     const studentHasTeacher = studentItems.some((item) => item.id === "teacher");
 
-    const test5Pass = hasKidsDashboard && !studentHasTeacher;
+    const test5Pass = hasStudentAssignments && !studentHasTeacher;
 
     // Test 6: Empty sections should be filtered out
     const allSections = filterNav({ role: "teacher", devEnabled: false });
@@ -103,13 +101,12 @@ export async function runNavConfigTests(): Promise<{
           devEnabled: {
             pass: test4Pass,
             itemCount: devItems.length,
-            hasTestRunner,
-            hasHealth,
+            devHasRoleItems,
           },
           studentRole: {
             pass: test5Pass,
             itemCount: studentItems.length,
-            hasKidsDashboard,
+            hasStudentAssignments,
             hasTeacher: studentHasTeacher,
           },
           emptySectionsFiltered: {
