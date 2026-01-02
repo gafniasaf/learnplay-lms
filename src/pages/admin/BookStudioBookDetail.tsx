@@ -75,6 +75,10 @@ type SignedUrlsResponse = {
   missingImageSrcs?: string[] | null;
 };
 
+type BookLibraryImageUrlResponse =
+  | { ok: true; bookId: string; urls: Record<string, { storagePath: string; signedUrl: string } | null> }
+  | { ok: false; error: any; httpStatus?: number };
+
 type ChapterSummary = {
   index: number;
   title: string;
@@ -154,6 +158,8 @@ export default function BookStudioBookDetail() {
 
   const [rendering, setRendering] = useState(false);
   const [coverBusy, setCoverBusy] = useState(false);
+  const [coverUrl, setCoverUrl] = useState<string>("");
+  const [coverStoragePath, setCoverStoragePath] = useState<string>("");
   const coverFileRef = useRef<HTMLInputElement | null>(null);
 
   // Sync search params for deep links.
@@ -274,6 +280,28 @@ export default function BookStudioBookDetail() {
     setChapters(summaries);
   }, [bookId, selectedBookVersionId, ensureOverlay, mcp]);
 
+  const loadCover = useCallback(async () => {
+    if (!bookId) return;
+    try {
+      const res = (await mcp.call("lms.bookLibraryImageUrl", {
+        bookId,
+        canonicalSrcs: [COVER_CANONICAL_SRC],
+        expiresIn: 3600,
+      })) as BookLibraryImageUrlResponse;
+
+      if ((res as any)?.ok !== true) {
+        throw new Error((res as any)?.error?.message || "Failed to load cover URL");
+      }
+
+      const entry = (res as any)?.urls?.[COVER_CANONICAL_SRC] ?? null;
+      setCoverUrl(safeStr(entry?.signedUrl));
+      setCoverStoragePath(safeStr(entry?.storagePath));
+    } catch {
+      setCoverUrl("");
+      setCoverStoragePath("");
+    }
+  }, [bookId, mcp]);
+
   useEffect(() => {
     if (authLoading) return;
     if (!isAdmin) {
@@ -282,6 +310,11 @@ export default function BookStudioBookDetail() {
     }
     void loadBase();
   }, [authLoading, isAdmin, navigate, loadBase]);
+
+  useEffect(() => {
+    if (!bookId) return;
+    void loadCover();
+  }, [bookId, loadCover]);
 
   useEffect(() => {
     if (!bookId || !selectedBookVersionId) return;
@@ -411,6 +444,7 @@ export default function BookStudioBookDetail() {
         if (!(link as any)?.ok) throw new Error((link as any)?.error?.message || "Failed to link cover image");
 
         toast({ title: "Cover uploaded", description: "Cover image uploaded + linked." });
+        await loadCover();
       } catch (e) {
         toast({
           title: "Cover upload failed",
@@ -422,7 +456,7 @@ export default function BookStudioBookDetail() {
         if (coverFileRef.current) coverFileRef.current.value = "";
       }
     },
-    [bookId, mcp, toast]
+    [bookId, mcp, toast, loadCover]
   );
 
   const aiGenerateCover = useCallback(async () => {
@@ -441,6 +475,7 @@ export default function BookStudioBookDetail() {
       const signedUrl = safeStr((res as any)?.signedUrl);
       toast({ title: "Cover generated", description: "AI cover generated + linked." });
       if (signedUrl) window.open(signedUrl, "_blank", "noopener,noreferrer");
+      await loadCover();
     } catch (e) {
       toast({
         title: "Cover generation failed",
@@ -450,7 +485,7 @@ export default function BookStudioBookDetail() {
     } finally {
       setCoverBusy(false);
     }
-  }, [bookId, mcp, toast]);
+  }, [bookId, mcp, toast, loadCover]);
 
   if (authLoading || (!isAdmin && !devAgent)) {
     return (
@@ -520,12 +555,30 @@ export default function BookStudioBookDetail() {
                 accept="image/*"
                 className="hidden"
                 onChange={(e) => void onCoverFileChosen(e.target.files?.[0] || null)}
+                data-cta-id="cta-bookstudio-cover-file-input"
+                data-action="edit"
               />
-              <div className="aspect-[3/4] rounded-lg border bg-muted/20 flex items-center justify-center text-muted-foreground">
-                <div className="text-center text-xs">
-                  Cover preview\n(added after `book-library-image-url` endpoint)
-                </div>
-              </div>
+              <button
+                type="button"
+                className="aspect-[3/4] w-full rounded-lg border bg-muted/20 flex items-center justify-center text-muted-foreground overflow-hidden"
+                onClick={() => {
+                  if (coverUrl) window.open(coverUrl, "_blank", "noopener,noreferrer");
+                }}
+                disabled={!coverUrl}
+                data-cta-id="cta-bookstudio-cover-preview"
+                data-action="action"
+              >
+                {coverUrl ? (
+                  <img src={coverUrl} alt="" className="w-full h-full object-cover" />
+                ) : (
+                  <div className="text-center text-xs px-3">
+                    No cover linked yet
+                  </div>
+                )}
+              </button>
+              {coverStoragePath ? (
+                <div className="text-xs font-mono break-all text-muted-foreground">{coverStoragePath}</div>
+              ) : null}
               <div className="flex gap-2">
                 <Button
                   variant="outline"

@@ -154,7 +154,16 @@ function isLikelySubparagraphNumberedHeading(raw) {
 
 export function renderBookHtml(
   canonical,
-  { target, chapterIndex, assetsBaseUrl = "assets", figures, designTokens, chapterOpeners } = {},
+  {
+    target,
+    chapterIndex,
+    assetsBaseUrl = "assets",
+    figures,
+    designTokens,
+    chapterOpeners,
+    placeholdersOnly = false,
+    coverUrl = null,
+  } = {},
 ) {
   // Prince-first textbook layout (PASS2-inspired).
   // NOTE: Prefer open fonts. If you want exact InDesign fonts, include them in the worker image/host OS.
@@ -767,6 +776,21 @@ figure.figure-block.full-width.chapter-opener img {
   object-fit: cover;
   max-height: none;
 }
+figure.figure-block.full-width.cover-page {
+  page: chapter-first;
+  float: none;
+  clear: none;
+  margin: 0;
+  width: var(--page-width);
+  height: var(--page-height);
+  break-after: page;
+}
+figure.figure-block.full-width.cover-page img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  max-height: none;
+}
 figure.figure-block img {
   display: block;
   width: 100%;
@@ -783,6 +807,22 @@ figcaption.figure-caption {
   color: var(--muted);
   text-align: left;
   line-height: 1.35;
+}
+.figure-placeholder .image-placeholder {
+  width: 100%;
+  min-height: 22mm;
+  border: 1px dashed rgba(0, 0, 0, 0.35);
+  background: #f7f7f7;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4mm;
+}
+.figure-placeholder .image-placeholder-inner {
+  font-family: var(--font-sans);
+  font-size: 10pt;
+  color: #333;
+  text-align: center;
 }
 .figure-label {
   font-weight: 700;
@@ -864,19 +904,38 @@ figcaption.figure-caption {
     if (!Array.isArray(blocks)) return "";
     let out = "";
 
+    function isPlaceholderImage(img) {
+      if (!img || typeof img !== "object") return false;
+      if (img.placeholder === true || img.isPlaceholder === true || img.kind === "placeholder") return true;
+      const srcRaw = typeof img.src === "string" ? img.src.trim() : "";
+      const srcLower = srcRaw.toLowerCase();
+      return srcLower.startsWith("placeholder:") || srcLower.startsWith("placeholder://");
+    }
+
     function renderFiguresFromBlock(b) {
       const images = Array.isArray(b?.images) ? b.images : [];
       if (!images.length) return "";
       let figOut = "";
       for (const img of images) {
         if (!img || typeof img !== "object") continue;
+        const isPlaceholder = placeholdersOnly || isPlaceholderImage(img);
         const src = typeof img.src === "string" ? img.src : null;
-        if (!src) continue;
         const alt = typeof img.alt === "string" ? img.alt : "";
         const caption = typeof img.caption === "string" ? img.caption : "";
         const figureNumber = typeof img.figureNumber === "string" ? img.figureNumber : "";
-        const resolvedSrc = resolveAssetSrc(src, { assetsBaseUrl, srcMap: figures?.srcMap || figures?.src_map });
-        figOut += `<figure class="figure-block full-width"><img src="${escapeHtml(resolvedSrc)}" alt="${escapeHtml(alt)}" />`;
+        if (isPlaceholder) {
+          const labelOnly = figureNumber ? `Afbeelding ${figureNumber}` : "Afbeelding";
+          // Keep the full caption in the figcaption below; inside the placeholder we only show the label
+          // so the PDF doesn't look like duplicated captions.
+          const inner = labelOnly;
+          // IMPORTANT: Do NOT use `full-width` for placeholders. Full-width uses `column-span: all` which creates
+          // large gallery-like blocks that feel like "all images at the end". Placeholders should be inline markers.
+          figOut += `<figure class="figure-block figure-placeholder"><div class="image-placeholder" role="img" aria-label="${escapeHtml(inner)}"><div class="image-placeholder-inner">${escapeHtml(inner)}</div></div>`;
+        } else {
+          if (!src) continue;
+          const resolvedSrc = resolveAssetSrc(src, { assetsBaseUrl, srcMap: figures?.srcMap || figures?.src_map });
+          figOut += `<figure class="figure-block full-width"><img src="${escapeHtml(resolvedSrc)}" alt="${escapeHtml(alt)}" />`;
+        }
         if (caption || figureNumber) {
           const label = figureNumber ? `Afbeelding ${figureNumber}:` : "";
           figOut += `<figcaption class="figure-caption">${label ? `<span class="figure-label">${escapeHtml(label)}</span> ` : ""}${escapeHtml(caption)}</figcaption>`;
@@ -1304,20 +1363,28 @@ figcaption.figure-caption {
       ch?.openerImage ||
       ch?.opener_image ||
       null;
-    const openerSrc = openerRaw
+    const hasOpener = !!openerRaw;
+    const openerSrc = !placeholdersOnly && openerRaw
       ? resolveAssetSrc(openerRaw, { assetsBaseUrl, srcMap: figures?.srcMap || figures?.src_map })
       : null;
 
-    let out = `<div class="chapter${openerSrc ? " has-opener" : ""}" id="ch-${idx + 1}">\n`;
+    let out = `<div class="chapter${hasOpener ? " has-opener" : ""}" id="ch-${idx + 1}">\n`;
     out += `  <div class="chapter-title-block">\n`;
     out += `    <div class="chapter-number">Hoofdstuk ${idx + 1}</div>\n`;
     out += `    <h1 class="chapter-title" data-bookmark="${escapeHtml(bookmark)}">${escapeHtml(displayTitle)}</h1>\n`;
     out += `  </div>\n\n`;
 
-    if (openerSrc) {
-      out += `  <figure class="figure-block full-width chapter-opener">\n`;
-      out += `    <img src="${escapeHtml(openerSrc)}" alt="${escapeHtml(`Hoofdstuk ${idx + 1} opener`)}">\n`;
-      out += `  </figure>\n\n`;
+    if (hasOpener) {
+      if (placeholdersOnly) {
+        const label = `Hoofdstuk ${idx + 1} opener`;
+        out += `  <figure class="figure-block full-width chapter-opener figure-placeholder">\n`;
+        out += `    <div class="image-placeholder" role="img" aria-label="${escapeHtml(label)}"><div class="image-placeholder-inner">${escapeHtml(label)}</div></div>\n`;
+        out += `  </figure>\n\n`;
+      } else if (openerSrc) {
+        out += `  <figure class="figure-block full-width chapter-opener">\n`;
+        out += `    <img src="${escapeHtml(openerSrc)}" alt="${escapeHtml(`Hoofdstuk ${idx + 1} opener`)}">\n`;
+        out += `  </figure>\n\n`;
+      }
     }
 
     const sections = Array.isArray(ch?.sections) ? ch.sections : [];
@@ -1442,6 +1509,26 @@ figcaption.figure-caption {
   const metaTitle = canonical?.meta?.title || "Book";
   const metaLevel = canonical?.meta?.level ? String(canonical.meta.level).toUpperCase() : "";
 
+  function renderCover() {
+    if (target === "chapter") return "";
+
+    const url = typeof coverUrl === "string" ? coverUrl.trim() : "";
+    if (!url) {
+      if (!placeholdersOnly) return "";
+      const label = "Boekomslag (cover)";
+      let out = `<figure class="figure-block full-width cover-page figure-placeholder">\n`;
+      out += `  <div class="image-placeholder" style="height:100%;min-height:100%;" role="img" aria-label="${escapeHtml(label)}">`;
+      out += `<div class="image-placeholder-inner">${escapeHtml(label)}</div></div>\n`;
+      out += `</figure>\n`;
+      return out;
+    }
+
+    let out = `<figure class="figure-block full-width cover-page">\n`;
+    out += `  <img src="${escapeHtml(url)}" alt="${escapeHtml(metaTitle)} cover">\n`;
+    out += `</figure>\n`;
+    return out;
+  }
+
   function renderToc() {
     if (target === "chapter") return "";
     let out = `<div class="toc">\n`;
@@ -1481,6 +1568,7 @@ figcaption.figure-caption {
     <style>${css}</style>
   </head>
   <body>
+    ${renderCover()}
     ${renderToc()}
     ${body}
   </body>

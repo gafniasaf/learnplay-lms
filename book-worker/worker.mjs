@@ -212,18 +212,6 @@ function makeMissingImageDataUri(label) {
   return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
 }
 
-function makeFigurePlaceholderDataUri(label) {
-  // Neutral placeholder (NOT an error). Used for Book Studio-compatible "placeholder-only" renders.
-  const text = escapeXml(label);
-  const svg = `<?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900">
-  <rect x="0" y="0" width="1600" height="900" fill="#ffffff"/>
-  <rect x="40" y="40" width="1520" height="820" fill="#fafafa" stroke="#9aa0a6" stroke-width="4" stroke-dasharray="14 10"/>
-  <text x="800" y="455" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="44" font-weight="600" fill="#333">${text}</text>
-</svg>`;
-  return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
-}
-
 async function findMissingLocalImageAssets({ html, workDir }) {
   // IMPORTANT: match the actual `src="..."` attribute, not attributes that merely contain "src"
   // like `data-missing-src="..."`. Also use non-greedy matching so we don't accidentally capture
@@ -467,11 +455,16 @@ async function processJob(job) {
   const renderProvider = job.render_provider === "docraptor_api" ? "docraptor_api" : "prince_local";
   const payload = job && typeof job.payload === "object" && job.payload && !Array.isArray(job.payload) ? job.payload : {};
   const allowMissingImages = payload.allowMissingImages === true;
-  const placeholdersOnly =
-    payload.placeholdersOnly === true ||
-    isTruthyEnv(process.env.BOOK_RENDER_PLACEHOLDERS_ONLY);
   const pipelineMode = typeof payload.pipelineMode === "string" ? String(payload.pipelineMode) : "";
   const isBookGenPro = pipelineMode === "bookgen_pro";
+  const placeholdersOnly =
+    (() => {
+      if (typeof payload.placeholdersOnly === "boolean") return payload.placeholdersOnly;
+      const raw = process.env.BOOK_RENDER_PLACEHOLDERS_ONLY;
+      if (!raw || typeof raw !== "string" || !raw.trim()) return false;
+      return isTruthyEnv(raw);
+    })();
+  let placeholderReportBuf = null;
 
   if (!jobId || !runId || !orgId || !bookId || !bookVersionId || !target) {
     throw new Error("Job missing required fields");
@@ -554,7 +547,6 @@ async function processJob(job) {
         target,
         chapterIndex,
         allowMissingImages,
-        includeFigurePlacements: true,
         // Ensure openers always resolve from THIS book's image library (prevents cross-book opener mistakes).
         includeChapterOpeners: true,
         // For older "text-only" canonicals, auto-attach library figures by inferring chapter/figure numbers.
@@ -564,6 +556,27 @@ async function processJob(job) {
       { orgId }
     );
 
+    // Optional: cover image (book-scoped)
+    // This uses the shared library index mapping and returns a signed URL.
+    const COVER_CANONICAL_SRC = "__book_cover__";
+    let coverUrl = null;
+    if (target === "book") {
+      try {
+        const coverRes = await callEdge(
+          "book-library-image-url",
+          { bookId, canonicalSrcs: [COVER_CANONICAL_SRC], expiresIn: 3600 },
+          { orgId }
+        );
+        const signed = coverRes?.urls?.[COVER_CANONICAL_SRC]?.signedUrl;
+        coverUrl = typeof signed === "string" && signed.trim() ? signed.trim() : null;
+      } catch (e) {
+        // Cover is optional; do not block renders, but keep this visible in logs.
+        const msg = e instanceof Error ? e.message : String(e);
+        console.warn(`[book-worker] Cover lookup failed (continuing without cover): ${msg}`);
+        coverUrl = null;
+      }
+    }
+
     const canonicalUrl = inputs?.urls?.canonical?.signedUrl;
     if (!canonicalUrl) throw new Error("Missing canonical signedUrl");
 
@@ -571,8 +584,7 @@ async function processJob(job) {
     const figures = inputs?.urls?.figures?.signedUrl
       ? await withRetries(() => downloadJsonFromSignedUrl(inputs.urls.figures.signedUrl), { attempts: 3 })
       : null;
-    let imageSrcMap = asPlainObject(inputs?.imageSrcMap);
-    let figurePlacementsFromEdge = asPlainObject(inputs?.figurePlacements);
+    const imageSrcMap = asPlainObject(inputs?.imageSrcMap);
     const chapterOpenersFromEdge = asPlainObject(inputs?.chapterOpeners);
     const autoChapterFigures = asPlainObject(inputs?.autoChapterFigures);
     const designTokens = inputs?.urls?.designTokens?.signedUrl
@@ -619,7 +631,6 @@ async function processJob(job) {
 
     // 2) Apply overlay
     let assembled = applyRewritesOverlay(canonical, overlay);
-    let placeholderImageSrcMap = null; // when placeholdersOnly=true, we override real image URLs with placeholder data URIs
 
     // 2b) Optional BookGen Pro pipeline (skeleton → rewrite → assemble)
     let bookgenArtifacts = [];
@@ -968,11 +979,12 @@ Return STRICT JSON ONLY:
           .replace(/^```\s*/i, "")
           .replace(/```$/i, "")
           .trim();
+
         const parsed = safeJsonParse(unfenced);
         if (parsed) return parsed;
 
-        // Deterministic repair: models sometimes insert hard newlines inside string literals
-        // or add trailing "reasoning" text after the JSON object. We repair both cases safely.
+        // Deterministic repair: sometimes models insert hard newlines inside string values.
+        // This is invalid JSON but can be repaired safely by removing CR/LF only while inside quotes.
         const normalizeJsonStringLiterals = (rawText) => {
           const s = String(rawText || "");
           let out = "";
@@ -987,7 +999,7 @@ Return STRICT JSON ONLY:
             }
             if (ch === "\\") {
               out += ch;
-              if (inStr) esc = true;
+              esc = true;
               continue;
             }
             if (ch === "\"") {
@@ -1001,48 +1013,22 @@ Return STRICT JSON ONLY:
           return out.trim();
         };
 
-        const extractFirstJsonObject = (rawText) => {
-          const s = String(rawText || "");
-          const start = s.indexOf("{");
-          if (start < 0) return null;
-          let depth = 0;
-          let inStr = false;
-          let esc = false;
-          for (let i = start; i < s.length; i++) {
-            const ch = s[i];
-            if (esc) {
-              esc = false;
-              continue;
-            }
-            if (ch === "\\") {
-              if (inStr) esc = true;
-              continue;
-            }
-            if (ch === "\"") {
-              inStr = !inStr;
-              continue;
-            }
-            if (!inStr) {
-              if (ch === "{") depth++;
-              if (ch === "}") {
-                depth--;
-                if (depth === 0) return s.slice(start, i + 1).trim();
-              }
-            }
-          }
-          return null;
-        };
-
         const normalized = normalizeJsonStringLiterals(unfenced);
-        const parsed2 = safeJsonParse(normalized);
-        if (parsed2) return parsed2;
+        const repaired = safeJsonParse(normalized);
+        if (repaired) {
+          console.warn("[book-worker] [warn] Anthropic JSON required newline-repair; consider tightening the prompt.");
+          return repaired;
+        }
 
-        const extracted = extractFirstJsonObject(normalized);
-        if (extracted) {
-          const parsed3 = safeJsonParse(extracted);
-          if (parsed3) {
-            console.warn("[book-worker] [warn] Anthropic JSON required extraction/repair; tighten the prompt if this repeats.");
-            return parsed3;
+        // Attempt to extract the first JSON object if extra text leaked in.
+        const firstBrace = normalized.indexOf("{");
+        const lastBrace = normalized.lastIndexOf("}");
+        if (firstBrace >= 0 && lastBrace > firstBrace) {
+          const sliced = normalized.slice(firstBrace, lastBrace + 1).trim();
+          const repaired2 = safeJsonParse(sliced);
+          if (repaired2) {
+            console.warn("[book-worker] [warn] Anthropic JSON required object-slice repair; consider tightening the prompt.");
+            return repaired2;
           }
         }
 
@@ -2277,51 +2263,59 @@ Return STRICT JSON ONLY:
         await reportProgress({ stage: "bookgen:assemble", percent: 80, message: "BookGen Pro: assembled book ready" }).catch(() => {});
       }
 
-      // Placeholder-only mode: ensure core correctness by doing semantic figure membership + placement.
-      // We do NOT trust the numeric autoChapterFigures grouping; instead we let the LLM place each figure
-      // onto the best paragraph across the (assembled) book.
-      // NOTE: Figure placement is handled later (shared for bookgen + non-bookgen).
-      // Keep this disabled to avoid double-attaching figures.
-      if (false && placeholdersOnly) {
+      // Placeholder placement (LLM-based): the model decides where each figure belongs based on chapter text/context.
+      // This avoids brittle heuristics and matches the Book Studio image overlay shape (paragraph.images[]).
+      if (placeholdersOnly) {
         await reportProgress({
           stage: "bookgen:placeholders",
           percent: target === "book" ? 81 : 73,
           message: "Placing figure placeholders (LLM)…",
         }).catch(() => {});
 
-        const chaptersAll = Array.isArray(assembled?.chapters) ? assembled.chapters : [];
+        const BOOKGEN_PROMPT_FIGURE_PLACEMENT_SYSTEM = `You are placing figure placeholders inside a Dutch MBO textbook chapter.
 
-        const figuresAll = (() => {
-          const out = [];
-          const seen = new Set();
-          if (autoChapterFigures && typeof autoChapterFigures === "object") {
-            for (const v of Object.values(autoChapterFigures)) {
-              if (!Array.isArray(v)) continue;
-              for (const f of v) {
-                if (!f || typeof f !== "object") continue;
-                const src = typeof f.src === "string" ? f.src.trim() : "";
-                if (!src) continue;
-                const key = src.toLowerCase();
-                if (seen.has(key)) continue;
-                seen.add(key);
-                out.push({
-                  src,
-                  alt: typeof f.alt === "string" ? f.alt : "",
-                  caption: typeof f.caption === "string" ? f.caption : "",
-                  figureNumber: typeof f.figureNumber === "string" ? f.figureNumber : "",
-                });
-              }
-            }
+Input JSON includes:
+- chapter: { chapter_index, chapter_title }
+- paragraphs: ordered list of candidate paragraphs with { paragraph_id, paragraph_index, section, subheading, role, text }
+- figures: list of figures with { src, figureNumber, caption, alt }
+
+Task:
+For EVERY figure, choose the ONE paragraph_id AFTER which the placeholder should appear so it best supports the surrounding text.
+
+Guidelines:
+- Use the meaning of the caption/alt + chapter context.
+- Prefer paragraphs that talk about the same concept, or that explicitly mention the figure number (e.g. "Afbeelding 5.6").
+- Optimize reading flow: avoid huge uninterrupted blocks of figures.
+- Spread figures across the chapter when possible (use paragraph_index order).
+- Do NOT assign many figures to the same paragraph_id by default.
+  - Only group many figures under one paragraph_id if that paragraph clearly introduces the whole set of figures.
+- If a figure is only loosely related, still pick the best-fit paragraph in the same chapter.
+
+Hard requirements:
+- You MUST output exactly one placement for every figure.src in the input. No extras.
+- Use ONLY paragraph_id values that exist in the input paragraphs list.
+
+Return STRICT JSON ONLY:
+{
+  "placements": [
+    { "src": "...", "paragraph_id": "..." }
+  ]
+}`;
+
+        const collectAndClearImages = (node, acc) => {
+          if (!node || typeof node !== "object") return;
+          if (Array.isArray(node.images) && node.images.length) {
+            for (const img of node.images) acc.push(img);
+            node.images = [];
           }
-          return out;
-        })();
+        };
 
-        const buildParagraphCandidatesForBook = () => {
+        const buildParagraphCandidates = (ch) => {
           const candidates = [];
-          const seen = new Set();
-          let globalIdx = 0;
+          let sectionLabel = "";
+          let subLabel = "";
 
-          const walk = ({ blocks, chapterIndex, chapterNumber, chapterTitle, sectionLabel, subLabel }) => {
+          const walk = (blocks) => {
             if (!Array.isArray(blocks)) return;
             for (const b of blocks) {
               if (!b || typeof b !== "object") continue;
@@ -2329,290 +2323,276 @@ Return STRICT JSON ONLY:
 
               if (t === "paragraph") {
                 const id = typeof b.id === "string" ? b.id : "";
-                if (!id || seen.has(id)) continue;
-
                 const basisRaw = typeof b.basis === "string" ? b.basis : "";
                 const praktijkRaw = typeof b.praktijk === "string" ? b.praktijk : "";
                 const verdiepingRaw = typeof b.verdieping === "string" ? b.verdieping : "";
                 const combinedRaw = [basisRaw, praktijkRaw, verdiepingRaw].filter((x) => typeof x === "string" && x.trim()).join("\n\n");
                 const combined = stripHtml(combinedRaw);
-                if (!combined) continue;
-
-                const snippet = normalizeWs(toFacts(combinedRaw, { maxFacts: 6 }).join(" "));
-                const text = snippet.length > 360 ? `${snippet.slice(0, 357).trim()}…` : snippet;
-
-                candidates.push({
-                  paragraph_id: id,
-                  paragraph_index: globalIdx++,
-                  chapter_index: chapterIndex,
-                  chapter_number: chapterNumber || "",
-                  chapter_title: chapterTitle || "",
-                  section: sectionLabel || "",
-                  subheading: subLabel || "",
-                  role: typeof b.role === "string" ? b.role : "",
-                  text,
-                  block: b,
-                });
-                seen.add(id);
+                const role = typeof b.role === "string" ? b.role : "";
+                if (id && combined.trim()) {
+                  const snippet = normalizeWs(toFacts(combinedRaw, { maxFacts: 6 }).join(" "));
+                  const text = snippet.length > 420 ? `${snippet.slice(0, 417).trim()}…` : snippet;
+                  candidates.push({
+                    paragraph_id: id,
+                    section: sectionLabel,
+                    subheading: subLabel,
+                    role,
+                    text,
+                    block: b,
+                  });
+                }
                 continue;
               }
 
               if (t === "subparagraph") {
-                const title = typeof b.title === "string" ? stripHtml(b.title) : "";
                 const prev = subLabel;
-                const nextSub = title ? title : prev;
-                walk({
-                  blocks: b.content || b.blocks || b.items,
-                  chapterIndex,
-                  chapterNumber,
-                  chapterTitle,
-                  sectionLabel,
-                  subLabel: nextSub,
-                });
+                const title = typeof b.title === "string" ? stripHtml(b.title) : "";
+                if (title) subLabel = title;
+                walk(b.content || b.blocks || b.items);
+                subLabel = prev;
                 continue;
               }
 
               const child = b.content || b.blocks || b.items;
-              if (Array.isArray(child)) {
-                walk({ blocks: child, chapterIndex, chapterNumber, chapterTitle, sectionLabel, subLabel });
-              }
+              if (Array.isArray(child)) walk(child);
             }
           };
 
-          for (let ci = 0; ci < chaptersAll.length; ci++) {
-            const ch = chaptersAll[ci];
-            if (!ch || typeof ch !== "object") continue;
-            const chapterNumber = typeof ch.number === "string" ? String(ch.number).trim() : "";
-            const chapterTitle = String(ch?.title || ch?.meta?.title || `Hoofdstuk ${ci + 1}`);
-
-            if (Array.isArray(ch.sections) && ch.sections.length) {
-              for (const s of ch.sections) {
-                const sn = typeof s?.number === "string" ? String(s.number).trim() : "";
-                const st = typeof s?.title === "string" ? stripHtml(s.title) : "";
-                const sectionLabel = normalizeWs([sn, st].filter(Boolean).join(" "));
-                walk({
-                  blocks: s?.content || s?.blocks || s?.items,
-                  chapterIndex: ci,
-                  chapterNumber,
-                  chapterTitle,
-                  sectionLabel,
-                  subLabel: "",
-                });
-              }
-            } else {
-              walk({
-                blocks: ch?.content || ch?.blocks || ch?.items,
-                chapterIndex: ci,
-                chapterNumber,
-                chapterTitle,
-                sectionLabel: "",
-                subLabel: "",
-              });
+          if (Array.isArray(ch?.sections) && ch.sections.length) {
+            for (const s of ch.sections) {
+              const sn = typeof s?.number === "string" ? String(s.number).trim() : "";
+              const st = typeof s?.title === "string" ? stripHtml(s.title) : "";
+              sectionLabel = normalizeWs([sn, st].filter(Boolean).join(" "));
+              subLabel = "";
+              walk(s?.content || s?.blocks || s?.items);
             }
+          } else {
+            sectionLabel = "";
+            subLabel = "";
+            walk(ch?.content || ch?.blocks || ch?.items);
           }
 
           return candidates;
         };
 
-        const candidatesAll = buildParagraphCandidatesForBook();
-        if (!candidatesAll.length) {
-          throw new Error("BLOCKED: No paragraph candidates found for figure placeholder placement");
-        }
+        const collectChapterFiguresAndClear = (ch, idx) => {
+          const collected = [];
+          collectAndClearImages(ch, collected);
 
-        const STOP = new Set([
-          "de", "het", "een", "en", "van", "voor", "met", "op", "in", "aan", "bij", "dat", "die", "dit", "als",
-          "je", "jij", "u", "uw", "we", "wij", "ze", "zij", "zijn", "haar", "hun", "ons", "mij", "me", "mijn",
-          "is", "zijn", "was", "waren", "wordt", "worden", "kan", "kunnen", "ook", "niet", "wel", "naar", "om", "te",
-        ]);
-        const norm = (s) => normalizeWs(stripHtml(s)).toLowerCase().replace(/[^a-z0-9]+/g, " ");
-        const tok = (s) => norm(s).split(" ").filter((t) => t.length >= 4 && !STOP.has(t));
-
-        const candidateText = candidatesAll.map((c) => norm(c.text || ""));
-        const pickCandidatesForFigure = (fig, k = 14) => {
-          const query = [fig.figureNumber || "", fig.caption || "", fig.alt || ""].join(" ");
-          const toks = tok(query);
-          const scores = [];
-          for (let i = 0; i < candidatesAll.length; i++) {
-            const t = candidateText[i];
-            let score = 0;
-            const fn = String(fig.figureNumber || "").trim();
-            if (fn && t.includes(fn.toLowerCase())) score += 6;
-            for (const w of toks) {
-              if (t.includes(w)) score += 1;
+          const walk = (blocks) => {
+            if (!Array.isArray(blocks)) return;
+            for (const b of blocks) {
+              if (!b || typeof b !== "object") continue;
+              collectAndClearImages(b, collected);
+              const t = typeof b.type === "string" ? b.type : "";
+              if (t === "subparagraph") {
+                walk(b.content || b.blocks || b.items);
+                continue;
+              }
+              const child = b.content || b.blocks || b.items;
+              if (Array.isArray(child)) walk(child);
             }
-            scores.push({ i, score });
+          };
+
+          if (Array.isArray(ch?.sections) && ch.sections.length) {
+            for (const s of ch.sections) {
+              collectAndClearImages(s, collected);
+              walk(s.content || s.blocks || s.items);
+            }
+          } else {
+            walk(ch?.content || ch?.blocks || ch?.items);
           }
-          scores.sort((a, b) => (b.score - a.score) || (a.i - b.i));
-          const best = scores.filter((x) => x.score > 0).slice(0, k);
-          const picked = best.length ? best : scores.slice(0, Math.min(k, scores.length));
-          return { paragraphIds: picked.map((x) => candidatesAll[x.i].paragraph_id), noMatch: best.length === 0 };
+
+          // Merge inferred library figures for this chapter too.
+          const inferred = autoChapterFigures && typeof autoChapterFigures === "object" ? autoChapterFigures[String(idx)] : null;
+          if (Array.isArray(inferred)) {
+            for (const f of inferred) collected.push(f);
+          }
+
+          // Normalize + dedupe by src (best key for Book Studio image mapping)
+          const out = [];
+          const seen = new Set();
+          for (const img of collected) {
+            if (!img || typeof img !== "object") continue;
+            const src = typeof img.src === "string" ? img.src.trim() : "";
+            if (!src) continue;
+            const key = src.toLowerCase();
+            if (seen.has(key)) continue;
+            seen.add(key);
+            out.push({
+              src,
+              alt: typeof img.alt === "string" ? img.alt : "",
+              caption: typeof img.caption === "string" ? img.caption : "",
+              figureNumber: typeof img.figureNumber === "string" ? img.figureNumber : "",
+            });
+          }
+          return out;
         };
 
-        const callPlannerJson = planProvider === "anthropic"
-          ? (args) => anthropicJson(args)
-          : (args) => openaiChatJson(args);
+        const placeFiguresWithLlm = async ({ chapterIndex, chapter, figures }) => {
+          if (!figures.length) return { candidates: [], placements: [] };
 
-        const BATCH = 8;
-        const placementsAll = [];
-        for (let start = 0; start < figuresAll.length; start += BATCH) {
-          const batch = figuresAll.slice(start, start + BATCH);
-
-          const perFig = new Map();
-          const usedParaIds = new Set();
-          for (const f of batch) {
-            const sel = pickCandidatesForFigure(f, 14);
-            perFig.set(f.src, sel);
-            for (const pid of sel.paragraphIds) usedParaIds.add(pid);
+          const candidates = buildParagraphCandidates(chapter);
+          if (!candidates.length) {
+            throw new Error(`BLOCKED: No paragraph candidates found for placeholder placement (chapterIndex=${chapterIndex})`);
           }
 
-          const paragraphs = candidatesAll
-            .filter((c) => usedParaIds.has(c.paragraph_id))
-            .map((c) => ({
+          const chapterTitle = String(chapter?.title || chapter?.meta?.title || `Hoofdstuk ${chapterIndex + 1}`);
+          const input = {
+            chapter: { chapter_index: chapterIndex, chapter_title: chapterTitle },
+            paragraphs: candidates.map((c, i) => ({
               paragraph_id: c.paragraph_id,
-              paragraph_index: c.paragraph_index,
-              chapter_index: c.chapter_index,
-              chapter_number: c.chapter_number || "",
-              chapter_title: c.chapter_title || "",
+              paragraph_index: i,
               section: c.section || "",
               subheading: c.subheading || "",
               role: c.role || "",
               text: c.text || "",
-            }));
+            })),
+            figures: figures.map((f) => ({
+              src: f.src,
+              figureNumber: f.figureNumber || "",
+              caption: stripHtml(f.caption || ""),
+              alt: stripHtml(f.alt || ""),
+            })),
+          };
 
-          const figuresIn = batch.map((f) => ({
-            src: f.src,
-            figureNumber: f.figureNumber || "",
-            caption: stripHtml(f.caption || ""),
-            alt: stripHtml(f.alt || ""),
-            candidate_paragraph_ids: perFig.get(f.src)?.paragraphIds || [],
-            no_match: perFig.get(f.src)?.noMatch === true,
-          }));
+          const callPlacement = async ({ system, user }) => {
+            return planProvider === "anthropic"
+              ? await withRetries(() => anthropicJson({ system, user, model: planModel, temperature: 0.1, maxTokens: 2500 }), { attempts: 3 })
+              : await withRetries(() => openaiChatJson({ system, user, model: planModel, temperature: 0.1, maxTokens: 2500 }), { attempts: 3 });
+          };
 
-          const BOOKGEN_PROMPT_BOOK_FIGURE_PLACEMENT_SYSTEM = `You are placing figure placeholders inside a Dutch MBO textbook (whole book scope).
+          const validatePlacements = (plannedObj) => {
+            const placementsArr = Array.isArray(plannedObj?.placements) ? plannedObj.placements : null;
+            if (!placementsArr) {
+              throw new Error(`BLOCKED: Figure placement LLM returned invalid shape (missing placements array)`);
+            }
 
-You will receive:
-- figures: each figure has candidate_paragraph_ids (the ONLY allowed targets for that figure)
-- paragraphs: details for the candidate paragraph_ids across the book
+            const allowedParagraphIds = new Set(candidates.map((c) => c.paragraph_id));
+            const bySrc = new Map();
+            for (const p of placementsArr) {
+              const src = typeof p?.src === "string" ? p.src.trim() : "";
+              const pid = typeof p?.paragraph_id === "string" ? p.paragraph_id.trim() : "";
+              if (!src || !pid) continue;
+              if (!allowedParagraphIds.has(pid)) {
+                throw new Error(`BLOCKED: Figure placement referenced unknown paragraph_id=${pid} for src=${src}`);
+              }
+              bySrc.set(src, pid);
+            }
 
-Task:
-For EVERY figure, choose exactly ONE paragraph_id (from its candidate_paragraph_ids) AFTER which the placeholder should appear.
+            const missing = [];
+            for (const f of figures) {
+              if (!bySrc.has(f.src)) missing.push(f.src);
+            }
+            if (missing.length) {
+              throw new Error(`BLOCKED: Figure placement missing ${missing.length}/${figures.length} figures. Missing srcs: ${missing.slice(0, 12).join(", ")}${missing.length > 12 ? ", ..." : ""}`);
+            }
+            for (const [src] of bySrc.entries()) {
+              if (!figures.find((f) => f.src === src)) {
+                throw new Error(`BLOCKED: Figure placement returned extra src not in input: ${src}`);
+              }
+            }
 
-Guidelines:
-- Prefer the paragraph whose text best matches the figure caption/alt (and figureNumber when present).
-- Keep the flow readable: avoid putting many unrelated figures under one paragraph.
-- If a figure has no_match=true, still pick the best-fit paragraph among its candidates, but treat it as uncertain.
+            return { placementsArr, bySrc };
+          };
+
+          const shouldRebalance = (plannedObj) => {
+            // If the model dumps too many figures onto one paragraph, we ask it to rebalance.
+            // This is a bounded repair loop (max 1 rebalance attempt).
+            const { placementsArr } = validatePlacements(plannedObj);
+            const counts = new Map();
+            for (const p of placementsArr) {
+              const pid = typeof p?.paragraph_id === "string" ? p.paragraph_id.trim() : "";
+              if (!pid) continue;
+              counts.set(pid, (counts.get(pid) || 0) + 1);
+            }
+            const maxOnOne = Math.max(0, ...Array.from(counts.values()));
+            // Heuristic trigger only (the *rebalance output* is still LLM-decided).
+            return figures.length >= 6 && candidates.length >= 10 && maxOnOne >= 6;
+          };
+
+          let planned = await callPlacement({ system: BOOKGEN_PROMPT_FIGURE_PLACEMENT_SYSTEM, user: `INPUT JSON:\n${JSON.stringify(input)}` });
+
+          if (shouldRebalance(planned)) {
+            const REBALANCE_SYSTEM = `You are correcting a figure placeholder placement plan for a Dutch MBO textbook chapter.
+
+The previous plan placed too many figures under a single paragraph, creating a giant block at the end/start of a section.
+
+Your goal:
+- Keep semantic fit, but DISTRIBUTE figures across multiple paragraph_id values so the reading flow remains natural.
+- Prefer placing each figure near the paragraph that best matches its caption/alt.
+- If figures form a clear set, you may keep small groups together, but avoid a single huge cluster.
 
 Hard requirements:
-- Use ONLY paragraph_id values from candidate_paragraph_ids for that figure.
-- Output STRICT JSON ONLY:
-{ \"placements\": [ { \"src\": \"...\", \"paragraph_id\": \"...\" } ] }`;
+- You MUST output exactly one placement for every figure.src in the input. No extras.
+- Use ONLY paragraph_id values that exist in the input.
 
-          const planned = await withRetries(
-            () => callPlannerJson({ system: BOOKGEN_PROMPT_BOOK_FIGURE_PLACEMENT_SYSTEM, user: `INPUT JSON:\n${JSON.stringify({ figures: figuresIn, paragraphs })}`, model: planModel, temperature: 0.1, maxTokens: 2400 }),
-            { attempts: 3 },
-          );
+Return STRICT JSON ONLY:
+{
+  "placements": [
+    { "src": "...", "paragraph_id": "..." }
+  ]
+}`;
 
-          const placementsArr = Array.isArray(planned?.placements) ? planned.placements : null;
-          if (!placementsArr) throw new Error("BLOCKED: Figure placement LLM returned invalid shape (missing placements array)");
-
-          const bySrc = new Map();
-          for (const p of placementsArr) {
-            const src = typeof p?.src === "string" ? p.src.trim() : "";
-            const pid = typeof p?.paragraph_id === "string" ? p.paragraph_id.trim() : "";
-            if (!src || !pid) continue;
-            bySrc.set(src, pid);
-          }
-
-          const allowedParagraphIds = new Set(paragraphs.map((p) => String(p?.paragraph_id || "").trim()).filter(Boolean));
-          for (const f of batch) {
-            const pid = bySrc.get(f.src);
-            if (!pid) throw new Error(`BLOCKED: Figure placement missing src=${f.src}`);
-            // Retrieval candidates are a heuristic to keep context small. We require the chosen paragraph_id
-            // to be within the paragraphs list we provided to the model (so it can't hallucinate IDs),
-            // but we do NOT hard-require it to be within the per-figure top-K list.
-            if (!allowedParagraphIds.has(pid)) {
-              throw new Error(`BLOCKED: Figure placement chose paragraph_id not present in provided paragraphs for src=${f.src}`);
-            }
-            const suggested = perFig.get(f.src)?.paragraphIds || [];
-            const offCandidates = suggested.length ? !suggested.includes(pid) : true;
-            placementsAll.push({
-              ...f,
-              paragraph_id: pid,
-              no_match: perFig.get(f.src)?.noMatch === true,
-              off_candidates: offCandidates,
+            planned = await callPlacement({
+              system: REBALANCE_SYSTEM,
+              user: `INPUT JSON:\n${JSON.stringify({ ...input, previous_placements: planned.placements })}`,
             });
           }
-        }
 
-        // Attach figures to paragraph blocks (Book Studio-compatible shape: paragraph.images[])
-        const blockById = new Map(candidatesAll.map((c) => [c.paragraph_id, c.block]));
-        const chapterIndexByParagraph = new Map(candidatesAll.map((c) => [c.paragraph_id, c.chapter_index]));
-        const usedByChapter = new Map(); // chapterIndex -> Set(paragraph_id)
-        const placementsByChapter = new Map(); // chapterIndex -> list
+          const { bySrc } = validatePlacements(planned);
+          const placements = figures.map((f) => ({ ...f, paragraph_id: bySrc.get(f.src) }));
+          return { candidates, placements };
+        };
 
-        placeholderImageSrcMap = {};
-        for (const p of placementsAll) {
-          const blk = blockById.get(p.paragraph_id);
-          if (!blk) throw new Error(`BLOCKED: Internal: paragraph_id not found for placement: ${p.paragraph_id}`);
-          if (!Array.isArray(blk.images)) blk.images = [];
-          blk.images.push({
-            src: p.src,
-            alt: p.alt || "",
-            caption: p.caption ? stripHtml(p.caption) : (p.alt ? stripHtml(p.alt) : (p.figureNumber ? `Afbeelding ${p.figureNumber}` : "Afbeelding")),
-            figureNumber: p.figureNumber || "",
-            placeholder: true,
-          });
+        const chaptersArr = Array.isArray(assembled?.chapters) ? assembled.chapters : [];
+        const chaptersToPlace = target === "chapter"
+          ? [{ chapterIndex, chapter: chaptersArr[chapterIndex] }]
+          : chaptersArr.map((ch, idx) => ({ chapterIndex: idx, chapter: ch }));
 
-          const label = p.figureNumber ? `Afbeelding ${p.figureNumber}` : "Afbeelding";
-          placeholderImageSrcMap[p.src] = makeFigurePlaceholderDataUri(label);
+        const report = { generatedAt: new Date().toISOString(), bookId, bookVersionId, runId, jobId, mode: "llm", chapters: [] };
+        for (const entry of chaptersToPlace) {
+          const ch = entry.chapter;
+          if (!ch || typeof ch !== "object") continue;
 
-          const ci = chapterIndexByParagraph.get(p.paragraph_id);
-          const chapterIdx = typeof ci === "number" && Number.isFinite(ci) ? ci : -1;
-          if (chapterIdx >= 0) {
-            const used = usedByChapter.get(chapterIdx) || new Set();
+          const figs = collectChapterFiguresAndClear(ch, entry.chapterIndex);
+          if (!figs.length) {
+            report.chapters.push({ chapterIndex: entry.chapterIndex, figures: 0, placed: 0, uniqueParagraphs: 0 });
+            continue;
+          }
+
+          const { candidates, placements } = await placeFiguresWithLlm({ chapterIndex: entry.chapterIndex, chapter: ch, figures: figs });
+          const blockById = new Map(candidates.map((c) => [c.paragraph_id, c.block]));
+          const used = new Set();
+
+          for (const p of placements) {
+            const blk = blockById.get(p.paragraph_id);
+            if (!blk) throw new Error(`BLOCKED: Internal: paragraph_id not found in candidates: ${p.paragraph_id}`);
+            if (!Array.isArray(blk.images)) blk.images = [];
+            blk.images.push({
+              src: p.src,
+              alt: p.alt || "",
+              caption: p.caption ? stripHtml(p.caption) : (p.alt ? stripHtml(p.alt) : (p.figureNumber ? `Afbeelding ${p.figureNumber}` : "Afbeelding")),
+              figureNumber: p.figureNumber || "",
+              placeholder: true,
+            });
             used.add(p.paragraph_id);
-            usedByChapter.set(chapterIdx, used);
-            const list = placementsByChapter.get(chapterIdx) || [];
-            list.push({
+          }
+
+          report.chapters.push({
+            chapterIndex: entry.chapterIndex,
+            figures: figs.length,
+            placed: placements.length,
+            uniqueParagraphs: used.size,
+            placements: placements.map((p) => ({
               src: p.src,
               figureNumber: p.figureNumber || "",
               paragraph_id: p.paragraph_id,
-              no_match: p.no_match === true,
-              off_candidates: p.off_candidates === true,
-            });
-            placementsByChapter.set(chapterIdx, list);
-          }
+            })),
+          });
         }
 
-        const placementReport = {
-          generatedAt: new Date().toISOString(),
-          bookId,
-          bookVersionId,
-          runId,
-          jobId,
-          scope: "book",
-          figures: figuresAll.length,
-          placed: placementsAll.length,
-          chapters: chaptersAll.map((_, idx) => ({
-            chapterIndex: idx,
-            figures: (placementsByChapter.get(idx) || []).length,
-            uniqueParagraphs: (usedByChapter.get(idx) || new Set()).size,
-            placements: placementsByChapter.get(idx) || [],
-          })),
-        };
-
-        const placementBuf = Buffer.from(JSON.stringify(placementReport, null, 2), "utf-8");
-        bookgenArtifacts.push({
-          kind: "debug",
-          ...(await uploadArtifact({
-            orgId,
-            jobId,
-            fileName: fileNameForAttempt("figure-placeholders.report.json"),
-            buf: placementBuf,
-            contentType: "application/json",
-          })),
-          chapterIndex,
-        });
+        placeholderReportBuf = Buffer.from(JSON.stringify(report, null, 2), "utf-8");
       }
     }
 
@@ -2624,647 +2604,55 @@ Hard requirements:
       }).catch(() => {});
     }
 
-    // 2c) Semantic figure membership + placement (Book Studio compatible)
-    //
-    // We never trust filename/figureNumber -> chapter mappings for membership.
-    // Instead:
-    // - If persisted placements exist (book_versions.figure_placements), use them.
-    // - Otherwise, compute placements via LLM (book-scoped), persist them, then use them.
-    //
-    // This applies only when the canonical is effectively "text-only" (very few embedded images)
-    // and the edge function provided library-derived figure descriptors.
-    if (autoChapterFigures && typeof autoChapterFigures === "object") {
-      const normalizeWs = (s) => String(s || "").replace(/\s+/g, " ").trim();
-      const stripHtml = (s) => normalizeWs(String(s || "").replace(/<\s*br\b[^>]*\/?>/gi, " ").replace(/<[^>]+>/g, " "));
+    if (placeholdersOnly) {
+      console.warn(`[book-worker] [flags] placeholdersOnly=true (job=${jobId})`);
+    }
 
-      const collectParagraphBlocks = (canon) => {
-        const out = [];
-        const seen = new Set();
-
-        const chaptersArr = Array.isArray(canon?.chapters) ? canon.chapters : [];
-        for (let chapterIdx = 0; chapterIdx < chaptersArr.length; chapterIdx++) {
-          const ch = chaptersArr[chapterIdx];
-          if (!ch || typeof ch !== "object") continue;
-
-          const chapterNumber = typeof ch.number === "string" ? String(ch.number).trim() : "";
-          const chapterTitle = String(ch?.title || ch?.meta?.title || `Hoofdstuk ${chapterIdx + 1}`);
-
-          const walk = (blocks, sectionLabel, subLabel) => {
-            if (!Array.isArray(blocks)) return;
-            for (const b of blocks) {
-              if (!b || typeof b !== "object") continue;
-              const t = typeof b.type === "string" ? b.type : "";
-              if (t === "paragraph") {
-                const id = typeof b.id === "string" ? b.id : "";
-                if (!id || seen.has(id)) continue;
-                seen.add(id);
-
-                const basisRaw = typeof b.basis === "string" ? b.basis : "";
-                const praktijkRaw = typeof b.praktijk === "string" ? b.praktijk : "";
-                const verdiepingRaw = typeof b.verdieping === "string" ? b.verdieping : "";
-                const combinedRaw = [basisRaw, praktijkRaw, verdiepingRaw].filter((x) => typeof x === "string" && x.trim()).join("\n\n");
-                const combined = stripHtml(combinedRaw);
-                if (!combined) continue;
-
-                const text = combined.length > 420 ? `${combined.slice(0, 417).trim()}…` : combined;
-                out.push({
-                  paragraph_id: id,
-                  chapter_index: chapterIdx,
-                  chapter_number: chapterNumber,
-                  chapter_title: chapterTitle,
-                  section: sectionLabel || "",
-                  subheading: subLabel || "",
-                  role: typeof b.role === "string" ? b.role : "",
-                  text,
-                  block: b,
-                });
-                continue;
-              }
-              if (t === "subparagraph") {
-                const title = typeof b.title === "string" ? stripHtml(b.title) : "";
-                const nextSub = title || subLabel || "";
-                walk(b.content || b.blocks || b.items, sectionLabel, nextSub);
-                continue;
-              }
-              const child = b.content || b.blocks || b.items;
-              if (Array.isArray(child)) walk(child, sectionLabel, subLabel);
-            }
-          };
-
-          if (Array.isArray(ch.sections) && ch.sections.length) {
-            for (const s of ch.sections) {
-              const sn = typeof s?.number === "string" ? String(s.number).trim() : "";
-              const st = typeof s?.title === "string" ? stripHtml(s.title) : "";
-              const sectionLabel = normalizeWs([sn, st].filter(Boolean).join(" "));
-              walk(s?.content || s?.blocks || s?.items, sectionLabel, "");
-            }
-          } else {
-            walk(ch?.content || ch?.blocks || ch?.items, "", "");
-          }
-        }
-        return out;
-      };
-
-      const collectEmbeddedImageCount = (canon) => {
-        const srcs = new Set();
-        const walk = (node) => {
-          if (!node) return;
-          if (Array.isArray(node)) {
-            for (const v of node) walk(v);
-            return;
-          }
-          if (typeof node !== "object") return;
-          if (Array.isArray(node.images)) {
-            for (const im of node.images) {
-              const s = im && typeof im.src === "string" ? im.src.trim() : "";
-              if (s) srcs.add(s);
-            }
-          }
-          for (const v of Object.values(node)) walk(v);
-        };
-        walk(canon);
-        return srcs.size;
-      };
-
-      // Guard: only do library attachment for "text-only" canonicals.
-      // (Mirrors book-version-input-urls's heuristic.)
-      const embeddedImageCount = collectEmbeddedImageCount(assembled);
-      const isTextOnlyCanonical = embeddedImageCount <= 3;
-
-      if (isTextOnlyCanonical) {
-        const flattenFigures = (auto) => {
-          const out = [];
-          const seen = new Set();
-          for (const v of Object.values(auto || {})) {
-            if (!Array.isArray(v)) continue;
-            for (const f of v) {
-              if (!f || typeof f !== "object") continue;
-              const src = typeof f.src === "string" ? f.src.trim() : "";
-              if (!src) continue;
-              const key = src.toLowerCase();
-              if (seen.has(key)) continue;
-              seen.add(key);
-              out.push({
-                src,
-                alt: typeof f.alt === "string" ? f.alt : "",
-                caption: typeof f.caption === "string" ? f.caption : "",
-                figureNumber: typeof f.figureNumber === "string" ? f.figureNumber : "",
-              });
-            }
-          }
-          return out;
-        };
-
-        const paragraphsAll = collectParagraphBlocks(assembled);
-        const paragraphById = new Map(paragraphsAll.map((p) => [p.paragraph_id, p]));
-
-        const placementsObj = figurePlacementsFromEdge && typeof figurePlacementsFromEdge === "object"
-          ? asPlainObject(figurePlacementsFromEdge.placements)
-          : null;
-
-        const applyPlacements = ({ placements, figuresBySrc }) => {
-          const report = {
-            generatedAt: new Date().toISOString(),
-            bookId,
-            bookVersionId,
-            runId,
-            jobId,
-            target,
-            chapterIndex,
-            source: "book_version",
-            applied: 0,
-            missingParagraphs: 0,
-            uncertain: 0,
-            placements: [],
-          };
-
-          const shouldInclude = (meta) => {
-            if (target !== "chapter") return true;
-            if (typeof chapterIndex !== "number") return false;
-            const chIdx = typeof meta?.chapter_index === "number" ? meta.chapter_index : null;
-            return chIdx === chapterIndex;
-          };
-
-          for (const [src, meta] of Object.entries(placements || {})) {
-            if (!shouldInclude(meta)) continue;
-            const pid = typeof meta?.paragraph_id === "string" ? meta.paragraph_id.trim() : "";
-            const chIdx = typeof meta?.chapter_index === "number" ? meta.chapter_index : null;
-            const uncertain = meta?.uncertain === true || meta?.no_match === true || meta?.off_candidates === true;
-            if (uncertain) report.uncertain += 1;
-
-            const para = paragraphById.get(pid) || null;
-            if (!para || !para.block) {
-              report.missingParagraphs += 1;
-              report.placements.push({ src, paragraph_id: pid, chapter_index: chIdx, uncertain, error: "paragraph_not_found" });
-              continue;
-            }
-
-            const fig = figuresBySrc.get(src) || { src, alt: "", caption: "", figureNumber: "" };
-            if (!Array.isArray(para.block.images)) para.block.images = [];
-            const already = para.block.images.some((im) => im && typeof im === "object" && typeof im.src === "string" && im.src.trim() === src);
-            if (!already) {
-              para.block.images.push({
-                src: fig.src,
-                alt: fig.alt || "",
-                caption: fig.caption || "",
-                figureNumber: fig.figureNumber || "",
-                placeholder: placeholdersOnly === true,
-              });
-            }
-            report.applied += 1;
-            report.placements.push({ src, paragraph_id: pid, chapter_index: chIdx, uncertain });
-          }
-
-          return report;
-        };
-
-        // Build figure meta map from whatever the edge provided (even if chapter grouping is wrong).
-        // We attach based on placements, not based on the autoChapterFigures chapter index.
-        const figuresBySrc = new Map(flattenFigures(autoChapterFigures).map((f) => [f.src, f]));
-
-        if (placementsObj) {
-          const report = applyPlacements({ placements: placementsObj, figuresBySrc });
-          const reportBuf = Buffer.from(JSON.stringify(report, null, 2), "utf-8");
-          bookgenArtifacts.push({
-            kind: "debug",
-            ...(await uploadArtifact({
-              orgId,
-              jobId,
-              fileName: fileNameForAttempt("figure-placement.report.json"),
-              buf: reportBuf,
-              contentType: "application/json",
-            })),
-            chapterIndex,
-          });
-
-          // Placeholder-only rendering: override image URLs to render neutral placeholders.
-          if (placeholdersOnly) {
-            placeholderImageSrcMap = {};
-            for (const f of figuresBySrc.values()) {
-              const label = f.figureNumber ? `Afbeelding ${f.figureNumber}` : "Afbeelding";
-              placeholderImageSrcMap[f.src] = makeFigurePlaceholderDataUri(label);
-            }
-          }
-        } else {
-          // No persisted placements: compute once (book-scoped), persist, then continue.
-          await reportProgress({
-            stage: "figures:place",
-            percent: isBookGenPro ? 74 : 10,
-            message: "Placing library figures (LLM)…",
-          }).catch(() => {});
-
-          // Fetch full library figure set by requesting book scope (chapter scope may be incomplete).
-          const fullInputs = await callEdge(
-            "book-version-input-urls",
-            {
-              bookId,
-              bookVersionId,
-              overlayId,
-              target: "book",
-              allowMissingImages,
-              includeFigurePlacements: false,
-              includeChapterOpeners: true,
-              autoAttachLibraryImages: true,
-            },
-            { orgId },
-          );
-          const autoFull = asPlainObject(fullInputs?.autoChapterFigures) || autoChapterFigures;
-          const figuresAll = flattenFigures(autoFull);
-          const figuresAllBySrc = new Map(figuresAll.map((f) => [f.src, f]));
-
-          if (!figuresAll.length) {
-            throw new Error("BLOCKED: No library figures available for placement (autoChapterFigures empty)");
-          }
-          if (!paragraphsAll.length) {
-            throw new Error("BLOCKED: No paragraph candidates available for figure placement");
-          }
-
-          const redactSecrets = (raw) => {
-            const s = String(raw ?? "");
-            return s
-              .replace(/sk-[A-Za-z0-9_-]{10,}/g, "sk-[REDACTED]")
-              .replace(/sbp_[A-Za-z0-9_-]{10,}/g, "sbp_[REDACTED]")
-              .replace(/Bearer\\s+[A-Za-z0-9._-]{10,}/gi, "Bearer [REDACTED]");
-          };
-
-          const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY && String(process.env.ANTHROPIC_API_KEY).trim()
-            ? String(process.env.ANTHROPIC_API_KEY).trim()
-            : null;
-          const OPENAI_API_KEY = process.env.OPENAI_API_KEY && String(process.env.OPENAI_API_KEY).trim()
-            ? String(process.env.OPENAI_API_KEY).trim()
-            : null;
-
-          const requireKey = (name) => {
-            const v = process.env[name];
-            if (!v || typeof v !== "string" || !v.trim()) {
-              throw new Error(`BLOCKED: ${name} is REQUIRED for figure placement - set env var before running`);
-            }
-            return v.trim();
-          };
-
-          const placementProviderRaw =
-            (typeof payload.figurePlacementProvider === "string" && payload.figurePlacementProvider.trim())
-              ? payload.figurePlacementProvider.trim()
-              : (process.env.BOOK_FIGURE_PLACEMENT_PROVIDER && String(process.env.BOOK_FIGURE_PLACEMENT_PROVIDER).trim()
-                ? String(process.env.BOOK_FIGURE_PLACEMENT_PROVIDER).trim()
-                : "");
-          const placementProvider = placementProviderRaw || (ANTHROPIC_API_KEY ? "anthropic" : "openai");
-          if (!["anthropic", "openai"].includes(placementProvider)) {
-            throw new Error(`Invalid BOOK_FIGURE_PLACEMENT_PROVIDER: ${placementProvider}`);
-          }
-          if (placementProvider === "anthropic") requireKey("ANTHROPIC_API_KEY");
-          if (placementProvider === "openai") requireKey("OPENAI_API_KEY");
-
-          const placementModel =
-            (typeof payload.figurePlacementModel === "string" && payload.figurePlacementModel.trim())
-              ? payload.figurePlacementModel.trim()
-              : (process.env.BOOK_FIGURE_PLACEMENT_MODEL && String(process.env.BOOK_FIGURE_PLACEMENT_MODEL).trim()
-                ? String(process.env.BOOK_FIGURE_PLACEMENT_MODEL).trim()
-                : (placementProvider === "anthropic"
-                  ? (process.env.ANTHROPIC_MODEL && String(process.env.ANTHROPIC_MODEL).trim() ? String(process.env.ANTHROPIC_MODEL).trim() : "claude-haiku-4-5-20251001")
-                  : "gpt-4o-mini"));
-
-          const safeJsonParse = (raw) => {
-            const t = String(raw || "").trim();
-            if (!t) return null;
-            try {
-              return JSON.parse(t);
-            } catch {
-              return null;
-            }
-          };
-
-          const normalizeJsonStringLiterals = (rawText) => {
-            const s = String(rawText || "");
-            let out = "";
-            let inStr = false;
-            let esc = false;
-            for (let i = 0; i < s.length; i++) {
-              const ch = s[i];
-              if (esc) {
-                out += ch;
-                esc = false;
-                continue;
-              }
-              if (ch === "\\") {
-                out += ch;
-                if (inStr) esc = true;
-                continue;
-              }
-              if (ch === "\"") {
-                out += ch;
-                inStr = !inStr;
-                continue;
-              }
-              if (inStr && (ch === "\n" || ch === "\r")) continue;
-              out += ch;
-            }
-            return out.trim();
-          };
-
-          const extractFirstJsonObject = (rawText) => {
-            const s = String(rawText || "");
-            const start = s.indexOf("{");
-            if (start < 0) return null;
-            let depth = 0;
-            let inStr = false;
-            let esc = false;
-            for (let i = start; i < s.length; i++) {
-              const ch = s[i];
-              if (esc) {
-                esc = false;
-                continue;
-              }
-              if (ch === "\\") {
-                if (inStr) esc = true;
-                continue;
-              }
-              if (ch === "\"") {
-                inStr = !inStr;
-                continue;
-              }
-              if (!inStr) {
-                if (ch === "{") depth++;
-                if (ch === "}") {
-                  depth--;
-                  if (depth === 0) return s.slice(start, i + 1).trim();
-                }
-              }
-            }
-            return null;
-          };
-
-          const anthropicJson = async ({ system, user, model, temperature, maxTokens }) => {
-            let resp;
-            try {
-              resp = await fetch("https://api.anthropic.com/v1/messages", {
-                method: "POST",
-                headers: {
-                  "Content-Type": "application/json",
-                  "x-api-key": requireKey("ANTHROPIC_API_KEY"),
-                  "anthropic-version": "2023-06-01",
-                },
-                body: JSON.stringify({
-                  model,
-                  temperature,
-                  max_tokens: maxTokens,
-                  system,
-                  messages: [{ role: "user", content: user }],
-                }),
-              });
-            } catch (e) {
-              const cause = e && typeof e === "object" ? e.cause : null;
-              const code = cause && typeof cause === "object" ? cause.code : "";
-              const syscall = cause && typeof cause === "object" ? cause.syscall : "";
-              const hostname = cause && typeof cause === "object" ? cause.hostname : "";
-              const hint = [code, syscall, hostname].filter(Boolean).join(" ");
-              throw new Error(`Anthropic fetch failed: ${hint || "fetch failed"}`);
-            }
-            const text = await resp.text().catch(() => "");
-            if (!resp.ok) {
-              throw new Error(`Anthropic failed (${resp.status}): ${redactSecrets(text).slice(0, 800)}`);
-            }
-            const j = safeJsonParse(text);
-            const contentArr = Array.isArray(j?.content) ? j.content : [];
-            const first = contentArr.find((c) => c && c.type === "text" && typeof c.text === "string");
-            const out = first?.text;
-            if (!out || typeof out !== "string") {
-              throw new Error("Anthropic returned empty content");
-            }
-            const t = String(out || "").trim()
-              .replace(/^```json\s*/i, "")
-              .replace(/^```\s*/i, "")
-              .replace(/```$/i, "")
-              .trim();
-            const parsed = safeJsonParse(t);
-            if (parsed) return parsed;
-            const normalized = normalizeJsonStringLiterals(t);
-            const parsed2 = safeJsonParse(normalized);
-            if (parsed2) return parsed2;
-            const extracted = extractFirstJsonObject(normalized);
-            if (extracted) {
-              const parsed3 = safeJsonParse(extracted);
-              if (parsed3) return parsed3;
-            }
-            throw new Error(`Anthropic returned non-JSON: ${t.slice(0, 800)}`);
-          };
-
-          const openaiChatJson = async ({ system, user, model, temperature, maxTokens }) => {
-            let resp;
-            try {
-              resp = await fetch("https://api.openai.com/v1/chat/completions", {
-                method: "POST",
-                headers: {
-                  "Content-Type": "application/json",
-                  "Authorization": `Bearer ${requireKey("OPENAI_API_KEY")}`,
-                },
-                body: JSON.stringify({
-                  model,
-                  temperature,
-                  max_tokens: maxTokens,
-                  response_format: { type: "json_object" },
-                  messages: [
-                    { role: "system", content: system },
-                    { role: "user", content: user },
-                  ],
-                }),
-              });
-            } catch (e) {
-              const cause = e && typeof e === "object" ? e.cause : null;
-              const code = cause && typeof cause === "object" ? cause.code : "";
-              const syscall = cause && typeof cause === "object" ? cause.syscall : "";
-              const hostname = cause && typeof cause === "object" ? cause.hostname : "";
-              const hint = [code, syscall, hostname].filter(Boolean).join(" ");
-              throw new Error(`OpenAI fetch failed: ${hint || "fetch failed"}`);
-            }
-            const text = await resp.text().catch(() => "");
-            if (!resp.ok) {
-              throw new Error(`OpenAI failed (${resp.status}): ${redactSecrets(text).slice(0, 800)}`);
-            }
-            const j = safeJsonParse(text);
-            const out = j?.choices?.[0]?.message?.content;
-            const parsed = safeJsonParse(out);
-            if (parsed) return parsed;
-            throw new Error("OpenAI returned non-JSON");
-          };
-
-          const callPlacement = async ({ system, user }) => {
-            return placementProvider === "anthropic"
-              ? await anthropicJson({ system, user, model: placementModel, temperature: 0.1, maxTokens: 2200 })
-              : await openaiChatJson({ system, user, model: placementModel, temperature: 0.1, maxTokens: 2200 });
-          };
-
-          const STOP = new Set([
-            "de", "het", "een", "en", "van", "voor", "met", "op", "in", "aan", "bij", "dat", "die", "dit", "als",
-            "je", "jij", "u", "uw", "we", "wij", "ze", "zij", "zijn", "haar", "hun", "ons", "mij", "me", "mijn",
-            "is", "zijn", "was", "waren", "wordt", "worden", "kan", "kunnen", "ook", "niet", "wel", "naar", "om", "te",
-          ]);
-          const norm = (s) => normalizeWs(stripHtml(s)).toLowerCase().replace(/[^a-z0-9]+/g, " ");
-          const tok = (s) => norm(s).split(" ").filter((t) => t.length >= 4 && !STOP.has(t));
-          const candidateText = paragraphsAll.map((c) => norm(c.text || ""));
-          const pickCandidatesForFigure = (fig, k = 16) => {
-            const query = [fig.figureNumber || "", fig.caption || "", fig.alt || ""].join(" ");
-            const toks = tok(query);
-            const scores = [];
-            for (let i = 0; i < paragraphsAll.length; i++) {
-              const t = candidateText[i];
-              let score = 0;
-              const fn = String(fig.figureNumber || "").trim();
-              if (fn && t.includes(fn.toLowerCase())) score += 6;
-              for (const w of toks) if (t.includes(w)) score += 1;
-              scores.push({ i, score });
-            }
-            scores.sort((a, b) => (b.score - a.score) || (a.i - b.i));
-            const best = scores.filter((x) => x.score > 0).slice(0, k);
-            const picked = best.length ? best : scores.slice(0, Math.min(k, scores.length));
-            return { paragraphIds: picked.map((x) => paragraphsAll[x.i].paragraph_id), noMatch: best.length === 0 };
-          };
-
-          const BATCH = 8;
-          const placementBySrc = new Map();
-          const flagsBySrc = new Map();
-
-          for (let start = 0; start < figuresAll.length; start += BATCH) {
-            const batch = figuresAll.slice(start, start + BATCH);
-            const perFig = new Map();
-            const usedParaIds = new Set();
-            for (const f of batch) {
-              const sel = pickCandidatesForFigure(f, 16);
-              perFig.set(f.src, sel);
-              for (const pid of sel.paragraphIds) usedParaIds.add(pid);
-            }
-
-            const paragraphs = paragraphsAll
-              .filter((c) => usedParaIds.has(c.paragraph_id))
-              .map((c) => ({
-                paragraph_id: c.paragraph_id,
-                chapter_index: c.chapter_index,
-                chapter_title: c.chapter_title || "",
-                section: c.section || "",
-                subheading: c.subheading || "",
-                role: c.role || "",
-                text: c.text || "",
-              }));
-
-            const figuresIn = batch.map((f) => ({
-              src: f.src,
-              figureNumber: f.figureNumber || "",
-              caption: stripHtml(f.caption || ""),
-              alt: stripHtml(f.alt || ""),
-              no_match: perFig.get(f.src)?.noMatch === true,
+    // 2c) Optional: inject auto-inferred chapter figures for "text-only" canonicals.
+    // This keeps BookGen Pro focused on rewriting text; figure placement is a deterministic post-process.
+    if (!placeholdersOnly && autoChapterFigures && typeof autoChapterFigures === "object") {
+      const chaptersArr = Array.isArray(assembled?.chapters) ? assembled.chapters : null;
+      if (chaptersArr && chaptersArr.length) {
+        for (const [k, v] of Object.entries(autoChapterFigures)) {
+          const idx = Number(k);
+          if (!Number.isFinite(idx) || idx < 0 || idx >= chaptersArr.length) continue;
+          const figs = Array.isArray(v) ? v : [];
+          const images = figs
+            .filter((f) => f && typeof f === "object" && typeof f.src === "string" && f.src.trim())
+            .map((f) => ({
+              src: String(f.src).trim(),
+              alt: typeof f.alt === "string" ? f.alt : "",
+              caption: typeof f.caption === "string" ? f.caption : "",
+              figureNumber: typeof f.figureNumber === "string" ? f.figureNumber : "",
             }));
+          if (!images.length) continue;
 
-            const SYSTEM = `You are placing figures inside a Dutch MBO textbook.\n\nReturn STRICT JSON only:\n{ \"placements\": [ { \"src\": \"...\", \"paragraph_id\": \"...\" } ] }\n\nRules:\n- Use ONLY paragraph_id values that exist in the input paragraphs list.\n- Output exactly one placement per figure.src.\n- Prefer semantic fit: match caption/alt to the paragraph text and chapter title.\n- Avoid placing many figures on the same paragraph unless it clearly introduces a set.\n- If a figure is weakly related, pick the best fit and assume it is uncertain (do not refuse).`;
-
-            const planned = await withRetries(
-              () => callPlacement({ system: SYSTEM, user: `INPUT JSON:\n${JSON.stringify({ figures: figuresIn, paragraphs })}` }),
-              { attempts: 3 },
-            );
-
-            const placementsArr = Array.isArray(planned?.placements) ? planned.placements : null;
-            if (!placementsArr) throw new Error("BLOCKED: Figure placement LLM returned invalid shape (missing placements array)");
-
-            const allowedParagraphIds = new Set(paragraphs.map((p) => String(p?.paragraph_id || "").trim()).filter(Boolean));
-            for (const p of placementsArr) {
-              const src = typeof p?.src === "string" ? p.src.trim() : "";
-              const pid = typeof p?.paragraph_id === "string" ? p.paragraph_id.trim() : "";
-              if (!src || !pid) continue;
-              if (!allowedParagraphIds.has(pid)) {
-                throw new Error(`BLOCKED: Figure placement chose paragraph_id not present in provided paragraphs for src=${src}`);
-              }
-              placementBySrc.set(src, pid);
-            }
-
-            for (const f of batch) {
-              const pid = placementBySrc.get(f.src);
-              if (!pid) throw new Error(`BLOCKED: Figure placement missing src=${f.src}`);
-              const suggested = perFig.get(f.src)?.paragraphIds || [];
-              flagsBySrc.set(f.src, {
-                no_match: perFig.get(f.src)?.noMatch === true,
-                off_candidates: suggested.length ? !suggested.includes(pid) : true,
-              });
-            }
-          }
-
-          // Build persisted placements payload (per plan)
-          const placementsToPersist = {};
-          for (const f of figuresAll) {
-            const pid = placementBySrc.get(f.src);
-            const para = pid ? paragraphById.get(pid) : null;
-            const chapterIdx = para && typeof para.chapter_index === "number" ? para.chapter_index : null;
-            const flags = flagsBySrc.get(f.src) || { no_match: true, off_candidates: true };
-            const uncertain = flags.no_match === true || flags.off_candidates === true;
-            placementsToPersist[f.src] = {
-              paragraph_id: pid,
-              chapter_index: chapterIdx,
-              confidence: uncertain ? 0.2 : 0.8,
-              uncertain,
-              no_match: flags.no_match === true,
-              off_candidates: flags.off_candidates === true,
-            };
-          }
-
-          const payloadToSave = {
-            schemaVersion: "1.0",
-            generatedAt: new Date().toISOString(),
-            provider: placementProvider,
-            model: placementModel,
-            placements: placementsToPersist,
+          const block = {
+            type: "paragraph",
+            id: `auto-figures-ch${idx + 1}`,
+            basis: "",
+            styleHint: "•Basis",
+            role: "auto_figures",
+            images,
           };
 
-          await callEdge(
-            "book-version-save-figure-placements",
-            { bookId, bookVersionId, figurePlacements: payloadToSave },
-            { orgId },
-          );
-
-          // Refresh inputs so imageSrcMap includes signed URLs for all placed figures.
-          // (book-version-input-urls signs image srcs from figurePlacements.)
-          const refreshed = await callEdge(
-            "book-version-input-urls",
-            {
-              bookId,
-              bookVersionId,
-              overlayId,
-              target,
-              chapterIndex,
-              allowMissingImages,
-              includeFigurePlacements: true,
-              includeChapterOpeners: true,
-              autoAttachLibraryImages: true,
-            },
-            { orgId },
-          );
-          const refreshedImageSrcMap = asPlainObject(refreshed?.imageSrcMap);
-          if (refreshedImageSrcMap) imageSrcMap = refreshedImageSrcMap;
-          const refreshedPlacements = asPlainObject(refreshed?.figurePlacements);
-          if (refreshedPlacements) figurePlacementsFromEdge = refreshedPlacements;
-
-          const figuresBySrc2 = figuresAllBySrc;
-          const report = applyPlacements({ placements: placementsToPersist, figuresBySrc: figuresBySrc2 });
-          report.source = "llm";
-          report.provider = placementProvider;
-          report.model = placementModel;
-
-          const reportBuf = Buffer.from(JSON.stringify(report, null, 2), "utf-8");
-          bookgenArtifacts.push({
-            kind: "debug",
-            ...(await uploadArtifact({
-              orgId,
-              jobId,
-              fileName: fileNameForAttempt("figure-placement.report.json"),
-              buf: reportBuf,
-              contentType: "application/json",
-            })),
-            chapterIndex,
-          });
-
-          if (placeholdersOnly) {
-            placeholderImageSrcMap = {};
-            for (const f of figuresBySrc2.values()) {
-              const label = f.figureNumber ? `Afbeelding ${f.figureNumber}` : "Afbeelding";
-              placeholderImageSrcMap[f.src] = makeFigurePlaceholderDataUri(label);
+          const ch = chaptersArr[idx];
+          if (ch && typeof ch === "object" && Array.isArray(ch.sections) && ch.sections.length) {
+            const last = ch.sections[ch.sections.length - 1];
+            if (last && typeof last === "object" && Array.isArray(last.content)) {
+              last.content = [...last.content, block];
+            } else if (last && typeof last === "object" && Array.isArray(last.blocks)) {
+              last.blocks = [...last.blocks, block];
+            } else if (last && typeof last === "object" && Array.isArray(last.items)) {
+              last.items = [...last.items, block];
+            } else if (last && typeof last === "object") {
+              last.content = [block];
             }
+          } else if (ch && typeof ch === "object") {
+            if (Array.isArray(ch.content)) ch.content = [...ch.content, block];
+            else if (Array.isArray(ch.blocks)) ch.blocks = [...ch.blocks, block];
+            else if (Array.isArray(ch.items)) ch.items = [...ch.items, block];
+            else ch.content = [block];
           }
         }
       }
@@ -3274,12 +2662,10 @@ Hard requirements:
     // If the edge function provided an imageSrcMap (canonical src -> signed URL),
     // merge it into figures.srcMap so the renderer resolves images without requiring assets.zip.
     let figuresForRender = figures;
-    const effectiveImageSrcMap = placeholderImageSrcMap || imageSrcMap;
-    if (effectiveImageSrcMap) {
+    if (imageSrcMap) {
       const base = asPlainObject(figures) || {};
       const existing = asPlainObject(base.srcMap) || asPlainObject(base.src_map) || {};
-      // placeholderImageSrcMap overrides remote URLs so the PDF is truly placeholder-only.
-      figuresForRender = { ...base, srcMap: { ...existing, ...effectiveImageSrcMap } };
+      figuresForRender = { ...base, srcMap: { ...existing, ...imageSrcMap } };
     }
 
     let html = renderBookHtml(assembled, {
@@ -3288,7 +2674,9 @@ Hard requirements:
       assetsBaseUrl: "assets",
       figures: figuresForRender,
       designTokens,
-      chapterOpeners: placeholdersOnly ? null : chapterOpeners,
+      chapterOpeners,
+      placeholdersOnly,
+      coverUrl,
     });
 
     const htmlPath = path.join(workDir, "render.html");
@@ -3406,6 +2794,20 @@ Hard requirements:
       uploaded.push({
         kind: "layout_report",
         ...(await uploadArtifact({ orgId, jobId, fileName: fileNameForAttempt("layout_report.json"), buf: reportBuf, contentType: "application/json" })),
+        chapterIndex,
+      });
+    }
+
+    if (placeholderReportBuf) {
+      uploaded.push({
+        kind: "debug",
+        ...(await uploadArtifact({
+          orgId,
+          jobId,
+          fileName: fileNameForAttempt("figure-placeholders.report.json"),
+          buf: placeholderReportBuf,
+          contentType: "application/json",
+        })),
         chapterIndex,
       });
     }

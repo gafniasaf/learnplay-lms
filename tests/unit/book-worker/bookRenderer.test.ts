@@ -53,6 +53,35 @@ describe("book-worker/bookRenderer", () => {
     expect(html).toContain("In dit hoofdstuk leer je");
   });
 
+  test("renderBookHtml injects cover page when coverUrl is provided (book target)", () => {
+    const canonical = {
+      meta: { title: "Cover Book" },
+      chapters: [
+        {
+          title: "Ch 1",
+          sections: [{ title: "S 1", content: [{ type: "paragraph", id: "p-1", basis: "Hello world" }] }],
+        },
+      ],
+    };
+
+    const coverUrl = "https://example.com/cover.png?x=1&y=2";
+    const html = renderBookHtml(canonical, { target: "book", coverUrl });
+    expect(html).toContain('class="figure-block full-width cover-page"');
+    expect(html).toContain('src="https://example.com/cover.png?x=1&amp;y=2"');
+  });
+
+  test("renderBookHtml does not inject cover page for chapter target", () => {
+    const canonical = {
+      meta: { title: "Book" },
+      chapters: [
+        { title: "Ch 1", sections: [{ title: "S 1", content: [{ type: "paragraph", id: "p1", basis: "CH1" }] }] },
+      ],
+    };
+
+    const html = renderBookHtml(canonical, { target: "chapter", chapterIndex: 0, coverUrl: "https://example.com/cover.png" });
+    expect(html).not.toContain('class="figure-block full-width cover-page"');
+  });
+
   test("renderBookHtml chapter target renders only selected chapter", () => {
     const canonical = {
       meta: { title: "Book" },

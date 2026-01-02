@@ -1,17 +1,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
-import { PageContainer } from "@/components/layout/PageContainer";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { useMCP } from "@/hooks/useMCP";
 import { useAuth } from "@/hooks/useAuth";
 import { isDevAgentMode } from "@/lib/api/common";
 import { cn } from "@/lib/utils";
+import { ActionCornerButtons } from "@/components/admin/wysiwyg/ActionCornerButtons";
 
 type OverlayJsonV1 = {
   paragraphs: Array<{ paragraph_id: string; rewritten: string }>;
@@ -34,8 +30,70 @@ type CanonicalParagraph = {
   images: CanonicalImage[];
 };
 
+type BookVersionInputUrlsResponse =
+  | {
+      ok: true;
+      bookId: string;
+      bookVersionId: string;
+      overlayId: string | null;
+      urls: {
+        canonical: { path: string; signedUrl: string } | null;
+        overlay: { path: string; signedUrl: string } | null;
+        figures: { path: string; signedUrl: string } | null;
+        designTokens: { path: string; signedUrl: string } | null;
+        assetsZip: { path: string; signedUrl: string } | null;
+      };
+      imageSrcMap?: Record<string, string> | null;
+      missingImageSrcs?: string[] | null;
+      chapterOpeners?: Record<string, string> | null;
+    }
+  | { ok: false; error: any; httpStatus?: number };
+
+type BookLibraryImageUrlResponse =
+  | {
+      ok: true;
+      bookId: string;
+      urls: Record<string, { storagePath: string; signedUrl: string }>;
+      missing: string[];
+      expiresIn: number;
+    }
+  | { ok: false; error: any; httpStatus?: number };
+
+const COVER_CANONICAL_SRC = "__book_cover__";
+
+function safeStr(v: unknown): string {
+  return typeof v === "string" ? v : "";
+}
+
 function stripHtml(s: string): string {
   return String(s || "").replace(/<[^>]*>/g, "");
+}
+
+function sanitizeInlineBookHtml(raw: string): string {
+  let html = String(raw ?? "");
+
+  // Keep worker parity: convert bold tokens and normalize whitespace
+  html = html.replace(/<<BOLD_START>>/g, "<strong>");
+  html = html.replace(/<<BOLD_END>>/g, "</strong>");
+  html = html.replace(/\r?\n/g, " ");
+  html = html.replace(/[ \t]{2,}/g, " ");
+
+  // Remove clearly dangerous/irrelevant tags
+  html = html.replace(/<\s*(script|style|iframe|object|embed)\b[\s\S]*?<\s*\/\s*\1\s*>/gi, "");
+  html = html.replace(/<\s*img\b[^>]*>/gi, "");
+
+  // Allow only <span class="box-lead">; strip other span attrs
+  html = html.replace(/<\s*span\b[^>]*class="[^"]*box-lead[^"]*"[^>]*>/gi, '<span class="box-lead">');
+  html = html.replace(/<\s*span\b[^>]*>/gi, "<span>");
+
+  // Allow only a small set of inline tags, strip attributes
+  html = html.replace(/<\s*(strong|em|b|i|sup|sub|span)\b[^>]*>/gi, "<$1>");
+  html = html.replace(/<\s*\/\s*(strong|em|b|i|sup|sub|span)\s*>/gi, "</$1>");
+  html = html.replace(/<\s*br\b[^>]*\/?>/gi, "<br/>");
+
+  // Strip all remaining tags
+  html = html.replace(/<(?!\/?(?:strong|em|b|i|sup|sub|span|br)\b)[^>]+>/gi, "");
+  return html.trim();
 }
 
 function collectCanonicalParagraphsForChapter(canonical: any, onlyChapterIndex: number): CanonicalParagraph[] {
@@ -99,9 +157,9 @@ function collectCanonicalParagraphsForChapter(canonical: any, onlyChapterIndex: 
     }
 
     // Fallback: descend into likely content fields
-    if (Array.isArray(blocks.content)) walkBlocks(blocks.content, ctx);
-    if (Array.isArray(blocks.blocks)) walkBlocks(blocks.blocks, ctx);
-    if (Array.isArray(blocks.items)) walkBlocks(blocks.items, ctx);
+    if (Array.isArray((blocks as any).content)) walkBlocks((blocks as any).content, ctx);
+    if (Array.isArray((blocks as any).blocks)) walkBlocks((blocks as any).blocks, ctx);
+    if (Array.isArray((blocks as any).items)) walkBlocks((blocks as any).items, ctx);
   };
 
   if (sections.length > 0) {
@@ -119,8 +177,106 @@ function collectCanonicalParagraphsForChapter(canonical: any, onlyChapterIndex: 
   return out;
 }
 
-function safeStr(v: unknown): string {
-  return typeof v === "string" ? v : "";
+function splitIntoPages<T>(items: T[], perPage: number): T[][] {
+  const out: T[][] = [];
+  const n = Math.max(1, Math.floor(perPage));
+  for (let i = 0; i < items.length; i += n) {
+    out.push(items.slice(i, i + n));
+  }
+  return out;
+}
+
+function extractBookCssVarsFromDesignTokens(tokens: any): Record<string, string> {
+  if (!tokens || typeof tokens !== "object") return {};
+
+  // Preferred: tokens.cssVars / css_vars / vars already in CSS var format.
+  const candidate = (tokens as any).cssVars || (tokens as any).css_vars || (tokens as any).vars;
+  if (candidate && typeof candidate === "object") {
+    const out: Record<string, string> = {};
+    for (const [k, v] of Object.entries(candidate as Record<string, unknown>)) {
+      if (!k.startsWith("--")) continue;
+      if (typeof v === "string" && v.trim()) out[k] = v.trim();
+      if (typeof v === "number" && Number.isFinite(v)) out[k] = String(v);
+    }
+    return out;
+  }
+
+  // Fallback: attempt to interpret common page/margin shapes if present.
+  const out: Record<string, string> = {};
+  const page = (tokens as any).page || (tokens as any).pageSize || (tokens as any).paper;
+  const mm = (n: unknown) => (typeof n === "number" && Number.isFinite(n) ? `${n}mm` : "");
+  if (page && typeof page === "object") {
+    const w = mm((page as any).widthMm ?? (page as any).width_mm ?? (page as any).width);
+    const h = mm((page as any).heightMm ?? (page as any).height_mm ?? (page as any).height);
+    if (w) out["--page-width"] = w;
+    if (h) out["--page-height"] = h;
+  }
+  const margins = (tokens as any).margins || (tokens as any).margin;
+  if (margins && typeof margins === "object") {
+    const top = mm((margins as any).topMm ?? (margins as any).top_mm ?? (margins as any).top);
+    const bottom = mm((margins as any).bottomMm ?? (margins as any).bottom_mm ?? (margins as any).bottom);
+    const inner = mm((margins as any).innerMm ?? (margins as any).inner_mm ?? (margins as any).inner);
+    const outer = mm((margins as any).outerMm ?? (margins as any).outer_mm ?? (margins as any).outer);
+    if (top) out["--margin-top"] = top;
+    if (bottom) out["--margin-bottom"] = bottom;
+    if (inner) out["--margin-inner"] = inner;
+    if (outer) out["--margin-outer"] = outer;
+  }
+  return out;
+}
+
+function BookInlineEditable({
+  html,
+  onChangeHtml,
+  className,
+  dataCtaId,
+  ariaLabel,
+}: {
+  html: string;
+  onChangeHtml: (nextHtml: string) => void;
+  className?: string;
+  dataCtaId: string;
+  ariaLabel?: string;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [focused, setFocused] = useState(false);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    if (focused) return;
+    if (el.innerHTML !== html) el.innerHTML = html;
+  }, [html, focused]);
+
+  const emit = () => {
+    const el = ref.current;
+    if (!el) return;
+    onChangeHtml(el.innerHTML);
+  };
+
+  return (
+    <div
+      ref={ref}
+      contentEditable
+      suppressContentEditableWarning
+      className={cn(className)}
+      onInput={emit}
+      onFocus={() => setFocused(true)}
+      onBlur={() => {
+        setFocused(false);
+        const el = ref.current;
+        if (!el) return;
+        const cleaned = sanitizeInlineBookHtml(el.innerHTML || "");
+        if (cleaned !== el.innerHTML) el.innerHTML = cleaned;
+        onChangeHtml(cleaned);
+      }}
+      data-cta-id={dataCtaId}
+      data-action="edit"
+      role="textbox"
+      aria-label={ariaLabel}
+      aria-multiline="true"
+    />
+  );
 }
 
 export default function BookStudioChapterEditor() {
@@ -147,20 +303,35 @@ export default function BookStudioChapterEditor() {
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [aiBusy, setAiBusy] = useState(false);
+  const [aiBusyIds, setAiBusyIds] = useState<Set<string>>(new Set());
+  const [imageBusySrcs, setImageBusySrcs] = useState<Set<string>>(new Set());
 
+  const [zoom, setZoom] = useState<number>(100);
   const [bookVersionId, setBookVersionId] = useState<string>(safeStr(searchParams.get("bookVersionId")));
   const [overlayId, setOverlayId] = useState<string>(safeStr(searchParams.get("overlayId")));
 
   const [canonical, setCanonical] = useState<any>(null);
+  const [designTokens, setDesignTokens] = useState<any>(null);
   const [imageSrcMap, setImageSrcMap] = useState<Record<string, string> | null>(null);
   const [missingImageSrcs, setMissingImageSrcs] = useState<string[] | null>(null);
 
-  const [paragraphs, setParagraphs] = useState<CanonicalParagraph[]>([]);
+  // loadedRewrites/draftRewrites store ONLY non-empty rewrites.
   const [loadedRewrites, setLoadedRewrites] = useState<Record<string, string>>({});
-  const [rewrites, setRewrites] = useState<Record<string, string>>({});
+  const [draftRewrites, setDraftRewrites] = useState<Record<string, string>>({});
 
+  const [paragraphs, setParagraphs] = useState<CanonicalParagraph[]>([]);
   const uploadInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
+
+  const dirtyCount = useMemo(() => {
+    const ids = new Set<string>([...Object.keys(loadedRewrites), ...Object.keys(draftRewrites)]);
+    let n = 0;
+    for (const id of ids) {
+      const a = (loadedRewrites[id] || "").trim();
+      const b = (draftRewrites[id] || "").trim();
+      if (a !== b) n += 1;
+    }
+    return n;
+  }, [loadedRewrites, draftRewrites]);
 
   // Keep URL query params in sync
   useEffect(() => {
@@ -198,8 +369,7 @@ export default function BookStudioChapterEditor() {
       });
       if (!(list as any)?.ok) throw new Error((list as any)?.error?.message || "Failed to load overlays");
       const overlays = Array.isArray((list as any)?.overlays) ? ((list as any).overlays as any[]) : [];
-      const preferred =
-        overlays.find((o) => String(o?.label || "").trim().toLowerCase() === "book studio") || overlays[0] || null;
+      const preferred = overlays.find((o) => String(o?.label || "").trim().toLowerCase() === "book studio") || overlays[0] || null;
       if (preferred?.id) {
         resolvedOverlayId = String(preferred.id);
         setOverlayId(resolvedOverlayId);
@@ -222,7 +392,7 @@ export default function BookStudioChapterEditor() {
     setLoading(true);
     try {
       const resolved = await resolveBookVersionAndOverlay();
-      const res = await mcp.call("lms.bookVersionInputUrls", {
+      const res = (await mcp.call("lms.bookVersionInputUrls", {
         bookId,
         bookVersionId: resolved.bookVersionId,
         overlayId: resolved.overlayId,
@@ -231,15 +401,15 @@ export default function BookStudioChapterEditor() {
         allowMissingImages: true,
         expiresIn: 3600,
         includeChapterOpeners: true,
-      });
-      if (!(res as any)?.ok) throw new Error((res as any)?.error?.message || "Failed to fetch signed URLs");
+      })) as BookVersionInputUrlsResponse;
+      if (res.ok !== true) throw new Error((res as any)?.error?.message || "Failed to fetch signed URLs");
 
-      const canonicalUrl = (res as any)?.urls?.canonical?.signedUrl as string | undefined;
-      const overlayUrl = (res as any)?.urls?.overlay?.signedUrl as string | undefined;
+      const canonicalUrl = res.urls.canonical?.signedUrl;
+      const overlayUrl = res.urls.overlay?.signedUrl;
       if (!canonicalUrl) throw new Error("Missing canonical signed URL");
       if (!overlayUrl) throw new Error("Missing overlay signed URL");
 
-      const [canonicalJson, overlayJson] = await Promise.all([
+      const [canonicalJson, overlayJson, tokensJson, coverRes] = await Promise.all([
         fetch(canonicalUrl).then(async (r) => {
           if (!r.ok) throw new Error(`Canonical download failed (${r.status})`);
           return await r.json();
@@ -248,23 +418,47 @@ export default function BookStudioChapterEditor() {
           if (!r.ok) throw new Error(`Overlay download failed (${r.status})`);
           return await r.json();
         }),
+        res.urls.designTokens?.signedUrl
+          ? fetch(res.urls.designTokens.signedUrl).then(async (r) => {
+              if (!r.ok) throw new Error(`design_tokens.json download failed (${r.status})`);
+              return await r.json();
+            })
+          : Promise.resolve(null),
+        mcp.call("lms.bookLibraryImageUrl", {
+          bookId,
+          canonicalSrcs: [COVER_CANONICAL_SRC],
+          expiresIn: 3600,
+        }) as Promise<BookLibraryImageUrlResponse>,
       ]);
 
       const chapterParas = collectCanonicalParagraphsForChapter(canonicalJson, chapterIdx);
       const overlay = (overlayJson || { paragraphs: [] }) as OverlayJsonV1;
-      const map: Record<string, string> = {};
+
+      const loaded: Record<string, string> = {};
       for (const p of overlay.paragraphs || []) {
-        if (p && typeof p.paragraph_id === "string" && typeof p.rewritten === "string") {
-          map[p.paragraph_id] = p.rewritten;
-        }
+        const pid = typeof p?.paragraph_id === "string" ? p.paragraph_id : "";
+        const rewritten = typeof p?.rewritten === "string" ? sanitizeInlineBookHtml(p.rewritten) : "";
+        if (pid && rewritten.trim()) loaded[pid] = rewritten;
       }
 
       setCanonical(canonicalJson);
-      setImageSrcMap((res as any)?.imageSrcMap || null);
+      setDesignTokens(tokensJson);
+      // Merge the chapter-scoped imageSrcMap with cover (book-scoped via library index).
+      const baseMap = ((res as any)?.imageSrcMap || null) as Record<string, string> | null;
+      const merged: Record<string, string> = { ...(baseMap || {}) };
+      if (coverRes && typeof coverRes === "object" && (coverRes as any).ok === true) {
+        const coverUrl = safeStr((coverRes as any)?.urls?.[COVER_CANONICAL_SRC]?.signedUrl);
+        if (coverUrl) merged[COVER_CANONICAL_SRC] = coverUrl;
+      } else if (coverRes && typeof coverRes === "object" && (coverRes as any).ok === false) {
+        // Non-blocking: cover preview is optional for chapter editing, but surface the failure.
+        const msg = safeStr((coverRes as any)?.error?.message) || "Cover lookup failed";
+        toast({ title: "Cover unavailable", description: msg, variant: "destructive" });
+      }
+      setImageSrcMap(Object.keys(merged).length > 0 ? merged : null);
       setMissingImageSrcs(Array.isArray((res as any)?.missingImageSrcs) ? ((res as any).missingImageSrcs as string[]) : null);
       setParagraphs(chapterParas);
-      setLoadedRewrites(map);
-      setRewrites(map);
+      setLoadedRewrites(loaded);
+      setDraftRewrites(loaded);
     } catch (e) {
       toast({
         title: "Failed to load chapter",
@@ -295,19 +489,198 @@ export default function BookStudioChapterEditor() {
     );
   }, [canonical, chapterIdx]);
 
-  const saveAll = useCallback(async () => {
+  const chapterOpenerSrc = useMemo(() => {
+    if (chapterIdx === null) return "";
+    const ch = Array.isArray(canonical?.chapters) ? canonical.chapters[chapterIdx] : null;
+    const opener = (ch as any)?.openerImage ?? (ch as any)?.opener_image;
+    return typeof opener === "string" ? opener.trim() : "";
+  }, [canonical, chapterIdx]);
+
+  const openerUrl = useMemo(() => {
+    if (!chapterOpenerSrc) return "";
+    return imageSrcMap?.[chapterOpenerSrc] || "";
+  }, [chapterOpenerSrc, imageSrcMap]);
+
+  const coverUrl = useMemo(() => {
+    return imageSrcMap?.[COVER_CANONICAL_SRC] || "";
+  }, [imageSrcMap]);
+
+  const bookCssVars = useMemo(() => {
+    // Baseline defaults (match book-worker/lib/bookRenderer.js)
+    const base: Record<string, string> = {
+      "--page-width": "195mm",
+      "--page-height": "265mm",
+      "--margin-top": "20mm",
+      "--margin-bottom": "20mm",
+      "--margin-inner": "15mm",
+      "--margin-outer": "15mm",
+      "--body-size": "12pt",
+      "--body-leading": "1.25",
+      "--h1": "35pt",
+      "--h2": "18pt",
+      "--h3": "14pt",
+      "--body-columns": "2",
+      "--col-gap": "9mm",
+      "--rule": "#c9c9c9",
+      "--muted": "#555",
+      "--text": "#111",
+    };
+    const fromTokens = extractBookCssVarsFromDesignTokens(designTokens);
+    return { ...base, ...fromTokens } as Record<string, string>;
+  }, [designTokens]);
+
+  const sections = useMemo(() => {
+    const set = new Set<string>();
+    for (const p of paragraphs) set.add(p.sectionTitle || "Section");
+    return Array.from(set);
+  }, [paragraphs]);
+
+  const sectionToParagraphs = useMemo(() => {
+    const map = new Map<string, CanonicalParagraph[]>();
+    for (const p of paragraphs) {
+      const key = p.sectionTitle || "Section";
+      const list = map.get(key) || [];
+      list.push(p);
+      map.set(key, list);
+    }
+    return map;
+  }, [paragraphs]);
+
+  const pages = useMemo(() => {
+    // Chapter-focused: opener page + section pages. We chunk paragraphs to keep pages roughly page-sized.
+    const out: Array<{ id: string; title: string; paragraphs: CanonicalParagraph[]; kind: "cover" | "opener" | "section" }> = [];
+    out.push({ id: "page-cover", title: "Cover", paragraphs: [], kind: "cover" });
+    out.push({ id: "page-opener", title: chapterTitle || "Chapter", paragraphs: [], kind: "opener" });
+    for (const s of sections) {
+      const ps = sectionToParagraphs.get(s) || [];
+      const chunks = splitIntoPages(ps, 3);
+      chunks.forEach((chunk, idx) => {
+        out.push({ id: `page-${s}-${idx}`, title: s, paragraphs: chunk, kind: "section" });
+      });
+    }
+    return out;
+  }, [chapterTitle, sections, sectionToParagraphs]);
+
+  const goBack = useCallback(() => {
+    if (!bookId) return;
+    const qs = new URLSearchParams();
+    if (bookVersionId) qs.set("bookVersionId", bookVersionId);
+    if (overlayId) qs.set("overlayId", overlayId);
+    navigate(`/admin/book-studio/${encodeURIComponent(bookId)}${qs.toString() ? `?${qs.toString()}` : ""}`);
+  }, [bookId, bookVersionId, overlayId, navigate]);
+
+  const openVersions = useCallback(() => {
+    if (!bookId) return;
+    const qs = new URLSearchParams();
+    if (bookVersionId) qs.set("bookVersionId", bookVersionId);
+    if (overlayId) qs.set("overlayId", overlayId);
+    navigate(`/admin/book-studio/${encodeURIComponent(bookId)}/versions${qs.toString() ? `?${qs.toString()}` : ""}`);
+  }, [bookId, bookVersionId, overlayId, navigate]);
+
+  const enqueueRenderChapter = useCallback(async () => {
+    if (!bookId || chapterIdx === null || !bookVersionId) return;
+    const resolvedOverlayId = overlayId || (await resolveBookVersionAndOverlay()).overlayId;
+    if (!resolvedOverlayId) return;
+    try {
+      const res = await mcp.call("lms.bookEnqueueRender", {
+        bookId,
+        bookVersionId,
+        overlayId: resolvedOverlayId,
+        target: "chapter",
+        chapterIndex: chapterIdx,
+        renderProvider: "prince_local",
+        allowMissingImages: true,
+      });
+      if (!(res as any)?.ok) throw new Error((res as any)?.error?.message || "Failed to enqueue render");
+      const runId = safeStr((res as any)?.runId);
+      toast({ title: "Queued", description: "Chapter render queued. Opening run…" });
+      if (runId) navigate(`/admin/books/${encodeURIComponent(bookId)}/runs/${encodeURIComponent(runId)}`);
+    } catch (e) {
+      toast({
+        title: "Render failed",
+        description: e instanceof Error ? e.message : "Unknown error",
+        variant: "destructive",
+      });
+    }
+  }, [bookId, bookVersionId, overlayId, chapterIdx, mcp, toast, navigate, resolveBookVersionAndOverlay]);
+
+  const setRewrite = useCallback(
+    (paragraphId: string, nextHtml: string) => {
+      const cleaned = sanitizeInlineBookHtml(nextHtml || "");
+      setDraftRewrites((prev) => {
+        const next = { ...prev };
+        if (cleaned.trim()) next[paragraphId] = cleaned;
+        else delete next[paragraphId];
+        return next;
+      });
+    },
+    []
+  );
+
+  const aiRewriteParagraph = useCallback(
+    async (paragraphId: string, basisHtml: string) => {
+      setAiBusyIds((prev) => new Set(prev).add(paragraphId));
+      try {
+        const current = (draftRewrites[paragraphId] || "").trim() ? draftRewrites[paragraphId] : sanitizeInlineBookHtml(basisHtml);
+        const currentText = stripHtml(current);
+
+        const result = await mcp.rewriteText({
+          segmentType: "reference",
+          currentText,
+          styleHints: [
+            "Rewrite as a clear, student-friendly paragraph for this book chapter.",
+            "Keep meaning. Do not add facts.",
+            "Output HTML suitable for inline book text. Use only <strong>, <em>, <sup>, <sub>, <span>, <br/>.",
+          ],
+          candidateCount: 1,
+        });
+        const next = result?.candidates?.[0]?.text;
+        if (!next || typeof next !== "string") throw new Error("AI rewrite returned empty");
+        setRewrite(paragraphId, next);
+        toast({ title: "AI rewrite applied" });
+      } catch (e) {
+        toast({
+          title: "AI rewrite failed",
+          description: e instanceof Error ? e.message : "Unknown error",
+          variant: "destructive",
+        });
+      } finally {
+        setAiBusyIds((prev) => {
+          const next = new Set(prev);
+          next.delete(paragraphId);
+          return next;
+        });
+      }
+    },
+    [draftRewrites, mcp, setRewrite, toast]
+  );
+
+  const revertParagraph = useCallback(
+    (paragraphId: string) => {
+      setDraftRewrites((prev) => {
+        const next = { ...prev };
+        const baseline = loadedRewrites[paragraphId];
+        if (baseline && baseline.trim()) next[paragraphId] = baseline;
+        else delete next[paragraphId];
+        return next;
+      });
+    },
+    [loadedRewrites]
+  );
+
+  const saveOverlay = useCallback(async () => {
     if (!overlayId) return;
     setSaving(true);
     try {
-      const payload = Object.entries(rewrites)
+      const payload = Object.entries(draftRewrites)
         .map(([paragraph_id, rewritten]) => ({ paragraph_id, rewritten }))
-        .filter((p) => typeof p.paragraph_id === "string" && typeof p.rewritten === "string");
+        .filter((p) => typeof p.paragraph_id === "string" && typeof p.rewritten === "string" && p.rewritten.trim().length > 0);
 
       const res = await mcp.call("lms.bookSaveOverlay", { overlayId, rewrites: { paragraphs: payload } });
       if (!(res as any)?.ok) throw new Error((res as any)?.error?.message || "Save failed");
 
       toast({ title: "Saved", description: "Overlay saved." });
-      setLoadedRewrites(rewrites);
+      setLoadedRewrites(draftRewrites);
     } catch (e) {
       toast({
         title: "Save failed",
@@ -317,59 +690,26 @@ export default function BookStudioChapterEditor() {
     } finally {
       setSaving(false);
     }
-  }, [overlayId, rewrites, mcp, toast]);
+  }, [overlayId, draftRewrites, mcp, toast]);
 
-  const revertParagraph = useCallback(
-    (pid: string) => {
-      setRewrites((prev) => ({ ...prev, [pid]: loadedRewrites[pid] || "" }));
-    },
-    [loadedRewrites]
-  );
-
-  const aiRewriteParagraph = useCallback(
-    async (pid: string, basis: string) => {
-      setAiBusy(true);
-      try {
-        // NOTE: `book_paragraph` segmentType is added in a later todo. For now, use reference rewrite.
-        const next = await mcp.rewriteText({
-          currentText: stripHtml(basis),
-          segmentType: "reference",
-          styleHints: [
-            "Rewrite as a clear, student-friendly paragraph for this book chapter.",
-            "Keep meaning.",
-            "Do not add facts.",
-          ],
-        });
-        if (!next || typeof next !== "string") throw new Error("AI rewrite returned empty");
-        setRewrites((prev) => ({ ...prev, [pid]: next }));
-      } catch (e) {
-        toast({
-          title: "AI rewrite failed",
-          description: e instanceof Error ? e.message : "Unknown error",
-          variant: "destructive",
-        });
-      } finally {
-        setAiBusy(false);
-      }
-    },
-    [mcp, toast]
-  );
+  const discardChanges = useCallback(async () => {
+    await load();
+    toast({ title: "Discarded", description: "Reloaded chapter from server." });
+  }, [load, toast]);
 
   const uploadImageForSrc = useCallback(
     async (canonicalSrc: string, file: File | null) => {
       if (!file || !bookId) return;
+      setImageBusySrcs((prev) => new Set(prev).add(canonicalSrc));
       try {
-        const res = await mcp.call("lms.bookLibraryUploadUrl", {
-          bookId,
-          canonicalSrc,
-          fileName: file.name,
-        });
+        const res = await mcp.call("lms.bookLibraryUploadUrl", { bookId, canonicalSrc, fileName: file.name });
         if (!(res as any)?.ok) throw new Error((res as any)?.error?.message || "Failed to get upload URL");
-        const signedUrl = safeStr((res as any)?.signedUrl);
-        const storagePath = safeStr((res as any)?.path);
-        if (!signedUrl || !storagePath) throw new Error("Missing signedUrl/path");
 
-        const up = await fetch(signedUrl, {
+        const signedUploadUrl = safeStr((res as any)?.signedUrl);
+        const storagePath = safeStr((res as any)?.path);
+        if (!signedUploadUrl || !storagePath) throw new Error("Missing signedUrl/path");
+
+        const up = await fetch(signedUploadUrl, {
           method: "PUT",
           headers: { "Content-Type": file.type || "application/octet-stream" },
           body: file,
@@ -379,14 +719,18 @@ export default function BookStudioChapterEditor() {
           throw new Error(`Upload failed (${up.status}): ${t.slice(0, 200)}`);
         }
 
-        const link = await mcp.call("lms.bookLibraryUpsertIndex", {
-          bookId,
-          mappings: [{ canonicalSrc, storagePath }],
-        });
+        const link = await mcp.call("lms.bookLibraryUpsertIndex", { bookId, mappings: [{ canonicalSrc, storagePath, action: "upsert" }] });
         if (!(link as any)?.ok) throw new Error((link as any)?.error?.message || "Failed to link image");
 
+        const signed = await mcp.call("lms.bookLibraryStorageUrl", { bookId, storagePath, expiresIn: 3600 });
+        if (!(signed as any)?.ok) throw new Error((signed as any)?.error?.message || "Failed to sign image URL");
+        const signedUrl = safeStr((signed as any)?.signedUrl);
+        if (!signedUrl) throw new Error("Missing signedUrl");
+
+        setImageSrcMap((prev) => ({ ...(prev || {}), [canonicalSrc]: signedUrl }));
+        setMissingImageSrcs((prev) => (Array.isArray(prev) ? prev.filter((s) => s !== canonicalSrc) : prev));
+
         toast({ title: "Uploaded", description: "Image uploaded + linked." });
-        void load();
       } catch (e) {
         toast({
           title: "Upload failed",
@@ -394,67 +738,80 @@ export default function BookStudioChapterEditor() {
           variant: "destructive",
         });
       } finally {
-        // reset handled by input onChange owner
+        setImageBusySrcs((prev) => {
+          const next = new Set(prev);
+          next.delete(canonicalSrc);
+          return next;
+        });
       }
     },
-    [bookId, mcp, toast, load]
+    [bookId, mcp, toast]
   );
 
   const aiGenerateImageForSrc = useCallback(
-    async (canonicalSrc: string) => {
+    async (canonicalSrc: string, promptOverride?: string) => {
       if (!bookId) return;
-      const prompt = window.prompt(`AI image prompt for:\n${canonicalSrc}\n\nDescribe the image to generate:`);
+      const prompt =
+        typeof promptOverride === "string"
+          ? promptOverride
+          : window.prompt(`AI image prompt for:\n${canonicalSrc}\n\nDescribe the image to generate:`);
       if (!prompt || !prompt.trim()) return;
+
+      setImageBusySrcs((prev) => new Set(prev).add(canonicalSrc));
       try {
         const res = await mcp.call("lms.bookLibraryGenerateImage", { bookId, canonicalSrc, prompt: prompt.trim() });
         if (!(res as any)?.ok) throw new Error((res as any)?.error?.message || "AI generation failed");
         const signedUrl = safeStr((res as any)?.signedUrl);
+        if (!signedUrl) throw new Error("Missing signedUrl");
+
+        setImageSrcMap((prev) => ({ ...(prev || {}), [canonicalSrc]: signedUrl }));
+        setMissingImageSrcs((prev) => (Array.isArray(prev) ? prev.filter((s) => s !== canonicalSrc) : prev));
+
         toast({ title: "Generated", description: "AI image generated + linked." });
-        if (signedUrl) window.open(signedUrl, "_blank", "noopener,noreferrer");
-        void load();
       } catch (e) {
         toast({
           title: "AI image failed",
           description: e instanceof Error ? e.message : "Unknown error",
           variant: "destructive",
         });
+      } finally {
+        setImageBusySrcs((prev) => {
+          const next = new Set(prev);
+          next.delete(canonicalSrc);
+          return next;
+        });
       }
     },
-    [bookId, mcp, toast, load]
+    [bookId, mcp, toast]
   );
 
-  const uniqueImageSrcs = useMemo(() => {
-    const set = new Set<string>();
-    for (const p of paragraphs) {
-      for (const img of p.images) {
-        if (img?.src) set.add(img.src);
-      }
-    }
-    return Array.from(set);
-  }, [paragraphs]);
+  const scrollToPage = useCallback((pageId: string) => {
+    const el = document.getElementById(pageId);
+    if (!el) return;
+    el.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, []);
 
   if (authLoading || (!isAdmin && !devAgent)) {
-    return (
-      <PageContainer>
-        <div className="text-sm text-muted-foreground">Loading…</div>
-      </PageContainer>
-    );
+    return <div className="p-6 text-sm text-muted-foreground">Loading…</div>;
   }
 
   return (
-    <PageContainer>
-      <div className="space-y-6">
-        <div className="flex items-start justify-between gap-3">
+    <div className="w-full">
+      <div className="w-full max-w-6xl mx-auto px-3 sm:px-4 py-3">
+        {/* Header */} 
+        <div className="flex items-center justify-between gap-3 mb-3">
           <div className="min-w-0">
-            <h1 className="text-2xl font-bold truncate">{chapterTitle}</h1>
-            <div className="text-xs text-muted-foreground font-mono truncate">
+            <div className="text-sm font-semibold truncate">{chapterTitle || "Chapter"}</div>
+            <div className="text-[11px] text-muted-foreground truncate font-mono">
               {bookId} • chapterIndex={chapterIdx ?? "?"} • bookVersionId={bookVersionId || "—"} • overlayId={overlayId || "—"}
+              {dirtyCount > 0 ? ` • ${dirtyCount} unsaved` : ""}
             </div>
           </div>
-          <div className="flex gap-2">
+          <div className="flex items-center gap-2">
             <Button
               variant="outline"
-              onClick={() => navigate(`/admin/book-studio/${encodeURIComponent(bookId || "")}?bookVersionId=${encodeURIComponent(bookVersionId || "")}&overlayId=${encodeURIComponent(overlayId || "")}`)}
+              size="sm"
+              onClick={goBack}
               data-cta-id="cta-bookstudio-back-to-book"
               data-action="navigate"
             >
@@ -462,29 +819,56 @@ export default function BookStudioChapterEditor() {
             </Button>
             <Button
               variant="outline"
-              onClick={() => toast({ title: "Not implemented", description: "Chapter-wide rewrite is wired in a later todo (job-based)." })}
-              data-cta-id="cta-bookstudio-chapter-ai-rewrite-all"
-              data-action="action"
+              size="sm"
+              onClick={openVersions}
+              data-cta-id="cta-bookstudio-book-versions"
+              data-action="navigate"
             >
-              AI rewrite chapter
+              Versions
             </Button>
             <Button
               variant="outline"
-              onClick={() => void load()}
+              size="sm"
+              onClick={() => void enqueueRenderChapter()}
+              data-cta-id="cta-bookstudio-book-render"
+              data-action="action"
+            >
+              Render PDF
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => void discardChanges()}
               disabled={loading}
               data-cta-id="cta-bookstudio-chapter-discard"
               data-action="action"
             >
               Discard
             </Button>
-            <Button onClick={() => void saveAll()} disabled={saving} data-cta-id="cta-bookstudio-chapter-save" data-action="action">
+            <Button
+              size="sm"
+              onClick={() => void saveOverlay()}
+              disabled={saving || !overlayId}
+              data-cta-id="cta-bookstudio-chapter-save"
+              data-action="action"
+            >
               {saving ? "Saving…" : "Save"}
             </Button>
           </div>
         </div>
 
+        {/* Warnings */}
+        {!loading && !designTokens && (
+          <div className="mb-3 rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-sm">
+            <div className="font-medium text-amber-600">Design tokens missing</div>
+            <div className="text-xs text-muted-foreground mt-1">
+              This book version does not include <span className="font-mono">design_tokens.json</span>. Preview CSS may differ from the PDF.
+            </div>
+          </div>
+        )}
+
         {missingImageSrcs && missingImageSrcs.length > 0 && (
-          <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-sm">
+          <div className="mb-3 rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-sm">
             <div className="font-medium text-amber-600">Missing images in this chapter</div>
             <div className="text-xs text-muted-foreground mt-1">
               {missingImageSrcs.slice(0, 8).join(", ")}
@@ -493,238 +877,378 @@ export default function BookStudioChapterEditor() {
           </div>
         )}
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Images</CardTitle>
-            <CardDescription>Resolve missing images via upload or AI generation.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {uniqueImageSrcs.length === 0 ? (
-              <div className="text-sm text-muted-foreground">No images referenced in this chapter.</div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {uniqueImageSrcs.map((src, idx) => {
-                  const url = imageSrcMap?.[src] || "";
-                  const isMissing = !!missingImageSrcs?.includes(src) || !url;
-                  return (
-                    <div key={src} className="rounded-lg border p-3 space-y-2">
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="min-w-0">
-                          <div className="text-xs font-mono break-all">{src}</div>
-                          <div className="text-xs text-muted-foreground">{isMissing ? "Missing" : "Resolved"}</div>
-                        </div>
-                        <Badge variant={isMissing ? "destructive" : "outline"}>{isMissing ? "MISSING" : "OK"}</Badge>
-                      </div>
-                      <div className="h-28 rounded-md border bg-muted/20 flex items-center justify-center overflow-hidden">
-                        {url ? (
-                          <img src={url} alt="" className="w-full h-full object-contain" />
-                        ) : (
-                          <span className="text-xs text-muted-foreground">No preview</span>
-                        )}
-                      </div>
-                      <div className="flex gap-2">
-                        <input
-                          type="file"
-                          accept="image/*"
-                          className="hidden"
-                          ref={(el) => {
-                            uploadInputRefs.current[src] = el;
-                          }}
-                          onChange={(e) => {
-                            const f = e.target.files?.[0] || null;
-                            void uploadImageForSrc(src, f);
-                            e.currentTarget.value = "";
-                          }}
-                        />
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="flex-1"
-                          onClick={() => uploadInputRefs.current[src]?.click()}
-                          data-cta-id={`cta-bookstudio-image-upload-${idx}`}
-                          data-action="action"
-                        >
-                          Upload
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="flex-1"
-                          onClick={() => void aiGenerateImageForSrc(src)}
-                          data-cta-id={`cta-bookstudio-image-ai-${idx}`}
-                          data-action="action"
-                        >
-                          AI
-                        </Button>
-                      </div>
-                    </div>
-                  );
-                })}
+        <div className="flex gap-3">
+          {/* Sidebar */}
+          <aside className="w-72 bg-background border rounded-lg p-2 overflow-y-auto flex-shrink-0 h-[calc(100vh-180px)]">
+            <div className="flex items-center justify-between px-2 py-2">
+              <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Pages</div>
+              <div className="flex items-center gap-2">
+                <div className="text-[10px] text-muted-foreground">Zoom</div>
+                <input
+                  type="range"
+                  min={50}
+                  max={200}
+                  step={25}
+                  value={zoom}
+                  onChange={(e) => setZoom(Number(e.target.value))}
+                  className="w-28"
+                  data-cta-id="cta-bookstudio-wysiwyg-zoom"
+                  data-action="action"
+                />
+                <div className="text-[10px] text-muted-foreground w-10 text-right">{zoom}%</div>
               </div>
-            )}
-          </CardContent>
-        </Card>
+            </div>
+            <div className="space-y-1">
+              {pages.map((p, idx) => (
+                <button
+                  key={p.id}
+                  type="button"
+                  onClick={() => scrollToPage(p.id)}
+                  className={cn(
+                    "w-full text-left text-[11px] font-medium p-2.5 rounded-md cursor-pointer transition-colors",
+                    "text-muted-foreground hover:bg-muted/60"
+                  )}
+                  data-cta-id={`cta-bookstudio-wysiwyg-nav-${idx}`}
+                  data-action="navigate"
+                >
+                  {p.kind === "cover" ? "Cover" : p.kind === "opener" ? "Chapter opener" : p.title}
+                </button>
+              ))}
+            </div>
+          </aside>
 
-        <Separator />
+          {/* Canvas */}
+          <main className="flex-1 min-w-0">
+            <div className="play-root w-full bg-gradient-to-br from-primary/5 via-background to-accent/5 p-2 sm:p-3 md:p-4 rounded-xl h-[calc(100vh-180px)] overflow-auto">
+              <div className="w-full max-w-5xl mx-auto h-full">
+                <style>
+                  {`
+                    .book-canvas {
+                      /* Defaults can be overridden by design_tokens.json via inline CSS vars. */
+                      font-family: "Source Sans 3", system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+                      color: var(--text);
+                    }
+                    .book-page {
+                      width: var(--page-width);
+                      height: var(--page-height);
+                      background: #ffffff;
+                      position: relative;
+                      border: 1px solid rgba(15, 23, 42, 0.12);
+                      box-shadow: 0 18px 40px rgba(2,6,23,0.18);
+                    }
+                    .book-page.page-left .book-page-inner {
+                      padding: var(--margin-top) var(--margin-inner) var(--margin-bottom) var(--margin-outer);
+                    }
+                    .book-page.page-right .book-page-inner {
+                      padding: var(--margin-top) var(--margin-outer) var(--margin-bottom) var(--margin-inner);
+                    }
+                    .book-page.cover .book-page-inner,
+                    .book-page.opener .book-page-inner {
+                      padding: 0;
+                    }
+                    .book-cover-img,
+                    .book-opener-img {
+                      width: 100%;
+                      height: 100%;
+                      object-fit: cover;
+                      display: block;
+                    }
+                    .chapter-title-overlay {
+                      position: absolute;
+                      top: 0;
+                      left: 0;
+                      right: 0;
+                      padding: var(--margin-top) var(--margin-outer) 0 var(--margin-inner);
+                      z-index: 2;
+                    }
+                    .chapter-number {
+                      font-size: 9pt;
+                      letter-spacing: 0.14em;
+                      text-transform: uppercase;
+                      color: var(--muted);
+                      margin-bottom: 2mm;
+                    }
+                    .chapter-title {
+                      font-size: var(--h1);
+                      font-weight: 700;
+                      line-height: 1.05;
+                      margin: 0;
+                      padding-bottom: 2mm;
+                      border-bottom: 2pt solid rgba(15, 23, 42, 0.28);
+                      color: #0f172a;
+                    }
+                    .section-title {
+                      font-family: inherit;
+                      font-size: var(--h2);
+                      font-weight: 700;
+                      color: #0f172a;
+                      margin: 0 0 5mm 0;
+                      padding-bottom: 1.2mm;
+                      border-bottom: 0.5pt solid var(--rule);
+                    }
+                    .chapter-body {
+                      column-count: var(--body-columns);
+                      column-gap: var(--col-gap);
+                      column-fill: auto;
+                    }
+                    .para-block {
+                      break-inside: avoid;
+                      page-break-inside: avoid;
+                      margin: 0 0 4mm 0;
+                      position: relative;
+                    }
+                    .para-editable {
+                      font-size: var(--body-size);
+                      line-height: calc(var(--body-leading) * 1);
+                      outline: none;
+                    }
+                    .para-editable .box-lead {
+                      font-weight: 700;
+                    }
+                  `}
+                </style>
 
-        <div className="space-y-4">
-          {paragraphs.map((p, i) => {
-            const current = rewrites[p.id] ?? "";
-            const isEdited = typeof current === "string" && current.trim().length > 0;
-            return (
-              <Card key={p.id} className={cn(isEdited ? "border-primary/50" : "")}>
-                <CardHeader>
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="min-w-0">
-                      <CardTitle className="text-base flex items-center gap-2">
-                        <span className="font-mono text-xs">{p.id}</span>
-                        <Badge variant="outline">#{i + 1}</Badge>
-                      </CardTitle>
-                      <CardDescription className="truncate">
-                        {p.sectionTitle}
-                        {p.microTitle ? ` • ${p.microTitle}` : ""}
-                      </CardDescription>
-                    </div>
-                    <div className="flex gap-2">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => void aiRewriteParagraph(p.id, p.basis)}
-                        disabled={aiBusy}
-                        data-cta-id={`cta-bookstudio-para-ai-rewrite-${i}`}
-                        data-action="action"
+                <div className="book-canvas flex flex-col items-center gap-10 py-2" style={bookCssVars as any}>
+                  {loading && <div className="text-sm text-muted-foreground">Loading…</div>}
+
+                  {!loading &&
+                    pages.map((pg, pageIdx) => (
+                      <div
+                        key={pg.id}
+                        id={pg.id}
+                        style={{
+                          transform: `scale(${zoom / 100})`,
+                          transformOrigin: "top center",
+                        }}
+                        className={cn(
+                          "book-page rounded-sm",
+                          pageIdx % 2 === 0 ? "page-right" : "page-left",
+                          pg.kind === "cover" ? "cover" : pg.kind === "opener" ? "opener" : "section"
+                        )}
+                        data-cta-id={`cta-bookstudio-wysiwyg-page-${pageIdx}`}
+                        data-action="noop"
                       >
-                        AI rewrite
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => revertParagraph(p.id)}
-                        data-cta-id={`cta-bookstudio-para-revert-${i}`}
-                        data-action="action"
-                      >
-                        Revert
-                      </Button>
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    <div className="space-y-1">
-                      <div className="text-xs text-muted-foreground">Basis (canonical)</div>
-                      <div className="rounded-md border bg-muted/10 p-2 text-sm whitespace-pre-wrap">
-                        {stripHtml(p.basis)}
-                      </div>
-                    </div>
-                    <div className="space-y-1">
-                      <div className="flex items-center justify-between gap-2">
-                        <div className="text-xs text-muted-foreground">Rewrite (overlay)</div>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => void saveAll()}
-                          disabled={saving}
-                          data-cta-id={`cta-bookstudio-para-save-${i}`}
-                          data-action="action"
-                        >
-                          Save
-                        </Button>
-                      </div>
-                      <Textarea
-                        value={current}
-                        onChange={(e) => setRewrites((prev) => ({ ...prev, [p.id]: e.target.value }))}
-                        placeholder="Leave empty to use basis text."
-                        className="min-h-[140px]"
-                        data-cta-id={`cta-bookstudio-para-text-${i}`}
-                        data-action="edit"
-                      />
-                    </div>
-                  </div>
+                        <div className="book-page-inner w-full h-full">
+                          {pg.kind === "cover" ? (
+                            <div className="space-y-6">
+                              <div className="relative w-full h-full bg-slate-50 overflow-hidden">
+                                <input
+                                  type="file"
+                                  accept="image/*"
+                                  className="hidden"
+                                  ref={(el) => {
+                                    uploadInputRefs.current[COVER_CANONICAL_SRC] = el;
+                                  }}
+                                  onChange={(e) => {
+                                    const f = e.target.files?.[0] || null;
+                                    void uploadImageForSrc(COVER_CANONICAL_SRC, f);
+                                    e.currentTarget.value = "";
+                                  }}
+                                />
 
-                  <div className="rounded-md border bg-muted/5 p-3 space-y-2">
-                    <div className="flex items-center justify-between gap-2">
-                      <div className="text-xs font-medium">Microheading</div>
-                      <div className="flex gap-2">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => toast({ title: "Not implemented", description: "Microheading storage is added in overlay v2 (later todo)." })}
-                          data-cta-id={`cta-bookstudio-para-suggest-microhead-${i}`}
-                          data-action="action"
-                        >
-                          Suggest
-                        </Button>
-                      </div>
-                    </div>
-                    <Input
-                      value={p.microTitle || ""}
-                      onChange={() => toast({ title: "Not implemented", description: "Microheading editing is stored in overlay v2 (later todo)." })}
-                      placeholder="Microheading…"
-                      data-cta-id={`cta-bookstudio-para-microhead-${i}`}
-                      data-action="edit"
-                    />
-                  </div>
-
-                  {p.images.length > 0 && (
-                    <div className="space-y-2">
-                      <div className="text-xs font-medium">Paragraph images</div>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        {p.images.map((img, imgIdx) => {
-                          const url = imageSrcMap?.[img.src] || "";
-                          const isMissing = !!missingImageSrcs?.includes(img.src) || !url;
-                          return (
-                            <div key={`${img.src}-${imgIdx}`} className="rounded-md border p-3 space-y-2">
-                              <div className="text-xs font-mono break-all">{img.src}</div>
-                              <div className="h-24 rounded border bg-muted/20 flex items-center justify-center overflow-hidden">
-                                {url ? (
-                                  <img src={url} alt={img.alt || ""} className="w-full h-full object-contain" />
+                                {coverUrl ? (
+                                  <img
+                                    src={coverUrl}
+                                    alt="Book cover"
+                                    className="book-cover-img"
+                                    data-cta-id="cta-bookstudio-cover-preview"
+                                    data-action="noop"
+                                  />
                                 ) : (
-                                  <span className="text-xs text-muted-foreground">No preview</span>
+                                  <div className="w-full h-full flex flex-col items-center justify-center text-slate-500 text-sm gap-2">
+                                    <div className="text-lg">No cover uploaded yet</div>
+                                    <div className="text-xs">Upload a cover image or generate one with AI.</div>
+                                  </div>
+                                )}
+
+                                <ActionCornerButtons
+                                  className="bottom-3 right-3"
+                                  actions={[
+                                    {
+                                      ctaId: "cta-bookstudio-cover-upload",
+                                      title: "Upload cover",
+                                      icon: "🖼️",
+                                      onClick: () => uploadInputRefs.current[COVER_CANONICAL_SRC]?.click(),
+                                      disabled: imageBusySrcs.has(COVER_CANONICAL_SRC),
+                                    },
+                                    {
+                                      ctaId: "cta-bookstudio-cover-ai",
+                                      title: "AI generate cover",
+                                      icon: "🎨",
+                                      onClick: () => {
+                                        const prompt = window.prompt("AI cover prompt:\nDescribe the book cover you want:");
+                                        if (!prompt || !prompt.trim()) return;
+                                        void aiGenerateImageForSrc(COVER_CANONICAL_SRC, prompt.trim());
+                                      },
+                                      disabled: imageBusySrcs.has(COVER_CANONICAL_SRC),
+                                    },
+                                  ]}
+                                />
+                              </div>
+                            </div>
+                          ) : pg.kind === "opener" ? (
+                            <div className="w-full h-full relative bg-slate-50 overflow-hidden">
+                              {openerUrl ? (
+                                <img src={openerUrl} alt="" className="book-opener-img" />
+                              ) : (
+                                <div className="w-full h-full flex items-center justify-center text-sm text-slate-500">
+                                  No opener image resolved
+                                </div>
+                              )}
+                              <div className="chapter-title-overlay" data-cta-id="cta-bookstudio-chapter-title" data-action="noop">
+                                <div className="chapter-number">Hoofdstuk {chapterIdx === null ? "?" : chapterIdx + 1}</div>
+                                <div className="chapter-title">{chapterTitle || "Chapter"}</div>
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="space-y-4">
+                              <div className="flex items-center justify-between gap-3">
+                                <h2 className="section-title">{pg.title}</h2>
+                                <Badge variant="outline" className="text-xs">{pageIdx + 1}</Badge>
+                              </div>
+
+                              <div className="chapter-body">
+                                {pg.paragraphs.map((p, idx) => {
+                                  const basisHtml = sanitizeInlineBookHtml(p.basis);
+                                  const baseline = loadedRewrites[p.id] || "";
+                                  const current = draftRewrites[p.id] || "";
+                                  const isDirty = baseline.trim() !== current.trim();
+                                  const displayHtml = (draftRewrites[p.id] || "").trim() ? draftRewrites[p.id] : basisHtml;
+
+                                  const busyAi = aiBusyIds.has(p.id);
+
+                                  return (
+                                    <div
+                                      key={p.id}
+                                      className={cn("para-block", isDirty ? "bg-amber-50/60" : "")}
+                                      data-cta-id={`cta-bookstudio-wysiwyg-paragraph-${p.id}`}
+                                      data-action="noop"
+                                    >
+                                      <div className="text-[10px] font-mono text-slate-500 mb-2">
+                                        {p.id}
+                                        {p.microTitle ? ` • ${p.microTitle}` : ""}
+                                      </div>
+
+                                      <BookInlineEditable
+                                        html={displayHtml}
+                                        onChangeHtml={(next) => {
+                                          const cleaned = sanitizeInlineBookHtml(next);
+                                          // If user ends up matching basis, treat as no rewrite.
+                                          if (!cleaned.trim() || cleaned.trim() === basisHtml.trim()) {
+                                            setDraftRewrites((prev) => {
+                                              const n = { ...prev };
+                                              delete n[p.id];
+                                              return n;
+                                            });
+                                            return;
+                                          }
+                                          setRewrite(p.id, cleaned);
+                                        }}
+                                        className="para-editable"
+                                        dataCtaId={`cta-bookstudio-para-edit-${idx}`}
+                                        ariaLabel={`Edit paragraph ${p.id}`}
+                                      />
+
+                                      <ActionCornerButtons
+                                        actions={[
+                                          {
+                                            ctaId: `cta-bookstudio-para-ai-rewrite-${idx}`,
+                                            title: "AI rewrite",
+                                            icon: "✨",
+                                            onClick: () => void aiRewriteParagraph(p.id, p.basis),
+                                            disabled: busyAi,
+                                          },
+                                          {
+                                            ctaId: `cta-bookstudio-para-revert-${idx}`,
+                                            title: "Revert",
+                                            icon: "↩️",
+                                            onClick: () => revertParagraph(p.id),
+                                          },
+                                        ]}
+                                      />
+
+                                      {p.images.length > 0 && (
+                                        <div className="mt-4 space-y-3">
+                                          {p.images.map((img, imgIdx) => {
+                                            const url = imageSrcMap?.[img.src] || "";
+                                            const isMissing = !!missingImageSrcs?.includes(img.src) || !url;
+                                            const busyImg = imageBusySrcs.has(img.src);
+                                            return (
+                                              <div key={`${img.src}-${imgIdx}`} className="rounded-md border border-slate-200 overflow-hidden relative">
+                                                <input
+                                                  type="file"
+                                                  accept="image/*"
+                                                  className="hidden"
+                                                  ref={(el) => {
+                                                    uploadInputRefs.current[img.src] = el;
+                                                  }}
+                                                  onChange={(e) => {
+                                                    const f = e.target.files?.[0] || null;
+                                                    void uploadImageForSrc(img.src, f);
+                                                    e.currentTarget.value = "";
+                                                  }}
+                                                />
+                                                <div className="bg-slate-50">
+                                                  {url ? (
+                                                    <img src={url} alt={img.alt || ""} className="w-full max-h-80 object-contain" />
+                                                  ) : (
+                                                    <div className="h-44 flex items-center justify-center text-xs text-slate-500">
+                                                      Missing image: <span className="ml-1 font-mono">{img.src}</span>
+                                                    </div>
+                                                  )}
+                                                </div>
+                                                <div className="px-3 py-2 text-xs text-slate-600 flex items-center justify-between gap-2">
+                                                  <div className="min-w-0 truncate">
+                                                    <span className="font-semibold text-slate-700">{img.figureNumber ? `Figure ${img.figureNumber}` : "Figure"}</span>
+                                                    {img.caption ? ` — ${img.caption}` : ""}
+                                                  </div>
+                                                  {isMissing && <Badge variant="destructive" className="text-[10px]">MISSING</Badge>}
+                                                </div>
+
+                                                <ActionCornerButtons
+                                                  className="bottom-2 right-2"
+                                                  actions={[
+                                                    {
+                                                      ctaId: `cta-bookstudio-para-image-upload-${idx}-${imgIdx}`,
+                                                      title: "Upload/replace image",
+                                                      icon: "🖼️",
+                                                      onClick: () => uploadInputRefs.current[img.src]?.click(),
+                                                      disabled: busyImg,
+                                                    },
+                                                    {
+                                                      ctaId: `cta-bookstudio-para-image-ai-${idx}-${imgIdx}`,
+                                                      title: "AI generate image",
+                                                      icon: "🎨",
+                                                      onClick: () => void aiGenerateImageForSrc(img.src),
+                                                      disabled: busyImg,
+                                                    },
+                                                  ]}
+                                                />
+                                              </div>
+                                            );
+                                          })}
+                                        </div>
+                                      )}
+                                    </div>
+                                  );
+                                })}
+
+                                {pg.paragraphs.length === 0 && (
+                                  <div className="text-sm text-slate-500">No paragraphs in this section chunk.</div>
                                 )}
                               </div>
-                              <div className="flex gap-2">
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  className="flex-1"
-                                  onClick={() => uploadInputRefs.current[img.src]?.click()}
-                                  data-cta-id={`cta-bookstudio-para-image-upload-${i}-${imgIdx}`}
-                                  data-action="action"
-                                >
-                                  Upload
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  className="flex-1"
-                                  onClick={() => void aiGenerateImageForSrc(img.src)}
-                                  data-cta-id={`cta-bookstudio-para-image-ai-${i}-${imgIdx}`}
-                                  data-action="action"
-                                >
-                                  AI
-                                </Button>
-                              </div>
-                              {isMissing && (
-                                <div className="text-xs text-amber-600">Missing mapping — upload or AI-generate.</div>
-                              )}
                             </div>
-                          );
-                        })}
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            );
-          })}
-
-          {loading && <div className="text-sm text-muted-foreground">Loading…</div>}
-          {!loading && paragraphs.length === 0 && (
-            <div className="text-sm text-muted-foreground">No paragraphs found for this chapter.</div>
-          )}
+                    ))}
+                </div>
+              </div>
+            </div>
+          </main>
         </div>
       </div>
-    </PageContainer>
+    </div>
   );
 }
 
