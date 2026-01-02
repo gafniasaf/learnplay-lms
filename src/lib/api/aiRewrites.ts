@@ -43,15 +43,6 @@ function sanitize(text: string) {
   return String(text).replace(/\s+/g, ' ').replace(/\[blank\]/gi, '[blank]').trim();
 }
 
-function fallbackRewrite(req: RewriteTextRequest, reason: string): RewriteTextResponse {
-  return {
-    candidates: [{ text: sanitize(req.currentText), rationale: `Fallback used: ${reason}` }],
-    originalText: req.currentText,
-    segmentType: req.segmentType,
-    context: req.context,
-  };
-}
-
 export async function rewriteText(
   request: RewriteTextRequest
 ): Promise<RewriteTextResponse> {
@@ -68,8 +59,10 @@ export async function rewriteText(
   try {
     return await tryInvoke('ai-rewrite-text');
   } catch (e1: any) {
-    console.warn('[aiRewrites] primary failed; using local fallback:', e1?.status || '', e1?.message);
-    return fallbackRewrite(request, e1?.message || 'invoke error');
+    const status = typeof e1?.status === 'number' ? e1.status : undefined;
+    const msg = e1 instanceof Error ? e1.message : String(e1);
+    // IgniteZero: NO silent fallbacks. Fail loudly so missing deploy/secrets are visible.
+    throw new Error(`❌ BLOCKED: ai-rewrite-text failed${status ? ` (${status})` : ''}: ${msg}`);
   }
 }
 

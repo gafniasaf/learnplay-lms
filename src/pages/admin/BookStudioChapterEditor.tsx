@@ -956,17 +956,20 @@ export default function BookStudioChapterEditor() {
     async (paragraphId: string, basisHtml: string) => {
       setAiBusyIds((prev) => new Set(prev).add(paragraphId));
       try {
-        const current = (draftRewrites[paragraphId] || "").trim() ? draftRewrites[paragraphId] : sanitizeInlineBookHtml(basisHtml);
-        const currentText = stripHtml(current);
+        // ai-rewrite-text contract only supports { segmentType: stem|option|reference } and enum styleHints.
+        // For book paragraphs we use "reference" and pass instructions via context.userPrompt.
+        const currentHtml =
+          (draftRewrites[paragraphId] || "").trim() ? draftRewrites[paragraphId] : sanitizeInlineBookHtml(basisHtml);
 
         const result = await mcp.rewriteText({
-          segmentType: "book_paragraph",
-          currentText,
-          styleHints: [
-            "Rewrite as a clear, student-friendly paragraph for this book chapter.",
-            "Keep meaning. Do not add facts.",
-            "Output HTML suitable for inline book text. Use only <strong>, <em>, <sup>, <sub>, <span>, <br/>.",
-          ],
+          segmentType: "reference",
+          // Pass HTML so the Edge Function preserves HTML in the output (it explicitly supports this).
+          currentText: currentHtml,
+          styleHints: ["simplify", "more_casual"],
+          context: {
+            userPrompt:
+              "Rewrite this paragraph for an MBO student (N3 level). Keep meaning; do not add facts. Return inline HTML suitable for book text (no markdown). Allowed tags: <strong>, <em>, <sup>, <sub>, <span>, <br/>.",
+          },
           candidateCount: 1,
         });
         const next = result?.candidates?.[0]?.text;
