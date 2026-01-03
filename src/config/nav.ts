@@ -31,6 +31,7 @@ export const navSections: NavSection[] = [
     items: [
       // WYSIWYG Book Studio (admin)
       { id: "book-studio", label: "Book Studio", path: "/admin/book-studio", icon: "BookOpen", roles: ["admin"] },
+      { id: "book-studio-generate", label: "Generate Full Book", path: "/admin/book-studio/generate", icon: "Sparkles", roles: ["admin"] },
       {
         id: "book-missing-images",
         label: "Book missing images",
