@@ -284,6 +284,28 @@
       "prompt_template": "Enqueue a full book render job for a canonical book version. Return JSON {\"run_id\": string}."
     },
     {
+      "id": "book_generate_full",
+      "target_entity": "BookVersion",
+      "execution_mode": "async",
+      "ui": {
+        "label": "Generate Full Book (BookGen Pro)",
+        "icon": "WandSparkles",
+        "placement": "admin"
+      },
+      "prompt_template": "Generate a full book using a skeleton-first pipeline (no image generation). Return JSON {\"bookId\": string, \"bookVersionId\": string, \"chapterCount\": number}."
+    },
+    {
+      "id": "book_generate_chapter",
+      "target_entity": "BookVersion",
+      "execution_mode": "async",
+      "ui": {
+        "label": "Generate Book Chapter (BookGen Pro)",
+        "icon": "Sparkles",
+        "placement": "admin"
+      },
+      "prompt_template": "Generate content for a single chapter in a skeleton-first book pipeline (no image generation). Return JSON {\"bookId\": string, \"bookVersionId\": string, \"chapterIndex\": number}."
+    },
+    {
       "id": "draft_assignment_plan",
       "target_entity": "Assignment",
       "execution_mode": "synchronous",

@@ -38,6 +38,7 @@ const AIPipeline = React.lazy(() => import("./pages/admin/AIPipelineV2"));
 const CourseEditor = React.lazy(() => import("./pages/admin/CourseEditorV3"));
 const WysiwygExerciseEditor = React.lazy(() => import("./pages/admin/WysiwygExerciseEditor"));
 const BookStudioLibrary = React.lazy(() => import("./pages/admin/BookStudioLibrary"));
+const BookStudioGenerate = React.lazy(() => import("./pages/admin/BookStudioGenerate"));
 const BookStudioBookDetail = React.lazy(() => import("./pages/admin/BookStudioBookDetail"));
 const BookStudioChapterEditor = React.lazy(() => import("./pages/admin/BookStudioChapterEditor"));
 const BookStudioVersions = React.lazy(() => import("./pages/admin/BookStudioVersions"));
@@ -115,6 +116,7 @@ export const generatedRouteElements = [
   <Route key="gen-admin-pipeline" path="/admin/ai-pipeline" element={<AIPipeline />} />,
   <Route key="gen-admin-course-select" path="/admin/courses/select" element={<CourseSelector />} />,
   <Route key="gen-admin-book-studio" path="/admin/book-studio" element={<BookStudioLibrary />} />,
+  <Route key="gen-admin-book-studio-generate" path="/admin/book-studio/generate" element={<BookStudioGenerate />} />,
   <Route key="gen-admin-book-studio-book" path="/admin/book-studio/:bookId" element={<BookStudioBookDetail />} />,
   <Route
     key="gen-admin-book-studio-chapter"

@@ -29,6 +29,7 @@
  * @property {string|null|undefined} [caption]
  * @property {string|null|undefined} [figureNumber]
  * @property {string|null|undefined} [layoutHint]
+ * @property {string|null|undefined} [suggestedPrompt]
  *
  * @typedef {Object} SkeletonParagraphBlock
  * @property {'paragraph'} type

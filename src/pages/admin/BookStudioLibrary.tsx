@@ -160,6 +160,15 @@ export default function BookStudioLibrary() {
               Refresh
             </Button>
             <Button
+              variant="outline"
+              onClick={() => navigate("/admin/book-studio/generate")}
+              data-cta-id="cta-bookgen-generate-full-book"
+              data-action="navigate"
+              data-target="/admin/book-studio/generate"
+            >
+              Generate full book
+            </Button>
+            <Button
               onClick={() => navigate("/admin/books")}
               data-cta-id="cta-bookstudio-ingest-new"
               data-action="navigate"

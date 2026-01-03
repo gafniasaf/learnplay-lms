@@ -363,6 +363,18 @@ export const JobPayloadSchema = z.discriminatedUnion('jobType', [
   }),
 
   z.object({
+    jobType: z.literal('book_generate_full'),
+    learnerprofileId: z.string().uuid().optional(), 
+    payload: z.record(z.any()).optional().describe("Input for book_generate_full")
+  }),
+
+  z.object({
+    jobType: z.literal('book_generate_chapter'),
+    learnerprofileId: z.string().uuid().optional(), 
+    payload: z.record(z.any()).optional().describe("Input for book_generate_chapter")
+  }),
+
+  z.object({
     jobType: z.literal('draft_assignment_plan'),
     learnerprofileId: z.string().uuid().optional(), 
     payload: z.record(z.any()).optional().describe("Input for draft_assignment_plan")
@@ -1093,6 +1105,8 @@ export const JOB_MODES = {
   "book_ingest_version": "async",
   "book_render_chapter": "async",
   "book_render_full": "async",
+  "book_generate_full": "async",
+  "book_generate_chapter": "async",
   "draft_assignment_plan": "synchronous",
   "ai_course_generate": "async",
   "guard_course": "synchronous",

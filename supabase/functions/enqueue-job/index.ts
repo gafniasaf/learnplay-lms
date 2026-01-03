@@ -125,7 +125,18 @@ serve(async (req: Request): Promise<Response> => {
     const organizationId = requireOrganizationId(auth);
 
     // Supported job types: ai_course_generate uses ai_course_jobs; others use ai_agent_jobs.
-    const FACTORY_JOB_TYPES = ["lessonkit_build", "material_ingest", "material_analyze", "standards_ingest", "standards_map", "standards_export", "mes_corpus_index"];
+    const FACTORY_JOB_TYPES = [
+      "lessonkit_build",
+      "material_ingest",
+      "material_analyze",
+      "standards_ingest",
+      "standards_map",
+      "standards_export",
+      "mes_corpus_index",
+      // Book Studio / BookGen Pro (skeleton-first generation)
+      "book_generate_full",
+      "book_generate_chapter",
+    ];
     const isFactoryJob = FACTORY_JOB_TYPES.includes(body.jobType);
 
     if (body.jobType !== "ai_course_generate" && !isFactoryJob) {

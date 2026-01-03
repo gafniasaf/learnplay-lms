@@ -33,6 +33,11 @@ export type SkeletonImage = {
   caption?: string | null;
   figureNumber?: string | null;
   layoutHint?: string | null;
+  /**
+   * Optional LLM suggestion used later for AI image generation or manual briefing.
+   * This is authoring-only metadata and must NOT affect deterministic canonical compilation.
+   */
+  suggestedPrompt?: string | null;
 };
 
 export type SkeletonParagraphBlock = {
