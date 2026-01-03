@@ -217,6 +217,11 @@ type DraftBlock =
       }> | null;
     }
   | {
+      type: "subparagraph";
+      title: string;
+      blocks: DraftBlock[];
+    }
+  | {
       type: "list";
       ordered?: boolean | null;
       items: string[];
@@ -262,7 +267,7 @@ const PRINCE_PASS2_MBO_HOUSE_STYLE = [
   "- Keep titles short (micro-title vibe): 2-6 words, no punctuation at the end.",
   "- Do NOT include the labels 'In de praktijk:' or 'Verdieping:' in the text; the renderer adds them.",
   "- Praktijk text should read like a short workplace scenario in second person ('Je ...' / 'Bij een ...' / 'Een ...').",
-  "- Start praktijk/verdieping text with a strong 1–2 word lead phrase (so it can be highlighted). Avoid starting with 'In de'.",
+  "- For praktijk/verdieping: start with a lead phrase wrapped as <span class=\"box-lead\">LEAD</span>.",
 ].join("\n") + "\n";
 
 function buildSystem(opts: {
@@ -338,6 +343,11 @@ function buildPrompt(opts: {
     '      \"title\": string,\n' +
     '      \"blocks\": [\n' +
     "        {\n" +
+    '          \"type\": \"subparagraph\",\n' +
+    '          \"title\": string,\n' +
+    '          \"blocks\": [ /* paragraph | list | steps */ ]\n' +
+    "        } |\n" +
+    "        {\n" +
     '          \"type\": \"paragraph\",\n' +
     '          \"basisHtml\": string,\n' +
     '          \"praktijkHtml\"?: string,\n' +
@@ -369,14 +379,18 @@ function buildPrompt(opts: {
     "\nConstraints:\n" +
     "- Make 2-4 sections.\n" +
     "- Each section: 2-4 blocks.\n" +
+    "- Include microheadings using subparagraph blocks (type='subparagraph'). Aim for 1-2 subparagraphs per section.\n" +
+    "- subparagraph.title must be short (2-6 words) and have no punctuation at the end.\n" +
     "- Section titles should read like micro-titles (short noun phrase).\n" +
     "- Use the book language for chapterTitle, section titles, basisHtml, praktijkHtml, verdiepingHtml, alt, caption.\n" +
     `- suggestedPrompt MUST be written in ${imageLangLabel}.\n` +
     "- Include 1-2 image suggestions across the chapter via images[].suggestedPrompt.\n" +
     "- suggestedPrompt must be concise and specific (no camera brand names, no artist names).\n" +
     "- basisHtml: 2-5 short sentences. Define key terms. Prefer 'Dit heet...' / 'Dat betekent...'.\n" +
-    "- praktijkHtml: 2-4 short sentences. Workplace scenario, second person. Start with 'Je ...' or 'Bij een ...' or 'Een ...'. Avoid starting with 'In de'.\n" +
-    "- verdiepingHtml: OPTIONAL. If present, keep it simple and step-by-step. Start with a strong lead (e.g. '<strong>Term</strong> is ...').\n" +
+    "- praktijkHtml: 2-4 short sentences. Workplace scenario, second person.\n" +
+    "- praktijkHtml MUST start with: <span class=\"box-lead\">LEAD</span> ... (LEAD is 1-4 words).\n" +
+    "- verdiepingHtml: OPTIONAL. If present, keep it simple and step-by-step.\n" +
+    "- verdiepingHtml MUST start with: <span class=\"box-lead\">LEAD</span> ... (LEAD is 1-6 words).\n" +
     "- Do NOT include 'In de praktijk:' or 'Verdieping:' in the text.\n" +
     verdiepingGuidance
   );
@@ -394,26 +408,44 @@ function assignIdsAndImages(opts: {
   let imageCounter = 0;
   const sections = (Array.isArray(draft.sections) ? draft.sections : []).slice(0, 6).map((s, si) => {
     const blocksIn = Array.isArray((s as any)?.blocks) ? (s as any).blocks : [];
-    const blocks = blocksIn.slice(0, 20).map((b: any, bi: number) => {
+
+    const toImages = (imgsRaw: any[], blockKey: string): SkeletonImage[] | null => {
+      if (!imgsRaw.length) return null;
+      const safeKey = String(blockKey || "").replace(/[^a-z0-9_]+/gi, "_");
+      return imgsRaw.slice(0, 6).map((img: any, ii: number) => {
+        imageCounter += 1;
+        const src = `figures/${bookId}/ch${chNum}/img_${safeKey}_${ii + 1}.png`;
+        return {
+          src,
+          alt: typeof img?.alt === "string" ? img.alt : null,
+          caption: typeof img?.caption === "string" ? img.caption : null,
+          figureNumber: `${chNum}.${imageCounter}`,
+          layoutHint: typeof img?.layoutHint === "string" ? img.layoutHint : null,
+          suggestedPrompt: typeof img?.suggestedPrompt === "string" ? img.suggestedPrompt : null,
+        };
+      });
+    };
+
+    const convertBlock = (b: any, keyParts: number[]): any => {
       const t = typeof b?.type === "string" ? b.type : "";
-      const blockId = `ch-${chNum}-b-${si + 1}-${bi + 1}`;
+      const key = keyParts.join("_"); // stable key for ids + image filenames
+      const blockId = `ch-${chNum}-b-${key}`;
+
+      if (t === "subparagraph") {
+        const title = typeof b?.title === "string" ? b.title.trim() : "";
+        const innerIn = Array.isArray(b?.blocks) ? b.blocks : [];
+        const innerBlocks = innerIn.slice(0, 20).map((ib: any, ii: number) => convertBlock(ib, keyParts.concat([ii + 1])));
+        return {
+          type: "subparagraph",
+          id: `ch-${chNum}-sub-${key}`,
+          title,
+          blocks: innerBlocks,
+        };
+      }
+
       if (t === "paragraph") {
         const imgsRaw = Array.isArray(b.images) ? b.images : [];
-        const images: SkeletonImage[] | null =
-          imgsRaw.length
-            ? imgsRaw.slice(0, 6).map((img: any, ii: number) => {
-                imageCounter += 1;
-                const src = `figures/${bookId}/ch${chNum}/img_${si + 1}_${bi + 1}_${ii + 1}.png`;
-                return {
-                  src,
-                  alt: typeof img?.alt === "string" ? img.alt : null,
-                  caption: typeof img?.caption === "string" ? img.caption : null,
-                  figureNumber: `${chNum}.${imageCounter}`,
-                  layoutHint: typeof img?.layoutHint === "string" ? img.layoutHint : null,
-                  suggestedPrompt: typeof img?.suggestedPrompt === "string" ? img.suggestedPrompt : null,
-                };
-              })
-            : null;
+        const images = toImages(imgsRaw, key);
         return {
           type: "paragraph",
           id: blockId,
@@ -423,23 +455,10 @@ function assignIdsAndImages(opts: {
           ...(images ? { images } : {}),
         };
       }
+
       if (t === "list") {
         const imgsRaw = Array.isArray(b.images) ? b.images : [];
-        const images: SkeletonImage[] | null =
-          imgsRaw.length
-            ? imgsRaw.slice(0, 6).map((img: any, ii: number) => {
-                imageCounter += 1;
-                const src = `figures/${bookId}/ch${chNum}/img_${si + 1}_${bi + 1}_${ii + 1}.png`;
-                return {
-                  src,
-                  alt: typeof img?.alt === "string" ? img.alt : null,
-                  caption: typeof img?.caption === "string" ? img.caption : null,
-                  figureNumber: `${chNum}.${imageCounter}`,
-                  layoutHint: typeof img?.layoutHint === "string" ? img.layoutHint : null,
-                  suggestedPrompt: typeof img?.suggestedPrompt === "string" ? img.suggestedPrompt : null,
-                };
-              })
-            : null;
+        const images = toImages(imgsRaw, key);
         return {
           type: "list",
           id: blockId,
@@ -448,23 +467,10 @@ function assignIdsAndImages(opts: {
           ...(images ? { images } : {}),
         };
       }
+
       if (t === "steps") {
         const imgsRaw = Array.isArray(b.images) ? b.images : [];
-        const images: SkeletonImage[] | null =
-          imgsRaw.length
-            ? imgsRaw.slice(0, 6).map((img: any, ii: number) => {
-                imageCounter += 1;
-                const src = `figures/${bookId}/ch${chNum}/img_${si + 1}_${bi + 1}_${ii + 1}.png`;
-                return {
-                  src,
-                  alt: typeof img?.alt === "string" ? img.alt : null,
-                  caption: typeof img?.caption === "string" ? img.caption : null,
-                  figureNumber: `${chNum}.${imageCounter}`,
-                  layoutHint: typeof img?.layoutHint === "string" ? img.layoutHint : null,
-                  suggestedPrompt: typeof img?.suggestedPrompt === "string" ? img.suggestedPrompt : null,
-                };
-              })
-            : null;
+        const images = toImages(imgsRaw, key);
         return {
           type: "steps",
           id: blockId,
@@ -472,13 +478,16 @@ function assignIdsAndImages(opts: {
           ...(images ? { images } : {}),
         };
       }
+
       // Unknown block: coerce to paragraph
       return {
         type: "paragraph",
         id: blockId,
         basisHtml: normalizeInlineHtml((b as any)?.basisHtml ?? ""),
       };
-    });
+    };
+
+    const blocks = blocksIn.slice(0, 20).map((b: any, bi: number) => convertBlock(b, [si + 1, bi + 1]));
 
     return {
       id: `ch-${chNum}-s-${si + 1}`,
