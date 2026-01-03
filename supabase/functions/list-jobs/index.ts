@@ -27,6 +27,11 @@ function isUuid(v: string): boolean {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(v);
 }
 
+function isTestArtifactId(v: unknown): boolean {
+  const s = typeof v === "string" ? v.trim().toLowerCase() : "";
+  return s.startsWith("e2e-") || s.startsWith("it-");
+}
+
 serve(async (req: Request): Promise<Response> => {
   if (req.method === "OPTIONS") {
     return handleOptions(req, "list-jobs");
@@ -123,7 +128,16 @@ serve(async (req: Request): Promise<Response> => {
     });
   }
 
-  return new Response(JSON.stringify({ ok: true, jobs: jobs ?? [] }), {
+  // Hide test artifacts from admin lists (E2E/integration job payloads use prefixed ids).
+  const filtered =
+    (jobs ?? []).filter((j: any) => {
+      const payload = j?.payload && typeof j.payload === "object" ? j.payload : {};
+      const bookId = (payload as any).bookId;
+      const courseId = (payload as any).course_id ?? (payload as any).courseId;
+      return !isTestArtifactId(bookId) && !isTestArtifactId(courseId);
+    });
+
+  return new Response(JSON.stringify({ ok: true, jobs: filtered }), {
     status: 200,
     headers: stdHeaders(req, { "Content-Type": "application/json" }),
   });

@@ -65,6 +65,9 @@ serve(async (req: Request): Promise<Response> => {
         .from("books")
         .select("*", { count: "exact" })
         .eq("organization_id", orgId)
+        // Hide test artifacts from admin menus (E2E / integration runs should not pollute real UX).
+        .not("id", "ilike", "e2e-%")
+        .not("id", "ilike", "it-%")
         .order("updated_at", { ascending: false })
         .range(offset, offset + limit - 1);
 

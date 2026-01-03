@@ -11,6 +11,11 @@ if (!SUPABASE_URL || !SERVICE_ROLE_KEY) {
 
 const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
 
+function isTestArtifactId(v: unknown): boolean {
+  const s = typeof v === "string" ? v.trim().toLowerCase() : "";
+  return s.startsWith("e2e-") || s.startsWith("it-");
+}
+
 serve(async (req: Request): Promise<Response> => {
   const requestId = crypto.randomUUID();
   
@@ -30,13 +35,21 @@ serve(async (req: Request): Promise<Response> => {
     const sinceHours = Number(url.searchParams.get("sinceHours") || "24");
     const sinceIso = new Date(Date.now() - sinceHours * 3600_000).toISOString();
 
-    // Get status counts for course jobs
-    const { data: courseJobs, error: courseError } = await supabase
+    // Get status counts for course jobs (excluding test artifacts so admin dashboards reflect real usage)
+    const { data: courseJobsRaw, error: courseError } = await supabase
       .from("ai_course_jobs")
-      .select("status, processing_duration_ms")
+      .select("status, processing_duration_ms, course_id, subject")
       .gte("created_at", sinceIso);
 
     if (courseError) throw courseError;
+
+    const courseJobs = (courseJobsRaw || []).filter((job: any) => {
+      const courseId = job?.course_id;
+      const subject = typeof job?.subject === "string" ? job.subject.trim() : "";
+      if (isTestArtifactId(courseId)) return false;
+      if (subject === "Verify Live Smoke Test") return false;
+      return true;
+    });
 
     // Aggregate by status
     const statusCounts: Record<string, number> = {};
@@ -59,10 +72,12 @@ serve(async (req: Request): Promise<Response> => {
     // Try to get media job counts too
     let mediaStatusCounts: Record<string, number> = {};
     try {
-      const { data: mediaJobs } = await supabase
+      const { data: mediaJobsRaw } = await supabase
         .from("ai_media_jobs")
-        .select("status")
+        .select("status, course_id")
         .gte("created_at", sinceIso);
+
+      const mediaJobs = (mediaJobsRaw || []).filter((job: any) => !isTestArtifactId(job?.course_id));
 
       (mediaJobs || []).forEach((job: any) => {
         mediaStatusCounts[job.status] = (mediaStatusCounts[job.status] || 0) + 1;

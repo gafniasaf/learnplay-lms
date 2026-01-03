@@ -87,6 +87,13 @@ serve(async (req: Request): Promise<Response> => {
           .from("ai_course_jobs")
           .select("*", { count: "exact" });
 
+        // Hide test artifacts from admin job listings (keep real UX clean).
+        // E2E courses are consistently prefixed; verify-live uses a fixed subject.
+        query = query
+          .not("course_id", "ilike", "e2e-%")
+          .not("course_id", "ilike", "it-%")
+          .neq("subject", "Verify Live Smoke Test");
+
         // Filter by status
         if (status) {
           query = query.eq("status", status);
