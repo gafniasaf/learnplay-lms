@@ -66,8 +66,10 @@ export function sanitizeInlineBookHtml(raw) {
   html = html.replace(/<\s*img\b[^>]*>/gi, ""); // images must be explicit figure blocks, not inline text
 
   // Allow only <span class="box-lead"> for lead phrases; strip any other span attrs.
-  html = html.replace(/<\s*span\b[^>]*class=\"[^\"]*box-lead[^\"]*\"[^>]*>/gi, '<span class="box-lead">');
-  html = html.replace(/<\s*span\b[^>]*>/gi, "<span>");
+  // IMPORTANT: preserve the `box-lead` class so the Prince PASS2 boxes can style the lead phrase.
+  // We intentionally match `box-lead` anywhere in the tag to tolerate different quoting styles.
+  html = html.replace(/<\s*span\b[^>]*box-lead[^>]*>/gi, '<span class="box-lead">');
+  html = html.replace(/<\s*span\b(?![^>]*box-lead)[^>]*>/gi, "<span>");
 
   // Allow only a small set of inline tags, and strip attributes from them.
   // IMPORTANT: do NOT include `span` here; we already normalized spans above and we must preserve
