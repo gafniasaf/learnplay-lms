@@ -70,7 +70,9 @@ export function sanitizeInlineBookHtml(raw) {
   html = html.replace(/<\s*span\b[^>]*>/gi, "<span>");
 
   // Allow only a small set of inline tags, and strip attributes from them.
-  html = html.replace(/<\s*(strong|em|b|i|sup|sub|span)\b[^>]*>/gi, "<$1>");
+  // IMPORTANT: do NOT include `span` here; we already normalized spans above and we must preserve
+  // `<span class="box-lead">` for Prince PASS2-style praktijk/verdieping lead phrases.
+  html = html.replace(/<\s*(strong|em|b|i|sup|sub)\b[^>]*>/gi, "<$1>");
   html = html.replace(/<\s*\/\s*(strong|em|b|i|sup|sub|span)\s*>/gi, "</$1>");
   html = html.replace(/<\s*br\b[^>]*\/?>/gi, "<br/>");
 
