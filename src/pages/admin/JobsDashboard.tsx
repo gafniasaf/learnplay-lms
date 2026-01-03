@@ -176,6 +176,28 @@ export default function JobsDashboard() {
     }
   };
 
+  const runAgentWorker = async () => {
+    const q = filterText.trim();
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(q);
+
+    try {
+      // If the filter looks like a job UUID, target that job explicitly.
+      const qs = isUuid ? `&jobId=${encodeURIComponent(q)}` : "";
+      await mcp.call(
+        `ai-job-runner?worker=1&queue=agent${qs}`,
+        isUuid ? { worker: true, queue: "agent", jobId: q } : { worker: true, queue: "agent" },
+      );
+      toast({ title: isUuid ? "Agent job processed" : "Agent worker kicked" });
+      await loadJobs();
+    } catch (error) {
+      toast({
+        title: "Agent worker failed",
+        description: error instanceof Error ? error.message : "Error",
+        variant: "destructive",
+      });
+    }
+  };
+
   useEffect(() => {
     loadJobs();
   }, [loadJobs]);
@@ -482,6 +504,9 @@ export default function JobsDashboard() {
           <Button variant="outline" size="sm" onClick={runBatchRunner} data-cta-id="run-batch">
             Run Batch
           </Button>
+          <Button variant="outline" size="sm" onClick={runAgentWorker} data-cta-id="run-agent-worker">
+            Run Agent Worker
+          </Button>
           <Button variant="outline" size="sm" onClick={runReconciler} data-cta-id="run-reconciler">
             Run Reconciler
           </Button>
@@ -496,7 +521,7 @@ export default function JobsDashboard() {
       <Card>
         <CardHeader>
           <CardTitle>Filters</CardTitle>
-          <CardDescription>Search by job id or subject; filter by status and timeframe</CardDescription>
+          <CardDescription>Search by job id / job type (agent) or job id / subject (course); filter by status and timeframe</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex flex-wrap items-end gap-3">
@@ -505,7 +530,7 @@ export default function JobsDashboard() {
               <input
                 value={filterText}
                 onChange={(e) => setFilterText(e.target.value)}
-                placeholder="job id or subject"
+                placeholder="job id, job type, or subject"
                 className="border rounded px-2 py-1 text-sm w-64"
               />
             </div>
