@@ -46,10 +46,17 @@ serve(async (req: Request): Promise<Response> => {
     const url = new URL(req.url);
     const jobIdParam = url.searchParams.get("jobId") || undefined;
     const mediaNRaw = url.searchParams.get("mediaN") || url.searchParams.get("media_n") || undefined;
+    const agentNRaw = url.searchParams.get("agentN") || url.searchParams.get("agent_n") || undefined;
+    const agentJobIdParam = url.searchParams.get("agentJobId") || url.searchParams.get("agent_job_id") || undefined;
     const mediaN = (() => {
       const n = mediaNRaw ? Number(mediaNRaw) : 3;
       if (!Number.isFinite(n)) return 3;
       return Math.min(Math.max(Math.floor(n), 0), 25);
+    })();
+    const agentN = (() => {
+      const n = agentNRaw ? Number(agentNRaw) : 1;
+      if (!Number.isFinite(n)) return 1;
+      return Math.min(Math.max(Math.floor(n), 0), 10);
     })();
 
     const runMediaRunner = async () => {
@@ -66,6 +73,45 @@ serve(async (req: Request): Promise<Response> => {
         const msg = e instanceof Error ? e.message : String(e);
         return { ok: false, status: 0, error: msg };
       }
+    };
+
+    const runAgentRunner = async () => {
+      if (agentN <= 0) return null;
+
+      const results: any[] = [];
+      const targetId = typeof agentJobIdParam === "string" ? agentJobIdParam.trim() : "";
+      const runs = targetId ? 1 : agentN;
+
+      for (let i = 0; i < runs; i++) {
+        try {
+          const runnerUrl = `${SUPABASE_URL}/functions/v1/ai-job-runner?worker=1&queue=agent${
+            targetId ? `&jobId=${encodeURIComponent(targetId)}` : ""
+          }`;
+          const runnerResp = await fetch(runnerUrl, {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${SERVICE_ROLE_KEY}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(
+              targetId
+                ? { worker: true, queue: "agent", jobId: targetId }
+                : { worker: true, queue: "agent" },
+            ),
+          });
+          const runnerJson = await runnerResp.json().catch(() => null);
+          results.push({ ok: runnerResp.ok, status: runnerResp.status, body: runnerJson });
+
+          const processed = !!(runnerJson && typeof runnerJson === "object" && (runnerJson as any).processed === true);
+          if (!processed) break;
+        } catch (e) {
+          const msg = e instanceof Error ? e.message : String(e);
+          results.push({ ok: false, status: 0, error: msg });
+          break;
+        }
+      }
+
+      return { ok: true, attempted: runs, results };
     };
 
     // Fetch pending jobs (limit to 5 to prevent timeout)
@@ -86,102 +132,96 @@ serve(async (req: Request): Promise<Response> => {
       throw new Error(`Failed to fetch pending jobs: ${fetchError.message}`);
     }
 
-    if (!pendingJobs || pendingJobs.length === 0) {
-      const media = await runMediaRunner();
-      return new Response(JSON.stringify({ 
-        ok: true, 
-        message: "No pending jobs",
-        processed: 0,
-        media
-      }), {
-        status: 200,
-        headers: stdHeaders(req, { "Content-Type": "application/json" })
-      });
-    }
+    const courseResults: any[] = [];
 
-    console.log(`[process-pending-jobs] Processing ${pendingJobs.length} pending jobs`);
+    if (pendingJobs && pendingJobs.length > 0) {
+      console.log(`[process-pending-jobs] Processing ${pendingJobs.length} pending course job(s)`);
 
-    const results = [];
+      for (const job of pendingJobs) {
+        const jobId = job.id;
+        console.log(`[process-pending-jobs] Processing course job ${jobId}: generate-course`);
 
-    for (const job of pendingJobs) {
-      const jobId = job.id;
-      console.log(`[process-pending-jobs] Processing job ${jobId}: generate-course`);
-
-      // Mark as processing
-      await adminSupabase
-        .from("ai_course_jobs")
-        .update({ status: "processing", started_at: new Date().toISOString() })
-        .eq("id", jobId);
-
-      try {
-        // IMPORTANT:
-        // The ONLY supported course generation path is the `generate-course` Edge Function,
-        // because it persists `courses/<course_id>/course.json` AND upserts `course_metadata`.
-        // The auto-generated ai-job-runner strategy is NOT authoritative for persistence.
-        const genUrl = `${SUPABASE_URL}/functions/v1/generate-course?jobId=${encodeURIComponent(jobId)}`;
-        const genResp = await fetch(genUrl, {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${SERVICE_ROLE_KEY}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            subject: job.subject,
-            gradeBand: job.grade_band,
-            grade: job.grade,
-            itemsPerGroup: job.items_per_group,
-            levelsCount: (job as any).levels_count || undefined,
-            mode: job.mode,
-          }),
-        });
-
-        const genJson = await genResp.json().catch(() => null);
-
-        // Lovable-safe semantics: generate-course may return 200 with { success:false } on failures.
-        if (!genResp.ok || genJson?.success === false) {
-          const msg = genJson?.error?.message || genJson?.error || `generate-course failed (${genResp.status})`;
-          await adminSupabase
-            .from("ai_course_jobs")
-            .update({ status: "failed", error: msg, completed_at: new Date().toISOString() })
-            .eq("id", jobId);
-          results.push({ jobId, status: "failed", error: msg });
-          continue;
-        }
-
-        // Ensure job row reflects completion and includes a canonical result_path for debuggability.
-        const courseId = String(job.course_id || "");
-        const resultPath =
-          typeof genJson?.result_path === "string"
-            ? genJson.result_path
-            : (courseId ? `${courseId}/course.json` : null);
-
-        const update: Record<string, unknown> = {
-          status: "done",
-          completed_at: new Date().toISOString(),
-        };
-        if (resultPath) update.result_path = resultPath;
-
-        await adminSupabase.from("ai_course_jobs").update(update).eq("id", jobId);
-
-        results.push({ jobId, status: "done", courseId: job.course_id, resultPath });
-      } catch (error) {
-        const message = error instanceof Error ? error.message : String(error);
-        
+        // Mark as processing
         await adminSupabase
           .from("ai_course_jobs")
-          .update({ status: "failed", error: message, completed_at: new Date().toISOString() })
+          .update({ status: "processing", started_at: new Date().toISOString() })
           .eq("id", jobId);
 
-        results.push({ jobId, status: "failed", error: message });
+        try {
+          // IMPORTANT:
+          // The ONLY supported course generation path is the `generate-course` Edge Function,
+          // because it persists `courses/<course_id>/course.json` AND upserts `course_metadata`.
+          // The auto-generated ai-job-runner strategy is NOT authoritative for persistence.
+          const genUrl = `${SUPABASE_URL}/functions/v1/generate-course?jobId=${encodeURIComponent(jobId)}`;
+          const genResp = await fetch(genUrl, {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${SERVICE_ROLE_KEY}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              subject: job.subject,
+              gradeBand: job.grade_band,
+              grade: job.grade,
+              itemsPerGroup: job.items_per_group,
+              levelsCount: (job as any).levels_count || undefined,
+              mode: job.mode,
+            }),
+          });
+
+          const genJson = await genResp.json().catch(() => null);
+
+          // Lovable-safe semantics: generate-course may return 200 with { success:false } on failures.
+          if (!genResp.ok || genJson?.success === false) {
+            const msg = genJson?.error?.message || genJson?.error || `generate-course failed (${genResp.status})`;
+            await adminSupabase
+              .from("ai_course_jobs")
+              .update({ status: "failed", error: msg, completed_at: new Date().toISOString() })
+              .eq("id", jobId);
+            courseResults.push({ jobId, status: "failed", error: msg });
+            continue;
+          }
+
+          // Ensure job row reflects completion and includes a canonical result_path for debuggability.
+          const courseId = String(job.course_id || "");
+          const resultPath =
+            typeof genJson?.result_path === "string"
+              ? genJson.result_path
+              : (courseId ? `${courseId}/course.json` : null);
+
+          const update: Record<string, unknown> = {
+            status: "done",
+            completed_at: new Date().toISOString(),
+          };
+          if (resultPath) update.result_path = resultPath;
+
+          await adminSupabase.from("ai_course_jobs").update(update).eq("id", jobId);
+
+          courseResults.push({ jobId, status: "done", courseId: job.course_id, resultPath });
+        } catch (error) {
+          const message = error instanceof Error ? error.message : String(error);
+
+          await adminSupabase
+            .from("ai_course_jobs")
+            .update({ status: "failed", error: message, completed_at: new Date().toISOString() })
+            .eq("id", jobId);
+
+          courseResults.push({ jobId, status: "failed", error: message });
+        }
       }
     }
 
+    // Always attempt agent job processing as well (so factory jobs auto-run like course jobs).
+    const agent = await runAgentRunner();
     const media = await runMediaRunner();
-    return new Response(JSON.stringify({ 
-      ok: true, 
-      processed: results.length,
-      results,
-      media
+
+    return new Response(JSON.stringify({
+      ok: true,
+      message: (!pendingJobs || pendingJobs.length === 0) ? "No pending course jobs" : undefined,
+      processed: courseResults.length,
+      results: courseResults,
+      agent,
+      media,
     }), {
       status: 200,
       headers: stdHeaders(req, { "Content-Type": "application/json" })
