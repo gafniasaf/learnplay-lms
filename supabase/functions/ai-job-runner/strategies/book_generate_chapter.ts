@@ -195,6 +195,34 @@ function normalizeInlineHtml(raw: unknown): string {
   return s;
 }
 
+function ensureBoxLeadSpan(raw: unknown, opts: { maxWords: number }): string | null {
+  const s0 = typeof raw === "string" ? raw.trim() : "";
+  if (!s0) return null;
+
+  // Already has a lead span up front
+  if (/^<\s*span\b[^>]*class\s*=\s*\"[^\"]*box-lead[^\"]*\"/i.test(s0)) return s0;
+  if (/^<\s*span\b[^>]*class\s*=\s*'[^']*box-lead[^']*'/i.test(s0)) return s0;
+
+  // Common legacy lead style: <strong>Lead:</strong> Rest...
+  const mStrong = s0.match(/^<\s*strong\s*>\s*([^<]{1,120}?)\s*:?\s*<\s*\/\s*strong\s*>\s*(.*)$/i);
+  if (mStrong) {
+    const lead = String(mStrong[1] || "").trim();
+    const rest = String(mStrong[2] || "").trim();
+    if (!lead) return s0;
+    return `<span class="box-lead">${lead}</span>${rest ? ` ${rest}` : ""}`;
+  }
+
+  // If the string starts with a tag we don't understand, avoid corrupting HTML.
+  if (s0.startsWith("<")) return s0;
+
+  const words = s0.split(/\s+/).map((w) => w.trim()).filter(Boolean);
+  if (words.length === 0) return null;
+  const n = Math.max(1, Math.min(Math.floor(opts.maxWords || 2), words.length));
+  const lead = words.slice(0, n).join(" ");
+  const rest = words.slice(n).join(" ");
+  return `<span class="box-lead">${lead}</span>${rest ? ` ${rest}` : ""}`;
+}
+
 function safeItems(raw: unknown): string[] {
   if (!Array.isArray(raw)) return [];
   return raw
@@ -446,12 +474,14 @@ function assignIdsAndImages(opts: {
       if (t === "paragraph") {
         const imgsRaw = Array.isArray(b.images) ? b.images : [];
         const images = toImages(imgsRaw, key);
+        const praktijkHtml = typeof b.praktijkHtml === "string" ? ensureBoxLeadSpan(normalizeInlineHtml(b.praktijkHtml), { maxWords: 3 }) : null;
+        const verdiepingHtml = typeof b.verdiepingHtml === "string" ? ensureBoxLeadSpan(normalizeInlineHtml(b.verdiepingHtml), { maxWords: 5 }) : null;
         return {
           type: "paragraph",
           id: blockId,
           basisHtml: normalizeInlineHtml(b.basisHtml),
-          ...(typeof b.praktijkHtml === "string" ? { praktijkHtml: normalizeInlineHtml(b.praktijkHtml) } : {}),
-          ...(typeof b.verdiepingHtml === "string" ? { verdiepingHtml: normalizeInlineHtml(b.verdiepingHtml) } : {}),
+          ...(praktijkHtml ? { praktijkHtml } : {}),
+          ...(verdiepingHtml ? { verdiepingHtml } : {}),
           ...(images ? { images } : {}),
         };
       }
