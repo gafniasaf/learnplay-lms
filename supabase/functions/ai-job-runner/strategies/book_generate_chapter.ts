@@ -247,6 +247,24 @@ type DraftChapter = {
   openerImage?: { suggestedPrompt?: string | null } | null;
 };
 
+// House style reference:
+// `canonical_book_PASS2.assembled_prince.html` (Prince pass2) demonstrates the target voice/structure:
+// - short sentences
+// - clear definitions with "Dit heet..." / "Dat betekent..."
+// - bold key terms on first mention
+// - praktijk/verdieping are boxed and start with a short "lead" phrase (first 1-2 words)
+const PRINCE_PASS2_MBO_HOUSE_STYLE = [
+  "House style (match canonical_book_PASS2 Prince PASS2):",
+  "- Use short, clear sentences and active voice.",
+  "- Prefer: 'X is ...', 'Dit heet ...', 'Dat betekent ...'.",
+  "- Bold new key terms on first mention with <strong>.",
+  "- Use 1 simple analogy when helpful (e.g. 'een beetje zoals ...').",
+  "- Keep titles short (micro-title vibe): 2-6 words, no punctuation at the end.",
+  "- Do NOT include the labels 'In de praktijk:' or 'Verdieping:' in the text; the renderer adds them.",
+  "- Praktijk text should read like a short workplace scenario in second person ('Je ...' / 'Bij een ...' / 'Een ...').",
+  "- Start praktijk/verdieping text with a strong 1–2 word lead phrase (so it can be highlighted). Avoid starting with 'In de'.",
+].join("\n") + "\n";
+
 function buildSystem(opts: {
   language: string;
   level: "n3" | "n4";
@@ -277,6 +295,7 @@ function buildSystem(opts: {
     "Do NOT use any <<MARKER>> tokens at all.\n" +
     "Write for MBO students: clear, concrete, and example-driven.\n" +
     "Use short sentences. Define terms the first time you use them.\n" +
+    PRINCE_PASS2_MBO_HOUSE_STYLE +
     depthGuidance +
     "Output MUST be valid JSON ONLY (no markdown).\n" +
     `Book language: ${language} (${langLabel})\n` +
@@ -350,11 +369,15 @@ function buildPrompt(opts: {
     "\nConstraints:\n" +
     "- Make 2-4 sections.\n" +
     "- Each section: 2-4 blocks.\n" +
+    "- Section titles should read like micro-titles (short noun phrase).\n" +
     "- Use the book language for chapterTitle, section titles, basisHtml, praktijkHtml, verdiepingHtml, alt, caption.\n" +
     `- suggestedPrompt MUST be written in ${imageLangLabel}.\n` +
     "- Include 1-2 image suggestions across the chapter via images[].suggestedPrompt.\n" +
     "- suggestedPrompt must be concise and specific (no camera brand names, no artist names).\n" +
-    "- praktijkHtml should be concrete and MBO-relevant (workplace or daily-life example).\n" +
+    "- basisHtml: 2-5 short sentences. Define key terms. Prefer 'Dit heet...' / 'Dat betekent...'.\n" +
+    "- praktijkHtml: 2-4 short sentences. Workplace scenario, second person. Start with 'Je ...' or 'Bij een ...' or 'Een ...'. Avoid starting with 'In de'.\n" +
+    "- verdiepingHtml: OPTIONAL. If present, keep it simple and step-by-step. Start with a strong lead (e.g. '<strong>Term</strong> is ...').\n" +
+    "- Do NOT include 'In de praktijk:' or 'Verdieping:' in the text.\n" +
     verdiepingGuidance
   );
 }
