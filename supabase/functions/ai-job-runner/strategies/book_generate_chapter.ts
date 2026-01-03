@@ -212,6 +212,15 @@ function ensureBoxLeadSpan(raw: unknown, opts: { maxWords: number }): string | n
     return `<span class="box-lead">${lead}</span>${rest ? ` ${rest}` : ""}`;
   }
 
+  // Other inline-lead patterns: <span>Lead:</span> Rest... (or <em>/<b>/<i>)
+  const mTag = s0.match(/^<\s*(span|em|b|i)\b[^>]*>\s*([^<]{1,120}?)\s*:?\s*<\s*\/\s*\1\s*>\s*(.*)$/i);
+  if (mTag) {
+    const lead = String(mTag[2] || "").trim();
+    const rest = String(mTag[3] || "").trim();
+    if (!lead) return s0;
+    return `<span class="box-lead">${lead}</span>${rest ? ` ${rest}` : ""}`;
+  }
+
   // If the string starts with a tag we don't understand, avoid corrupting HTML.
   if (s0.startsWith("<")) return s0;
 
