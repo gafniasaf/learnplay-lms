@@ -22,6 +22,11 @@ function safeNumber(v: unknown): number | null {
   return n;
 }
 
+function isUuid(v: string): boolean {
+  // v1–v5 UUID format (case-insensitive)
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(v);
+}
+
 serve(async (req: Request): Promise<Response> => {
   if (req.method === "OPTIONS") {
     return handleOptions(req, "list-jobs");
@@ -100,7 +105,13 @@ serve(async (req: Request): Promise<Response> => {
     q = q.gte("created_at", new Date(sinceMs).toISOString());
   }
   if (searchToken) {
-    q = q.or(`id.ilike.*${searchToken}*,job_type.ilike.*${searchToken}*`);
+    // ai_agent_jobs.id is UUID (no ilike support). If the search token looks like a UUID, do exact match.
+    // Otherwise, search job_type only (text).
+    if (isUuid(searchToken)) {
+      q = q.eq("id", searchToken);
+    } else {
+      q = q.ilike("job_type", `%${searchToken}%`);
+    }
   }
 
   const { data: jobs, error } = await q.order("created_at", { ascending: false }).limit(limit);
