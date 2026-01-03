@@ -205,19 +205,27 @@ async function enqueueJob(params: any) {
 
 async function listJobs(params: any) {
   const limit = Math.min(100, Math.max(1, Number(params?.limit || 20)));
-  try {
-    return await supabaseFetch(`list-jobs?limit=${limit}`, { 
-      method: "GET",
-      headers: { "X-Agent-Token": config.agentToken, "X-Organization-Id": requireOrganizationId() },
-    });
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    if (message.includes("Requested function was not found")) {
-      console.warn("[MCP] list-jobs function missing in Supabase project – returning empty list");
-      return { jobs: [] };
-    }
-    throw error;
+  const status = typeof params?.status === "string" ? params.status.trim() : "";
+  const search = typeof params?.search === "string" ? params.search.trim() : "";
+  const jobType = typeof params?.jobType === "string" ? params.jobType.trim() : "";
+  const sinceHours = Number.isFinite(Number(params?.sinceHours)) ? Number(params.sinceHours) : null;
+
+  const sp = new URLSearchParams();
+  sp.set("limit", String(limit));
+  if (status) sp.set("status", status);
+  if (search) sp.set("search", search);
+  if (jobType) sp.set("jobType", jobType);
+  if (sinceHours && sinceHours > 0) sp.set("sinceHours", String(sinceHours));
+
+  const path = `list-jobs?${sp.toString()}`;
+  const resp = await supabaseFetch(path, {
+    method: "GET",
+    headers: { "X-Agent-Token": config.agentToken, "X-Organization-Id": requireOrganizationId() },
+  });
+  if (!resp.ok) {
+    throw new Error(`listJobs failed (${resp.status}) ${resp.text || ""}`);
   }
+  return resp.json;
 }
 
 async function getJob(params: any) {

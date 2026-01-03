@@ -267,7 +267,24 @@ serve(async (req: Request): Promise<Response> => {
     }
     try {
       // Heartbeat (best-effort)
-      try { await admin.rpc("update_job_heartbeat", { job_id: jobId, job_table: "ai_agent_jobs" }); } catch {}
+      // Keep last_heartbeat fresh for long-running jobs so the reconciler can detect truly stalled jobs.
+      const heartbeatIntervalMs = 30_000;
+      let heartbeatTimer: number | null = null;
+      const heartbeatOnce = async () => {
+        try {
+          await admin.rpc("update_job_heartbeat", { job_id: jobId, job_table: "ai_agent_jobs" });
+        } catch {
+          // best-effort
+        }
+      };
+      await heartbeatOnce();
+      try {
+        heartbeatTimer = setInterval(() => {
+          void heartbeatOnce();
+        }, heartbeatIntervalMs) as unknown as number;
+      } catch {
+        heartbeatTimer = null;
+      }
 
       if (!jobType) {
         throw new Error("Invalid job: missing job_type");
@@ -280,7 +297,18 @@ serve(async (req: Request): Promise<Response> => {
         ...(payload as Record<string, unknown>),
         organization_id: jobOrgId,
       };
-      const result = await runJob(jobType, mergedPayload, jobId);
+      let result: unknown;
+      try {
+        result = await runJob(jobType, mergedPayload, jobId);
+      } finally {
+        if (heartbeatTimer) {
+          try {
+            clearInterval(heartbeatTimer);
+          } catch {
+            // best-effort
+          }
+        }
+      }
 
       try {
         await admin

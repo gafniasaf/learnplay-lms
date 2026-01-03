@@ -27,6 +27,88 @@ export async function verifySystem() {
   }
   console.log("✅ Contracts Present");
 
+  // 2.5) Job wiring audit (Manifest ↔ Contracts ↔ Registry ↔ enqueue-job allowlist)
+  // Blocking: prevent new job types from shipping without being runnable/queueable.
+  console.log("🧩 Verifying job wiring (manifest ↔ contracts ↔ registry ↔ enqueue-job)...");
+  const manifestRaw = fs.readFileSync("./system-manifest.json", "utf-8");
+  let manifest: any;
+  try {
+    manifest = JSON.parse(manifestRaw);
+  } catch (e) {
+    throw new Error("system-manifest.json is not valid JSON");
+  }
+
+  const manifestJobs: Array<{ id: string; execution_mode?: string }> = Array.isArray(manifest?.agent_jobs)
+    ? manifest.agent_jobs
+    : [];
+  const manifestJobIds = new Set(manifestJobs.map((j) => String(j?.id || "")).filter(Boolean));
+  if (manifestJobIds.size === 0) {
+    throw new Error("No agent_jobs found in system-manifest.json (cannot verify wiring)");
+  }
+
+  const contractsText = fs.readFileSync("./src/lib/contracts.ts", "utf-8");
+  const jobModesMatch = contractsText.match(/export const JOB_MODES\s*=\s*\{([\s\S]*?)\}\s*as const;/);
+  if (!jobModesMatch) {
+    throw new Error("JOB_MODES not found in src/lib/contracts.ts (run `npm run codegen`)");
+  }
+  const jobModesBlock = jobModesMatch[1] || "";
+  const contractJobIds = new Set(Array.from(jobModesBlock.matchAll(/"([^"]+)"\s*:\s*"(async|synchronous)"/g)).map((m) => m[1]));
+
+  const registryText = fs.readFileSync("./supabase/functions/ai-job-runner/registry.ts", "utf-8");
+  const registryBlockMatch = registryText.match(/export const JobRegistry\s*:\s*Record<string, JobExecutor>\s*=\s*\{([\s\S]*?)\};/);
+  if (!registryBlockMatch) {
+    throw new Error("JobRegistry not found in supabase/functions/ai-job-runner/registry.ts (run `npm run codegen`)");
+  }
+  const registryBlock = registryBlockMatch[1] || "";
+  const registryJobIds = new Set(Array.from(registryBlock.matchAll(/\s*'([^']+)'\s*:/g)).map((m) => m[1]));
+
+  const enqueueText = fs.readFileSync("./supabase/functions/enqueue-job/index.ts", "utf-8");
+  const factoryBlockMatch = enqueueText.match(/const FACTORY_JOB_TYPES\s*=\s*\[([\s\S]*?)\];/);
+  if (!factoryBlockMatch) {
+    throw new Error("FACTORY_JOB_TYPES not found in supabase/functions/enqueue-job/index.ts");
+  }
+  const factoryBlock = factoryBlockMatch[1] || "";
+  const factoryJobIds = new Set(Array.from(factoryBlock.matchAll(/"([^"]+)"/g)).map((m) => m[1]));
+
+  const missingInContracts: string[] = [];
+  const missingInRegistry: string[] = [];
+  const missingInFactoryAllowlist: string[] = [];
+
+  for (const job of manifestJobs) {
+    const id = String(job?.id || "").trim();
+    if (!id) continue;
+
+    if (!contractJobIds.has(id)) missingInContracts.push(id);
+    if (!registryJobIds.has(id)) missingInRegistry.push(id);
+
+    const mode = String(job?.execution_mode || "").trim();
+    if (mode === "async" && id !== "ai_course_generate") {
+      if (!factoryJobIds.has(id)) missingInFactoryAllowlist.push(id);
+    }
+  }
+
+  const errors: string[] = [];
+  if (missingInContracts.length) {
+    errors.push(`Missing in contracts JOB_MODES: ${missingInContracts.sort().join(", ")}`);
+  }
+  if (missingInRegistry.length) {
+    errors.push(`Missing in ai-job-runner JobRegistry: ${missingInRegistry.sort().join(", ")}`);
+  }
+  if (missingInFactoryAllowlist.length) {
+    errors.push(`Missing in enqueue-job FACTORY_JOB_TYPES (async jobs must be queueable): ${missingInFactoryAllowlist.sort().join(", ")}`);
+  }
+
+  if (errors.length) {
+    throw new Error(
+      "Job wiring audit failed:\\n" +
+        errors.map((e) => `- ${e}`).join("\\n") +
+        "\\n\\nFix guidance:\\n" +
+        "- If contracts/registry are missing: run `npm run codegen`\\n" +
+        "- If enqueue-job allowlist is missing: update supabase/functions/enqueue-job/index.ts FACTORY_JOB_TYPES"
+    );
+  }
+  console.log("✅ Job wiring audit passed");
+
   // 2. ESLint Rule Enforcement (ARCHITECTURAL COMPLIANCE)
   console.log("🔍 Running ESLint with architectural rules...");
   try {

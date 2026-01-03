@@ -223,11 +223,19 @@ export interface ListJobsResponse {
   ok: boolean;
   jobs: Array<{
     id: string;
+    organization_id?: string;
     job_type: string;
     status: string;
     created_at: string;
     updated_at: string;
+    started_at?: string | null;
+    completed_at?: string | null;
+    last_heartbeat?: string | null;
+    retry_count?: number;
+    max_retries?: number;
+    error?: string | null;
     payload?: Record<string, any>;
+    result?: Record<string, any>;
   }>;
 }
 

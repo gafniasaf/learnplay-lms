@@ -126,6 +126,10 @@ serve(async (req: Request): Promise<Response> => {
 
     // Supported job types: ai_course_generate uses ai_course_jobs; others use ai_agent_jobs.
     const FACTORY_JOB_TYPES = [
+      // Books
+      "book_ingest_version",
+      "book_render_chapter",
+      "book_render_full",
       "lessonkit_build",
       "material_ingest",
       "material_analyze",
@@ -136,6 +140,9 @@ serve(async (req: Request): Promise<Response> => {
       // Book Studio / BookGen Pro (skeleton-first generation)
       "book_generate_full",
       "book_generate_chapter",
+      // System / tooling
+      "compile_mockups",
+      "plan_matrix_run",
     ];
     const isFactoryJob = FACTORY_JOB_TYPES.includes(body.jobType);
 

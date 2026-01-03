@@ -5,6 +5,7 @@ import { Errors } from "../_shared/error.ts";
 import { checkOrigin } from "../_shared/origins.ts";
 import { requireEnv } from "../_shared/env.ts";
 import { emitJobEvent } from "../_shared/job-events.ts";
+import { emitAgentJobEvent } from "../_shared/job-events.ts";
 
 const SUPABASE_URL = requireEnv("SUPABASE_URL");
 const SUPABASE_SERVICE_ROLE_KEY = requireEnv("SUPABASE_SERVICE_ROLE_KEY");
@@ -21,6 +22,12 @@ async function courseReality(courseId: string) {
   }
 
   return { hasCourseJson };
+}
+
+async function agentJobReality(jobId: string) {
+  // Placeholder for future “reality” checks (e.g., storage artifacts) for agent jobs.
+  // For now, we only use heartbeats to detect stalls.
+  return { jobId };
 }
 
 serve(
@@ -101,6 +108,50 @@ serve(
         }
         results.push({ jobId: job.id, action: "heartbeat" });
       }
+    }
+
+    // Reconcile agent jobs (factory queue)
+    const { data: agentJobs, error: agentErr } = await admin
+      .from("ai_agent_jobs")
+      .select("id, job_type, status, error, last_heartbeat, started_at, created_at")
+      .eq("status", "processing")
+      .limit(200);
+
+    if (agentErr) return Errors.internal(agentErr.message, requestId, req);
+
+    const AGENT_STALL_MS = 15 * 60 * 1000;
+
+    for (const job of agentJobs || []) {
+      const heartbeatOrStartedOrCreated = (job as any).last_heartbeat || (job as any).started_at || (job as any).created_at;
+      const updatedAtMs = heartbeatOrStartedOrCreated ? new Date(heartbeatOrStartedOrCreated).getTime() : NaN;
+      const isStalled = Number.isFinite(updatedAtMs) && Date.now() - updatedAtMs > AGENT_STALL_MS;
+
+      if (isStalled) {
+        await admin
+          .from("ai_agent_jobs")
+          .update({ status: "failed", error: "Reconciler: job stalled", completed_at: new Date().toISOString() })
+          .eq("id", job.id);
+        try {
+          await emitAgentJobEvent(String(job.id), "failed", 100, "Reconciler: job stalled", {
+            jobType: (job as any).job_type,
+            last_heartbeat: (job as any).last_heartbeat || null,
+          });
+        } catch {
+          // best-effort
+        }
+        results.push({ jobId: job.id, jobType: (job as any).job_type, action: "agent_marked_failed_stalled" });
+      } else {
+        // Best-effort: a reconciler heartbeat marker can help operators confirm reconciler is running.
+        try {
+          await emitAgentJobEvent(String(job.id), "heartbeat", 10, "Reconciler heartbeat");
+        } catch {
+          // best-effort
+        }
+        results.push({ jobId: job.id, jobType: (job as any).job_type, action: "agent_heartbeat" });
+      }
+
+      // Reserved for future richer “reality” checks
+      await agentJobReality(String(job.id));
     }
 
     return { ok: true, count: results.length, results };

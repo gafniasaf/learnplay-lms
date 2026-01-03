@@ -86,7 +86,12 @@ export default function JobsDashboard() {
           limit: 100,
         }),
         mcp.listMediaJobsFiltered({ limit: 50 }),
-        mcp.listJobs(100),
+        mcp.listJobs({
+          status: filterStatus || undefined,
+          sinceHours: sinceHours > 0 ? sinceHours : undefined,
+          search: filterText || undefined,
+          limit: 100,
+        }),
         mcp.getJobMetrics(sinceHours),
       ]);
 
@@ -374,6 +379,18 @@ export default function JobsDashboard() {
               <TableCell>{getStatusBadge(job.status)}</TableCell>
               <TableCell className="max-w-xs truncate">
                 <div className="font-mono text-xs">{job.job_type}</div>
+                {job.status === "processing" ? (() => {
+                  const raw = (job.last_heartbeat || job.started_at || job.created_at) as string | null | undefined;
+                  const ms = raw ? new Date(raw).getTime() : NaN;
+                  const isStalled = Number.isFinite(ms) && Date.now() - ms > 5 * 60 * 1000;
+                  if (!isStalled) return null;
+                  return (
+                    <div className="text-xs text-destructive mt-1 flex items-center gap-1" title="No heartbeat in the last 5 minutes">
+                      <AlertCircle className="h-3 w-3" />
+                      stalled suspected
+                    </div>
+                  );
+                })() : null}
                 {renderAgentJobSummary(job) ? (
                   <div className="text-xs text-muted-foreground mt-1 truncate" title={renderAgentJobSummary(job)}>
                     {renderAgentJobSummary(job)}

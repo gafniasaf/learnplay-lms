@@ -248,17 +248,39 @@ export function useMCP() {
     }
   };
 
-  const listJobs = async (limit = 20) => {
-    setLoading(true);
-    try {
-      if (shouldUseMCPProxy()) {
-        return await callMCP<ListJobsResponse>('lms.listJobs', { limit });
-      }
-      return await callEdgeFunction<Record<string, unknown>, ListJobsResponse>('list-jobs', { limit });
-    } finally {
-      setLoading(false);
-    }
+  type ListJobsParams = {
+    status?: string;
+    sinceHours?: number;
+    limit?: number;
+    search?: string;
+    jobType?: string;
   };
+
+  const listJobs = useCallback(
+    async (params: number | ListJobsParams = {}): Promise<ListJobsResponse> => {
+      setLoading(true);
+      try {
+        const p: ListJobsParams =
+          typeof params === "number" ? { limit: params } : (params ?? {});
+
+        if (shouldUseMCPProxy()) {
+          return await callMCP<ListJobsResponse>("lms.listJobs", p as unknown as Record<string, unknown>);
+        }
+
+        const queryParams: Record<string, string> = {};
+        if (p.status) queryParams.status = p.status;
+        if (p.sinceHours !== undefined) queryParams.sinceHours = String(p.sinceHours);
+        if (p.limit !== undefined) queryParams.limit = String(p.limit);
+        if (p.search) queryParams.search = p.search;
+        if (p.jobType) queryParams.jobType = p.jobType;
+
+        return await callEdgeFunctionGet<ListJobsResponse>("list-jobs", queryParams);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [setLoading]
+  );
 
   // List course jobs (IgniteZero compliant)
   const listCourseJobs = useCallback(
