@@ -295,7 +295,7 @@ export function useMCP() {
   );
 
   // Requeue a job
-  const requeueJob = async (jobId: string, jobTable: 'ai_course_jobs' | 'ai_media_jobs' = 'ai_course_jobs') => {
+  const requeueJob = async (jobId: string, jobTable: 'ai_course_jobs' | 'ai_media_jobs' | 'ai_agent_jobs' = 'ai_course_jobs') => {
     setLoading(true);
     try {
       return await callEdgeFunction<Record<string, unknown>, { ok: boolean; message: string }>('requeue-job', { jobId, jobTable });
@@ -305,7 +305,7 @@ export function useMCP() {
   };
 
   // Delete a job
-  const deleteJob = async (jobId: string, jobTable: 'ai_course_jobs' | 'ai_media_jobs' = 'ai_course_jobs') => {
+  const deleteJob = async (jobId: string, jobTable: 'ai_course_jobs' | 'ai_media_jobs' | 'ai_agent_jobs' = 'ai_course_jobs') => {
     setLoading(true);
     try {
       return await callEdgeFunction<Record<string, unknown>, { ok: boolean; message: string }>('delete-job', { jobId, jobTable });

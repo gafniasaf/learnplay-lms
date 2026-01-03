@@ -11,7 +11,7 @@ if (!SUPABASE_URL || !SERVICE_ROLE_KEY) {
 
 const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
 
-type JobTable = "ai_course_jobs" | "ai_media_jobs";
+type JobTable = "ai_course_jobs" | "ai_media_jobs" | "ai_agent_jobs";
 
 serve(async (req: Request): Promise<Response> => {
   const requestId = crypto.randomUUID();
@@ -49,7 +49,7 @@ serve(async (req: Request): Promise<Response> => {
     }
 
     // Validate table name to prevent injection
-    if (!["ai_course_jobs", "ai_media_jobs"].includes(jobTable)) {
+    if (!["ai_course_jobs", "ai_media_jobs", "ai_agent_jobs"].includes(jobTable)) {
       return new Response(JSON.stringify({ error: "Invalid job table" }), {
         status: 400,
         headers: stdHeaders(req, { "Content-Type": "application/json" }),

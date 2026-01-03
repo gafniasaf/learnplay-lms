@@ -33,6 +33,21 @@ interface Job {
   course_id?: string;
 }
 
+interface AgentJob {
+  id: string;
+  job_type: string;
+  status: string;
+  payload?: any;
+  result?: any;
+  error?: string | null;
+  created_at: string;
+  started_at?: string | null;
+  completed_at?: string | null;
+  retry_count?: number;
+  max_retries?: number;
+  last_heartbeat?: string | null;
+}
+
 export default function JobsDashboard() {
   const location = useLocation();
   const navigate = useNavigate();
@@ -44,6 +59,7 @@ export default function JobsDashboard() {
 
   const [courseJobs, setCourseJobs] = useState<Job[]>([]);
   const [mediaJobs, setMediaJobs] = useState<Job[]>([]);
+  const [agentJobs, setAgentJobs] = useState<AgentJob[]>([]);
   const [metrics, setMetrics] = useState<{ courseJobs: any; mediaJobs: any } | null>(null);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
@@ -62,7 +78,7 @@ export default function JobsDashboard() {
     setLoading(true);
     try {
       // Fetch jobs via edge functions
-      const [courseRes, mediaRes, metricsRes] = await Promise.all([
+      const [courseRes, mediaRes, agentRes, metricsRes] = await Promise.all([
         mcp.listCourseJobs({
           status: filterStatus || undefined,
           sinceHours: sinceHours > 0 ? sinceHours : undefined,
@@ -70,11 +86,13 @@ export default function JobsDashboard() {
           limit: 100,
         }),
         mcp.listMediaJobsFiltered({ limit: 50 }),
+        mcp.listJobs(100),
         mcp.getJobMetrics(sinceHours),
       ]);
 
       if ((courseRes as { ok: boolean }).ok) setCourseJobs((courseRes as { jobs: Job[] }).jobs);
       if ((mediaRes as { ok: boolean }).ok) setMediaJobs((mediaRes as { jobs: Job[] }).jobs);
+      if ((agentRes as { ok: boolean }).ok) setAgentJobs(((agentRes as any).jobs || []) as AgentJob[]);
       if ((metricsRes as { ok: boolean }).ok) {
         const m = metricsRes as { courseJobs: unknown; mediaJobs: unknown };
         setMetrics({ courseJobs: m.courseJobs, mediaJobs: m.mediaJobs });
@@ -91,7 +109,7 @@ export default function JobsDashboard() {
     }
   }, [filterText, filterStatus, sinceHours, toast]);
 
-  const handleRequeueJob = async (jobId: string, jobTable: 'ai_course_jobs' | 'ai_media_jobs') => {
+  const handleRequeueJob = async (jobId: string, jobTable: 'ai_course_jobs' | 'ai_media_jobs' | 'ai_agent_jobs') => {
     try {
       const result = await mcp.requeueJob(jobId, jobTable);
       if (result.ok) {
@@ -112,7 +130,7 @@ export default function JobsDashboard() {
     }
   };
 
-  const handleDeleteJob = async (jobId: string, jobTable: 'ai_course_jobs' | 'ai_media_jobs') => {
+  const handleDeleteJob = async (jobId: string, jobTable: 'ai_course_jobs' | 'ai_media_jobs' | 'ai_agent_jobs') => {
     try {
       const result = await mcp.deleteJob(jobId, jobTable);
       if (result.ok) {
@@ -159,6 +177,7 @@ export default function JobsDashboard() {
 
   const getStatusBadge = (status: string) => {
     const variants: Record<string, { variant: any; icon: any }> = {
+      queued: { variant: "secondary", icon: Clock },
       pending: { variant: "secondary", icon: Clock },
       processing: { variant: "default", icon: RefreshCw },
       done: { variant: "success", icon: CheckCircle2 },
@@ -309,6 +328,110 @@ export default function JobsDashboard() {
     </Table>
   );
 
+  const filteredAgentJobs = useMemo(() => {
+    const q = filterText.trim().toLowerCase();
+    return agentJobs.filter((job) => {
+      if (filterStatus && job.status !== filterStatus) return false;
+      if (!q) return true;
+      return job.id.toLowerCase().includes(q) || job.job_type.toLowerCase().includes(q);
+    });
+  }, [agentJobs, filterStatus, filterText]);
+
+  const renderAgentJobSummary = (job: AgentJob): string => {
+    const p = (job.payload && typeof job.payload === "object") ? (job.payload as any) : null;
+    if (!p) return "";
+    if (job.job_type.startsWith("book_generate_")) {
+      const bookId = typeof p.bookId === "string" ? p.bookId : "";
+      const topic = typeof p.topic === "string" ? p.topic : "";
+      const bits = [bookId, topic].filter(Boolean);
+      return bits.join(" • ");
+    }
+    return "";
+  };
+
+  const renderAgentJobTable = (jobs: AgentJob[]) => (
+    <Table>
+      <TableHeader>
+        <TableRow>
+          <TableHead>Status</TableHead>
+          <TableHead>Job type</TableHead>
+          <TableHead>Job Id</TableHead>
+          <TableHead>Retries</TableHead>
+          <TableHead>Created</TableHead>
+          <TableHead>Actions</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {jobs.length === 0 ? (
+          <TableRow>
+            <TableCell colSpan={6} className="text-center text-muted-foreground">
+              No jobs found
+            </TableCell>
+          </TableRow>
+        ) : (
+          jobs.map((job) => (
+            <TableRow key={job.id}>
+              <TableCell>{getStatusBadge(job.status)}</TableCell>
+              <TableCell className="max-w-xs truncate">
+                <div className="font-mono text-xs">{job.job_type}</div>
+                {renderAgentJobSummary(job) ? (
+                  <div className="text-xs text-muted-foreground mt-1 truncate" title={renderAgentJobSummary(job)}>
+                    {renderAgentJobSummary(job)}
+                  </div>
+                ) : null}
+                {job.error ? (
+                  <div data-testid="job-error" className="text-xs text-destructive mt-1 truncate" title={String(job.error)}>
+                    {String(job.error)}
+                  </div>
+                ) : null}
+              </TableCell>
+              <TableCell className="text-xs font-mono">{job.id.slice(0, 8)}...</TableCell>
+              <TableCell>
+                {job.retry_count ?? 0}/{job.max_retries ?? 3}
+              </TableCell>
+              <TableCell className="text-xs">{formatDate(job.created_at)}</TableCell>
+              <TableCell>
+                <div className="flex gap-1">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => navigate(`/admin/logs?jobId=${encodeURIComponent(job.id)}`)}
+                    title="Open logs for this job"
+                    data-cta-id="view-job-logs-agent"
+                  >
+                    Logs
+                  </Button>
+                  {['failed', 'dead_letter', 'stale'].includes(job.status) && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleRequeueJob(job.id, 'ai_agent_jobs')}
+                      title="Requeue job"
+                      data-cta-id="requeue-agent-job"
+                    >
+                      <RotateCcw className="h-4 w-4" />
+                    </Button>
+                  )}
+                  {['queued', 'failed', 'dead_letter', 'stale'].includes(job.status) && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleDeleteJob(job.id, 'ai_agent_jobs')}
+                      title="Delete job"
+                      data-cta-id="delete-agent-job"
+                    >
+                      <Trash2 className="h-4 w-4 text-destructive" />
+                    </Button>
+                  )}
+                </div>
+              </TableCell>
+            </TableRow>
+          ))
+        )}
+      </TableBody>
+    </Table>
+  );
+
   const renderMetricsCards = () => {
     if (!metrics) return null;
     
@@ -377,6 +500,7 @@ export default function JobsDashboard() {
                 className="border rounded px-2 py-1 text-sm"
               >
                 <option value="">any</option>
+                <option value="queued">queued</option>
                 <option value="pending">pending</option>
                 <option value="processing">processing</option>
                 <option value="done">done</option>
@@ -405,9 +529,10 @@ export default function JobsDashboard() {
       </Card>
 
       <Tabs defaultValue="course" className="w-full">
-        <TabsList className="grid w-full max-w-md grid-cols-2">
+        <TabsList className="grid w-full max-w-xl grid-cols-3">
           <TabsTrigger value="course">Course Jobs ({courseJobs.length})</TabsTrigger>
           <TabsTrigger value="media">Media Jobs ({mediaJobs.length})</TabsTrigger>
+          <TabsTrigger value="agent">Agent Jobs ({filteredAgentJobs.length})</TabsTrigger>
         </TabsList>
 
         <TabsContent value="course" className="space-y-4">
@@ -441,6 +566,16 @@ export default function JobsDashboard() {
             <CardContent>
               {renderJobTable(mediaJobs, 'ai_media_jobs')}
             </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="agent" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Recent Agent Jobs</CardTitle>
+              <CardDescription>Factory queue jobs (BookGen, lessonkit_build, ingest, etc.)</CardDescription>
+            </CardHeader>
+            <CardContent>{renderAgentJobTable(filteredAgentJobs)}</CardContent>
           </Card>
         </TabsContent>
       </Tabs>

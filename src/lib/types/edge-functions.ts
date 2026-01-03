@@ -220,6 +220,7 @@ export interface ParentTopicsResponse {
 
 // Job-related Edge Function responses
 export interface ListJobsResponse {
+  ok: boolean;
   jobs: Array<{
     id: string;
     job_type: string;

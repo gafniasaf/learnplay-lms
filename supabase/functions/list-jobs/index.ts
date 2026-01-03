@@ -48,31 +48,15 @@ serve(async (req: Request): Promise<Response> => {
   limit = Math.min(100, Math.max(1, limit));
 
   const organizationId = requireOrganizationId(auth);
-  
-  // Try ai_course_jobs first (newer schema), fall back to ai_agent_jobs (legacy schema)
-  let data = null;
-  let error = null;
-  
-  // First, try ai_course_jobs (the main production table)
-  const { data: courseJobs, error: courseJobsError } = await supabase
-    .from("ai_course_jobs")
+
+  // list-jobs is the Factory queue (ai_agent_jobs).
+  // Course/media jobs have dedicated endpoints: list-course-jobs, list-media-jobs.
+  const { data: jobs, error } = await supabase
+    .from("ai_agent_jobs")
     .select("*")
+    .eq("organization_id", organizationId)
     .order("created_at", { ascending: false })
     .limit(limit);
-  
-  if (!courseJobsError) {
-    data = courseJobs;
-  } else {
-    // Fall back to ai_agent_jobs
-    const { data: agentJobs, error: agentJobsError } = await supabase
-      .from("ai_agent_jobs")
-      .select("*")
-      .order("created_at", { ascending: false })
-      .limit(limit);
-    
-    data = agentJobs;
-    error = agentJobsError;
-  }
 
   if (error) {
     return new Response(JSON.stringify({ error: error.message }), {
@@ -81,7 +65,7 @@ serve(async (req: Request): Promise<Response> => {
     });
   }
 
-  return new Response(JSON.stringify({ ok: true, jobs: data ?? [] }), {
+  return new Response(JSON.stringify({ ok: true, jobs: jobs ?? [] }), {
     status: 200,
     headers: stdHeaders(req, { "Content-Type": "application/json" }),
   });
