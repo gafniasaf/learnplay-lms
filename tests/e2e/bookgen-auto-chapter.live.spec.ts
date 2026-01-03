@@ -139,6 +139,23 @@ function extractImagesFromSkeleton(skeleton: any): Array<{ src: string; suggeste
   return out;
 }
 
+function extractAllHtmlStringsFromSkeleton(skeleton: any): string[] {
+  const out: string[] = [];
+  const chapters = Array.isArray(skeleton?.chapters) ? skeleton.chapters : [];
+  for (const ch of chapters) {
+    const sections = Array.isArray(ch?.sections) ? ch.sections : [];
+    for (const s of sections) {
+      const blocks = Array.isArray(s?.blocks) ? s.blocks : [];
+      for (const b of blocks) {
+        if (typeof b?.basisHtml === "string") out.push(b.basisHtml);
+        if (typeof b?.praktijkHtml === "string") out.push(b.praktijkHtml);
+        if (typeof b?.verdiepingHtml === "string") out.push(b.verdiepingHtml);
+      }
+    }
+  }
+  return out;
+}
+
 test.describe("Live: BookGen chapter auto-processing (real DB + real LLM)", () => {
   test("Enqueue book_generate_full and wait for the chapter to complete (no manual worker kick)", async ({ request }) => {
     test.setTimeout(15 * 60 * 1000);
@@ -167,6 +184,7 @@ test.describe("Live: BookGen chapter auto-processing (real DB + real LLM)", () =
         chapterCount,
         topic: "Korte test-hoofdstuk over diffusie en osmose.",
         userInstructions: "Houd het kort. Voeg minstens één afbeelding-suggestie toe met suggestedPrompt.",
+        imagePromptLanguage: "en",
         writeModel,
       },
     });
@@ -238,6 +256,13 @@ test.describe("Live: BookGen chapter auto-processing (real DB + real LLM)", () =
     expect(images.length).toBeGreaterThan(0);
     const withPrompt = images.filter((x) => x.suggestedPrompt.length > 0);
     expect(withPrompt.length).toBeGreaterThan(0);
+
+    // N3 guardrail: discourage unexpected heavy math/formula dumps in verdiepingHtml for non-math topics.
+    // We allow "=" generally (could appear in normal text), so we only flag high-signal patterns.
+    const allHtml = extractAllHtmlStringsFromSkeleton(sk).join("\n");
+    expect(allHtml).not.toMatch(/\bvan\s*['’]t\s*Hoff\b/i);
+    expect(allHtml).not.toMatch(/\bFick\b/i);
+    expect(allHtml).not.toMatch(/π\s*=/i);
   });
 });
 

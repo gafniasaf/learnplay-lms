@@ -316,6 +316,7 @@ serve(async (req: Request): Promise<Response> => {
           .update({
             status: "done",
             result: result as any,
+            error: null,
             completed_at: new Date().toISOString(),
           })
           .eq("id", jobId);

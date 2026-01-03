@@ -20,6 +20,7 @@ import { compileSkeletonToCanonical, validateBookSkeleton, type BookSkeletonV1, 
 import { extractJsonFromText } from "../../_shared/generation-utils.ts";
 
 type Provider = "openai" | "anthropic";
+type ImagePromptLanguage = "en" | "book";
 
 function requireEnv(name: string): string {
   const v = Deno.env.get(name);
@@ -58,6 +59,24 @@ function requireEnum<T extends string>(value: unknown, allowed: readonly T[], ke
     throw new Error(`BLOCKED: ${keyName} must be one of: ${allowed.join(", ")}`);
   }
   return s as T;
+}
+
+function optionalEnum<T extends string>(value: unknown, allowed: readonly T[]): T | null {
+  const s = typeof value === "string" ? value.trim() : "";
+  if (!s) return null;
+  return allowed.includes(s as T) ? (s as T) : null;
+}
+
+function normalizeLanguageLabel(code: string): string {
+  const s = (code || "").trim().toLowerCase();
+  if (!s) return "the book language";
+  // keep it simple; we don't need full locale support for prompt text
+  if (s === "nl" || s.startsWith("nl-")) return "Dutch";
+  if (s === "en" || s.startsWith("en-")) return "English";
+  if (s === "de" || s.startsWith("de-")) return "German";
+  if (s === "fr" || s.startsWith("fr-")) return "French";
+  if (s === "es" || s.startsWith("es-")) return "Spanish";
+  return s;
 }
 
 function parseModelSpec(raw: unknown): { provider: Provider; model: string } {
@@ -228,14 +247,40 @@ type DraftChapter = {
   openerImage?: { suggestedPrompt?: string | null } | null;
 };
 
-function buildSystem({ language, level }: { language: string; level: "n3" | "n4" }) {
+function buildSystem(opts: {
+  language: string;
+  level: "n3" | "n4";
+  imagePromptLanguage: ImagePromptLanguage;
+  mboProfile: "mbo_generic";
+}) {
+  const { language, level, imagePromptLanguage } = opts;
+  const langLabel = normalizeLanguageLabel(language);
+  const imageLangLabel = imagePromptLanguage === "book" ? langLabel : "English";
+  const depthGuidance =
+    level === "n3"
+      ? (
+        "Depth policy (MBO N3): keep it practical and accessible.\n" +
+        "- Avoid heavy theory-dumps.\n" +
+        "- Do NOT introduce advanced equations/constants unless the topic truly requires it.\n" +
+        "- If you include any formula, keep it very simple and explain it in plain language.\n"
+      )
+      : (
+        "Depth policy (MBO N4): you may go slightly deeper, but stay teachable.\n" +
+        "- You may include at most ONE simple formula OR named law if it helps learning.\n" +
+        "- Always explain jargon and any formula in plain language.\n"
+      );
+
   return (
     "You are BookGen Pro.\n" +
     "You write educational book chapters as inline HTML strings (no <p> tags).\n" +
     "Allowed inline tags: <strong>, <em>, <b>, <i>, <sup>, <sub>, <span>, <br/>.\n" +
     "Do NOT use any <<MARKER>> tokens at all.\n" +
+    "Write for MBO students: clear, concrete, and example-driven.\n" +
+    "Use short sentences. Define terms the first time you use them.\n" +
+    depthGuidance +
     "Output MUST be valid JSON ONLY (no markdown).\n" +
-    `Language: ${language}\n` +
+    `Book language: ${language} (${langLabel})\n` +
+    `Image suggestedPrompt language: ${imageLangLabel}\n` +
     `Level: ${level}\n`
   );
 }
@@ -246,8 +291,24 @@ function buildPrompt(opts: {
   chapterNumber: number;
   chapterCount: number;
   userInstructions?: string | null;
+  level: "n3" | "n4";
+  language: string;
+  imagePromptLanguage: ImagePromptLanguage;
 }) {
-  const { topic, bookTitle, chapterNumber, chapterCount, userInstructions } = opts;
+  const { topic, bookTitle, chapterNumber, chapterCount, userInstructions, level, language, imagePromptLanguage } = opts;
+  const langLabel = normalizeLanguageLabel(language);
+  const imageLangLabel = imagePromptLanguage === "book" ? langLabel : "English";
+
+  const verdiepingGuidance =
+    level === "n3"
+      ? (
+        "- verdiepingHtml is OPTIONAL. If you include it, keep it short (1-3 sentences), practical, and explain terms.\n" +
+        "- Avoid equations and named scientific laws unless the topic truly requires it.\n"
+      )
+      : (
+        "- verdiepingHtml is OPTIONAL. If you include it, keep it teachable and explain jargon.\n" +
+        "- You may include ONE simple formula OR named law if helpful, but explain it plainly.\n"
+      );
 
   return (
     "Return JSON with this exact shape:\n" +
@@ -283,12 +344,18 @@ function buildPrompt(opts: {
     `Book title: ${bookTitle}\n` +
     `Topic: ${topic}\n` +
     `Chapter: ${chapterNumber} of ${chapterCount}\n` +
+    `Book language: ${language} (${langLabel})\n` +
+    `Image suggestedPrompt language: ${imageLangLabel}\n` +
     (userInstructions ? `User instructions: ${userInstructions}\n` : "") +
     "\nConstraints:\n" +
     "- Make 2-4 sections.\n" +
     "- Each section: 2-4 blocks.\n" +
+    "- Use the book language for chapterTitle, section titles, basisHtml, praktijkHtml, verdiepingHtml, alt, caption.\n" +
+    `- suggestedPrompt MUST be written in ${imageLangLabel}.\n` +
     "- Include 1-2 image suggestions across the chapter via images[].suggestedPrompt.\n" +
-    "- suggestedPrompt must be a concise, specific image description (no camera brand names).\n"
+    "- suggestedPrompt must be concise and specific (no camera brand names, no artist names).\n" +
+    "- praktijkHtml should be concrete and MBO-relevant (workplace or daily-life example).\n" +
+    verdiepingGuidance
   );
 }
 
@@ -436,6 +503,9 @@ export class BookGenerateChapter implements JobExecutor {
     const level = requireEnum(p.level, ["n3", "n4"] as const, "level");
     const userInstructions = optionalString(p, "userInstructions");
 
+    const imagePromptLanguage =
+      optionalEnum(p.imagePromptLanguage, ["en", "book"] as const) ?? "en";
+
     const writeModelSpec = parseModelSpec(p.writeModel);
 
     await emitAgentJobEvent(jobId, "generating", 5, `Generating chapter ${chapterIndex + 1}/${chapterCount}`, {
@@ -468,13 +538,16 @@ export class BookGenerateChapter implements JobExecutor {
       chapterIndex,
     }).catch(() => {});
 
-    const system = buildSystem({ language, level });
+    const system = buildSystem({ language, level, imagePromptLanguage, mboProfile: "mbo_generic" });
     const prompt = buildPrompt({
       topic,
       bookTitle,
       chapterNumber: chapterIndex + 1,
       chapterCount,
       userInstructions,
+      level,
+      language,
+      imagePromptLanguage,
     });
     const draft = (await llmGenerateJson({
       provider: writeModelSpec.provider,
@@ -542,6 +615,7 @@ export class BookGenerateChapter implements JobExecutor {
             level,
             language,
             userInstructions,
+            imagePromptLanguage,
             writeModel: typeof p.writeModel === "string" ? p.writeModel : null,
           },
         })

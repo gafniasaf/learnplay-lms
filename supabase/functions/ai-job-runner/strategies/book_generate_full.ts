@@ -205,6 +205,13 @@ export class BookGenerateFull implements JobExecutor {
     const promptPackVersion =
       typeof promptPackVersionRaw === "number" && Number.isFinite(promptPackVersionRaw) ? Math.floor(promptPackVersionRaw) : null;
 
+    // Optional quality knobs (kept generic for all MBO books)
+    const imagePromptLanguageRaw = optionalString(p, "imagePromptLanguage");
+    const imagePromptLanguage =
+      imagePromptLanguageRaw === "en" || imagePromptLanguageRaw === "book"
+        ? imagePromptLanguageRaw
+        : null;
+
     const writeModel = requireModelSpec(p, "writeModel");
 
     const title =
@@ -354,6 +361,7 @@ export class BookGenerateFull implements JobExecutor {
           userInstructions,
           promptPackId,
           promptPackVersion,
+          ...(imagePromptLanguage ? { imagePromptLanguage } : {}),
           // Model selection is required by the chapter job (write stage)
           writeModel,
         },
