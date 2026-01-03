@@ -96,7 +96,16 @@ async function waitForAgentJobDone(opts: {
         "X-Organization-Id": organizationId,
       },
     });
-    expect(jobResp.ok()).toBeTruthy();
+    if (!jobResp.ok()) {
+      const status = jobResp.status();
+      const body = await jobResp.text().catch(() => "");
+      // Treat transient gateway/rate-limit responses as retryable in live environments.
+      if ([429, 502, 503, 504].includes(status)) {
+        await new Promise((r) => setTimeout(r, 2_000));
+        continue;
+      }
+      throw new Error(`get-job HTTP ${status}: ${String(body || "").slice(0, 300)}`);
+    }
     const jobJson: any = await jobResp.json();
     expect(jobJson.ok).toBe(true);
 
