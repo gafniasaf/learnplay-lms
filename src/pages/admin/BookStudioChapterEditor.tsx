@@ -1405,9 +1405,9 @@ export default function BookStudioChapterEditor() {
           </div>
         )}
 
-        <div className="flex gap-3">
+        <div className="flex gap-0">
           {/* Sidebar */}
-          <aside className="w-72 bg-background border rounded-lg p-2 overflow-y-auto flex-shrink-0 h-[calc(100vh-180px)]">
+          <aside className="w-56 bg-background border-r p-2 overflow-y-auto flex-shrink-0 h-[calc(100vh-180px)]">
             <div className="flex items-center justify-between px-2 py-2">
               <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Pages</div>
               <div className="flex items-center gap-2">
@@ -1854,7 +1854,7 @@ export default function BookStudioChapterEditor() {
           </main>
 
           {/* Inspector (selection-based editing) */}
-          <aside className="w-80 bg-background border rounded-lg p-3 overflow-y-auto flex-shrink-0 h-[calc(100vh-180px)]">
+          <aside className="w-64 bg-background border-l p-3 overflow-y-auto flex-shrink-0 h-[calc(100vh-180px)]">
             <div className="flex items-center justify-between gap-2 mb-2">
               <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Inspector</div>
               {selectedParagraphId ? (
