@@ -40,6 +40,11 @@ function optionalString(p: Record<string, unknown>, key: string): string | null 
   return t ? t : null;
 }
 
+function optionalBoolean(p: Record<string, unknown>, key: string): boolean | null {
+  const v = p[key];
+  return typeof v === "boolean" ? v : null;
+}
+
 function requireModelSpec(p: Record<string, unknown>, key: string): string {
   const raw = requireString(p, key);
   const parts = raw.split(":").map((x) => x.trim()).filter(Boolean);
@@ -218,12 +223,28 @@ export class BookGenerateFull implements JobExecutor {
         ? layoutProfileRaw
         : null;
 
+    const microheadingDensityRaw = optionalString(p, "microheadingDensity");
+    const microheadingDensity =
+      microheadingDensityRaw === "low" || microheadingDensityRaw === "medium" || microheadingDensityRaw === "high"
+        ? microheadingDensityRaw
+        : null;
+
+    const sectionMaxTokensRaw = (p as any).sectionMaxTokens;
+    const sectionMaxTokens =
+      typeof sectionMaxTokensRaw === "number" && Number.isFinite(sectionMaxTokensRaw)
+        ? Math.max(1200, Math.min(12_000, Math.floor(sectionMaxTokensRaw)))
+        : null;
+
+    // Allow callers (proofs/scripts) to create a book + version + scaffold WITHOUT immediately enqueuing chapter jobs.
+    // Default is true to preserve existing UI flows.
+    const enqueueChapters = optionalBoolean(p, "enqueueChapters") ?? true;
+
     const writeModel = requireModelSpec(p, "writeModel");
 
     const title =
       mode === "create"
         ? requireString(p, "title")
-        : (optionalString(p, "title") || ""); // existing mode may omit title; we’ll load from DB below if empty
+        : optionalString(p, "title"); // existing mode may omit title; we’ll load from DB below if missing/empty
 
     await emitAgentJobEvent(jobId, "generating", 5, "Initializing book generation", {
       mode,
@@ -344,10 +365,31 @@ export class BookGenerateFull implements JobExecutor {
     const compiled = compileSkeletonToCanonical(v.skeleton);
     await uploadJson(adminSupabase, "books", canonicalPath, compiled, true);
 
+    if (!enqueueChapters) {
+      await emitAgentJobEvent(jobId, "done", 100, "Book scaffold complete (chapters not enqueued)", {
+        bookId,
+        bookVersionId,
+        chapterCount,
+        enqueueChapters,
+      }).catch(() => {});
+      return {
+        ok: true,
+        mode,
+        bookId,
+        bookVersionId,
+        chapterCount,
+        canonicalPath,
+        figuresPath,
+        designTokensPath,
+        enqueueChapters,
+      };
+    }
+
     // 8) Enqueue first chapter job (chain)
     await emitAgentJobEvent(jobId, "generating", 35, "Enqueuing chapter generation", {
       chapterIndex: 0,
       chapterCount,
+      enqueueChapters,
     }).catch(() => {});
 
     const { data: queued, error: enqueueErr } = await adminSupabase
@@ -368,7 +410,9 @@ export class BookGenerateFull implements JobExecutor {
           promptPackId,
           promptPackVersion,
           ...(imagePromptLanguage ? { imagePromptLanguage } : {}),
-            ...(layoutProfile ? { layoutProfile } : {}),
+          ...(layoutProfile ? { layoutProfile } : {}),
+          ...(microheadingDensity ? { microheadingDensity } : {}),
+          ...(typeof sectionMaxTokens === "number" ? { sectionMaxTokens } : {}),
           // Model selection is required by the chapter job (write stage)
           writeModel,
         },
@@ -382,6 +426,7 @@ export class BookGenerateFull implements JobExecutor {
       bookVersionId,
       chapterCount,
       firstChapterJobId: queued.id,
+      enqueueChapters,
     }).catch(() => {});
 
     return {
@@ -394,6 +439,7 @@ export class BookGenerateFull implements JobExecutor {
       figuresPath,
       designTokensPath,
       firstChapterJobId: queued.id,
+      enqueueChapters,
     };
   }
 }

@@ -65,24 +65,37 @@ function extractPlaceholdersFromSkeleton(skeleton: any): SkeletonImagePlaceholde
     const ch = chapters[ci];
     const sections = Array.isArray(ch?.sections) ? ch.sections : [];
     for (const s of sections) {
-      const blocks = Array.isArray(s?.blocks) ? s.blocks : [];
-      for (const b of blocks) {
-        const images = Array.isArray(b?.images) ? b.images : [];
-        for (const img of images) {
-          const canonicalSrc = safeStr(img?.src).trim();
-          if (!canonicalSrc) continue;
-          out.push({
-            canonicalSrc,
-            suggestedPrompt: safeStr(img?.suggestedPrompt).trim(),
-            caption: typeof img?.caption === "string" ? img.caption : null,
-            figureNumber: typeof img?.figureNumber === "string" ? img.figureNumber : null,
-            layoutHint: typeof img?.layoutHint === "string" ? img.layoutHint : null,
-            chapterIndex: ci,
-            sectionId: safeStr(s?.id) || null,
-            blockId: safeStr(b?.id) || null,
-          });
+      const sectionId = safeStr(s?.id) || null;
+
+      const walkBlocks = (blocksRaw: any[]) => {
+        const blocks = Array.isArray(blocksRaw) ? blocksRaw : [];
+        for (const b of blocks) {
+          if (!b || typeof b !== "object") continue;
+          const type = safeStr((b as any).type);
+          if (type === "subparagraph") {
+            walkBlocks(Array.isArray((b as any).blocks) ? (b as any).blocks : []);
+            continue;
+          }
+
+          const images = Array.isArray((b as any).images) ? (b as any).images : [];
+          for (const img of images) {
+            const canonicalSrc = safeStr(img?.src).trim();
+            if (!canonicalSrc) continue;
+            out.push({
+              canonicalSrc,
+              suggestedPrompt: safeStr(img?.suggestedPrompt).trim(),
+              caption: typeof img?.caption === "string" ? img.caption : null,
+              figureNumber: typeof img?.figureNumber === "string" ? img.figureNumber : null,
+              layoutHint: typeof img?.layoutHint === "string" ? img.layoutHint : null,
+              chapterIndex: ci,
+              sectionId,
+              blockId: safeStr((b as any)?.id) || null,
+            });
+          }
         }
-      }
+      };
+
+      walkBlocks(Array.isArray((s as any)?.blocks) ? (s as any).blocks : []);
     }
   }
 

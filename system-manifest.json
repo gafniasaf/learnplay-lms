@@ -306,6 +306,17 @@
       "prompt_template": "Generate content for a single chapter in a skeleton-first book pipeline (no image generation). Return JSON {\"bookId\": string, \"bookVersionId\": string, \"chapterIndex\": number}."
     },
     {
+      "id": "book_generate_section",
+      "target_entity": "BookVersion",
+      "execution_mode": "async",
+      "ui": {
+        "label": "Generate Book Section (internal)",
+        "icon": "Sparkles",
+        "placement": "internal"
+      },
+      "prompt_template": "Generate content for a single section in a skeleton-first book pipeline (internal). Return JSON {\"bookId\": string, \"bookVersionId\": string, \"chapterIndex\": number, \"sectionIndex\": number}."
+    },
+    {
       "id": "draft_assignment_plan",
       "target_entity": "Assignment",
       "execution_mode": "synchronous",

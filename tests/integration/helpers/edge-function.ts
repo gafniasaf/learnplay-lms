@@ -153,6 +153,11 @@ export async function verifyRequiresAuth(
       if (response.status === 401 || response.status === 403 || response.status === 500) {
         return true;
       }
+
+      // If method doesn't match, try the next one.
+      if (response.status === 405) {
+        continue;
+      }
       
       // If function doesn't exist (404), try next method or return false
       if (response.status === 404) {
@@ -160,15 +165,52 @@ export async function verifyRequiresAuth(
       }
       
       // If it returns 200, check if the body contains an error (might be allowing anonymous but failing)
-      if (response.status === 200 && typeof response.body === 'object' && response.body !== null) {
-        const body = response.body as any;
-        if (body.error || body.message) {
-          // Check if error message indicates auth requirement
-          const errorMsg = (body.error || body.message || '').toLowerCase();
-          if (errorMsg.includes('auth') || errorMsg.includes('unauthorized') || errorMsg.includes('token') || errorMsg.includes('login') || errorMsg.includes('permission')) {
+      if (response.status === 200) {
+        const bodyAny = response.body as any;
+
+        // Some IgniteZero Edge functions return HTTP 200 with a structured error payload
+        // to avoid blank-screens in preview environments.
+        if (bodyAny && typeof bodyAny === 'object') {
+          const httpStatus = typeof bodyAny.httpStatus === 'number' ? bodyAny.httpStatus : null;
+          if (httpStatus === 401 || httpStatus === 403) {
+            return true;
+          }
+
+          const errorRaw = bodyAny.error ?? bodyAny.message ?? null;
+          const errorMsg =
+            typeof errorRaw === 'string'
+              ? errorRaw
+              : typeof errorRaw?.message === 'string'
+                ? errorRaw.message
+                : typeof bodyAny.message === 'string'
+                  ? bodyAny.message
+                  : '';
+          const errorCode =
+            errorRaw && typeof errorRaw === 'object' && typeof errorRaw.code === 'string'
+              ? errorRaw.code
+              : '';
+
+          const haystack = `${errorCode} ${errorMsg}`.toLowerCase();
+          if (
+            haystack.includes('auth') ||
+            haystack.includes('unauthorized') ||
+            haystack.includes('token') ||
+            haystack.includes('login') ||
+            haystack.includes('permission')
+          ) {
             return true; // Has auth-related error, requires auth
           }
-          // Other errors might indicate parameter issues, not auth - continue to check
+        } else if (typeof bodyAny === 'string') {
+          const haystack = bodyAny.toLowerCase();
+          if (
+            haystack.includes('auth') ||
+            haystack.includes('unauthorized') ||
+            haystack.includes('token') ||
+            haystack.includes('login') ||
+            haystack.includes('permission')
+          ) {
+            return true;
+          }
         }
       }
       

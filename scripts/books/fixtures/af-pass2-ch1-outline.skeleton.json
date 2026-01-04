@@ -21,21 +21,118 @@
           "blocks": [
             {
               "type": "subparagraph",
-              "id": "seed-1.1.2",
+              "id": "1.1.1",
+              "title": "1.1.1 De cel",
+              "blocks": [
+                {
+                  "type": "paragraph",
+                  "id": "seed-p-0001",
+                  "basisHtml": "",
+                  "images": null
+                }
+              ]
+            },
+            {
+              "type": "subparagraph",
+              "id": "1.1.2",
               "title": "1.1.2 De celmembraan",
               "blocks": [
                 {
-                  "type": "subparagraph",
-                  "id": "seed-1.1.2-m1",
-                  "title": "Celwand in het kort",
-                  "blocks": [
-                    {
-                      "type": "paragraph",
-                      "id": "seed-p-1",
-                      "basisHtml": "",
-                      "images": null
-                    }
-                  ]
+                  "type": "paragraph",
+                  "id": "seed-p-0002",
+                  "basisHtml": "",
+                  "images": null
+                }
+              ]
+            },
+            {
+              "type": "subparagraph",
+              "id": "1.1.3",
+              "title": "1.1.3 De celkern",
+              "blocks": [
+                {
+                  "type": "paragraph",
+                  "id": "seed-p-0003",
+                  "basisHtml": "",
+                  "images": null
+                }
+              ]
+            },
+            {
+              "type": "subparagraph",
+              "id": "1.1.4",
+              "title": "1.1.4 De mitochondriën",
+              "blocks": [
+                {
+                  "type": "paragraph",
+                  "id": "seed-p-0004",
+                  "basisHtml": "",
+                  "images": null
+                }
+              ]
+            },
+            {
+              "type": "subparagraph",
+              "id": "1.1.5",
+              "title": "1.1.5 Het en⁠doplasmatisch ret⁠ic⁠ulum",
+              "blocks": [
+                {
+                  "type": "paragraph",
+                  "id": "seed-p-0005",
+                  "basisHtml": "",
+                  "images": null
+                }
+              ]
+            },
+            {
+              "type": "subparagraph",
+              "id": "1.1.6",
+              "title": "1.1.6 De ribosomen",
+              "blocks": [
+                {
+                  "type": "paragraph",
+                  "id": "seed-p-0006",
+                  "basisHtml": "",
+                  "images": null
+                }
+              ]
+            },
+            {
+              "type": "subparagraph",
+              "id": "1.1.7",
+              "title": "1.1.7 De lysosomen",
+              "blocks": [
+                {
+                  "type": "paragraph",
+                  "id": "seed-p-0007",
+                  "basisHtml": "",
+                  "images": null
+                }
+              ]
+            },
+            {
+              "type": "subparagraph",
+              "id": "1.1.8",
+              "title": "1.1.8 De spoellichaampjes",
+              "blocks": [
+                {
+                  "type": "paragraph",
+                  "id": "seed-p-0008",
+                  "basisHtml": "",
+                  "images": null
+                }
+              ]
+            },
+            {
+              "type": "subparagraph",
+              "id": "1.1.9",
+              "title": "1.1.9 Het Golgi-systeem",
+              "blocks": [
+                {
+                  "type": "paragraph",
+                  "id": "seed-p-0009",
+                  "basisHtml": "",
+                  "images": null
                 }
               ]
             }
@@ -47,21 +144,66 @@
           "blocks": [
             {
               "type": "subparagraph",
-              "id": "seed-1.2.1",
+              "id": "1.2.1",
               "title": "1.2.1 DNA",
               "blocks": [
                 {
-                  "type": "subparagraph",
-                  "id": "seed-1.2.1-m1",
-                  "title": "Bouwinstructie",
-                  "blocks": [
-                    {
-                      "type": "paragraph",
-                      "id": "seed-p-2",
-                      "basisHtml": "",
-                      "images": null
-                    }
-                  ]
+                  "type": "paragraph",
+                  "id": "seed-p-0010",
+                  "basisHtml": "",
+                  "images": null
+                }
+              ]
+            },
+            {
+              "type": "subparagraph",
+              "id": "1.2.2",
+              "title": "1.2.2 DNA, RNA en eiwitsynthese",
+              "blocks": [
+                {
+                  "type": "paragraph",
+                  "id": "seed-p-0011",
+                  "basisHtml": "",
+                  "images": null
+                }
+              ]
+            },
+            {
+              "type": "subparagraph",
+              "id": "1.2.3",
+              "title": "1.2.3 Verschillen tussen DNA en RNA",
+              "blocks": [
+                {
+                  "type": "paragraph",
+                  "id": "seed-p-0012",
+                  "basisHtml": "",
+                  "images": null
+                }
+              ]
+            },
+            {
+              "type": "subparagraph",
+              "id": "1.2.4",
+              "title": "1.2.4 Transcriptie, codons en vorming van mRNA",
+              "blocks": [
+                {
+                  "type": "paragraph",
+                  "id": "seed-p-0013",
+                  "basisHtml": "",
+                  "images": null
+                }
+              ]
+            },
+            {
+              "type": "subparagraph",
+              "id": "1.2.5",
+              "title": "1.2.5 Translatie en tR⁠NA",
+              "blocks": [
+                {
+                  "type": "paragraph",
+                  "id": "seed-p-0014",
+                  "basisHtml": "",
+                  "images": null
                 }
               ]
             }
@@ -73,21 +215,66 @@
           "blocks": [
             {
               "type": "subparagraph",
-              "id": "seed-1.3.1",
+              "id": "1.3.1",
               "title": "1.3.1 Chromosomen",
               "blocks": [
                 {
-                  "type": "subparagraph",
-                  "id": "seed-1.3.1-m1",
-                  "title": "Ordenen van DNA",
-                  "blocks": [
-                    {
-                      "type": "paragraph",
-                      "id": "seed-p-3",
-                      "basisHtml": "",
-                      "images": null
-                    }
-                  ]
+                  "type": "paragraph",
+                  "id": "seed-p-0015",
+                  "basisHtml": "",
+                  "images": null
+                }
+              ]
+            },
+            {
+              "type": "subparagraph",
+              "id": "1.3.2",
+              "title": "1.3.2 Celcyclus",
+              "blocks": [
+                {
+                  "type": "paragraph",
+                  "id": "seed-p-0016",
+                  "basisHtml": "",
+                  "images": null
+                }
+              ]
+            },
+            {
+              "type": "subparagraph",
+              "id": "1.3.3",
+              "title": "1.3.3 De interfase",
+              "blocks": [
+                {
+                  "type": "paragraph",
+                  "id": "seed-p-0017",
+                  "basisHtml": "",
+                  "images": null
+                }
+              ]
+            },
+            {
+              "type": "subparagraph",
+              "id": "1.3.4",
+              "title": "1.3.4 Mitose",
+              "blocks": [
+                {
+                  "type": "paragraph",
+                  "id": "seed-p-0018",
+                  "basisHtml": "",
+                  "images": null
+                }
+              ]
+            },
+            {
+              "type": "subparagraph",
+              "id": "1.3.5",
+              "title": "1.3.5 Fasen van de mitose",
+              "blocks": [
+                {
+                  "type": "paragraph",
+                  "id": "seed-p-0019",
+                  "basisHtml": "",
+                  "images": null
                 }
               ]
             }
@@ -99,61 +286,79 @@
           "blocks": [
             {
               "type": "subparagraph",
-              "id": "seed-1.4.1",
+              "id": "1.4.1",
               "title": "1.4.1 Transport",
               "blocks": [
                 {
-                  "type": "subparagraph",
-                  "id": "seed-1.4.1-m1",
-                  "title": "Van veel naar weinig",
-                  "blocks": [
-                    {
-                      "type": "paragraph",
-                      "id": "seed-p-4",
-                      "basisHtml": "",
-                      "images": null
-                    }
-                  ]
+                  "type": "paragraph",
+                  "id": "seed-p-0020",
+                  "basisHtml": "",
+                  "images": null
                 }
               ]
             },
             {
               "type": "subparagraph",
-              "id": "seed-1.4.2",
+              "id": "1.4.2",
               "title": "1.4.2 Diffusie",
               "blocks": [
                 {
-                  "type": "subparagraph",
-                  "id": "seed-1.4.2-m1",
-                  "title": "Verspreiden",
-                  "blocks": [
-                    {
-                      "type": "paragraph",
-                      "id": "seed-p-5",
-                      "basisHtml": "",
-                      "images": null
-                    }
-                  ]
+                  "type": "paragraph",
+                  "id": "seed-p-0021",
+                  "basisHtml": "",
+                  "images": null
                 }
               ]
             },
             {
               "type": "subparagraph",
-              "id": "seed-1.4.3",
+              "id": "1.4.3",
               "title": "1.4.3 Osmose",
               "blocks": [
                 {
-                  "type": "subparagraph",
-                  "id": "seed-1.4.3-m1",
-                  "title": "Water volgt zout",
-                  "blocks": [
-                    {
-                      "type": "paragraph",
-                      "id": "seed-p-6",
-                      "basisHtml": "",
-                      "images": null
-                    }
-                  ]
+                  "type": "paragraph",
+                  "id": "seed-p-0022",
+                  "basisHtml": "",
+                  "images": null
+                }
+              ]
+            },
+            {
+              "type": "subparagraph",
+              "id": "1.4.4",
+              "title": "1.4.4 Metabolisme",
+              "blocks": [
+                {
+                  "type": "paragraph",
+                  "id": "seed-p-0023",
+                  "basisHtml": "",
+                  "images": null
+                }
+              ]
+            },
+            {
+              "type": "subparagraph",
+              "id": "1.4.5",
+              "title": "1.4.5 Dissim⁠ilatie",
+              "blocks": [
+                {
+                  "type": "paragraph",
+                  "id": "seed-p-0024",
+                  "basisHtml": "",
+                  "images": null
+                }
+              ]
+            },
+            {
+              "type": "subparagraph",
+              "id": "1.4.6",
+              "title": "1.4.6 Enzymen",
+              "blocks": [
+                {
+                  "type": "paragraph",
+                  "id": "seed-p-0025",
+                  "basisHtml": "",
+                  "images": null
                 }
               ]
             }
@@ -163,5 +368,3 @@
     }
   ]
 }
-
-

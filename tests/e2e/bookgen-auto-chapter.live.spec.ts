@@ -120,22 +120,35 @@ async function waitForAgentJobDone(opts: {
 
 function extractImagesFromSkeleton(skeleton: any): Array<{ src: string; suggestedPrompt: string }> {
   const out: Array<{ src: string; suggestedPrompt: string }> = [];
+
+  const walkBlocks = (blocksRaw: any[]) => {
+    const blocks = Array.isArray(blocksRaw) ? blocksRaw : [];
+    for (const b of blocks) {
+      if (!b || typeof b !== "object") continue;
+      const type = typeof (b as any).type === "string" ? (b as any).type : "";
+      if (type === "subparagraph") {
+        walkBlocks(Array.isArray((b as any).blocks) ? (b as any).blocks : []);
+        continue;
+      }
+
+      const images = Array.isArray((b as any).images) ? (b as any).images : [];
+      for (const img of images) {
+        const src = typeof img?.src === "string" ? img.src.trim() : "";
+        const suggestedPrompt = typeof img?.suggestedPrompt === "string" ? img.suggestedPrompt.trim() : "";
+        if (!src) continue;
+        out.push({ src, suggestedPrompt });
+      }
+    }
+  };
+
   const chapters = Array.isArray(skeleton?.chapters) ? skeleton.chapters : [];
   for (const ch of chapters) {
     const sections = Array.isArray(ch?.sections) ? ch.sections : [];
     for (const s of sections) {
-      const blocks = Array.isArray(s?.blocks) ? s.blocks : [];
-      for (const b of blocks) {
-        const images = Array.isArray(b?.images) ? b.images : [];
-        for (const img of images) {
-          const src = typeof img?.src === "string" ? img.src.trim() : "";
-          const suggestedPrompt = typeof img?.suggestedPrompt === "string" ? img.suggestedPrompt.trim() : "";
-          if (!src) continue;
-          out.push({ src, suggestedPrompt });
-        }
-      }
+      walkBlocks(Array.isArray(s?.blocks) ? s.blocks : []);
     }
   }
+
   return out;
 }
 

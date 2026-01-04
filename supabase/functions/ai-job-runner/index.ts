@@ -11,6 +11,21 @@ interface JobRequestBody {
   queue?: "course" | "agent" | "any";
 }
 
+function isRecord(v: unknown): v is Record<string, unknown> {
+  return !!v && typeof v === "object" && !Array.isArray(v);
+}
+
+function isYieldResult(result: unknown): result is {
+  yield: true;
+  message?: string;
+  nextPayload?: Record<string, unknown>;
+  payloadPatch?: Record<string, unknown>;
+  progress?: number;
+} {
+  if (!isRecord(result)) return false;
+  return (result as any).yield === true;
+}
+
 serve(async (req: Request): Promise<Response> => {
   if (req.method === "OPTIONS") {
     return handleOptions(req, "ai-job-runner");
@@ -308,6 +323,70 @@ serve(async (req: Request): Promise<Response> => {
             // best-effort
           }
         }
+      }
+
+      // Yield/Requeue support: allow long-running orchestrators (e.g. sectioned bookgen)
+      // to yield control back to the worker and be re-queued with updated payload.
+      if (isYieldResult(result)) {
+        const nowIso = new Date().toISOString();
+        const MAX_YIELDS = 50;
+
+        const currentPayload = isRecord(payload) ? (payload as Record<string, unknown>) : {};
+
+        // nextPayload semantics:
+        // - If payloadPatch is provided: merge patch into existing stored payload
+        // - Else if nextPayload is provided: replace payload
+        // - Else: keep existing stored payload
+        const nextPayloadRaw = isRecord((result as any).payloadPatch)
+          ? { ...currentPayload, ...((result as any).payloadPatch as Record<string, unknown>) }
+          : isRecord((result as any).nextPayload)
+            ? ((result as any).nextPayload as Record<string, unknown>)
+            : currentPayload;
+        const nextPayload: Record<string, unknown> = { ...nextPayloadRaw };
+
+        // Keep org context in the row, not in the payload (runner injects it on execution).
+        delete (nextPayload as any).organization_id;
+
+        const prevYieldCountRaw = (nextPayload as any).__yieldCount;
+        const prevYieldCount = (typeof prevYieldCountRaw === "number" && Number.isFinite(prevYieldCountRaw))
+          ? Math.max(0, Math.floor(prevYieldCountRaw))
+          : 0;
+        const yieldCount = prevYieldCount + 1;
+        (nextPayload as any).__yieldCount = yieldCount;
+
+        if (yieldCount > MAX_YIELDS) {
+          throw new Error(`BLOCKED: Job yielded too many times (${yieldCount} > ${MAX_YIELDS}). Halting for human review.`);
+        }
+
+        const yieldMsg = typeof (result as any).message === "string" && (result as any).message.trim()
+          ? String((result as any).message).trim()
+          : "Yielding job for requeue";
+
+        try {
+          await admin
+            .from("ai_agent_jobs")
+            .update({
+              status: "queued",
+              payload: nextPayload as any,
+              // Store yield metadata for observability (job is not terminal).
+              result: { ...(isRecord(result) ? result : {}), yieldedAt: nowIso, yieldCount } as any,
+              error: null,
+              started_at: null,
+              completed_at: null,
+              last_heartbeat: null,
+              // Push to the back of the queue to avoid starvation.
+              created_at: nowIso,
+            })
+            .eq("id", jobId);
+        } catch {
+          // best-effort
+        }
+
+        try { await emitAgentJobEvent(jobId, "generating", 95, yieldMsg, { ...ctx, status: "queued", yieldCount }); } catch {}
+        return new Response(JSON.stringify({ ok: true, processed: true, jobId, status: "queued", jobType, yielded: true, yieldCount }), {
+          status: 200,
+          headers: stdHeaders(req, { "Content-Type": "application/json", "X-Request-Id": requestId }),
+        });
       }
 
       try {

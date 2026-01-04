@@ -155,7 +155,11 @@ test.describe("Live: BookGen chapter → Prince PDF (microheadings + boxes + CSS
     const bookId = `e2e-bookgen-pdf-${Date.now()}`;
     const chapterCount = 1;
 
-    // 1) Generate skeleton-first chapter (real DB + real LLM)
+    // 1) Create book + version + scaffold, but do NOT enqueue chapters yet.
+    // We seed a deterministic PASS2-ish outline so this test is stable and actually validates:
+    // - numbering (1.1 / 1.1.1)
+    // - microheadings
+    // - praktijk + verdieping boxes with box-lead spans
     const rootJobId = await enqueueFactoryJob({
       request,
       supabaseUrl,
@@ -166,16 +170,20 @@ test.describe("Live: BookGen chapter → Prince PDF (microheadings + boxes + CSS
         mode: "create",
         bookId,
         title: "E2E BookGen PDF (chapter render)",
-        level: "n3",
+        level: "n4",
         language: "nl",
         chapterCount,
         topic: "Korte uitleg over diffusie en osmose voor MBO.",
+        enqueueChapters: false,
+        layoutProfile: "pass2",
+        microheadingDensity: "medium",
+        sectionMaxTokens: 8000,
         // Ensure the chapter includes microheadings + both boxes in at least one paragraph.
         userInstructions:
           "Gebruik microheadings binnen elke sectie. " +
           "Gebruik voor praktijk/verdieping een lead met <span class=\"box-lead\">...</span>. " +
           "Zorg dat er minstens één In-de-praktijk én één Verdieping tekstblok voorkomt.",
-        imagePromptLanguage: "en",
+        imagePromptLanguage: "book",
         writeModel,
       },
     });
@@ -190,20 +198,109 @@ test.describe("Live: BookGen chapter → Prince PDF (microheadings + boxes + CSS
     });
     const rootResult = rootFinal?.job?.result || {};
     const bookVersionId = String(rootResult.bookVersionId || "").trim();
-    const firstChapterJobId = String(rootResult.firstChapterJobId || "").trim();
     expect(bookVersionId).toMatch(/^[0-9a-f-]{36}$/i);
-    expect(firstChapterJobId).toMatch(/^[0-9a-f-]{36}$/i);
+
+    // 2) Seed a minimal PASS2-style outline (single chapter, 1 section, 2 numbered subparagraphs)
+    const outlineSkeleton: any = {
+      meta: {
+        bookId,
+        bookVersionId,
+        title: "E2E PASS2 mini outline (chapter PDF)",
+        level: "n4",
+        language: "nl",
+        schemaVersion: "skeleton_v1",
+      },
+      styleProfile: null,
+      chapters: [
+        {
+          id: "ch-1",
+          number: 1,
+          title: "1. Transport door membranen",
+          openerImageSrc: null,
+          sections: [
+            {
+              id: "1.1",
+              title: "1.1 Diffusie en osmose",
+              blocks: [
+                {
+                  type: "subparagraph",
+                  id: "1.1.1",
+                  title: "1.1.1 Diffusie",
+                  blocks: [
+                    { type: "paragraph", id: "seed-p-0001", basisHtml: "", images: null },
+                  ],
+                },
+                {
+                  type: "subparagraph",
+                  id: "1.1.2",
+                  title: "1.1.2 Osmose",
+                  blocks: [
+                    { type: "paragraph", id: "seed-p-0002", basisHtml: "", images: null },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    };
+
+    const saveResp = await request.post(`${supabaseUrl}/functions/v1/book-version-save-skeleton`, {
+      headers: {
+        "Content-Type": "application/json",
+        "X-Agent-Token": agentToken,
+        "X-Organization-Id": organizationId,
+      },
+      data: {
+        bookId,
+        bookVersionId,
+        skeleton: outlineSkeleton,
+        note: "Seed PASS2 mini outline (chapter PDF live test)",
+        compileCanonical: true,
+      },
+    });
+    expect(saveResp.ok()).toBeTruthy();
+    const saveJson: any = await saveResp.json();
+    expect(saveJson.ok).toBe(true);
+
+    // 3) Enqueue + wait for the orchestrated chapter job (section subjobs + yield/requeue)
+    const chapterJobId = await enqueueFactoryJob({
+      request,
+      supabaseUrl,
+      agentToken,
+      organizationId,
+      jobType: "book_generate_chapter",
+      payload: {
+        organization_id: organizationId,
+        bookId,
+        bookVersionId,
+        chapterIndex: 0,
+        chapterCount,
+        topic: "Korte uitleg over diffusie en osmose voor MBO.",
+        level: "n4",
+        language: "nl",
+        userInstructions:
+          "Volg de outline exact. " +
+          "Gebruik microheadings (korte labels, zonder leestekens). " +
+          "Zorg voor minstens één praktijkblok en één verdiepingblok met <span class=\"box-lead\">...</span> als lead.",
+        imagePromptLanguage: "book",
+        layoutProfile: "pass2",
+        microheadingDensity: "medium",
+        sectionMaxTokens: 8000,
+        writeModel,
+      },
+    });
 
     await waitForAgentJobDone({
       request,
       supabaseUrl,
       agentToken,
       organizationId,
-      jobId: firstChapterJobId,
-      timeoutMs: 12 * 60 * 1000,
+      jobId: chapterJobId,
+      timeoutMs: 18 * 60 * 1000,
     });
 
-    // 2) Download compiled canonical (preferred for rendering; reflects skeleton-first source of truth)
+    // 4) Download compiled canonical (preferred for rendering; reflects skeleton-first source of truth)
     const inputsResp = await request.post(`${supabaseUrl}/functions/v1/book-version-input-urls`, {
       headers: {
         "Content-Type": "application/json",
@@ -231,14 +328,14 @@ test.describe("Live: BookGen chapter → Prince PDF (microheadings + boxes + CSS
     expect(canonResp.ok()).toBeTruthy();
     const canonical: any = await canonResp.json();
 
-    // 3) Render HTML using the shared PASS2-inspired renderer
+    // 5) Render HTML using the shared PASS2-inspired renderer
     const html = renderBookHtml(canonical, {
       target: "chapter",
       chapterIndex: 0,
       placeholdersOnly: true, // render visible placeholders instead of requiring assets.zip
     });
 
-    // Assert: microheadings + praktijk/verdieping boxes + lead span + figure placeholder exist in HTML
+    // Assert: numbering + microheadings + both boxes + lead span + figure placeholder exist in HTML
     expect(html).toContain('class="micro-title"');
     expect(html).toContain('class="section-number">1.1</span>');
     expect(html).toContain('class="subparagraph-title"');
@@ -247,7 +344,7 @@ test.describe("Live: BookGen chapter → Prince PDF (microheadings + boxes + CSS
     expect(html).toContain('class="box-lead"');
     expect(html).toContain('figure-placeholder');
 
-    // 4) Produce PDF + PNG preview via Prince
+    // 6) Produce PDF + PNG preview via Prince
     const outDir = path.join("tmp", "e2e-bookgen-pdf", bookId);
     await mkdir(outDir, { recursive: true });
     const htmlPath = path.join(outDir, "chapter.html");

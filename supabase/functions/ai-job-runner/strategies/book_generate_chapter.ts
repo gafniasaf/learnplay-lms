@@ -1,12 +1,12 @@
 /**
  * book_generate_chapter (Factory / ai_agent_jobs)
  *
- * Generates content for a single chapter in a skeleton-first pipeline and chains the next chapter job.
+ * Orchestrates section-by-section generation for a single chapter in a skeleton-first pipeline
+ * (via book_generate_section subjobs), then chains the next chapter job.
  *
- * - Loads skeleton.json from Storage
- * - Uses an LLM to draft sections/blocks and image placeholder suggestions
- * - Writes updates back to skeleton (authoring source of truth)
- * - Compiles deterministic canonical and uploads canonical.json (root path) for render worker stability
+ * - Loads skeleton.json from Storage (to derive outline + section count)
+ * - (Optional) Uses an LLM planner to decide where praktijk/verdieping boxes fit (outline-driven)
+ * - Enqueues book_generate_section jobs sequentially and waits for completion
  * - Enqueues next chapter job until completion
  *
  * IMPORTANT:
@@ -16,7 +16,7 @@
 import type { JobContext, JobExecutor } from "./types.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { emitAgentJobEvent } from "../../_shared/job-events.ts";
-import { compileSkeletonToCanonical, validateBookSkeleton, type BookSkeletonV1, type SkeletonImage } from "../../_shared/bookSkeletonCore.ts";
+import { validateBookSkeleton, type BookSkeletonV1 } from "../../_shared/bookSkeletonCore.ts";
 import { extractJsonFromText } from "../../_shared/generation-utils.ts";
 
 type Provider = "openai" | "anthropic";
@@ -35,43 +35,19 @@ type ChapterLayoutPlan = {
   notes?: string | null;
 };
 
-const TOOL_DRAFT_BOOK_CHAPTER: AnthropicToolSpec = {
-  name: "draft_book_chapter",
-  description:
-    "Return ONLY the chapter draft JSON object (chapterTitle, sections, openerImage). " +
-    "All HTML must be inline and stored in string fields (basisHtml/praktijkHtml/verdiepingHtml).",
-  input_schema: {
-    type: "object",
-    additionalProperties: true,
-    required: ["chapterTitle", "sections"],
-    properties: {
-      chapterTitle: { type: "string" },
-      sections: {
-        type: "array",
-        items: {
-          type: "object",
-          additionalProperties: true,
-          required: ["title", "blocks"],
-          properties: {
-            title: { type: "string" },
-            blocks: { type: "array", items: { type: "object", additionalProperties: true } },
-          },
-        },
-      },
-      openerImage: {
-        anyOf: [
-          { type: "null" },
-          {
-            type: "object",
-            additionalProperties: true,
-            properties: {
-              suggestedPrompt: { anyOf: [{ type: "string" }, { type: "null" }] },
-            },
-          },
-        ],
-      },
-    },
-  },
+type ChapterOutline = {
+  chapterTitle?: string;
+  sections: Array<{
+    title: string;
+    numberedSubparagraphTitles: string[];
+  }>;
+};
+
+type ChapterOrchestratorYield = {
+  yield: true;
+  message: string;
+  nextPayload: Record<string, unknown>;
+  meta?: Record<string, unknown>;
 };
 
 const TOOL_PLAN_CHAPTER_LAYOUT: AnthropicToolSpec = {
@@ -136,286 +112,28 @@ function optionalEnum<T extends string>(value: unknown, allowed: readonly T[]): 
   return allowed.includes(s as T) ? (s as T) : null;
 }
 
-function normalizeLanguageLabel(code: string): string {
-  const s = (code || "").trim().toLowerCase();
-  if (!s) return "the book language";
-  // keep it simple; we don't need full locale support for prompt text
-  if (s === "nl" || s.startsWith("nl-")) return "Dutch";
-  if (s === "en" || s.startsWith("en-")) return "English";
-  if (s === "de" || s.startsWith("de-")) return "German";
-  if (s === "fr" || s.startsWith("fr-")) return "French";
-  if (s === "es" || s.startsWith("es-")) return "Spanish";
-  return s;
-}
-
-function parseModelSpec(raw: unknown): { provider: Provider; model: string } {
-  const s = typeof raw === "string" ? raw.trim() : "";
-  if (!s) {
-    throw new Error("BLOCKED: writeModel is REQUIRED");
-  }
-  const parts = s.split(":").map((x) => x.trim()).filter(Boolean);
-  if (parts.length >= 2) {
-    const provider = parts[0] as Provider;
-    const model = parts.slice(1).join(":");
-    if (provider !== "openai" && provider !== "anthropic") {
-      throw new Error("BLOCKED: writeModel provider must be 'openai' or 'anthropic' (use 'openai:<model>' or 'anthropic:<model>')");
-    }
-    if (!model) throw new Error("BLOCKED: writeModel model is missing");
-    return { provider, model };
-  }
-  throw new Error("BLOCKED: writeModel must be prefixed with provider (use 'openai:<model>' or 'anthropic:<model>')");
-}
-
-async function llmGenerateJson(opts: {
-  provider: Provider;
-  model: string;
-  system: string;
-  prompt: string;
-  maxTokens?: number;
-  tool?: AnthropicToolSpec;
-}): Promise<any> {
-  const { provider, model, system, prompt, maxTokens = 8000, tool } = opts;
-  // Long chapters (PASS2 density) can take >110s on some providers/models. Keep this generous,
-  // but still bounded so jobs fail loudly instead of hanging indefinitely.
-  const timeoutMs = 220_000;
-
-  if (provider === "openai") {
-    const key = requireEnv("OPENAI_API_KEY");
-    const resp = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model,
-        messages: [
-          { role: "system", content: system },
-          { role: "user", content: prompt },
-        ],
-        response_format: { type: "json_object" },
-        temperature: 0.4,
-        max_tokens: maxTokens,
-      }),
-      signal: AbortSignal.timeout(timeoutMs),
-    });
-    const text = await resp.text();
-    if (!resp.ok) throw new Error(`LLM(openai) failed: ${resp.status} ${text.slice(0, 400)}`);
-    const data = JSON.parse(text);
-    const out = data?.choices?.[0]?.message?.content;
-    if (typeof out !== "string" || !out.trim()) throw new Error("LLM(openai) returned empty content");
-    return extractJsonFromText(out);
-  }
-
-  // anthropic
-  const key = requireEnv("ANTHROPIC_API_KEY");
-  // Key property: Anthropic returns structured JSON arguments for tool use, avoiding brittle
-  // “extract JSON from text” parsing failures (e.g. due to unescaped quotes/newlines in HTML strings).
-  const toolSpec = tool ? tool : TOOL_DRAFT_BOOK_CHAPTER;
-  const toolName = toolSpec.name;
-  const tools = [toolSpec];
-  const resp = await fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    headers: {
-      "x-api-key": key,
-      "content-type": "application/json",
-      "anthropic-version": "2023-06-01",
-    },
-    body: JSON.stringify({
-      model,
-      max_tokens: maxTokens,
-      temperature: 0.4,
-      system,
-      tools,
-      tool_choice: { type: "tool", name: toolName },
-      messages: [{ role: "user", content: [{ type: "text", text: prompt }] }],
-    }),
-    signal: AbortSignal.timeout(timeoutMs),
-  });
-  const text = await resp.text();
-  if (!resp.ok) throw new Error(`LLM(anthropic) failed: ${resp.status} ${text.slice(0, 400)}`);
-  const data = JSON.parse(text);
-
-  // Preferred path: tool-based structured output (no JSON parsing from text needed).
-  const toolUse = (Array.isArray((data as any)?.content) ? (data as any).content : []).find(
-    (b: any) => b?.type === "tool_use" && b?.name === toolName && b?.input && typeof b.input === "object",
-  );
-  if (toolUse?.input && typeof toolUse.input === "object") {
-    return toolUse.input;
-  }
-
-  // Back-compat fallback: some models/configs may still return plain text. Parse it, but fail loudly with context.
-  const out = (Array.isArray(data?.content) ? data.content : [])
-    .filter((b: any) => b?.type === "text" && typeof b?.text === "string")
-    .map((b: any) => b.text)
-    .join("\n");
-  if (!out.trim()) throw new Error("LLM(anthropic) returned empty content");
-  try {
-    return extractJsonFromText(out);
-  } catch (e) {
-    const reason = e instanceof Error ? e.message : String(e);
-    const preview = out.replace(/\s+/g, " ").slice(0, 600);
-    throw new Error(`LLM(anthropic) invalid_json (${reason}). Output preview: ${preview}`);
-  }
-}
-
-async function downloadJson(supabase: any, bucket: string, path: string): Promise<any> {
-  const { data, error } = await supabase.storage.from(bucket).download(path);
-  if (error || !data) throw new Error(error?.message || `Failed to download ${bucket}/${path}`);
-  const text = await data.text();
-  return text ? JSON.parse(text) : null;
-}
-
-async function uploadJson(supabase: any, bucket: string, path: string, value: unknown, upsert: boolean) {
-  const text = JSON.stringify(value, null, 2);
-  const blob = new Blob([text], { type: "application/json" });
-  const { error } = await supabase.storage.from(bucket).upload(path, blob, { upsert, contentType: "application/json" });
-  if (error) throw new Error(error.message);
-}
-
-async function callEdgeAsAgent(opts: { orgId: string; path: string; body: unknown }) {
-  const SUPABASE_URL = requireEnv("SUPABASE_URL").replace(/\/$/, "");
-  const AGENT_TOKEN = requireEnv("AGENT_TOKEN");
-  const res = await fetch(`${SUPABASE_URL}/functions/v1/${opts.path}`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "x-agent-token": AGENT_TOKEN,
-      "x-organization-id": opts.orgId,
-    },
-    body: JSON.stringify(opts.body),
-  });
-  const json = await res.json().catch(() => null);
-  if (!res.ok) {
-    const msg = typeof json?.error?.message === "string" ? json.error.message : `Edge call failed (${res.status})`;
-    throw new Error(msg);
-  }
-  return json;
-}
-
-function normalizeInlineHtml(raw: unknown): string {
-  // Keep generation simple: inline HTML only; the renderer sanitizes.
-  const s = typeof raw === "string" ? raw.trim() : "";
-  return s;
-}
-
-function ensureBoxLeadSpan(raw: unknown, opts: { maxWords: number }): string | null {
-  const s0 = typeof raw === "string" ? raw.trim() : "";
-  if (!s0) return null;
-
-  // Remove common placeholder token if a model copied our examples literally.
-  // Example bad input: "LEAD Je ..." or "<span class=\"box-lead\">LEAD</span> Je ..."
-  let s = s0.replace(/^(?:LEAD|Lead)\s+/u, "");
-  const placeholderSpan = s.match(
-    /^<\s*span\b[^>]*class\s*=\s*["'][^"']*box-lead[^"']*["'][^>]*>\s*(?:LEAD|Lead)\s*<\s*\/\s*span\s*>\s*(.*)$/i,
-  );
-  if (placeholderSpan) s = String(placeholderSpan[1] || "").trim();
-
-  // Already has a lead span up front
-  if (/^<\s*span\b[^>]*class\s*=\s*\"[^\"]*box-lead[^\"]*\"/i.test(s)) return s;
-  if (/^<\s*span\b[^>]*class\s*=\s*'[^']*box-lead[^']*'/i.test(s)) return s;
-
-  // Common legacy lead style: <strong>Lead:</strong> Rest...
-  const mStrong = s.match(/^<\s*strong\s*>\s*([^<]{1,120}?)\s*:?\s*<\s*\/\s*strong\s*>\s*(.*)$/i);
-  if (mStrong) {
-    const lead = String(mStrong[1] || "").trim();
-    const rest = String(mStrong[2] || "").trim();
-    if (!lead) return s;
-    return `<span class="box-lead">${lead}</span>${rest ? ` ${rest}` : ""}`;
-  }
-
-  // Other inline-lead patterns: <span>Lead:</span> Rest... (or <em>/<b>/<i>)
-  const mTag = s.match(/^<\s*(span|em|b|i)\b[^>]*>\s*([^<]{1,120}?)\s*:?\s*<\s*\/\s*\1\s*>\s*(.*)$/i);
-  if (mTag) {
-    const lead = String(mTag[2] || "").trim();
-    const rest = String(mTag[3] || "").trim();
-    if (!lead) return s;
-    return `<span class="box-lead">${lead}</span>${rest ? ` ${rest}` : ""}`;
-  }
-
-  // If the string starts with a tag we don't understand, avoid corrupting HTML.
-  if (s.startsWith("<")) return s;
-
-  const words = s.split(/\s+/).map((w) => w.trim()).filter(Boolean);
-  if (words.length === 0) return null;
-  const n = Math.max(1, Math.min(Math.floor(opts.maxWords || 2), words.length));
-  const lead = words.slice(0, n).join(" ");
-  const rest = words.slice(n).join(" ");
-  return `<span class="box-lead">${lead}</span>${rest ? ` ${rest}` : ""}`;
-}
-
-function safeItems(raw: unknown): string[] {
-  if (!Array.isArray(raw)) return [];
-  return raw
-    .map((x) => (typeof x === "string" ? x.trim() : ""))
-    .filter((x) => !!x)
-    .slice(0, 50);
-}
-
-type DraftBlock =
-  | {
-      type: "paragraph";
-      basisHtml: string;
-      praktijkHtml?: string | null;
-      verdiepingHtml?: string | null;
-      images?: Array<{
-        alt?: string | null;
-        caption?: string | null;
-        layoutHint?: string | null;
-        suggestedPrompt?: string | null;
-      }> | null;
-    }
-  | {
-      type: "subparagraph";
-      title: string;
-      blocks: DraftBlock[];
-    }
-  | {
-      type: "list";
-      ordered?: boolean | null;
-      items: string[];
-      images?: Array<{
-        alt?: string | null;
-        caption?: string | null;
-        layoutHint?: string | null;
-        suggestedPrompt?: string | null;
-      }> | null;
-    }
-  | {
-      type: "steps";
-      items: string[];
-      images?: Array<{
-        alt?: string | null;
-        caption?: string | null;
-        layoutHint?: string | null;
-        suggestedPrompt?: string | null;
-      }> | null;
-    };
-
-type DraftChapter = {
-  chapterTitle: string;
-  sections: Array<{
-    title: string;
-    blocks: DraftBlock[];
-  }>;
-  openerImage?: { suggestedPrompt?: string | null } | null;
-};
-
-type ChapterOutline = {
-  chapterTitle?: string;
-  sections: Array<{
-    title: string;
-    numberedSubparagraphTitles: string[];
-  }>;
-};
-
 function normalizeWs(s: string): string {
-  return String(s || "").replace(/\s+/g, " ").trim();
+  // Remove invisible formatting characters that can leak from PDF/IDML sources
+  // (e.g. WORD JOINER, zero-width spaces, soft hyphen) so outline/title matching is stable.
+  return String(s || "")
+    .replace(/[\u00AD\u200B-\u200D\u2060\uFEFF]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 function stripNumberPrefix(title: string): string {
   return normalizeWs(title).replace(/^\d+(?:\.\d+)*\s+/, "").trim();
 }
 
-function stripChapterNumberPrefix(title: string): string {
-  return normalizeWs(title).replace(/^\d+\.\s+/, "").trim();
+function normalizeLanguageLabel(code: string): string {
+  const s = (code || "").trim().toLowerCase();
+  if (!s) return "the book language";
+  if (s === "nl" || s.startsWith("nl-")) return "Dutch";
+  if (s === "en" || s.startsWith("en-")) return "English";
+  if (s === "de" || s.startsWith("de-")) return "German";
+  if (s === "fr" || s.startsWith("fr-")) return "French";
+  if (s === "es" || s.startsWith("es-")) return "Spanish";
+  return s;
 }
 
 function looksLikePlaceholderChapterTitle(title: string, chapterNumber: number): boolean {
@@ -442,7 +160,7 @@ function extractOutlineFromSkeletonChapter(chRaw: any, chapterNumber: number): C
       return { title, numberedSubparagraphTitles };
     })
     .filter((s: any) => !!s.title)
-    .slice(0, 6);
+    .slice(0, 50);
 
   const hasSectionTitles = sections.length > 0;
   if (!lockChapterTitle && !hasSectionTitles) return null;
@@ -453,7 +171,100 @@ function extractOutlineFromSkeletonChapter(chRaw: any, chapterNumber: number): C
   };
 }
 
-const NUMBERED_SUBPARAGRAPH_TITLE_RE = /^\d+(?:\.\d+){2,}\s+/;
+function parseModelSpec(raw: string): { provider: Provider; model: string } {
+  const s = raw.trim();
+  const parts = s.split(":").map((x) => x.trim()).filter(Boolean);
+  if (parts.length < 2) {
+    throw new Error("BLOCKED: writeModel must be prefixed with provider (use 'openai:<model>' or 'anthropic:<model>')");
+  }
+  const provider = parts[0] as Provider;
+  const model = parts.slice(1).join(":");
+  if (provider !== "openai" && provider !== "anthropic") {
+    throw new Error("BLOCKED: writeModel provider must be 'openai' or 'anthropic'");
+  }
+  if (!model) throw new Error("BLOCKED: writeModel model is missing");
+  return { provider, model };
+}
+
+async function llmGenerateJson(opts: {
+  provider: Provider;
+  model: string;
+  system: string;
+  prompt: string;
+  maxTokens: number;
+  tool: AnthropicToolSpec;
+}): Promise<any> {
+  const { provider, model, system, prompt, maxTokens, tool } = opts;
+  const timeoutMs = 220_000;
+
+  if (provider === "openai") {
+    const key = requireEnv("OPENAI_API_KEY");
+    const resp = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model,
+        messages: [
+          { role: "system", content: system },
+          { role: "user", content: prompt },
+        ],
+        response_format: { type: "json_object" },
+        temperature: 0.3,
+        max_tokens: maxTokens,
+      }),
+      signal: AbortSignal.timeout(timeoutMs),
+    });
+    const text = await resp.text();
+    if (!resp.ok) throw new Error(`LLM(openai) failed: ${resp.status} ${text.slice(0, 400)}`);
+    const data = JSON.parse(text);
+    const out = data?.choices?.[0]?.message?.content;
+    if (typeof out !== "string" || !out.trim()) throw new Error("LLM(openai) returned empty content");
+    return extractJsonFromText(out);
+  }
+
+  const key = requireEnv("ANTHROPIC_API_KEY");
+  const toolName = tool.name;
+  const resp = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: {
+      "x-api-key": key,
+      "content-type": "application/json",
+      "anthropic-version": "2023-06-01",
+    },
+    body: JSON.stringify({
+      model,
+      max_tokens: maxTokens,
+      temperature: 0.3,
+      system,
+      tools: [tool],
+      tool_choice: { type: "tool", name: toolName },
+      messages: [{ role: "user", content: [{ type: "text", text: prompt }] }],
+    }),
+    signal: AbortSignal.timeout(timeoutMs),
+  });
+  const text = await resp.text();
+  if (!resp.ok) throw new Error(`LLM(anthropic) failed: ${resp.status} ${text.slice(0, 400)}`);
+  const data = JSON.parse(text);
+
+  const toolUse = (Array.isArray((data as any)?.content) ? (data as any).content : []).find(
+    (b: any) => b?.type === "tool_use" && b?.name === toolName && b?.input && typeof b.input === "object",
+  );
+  if (toolUse?.input && typeof toolUse.input === "object") return toolUse.input;
+
+  const out = (Array.isArray(data?.content) ? data.content : [])
+    .filter((b: any) => b?.type === "text" && typeof b?.text === "string")
+    .map((b: any) => b.text)
+    .join("\n");
+  if (!out.trim()) throw new Error("LLM(anthropic) returned empty content");
+  return extractJsonFromText(out);
+}
+
+async function downloadJson(supabase: any, bucket: string, path: string): Promise<any> {
+  const { data, error } = await supabase.storage.from(bucket).download(path);
+  if (error || !data) throw new Error(error?.message || `Failed to download ${bucket}/${path}`);
+  const text = await data.text();
+  return text ? JSON.parse(text) : null;
+}
 
 function pickLayoutBudgets(profile: ChapterLayoutProfile, candidateCount: number): {
   praktijkRange: [number, number];
@@ -461,8 +272,6 @@ function pickLayoutBudgets(profile: ChapterLayoutProfile, candidateCount: number
 } {
   const n = Math.max(0, Math.floor(candidateCount));
   if (n === 0) return { praktijkRange: [0, 0], verdiepingRange: [0, 0] };
-
-  // Soft guidance ranges, not hard requirements.
   const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
   const range = (lo: number, hi: number) => [clamp(lo, 0, n), clamp(hi, 0, n)] as [number, number];
 
@@ -538,7 +347,7 @@ function buildLayoutPlannerPrompt(opts: {
     "Candidate numbered subparagraph titles (select from these ONLY):\n" +
     candidateText +
     "\n\nGuidance:\n" +
-    "- Pick praktijk titles that naturally map to care/work situations (measurement, observation, symptoms, self-care, procedures).\n" +
+    "- Pick praktijk titles that naturally map to care/work situations.\n" +
     "- Pick verdieping titles that benefit from a deeper mechanism or nuance.\n" +
     "- If a box would be generic or forced, do NOT select that title.\n"
   );
@@ -546,14 +355,12 @@ function buildLayoutPlannerPrompt(opts: {
 
 function sanitizeLayoutPlan(raw: any, outline: ChapterOutline): ChapterLayoutPlan | null {
   if (!raw || typeof raw !== "object") return null;
-
   const allowed = new Set<string>();
   for (const s of outline.sections) {
     for (const t of (Array.isArray(s.numberedSubparagraphTitles) ? s.numberedSubparagraphTitles : [])) {
       if (typeof t === "string" && t.trim()) allowed.add(normalizeWs(t));
     }
   }
-
   const take = (v: unknown): string[] => {
     if (!Array.isArray(v)) return [];
     const out: string[] = [];
@@ -565,12 +372,83 @@ function sanitizeLayoutPlan(raw: any, outline: ChapterOutline): ChapterLayoutPla
     }
     return out;
   };
-
   return {
     praktijkSubparagraphTitles: take((raw as any).praktijkSubparagraphTitles),
     verdiepingSubparagraphTitles: take((raw as any).verdiepingSubparagraphTitles),
     notes: typeof (raw as any).notes === "string" ? String((raw as any).notes).trim().slice(0, 500) : null,
   };
+}
+
+function ensureMinimumBoxSelections(opts: {
+  outline: ChapterOutline;
+  layoutPlan: ChapterLayoutPlan | null;
+  profile: ChapterLayoutProfile;
+}): ChapterLayoutPlan | null {
+  const titles: string[] = [];
+  for (const s of opts.outline.sections) {
+    for (const t of (Array.isArray(s.numberedSubparagraphTitles) ? s.numberedSubparagraphTitles : [])) {
+      const tt = typeof t === "string" ? normalizeWs(t) : "";
+      if (tt) titles.push(tt);
+    }
+  }
+  if (!titles.length) return opts.layoutPlan;
+
+  const uniq = (arr: string[]) => {
+    const out: string[] = [];
+    for (const t of arr) {
+      const tt = normalizeWs(t);
+      if (!tt) continue;
+      if (!out.includes(tt)) out.push(tt);
+    }
+    return out;
+  };
+
+  const plan: ChapterLayoutPlan = opts.layoutPlan
+    ? {
+      praktijkSubparagraphTitles: uniq(opts.layoutPlan.praktijkSubparagraphTitles),
+      verdiepingSubparagraphTitles: uniq(opts.layoutPlan.verdiepingSubparagraphTitles),
+      notes: typeof opts.layoutPlan.notes === "string" ? opts.layoutPlan.notes : null,
+    }
+    : { praktijkSubparagraphTitles: [], verdiepingSubparagraphTitles: [], notes: null };
+
+  // Avoid overlaps (prefer keeping praktijk)
+  plan.verdiepingSubparagraphTitles = plan.verdiepingSubparagraphTitles.filter((t) => !plan.praktijkSubparagraphTitles.includes(t));
+
+  const pick = (preferredIndex: number, avoid: Set<string>): string | null => {
+    const n = titles.length;
+    const start = Math.max(0, Math.min(n - 1, Math.floor(preferredIndex)));
+    for (let delta = 0; delta < n; delta++) {
+      for (const idx of [start + delta, start - delta]) {
+        if (idx < 0 || idx >= n) continue;
+        const t = titles[idx];
+        if (!t) continue;
+        if (avoid.has(t)) continue;
+        return t;
+      }
+    }
+    return null;
+  };
+
+  const used = new Set<string>([...plan.praktijkSubparagraphTitles, ...plan.verdiepingSubparagraphTitles]);
+
+  // Hard requirement for this system: ensure at least one praktijk + one verdieping across the chapter.
+  // (The section generator enforces presence when targets are provided.)
+  if (plan.praktijkSubparagraphTitles.length === 0) {
+    const t = pick(Math.floor(titles.length / 3), used);
+    if (t) {
+      plan.praktijkSubparagraphTitles.push(t);
+      used.add(t);
+    }
+  }
+  if (plan.verdiepingSubparagraphTitles.length === 0) {
+    const t = pick(Math.floor((titles.length * 2) / 3), used);
+    if (t) {
+      plan.verdiepingSubparagraphTitles.push(t);
+      used.add(t);
+    }
+  }
+
+  return plan;
 }
 
 async function planChapterLayout(opts: {
@@ -588,7 +466,6 @@ async function planChapterLayout(opts: {
     0,
   );
   if (candidatesCount <= 0) return null;
-
   const system = buildLayoutPlannerSystem({ language: opts.language, level: opts.level });
   const prompt = buildLayoutPlannerPrompt({
     bookTitle: opts.bookTitle,
@@ -596,7 +473,6 @@ async function planChapterLayout(opts: {
     outline: opts.outline,
     profile: opts.profile,
   });
-
   const raw = await llmGenerateJson({
     provider: opts.provider,
     model: opts.model,
@@ -605,409 +481,34 @@ async function planChapterLayout(opts: {
     maxTokens: 1200,
     tool: TOOL_PLAN_CHAPTER_LAYOUT,
   });
-
   return sanitizeLayoutPlan(raw, opts.outline);
 }
 
-function analyzeDraftDensity(draft: DraftChapter): {
-  praktijkBoxes: number;
-  verdiepingBoxes: number;
-  numberedSubparagraphsPerSection: number[];
-} {
-  const sections = Array.isArray((draft as any)?.sections) ? (draft as any).sections : [];
-  let praktijkBoxes = 0;
-  let verdiepingBoxes = 0;
-  const numberedSubparagraphsPerSection: number[] = [];
-
-  const walkBlocks = (blocksRaw: any[]) => {
-    const blocks = Array.isArray(blocksRaw) ? blocksRaw : [];
-    for (const b of blocks) {
-      if (!b || typeof b !== "object") continue;
-      const t = typeof (b as any).type === "string" ? String((b as any).type) : "";
-      if (t === "paragraph") {
-        const pr = typeof (b as any).praktijkHtml === "string" ? String((b as any).praktijkHtml).trim() : "";
-        const vd = typeof (b as any).verdiepingHtml === "string" ? String((b as any).verdiepingHtml).trim() : "";
-        if (pr) praktijkBoxes += 1;
-        if (vd) verdiepingBoxes += 1;
-      } else if (t === "subparagraph") {
-        const inner = Array.isArray((b as any).blocks) ? (b as any).blocks : [];
-        walkBlocks(inner);
-      }
+function pickTargetsForSection(opts: {
+  outline: ChapterOutline | null;
+  layoutPlan: ChapterLayoutPlan | null;
+  sectionIndex: number;
+}): { praktijkTargets: string[]; verdiepingTargets: string[] } {
+  const section = opts.outline?.sections?.[opts.sectionIndex];
+  const allowed = new Set<string>(
+    Array.isArray(section?.numberedSubparagraphTitles)
+      ? section.numberedSubparagraphTitles.map((t) => normalizeWs(t)).filter(Boolean)
+      : [],
+  );
+  const take = (arr: string[]): string[] => {
+    const out: string[] = [];
+    for (const t of arr) {
+      const tt = normalizeWs(t);
+      if (!tt) continue;
+      if (!allowed.has(tt)) continue;
+      if (!out.includes(tt)) out.push(tt);
     }
+    return out;
   };
-
-  for (const s of sections) {
-    const blocks = Array.isArray((s as any)?.blocks) ? (s as any).blocks : [];
-    const numbered = blocks
-      .filter((b: any) => b && typeof b === "object" && b.type === "subparagraph")
-      .map((b: any) => (typeof b.title === "string" ? normalizeWs(b.title) : ""))
-      .filter((t: string) => NUMBERED_SUBPARAGRAPH_TITLE_RE.test(t)).length;
-    numberedSubparagraphsPerSection.push(numbered);
-    walkBlocks(blocks);
-  }
-
-  return { praktijkBoxes, verdiepingBoxes, numberedSubparagraphsPerSection };
-}
-
-// House style reference:
-// `canonical_book_PASS2.assembled_prince.html` (Prince pass2) demonstrates the target voice/structure:
-// - short sentences
-// - clear definitions with "Dit heet..." / "Dat betekent..."
-// - bold key terms on first mention
-// - praktijk/verdieping are boxed and start with a short "lead" phrase (first 1-2 words)
-const PRINCE_PASS2_MBO_HOUSE_STYLE = [
-  "House style (match canonical_book_PASS2 Prince PASS2):",
-  "- Use short, clear sentences and active voice.",
-  "- Prefer: 'X is ...', 'Dit heet ...', 'Dat betekent ...'.",
-  "- Bold new key terms on first mention with <strong>.",
-  "- Use 1 simple analogy when helpful (e.g. 'een beetje zoals ...').",
-  "- Keep titles short (micro-title vibe): 2-6 words, no punctuation at the end.",
-  "- Do NOT include the labels 'In de praktijk:' or 'Verdieping:' in the text; the renderer adds them.",
-  "- Praktijk text should read like a short workplace scenario in second person ('Je ...' / 'Bij een ...' / 'Een ...').",
-  "- For praktijk/verdieping: start with a short lead phrase wrapped as <span class=\"box-lead\">...</span> (1-6 words).",
-].join("\n") + "\n";
-
-function buildSystem(opts: {
-  language: string;
-  level: "n3" | "n4";
-  imagePromptLanguage: ImagePromptLanguage;
-  mboProfile: "mbo_generic";
-}) {
-  const { language, level, imagePromptLanguage } = opts;
-  const langLabel = normalizeLanguageLabel(language);
-  const imageLangLabel = imagePromptLanguage === "book" ? langLabel : "English";
-  const depthGuidance =
-    level === "n3"
-      ? (
-        "Depth policy (MBO N3): keep it practical and accessible.\n" +
-        "- Avoid heavy theory-dumps.\n" +
-        "- Do NOT introduce advanced equations/constants unless the topic truly requires it.\n" +
-        "- If you include any formula, keep it very simple and explain it in plain language.\n"
-      )
-      : (
-        "Depth policy (MBO N4): you may go slightly deeper, but stay teachable.\n" +
-        "- You may include at most ONE simple formula OR named law if it helps learning.\n" +
-        "- Always explain jargon and any formula in plain language.\n"
-      );
-
-  return (
-    "You are BookGen Pro.\n" +
-    "You write educational book chapters as inline HTML strings (no <p> tags).\n" +
-    "Allowed inline tags: <strong>, <em>, <b>, <i>, <sup>, <sub>, <span>, <br/>.\n" +
-    "Do NOT use any <<MARKER>> tokens at all.\n" +
-    "Write for MBO students: clear, concrete, and example-driven.\n" +
-    "Use short sentences. Define terms the first time you use them.\n" +
-    PRINCE_PASS2_MBO_HOUSE_STYLE +
-    depthGuidance +
-    "Output MUST be valid JSON ONLY (no markdown).\n" +
-    `Book language: ${language} (${langLabel})\n` +
-    `Image suggestedPrompt language: ${imageLangLabel}\n` +
-    `Level: ${level}\n`
-  );
-}
-
-function buildPrompt(opts: {
-  topic: string;
-  bookTitle: string;
-  chapterNumber: number;
-  chapterCount: number;
-  userInstructions?: string | null;
-  level: "n3" | "n4";
-  language: string;
-  imagePromptLanguage: ImagePromptLanguage;
-  outline?: ChapterOutline | null;
-  layoutPlan?: ChapterLayoutPlan | null;
-}) {
-  const { topic, bookTitle, chapterNumber, chapterCount, userInstructions, level, language, imagePromptLanguage, outline, layoutPlan } = opts;
-  const langLabel = normalizeLanguageLabel(language);
-  const imageLangLabel = imagePromptLanguage === "book" ? langLabel : "English";
-
-  const outlineText =
-    outline && Array.isArray(outline.sections) && outline.sections.length
-      ? (
-        "\nOUTLINE (MUST FOLLOW):\n" +
-        (typeof outline.chapterTitle === "string" && outline.chapterTitle.trim()
-          ? `- Chapter title (DO NOT change): ${outline.chapterTitle.trim()}\n`
-          : "") +
-        outline.sections
-          .map((s, i) => {
-            const st = typeof s?.title === "string" ? s.title.trim() : "";
-            const subs = Array.isArray(s?.numberedSubparagraphTitles) ? s.numberedSubparagraphTitles : [];
-            const subsLine = subs.length ? `\n    - Numbered subparagraphs (h3): ${subs.join(" | ")}` : "";
-            return `- Section ${i + 1}: ${st}${subsLine}`;
-          })
-          .join("\n") +
-        "\n\n"
-      )
-      : "";
-
-  const layoutPlanText =
-    layoutPlan && (layoutPlan.praktijkSubparagraphTitles.length || layoutPlan.verdiepingSubparagraphTitles.length)
-      ? (
-        "\nLAYOUT PLAN (follow, but do NOT force generic boxes):\n" +
-        `- Praktijk targets (use praktijkHtml only inside these numbered subparagraph titles): ${
-          layoutPlan.praktijkSubparagraphTitles.length ? layoutPlan.praktijkSubparagraphTitles.join(" | ") : "(none)"
-        }\n` +
-        `- Verdieping targets (use verdiepingHtml only inside these numbered subparagraph titles): ${
-          layoutPlan.verdiepingSubparagraphTitles.length ? layoutPlan.verdiepingSubparagraphTitles.join(" | ") : "(none)"
-        }\n` +
-        (typeof layoutPlan.notes === "string" && layoutPlan.notes.trim() ? `- Notes: ${layoutPlan.notes.trim()}\n` : "") +
-        "Rules:\n" +
-        "- Do NOT add praktijkHtml/verdiepingHtml outside the targets.\n" +
-        "- If a target would become generic or forced, OMIT it (skip) instead of writing weak content.\n\n"
-      )
-      : "";
-
-  const verdiepingGuidance =
-    level === "n3"
-      ? (
-        "- verdiepingHtml is OPTIONAL. If you include it, keep it short (1-3 sentences), practical, and explain terms.\n" +
-        "- Avoid equations and named scientific laws unless the topic truly requires it.\n"
-      )
-      : (
-        "- verdiepingHtml is OPTIONAL. If you include it, keep it teachable and explain jargon.\n" +
-        "- You may include ONE simple formula OR named law if helpful, but explain it plainly.\n"
-      );
-
-  const outlineSectionCount =
-    outline && Array.isArray(outline.sections) && outline.sections.length ? outline.sections.length : null;
-
-  const sectionCountConstraint = outlineSectionCount
-    ? `- Return EXACTLY ${outlineSectionCount} sections, in the same order as the outline.\n`
-    : "- Make 2-4 sections.\n";
-
-  const titleConstraints = outlineSectionCount
-    ? (
-      "- chapterTitle MUST match the outline (ignore the topic if it conflicts).\n" +
-      "- Each sections[i].title MUST match the outline's section title.\n"
-    )
-    : (
-      "- Section titles should read like micro-titles (short noun phrase).\n"
-    );
-
-  const structureConstraints = outlineSectionCount
-    ? (
-      "- For each section, include the numbered subparagraphs listed in the outline EXACTLY as subparagraph.title.\n" +
-      "- Do NOT invent additional numbered subparagraph titles (unless the outline lists none for that section).\n" +
-      "- Inside each numbered subparagraph, add 1-2 microheadings as nested subparagraphs (type='subparagraph') with SHORT titles (2-6 words, no punctuation).\n" +
-      "- Inside each numbered subparagraph, include 1-3 paragraph blocks (basisHtml) to build depth.\n"
-    )
-    : (
-      "- Each section: 2-5 blocks.\n" +
-      "- Include microheadings using subparagraph blocks (type='subparagraph'). Aim for 1-2 subparagraphs per section.\n" +
-      "- subparagraph.title must be short (2-6 words) and have no punctuation at the end.\n"
-    );
-
-  return (
-    "Return JSON with this exact shape:\n" +
-    "{\n" +
-    '  \"chapterTitle\": string,\n' +
-    '  \"sections\": [\n' +
-    "    {\n" +
-    '      \"title\": string,\n' +
-    '      \"blocks\": [\n' +
-    "        {\n" +
-    '          \"type\": \"subparagraph\",\n' +
-    '          \"title\": string,\n' +
-    '          \"blocks\": [ /* subparagraph | paragraph | list | steps */ ]\n' +
-    "        } |\n" +
-    "        {\n" +
-    '          \"type\": \"paragraph\",\n' +
-    '          \"basisHtml\": string,\n' +
-    '          \"praktijkHtml\"?: string,\n' +
-    '          \"verdiepingHtml\"?: string,\n' +
-    '          \"images\"?: [{\"alt\"?: string, \"caption\"?: string, \"layoutHint\"?: string, \"suggestedPrompt\"?: string}]\n' +
-    "        } |\n" +
-    "        {\n" +
-    '          \"type\": \"list\",\n' +
-    '          \"ordered\"?: boolean,\n' +
-    '          \"items\": string[],\n' +
-    '          \"images\"?: [{\"alt\"?: string, \"caption\"?: string, \"layoutHint\"?: string, \"suggestedPrompt\"?: string}]\n' +
-    "        } |\n" +
-    "        {\n" +
-    '          \"type\": \"steps\",\n' +
-    '          \"items\": string[],\n' +
-    '          \"images\"?: [{\"alt\"?: string, \"caption\"?: string, \"layoutHint\"?: string, \"suggestedPrompt\"?: string}]\n' +
-    "        }\n" +
-    "      ]\n" +
-    "    }\n" +
-    "  ],\n" +
-    '  \"openerImage\"?: {\"suggestedPrompt\"?: string} | null\n' +
-    "}\n\n" +
-    `Book title: ${bookTitle}\n` +
-    `Topic: ${topic}\n` +
-    `Chapter: ${chapterNumber} of ${chapterCount}\n` +
-    `Book language: ${language} (${langLabel})\n` +
-    `Image suggestedPrompt language: ${imageLangLabel}\n` +
-    (userInstructions ? `User instructions: ${userInstructions}\n` : "") +
-    outlineText +
-    layoutPlanText +
-    "\nConstraints:\n" +
-    sectionCountConstraint +
-    titleConstraints +
-    structureConstraints +
-    "- Use the book language for chapterTitle, section titles, basisHtml, praktijkHtml, verdiepingHtml, alt, caption.\n" +
-    `- suggestedPrompt MUST be written in ${imageLangLabel}.\n` +
-    "- Include 1-2 image suggestions across the chapter via images[].suggestedPrompt.\n" +
-    "- suggestedPrompt must be concise and specific (no camera brand names, no artist names).\n" +
-    "- basisHtml: 2-5 short sentences. Define key terms. Prefer 'Dit heet...' / 'Dat betekent...'.\n" +
-    "- praktijkHtml: 2-4 short sentences. Workplace scenario, second person.\n" +
-    "- praktijkHtml MUST start with a lead phrase wrapped as <span class=\"box-lead\">...</span> (lead is 1-4 words).\n" +
-    "- verdiepingHtml: OPTIONAL. If present, keep it simple and step-by-step.\n" +
-    "- verdiepingHtml MUST start with a lead phrase wrapped as <span class=\"box-lead\">...</span> (lead is 1-6 words).\n" +
-    "- Do NOT include 'In de praktijk:' or 'Verdieping:' in the text.\n" +
-    verdiepingGuidance
-  );
-}
-
-function assignIdsAndImages(opts: {
-  bookId: string;
-  chapterIndex: number;
-  draft: DraftChapter;
-}): { title: string; sections: any[]; openerImageSrc: string | null } {
-  const { bookId, chapterIndex, draft } = opts;
-  const chNum = chapterIndex + 1;
-  const chapterTitle = typeof draft.chapterTitle === "string" ? draft.chapterTitle.trim() : `Hoofdstuk ${chNum}`;
-
-  let imageCounter = 0;
-  const sections = (Array.isArray(draft.sections) ? draft.sections : []).slice(0, 6).map((s, si) => {
-    const sectionNumber = `${chNum}.${si + 1}`;
-    const rawSectionTitle = typeof (s as any)?.title === "string" ? String((s as any).title).trim() : "";
-    const cleanSectionTitle = rawSectionTitle.replace(/^\d+(?:\.\d+)*\s+/, "").trim();
-    const numberedSectionTitle = cleanSectionTitle ? `${sectionNumber} ${cleanSectionTitle}` : sectionNumber;
-
-    const blocksIn = Array.isArray((s as any)?.blocks) ? (s as any).blocks : [];
-
-    const toImages = (imgsRaw: any[], blockKey: string): SkeletonImage[] | null => {
-      if (!imgsRaw.length) return null;
-      const safeKey = String(blockKey || "").replace(/[^a-z0-9_]+/gi, "_");
-      return imgsRaw.slice(0, 6).map((img: any, ii: number) => {
-        imageCounter += 1;
-        const src = `figures/${bookId}/ch${chNum}/img_${safeKey}_${ii + 1}.png`;
-        return {
-          src,
-          alt: typeof img?.alt === "string" ? img.alt : null,
-          caption: typeof img?.caption === "string" ? img.caption : null,
-          figureNumber: `${chNum}.${imageCounter}`,
-          layoutHint: typeof img?.layoutHint === "string" ? img.layoutHint : null,
-          suggestedPrompt: typeof img?.suggestedPrompt === "string" ? img.suggestedPrompt : null,
-        };
-      });
-    };
-
-    const convertBlock = (b: any, keyParts: number[]): any => {
-      const t = typeof b?.type === "string" ? b.type : "";
-      const key = keyParts.join("_"); // stable key for ids + image filenames
-      const blockId = `ch-${chNum}-b-${key}`;
-
-      if (t === "subparagraph") {
-        const title = typeof b?.title === "string" ? b.title.trim() : "";
-        const innerIn = Array.isArray(b?.blocks) ? b.blocks : [];
-        const innerBlocks = innerIn.slice(0, 20).map((ib: any, ii: number) => convertBlock(ib, keyParts.concat([ii + 1])));
-        return {
-          type: "subparagraph",
-          id: `ch-${chNum}-sub-${key}`,
-          title,
-          blocks: innerBlocks,
-        };
-      }
-
-      if (t === "paragraph") {
-        const imgsRaw = Array.isArray(b.images) ? b.images : [];
-        const images = toImages(imgsRaw, key);
-        const praktijkHtml = typeof b.praktijkHtml === "string" ? ensureBoxLeadSpan(normalizeInlineHtml(b.praktijkHtml), { maxWords: 3 }) : null;
-        const verdiepingHtml = typeof b.verdiepingHtml === "string" ? ensureBoxLeadSpan(normalizeInlineHtml(b.verdiepingHtml), { maxWords: 5 }) : null;
-        return {
-          type: "paragraph",
-          id: blockId,
-          basisHtml: normalizeInlineHtml(b.basisHtml),
-          ...(praktijkHtml ? { praktijkHtml } : {}),
-          ...(verdiepingHtml ? { verdiepingHtml } : {}),
-          ...(images ? { images } : {}),
-        };
-      }
-
-      if (t === "list") {
-        const imgsRaw = Array.isArray(b.images) ? b.images : [];
-        const images = toImages(imgsRaw, key);
-        return {
-          type: "list",
-          id: blockId,
-          ordered: b.ordered === true,
-          items: safeItems(b.items),
-          ...(images ? { images } : {}),
-        };
-      }
-
-      if (t === "steps") {
-        const imgsRaw = Array.isArray(b.images) ? b.images : [];
-        const images = toImages(imgsRaw, key);
-        return {
-          type: "steps",
-          id: blockId,
-          items: safeItems(b.items),
-          ...(images ? { images } : {}),
-        };
-      }
-
-      // Unknown block: coerce to paragraph
-      return {
-        type: "paragraph",
-        id: blockId,
-        basisHtml: normalizeInlineHtml((b as any)?.basisHtml ?? ""),
-      };
-    };
-
-    const blocksRaw = blocksIn.slice(0, 20).map((b: any, bi: number) => convertBlock(b, [si + 1, bi + 1]));
-
-    // PASS2-style structure: each section has numbered subparagraph headings (e.g. 1.1.1),
-    // and may include unnumbered micro-titles.
-    //
-    // If the draft did not explicitly include numbered subparagraph headings, wrap the section content
-    // in a single numbered subparagraph so the PDF shows subparagraph numbers.
-    const hasNumberedSubparagraph = blocksRaw.some((b: any) => {
-      if (!b || typeof b !== "object") return false;
-      if (b.type !== "subparagraph") return false;
-      const t = typeof b.title === "string" ? b.title.trim() : "";
-      return /^\d+(?:\.\d+){2,}\s+/.test(t); // e.g. 1.1.1 Title
-    });
-
-    let blocks: any[] = blocksRaw;
-    if (!hasNumberedSubparagraph && blocksRaw.length) {
-      const subNum = `${sectionNumber}.1`;
-      const subTitle = `${subNum} ${cleanSectionTitle || "Inleiding"}`;
-
-      // Ensure at least one micro-title exists inside the subparagraph (PASS2 uses micro-titles heavily).
-      const hasMicroTitle = blocksRaw.some((b: any) => b && typeof b === "object" && b.type === "subparagraph" && !/^\d+(?:\.\d+){2,}\s+/.test(String(b.title || "").trim()));
-      const innerBlocks = hasMicroTitle
-        ? blocksRaw
-        : [{
-            type: "subparagraph",
-            title: cleanSectionTitle || "Kernidee",
-            blocks: blocksRaw,
-          }];
-
-      blocks = [{
-        type: "subparagraph",
-        id: subNum,
-        title: subTitle,
-        blocks: innerBlocks,
-      }];
-    }
-
-    return {
-      // Use PASS2-like ids so links/bookmarks are stable and the renderer can show numbers.
-      id: sectionNumber,
-      title: numberedSectionTitle,
-      blocks,
-    };
-  });
-
-  // We set an opener placeholder key so renderers can request/resolve it later.
-  const openerPrompt = typeof draft?.openerImage?.suggestedPrompt === "string" ? draft.openerImage.suggestedPrompt.trim() : "";
-  const openerImageSrc = openerPrompt ? `figures/${bookId}/ch${chNum}/opener.png` : null;
-
-  return { title: chapterTitle, sections, openerImageSrc };
+  return {
+    praktijkTargets: opts.layoutPlan ? take(opts.layoutPlan.praktijkSubparagraphTitles) : [],
+    verdiepingTargets: opts.layoutPlan ? take(opts.layoutPlan.verdiepingSubparagraphTitles) : [],
+  };
 }
 
 export class BookGenerateChapter implements JobExecutor {
@@ -1032,9 +533,7 @@ export class BookGenerateChapter implements JobExecutor {
     if (chapterCount < 1 || chapterCount > 50) {
       throw new Error("BLOCKED: chapterCount must be between 1 and 50");
     }
-    if (chapterIndex < 0) {
-      throw new Error("BLOCKED: chapterIndex must be >= 0");
-    }
+    if (chapterIndex < 0) throw new Error("BLOCKED: chapterIndex must be >= 0");
     if (chapterIndex >= chapterCount) throw new Error(`BLOCKED: chapterIndex out of range (${chapterIndex} >= ${chapterCount})`);
 
     const topic = requireString(p, "topic");
@@ -1042,293 +541,277 @@ export class BookGenerateChapter implements JobExecutor {
     const level = requireEnum(p.level, ["n3", "n4"] as const, "level");
     const userInstructions = optionalString(p, "userInstructions");
 
-    const imagePromptLanguage =
+    const imagePromptLanguage: ImagePromptLanguage =
       optionalEnum(p.imagePromptLanguage, ["en", "book"] as const) ?? "en";
-
     const layoutProfile: ChapterLayoutProfile =
       optionalEnum((p as any).layoutProfile, ["auto", "pass2", "sparse"] as const) ?? "auto";
+    const microheadingDensity =
+      optionalEnum((p as any).microheadingDensity, ["low", "medium", "high"] as const);
 
-    const writeModelSpec = parseModelSpec(p.writeModel);
+    const writeModel = requireString(p, "writeModel");
+    const writeModelSpec = parseModelSpec(writeModel);
 
-    await emitAgentJobEvent(jobId, "generating", 5, `Generating chapter ${chapterIndex + 1}/${chapterCount}`, {
+    await emitAgentJobEvent(jobId, "generating", 5, `Orchestrating chapter ${chapterIndex + 1}/${chapterCount}`, {
       bookId,
       bookVersionId,
       chapterIndex,
       writeModel: `${writeModelSpec.provider}:${writeModelSpec.model}`,
+      layoutProfile,
     }).catch(() => {});
 
-    // 1) Load skeleton
+    // Orchestrator state (persisted via yield/requeue in ai-job-runner)
+    const nowIso = new Date().toISOString();
+    const orchestratorStartedAt =
+      typeof (p as any).orchestratorStartedAt === "string" && String((p as any).orchestratorStartedAt).trim()
+        ? String((p as any).orchestratorStartedAt).trim()
+        : nowIso;
+    const attemptsPrev =
+      typeof (p as any).orchestratorAttempts === "number" && Number.isFinite((p as any).orchestratorAttempts)
+        ? Math.max(0, Math.floor((p as any).orchestratorAttempts))
+        : 0;
+    const attempts = attemptsPrev + 1;
+    const MAX_ATTEMPTS = 80;
+    if (attempts > MAX_ATTEMPTS) {
+      throw new Error(`BLOCKED: Chapter orchestrator exceeded max attempts (${MAX_ATTEMPTS}). Human review required.`);
+    }
+    const startedAtMs = Date.parse(orchestratorStartedAt);
+    if (Number.isFinite(startedAtMs)) {
+      const elapsedMs = Date.now() - startedAtMs;
+      const MAX_WALL_MS = 45 * 60 * 1000;
+      if (elapsedMs > MAX_WALL_MS) {
+        throw new Error("BLOCKED: Chapter orchestrator exceeded max wall time (45 minutes). Human review required.");
+      }
+    }
+
+    const nextSectionIndexPrev =
+      typeof (p as any).nextSectionIndex === "number" && Number.isFinite((p as any).nextSectionIndex)
+        ? Math.max(0, Math.floor((p as any).nextSectionIndex))
+        : 0;
+    const pendingSectionJobId =
+      typeof (p as any).pendingSectionJobId === "string" ? String((p as any).pendingSectionJobId).trim() : "";
+    const pendingSectionIndex =
+      typeof (p as any).pendingSectionIndex === "number" && Number.isFinite((p as any).pendingSectionIndex)
+        ? Math.max(0, Math.floor((p as any).pendingSectionIndex))
+        : null;
+
+    // 1) Load skeleton (for section count + outline)
     const skeletonPath = `books/${bookId}/${bookVersionId}/skeleton.json`;
     const skRaw = await downloadJson(adminSupabase, "books", skeletonPath);
     const v0 = validateBookSkeleton(skRaw);
-    if (!v0.ok) {
-      throw new Error(`BLOCKED: Existing skeleton is invalid (${v0.issues.length} issue(s))`);
-    }
+    if (!v0.ok) throw new Error(`BLOCKED: Existing skeleton is invalid (${v0.issues.length} issue(s))`);
     const sk: BookSkeletonV1 = v0.skeleton;
-
     const chapters = Array.isArray((sk as any).chapters) ? (sk as any).chapters : [];
-    if (!chapters[chapterIndex]) {
-      throw new Error(`BLOCKED: Skeleton missing chapter at index ${chapterIndex}`);
-    }
-
     const existingChapter = chapters[chapterIndex] as any;
+    if (!existingChapter) throw new Error(`BLOCKED: Skeleton missing chapter at index ${chapterIndex}`);
+    const sectionCount = Array.isArray(existingChapter?.sections) ? existingChapter.sections.length : 0;
+    if (sectionCount <= 0) throw new Error("BLOCKED: Skeleton chapter has no sections; cannot run sectioned generation.");
     const outline = extractOutlineFromSkeletonChapter(existingChapter, chapterIndex + 1);
 
-    // 2) Load book title (for better prompts)
-    const { data: bookRow, error: bookErr } = await adminSupabase.from("books").select("title").eq("id", bookId).single();
-    if (bookErr || !bookRow) throw new Error(bookErr?.message || "Book not found");
-    const bookTitle = String((bookRow as any).title || "").trim();
-
-    // 2.5) Layout planning (soft, plan-driven): decide where praktijk/verdieping belong.
-    // This avoids rigid rule-based quotas that can force unnatural boxes.
+    // 2) Layout planning (once): stored in payload so we don't re-plan every tick.
     let layoutPlan: ChapterLayoutPlan | null = null;
     if (outline && Array.isArray(outline.sections) && outline.sections.length) {
-      await emitAgentJobEvent(jobId, "generating", 15, "Planning layout (praktijk/verdieping)", {
-        layoutProfile,
-      }).catch(() => {});
-      try {
-        layoutPlan = await planChapterLayout({
-          provider: writeModelSpec.provider,
-          model: writeModelSpec.model,
-          bookTitle,
-          topic,
-          language,
-          level,
-          outline,
-          profile: layoutProfile,
-        });
-        await emitAgentJobEvent(jobId, "generating", 18, "Layout plan ready", {
-          layoutProfile,
-          praktijkTargets: layoutPlan?.praktijkSubparagraphTitles?.length ?? 0,
-          verdiepingTargets: layoutPlan?.verdiepingSubparagraphTitles?.length ?? 0,
-        }).catch(() => {});
-      } catch (e) {
-        const msg = e instanceof Error ? e.message : String(e);
-        await emitAgentJobEvent(jobId, "generating", 18, "Layout plan failed (continuing without plan)", {
-          layoutProfile,
-          error: msg.slice(0, 600),
-        }).catch(() => {});
-        layoutPlan = null;
+      if ((p as any).layoutPlan && typeof (p as any).layoutPlan === "object") {
+        layoutPlan = sanitizeLayoutPlan((p as any).layoutPlan, outline);
       }
-    }
-
-    await emitAgentJobEvent(jobId, "generating", 20, "Calling LLM to draft chapter content", {
-      chapterIndex,
-    }).catch(() => {});
-
-    const system = buildSystem({ language, level, imagePromptLanguage, mboProfile: "mbo_generic" });
-    const prompt = buildPrompt({
-      topic,
-      bookTitle,
-      chapterNumber: chapterIndex + 1,
-      chapterCount,
-      userInstructions,
-      level,
-      language,
-      imagePromptLanguage,
-      outline,
-      layoutPlan,
-    });
-    let draft = (await llmGenerateJson({
-      provider: writeModelSpec.provider,
-      model: writeModelSpec.model,
-      system,
-      prompt,
-      maxTokens: 8000,
-    })) as DraftChapter;
-
-    // If we have an outline from the skeleton, enforce hierarchy so we never promote a subparagraph into a chapter title.
-    if (outline && Array.isArray(outline.sections) && outline.sections.length) {
-      const validateLockedOutline = (d: DraftChapter) => {
-        const expectedChapter = typeof outline.chapterTitle === "string" ? outline.chapterTitle.trim() : "";
-        if (expectedChapter) {
-          const a = stripChapterNumberPrefix(d?.chapterTitle || "");
-          const b = stripChapterNumberPrefix(expectedChapter);
-          if (!a || !b || a !== b) {
-            throw new Error(`BLOCKED: LLM returned wrong chapterTitle for locked outline (got='${a}', expected='${b}')`);
-          }
-        }
-
-        const draftSections = Array.isArray((d as any)?.sections) ? (d as any).sections : [];
-        if (draftSections.length !== outline.sections.length) {
-          throw new Error(`BLOCKED: LLM returned ${draftSections.length} sections but outline requires ${outline.sections.length}`);
-        }
-
-        for (let i = 0; i < outline.sections.length; i++) {
-          const expectedTitle = outline.sections[i]?.title || "";
-          const gotTitle = typeof draftSections[i]?.title === "string" ? draftSections[i].title : "";
-          if (stripNumberPrefix(gotTitle) !== stripNumberPrefix(expectedTitle)) {
-            throw new Error(`BLOCKED: Section title mismatch at index ${i} (got='${gotTitle}', expected='${expectedTitle}')`);
-          }
-
-          const requiredSubs = Array.isArray(outline.sections[i]?.numberedSubparagraphTitles)
-            ? outline.sections[i].numberedSubparagraphTitles
-            : [];
-          if (requiredSubs.length) {
-            const blocks = Array.isArray(draftSections[i]?.blocks) ? draftSections[i].blocks : [];
-            const gotSubs = blocks
-              .filter((b: any) => b && typeof b === "object" && b.type === "subparagraph")
-              .map((b: any) => (typeof b.title === "string" ? normalizeWs(b.title) : ""))
-              .filter((t: string) => NUMBERED_SUBPARAGRAPH_TITLE_RE.test(t));
-            for (const req of requiredSubs) {
-              if (!gotSubs.includes(normalizeWs(req))) {
-                throw new Error(`BLOCKED: Missing required numbered subparagraph '${req}' in section '${expectedTitle}'`);
-              }
-            }
-          }
-        }
-      };
-
-      try {
-        validateLockedOutline(draft);
-      } catch (e) {
-        const reason = e instanceof Error ? e.message : String(e);
-        await emitAgentJobEvent(jobId, "generating", 22, "Draft did not meet outline requirements; retrying once", {
-          chapterIndex,
-          reason,
-        }).catch(() => {});
-
-        const retryNotes = [
-          userInstructions,
-          "CRITICAL: Follow the OUTLINE exactly (titles + required numbered subparagraphs).\n" +
-            "- Do NOT invent or rename numbered subparagraph titles.\n" +
-            "- Return valid JSON only (no markdown).",
-        ]
-          .filter((x) => typeof x === "string" && x.trim())
-          .map((x) => String(x).trim())
-          .join("\n\n");
-
-        const retryPrompt = buildPrompt({
-          topic,
-          bookTitle,
-          chapterNumber: chapterIndex + 1,
-          chapterCount,
-          userInstructions: retryNotes,
-          level,
-          language,
-          imagePromptLanguage,
-          outline,
-          layoutPlan,
-        });
-
-        draft = (await llmGenerateJson({
-          provider: writeModelSpec.provider,
-          model: writeModelSpec.model,
-          system,
-          prompt: retryPrompt,
-          maxTokens: 8000,
-        })) as DraftChapter;
-
-        validateLockedOutline(draft);
-      }
-    }
-
-    // Box density is NOT a hard rule. We emit counts for observability only.
-    try {
-      const stats = analyzeDraftDensity(draft);
-      await emitAgentJobEvent(jobId, "generating", 23, "Draft stats (boxes)", {
-        chapterIndex,
-        layoutProfile,
-        praktijkBoxes: stats.praktijkBoxes,
-        verdiepingBoxes: stats.verdiepingBoxes,
-        numberedSubparagraphsPerSection: stats.numberedSubparagraphsPerSection,
-      }).catch(() => {});
-    } catch {
-      // best-effort
-    }
-
-    // 3) Apply updates to skeleton chapter
-    const { title: chapterTitle, sections: newSections, openerImageSrc } = assignIdsAndImages({
-      bookId,
-      chapterIndex,
-      draft,
-    });
-
-    const finalChapterTitle =
-      outline && typeof outline.chapterTitle === "string" && outline.chapterTitle.trim()
-        ? outline.chapterTitle.trim()
-        : chapterTitle;
-
-    const existingSections = Array.isArray(existingChapter?.sections) ? existingChapter.sections : [];
-    const mergedSections = newSections.concat(existingSections.slice(newSections.length));
-
-    (sk as any).chapters[chapterIndex] = {
-      ...(sk as any).chapters[chapterIndex],
-      id: (sk as any).chapters[chapterIndex]?.id || `ch-${chapterIndex + 1}`,
-      number: (sk as any).chapters[chapterIndex]?.number || (chapterIndex + 1),
-      title: finalChapterTitle,
-      ...(openerImageSrc ? { openerImageSrc } : {}),
-      sections: mergedSections,
-    };
-
-    const v1 = validateBookSkeleton(sk);
-    if (!v1.ok) {
-      throw new Error(`BLOCKED: Updated skeleton validation failed (${v1.issues.length} issue(s))`);
-    }
-
-    await emitAgentJobEvent(jobId, "storage_write", 60, "Saving skeleton + compiling canonical", {
-      skeletonPath,
-    }).catch(() => {});
-
-    // 4) Save skeleton (snapshot + latest) and compiled canonical pointer via edge function
-    const saveRes = await callEdgeAsAgent({
-      orgId: organizationId,
-      path: "book-version-save-skeleton",
-      body: { bookId, bookVersionId, skeleton: v1.skeleton, note: `BookGen Pro: chapter ${chapterIndex + 1}`, compileCanonical: true },
-    });
-    if (saveRes?.ok !== true) throw new Error("Failed to save skeleton");
-
-    // 5) Upload canonical.json at the root path (required by book-worker input gate)
-    const canonicalPath = `${bookId}/${bookVersionId}/canonical.json`;
-    const compiled = compileSkeletonToCanonical(v1.skeleton);
-    await uploadJson(adminSupabase, "books", canonicalPath, compiled, true);
-
-    // 6) Chain: enqueue next chapter or finish
-    if (chapterIndex < chapterCount - 1) {
-      const nextIndex = chapterIndex + 1;
-      await emitAgentJobEvent(jobId, "generating", 75, "Enqueuing next chapter job", { nextIndex }).catch(() => {});
-
-      const { data: queued, error: enqueueErr } = await adminSupabase
-        .from("ai_agent_jobs")
-        .insert({
-          organization_id: organizationId,
-          job_type: "book_generate_chapter",
-          status: "queued",
-          payload: {
-            bookId,
-            bookVersionId,
-            chapterIndex: nextIndex,
-            chapterCount,
+      if (!layoutPlan) {
+        await emitAgentJobEvent(jobId, "generating", 15, "Planning layout (praktijk/verdieping)", { layoutProfile }).catch(() => {});
+        const { data: bookRow, error: bookErr } = await adminSupabase.from("books").select("title").eq("id", bookId).single();
+        if (bookErr || !bookRow) throw new Error(bookErr?.message || "Book not found");
+        const bookTitle = String((bookRow as any).title || "").trim();
+        try {
+          layoutPlan = await planChapterLayout({
+            provider: writeModelSpec.provider,
+            model: writeModelSpec.model,
+            bookTitle,
             topic,
-            level,
             language,
-            userInstructions,
-            imagePromptLanguage,
-            writeModel: typeof p.writeModel === "string" ? p.writeModel : null,
-          },
-        })
-        .select("id")
-        .single();
-      if (enqueueErr || !queued?.id) throw new Error(enqueueErr?.message || "Failed to enqueue next chapter job");
-
-      await emitAgentJobEvent(jobId, "done", 100, "Chapter generated (next queued)", {
-        bookId,
-        bookVersionId,
-        chapterIndex,
-        nextChapterJobId: queued.id,
-      }).catch(() => {});
-
-      return { ok: true, bookId, bookVersionId, chapterIndex, chapterCount, nextChapterJobId: queued.id };
+            level,
+            outline,
+            profile: layoutProfile,
+          });
+        } catch (e) {
+          const msg = e instanceof Error ? e.message : String(e);
+          await emitAgentJobEvent(jobId, "generating", 18, "Layout plan failed (continuing without plan)", {
+            layoutProfile,
+            error: msg.slice(0, 600),
+          }).catch(() => {});
+          layoutPlan = null;
+        }
+      }
     }
 
-    await emitAgentJobEvent(jobId, "done", 100, "Book generation complete (all chapters generated)", {
+    if (outline && Array.isArray(outline.sections) && outline.sections.length) {
+      const before = layoutPlan;
+      layoutPlan = ensureMinimumBoxSelections({ outline, layoutPlan, profile: layoutProfile });
+      const addedPraktijk = (before?.praktijkSubparagraphTitles?.length || 0) === 0 && (layoutPlan?.praktijkSubparagraphTitles?.length || 0) > 0;
+      const addedVerd = (before?.verdiepingSubparagraphTitles?.length || 0) === 0 && (layoutPlan?.verdiepingSubparagraphTitles?.length || 0) > 0;
+      if (addedPraktijk || addedVerd) {
+        await emitAgentJobEvent(jobId, "generating", 19, "Layout plan augmented to ensure praktijk/verdieping coverage", {
+          addedPraktijk,
+          addedVerdieping: addedVerd,
+        }).catch(() => {});
+      }
+    }
+
+    const baseNextPayload: Record<string, unknown> = {
       bookId,
       bookVersionId,
+      chapterIndex,
       chapterCount,
+      topic,
+      level,
+      language,
+      userInstructions,
+      imagePromptLanguage,
+      layoutProfile,
+      ...(microheadingDensity ? { microheadingDensity } : {}),
+      writeModel,
+      orchestratorStartedAt,
+      orchestratorAttempts: attempts,
+      nextSectionIndex: nextSectionIndexPrev,
+      ...(layoutPlan ? { layoutPlan } : {}),
+      ...(typeof p.sectionMaxTokens === "number" && Number.isFinite(p.sectionMaxTokens) ? { sectionMaxTokens: Math.floor(p.sectionMaxTokens) } : {}),
+    };
+
+    // 3) Waiting on a section job?
+    if (pendingSectionJobId) {
+      const { data: secJob, error: secErr } = await adminSupabase
+        .from("ai_agent_jobs")
+        .select("id,status,error")
+        .eq("id", pendingSectionJobId)
+        .maybeSingle();
+      if (secErr) throw new Error(`BLOCKED: Failed to load pending section job: ${secErr.message}`);
+      if (!secJob?.id) throw new Error("BLOCKED: Pending section job not found");
+      const st = String((secJob as any).status || "");
+      if (st === "failed") {
+        const errMsg = typeof (secJob as any).error === "string" ? String((secJob as any).error) : "Unknown error";
+        throw new Error(`BLOCKED: Section job failed (${pendingSectionJobId}): ${errMsg}`);
+      }
+      if (st !== "done") {
+        return {
+          yield: true,
+          message: `Waiting for section job ${pendingSectionJobId} (status=${st})`,
+          nextPayload: {
+            ...baseNextPayload,
+            pendingSectionJobId,
+            ...(typeof pendingSectionIndex === "number" ? { pendingSectionIndex } : {}),
+          },
+          meta: { pendingSectionJobId, status: st },
+        } satisfies ChapterOrchestratorYield;
+      }
+
+      const nextSectionIndex =
+        typeof pendingSectionIndex === "number" ? pendingSectionIndex + 1 : nextSectionIndexPrev + 1;
+      return {
+        yield: true,
+        message: `Section ${nextSectionIndexPrev + 1}/${sectionCount} complete; advancing`,
+        nextPayload: {
+          ...baseNextPayload,
+          nextSectionIndex,
+          pendingSectionJobId: null,
+          pendingSectionIndex: null,
+        },
+        meta: { nextSectionIndex, sectionCount },
+      } satisfies ChapterOrchestratorYield;
+    }
+
+    // 4) All sections done -> chain next chapter / finish
+    if (nextSectionIndexPrev >= sectionCount) {
+      if (chapterIndex < chapterCount - 1) {
+        const nextIndex = chapterIndex + 1;
+        await emitAgentJobEvent(jobId, "generating", 75, "Enqueuing next chapter job", { nextIndex }).catch(() => {});
+        const { data: queued, error: enqueueErr } = await adminSupabase
+          .from("ai_agent_jobs")
+          .insert({
+            organization_id: organizationId,
+            job_type: "book_generate_chapter",
+            status: "queued",
+            payload: {
+              bookId,
+              bookVersionId,
+              chapterIndex: nextIndex,
+              chapterCount,
+              topic,
+              level,
+              language,
+              userInstructions,
+              imagePromptLanguage,
+              layoutProfile,
+              ...(microheadingDensity ? { microheadingDensity } : {}),
+              writeModel,
+              ...(typeof p.sectionMaxTokens === "number" && Number.isFinite(p.sectionMaxTokens) ? { sectionMaxTokens: Math.floor(p.sectionMaxTokens) } : {}),
+            },
+          })
+          .select("id")
+          .single();
+        if (enqueueErr || !queued?.id) throw new Error(enqueueErr?.message || "Failed to enqueue next chapter job");
+        await emitAgentJobEvent(jobId, "done", 100, "Chapter complete (next queued)", {
+          bookId,
+          bookVersionId,
+          chapterIndex,
+          nextChapterJobId: queued.id,
+        }).catch(() => {});
+        return { ok: true, bookId, bookVersionId, chapterIndex, chapterCount, nextChapterJobId: queued.id };
+      }
+
+      await emitAgentJobEvent(jobId, "done", 100, "Book generation complete (all chapters generated)", {
+        bookId,
+        bookVersionId,
+        chapterCount,
+      }).catch(() => {});
+      return { ok: true, bookId, bookVersionId, chapterIndex, chapterCount, done: true };
+    }
+
+    // 5) Enqueue next section job and yield
+    const sectionIndexToRun = nextSectionIndexPrev;
+    const targets = pickTargetsForSection({ outline, layoutPlan, sectionIndex: sectionIndexToRun });
+    const sectionPayload: Record<string, unknown> = {
+      bookId,
+      bookVersionId,
+      chapterIndex,
+      sectionIndex: sectionIndexToRun,
+      topic,
+      level,
+      language,
+      userInstructions,
+      imagePromptLanguage,
+      layoutProfile,
+      ...(microheadingDensity ? { microheadingDensity } : {}),
+      writeModel,
+      // Ensure each chapter has at least one image placeholder in the skeleton.
+      // We only hard-require it for the first section to avoid over-producing images.
+      requireImageSuggestion: sectionIndexToRun === 0,
+      ...(typeof p.sectionMaxTokens === "number" && Number.isFinite(p.sectionMaxTokens) ? { sectionMaxTokens: Math.floor(p.sectionMaxTokens) } : {}),
+      ...(targets.praktijkTargets.length ? { praktijkTargets: targets.praktijkTargets } : {}),
+      ...(targets.verdiepingTargets.length ? { verdiepingTargets: targets.verdiepingTargets } : {}),
+    };
+    const { data: queuedSection, error: enqueueSectionErr } = await adminSupabase
+      .from("ai_agent_jobs")
+      .insert({
+        organization_id: organizationId,
+        job_type: "book_generate_section",
+        status: "queued",
+        payload: sectionPayload,
+      })
+      .select("id")
+      .single();
+    if (enqueueSectionErr || !queuedSection?.id) throw new Error(enqueueSectionErr?.message || "Failed to enqueue section job");
+
+    await emitAgentJobEvent(jobId, "generating", 40, "Section job queued", {
+      sectionIndex: sectionIndexToRun,
+      sectionJobId: queuedSection.id,
     }).catch(() => {});
 
-    return { ok: true, bookId, bookVersionId, chapterIndex, chapterCount, done: true };
+    return {
+      yield: true,
+      message: `Enqueued section job ${queuedSection.id} (section ${sectionIndexToRun + 1}/${sectionCount})`,
+      nextPayload: {
+        ...baseNextPayload,
+        pendingSectionJobId: queuedSection.id,
+        pendingSectionIndex: sectionIndexToRun,
+      },
+      meta: { pendingSectionJobId: queuedSection.id, pendingSectionIndex: sectionIndexToRun },
+    } satisfies ChapterOrchestratorYield;
   }
 }
-
 

@@ -118,6 +118,74 @@ function safeJsonParse(text) {
   }
 }
 
+function normalizeWs(s) {
+  return String(s || "")
+    .replace(/[\u00AD\u200B-\u200D\u2060\uFEFF]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+const NUMBERED_SUB_RE = /^\d+(?:\.\d+){2,}\s+/;
+
+function extractNumberedSubparagraphTitles(sectionContent) {
+  const blocks = Array.isArray(sectionContent) ? sectionContent : [];
+  const out = [];
+  for (const b of blocks) {
+    if (!b || typeof b !== "object") continue;
+    if (String(b.type || "") !== "subparagraph") continue;
+    const title = typeof b.title === "string" ? normalizeWs(b.title) : "";
+    if (!title) continue;
+    if (!NUMBERED_SUB_RE.test(title)) continue;
+    out.push(title);
+  }
+  return out;
+}
+
+function extractChapterOutlineNumbers(canonical) {
+  const chapters = Array.isArray(canonical?.chapters) ? canonical.chapters : [];
+  const ch0 = chapters[0];
+  const sectionsIn = Array.isArray(ch0?.sections) ? ch0.sections : [];
+  return {
+    chapterTitle: typeof ch0?.title === "string" ? normalizeWs(ch0.title) : "",
+    sections: sectionsIn.map((s) => ({
+      id: typeof s?.id === "string" ? normalizeWs(s.id) : "",
+      title: typeof s?.title === "string" ? normalizeWs(s.title) : "",
+      numberedSubparagraphTitles: extractNumberedSubparagraphTitles(s?.content || s?.blocks),
+    })),
+  };
+}
+
+function assertOutlineNumbersMatch(opts) {
+  const { baselineCanonical, generatedCanonical } = opts;
+  const base = extractChapterOutlineNumbers(baselineCanonical);
+  const gen = extractChapterOutlineNumbers(generatedCanonical);
+
+  if (base.sections.length !== gen.sections.length) {
+    throw new Error(`Outline mismatch: section count differs (baseline=${base.sections.length}, generated=${gen.sections.length})`);
+  }
+
+  for (let i = 0; i < base.sections.length; i++) {
+    const b = base.sections[i];
+    const g = gen.sections[i];
+    if (b.id && g.id && b.id !== g.id) {
+      throw new Error(`Outline mismatch: section id differs at index ${i} (baseline='${b.id}', generated='${g.id}')`);
+    }
+    // Compare numbered subparagraph titles (numbers + labels) exactly.
+    const bt = b.numberedSubparagraphTitles;
+    const gt = g.numberedSubparagraphTitles;
+    if (bt.length !== gt.length) {
+      throw new Error(`Outline mismatch: subparagraph count differs for section '${b.id || b.title || i}' (baseline=${bt.length}, generated=${gt.length})`);
+    }
+    for (let j = 0; j < bt.length; j++) {
+      if (bt[j] !== gt[j]) {
+        throw new Error(
+          `Outline mismatch: subparagraph differs at section '${b.id || i}' index ${j} (baseline='${bt[j]}', generated='${gt[j]}')`,
+        );
+      }
+    }
+  }
+}
+
 async function postJson(url, body, headers) {
   const res = await fetch(url, {
     method: "POST",
@@ -177,6 +245,60 @@ async function waitForAgentJobDone({ supabaseUrl, headers, jobId, timeoutMs }) {
   }
 
   throw new Error(`Timed out waiting for job ${jobId} to complete (lastStatus=${lastStatus}): ${lastErr}`);
+}
+
+async function kickAiJobRunner({ supabaseUrl, headers, jobId }) {
+  const url = `${supabaseUrl}/functions/v1/ai-job-runner?worker=1&queue=agent&jobId=${encodeURIComponent(jobId)}`;
+  try {
+    await postJson(url, { worker: true, queue: "agent", jobId }, headers);
+    return { ok: true, timedOut: false };
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    // Supabase Edge gateway timeouts can occur for long-running LLM calls. The function may still
+    // continue running server-side, so treat 504 as a non-fatal "kick timed out" and then rely on polling.
+    if (msg.includes("HTTP 504")) {
+      return { ok: false, timedOut: true };
+    }
+    throw e;
+  }
+}
+
+async function driveBookGenerateChapterOrchestrator(opts) {
+  const { supabaseUrl, headers, chapterJobId, timeoutMs } = opts;
+  const start = Date.now();
+
+  while (Date.now() - start < timeoutMs) {
+    const jobJson = await getJson(
+      `${supabaseUrl}/functions/v1/get-job?id=${encodeURIComponent(chapterJobId)}&eventsLimit=200`,
+      headers,
+    );
+    const status = String(jobJson?.job?.status || "").toLowerCase();
+    if (status === "done") return jobJson;
+    if (status === "failed" || status === "dead_letter" || status === "stale") {
+      const err = String(jobJson?.job?.error || "");
+      throw new Error(`Chapter job ${chapterJobId} failed (status=${status}): ${err || "unknown error"}`);
+    }
+
+    const pendingSectionJobIdRaw = jobJson?.job?.payload?.pendingSectionJobId;
+    const pendingSectionJobId =
+      typeof pendingSectionJobIdRaw === "string" ? pendingSectionJobIdRaw.trim() : "";
+
+    // If a section job is pending, run it to completion, then kick the chapter orchestrator once.
+    if (pendingSectionJobId) {
+      await kickAiJobRunner({ supabaseUrl, headers, jobId: pendingSectionJobId });
+      await waitForAgentJobDone({ supabaseUrl, headers, jobId: pendingSectionJobId, timeoutMs: 20 * 60 * 1000 });
+
+      await kickAiJobRunner({ supabaseUrl, headers, jobId: chapterJobId });
+      await sleep(1_000);
+      continue;
+    }
+
+    // Otherwise, drive the chapter orchestrator forward (it will enqueue the next section and yield).
+    await kickAiJobRunner({ supabaseUrl, headers, jobId: chapterJobId });
+    await sleep(1_500);
+  }
+
+  throw new Error(`Timed out driving chapter orchestrator ${chapterJobId}`);
 }
 
 async function runPrince(args, { logPath }) {
@@ -307,11 +429,14 @@ async function main() {
         userInstructions:
           "Volg exact de outline in de bestaande skeleton. " +
           "Schrijf PASS2-vol (niet te kort): per genummerde subparagraaf minimaal 2 basisparagrafen (2-4 zinnen). " +
-          "Voeg meerdere praktijkblokken toe en af en toe een verdiepingblok, verspreid door het hoofdstuk. Sla een box over als het geforceerd zou worden. " +
+          "Voeg praktijk- en verdiepingblokken toe op de aangewezen plekken. Maak ze concreet (geen generieke vulling). " +
           "Start elke praktijk/verdieping met <span class=\"box-lead\">...</span> (geen 'LEAD'). " +
+          "Microheadings: korte labels zonder leestekens (bijv. 1-6 woorden), geen dubbele microheadings achter elkaar. " +
           "Voeg 2-4 afbeelding-suggesties toe (images[].suggestedPrompt).",
         imagePromptLanguage: "book",
         layoutProfile: "pass2",
+        microheadingDensity: "medium",
+        sectionMaxTokens: 8000,
         writeModel,
       },
     },
@@ -322,7 +447,7 @@ async function main() {
   if (!rootJobId) throw new Error("enqueue-job did not return jobId");
 
   // Process immediately (avoid waiting for cron) and then poll until done.
-  await postJson(`${supabaseUrl}/functions/v1/ai-job-runner?worker=1&queue=agent&jobId=${encodeURIComponent(rootJobId)}`, { worker: true, queue: "agent", jobId: rootJobId }, headers);
+  await kickAiJobRunner({ supabaseUrl, headers, jobId: rootJobId });
   const rootFinal = await waitForAgentJobDone({ supabaseUrl, headers, jobId: rootJobId, timeoutMs: 5 * 60 * 1000 });
   const bookVersionId = String(rootFinal?.job?.result?.bookVersionId || "").trim();
   if (!bookVersionId) throw new Error("Root job did not return bookVersionId");
@@ -356,11 +481,14 @@ async function main() {
         userInstructions:
           "Volg exact de outline in de bestaande skeleton. " +
           "Schrijf PASS2-vol (niet te kort): per genummerde subparagraaf minimaal 2 basisparagrafen (2-4 zinnen). " +
-          "Voeg meerdere praktijkblokken toe en af en toe een verdiepingblok, verspreid door het hoofdstuk. Sla een box over als het geforceerd zou worden. " +
+          "Voeg praktijk- en verdiepingblokken toe op de aangewezen plekken. Maak ze concreet (geen generieke vulling). " +
           "Start elke praktijk/verdieping met <span class=\"box-lead\">...</span> (geen 'LEAD'). " +
+          "Microheadings: korte labels zonder leestekens (bijv. 1-6 woorden), geen dubbele microheadings achter elkaar. " +
           "Voeg 2-4 afbeelding-suggesties toe (images[].suggestedPrompt).",
         imagePromptLanguage: "book",
         layoutProfile: "pass2",
+        microheadingDensity: "medium",
+        sectionMaxTokens: 8000,
         writeModel,
       },
     },
@@ -369,13 +497,8 @@ async function main() {
   const chapterJobId = String(enqueueCh?.jobId || "").trim();
   if (!chapterJobId) throw new Error("enqueue-job did not return chapter jobId");
 
-  // Now run the chapter job with the outline present (enforced by book_generate_chapter).
-  await postJson(
-    `${supabaseUrl}/functions/v1/ai-job-runner?worker=1&queue=agent&jobId=${encodeURIComponent(chapterJobId)}`,
-    { worker: true, queue: "agent", jobId: chapterJobId },
-    headers,
-  );
-  await waitForAgentJobDone({ supabaseUrl, headers, jobId: chapterJobId, timeoutMs: 15 * 60 * 1000 });
+  // Drive the orchestrated chapter job (it enqueues section subjobs and yields until complete).
+  await driveBookGenerateChapterOrchestrator({ supabaseUrl, headers, chapterJobId, timeoutMs: 30 * 60 * 1000 });
 
   // Download compiled canonical and render to HTML/PDF
   const inputs = await postJson(
@@ -391,6 +514,9 @@ async function main() {
   const canonRes = await fetch(compiledUrl);
   if (!canonRes.ok) throw new Error(`Failed to download compiled canonical (${canonRes.status})`);
   const generatedCanonical = await canonRes.json();
+
+  // Contract: numbering in generated output MUST match the reference (baseline PASS2) exactly.
+  assertOutlineNumbersMatch({ baselineCanonical, generatedCanonical });
 
   const generatedHtml = renderBookHtml(generatedCanonical, { target: "chapter", chapterIndex: 0, placeholdersOnly: true });
   const genHtmlPath = path.join(outDir, "generated.chapter1.html");

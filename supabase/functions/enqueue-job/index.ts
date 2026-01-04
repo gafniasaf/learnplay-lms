@@ -140,6 +140,7 @@ serve(async (req: Request): Promise<Response> => {
       // Book Studio / BookGen Pro (skeleton-first generation)
       "book_generate_full",
       "book_generate_chapter",
+      "book_generate_section",
       // System / tooling
       "compile_mockups",
       "plan_matrix_run",
