@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir, writeFile, stat } from "node:fs/promises";
 import path from "node:path";
 import { spawn } from "node:child_process";
 
@@ -240,6 +240,8 @@ test.describe("Live: BookGen chapter → Prince PDF (microheadings + boxes + CSS
 
     // Assert: microheadings + praktijk/verdieping boxes + lead span + figure placeholder exist in HTML
     expect(html).toContain('class="micro-title"');
+    expect(html).toContain('class="section-number">1.1</span>');
+    expect(html).toContain('class="subparagraph-title"');
     expect(html).toContain('class="box praktijk"');
     expect(html).toContain('class="box verdieping"');
     expect(html).toContain('class="box-lead"');
@@ -263,7 +265,7 @@ test.describe("Live: BookGen chapter → Prince PDF (microheadings + boxes + CSS
       [
         "--raster-output=" + path.join(outDir, "chapter-preview-%d.png"),
         "--raster-format=png",
-        "--raster-pages=first",
+        "--raster-pages=3",
         "--raster-dpi=110",
         htmlPath,
       ],
@@ -272,8 +274,8 @@ test.describe("Live: BookGen chapter → Prince PDF (microheadings + boxes + CSS
 
     // Final assertion: the preview image should be generated for page 1.
     const previewPath = path.join(outDir, "chapter-preview-1.png");
-    // We don't read the file contents here; we just assert the path shape is deterministic.
     expect(previewPath.endsWith("chapter-preview-1.png")).toBe(true);
+    await stat(previewPath);
   });
 });
 

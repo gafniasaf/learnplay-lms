@@ -444,6 +444,11 @@ function assignIdsAndImages(opts: {
 
   let imageCounter = 0;
   const sections = (Array.isArray(draft.sections) ? draft.sections : []).slice(0, 6).map((s, si) => {
+    const sectionNumber = `${chNum}.${si + 1}`;
+    const rawSectionTitle = typeof (s as any)?.title === "string" ? String((s as any).title).trim() : "";
+    const cleanSectionTitle = rawSectionTitle.replace(/^\d+(?:\.\d+)*\s+/, "").trim();
+    const numberedSectionTitle = cleanSectionTitle ? `${sectionNumber} ${cleanSectionTitle}` : sectionNumber;
+
     const blocksIn = Array.isArray((s as any)?.blocks) ? (s as any).blocks : [];
 
     const toImages = (imgsRaw: any[], blockKey: string): SkeletonImage[] | null => {
@@ -526,11 +531,47 @@ function assignIdsAndImages(opts: {
       };
     };
 
-    const blocks = blocksIn.slice(0, 20).map((b: any, bi: number) => convertBlock(b, [si + 1, bi + 1]));
+    const blocksRaw = blocksIn.slice(0, 20).map((b: any, bi: number) => convertBlock(b, [si + 1, bi + 1]));
+
+    // PASS2-style structure: each section has numbered subparagraph headings (e.g. 1.1.1),
+    // and may include unnumbered micro-titles.
+    //
+    // If the draft did not explicitly include numbered subparagraph headings, wrap the section content
+    // in a single numbered subparagraph so the PDF shows subparagraph numbers.
+    const hasNumberedSubparagraph = blocksRaw.some((b: any) => {
+      if (!b || typeof b !== "object") return false;
+      if (b.type !== "subparagraph") return false;
+      const t = typeof b.title === "string" ? b.title.trim() : "";
+      return /^\d+(?:\.\d+){2,}\s+/.test(t); // e.g. 1.1.1 Title
+    });
+
+    let blocks: any[] = blocksRaw;
+    if (!hasNumberedSubparagraph && blocksRaw.length) {
+      const subNum = `${sectionNumber}.1`;
+      const subTitle = `${subNum} ${cleanSectionTitle || "Inleiding"}`;
+
+      // Ensure at least one micro-title exists inside the subparagraph (PASS2 uses micro-titles heavily).
+      const hasMicroTitle = blocksRaw.some((b: any) => b && typeof b === "object" && b.type === "subparagraph" && !/^\d+(?:\.\d+){2,}\s+/.test(String(b.title || "").trim()));
+      const innerBlocks = hasMicroTitle
+        ? blocksRaw
+        : [{
+            type: "subparagraph",
+            title: cleanSectionTitle || "Kernidee",
+            blocks: blocksRaw,
+          }];
+
+      blocks = [{
+        type: "subparagraph",
+        id: subNum,
+        title: subTitle,
+        blocks: innerBlocks,
+      }];
+    }
 
     return {
-      id: `ch-${chNum}-s-${si + 1}`,
-      title: typeof (s as any)?.title === "string" ? String((s as any).title) : "",
+      // Use PASS2-like ids so links/bookmarks are stable and the renderer can show numbers.
+      id: sectionNumber,
+      title: numberedSectionTitle,
       blocks,
     };
   });
