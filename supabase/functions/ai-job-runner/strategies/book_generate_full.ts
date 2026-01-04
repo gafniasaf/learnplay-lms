@@ -212,6 +212,12 @@ export class BookGenerateFull implements JobExecutor {
         ? imagePromptLanguageRaw
         : null;
 
+    const layoutProfileRaw = optionalString(p, "layoutProfile");
+    const layoutProfile =
+      layoutProfileRaw === "auto" || layoutProfileRaw === "pass2" || layoutProfileRaw === "sparse"
+        ? layoutProfileRaw
+        : null;
+
     const writeModel = requireModelSpec(p, "writeModel");
 
     const title =
@@ -362,6 +368,7 @@ export class BookGenerateFull implements JobExecutor {
           promptPackId,
           promptPackVersion,
           ...(imagePromptLanguage ? { imagePromptLanguage } : {}),
+            ...(layoutProfile ? { layoutProfile } : {}),
           // Model selection is required by the chapter job (write stage)
           writeModel,
         },

@@ -307,10 +307,11 @@ async function main() {
         userInstructions:
           "Volg exact de outline in de bestaande skeleton. " +
           "Schrijf PASS2-vol (niet te kort): per genummerde subparagraaf minimaal 2 basisparagrafen (2-4 zinnen). " +
-          "Voeg veel praktijk- en verdieping-blokken toe verspreid door het hoofdstuk (mik op 12+ praktijk en 6+ verdieping). " +
+          "Voeg meerdere praktijkblokken toe en af en toe een verdiepingblok, verspreid door het hoofdstuk. Sla een box over als het geforceerd zou worden. " +
           "Start elke praktijk/verdieping met <span class=\"box-lead\">...</span> (geen 'LEAD'). " +
           "Voeg 2-4 afbeelding-suggesties toe (images[].suggestedPrompt).",
         imagePromptLanguage: "book",
+        layoutProfile: "pass2",
         writeModel,
       },
     },
@@ -355,10 +356,11 @@ async function main() {
         userInstructions:
           "Volg exact de outline in de bestaande skeleton. " +
           "Schrijf PASS2-vol (niet te kort): per genummerde subparagraaf minimaal 2 basisparagrafen (2-4 zinnen). " +
-          "Voeg veel praktijk- en verdieping-blokken toe verspreid door het hoofdstuk (mik op 12+ praktijk en 6+ verdieping). " +
+          "Voeg meerdere praktijkblokken toe en af en toe een verdiepingblok, verspreid door het hoofdstuk. Sla een box over als het geforceerd zou worden. " +
           "Start elke praktijk/verdieping met <span class=\"box-lead\">...</span> (geen 'LEAD'). " +
           "Voeg 2-4 afbeelding-suggesties toe (images[].suggestedPrompt).",
         imagePromptLanguage: "book",
+        layoutProfile: "pass2",
         writeModel,
       },
     },

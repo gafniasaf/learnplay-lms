@@ -166,8 +166,15 @@ function parseModelSpec(raw: unknown): { provider: Provider; model: string } {
   throw new Error("BLOCKED: writeModel must be prefixed with provider (use 'openai:<model>' or 'anthropic:<model>')");
 }
 
-async function llmGenerateJson(opts: { provider: Provider; model: string; system: string; prompt: string; maxTokens?: number }): Promise<any> {
-  const { provider, model, system, prompt, maxTokens = 8000 } = opts;
+async function llmGenerateJson(opts: {
+  provider: Provider;
+  model: string;
+  system: string;
+  prompt: string;
+  maxTokens?: number;
+  tool?: AnthropicToolSpec;
+}): Promise<any> {
+  const { provider, model, system, prompt, maxTokens = 8000, tool } = opts;
   // Long chapters (PASS2 density) can take >110s on some providers/models. Keep this generous,
   // but still bounded so jobs fail loudly instead of hanging indefinitely.
   const timeoutMs = 220_000;
@@ -199,50 +206,11 @@ async function llmGenerateJson(opts: { provider: Provider; model: string; system
 
   // anthropic
   const key = requireEnv("ANTHROPIC_API_KEY");
-  const toolName = "draft_book_chapter";
-  // Keep the tool schema intentionally minimal (we validate/enforce the shape ourselves later).
-  // The key property is: Anthropic returns structured JSON arguments for tool use, avoiding brittle
+  // Key property: Anthropic returns structured JSON arguments for tool use, avoiding brittle
   // “extract JSON from text” parsing failures (e.g. due to unescaped quotes/newlines in HTML strings).
-  const tools = [
-    {
-      name: toolName,
-      description:
-        "Return ONLY the chapter draft JSON object (chapterTitle, sections, openerImage). " +
-        "All HTML must be inline and stored in string fields (basisHtml/praktijkHtml/verdiepingHtml).",
-      input_schema: {
-        type: "object",
-        additionalProperties: true,
-        required: ["chapterTitle", "sections"],
-        properties: {
-          chapterTitle: { type: "string" },
-          sections: {
-            type: "array",
-            items: {
-              type: "object",
-              additionalProperties: true,
-              required: ["title", "blocks"],
-              properties: {
-                title: { type: "string" },
-                blocks: { type: "array", items: { type: "object", additionalProperties: true } },
-              },
-            },
-          },
-          openerImage: {
-            anyOf: [
-              { type: "null" },
-              {
-                type: "object",
-                additionalProperties: true,
-                properties: {
-                  suggestedPrompt: { anyOf: [{ type: "string" }, { type: "null" }] },
-                },
-              },
-            ],
-          },
-        },
-      },
-    },
-  ];
+  const toolSpec = tool ? tool : TOOL_DRAFT_BOOK_CHAPTER;
+  const toolName = toolSpec.name;
+  const tools = [toolSpec];
   const resp = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
     headers: {
@@ -487,6 +455,160 @@ function extractOutlineFromSkeletonChapter(chRaw: any, chapterNumber: number): C
 
 const NUMBERED_SUBPARAGRAPH_TITLE_RE = /^\d+(?:\.\d+){2,}\s+/;
 
+function pickLayoutBudgets(profile: ChapterLayoutProfile, candidateCount: number): {
+  praktijkRange: [number, number];
+  verdiepingRange: [number, number];
+} {
+  const n = Math.max(0, Math.floor(candidateCount));
+  if (n === 0) return { praktijkRange: [0, 0], verdiepingRange: [0, 0] };
+
+  // Soft guidance ranges, not hard requirements.
+  const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
+  const range = (lo: number, hi: number) => [clamp(lo, 0, n), clamp(hi, 0, n)] as [number, number];
+
+  if (profile === "pass2") {
+    return {
+      praktijkRange: range(Math.ceil(n * 0.35), Math.ceil(n * 0.6)),
+      verdiepingRange: range(Math.max(2, Math.ceil(n * 0.1)), Math.min(8, Math.ceil(n * 0.2))),
+    };
+  }
+  if (profile === "sparse") {
+    return {
+      praktijkRange: range(Math.min(2, Math.ceil(n * 0.1)), Math.ceil(n * 0.2)),
+      verdiepingRange: range(Math.min(1, Math.ceil(n * 0.03)), Math.ceil(n * 0.08)),
+    };
+  }
+  // auto
+  return {
+    praktijkRange: range(Math.max(2, Math.ceil(n * 0.2)), Math.ceil(n * 0.35)),
+    verdiepingRange: range(Math.max(1, Math.ceil(n * 0.06)), Math.ceil(n * 0.12)),
+  };
+}
+
+function buildLayoutPlannerSystem(opts: { language: string; level: "n3" | "n4" }) {
+  const langLabel = normalizeLanguageLabel(opts.language);
+  return (
+    "You are planning the layout for a Dutch MBO textbook chapter BEFORE writing.\n" +
+    "Your job is ONLY to decide where 'In de praktijk' and 'Verdieping' boxes belong, based on the outline titles.\n" +
+    "Return JSON only.\n" +
+    `Book language: ${opts.language} (${langLabel})\n` +
+    `Level: ${opts.level}\n` +
+    "\nRules:\n" +
+    "- Praktijk boxes: choose titles where a realistic care/workplace scenario clearly fits.\n" +
+    "- Verdieping boxes: choose titles that are relatively more complex (mechanisms, reasoning, nuance).\n" +
+    "- Not every title needs a box. Avoid forced/generic placements.\n" +
+    "- Spread selections across the chapter (avoid clustering everything into one section).\n" +
+    "- NEVER invent new titles. Only select from the provided candidate list.\n"
+  );
+}
+
+function buildLayoutPlannerPrompt(opts: {
+  bookTitle: string;
+  topic: string;
+  outline: ChapterOutline;
+  profile: ChapterLayoutProfile;
+}): string {
+  const candidates: Array<{ sectionTitle: string; subTitle: string }> = [];
+  for (const s of opts.outline.sections) {
+    const subs = Array.isArray(s.numberedSubparagraphTitles) ? s.numberedSubparagraphTitles : [];
+    for (const subTitle of subs) {
+      if (typeof subTitle !== "string" || !subTitle.trim()) continue;
+      candidates.push({ sectionTitle: s.title, subTitle: subTitle.trim() });
+    }
+  }
+
+  const budgets = pickLayoutBudgets(opts.profile, candidates.length);
+  const candidateText = candidates.length
+    ? candidates.map((c, i) => `${i + 1}. [${c.sectionTitle}] ${c.subTitle}`).join("\n")
+    : "(none)";
+
+  return (
+    "Return JSON with this exact shape:\n" +
+    "{\n" +
+    '  \"praktijkSubparagraphTitles\": string[],\n' +
+    '  \"verdiepingSubparagraphTitles\": string[],\n' +
+    '  \"notes\"?: string\n' +
+    "}\n\n" +
+    `Book title: ${opts.bookTitle}\n` +
+    `Topic: ${opts.topic}\n` +
+    `Profile: ${opts.profile}\n` +
+    `Targets (soft guidance):\n` +
+    `- praktijk range: ${budgets.praktijkRange[0]}..${budgets.praktijkRange[1]}\n` +
+    `- verdieping range: ${budgets.verdiepingRange[0]}..${budgets.verdiepingRange[1]}\n\n` +
+    "Candidate numbered subparagraph titles (select from these ONLY):\n" +
+    candidateText +
+    "\n\nGuidance:\n" +
+    "- Pick praktijk titles that naturally map to care/work situations (measurement, observation, symptoms, self-care, procedures).\n" +
+    "- Pick verdieping titles that benefit from a deeper mechanism or nuance.\n" +
+    "- If a box would be generic or forced, do NOT select that title.\n"
+  );
+}
+
+function sanitizeLayoutPlan(raw: any, outline: ChapterOutline): ChapterLayoutPlan | null {
+  if (!raw || typeof raw !== "object") return null;
+
+  const allowed = new Set<string>();
+  for (const s of outline.sections) {
+    for (const t of (Array.isArray(s.numberedSubparagraphTitles) ? s.numberedSubparagraphTitles : [])) {
+      if (typeof t === "string" && t.trim()) allowed.add(normalizeWs(t));
+    }
+  }
+
+  const take = (v: unknown): string[] => {
+    if (!Array.isArray(v)) return [];
+    const out: string[] = [];
+    for (const x of v) {
+      const t = typeof x === "string" ? normalizeWs(x) : "";
+      if (!t) continue;
+      if (!allowed.has(t)) continue;
+      if (!out.includes(t)) out.push(t);
+    }
+    return out;
+  };
+
+  return {
+    praktijkSubparagraphTitles: take((raw as any).praktijkSubparagraphTitles),
+    verdiepingSubparagraphTitles: take((raw as any).verdiepingSubparagraphTitles),
+    notes: typeof (raw as any).notes === "string" ? String((raw as any).notes).trim().slice(0, 500) : null,
+  };
+}
+
+async function planChapterLayout(opts: {
+  provider: Provider;
+  model: string;
+  bookTitle: string;
+  topic: string;
+  language: string;
+  level: "n3" | "n4";
+  outline: ChapterOutline;
+  profile: ChapterLayoutProfile;
+}): Promise<ChapterLayoutPlan | null> {
+  const candidatesCount = opts.outline.sections.reduce(
+    (sum, s) => sum + (Array.isArray(s.numberedSubparagraphTitles) ? s.numberedSubparagraphTitles.length : 0),
+    0,
+  );
+  if (candidatesCount <= 0) return null;
+
+  const system = buildLayoutPlannerSystem({ language: opts.language, level: opts.level });
+  const prompt = buildLayoutPlannerPrompt({
+    bookTitle: opts.bookTitle,
+    topic: opts.topic,
+    outline: opts.outline,
+    profile: opts.profile,
+  });
+
+  const raw = await llmGenerateJson({
+    provider: opts.provider,
+    model: opts.model,
+    system,
+    prompt,
+    maxTokens: 1200,
+    tool: TOOL_PLAN_CHAPTER_LAYOUT,
+  });
+
+  return sanitizeLayoutPlan(raw, opts.outline);
+}
+
 function analyzeDraftDensity(draft: DraftChapter): {
   praktijkBoxes: number;
   verdiepingBoxes: number;
@@ -525,49 +647,6 @@ function analyzeDraftDensity(draft: DraftChapter): {
   }
 
   return { praktijkBoxes, verdiepingBoxes, numberedSubparagraphsPerSection };
-}
-
-function validateDraftDensity(opts: { draft: DraftChapter; outline: ChapterOutline }) {
-  const { draft, outline } = opts;
-  const sectionCount = outline.sections.length;
-
-  // PASS2-like target: dense praktijk blocks, regular verdieping blocks.
-  const minPraktijkBoxes = Math.max(12, sectionCount * 3);
-  const minVerdiepingBoxes = Math.max(6, sectionCount);
-  const minNumberedPerSection = 4;
-
-  const stats = analyzeDraftDensity(draft);
-  const reasons: string[] = [];
-
-  for (let i = 0; i < sectionCount; i++) {
-    const required = Array.isArray(outline.sections[i]?.numberedSubparagraphTitles)
-      ? outline.sections[i].numberedSubparagraphTitles.length
-      : 0;
-    const minNeeded = Math.max(minNumberedPerSection, required);
-    const got = typeof stats.numberedSubparagraphsPerSection[i] === "number" ? stats.numberedSubparagraphsPerSection[i] : 0;
-    if (got < minNeeded) reasons.push(`Section ${i + 1}: need >=${minNeeded} numbered subparagraphs (got ${got})`);
-  }
-
-  if (stats.praktijkBoxes < minPraktijkBoxes) {
-    reasons.push(`Need >=${minPraktijkBoxes} praktijk boxes (got ${stats.praktijkBoxes})`);
-  }
-  if (stats.verdiepingBoxes < minVerdiepingBoxes) {
-    reasons.push(`Need >=${minVerdiepingBoxes} verdieping boxes (got ${stats.verdiepingBoxes})`);
-  }
-
-  if (reasons.length === 0) {
-    return {
-      ok: true as const,
-      stats,
-      thresholds: { minPraktijkBoxes, minVerdiepingBoxes, minNumberedPerSection },
-    };
-  }
-  return {
-    ok: false as const,
-    stats,
-    thresholds: { minPraktijkBoxes, minVerdiepingBoxes, minNumberedPerSection },
-    reasons,
-  };
 }
 
 // House style reference:
@@ -637,8 +716,9 @@ function buildPrompt(opts: {
   language: string;
   imagePromptLanguage: ImagePromptLanguage;
   outline?: ChapterOutline | null;
+  layoutPlan?: ChapterLayoutPlan | null;
 }) {
-  const { topic, bookTitle, chapterNumber, chapterCount, userInstructions, level, language, imagePromptLanguage, outline } = opts;
+  const { topic, bookTitle, chapterNumber, chapterCount, userInstructions, level, language, imagePromptLanguage, outline, layoutPlan } = opts;
   const langLabel = normalizeLanguageLabel(language);
   const imageLangLabel = imagePromptLanguage === "book" ? langLabel : "English";
 
@@ -658,6 +738,23 @@ function buildPrompt(opts: {
           })
           .join("\n") +
         "\n\n"
+      )
+      : "";
+
+  const layoutPlanText =
+    layoutPlan && (layoutPlan.praktijkSubparagraphTitles.length || layoutPlan.verdiepingSubparagraphTitles.length)
+      ? (
+        "\nLAYOUT PLAN (follow, but do NOT force generic boxes):\n" +
+        `- Praktijk targets (use praktijkHtml only inside these numbered subparagraph titles): ${
+          layoutPlan.praktijkSubparagraphTitles.length ? layoutPlan.praktijkSubparagraphTitles.join(" | ") : "(none)"
+        }\n` +
+        `- Verdieping targets (use verdiepingHtml only inside these numbered subparagraph titles): ${
+          layoutPlan.verdiepingSubparagraphTitles.length ? layoutPlan.verdiepingSubparagraphTitles.join(" | ") : "(none)"
+        }\n` +
+        (typeof layoutPlan.notes === "string" && layoutPlan.notes.trim() ? `- Notes: ${layoutPlan.notes.trim()}\n` : "") +
+        "Rules:\n" +
+        "- Do NOT add praktijkHtml/verdiepingHtml outside the targets.\n" +
+        "- If a target would become generic or forced, OMIT it (skip) instead of writing weak content.\n\n"
       )
       : "";
 
@@ -690,24 +787,16 @@ function buildPrompt(opts: {
 
   const structureConstraints = outlineSectionCount
     ? (
-      "- In each section, create 6-10 numbered subparagraph blocks (type='subparagraph') with titles like '1.4.2 Diffusie'.\n" +
-      "- If the outline lists numbered subparagraph titles, you MUST include them EXACTLY as subparagraph.title.\n" +
+      "- For each section, include the numbered subparagraphs listed in the outline EXACTLY as subparagraph.title.\n" +
+      "- Do NOT invent additional numbered subparagraph titles (unless the outline lists none for that section).\n" +
       "- Inside each numbered subparagraph, add 1-2 microheadings as nested subparagraphs (type='subparagraph') with SHORT titles (2-6 words, no punctuation).\n" +
-      "- Inside each numbered subparagraph, include at least 2 paragraph blocks (basisHtml) to build depth.\n"
+      "- Inside each numbered subparagraph, include 1-3 paragraph blocks (basisHtml) to build depth.\n"
     )
     : (
       "- Each section: 2-5 blocks.\n" +
       "- Include microheadings using subparagraph blocks (type='subparagraph'). Aim for 1-2 subparagraphs per section.\n" +
       "- subparagraph.title must be short (2-6 words) and have no punctuation at the end.\n"
     );
-
-  const densityConstraints = outlineSectionCount
-    ? (
-      "- PASS2 density target: include praktijkHtml in AT LEAST 12 paragraph blocks across the chapter.\n" +
-      "- PASS2 density target: include verdiepingHtml in AT LEAST 6 paragraph blocks across the chapter.\n" +
-      "- Spread praktijk/verdieping across all sections (do not cluster all boxes in one section).\n"
-    )
-    : "";
 
   return (
     "Return JSON with this exact shape:\n" +
@@ -752,11 +841,11 @@ function buildPrompt(opts: {
     `Image suggestedPrompt language: ${imageLangLabel}\n` +
     (userInstructions ? `User instructions: ${userInstructions}\n` : "") +
     outlineText +
+    layoutPlanText +
     "\nConstraints:\n" +
     sectionCountConstraint +
     titleConstraints +
     structureConstraints +
-    densityConstraints +
     "- Use the book language for chapterTitle, section titles, basisHtml, praktijkHtml, verdiepingHtml, alt, caption.\n" +
     `- suggestedPrompt MUST be written in ${imageLangLabel}.\n` +
     "- Include 1-2 image suggestions across the chapter via images[].suggestedPrompt.\n" +
@@ -956,6 +1045,9 @@ export class BookGenerateChapter implements JobExecutor {
     const imagePromptLanguage =
       optionalEnum(p.imagePromptLanguage, ["en", "book"] as const) ?? "en";
 
+    const layoutProfile: ChapterLayoutProfile =
+      optionalEnum((p as any).layoutProfile, ["auto", "pass2", "sparse"] as const) ?? "auto";
+
     const writeModelSpec = parseModelSpec(p.writeModel);
 
     await emitAgentJobEvent(jobId, "generating", 5, `Generating chapter ${chapterIndex + 1}/${chapterCount}`, {
@@ -987,6 +1079,39 @@ export class BookGenerateChapter implements JobExecutor {
     if (bookErr || !bookRow) throw new Error(bookErr?.message || "Book not found");
     const bookTitle = String((bookRow as any).title || "").trim();
 
+    // 2.5) Layout planning (soft, plan-driven): decide where praktijk/verdieping belong.
+    // This avoids rigid rule-based quotas that can force unnatural boxes.
+    let layoutPlan: ChapterLayoutPlan | null = null;
+    if (outline && Array.isArray(outline.sections) && outline.sections.length) {
+      await emitAgentJobEvent(jobId, "generating", 15, "Planning layout (praktijk/verdieping)", {
+        layoutProfile,
+      }).catch(() => {});
+      try {
+        layoutPlan = await planChapterLayout({
+          provider: writeModelSpec.provider,
+          model: writeModelSpec.model,
+          bookTitle,
+          topic,
+          language,
+          level,
+          outline,
+          profile: layoutProfile,
+        });
+        await emitAgentJobEvent(jobId, "generating", 18, "Layout plan ready", {
+          layoutProfile,
+          praktijkTargets: layoutPlan?.praktijkSubparagraphTitles?.length ?? 0,
+          verdiepingTargets: layoutPlan?.verdiepingSubparagraphTitles?.length ?? 0,
+        }).catch(() => {});
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
+        await emitAgentJobEvent(jobId, "generating", 18, "Layout plan failed (continuing without plan)", {
+          layoutProfile,
+          error: msg.slice(0, 600),
+        }).catch(() => {});
+        layoutPlan = null;
+      }
+    }
+
     await emitAgentJobEvent(jobId, "generating", 20, "Calling LLM to draft chapter content", {
       chapterIndex,
     }).catch(() => {});
@@ -1002,6 +1127,7 @@ export class BookGenerateChapter implements JobExecutor {
       language,
       imagePromptLanguage,
       outline,
+      layoutPlan,
     });
     let draft = (await llmGenerateJson({
       provider: writeModelSpec.provider,
@@ -1064,11 +1190,9 @@ export class BookGenerateChapter implements JobExecutor {
 
         const retryNotes = [
           userInstructions,
-          "CRITICAL: Follow the OUTLINE exactly and increase density to match PASS2.\n" +
-            "- Include MANY 'In de praktijk' boxes distributed across the chapter.\n" +
-            "- Include regular 'Verdieping' boxes distributed across the chapter.\n" +
-            "- Ensure each section has multiple numbered subparagraphs.\n" +
-            "Return valid JSON only.",
+          "CRITICAL: Follow the OUTLINE exactly (titles + required numbered subparagraphs).\n" +
+            "- Do NOT invent or rename numbered subparagraph titles.\n" +
+            "- Return valid JSON only (no markdown).",
         ]
           .filter((x) => typeof x === "string" && x.trim())
           .map((x) => String(x).trim())
@@ -1084,6 +1208,7 @@ export class BookGenerateChapter implements JobExecutor {
           language,
           imagePromptLanguage,
           outline,
+          layoutPlan,
         });
 
         draft = (await llmGenerateJson({
@@ -1098,18 +1223,18 @@ export class BookGenerateChapter implements JobExecutor {
       }
     }
 
-    // Density is a style target (PASS2-like), but we do not hard-fail the job on it.
-    // The prompt already asks for high density; here we only emit a diagnostic event.
-    if (outline && Array.isArray(outline.sections) && outline.sections.length) {
-      const density = validateDraftDensity({ draft, outline });
-      if (!density.ok) {
-        await emitAgentJobEvent(jobId, "generating", 23, "Draft below PASS2 density targets", {
-          chapterIndex,
-          reasons: density.reasons,
-          stats: density.stats,
-          thresholds: density.thresholds,
-        }).catch(() => {});
-      }
+    // Box density is NOT a hard rule. We emit counts for observability only.
+    try {
+      const stats = analyzeDraftDensity(draft);
+      await emitAgentJobEvent(jobId, "generating", 23, "Draft stats (boxes)", {
+        chapterIndex,
+        layoutProfile,
+        praktijkBoxes: stats.praktijkBoxes,
+        verdiepingBoxes: stats.verdiepingBoxes,
+        numberedSubparagraphsPerSection: stats.numberedSubparagraphsPerSection,
+      }).catch(() => {});
+    } catch {
+      // best-effort
     }
 
     // 3) Apply updates to skeleton chapter
