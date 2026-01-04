@@ -99,7 +99,9 @@ function parseModelSpec(raw: unknown): { provider: Provider; model: string } {
 
 async function llmGenerateJson(opts: { provider: Provider; model: string; system: string; prompt: string; maxTokens?: number }): Promise<any> {
   const { provider, model, system, prompt, maxTokens = 8000 } = opts;
-  const timeoutMs = 110_000;
+  // Long chapters (PASS2 density) can take >110s on some providers/models. Keep this generous,
+  // but still bounded so jobs fail loudly instead of hanging indefinitely.
+  const timeoutMs = 220_000;
 
   if (provider === "openai") {
     const key = requireEnv("OPENAI_API_KEY");
