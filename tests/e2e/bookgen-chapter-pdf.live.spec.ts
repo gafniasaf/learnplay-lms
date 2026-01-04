@@ -265,7 +265,7 @@ test.describe("Live: BookGen chapter → Prince PDF (microheadings + boxes + CSS
       [
         "--raster-output=" + path.join(outDir, "chapter-preview-%d.png"),
         "--raster-format=png",
-        "--raster-pages=3",
+        "--raster-pages=all",
         "--raster-dpi=110",
         htmlPath,
       ],
