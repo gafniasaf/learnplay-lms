@@ -98,7 +98,7 @@ function parseModelSpec(raw: unknown): { provider: Provider; model: string } {
 }
 
 async function llmGenerateJson(opts: { provider: Provider; model: string; system: string; prompt: string; maxTokens?: number }): Promise<any> {
-  const { provider, model, system, prompt, maxTokens = 3600 } = opts;
+  const { provider, model, system, prompt, maxTokens = 8000 } = opts;
   const timeoutMs = 110_000;
 
   if (provider === "openai") {
@@ -128,6 +128,50 @@ async function llmGenerateJson(opts: { provider: Provider; model: string; system
 
   // anthropic
   const key = requireEnv("ANTHROPIC_API_KEY");
+  const toolName = "draft_book_chapter";
+  // Keep the tool schema intentionally minimal (we validate/enforce the shape ourselves later).
+  // The key property is: Anthropic returns structured JSON arguments for tool use, avoiding brittle
+  // “extract JSON from text” parsing failures (e.g. due to unescaped quotes/newlines in HTML strings).
+  const tools = [
+    {
+      name: toolName,
+      description:
+        "Return ONLY the chapter draft JSON object (chapterTitle, sections, openerImage). " +
+        "All HTML must be inline and stored in string fields (basisHtml/praktijkHtml/verdiepingHtml).",
+      input_schema: {
+        type: "object",
+        additionalProperties: true,
+        required: ["chapterTitle", "sections"],
+        properties: {
+          chapterTitle: { type: "string" },
+          sections: {
+            type: "array",
+            items: {
+              type: "object",
+              additionalProperties: true,
+              required: ["title", "blocks"],
+              properties: {
+                title: { type: "string" },
+                blocks: { type: "array", items: { type: "object", additionalProperties: true } },
+              },
+            },
+          },
+          openerImage: {
+            anyOf: [
+              { type: "null" },
+              {
+                type: "object",
+                additionalProperties: true,
+                properties: {
+                  suggestedPrompt: { anyOf: [{ type: "string" }, { type: "null" }] },
+                },
+              },
+            ],
+          },
+        },
+      },
+    },
+  ];
   const resp = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
     headers: {
@@ -140,6 +184,8 @@ async function llmGenerateJson(opts: { provider: Provider; model: string; system
       max_tokens: maxTokens,
       temperature: 0.4,
       system,
+      tools,
+      tool_choice: { type: "tool", name: toolName },
       messages: [{ role: "user", content: [{ type: "text", text: prompt }] }],
     }),
     signal: AbortSignal.timeout(timeoutMs),
@@ -147,12 +193,28 @@ async function llmGenerateJson(opts: { provider: Provider; model: string; system
   const text = await resp.text();
   if (!resp.ok) throw new Error(`LLM(anthropic) failed: ${resp.status} ${text.slice(0, 400)}`);
   const data = JSON.parse(text);
+
+  // Preferred path: tool-based structured output (no JSON parsing from text needed).
+  const toolUse = (Array.isArray((data as any)?.content) ? (data as any).content : []).find(
+    (b: any) => b?.type === "tool_use" && b?.name === toolName && b?.input && typeof b.input === "object",
+  );
+  if (toolUse?.input && typeof toolUse.input === "object") {
+    return toolUse.input;
+  }
+
+  // Back-compat fallback: some models/configs may still return plain text. Parse it, but fail loudly with context.
   const out = (Array.isArray(data?.content) ? data.content : [])
     .filter((b: any) => b?.type === "text" && typeof b?.text === "string")
     .map((b: any) => b.text)
     .join("\n");
   if (!out.trim()) throw new Error("LLM(anthropic) returned empty content");
-  return extractJsonFromText(out);
+  try {
+    return extractJsonFromText(out);
+  } catch (e) {
+    const reason = e instanceof Error ? e.message : String(e);
+    const preview = out.replace(/\s+/g, " ").slice(0, 600);
+    throw new Error(`LLM(anthropic) invalid_json (${reason}). Output preview: ${preview}`);
+  }
 }
 
 async function downloadJson(supabase: any, bucket: string, path: string): Promise<any> {
@@ -289,6 +351,61 @@ type DraftChapter = {
   openerImage?: { suggestedPrompt?: string | null } | null;
 };
 
+type ChapterOutline = {
+  chapterTitle?: string;
+  sections: Array<{
+    title: string;
+    numberedSubparagraphTitles: string[];
+  }>;
+};
+
+function normalizeWs(s: string): string {
+  return String(s || "").replace(/\s+/g, " ").trim();
+}
+
+function stripNumberPrefix(title: string): string {
+  return normalizeWs(title).replace(/^\d+(?:\.\d+)*\s+/, "").trim();
+}
+
+function stripChapterNumberPrefix(title: string): string {
+  return normalizeWs(title).replace(/^\d+\.\s+/, "").trim();
+}
+
+function looksLikePlaceholderChapterTitle(title: string, chapterNumber: number): boolean {
+  const t = normalizeWs(title).toLowerCase();
+  return t === `hoofdstuk ${chapterNumber}` || t === `chapter ${chapterNumber}`;
+}
+
+function extractOutlineFromSkeletonChapter(chRaw: any, chapterNumber: number): ChapterOutline | null {
+  if (!chRaw || typeof chRaw !== "object") return null;
+
+  const chapterTitle = typeof chRaw.title === "string" ? normalizeWs(chRaw.title) : "";
+  const lockChapterTitle = !!chapterTitle && !looksLikePlaceholderChapterTitle(chapterTitle, chapterNumber);
+
+  const sectionsIn = Array.isArray(chRaw.sections) ? chRaw.sections : [];
+  const sections = sectionsIn
+    .filter((s: any) => s && typeof s === "object")
+    .map((s: any) => {
+      const title = typeof s.title === "string" ? normalizeWs(s.title) : "";
+      const blocks = Array.isArray(s.blocks) ? s.blocks : [];
+      const numberedSubparagraphTitles = blocks
+        .filter((b: any) => b && typeof b === "object" && b.type === "subparagraph")
+        .map((b: any) => (typeof b.title === "string" ? normalizeWs(b.title) : ""))
+        .filter((t: string) => /^\d+(?:\.\d+){2,}\s+/.test(t));
+      return { title, numberedSubparagraphTitles };
+    })
+    .filter((s: any) => !!s.title)
+    .slice(0, 6);
+
+  const hasSectionTitles = sections.length > 0;
+  if (!lockChapterTitle && !hasSectionTitles) return null;
+
+  return {
+    ...(lockChapterTitle ? { chapterTitle } : {}),
+    sections,
+  };
+}
+
 // House style reference:
 // `canonical_book_PASS2.assembled_prince.html` (Prince pass2) demonstrates the target voice/structure:
 // - short sentences
@@ -355,10 +472,30 @@ function buildPrompt(opts: {
   level: "n3" | "n4";
   language: string;
   imagePromptLanguage: ImagePromptLanguage;
+  outline?: ChapterOutline | null;
 }) {
-  const { topic, bookTitle, chapterNumber, chapterCount, userInstructions, level, language, imagePromptLanguage } = opts;
+  const { topic, bookTitle, chapterNumber, chapterCount, userInstructions, level, language, imagePromptLanguage, outline } = opts;
   const langLabel = normalizeLanguageLabel(language);
   const imageLangLabel = imagePromptLanguage === "book" ? langLabel : "English";
+
+  const outlineText =
+    outline && Array.isArray(outline.sections) && outline.sections.length
+      ? (
+        "\nOUTLINE (MUST FOLLOW):\n" +
+        (typeof outline.chapterTitle === "string" && outline.chapterTitle.trim()
+          ? `- Chapter title (DO NOT change): ${outline.chapterTitle.trim()}\n`
+          : "") +
+        outline.sections
+          .map((s, i) => {
+            const st = typeof s?.title === "string" ? s.title.trim() : "";
+            const subs = Array.isArray(s?.numberedSubparagraphTitles) ? s.numberedSubparagraphTitles : [];
+            const subsLine = subs.length ? `\n    - Numbered subparagraphs (h3): ${subs.join(" | ")}` : "";
+            return `- Section ${i + 1}: ${st}${subsLine}`;
+          })
+          .join("\n") +
+        "\n\n"
+      )
+      : "";
 
   const verdiepingGuidance =
     level === "n3"
@@ -371,6 +508,34 @@ function buildPrompt(opts: {
         "- You may include ONE simple formula OR named law if helpful, but explain it plainly.\n"
       );
 
+  const outlineSectionCount =
+    outline && Array.isArray(outline.sections) && outline.sections.length ? outline.sections.length : null;
+
+  const sectionCountConstraint = outlineSectionCount
+    ? `- Return EXACTLY ${outlineSectionCount} sections, in the same order as the outline.\n`
+    : "- Make 2-4 sections.\n";
+
+  const titleConstraints = outlineSectionCount
+    ? (
+      "- chapterTitle MUST match the outline (ignore the topic if it conflicts).\n" +
+      "- Each sections[i].title MUST match the outline's section title.\n"
+    )
+    : (
+      "- Section titles should read like micro-titles (short noun phrase).\n"
+    );
+
+  const structureConstraints = outlineSectionCount
+    ? (
+      "- In each section, create 4-9 numbered subparagraph blocks (type='subparagraph') with titles like '1.4.2 Diffusie'.\n" +
+      "- If the outline lists numbered subparagraph titles, you MUST include them EXACTLY as subparagraph.title.\n" +
+      "- Inside each numbered subparagraph, add 1 microheading as a nested subparagraph (type='subparagraph') with a SHORT title (2-6 words, no punctuation).\n"
+    )
+    : (
+      "- Each section: 2-5 blocks.\n" +
+      "- Include microheadings using subparagraph blocks (type='subparagraph'). Aim for 1-2 subparagraphs per section.\n" +
+      "- subparagraph.title must be short (2-6 words) and have no punctuation at the end.\n"
+    );
+
   return (
     "Return JSON with this exact shape:\n" +
     "{\n" +
@@ -382,7 +547,7 @@ function buildPrompt(opts: {
     "        {\n" +
     '          \"type\": \"subparagraph\",\n' +
     '          \"title\": string,\n' +
-    '          \"blocks\": [ /* paragraph | list | steps */ ]\n' +
+    '          \"blocks\": [ /* subparagraph | paragraph | list | steps */ ]\n' +
     "        } |\n" +
     "        {\n" +
     '          \"type\": \"paragraph\",\n' +
@@ -413,12 +578,11 @@ function buildPrompt(opts: {
     `Book language: ${language} (${langLabel})\n` +
     `Image suggestedPrompt language: ${imageLangLabel}\n` +
     (userInstructions ? `User instructions: ${userInstructions}\n` : "") +
+    outlineText +
     "\nConstraints:\n" +
-    "- Make 2-4 sections.\n" +
-    "- Each section: 2-4 blocks.\n" +
-    "- Include microheadings using subparagraph blocks (type='subparagraph'). Aim for 1-2 subparagraphs per section.\n" +
-    "- subparagraph.title must be short (2-6 words) and have no punctuation at the end.\n" +
-    "- Section titles should read like micro-titles (short noun phrase).\n" +
+    sectionCountConstraint +
+    titleConstraints +
+    structureConstraints +
     "- Use the book language for chapterTitle, section titles, basisHtml, praktijkHtml, verdiepingHtml, alt, caption.\n" +
     `- suggestedPrompt MUST be written in ${imageLangLabel}.\n` +
     "- Include 1-2 image suggestions across the chapter via images[].suggestedPrompt.\n" +
@@ -641,6 +805,9 @@ export class BookGenerateChapter implements JobExecutor {
       throw new Error(`BLOCKED: Skeleton missing chapter at index ${chapterIndex}`);
     }
 
+    const existingChapter = chapters[chapterIndex] as any;
+    const outline = extractOutlineFromSkeletonChapter(existingChapter, chapterIndex + 1);
+
     // 2) Load book title (for better prompts)
     const { data: bookRow, error: bookErr } = await adminSupabase.from("books").select("title").eq("id", bookId).single();
     if (bookErr || !bookRow) throw new Error(bookErr?.message || "Book not found");
@@ -660,14 +827,56 @@ export class BookGenerateChapter implements JobExecutor {
       level,
       language,
       imagePromptLanguage,
+      outline,
     });
     const draft = (await llmGenerateJson({
       provider: writeModelSpec.provider,
       model: writeModelSpec.model,
       system,
       prompt,
-      maxTokens: 3200,
+      maxTokens: 8000,
     })) as DraftChapter;
+
+    // If we have an outline from the skeleton, enforce hierarchy so we never promote a subparagraph into a chapter title.
+    if (outline && Array.isArray(outline.sections) && outline.sections.length) {
+      const expectedChapter = typeof outline.chapterTitle === "string" ? outline.chapterTitle.trim() : "";
+      if (expectedChapter) {
+        const a = stripChapterNumberPrefix(draft?.chapterTitle || "");
+        const b = stripChapterNumberPrefix(expectedChapter);
+        if (!a || !b || a !== b) {
+          throw new Error(`BLOCKED: LLM returned wrong chapterTitle for locked outline (got='${a}', expected='${b}')`);
+        }
+      }
+
+      const draftSections = Array.isArray((draft as any)?.sections) ? (draft as any).sections : [];
+      if (draftSections.length !== outline.sections.length) {
+        throw new Error(`BLOCKED: LLM returned ${draftSections.length} sections but outline requires ${outline.sections.length}`);
+      }
+
+      for (let i = 0; i < outline.sections.length; i++) {
+        const expectedTitle = outline.sections[i]?.title || "";
+        const gotTitle = typeof draftSections[i]?.title === "string" ? draftSections[i].title : "";
+        if (stripNumberPrefix(gotTitle) !== stripNumberPrefix(expectedTitle)) {
+          throw new Error(`BLOCKED: Section title mismatch at index ${i} (got='${gotTitle}', expected='${expectedTitle}')`);
+        }
+
+        const requiredSubs = Array.isArray(outline.sections[i]?.numberedSubparagraphTitles)
+          ? outline.sections[i].numberedSubparagraphTitles
+          : [];
+        if (requiredSubs.length) {
+          const blocks = Array.isArray(draftSections[i]?.blocks) ? draftSections[i].blocks : [];
+          const gotSubs = blocks
+            .filter((b: any) => b && typeof b === "object" && b.type === "subparagraph")
+            .map((b: any) => (typeof b.title === "string" ? normalizeWs(b.title) : ""))
+            .filter((t: string) => /^\d+(?:\.\d+){2,}\s+/.test(t));
+          for (const req of requiredSubs) {
+            if (!gotSubs.includes(normalizeWs(req))) {
+              throw new Error(`BLOCKED: Missing required numbered subparagraph '${req}' in section '${expectedTitle}'`);
+            }
+          }
+        }
+      }
+    }
 
     // 3) Apply updates to skeleton chapter
     const { title: chapterTitle, sections: newSections, openerImageSrc } = assignIdsAndImages({
@@ -676,13 +885,21 @@ export class BookGenerateChapter implements JobExecutor {
       draft,
     });
 
+    const finalChapterTitle =
+      outline && typeof outline.chapterTitle === "string" && outline.chapterTitle.trim()
+        ? outline.chapterTitle.trim()
+        : chapterTitle;
+
+    const existingSections = Array.isArray(existingChapter?.sections) ? existingChapter.sections : [];
+    const mergedSections = newSections.concat(existingSections.slice(newSections.length));
+
     (sk as any).chapters[chapterIndex] = {
       ...(sk as any).chapters[chapterIndex],
       id: (sk as any).chapters[chapterIndex]?.id || `ch-${chapterIndex + 1}`,
       number: (sk as any).chapters[chapterIndex]?.number || (chapterIndex + 1),
-      title: chapterTitle,
+      title: finalChapterTitle,
       ...(openerImageSrc ? { openerImageSrc } : {}),
-      sections: newSections,
+      sections: mergedSections,
     };
 
     const v1 = validateBookSkeleton(sk);
