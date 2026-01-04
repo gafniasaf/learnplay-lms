@@ -261,32 +261,40 @@ function ensureBoxLeadSpan(raw: unknown, opts: { maxWords: number }): string | n
   const s0 = typeof raw === "string" ? raw.trim() : "";
   if (!s0) return null;
 
+  // Remove common placeholder token if a model copied our examples literally.
+  // Example bad input: "LEAD Je ..." or "<span class=\"box-lead\">LEAD</span> Je ..."
+  let s = s0.replace(/^(?:LEAD|Lead)\s+/u, "");
+  const placeholderSpan = s.match(
+    /^<\s*span\b[^>]*class\s*=\s*["'][^"']*box-lead[^"']*["'][^>]*>\s*(?:LEAD|Lead)\s*<\s*\/\s*span\s*>\s*(.*)$/i,
+  );
+  if (placeholderSpan) s = String(placeholderSpan[1] || "").trim();
+
   // Already has a lead span up front
-  if (/^<\s*span\b[^>]*class\s*=\s*\"[^\"]*box-lead[^\"]*\"/i.test(s0)) return s0;
-  if (/^<\s*span\b[^>]*class\s*=\s*'[^']*box-lead[^']*'/i.test(s0)) return s0;
+  if (/^<\s*span\b[^>]*class\s*=\s*\"[^\"]*box-lead[^\"]*\"/i.test(s)) return s;
+  if (/^<\s*span\b[^>]*class\s*=\s*'[^']*box-lead[^']*'/i.test(s)) return s;
 
   // Common legacy lead style: <strong>Lead:</strong> Rest...
-  const mStrong = s0.match(/^<\s*strong\s*>\s*([^<]{1,120}?)\s*:?\s*<\s*\/\s*strong\s*>\s*(.*)$/i);
+  const mStrong = s.match(/^<\s*strong\s*>\s*([^<]{1,120}?)\s*:?\s*<\s*\/\s*strong\s*>\s*(.*)$/i);
   if (mStrong) {
     const lead = String(mStrong[1] || "").trim();
     const rest = String(mStrong[2] || "").trim();
-    if (!lead) return s0;
+    if (!lead) return s;
     return `<span class="box-lead">${lead}</span>${rest ? ` ${rest}` : ""}`;
   }
 
   // Other inline-lead patterns: <span>Lead:</span> Rest... (or <em>/<b>/<i>)
-  const mTag = s0.match(/^<\s*(span|em|b|i)\b[^>]*>\s*([^<]{1,120}?)\s*:?\s*<\s*\/\s*\1\s*>\s*(.*)$/i);
+  const mTag = s.match(/^<\s*(span|em|b|i)\b[^>]*>\s*([^<]{1,120}?)\s*:?\s*<\s*\/\s*\1\s*>\s*(.*)$/i);
   if (mTag) {
     const lead = String(mTag[2] || "").trim();
     const rest = String(mTag[3] || "").trim();
-    if (!lead) return s0;
+    if (!lead) return s;
     return `<span class="box-lead">${lead}</span>${rest ? ` ${rest}` : ""}`;
   }
 
   // If the string starts with a tag we don't understand, avoid corrupting HTML.
-  if (s0.startsWith("<")) return s0;
+  if (s.startsWith("<")) return s;
 
-  const words = s0.split(/\s+/).map((w) => w.trim()).filter(Boolean);
+  const words = s.split(/\s+/).map((w) => w.trim()).filter(Boolean);
   if (words.length === 0) return null;
   const n = Math.max(1, Math.min(Math.floor(opts.maxWords || 2), words.length));
   const lead = words.slice(0, n).join(" ");
@@ -406,6 +414,91 @@ function extractOutlineFromSkeletonChapter(chRaw: any, chapterNumber: number): C
   };
 }
 
+const NUMBERED_SUBPARAGRAPH_TITLE_RE = /^\d+(?:\.\d+){2,}\s+/;
+
+function analyzeDraftDensity(draft: DraftChapter): {
+  praktijkBoxes: number;
+  verdiepingBoxes: number;
+  numberedSubparagraphsPerSection: number[];
+} {
+  const sections = Array.isArray((draft as any)?.sections) ? (draft as any).sections : [];
+  let praktijkBoxes = 0;
+  let verdiepingBoxes = 0;
+  const numberedSubparagraphsPerSection: number[] = [];
+
+  const walkBlocks = (blocksRaw: any[]) => {
+    const blocks = Array.isArray(blocksRaw) ? blocksRaw : [];
+    for (const b of blocks) {
+      if (!b || typeof b !== "object") continue;
+      const t = typeof (b as any).type === "string" ? String((b as any).type) : "";
+      if (t === "paragraph") {
+        const pr = typeof (b as any).praktijkHtml === "string" ? String((b as any).praktijkHtml).trim() : "";
+        const vd = typeof (b as any).verdiepingHtml === "string" ? String((b as any).verdiepingHtml).trim() : "";
+        if (pr) praktijkBoxes += 1;
+        if (vd) verdiepingBoxes += 1;
+      } else if (t === "subparagraph") {
+        const inner = Array.isArray((b as any).blocks) ? (b as any).blocks : [];
+        walkBlocks(inner);
+      }
+    }
+  };
+
+  for (const s of sections) {
+    const blocks = Array.isArray((s as any)?.blocks) ? (s as any).blocks : [];
+    const numbered = blocks
+      .filter((b: any) => b && typeof b === "object" && b.type === "subparagraph")
+      .map((b: any) => (typeof b.title === "string" ? normalizeWs(b.title) : ""))
+      .filter((t: string) => NUMBERED_SUBPARAGRAPH_TITLE_RE.test(t)).length;
+    numberedSubparagraphsPerSection.push(numbered);
+    walkBlocks(blocks);
+  }
+
+  return { praktijkBoxes, verdiepingBoxes, numberedSubparagraphsPerSection };
+}
+
+function validateDraftDensity(opts: { draft: DraftChapter; outline: ChapterOutline }) {
+  const { draft, outline } = opts;
+  const sectionCount = outline.sections.length;
+
+  // PASS2-like target: dense praktijk blocks, regular verdieping blocks.
+  const minPraktijkBoxes = Math.max(12, sectionCount * 3);
+  const minVerdiepingBoxes = Math.max(6, sectionCount);
+  const minNumberedPerSection = 4;
+
+  const stats = analyzeDraftDensity(draft);
+  const reasons: string[] = [];
+
+  for (let i = 0; i < sectionCount; i++) {
+    const required = Array.isArray(outline.sections[i]?.numberedSubparagraphTitles)
+      ? outline.sections[i].numberedSubparagraphTitles.length
+      : 0;
+    const minNeeded = Math.max(minNumberedPerSection, required);
+    const got = typeof stats.numberedSubparagraphsPerSection[i] === "number" ? stats.numberedSubparagraphsPerSection[i] : 0;
+    if (got < minNeeded) reasons.push(`Section ${i + 1}: need >=${minNeeded} numbered subparagraphs (got ${got})`);
+  }
+
+  if (stats.praktijkBoxes < minPraktijkBoxes) {
+    reasons.push(`Need >=${minPraktijkBoxes} praktijk boxes (got ${stats.praktijkBoxes})`);
+  }
+  if (stats.verdiepingBoxes < minVerdiepingBoxes) {
+    reasons.push(`Need >=${minVerdiepingBoxes} verdieping boxes (got ${stats.verdiepingBoxes})`);
+  }
+
+  if (reasons.length === 0) {
+    return {
+      ok: true as const,
+      stats,
+      thresholds: { minPraktijkBoxes, minVerdiepingBoxes, minNumberedPerSection },
+    };
+  }
+  return {
+    ok: false as const,
+    stats,
+    thresholds: { minPraktijkBoxes, minVerdiepingBoxes, minNumberedPerSection },
+    reasons,
+  };
+}
+
 // House style reference:
 // `canonical_book_PASS2.assembled_prince.html` (Prince pass2) demonstrates the target voice/structure:
 // - short sentences
@@ -421,7 +514,7 @@ const PRINCE_PASS2_MBO_HOUSE_STYLE = [
   "- Keep titles short (micro-title vibe): 2-6 words, no punctuation at the end.",
   "- Do NOT include the labels 'In de praktijk:' or 'Verdieping:' in the text; the renderer adds them.",
   "- Praktijk text should read like a short workplace scenario in second person ('Je ...' / 'Bij een ...' / 'Een ...').",
-  "- For praktijk/verdieping: start with a lead phrase wrapped as <span class=\"box-lead\">LEAD</span>.",
+  "- For praktijk/verdieping: start with a short lead phrase wrapped as <span class=\"box-lead\">...</span> (1-6 words).",
 ].join("\n") + "\n";
 
 function buildSystem(opts: {
@@ -526,15 +619,24 @@ function buildPrompt(opts: {
 
   const structureConstraints = outlineSectionCount
     ? (
-      "- In each section, create 4-9 numbered subparagraph blocks (type='subparagraph') with titles like '1.4.2 Diffusie'.\n" +
+      "- In each section, create 6-10 numbered subparagraph blocks (type='subparagraph') with titles like '1.4.2 Diffusie'.\n" +
       "- If the outline lists numbered subparagraph titles, you MUST include them EXACTLY as subparagraph.title.\n" +
-      "- Inside each numbered subparagraph, add 1 microheading as a nested subparagraph (type='subparagraph') with a SHORT title (2-6 words, no punctuation).\n"
+      "- Inside each numbered subparagraph, add 1-2 microheadings as nested subparagraphs (type='subparagraph') with SHORT titles (2-6 words, no punctuation).\n" +
+      "- Inside each numbered subparagraph, include at least 2 paragraph blocks (basisHtml) to build depth.\n"
     )
     : (
       "- Each section: 2-5 blocks.\n" +
       "- Include microheadings using subparagraph blocks (type='subparagraph'). Aim for 1-2 subparagraphs per section.\n" +
       "- subparagraph.title must be short (2-6 words) and have no punctuation at the end.\n"
     );
+
+  const densityConstraints = outlineSectionCount
+    ? (
+      "- PASS2 density target: include praktijkHtml in AT LEAST 12 paragraph blocks across the chapter.\n" +
+      "- PASS2 density target: include verdiepingHtml in AT LEAST 6 paragraph blocks across the chapter.\n" +
+      "- Spread praktijk/verdieping across all sections (do not cluster all boxes in one section).\n"
+    )
+    : "";
 
   return (
     "Return JSON with this exact shape:\n" +
@@ -583,15 +685,16 @@ function buildPrompt(opts: {
     sectionCountConstraint +
     titleConstraints +
     structureConstraints +
+    densityConstraints +
     "- Use the book language for chapterTitle, section titles, basisHtml, praktijkHtml, verdiepingHtml, alt, caption.\n" +
     `- suggestedPrompt MUST be written in ${imageLangLabel}.\n` +
     "- Include 1-2 image suggestions across the chapter via images[].suggestedPrompt.\n" +
     "- suggestedPrompt must be concise and specific (no camera brand names, no artist names).\n" +
     "- basisHtml: 2-5 short sentences. Define key terms. Prefer 'Dit heet...' / 'Dat betekent...'.\n" +
     "- praktijkHtml: 2-4 short sentences. Workplace scenario, second person.\n" +
-    "- praktijkHtml MUST start with: <span class=\"box-lead\">LEAD</span> ... (LEAD is 1-4 words).\n" +
+    "- praktijkHtml MUST start with a lead phrase wrapped as <span class=\"box-lead\">...</span> (lead is 1-4 words).\n" +
     "- verdiepingHtml: OPTIONAL. If present, keep it simple and step-by-step.\n" +
-    "- verdiepingHtml MUST start with: <span class=\"box-lead\">LEAD</span> ... (LEAD is 1-6 words).\n" +
+    "- verdiepingHtml MUST start with a lead phrase wrapped as <span class=\"box-lead\">...</span> (lead is 1-6 words).\n" +
     "- Do NOT include 'In de praktijk:' or 'Verdieping:' in the text.\n" +
     verdiepingGuidance
   );
@@ -829,7 +932,7 @@ export class BookGenerateChapter implements JobExecutor {
       imagePromptLanguage,
       outline,
     });
-    const draft = (await llmGenerateJson({
+    let draft = (await llmGenerateJson({
       provider: writeModelSpec.provider,
       model: writeModelSpec.model,
       system,
@@ -839,42 +942,93 @@ export class BookGenerateChapter implements JobExecutor {
 
     // If we have an outline from the skeleton, enforce hierarchy so we never promote a subparagraph into a chapter title.
     if (outline && Array.isArray(outline.sections) && outline.sections.length) {
-      const expectedChapter = typeof outline.chapterTitle === "string" ? outline.chapterTitle.trim() : "";
-      if (expectedChapter) {
-        const a = stripChapterNumberPrefix(draft?.chapterTitle || "");
-        const b = stripChapterNumberPrefix(expectedChapter);
-        if (!a || !b || a !== b) {
-          throw new Error(`BLOCKED: LLM returned wrong chapterTitle for locked outline (got='${a}', expected='${b}')`);
-        }
-      }
-
-      const draftSections = Array.isArray((draft as any)?.sections) ? (draft as any).sections : [];
-      if (draftSections.length !== outline.sections.length) {
-        throw new Error(`BLOCKED: LLM returned ${draftSections.length} sections but outline requires ${outline.sections.length}`);
-      }
-
-      for (let i = 0; i < outline.sections.length; i++) {
-        const expectedTitle = outline.sections[i]?.title || "";
-        const gotTitle = typeof draftSections[i]?.title === "string" ? draftSections[i].title : "";
-        if (stripNumberPrefix(gotTitle) !== stripNumberPrefix(expectedTitle)) {
-          throw new Error(`BLOCKED: Section title mismatch at index ${i} (got='${gotTitle}', expected='${expectedTitle}')`);
+      const validateLockedOutline = (d: DraftChapter) => {
+        const expectedChapter = typeof outline.chapterTitle === "string" ? outline.chapterTitle.trim() : "";
+        if (expectedChapter) {
+          const a = stripChapterNumberPrefix(d?.chapterTitle || "");
+          const b = stripChapterNumberPrefix(expectedChapter);
+          if (!a || !b || a !== b) {
+            throw new Error(`BLOCKED: LLM returned wrong chapterTitle for locked outline (got='${a}', expected='${b}')`);
+          }
         }
 
-        const requiredSubs = Array.isArray(outline.sections[i]?.numberedSubparagraphTitles)
-          ? outline.sections[i].numberedSubparagraphTitles
-          : [];
-        if (requiredSubs.length) {
-          const blocks = Array.isArray(draftSections[i]?.blocks) ? draftSections[i].blocks : [];
-          const gotSubs = blocks
-            .filter((b: any) => b && typeof b === "object" && b.type === "subparagraph")
-            .map((b: any) => (typeof b.title === "string" ? normalizeWs(b.title) : ""))
-            .filter((t: string) => /^\d+(?:\.\d+){2,}\s+/.test(t));
-          for (const req of requiredSubs) {
-            if (!gotSubs.includes(normalizeWs(req))) {
-              throw new Error(`BLOCKED: Missing required numbered subparagraph '${req}' in section '${expectedTitle}'`);
+        const draftSections = Array.isArray((d as any)?.sections) ? (d as any).sections : [];
+        if (draftSections.length !== outline.sections.length) {
+          throw new Error(`BLOCKED: LLM returned ${draftSections.length} sections but outline requires ${outline.sections.length}`);
+        }
+
+        for (let i = 0; i < outline.sections.length; i++) {
+          const expectedTitle = outline.sections[i]?.title || "";
+          const gotTitle = typeof draftSections[i]?.title === "string" ? draftSections[i].title : "";
+          if (stripNumberPrefix(gotTitle) !== stripNumberPrefix(expectedTitle)) {
+            throw new Error(`BLOCKED: Section title mismatch at index ${i} (got='${gotTitle}', expected='${expectedTitle}')`);
+          }
+
+          const requiredSubs = Array.isArray(outline.sections[i]?.numberedSubparagraphTitles)
+            ? outline.sections[i].numberedSubparagraphTitles
+            : [];
+          if (requiredSubs.length) {
+            const blocks = Array.isArray(draftSections[i]?.blocks) ? draftSections[i].blocks : [];
+            const gotSubs = blocks
+              .filter((b: any) => b && typeof b === "object" && b.type === "subparagraph")
+              .map((b: any) => (typeof b.title === "string" ? normalizeWs(b.title) : ""))
+              .filter((t: string) => NUMBERED_SUBPARAGRAPH_TITLE_RE.test(t));
+            for (const req of requiredSubs) {
+              if (!gotSubs.includes(normalizeWs(req))) {
+                throw new Error(`BLOCKED: Missing required numbered subparagraph '${req}' in section '${expectedTitle}'`);
+              }
             }
           }
         }
+
+        const density = validateDraftDensity({ draft: d, outline });
+        if (!density.ok) {
+          throw new Error(`BLOCKED: Draft too sparse (${density.reasons.join("; ")})`);
+        }
+      };
+
+      try {
+        validateLockedOutline(draft);
+      } catch (e) {
+        const reason = e instanceof Error ? e.message : String(e);
+        await emitAgentJobEvent(jobId, "generating", 22, "Draft did not meet outline/density requirements; retrying once", {
+          chapterIndex,
+          reason,
+        }).catch(() => {});
+
+        const retryNotes = [
+          userInstructions,
+          "CRITICAL: Follow the OUTLINE exactly and increase density to match PASS2.\n" +
+            "- Include MANY 'In de praktijk' boxes distributed across the chapter.\n" +
+            "- Include regular 'Verdieping' boxes distributed across the chapter.\n" +
+            "- Ensure each section has multiple numbered subparagraphs.\n" +
+            "Return valid JSON only.",
+        ]
+          .filter((x) => typeof x === "string" && x.trim())
+          .map((x) => String(x).trim())
+          .join("\n\n");
+
+        const retryPrompt = buildPrompt({
+          topic,
+          bookTitle,
+          chapterNumber: chapterIndex + 1,
+          chapterCount,
+          userInstructions: retryNotes,
+          level,
+          language,
+          imagePromptLanguage,
+          outline,
+        });
+
+        draft = (await llmGenerateJson({
+          provider: writeModelSpec.provider,
+          model: writeModelSpec.model,
+          system,
+          prompt: retryPrompt,
+          maxTokens: 8000,
+        })) as DraftChapter;
+
+        validateLockedOutline(draft);
       }
     }
 

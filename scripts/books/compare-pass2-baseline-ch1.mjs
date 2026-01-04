@@ -306,9 +306,10 @@ async function main() {
         topic: "Anatomie & Fysiologie — basis (hoofdstuk: De cel).",
         userInstructions:
           "Volg exact de outline in de bestaande skeleton. " +
-          "Houd elke subparagraaf kort (2-3 zinnen) zodat het geheel in één chapter past. " +
-          "Gebruik minstens één praktijk- én één verdieping-blok met <span class=\"box-lead\">...</span>. " +
-          "Voeg 1-2 afbeelding-suggesties toe (images[].suggestedPrompt).",
+          "Schrijf PASS2-vol (niet te kort): per genummerde subparagraaf minimaal 2 basisparagrafen (2-4 zinnen). " +
+          "Voeg veel praktijk- en verdieping-blokken toe verspreid door het hoofdstuk (mik op 12+ praktijk en 6+ verdieping). " +
+          "Start elke praktijk/verdieping met <span class=\"box-lead\">...</span> (geen 'LEAD'). " +
+          "Voeg 2-4 afbeelding-suggesties toe (images[].suggestedPrompt).",
         imagePromptLanguage: "book",
         writeModel,
       },
@@ -353,9 +354,10 @@ async function main() {
         language: "nl",
         userInstructions:
           "Volg exact de outline in de bestaande skeleton. " +
-          "Houd elke subparagraaf kort (2-3 zinnen) zodat het geheel in één chapter past. " +
-          "Gebruik minstens één praktijk- én één verdieping-blok met <span class=\"box-lead\">...</span>. " +
-          "Voeg 1-2 afbeelding-suggesties toe (images[].suggestedPrompt).",
+          "Schrijf PASS2-vol (niet te kort): per genummerde subparagraaf minimaal 2 basisparagrafen (2-4 zinnen). " +
+          "Voeg veel praktijk- en verdieping-blokken toe verspreid door het hoofdstuk (mik op 12+ praktijk en 6+ verdieping). " +
+          "Start elke praktijk/verdieping met <span class=\"box-lead\">...</span> (geen 'LEAD'). " +
+          "Voeg 2-4 afbeelding-suggesties toe (images[].suggestedPrompt).",
         imagePromptLanguage: "book",
         writeModel,
       },
