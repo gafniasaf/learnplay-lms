@@ -22,6 +22,75 @@ import { extractJsonFromText } from "../../_shared/generation-utils.ts";
 type Provider = "openai" | "anthropic";
 type ImagePromptLanguage = "en" | "book";
 
+type AnthropicToolSpec = {
+  name: string;
+  description: string;
+  input_schema: Record<string, unknown>;
+};
+
+type ChapterLayoutProfile = "auto" | "pass2" | "sparse";
+type ChapterLayoutPlan = {
+  praktijkSubparagraphTitles: string[];
+  verdiepingSubparagraphTitles: string[];
+  notes?: string | null;
+};
+
+const TOOL_DRAFT_BOOK_CHAPTER: AnthropicToolSpec = {
+  name: "draft_book_chapter",
+  description:
+    "Return ONLY the chapter draft JSON object (chapterTitle, sections, openerImage). " +
+    "All HTML must be inline and stored in string fields (basisHtml/praktijkHtml/verdiepingHtml).",
+  input_schema: {
+    type: "object",
+    additionalProperties: true,
+    required: ["chapterTitle", "sections"],
+    properties: {
+      chapterTitle: { type: "string" },
+      sections: {
+        type: "array",
+        items: {
+          type: "object",
+          additionalProperties: true,
+          required: ["title", "blocks"],
+          properties: {
+            title: { type: "string" },
+            blocks: { type: "array", items: { type: "object", additionalProperties: true } },
+          },
+        },
+      },
+      openerImage: {
+        anyOf: [
+          { type: "null" },
+          {
+            type: "object",
+            additionalProperties: true,
+            properties: {
+              suggestedPrompt: { anyOf: [{ type: "string" }, { type: "null" }] },
+            },
+          },
+        ],
+      },
+    },
+  },
+};
+
+const TOOL_PLAN_CHAPTER_LAYOUT: AnthropicToolSpec = {
+  name: "plan_chapter_layout",
+  description:
+    "Select where to place 'In de praktijk' and 'Verdieping' boxes for a Dutch MBO chapter, based on the outline titles. " +
+    "Return only titles from the provided candidate list. Do not invent new titles.",
+  input_schema: {
+    type: "object",
+    additionalProperties: true,
+    required: ["praktijkSubparagraphTitles", "verdiepingSubparagraphTitles"],
+    properties: {
+      praktijkSubparagraphTitles: { type: "array", items: { type: "string" } },
+      verdiepingSubparagraphTitles: { type: "array", items: { type: "string" } },
+      notes: { anyOf: [{ type: "string" }, { type: "null" }] },
+    },
+  },
+};
+
 function requireEnv(name: string): string {
   const v = Deno.env.get(name);
   if (!v || typeof v !== "string" || !v.trim()) {
@@ -982,18 +1051,13 @@ export class BookGenerateChapter implements JobExecutor {
             }
           }
         }
-
-        const density = validateDraftDensity({ draft: d, outline });
-        if (!density.ok) {
-          throw new Error(`BLOCKED: Draft too sparse (${density.reasons.join("; ")})`);
-        }
       };
 
       try {
         validateLockedOutline(draft);
       } catch (e) {
         const reason = e instanceof Error ? e.message : String(e);
-        await emitAgentJobEvent(jobId, "generating", 22, "Draft did not meet outline/density requirements; retrying once", {
+        await emitAgentJobEvent(jobId, "generating", 22, "Draft did not meet outline requirements; retrying once", {
           chapterIndex,
           reason,
         }).catch(() => {});
@@ -1031,6 +1095,20 @@ export class BookGenerateChapter implements JobExecutor {
         })) as DraftChapter;
 
         validateLockedOutline(draft);
+      }
+    }
+
+    // Density is a style target (PASS2-like), but we do not hard-fail the job on it.
+    // The prompt already asks for high density; here we only emit a diagnostic event.
+    if (outline && Array.isArray(outline.sections) && outline.sections.length) {
+      const density = validateDraftDensity({ draft, outline });
+      if (!density.ok) {
+        await emitAgentJobEvent(jobId, "generating", 23, "Draft below PASS2 density targets", {
+          chapterIndex,
+          reasons: density.reasons,
+          stats: density.stats,
+          thresholds: density.thresholds,
+        }).catch(() => {});
       }
     }
 
