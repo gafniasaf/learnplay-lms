@@ -556,6 +556,18 @@ body {
   cursor: pointer;
 }
 
+.book-selector-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  min-width: 340px;
+}
+
+.version-dropdown {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.85rem;
+}
+
 /* Chapter Progress */
 .chapter-grid {
   display: grid;
@@ -955,19 +967,42 @@ export default function BookMonitor() {
                 </div>
               </div>
             </div>
-            <select
-              className="book-dropdown"
-              data-cta-id="cta-bookmonitor-book-select"
-              data-action="action"
-              value={monitor.selectedBookId}
-              onChange={(e) => monitor.setSelectedBookId(e.target.value)}
-            >
-              {(monitor.books.length ? monitor.books : [{ id: "", title: "Loading…" }]).map((b) => (
-                <option key={b.id} value={b.id}>
-                  {b.title}
-                </option>
-              ))}
-            </select>
+            <div className="book-selector-controls">
+              <select
+                className="book-dropdown"
+                data-cta-id="cta-bookmonitor-book-select"
+                data-action="action"
+                value={monitor.selectedBookId}
+                onChange={(e) => monitor.setSelectedBookId(e.target.value)}
+              >
+                {(monitor.books.length ? monitor.books : [{ id: "", title: "Loading…" }]).map((b) => (
+                  <option key={b.id} value={b.id}>
+                    {b.title}
+                  </option>
+                ))}
+              </select>
+
+              <select
+                className="book-dropdown version-dropdown"
+                data-cta-id="cta-bookmonitor-version-select"
+                data-action="action"
+                value={monitor.selectedBookVersionId}
+                onChange={(e) => monitor.setSelectedBookVersionId(e.target.value)}
+              >
+                {(monitor.versions.length ? monitor.versions : [{ book_version_id: "", exported_at: "", status: "" } as any]).map((v: any) => {
+                  const id = typeof v?.book_version_id === "string" ? v.book_version_id : "";
+                  const short = id ? (id.length > 16 ? `${id.slice(0, 8)}…${id.slice(-4)}` : id.slice(0, 8)) : "—";
+                  const exported = typeof v?.exported_at === "string" && v.exported_at ? v.exported_at.slice(0, 10) : "—";
+                  const status = typeof v?.status === "string" && v.status ? v.status : "";
+                  const label = `${exported} · ${short}${status ? ` · ${status}` : ""}`;
+                  return (
+                    <option key={id || label} value={id}>
+                      {label}
+                    </option>
+                  );
+                })}
+              </select>
+            </div>
           </div>
 
           <div className="chapter-grid">

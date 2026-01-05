@@ -104,11 +104,23 @@ function parseIsoMs(iso: string | null | undefined): number | null {
   return Number.isFinite(ms) ? ms : null;
 }
 
+function isCanonicalHashVersionId(id: string): boolean {
+  const s = safeStr(id).trim();
+  // Canonical ingest uses a deterministic SHA256 hex version id (64 chars).
+  return /^[a-f0-9]{64}$/i.test(s);
+}
+
 function bestVersion(versions: BookVersionRow[]): BookVersionRow | null {
   if (!versions.length) return null;
   const active = versions.filter((v) => safeStr(v.status) === "active");
   const pool = active.length ? active : versions;
-  const sorted = [...pool].sort((a, b) => safeStr(b.exported_at).localeCompare(safeStr(a.exported_at)));
+
+  // Prefer deterministic (canonical-ingest) versions when present, since they tend to contain the full
+  // chapter structure (e.g. 14 chapters) while some UUID-based experiment versions may be partial.
+  const canon = pool.filter((v) => isCanonicalHashVersionId(v.book_version_id));
+  const candidates = canon.length ? canon : pool;
+
+  const sorted = [...candidates].sort((a, b) => safeStr(b.exported_at).localeCompare(safeStr(a.exported_at)));
   return sorted[0] || null;
 }
 
