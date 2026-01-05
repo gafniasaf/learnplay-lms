@@ -8,27 +8,28 @@ import { useToast } from "@/hooks/use-toast";
 
 const MONITOR_CSS = String.raw`
 :root {
-  --bg-primary: #0a0a1a;
-  --bg-secondary: #12122a;
-  --bg-card: #1a1a3a;
-  --bg-card-hover: #222250;
-  --accent-cyan: #00d4ff;
-  --accent-purple: #a855f7;
-  --accent-pink: #ec4899;
-  --accent-orange: #f97316;
-  --success: #10b981;
-  --success-dim: rgba(16, 185, 129, 0.15);
-  --warning: #eab308;
-  --warning-dim: rgba(234, 179, 8, 0.15);
-  --error: #ef4444;
-  --error-dim: rgba(239, 68, 68, 0.15);
-  --info: #3b82f6;
-  --info-dim: rgba(59, 130, 246, 0.15);
-  --text-primary: #f0f0f0;
-  --text-secondary: #8892b0;
-  --text-muted: #5a6380;
-  --border: rgba(255, 255, 255, 0.08);
-  --glow-cyan: rgba(0, 212, 255, 0.3);
+  /* Simple light theme */
+  --bg-primary: #f6f7fb;
+  --bg-secondary: #ffffff;
+  --bg-card: #ffffff;
+  --bg-card-hover: #f1f5ff;
+  --accent-cyan: #2563eb;
+  --accent-purple: #7c3aed;
+  --accent-pink: #db2777;
+  --accent-orange: #ea580c;
+  --success: #059669;
+  --success-dim: rgba(5, 150, 105, 0.12);
+  --warning: #d97706;
+  --warning-dim: rgba(217, 119, 6, 0.12);
+  --error: #dc2626;
+  --error-dim: rgba(220, 38, 38, 0.1);
+  --info: #2563eb;
+  --info-dim: rgba(37, 99, 235, 0.1);
+  --text-primary: #0f172a;
+  --text-secondary: #334155;
+  --text-muted: #64748b;
+  --border: rgba(15, 23, 42, 0.12);
+  --glow-cyan: rgba(37, 99, 235, 0.12);
 }
 
 * {
@@ -42,9 +43,7 @@ body {
   background: var(--bg-primary);
   color: var(--text-primary);
   min-height: 100vh;
-  background-image:
-    radial-gradient(ellipse at 20% 0%, rgba(0, 212, 255, 0.08) 0%, transparent 50%),
-    radial-gradient(ellipse at 80% 100%, rgba(168, 85, 247, 0.08) 0%, transparent 50%);
+  background-image: none;
 }
 
 .container {
@@ -63,10 +62,7 @@ body {
   font-size: 2.5rem;
   font-weight: 700;
   margin-bottom: 0.5rem;
-  background: linear-gradient(135deg, var(--accent-cyan), var(--accent-purple));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  color: var(--text-primary);
 }
 
 .header .subtitle {
@@ -95,6 +91,7 @@ body {
   border: 1px solid var(--border);
   border-radius: 12px;
   padding: 1.25rem;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
 }
 
 .card-title {
