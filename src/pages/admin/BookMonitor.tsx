@@ -5,7 +5,7 @@ import { isDevAgentMode } from "@/lib/api/common";
 import { useBookGenMonitor } from "@/hooks/useBookGenMonitor";
 import { useMCP } from "@/hooks/useMCP";
 import { useToast } from "@/hooks/use-toast";
-
+import { HamburgerMenu } from "@/components/layout/HamburgerMenu";
 const MONITOR_CSS = String.raw`
 :root {
   /* Light theme with subtle accents */
@@ -950,7 +950,10 @@ export default function BookMonitor() {
   return (
     <>
       <div className="container">
-        <header className="header">
+        <header className="header" style={{ position: 'relative' }}>
+          <div style={{ position: 'absolute', top: 0, right: 0 }}>
+            <HamburgerMenu />
+          </div>
           <h1>📚 Book Generation Monitor</h1>
           <p className="subtitle">Skeleton → Content → PDF Pipeline</p>
         </header>
