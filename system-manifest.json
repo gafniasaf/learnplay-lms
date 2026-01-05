@@ -469,6 +469,7 @@
     { "id": "generate-assignment", "input": { "topic": "string" }, "output": { "jobId": "string" } },
     { "id": "generate-remediation", "input": { "subject": "string", "itemsPerGroup": "number" }, "output": { "jobId": "string" } },
     { "id": "mcp-metrics-proxy", "input": { "type": "string" }, "output": { "ok": "boolean" } },
+    { "id": "book-generation-control", "input": { "bookId": "string", "bookVersionId": "string", "action": "string", "note": "string" }, "output": { "ok": "boolean", "control": "json" } },
     { "id": "game-start-round", "input": { "courseId": "string", "level": "number", "assignmentId": "string" }, "output": { "sessionId": "string", "roundId": "string" } },
     { "id": "game-log-attempt", "input": { "roundId": "string", "itemId": "number", "isCorrect": "boolean", "latencyMs": "number", "finalize": "boolean" }, "output": { "attemptId": "string" } },
     { "id": "get-analytics", "input": { "courseId": "string", "range": "string" }, "output": { "dailyData": "json", "summary": "json" } },

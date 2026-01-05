@@ -30,6 +30,7 @@ const METHODS = [
   "lms.bookLibraryStorageUrl",
   "lms.bookLibraryUpsertIndex",
   "lms.bookLibraryGenerateImage",
+  "lms.bookGenerationControl",
   "lms.listLibraryCourses",
   "lms.searchLibraryCourses",
   "lms.getLibraryCourseContent",
@@ -50,6 +51,7 @@ const BOOK_METHODS: Record<string, { edgeFunction: string; method: "GET" | "POST
   "lms.bookLibraryStorageUrl": { edgeFunction: "book-library-storage-url", method: "POST" },
   "lms.bookLibraryUpsertIndex": { edgeFunction: "book-library-upsert-index", method: "POST" },
   "lms.bookLibraryGenerateImage": { edgeFunction: "book-library-generate-image", method: "POST" },
+  "lms.bookGenerationControl": { edgeFunction: "book-generation-control", method: "POST" },
 };
 
 const server = http.createServer(async (req, res) => {

@@ -66,6 +66,13 @@ Updated images.zip
 # Local book render artifacts / previews
 tmp/
 
+# Local deliverables exports (very large; never commit)
+/deliverables/
+/deliverables.zip
+/deliverables_v2_pdfs/
+/Captured highres screenshots of highres indesign pdfs/
+/receive-deliverables.mjs
+
 # Local-only Docker build inputs (NEVER commit binaries like Prince installers)
 book-worker/private/
 

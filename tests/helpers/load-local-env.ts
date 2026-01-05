@@ -1,5 +1,6 @@
 import { readFileSync, existsSync } from 'fs';
 import path from 'path';
+import { createRequire } from "module";
 
 /**
  * Load local env files for tests (NO secret printing).
@@ -51,5 +52,16 @@ export function loadLocalEnvForTests(): void {
   }
   if (process.env.VITE_SUPABASE_URL && !process.env.SUPABASE_URL) {
     process.env.SUPABASE_URL = process.env.VITE_SUPABASE_URL;
+  }
+
+  // Support legacy "heading-style" learnplay.env (e.g. lines like "service role key" followed by the value).
+  // IMPORTANT: This must never print secret values. The parser only sets process.env entries.
+  try {
+    const require = createRequire(import.meta.url);
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const { loadLearnPlayEnv } = require("./parse-learnplay-env.cjs");
+    if (typeof loadLearnPlayEnv === "function") loadLearnPlayEnv();
+  } catch {
+    // best-effort: local-only helper
   }
 }

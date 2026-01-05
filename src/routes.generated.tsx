@@ -47,6 +47,7 @@ const BookDetail = React.lazy(() => import("./pages/admin/BookDetail"));
 const BookVersionDetail = React.lazy(() => import("./pages/admin/BookVersionDetail"));
 const BookRunDetail = React.lazy(() => import("./pages/admin/BookRunDetail"));
 const BookMissingImages = React.lazy(() => import("./pages/admin/BookMissingImages"));
+const BookMonitor = React.lazy(() => import("./pages/admin/BookMonitor"));
 const BookOverlayEditor = React.lazy(() => import("./pages/admin/BookOverlayEditor"));
 const CourseVersionHistory = React.lazy(() => import("./pages/admin/CourseVersionHistory"));
 const JobsDashboard = React.lazy(() => import("./pages/admin/JobsDashboard"));
@@ -114,6 +115,7 @@ export const generatedRouteElements = [
   // Admin (all from nav.ts)
   <Route key="gen-admin-console" path="/admin/console" element={<AdminConsole />} />,
   <Route key="gen-admin-pipeline" path="/admin/ai-pipeline" element={<AIPipeline />} />,
+  <Route key="gen-admin-book-monitor" path="/admin/book-monitor" element={<BookMonitor />} />,
   <Route key="gen-admin-course-select" path="/admin/courses/select" element={<CourseSelector />} />,
   <Route key="gen-admin-book-studio" path="/admin/book-studio" element={<BookStudioLibrary />} />,
   <Route key="gen-admin-book-studio-generate" path="/admin/book-studio/generate" element={<BookStudioGenerate />} />,

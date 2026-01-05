@@ -10,6 +10,10 @@
  * - BOOK_VERSION_ID
  * - BOOK_CHAPTER_INDEX (0-based)
  *
+ * Optional env:
+ * - BOOK_RENDER_PIPELINE_MODE ("bookgen_pro" | "render_only") (default: "bookgen_pro")
+ * - BOOK_RENDER_ALLOW_MISSING_IMAGES ("true|false") (default: "false")
+ *
  * Notes:
  * - This script does NOT print secret values or signed URLs.
  * - Placeholder-only mode can be enabled via BOOK_RENDER_PLACEHOLDERS_ONLY=true (recommended for Book Studio prep).
@@ -88,6 +92,11 @@ function requireEnv(name) {
     throw new Error(`BLOCKED: ${name} is REQUIRED - set it in the environment or learnplay.env before running this smoke test`);
   }
   return v.trim();
+}
+
+function isTruthyEnv(v) {
+  const s = String(v || "").trim().toLowerCase();
+  return s === "true" || s === "1" || s === "yes" || s === "y" || s === "on";
 }
 
 function safeJsonParse(text) {
@@ -189,14 +198,20 @@ async function main() {
   if (!process.env.BOOK_WORKER_DNS_RESULT_ORDER) process.env.BOOK_WORKER_DNS_RESULT_ORDER = "ipv4first";
   if (!process.env.POLL_INTERVAL_MS) process.env.POLL_INTERVAL_MS = "500";
 
-  // Use Anthropic by default (fast + good enough for placement)
-  if (!process.env.BOOKGEN_PLAN_PROVIDER) process.env.BOOKGEN_PLAN_PROVIDER = "anthropic";
-  if (!process.env.BOOKGEN_REWRITE_PROVIDER) process.env.BOOKGEN_REWRITE_PROVIDER = "anthropic";
-  if (!process.env.BOOKGEN_PLAN_MODEL) process.env.BOOKGEN_PLAN_MODEL = "claude-haiku-4-5-20251001";
-  if (!process.env.BOOKGEN_REWRITE_MODEL) process.env.BOOKGEN_REWRITE_MODEL = "claude-haiku-4-5-20251001";
+  const pipelineModeRaw = String(process.env.BOOK_RENDER_PIPELINE_MODE || "bookgen_pro").trim();
+  const pipelineMode = pipelineModeRaw === "render_only" ? "render_only" : "bookgen_pro";
+  const allowMissingImages = isTruthyEnv(process.env.BOOK_RENDER_ALLOW_MISSING_IMAGES);
 
-  if (process.env.BOOKGEN_PLAN_PROVIDER === "anthropic" || process.env.BOOKGEN_REWRITE_PROVIDER === "anthropic") {
-    requireEnv("ANTHROPIC_API_KEY");
+  if (pipelineMode === "bookgen_pro") {
+    // Use Anthropic by default (fast + good enough for placement)
+    if (!process.env.BOOKGEN_PLAN_PROVIDER) process.env.BOOKGEN_PLAN_PROVIDER = "anthropic";
+    if (!process.env.BOOKGEN_REWRITE_PROVIDER) process.env.BOOKGEN_REWRITE_PROVIDER = "anthropic";
+    if (!process.env.BOOKGEN_PLAN_MODEL) process.env.BOOKGEN_PLAN_MODEL = "claude-haiku-4-5-20251001";
+    if (!process.env.BOOKGEN_REWRITE_MODEL) process.env.BOOKGEN_REWRITE_MODEL = "claude-haiku-4-5-20251001";
+
+    if (process.env.BOOKGEN_PLAN_PROVIDER === "anthropic" || process.env.BOOKGEN_REWRITE_PROVIDER === "anthropic") {
+      requireEnv("ANTHROPIC_API_KEY");
+    }
   }
 
   const bookId = requireEnv("BOOK_ID");
@@ -219,12 +234,14 @@ async function main() {
       target: "chapter",
       chapterIndex,
       renderProvider: "prince_local",
-      pipelineMode: "bookgen_pro",
-      planProvider: process.env.BOOKGEN_PLAN_PROVIDER,
-      rewriteProvider: process.env.BOOKGEN_REWRITE_PROVIDER,
-      planModel: process.env.BOOKGEN_PLAN_MODEL,
-      rewriteModel: process.env.BOOKGEN_REWRITE_MODEL,
-      allowMissingImages: false,
+      pipelineMode,
+      ...(pipelineMode === "bookgen_pro" ? {
+        planProvider: process.env.BOOKGEN_PLAN_PROVIDER,
+        rewriteProvider: process.env.BOOKGEN_REWRITE_PROVIDER,
+        planModel: process.env.BOOKGEN_PLAN_MODEL,
+        rewriteModel: process.env.BOOKGEN_REWRITE_MODEL,
+      } : {}),
+      allowMissingImages,
     },
     headers
   );

@@ -718,6 +718,49 @@ export class BookGenerateChapter implements JobExecutor {
     // 4) All sections done -> chain next chapter / finish
     if (nextSectionIndexPrev >= sectionCount) {
       if (chapterIndex < chapterCount - 1) {
+        // BookGen control plane: allow operators to pause/cancel chaining between chapters.
+        const { data: control, error: ctrlErr } = await adminSupabase
+          .from("bookgen_controls")
+          .select("paused,cancelled,note,updated_at")
+          .eq("book_id", bookId)
+          .eq("book_version_id", bookVersionId)
+          .maybeSingle();
+
+        if (ctrlErr) {
+          throw new Error(
+            `BLOCKED: Failed to read bookgen_controls (${ctrlErr.message}). Apply migration 20260105130000_bookgen_controls.sql.`,
+          );
+        }
+
+        if ((control as any)?.cancelled === true) {
+          await emitAgentJobEvent(jobId, "done", 100, "Book generation cancelled (next chapter not queued)", {
+            bookId,
+            bookVersionId,
+            chapterIndex,
+            control: {
+              cancelled: true,
+              paused: (control as any)?.paused === true,
+              note: (control as any)?.note ?? null,
+              updated_at: (control as any)?.updated_at ?? null,
+            },
+          }).catch(() => {});
+          return { ok: true, bookId, bookVersionId, chapterIndex, chapterCount, cancelled: true };
+        }
+
+        if ((control as any)?.paused === true) {
+          await emitAgentJobEvent(jobId, "done", 100, "Book generation paused (next chapter not queued)", {
+            bookId,
+            bookVersionId,
+            chapterIndex,
+            control: {
+              paused: true,
+              note: (control as any)?.note ?? null,
+              updated_at: (control as any)?.updated_at ?? null,
+            },
+          }).catch(() => {});
+          return { ok: true, bookId, bookVersionId, chapterIndex, chapterCount, paused: true };
+        }
+
         const nextIndex = chapterIndex + 1;
         await emitAgentJobEvent(jobId, "generating", 75, "Enqueuing next chapter job", { nextIndex }).catch(() => {});
         const { data: queued, error: enqueueErr } = await adminSupabase

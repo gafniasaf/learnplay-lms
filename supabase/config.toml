@@ -315,3 +315,6 @@ verify_jwt = false
 
 [functions.book-library-image-url]
 verify_jwt = false
+
+[functions.book-generation-control]
+verify_jwt = false

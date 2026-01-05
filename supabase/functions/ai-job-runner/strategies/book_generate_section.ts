@@ -605,7 +605,8 @@ function buildPrompt(opts: {
       )
       : "- Include 3-7 subparagraph blocks.\n") +
     "- basisHtml MUST be NON-EMPTY. Never use empty strings.\n" +
-    `- Inside each numbered subparagraph, add ${microRule} nested subparagraph microheadings (1-6 words, no punctuation).\n` +
+    `- Inside each numbered subparagraph, add ${microRule} nested subparagraph microheadings (1-6 words).\n` +
+    "- Microheading titles MUST NOT contain punctuation characters: : ; ? ! (NO 'X: Y' headings). Use spaces instead.\n" +
     "- IMPORTANT: microheadings are ONE level only.\n" +
     "- Each microheading subparagraph MUST contain only paragraph/list/steps blocks (NO nested subparagraph blocks).\n" +
     `- Inside each numbered subparagraph, include ${paragraphRule} paragraph blocks (basisHtml).\n` +
@@ -613,7 +614,18 @@ function buildPrompt(opts: {
     "- verdiepingHtml (if present): short deepening; explain jargon.\n" +
     `- Include ${imageRule} image suggestions in this section via images[].suggestedPrompt.\n` +
     "- Place images on paragraph/list/steps blocks as: images: [{ suggestedPrompt: string, alt?: string, caption?: string, layoutHint?: string }]\n" +
-    `- suggestedPrompt MUST be written in ${imageLangLabel}.\n`
+    `- suggestedPrompt MUST be written in ${imageLangLabel}.\n` +
+    "\nWRITING STYLE (CRITICAL - Dutch MBO textbook style):\n" +
+    "- Write in conversational, student-friendly Dutch. Address the reader as 'je' frequently.\n" +
+    "- Use simple, flowing sentences. Avoid overly technical or academic language.\n" +
+    "- Explain concepts with relatable examples: 'Hierbij kun je bijvoorbeeld denken aan...'\n" +
+    "- Use inline explanations: 'Dat wil zeggen dat...', 'Dit betekent dat...'\n" +
+    "- Connect sentences smoothly: 'Op dezelfde manier...', 'Hierdoor...', 'Doordat...'\n" +
+    "- Use metaphors and analogies to clarify complex concepts (e.g. 'fabriekjes in de cel').\n" +
+    "- Active voice, present tense. Avoid passive constructions where possible.\n" +
+    "- Keep paragraphs digestible - explain one idea at a time before moving on.\n" +
+    "- NO heavy formulas or abbreviations upfront. Define terms naturally in context.\n" +
+    "- The tone should feel like a friendly teacher explaining to a student, not a textbook lecturing.\n"
   );
 }
 
@@ -1057,6 +1069,7 @@ export class BookGenerateSection implements JobExecutor {
           "- Follow the OUTLINE exactly (titles + required numbered subparagraphs).\n" +
           "- Do NOT leave basisHtml empty.\n" +
           "- For every microheading, write 2-4 short sentences.\n" +
+          "- Microheading titles MUST NOT contain punctuation (: ; ? !). Do NOT use 'X: Y' headings. Example: use 'G1 fase groei voorbereiding' (no colon).\n" +
           "- Do NOT nest microheadings inside microheadings (no subparagraph blocks inside microheading blocks).\n" +
           "- If layout targets are provided, you MUST include the corresponding praktijkHtml/verdiepingHtml inside EACH target title.\n" +
           "- If PASS2: make it long enough (many microheadings + many basis paragraphs).\n" +

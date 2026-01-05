@@ -1249,6 +1249,19 @@ export const EDGE_FUNCTION_SCHEMAS = [
     }
   },
   {
+    "id": "book-generation-control",
+    "input": {
+      "bookId": "string",
+      "bookVersionId": "string",
+      "action": "string",
+      "note": "string"
+    },
+    "output": {
+      "ok": "boolean",
+      "control": "json"
+    }
+  },
+  {
     "id": "game-start-round",
     "input": {
       "courseId": "string",

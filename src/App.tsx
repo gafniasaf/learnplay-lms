@@ -435,7 +435,7 @@ const App = () => {
                   <Layout>
                   <Suspense fallback={<div className="flex items-center justify-center min-h-screen">Loading...</div>}>
                     <Routes>
-                      <Route path="/admin" element={<Navigate to="/admin/ai-pipeline" replace />} />
+                      <Route path="/admin" element={<Navigate to="/admin/book-monitor" replace />} />
                       {/* Legacy DAWR route aliases (parity redirects) */}
                       <Route path="/admin/courses" element={<AdminCourseSelector />} />
                       <Route path="/admin/course-versions" element={<AdminCourseSelector />} />

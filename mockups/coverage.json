@@ -16,6 +16,24 @@
       ]
     },
     {
+      "path": "/admin/book-monitor",
+      "name": "Book Generation Monitor",
+      "description": "BookGen progress + controls dashboard",
+      "states": [
+        { "id": "default", "file": "admin/book-monitor.html", "required": true }
+      ],
+      "requiredCTAs": [
+        { "id": "cta-bookmonitor-book-select", "action": "action" },
+        { "id": "cta-bookmonitor-chapter-cell", "action": "action" },
+        { "id": "cta-generate-chapter", "action": "enqueueJob" },
+        { "id": "cta-generate-all", "action": "enqueueJob" },
+        { "id": "cta-pause", "action": "action" },
+        { "id": "cta-resume", "action": "action" },
+        { "id": "cta-cancel", "action": "action" },
+        { "id": "cta-render-pdf", "action": "action" }
+      ]
+    },
+    {
       "path": "/auth",
       "name": "Authentication",
       "description": "Login and signup page",
