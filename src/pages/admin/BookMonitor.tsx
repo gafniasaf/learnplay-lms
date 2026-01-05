@@ -873,6 +873,53 @@ export default function BookMonitor() {
     }
   };
 
+  const runMatterJob = async (jobType: "book_generate_index" | "book_generate_glossary") => {
+    const bookId = monitor.selectedBookId.trim();
+    const bookVersionId = monitor.selectedBookVersionId.trim();
+    const language = (monitor.skeletonMeta?.language || "").toString().trim();
+
+    if (!bookId) throw new Error("BLOCKED: bookId is missing");
+    if (!bookVersionId) throw new Error("BLOCKED: bookVersionId is missing");
+    if (!language) throw new Error("BLOCKED: language is missing for this book/version");
+
+    const payload: Record<string, unknown> = {
+      bookId,
+      bookVersionId,
+      language,
+      writeModel: "anthropic:claude-sonnet-4-5",
+    };
+
+    const res = await mcp.enqueueJob(jobType, payload);
+    if (!res?.ok || !res.jobId) throw new Error(res?.error || "Failed to enqueue job");
+    return res.jobId;
+  };
+
+  const onGenerateIndex = async () => {
+    if (!canRun) {
+      toast({ title: "BLOCKED", description: "Select a book + version first.", variant: "destructive" });
+      return;
+    }
+    try {
+      const jobId = await runMatterJob("book_generate_index");
+      toast({ title: "Queued", description: `Index job queued (${jobId.slice(0, 8)})` });
+    } catch (e) {
+      toast({ title: "Generate failed", description: e instanceof Error ? e.message : "Unknown error", variant: "destructive" });
+    }
+  };
+
+  const onGenerateGlossary = async () => {
+    if (!canRun) {
+      toast({ title: "BLOCKED", description: "Select a book + version first.", variant: "destructive" });
+      return;
+    }
+    try {
+      const jobId = await runMatterJob("book_generate_glossary");
+      toast({ title: "Queued", description: `Begrippen job queued (${jobId.slice(0, 8)})` });
+    } catch (e) {
+      toast({ title: "Generate failed", description: e instanceof Error ? e.message : "Unknown error", variant: "destructive" });
+    }
+  };
+
   const onPause = async () => {
     const bookId = monitor.selectedBookId.trim();
     const bookVersionId = monitor.selectedBookVersionId.trim();
@@ -935,8 +982,7 @@ export default function BookMonitor() {
       const res = (await mcp.call("lms.bookEnqueueRender", {
         bookId,
         bookVersionId,
-        target: "chapter",
-        chapterIndex: selectedChapterIndex,
+        target: "book",
         pipelineMode: "render_only",
         allowMissingImages: true,
       })) as any;
@@ -944,6 +990,64 @@ export default function BookMonitor() {
       toast({ title: "Queued", description: `Render job queued (runId ${String(res.runId || "").slice(0, 8)})` });
     } catch (e) {
       toast({ title: "Render failed", description: e instanceof Error ? e.message : "Unknown error", variant: "destructive" });
+    }
+  };
+
+  const onDownloadPdf = async () => {
+    const bookId = monitor.selectedBookId.trim();
+    const bookVersionId = monitor.selectedBookVersionId.trim();
+    if (!bookId || !bookVersionId) {
+      toast({ title: "BLOCKED", description: "Select a book + version first.", variant: "destructive" });
+      return;
+    }
+    try {
+      // 1. Get the latest completed full-book run
+      const runsRes = (await mcp.callGet("lms.bookList", {
+        scope: "runs",
+        bookId,
+        bookVersionId,
+        limit: "100",
+        offset: "0",
+      })) as any;
+      if (!runsRes?.ok) throw new Error(runsRes?.error?.message || "Failed to fetch runs");
+
+      const runs: any[] = Array.isArray(runsRes?.runs) ? runsRes.runs : [];
+      const completedBookRun = runs.find(
+        (r) => r.target === "book" && r.status === "completed"
+      );
+      if (!completedBookRun) {
+        toast({ title: "No PDF", description: "No completed full-book render found. Click 'Render Book PDF' first.", variant: "destructive" });
+        return;
+      }
+
+      // 2. Get artifacts for that run
+      const artifactsRes = (await mcp.callGet("lms.bookList", {
+        scope: "artifacts",
+        runId: completedBookRun.id,
+        bookId,
+        limit: "100",
+        offset: "0",
+      })) as any;
+      if (!artifactsRes?.ok) throw new Error(artifactsRes?.error?.message || "Failed to fetch artifacts");
+
+      const artifacts: any[] = Array.isArray(artifactsRes?.artifacts) ? artifactsRes.artifacts : [];
+      const pdfArtifact = artifacts.find((a) => a.kind === "pdf" || (typeof a.path === "string" && a.path.endsWith(".pdf")));
+      if (!pdfArtifact) {
+        toast({ title: "No PDF artifact", description: "PDF artifact not found in run.", variant: "destructive" });
+        return;
+      }
+
+      // 3. Get signed URL and open
+      const urlRes = (await mcp.call("lms.bookArtifactUrl", { artifactId: pdfArtifact.id })) as any;
+      if (!urlRes?.ok) throw new Error(urlRes?.error?.message || "Failed to get signed URL");
+
+      const signedUrl = urlRes?.signedUrl as string | undefined;
+      if (!signedUrl) throw new Error("Missing signedUrl");
+
+      window.open(signedUrl, "_blank", "noopener,noreferrer");
+      toast({ title: "Opening PDF", description: "PDF download started in new tab." });
+    } catch (e) {
+      toast({ title: "Download failed", description: e instanceof Error ? e.message : "Unknown error", variant: "destructive" });
     }
   };
 
@@ -1181,6 +1285,18 @@ export default function BookMonitor() {
           >
             📚 Generate All
           </button>
+          <button className="btn btn-secondary" data-cta-id="cta-generate-index" data-action="enqueueJob" type="button" onClick={() => void onGenerateIndex()}>
+            🗂️ Generate Index
+          </button>
+          <button
+            className="btn btn-secondary"
+            data-cta-id="cta-generate-glossary"
+            data-action="enqueueJob"
+            type="button"
+            onClick={() => void onGenerateGlossary()}
+          >
+            📘 Generate Begrippen
+          </button>
           <button className="btn btn-warning" data-cta-id="cta-pause" data-action="action" type="button" onClick={() => void onPause()}>
             ⏸️ Pause
           </button>
@@ -1191,7 +1307,10 @@ export default function BookMonitor() {
             ⏹️ Cancel
           </button>
           <button className="btn btn-secondary" data-cta-id="cta-render-pdf" data-action="action" type="button" onClick={() => void onRenderPdf()}>
-            📄 Render PDF
+            📄 Render Book PDF
+          </button>
+          <button className="btn btn-primary" data-cta-id="cta-download-pdf" data-action="action" type="button" onClick={() => void onDownloadPdf()}>
+            📥 Download PDF
           </button>
         </div>
 

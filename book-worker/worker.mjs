@@ -3,8 +3,19 @@ import { setDefaultResultOrder } from "node:dns";
 import { spawn } from "node:child_process";
 import { mkdir, readFile, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
-import { applyRewritesOverlay, renderBookHtml, runPrince } from "./lib/bookRenderer.js";
+import { applyRewritesOverlay, renderBookHtml, runPrince, runPrinceRaster } from "./lib/bookRenderer.js";
 import { validateBookSkeleton, compileSkeletonToCanonical } from "../src/lib/books/bookSkeletonCore.js";
+import * as pdfjs from "pdfjs-dist/legacy/build/pdf.mjs";
+import { requireMatterPack } from "./lib/bookMatter.js";
+import {
+  renderMatterTitlePage,
+  renderMatterColophonPage,
+  renderMatterPromoPage,
+  renderMatterTocPage,
+  renderMatterIndexPage,
+  renderMatterGlossaryPage,
+} from "./lib/bookMatterTemplates.js";
+import { assembleFinalBookHtml } from "./lib/matterAssemble.js";
 
 // Optional networking tweak:
 // Some Windows / ISP / corporate networks have broken TLS over IPv6 for specific hosts.
@@ -211,6 +222,166 @@ function makeMissingImageDataUri(label) {
   </text>
 </svg>`;
   return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+}
+
+function normalizeWsForPageMap(s) {
+  return String(s || "")
+    .replace(/[\u00AD\u200B-\u200D\u2060\uFEFF]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+async function extractPdfTextPages(pdfPath) {
+  const buf = await readFile(pdfPath);
+  const loadingTask = pdfjs.getDocument({ data: buf });
+  const pdf = await loadingTask.promise;
+  const pages = [];
+  for (let i = 1; i <= pdf.numPages; i++) {
+    const page = await pdf.getPage(i);
+    const text = await page.getTextContent();
+    const str = (text.items || []).map((it) => (it && typeof it.str === "string" ? it.str : "")).join(" ");
+    pages.push(normalizeWsForPageMap(str));
+  }
+  return pages;
+}
+
+function findFirstPageContaining(pages, needle) {
+  const n = normalizeWsForPageMap(needle).toLowerCase();
+  if (!n) return null;
+  for (let i = 0; i < pages.length; i++) {
+    const hay = String(pages[i] || "").toLowerCase();
+    if (hay.includes(n)) return i + 1; // 1-based page numbers
+  }
+  return null;
+}
+
+function extractTocAnchorsFromCanonical(canonical) {
+  const chapters = Array.isArray(canonical?.chapters) ? canonical.chapters : [];
+  const out = [];
+  for (let i = 0; i < chapters.length; i++) {
+    const ch = chapters[i];
+    const chTitle = typeof ch?.title === "string" ? normalizeWsForPageMap(ch.title) : `Hoofdstuk ${i + 1}`;
+    out.push({ type: "chapter", chapterIndex: i, label: chTitle });
+    const sections = Array.isArray(ch?.sections) ? ch.sections : [];
+    for (const s of sections) {
+      const st = typeof s?.title === "string" ? normalizeWsForPageMap(s.title) : "";
+      if (!st) continue;
+      out.push({ type: "section", chapterIndex: i, sectionId: String(s?.id || ""), label: st });
+    }
+  }
+  return out;
+}
+
+function extractIndexTermsFromGeneratedIndex(indexJson) {
+  const entries = Array.isArray(indexJson?.entries) ? indexJson.entries : [];
+  return entries
+    .map((e) => (e && typeof e.term === "string" ? normalizeWsForPageMap(e.term) : ""))
+    .filter((t) => !!t)
+    .slice(0, 2000);
+}
+
+function splitNumberedTitle(raw) {
+  const t = normalizeWsForPageMap(String(raw || ""));
+  const m = t.match(/^(\d+(?:\.\d+)*)\s+(.+)$/);
+  if (!m) return { number: "", title: t };
+  return { number: m[1], title: m[2] };
+}
+
+function stripChapterNumberPrefix(raw) {
+  const t = normalizeWsForPageMap(String(raw || ""));
+  const m = t.match(/^\d+\.\s+(.+)$/);
+  return m ? m[1] : t;
+}
+
+function buildTocModelFromPageMap({ canonical, pageMap }) {
+  const tocItems = Array.isArray(pageMap?.toc) ? pageMap.toc : [];
+  const chapterRows = [];
+  const sectionRows = [];
+
+  const chapters = Array.isArray(canonical?.chapters) ? canonical.chapters : [];
+  for (let i = 0; i < chapters.length; i++) {
+    const ch = chapters[i];
+    const rawTitle = typeof ch?.title === "string" ? ch.title : `Hoofdstuk ${i + 1}`;
+    const label = stripChapterNumberPrefix(rawTitle);
+    const hit = tocItems.find((x) => x?.type === "chapter" && Number(x?.chapterIndex) === i);
+    const pageNum = hit?.page ? String(hit.page) : "";
+    chapterRows.push({ level: "1", num: String(i + 1), label, page: pageNum });
+
+    const sections = Array.isArray(ch?.sections) ? ch.sections : [];
+    for (const s of sections) {
+      const st = typeof s?.title === "string" ? s.title : "";
+      if (!st) continue;
+      const { number, title } = splitNumberedTitle(st);
+      const secLabel = title || st;
+      const secId = typeof s?.id === "string" && s.id.trim() ? s.id.trim() : "";
+      const hitSec = tocItems.find((x) => x?.type === "section" && Number(x?.chapterIndex) === i && (secId ? String(x?.sectionId || "") === secId : true));
+      const pageNum = hitSec?.page ? String(hitSec.page) : "";
+      sectionRows.push({ level: "2", num: number || "", label: secLabel, page: pageNum });
+    }
+  }
+
+  // Rough split: keep first ~half of chapters in left column; rest in right.
+  const mid = Math.ceil(chapterRows.length / 2);
+  const left = [];
+  const right = [];
+  for (let i = 0; i < chapterRows.length; i++) {
+    const target = i < mid ? left : right;
+    target.push(chapterRows[i]);
+    // Include that chapter’s sections directly under it in same column.
+    const chNum = chapterRows[i].num;
+    const secs = sectionRows.filter((r) => r.num && (r.num.startsWith(`${chNum}.`) || r.num.startsWith(`${chNum}.`)));
+    for (const r of secs) target.push(r);
+  }
+
+  return { left, right };
+}
+
+function buildIndexModelFromPageMap({ matterPack, indexGenerated, pageMap }) {
+  const entries = Array.isArray(indexGenerated?.entries) ? indexGenerated.entries : [];
+  const termPages = pageMap?.index?.termPages && typeof pageMap.index.termPages === "object" ? pageMap.index.termPages : {};
+
+  // Flatten into terms with page lists (single page refs for now; can be extended to ranges later)
+  const rows = [];
+  for (const e of entries) {
+    const term = typeof e?.term === "string" ? normalizeWsForPageMap(e.term) : "";
+    if (!term) continue;
+    const p = termPages?.[term] || null;
+    rows.push({ term, page: p ? String(p) : "" });
+  }
+
+  // Sort by term (Dutch)
+  rows.sort((a, b) => a.term.localeCompare(b.term, "nl"));
+
+  // Build blocks (letters + entries). Template uses CSS columns to paginate across pages.
+  const blocks = [];
+  let currentLetter = "";
+  for (const r of rows) {
+    const letter = r.term[0] ? r.term[0].toUpperCase() : "";
+    if (letter && letter !== currentLetter) {
+      currentLetter = letter;
+      blocks.push({ type: "letter", letter });
+    }
+    blocks.push({ type: "entry", term: `${r.term},`, pages: r.page });
+  }
+
+  return { title: matterPack.index.title, blocks };
+}
+
+function buildGlossaryModel({ glossaryGenerated, pageCounterReset }) {
+  const items = Array.isArray(glossaryGenerated?.items) ? glossaryGenerated.items : [];
+  const cleaned = items
+    .map((it) => ({
+      term: typeof it?.term === "string" ? normalizeWsForPageMap(it.term) : "",
+      latin: typeof it?.latin === "string" ? normalizeWsForPageMap(it.latin) : "",
+      definition: typeof it?.definition === "string" ? normalizeWsForPageMap(it.definition) : "",
+    }))
+    .filter((it) => !!it.term && !!it.definition);
+
+  const reset =
+    typeof pageCounterReset === "number" && Number.isFinite(pageCounterReset) ? Math.floor(pageCounterReset) : null;
+  if (reset === null) throw new Error("BLOCKED: pageCounterReset is required (number)");
+
+  return { items: cleaned, pageCounterReset: reset };
 }
 
 async function findMissingLocalImageAssets({ html, workDir }) {
@@ -556,6 +727,8 @@ async function processJob(job) {
         // For older "text-only" canonicals, auto-attach library figures by inferring chapter/figure numbers.
         // The edge function is guarded to only do this when the canonical has very few embedded images.
         autoAttachLibraryImages: true,
+        // Matter pack + generated artifacts for full-book rendering.
+        ...(target === "book" ? { includeMatter: true } : {}),
       },
       { orgId }
     );
@@ -611,6 +784,27 @@ async function processJob(job) {
     if (authoringMode === "skeleton" && compiledCanonicalUrl) {
       canonical = await withRetries(() => downloadJsonFromSignedUrl(compiledCanonicalUrl), { attempts: 3 });
       console.log("[book-worker] Using compiled canonical (authoringMode=skeleton)");
+    }
+
+    // Matter pack + generated artifacts (only relevant for full-book target).
+    let matterPack = null;
+    let indexGenerated = null;
+    let glossaryGenerated = null;
+    if (target === "book") {
+      const mpUrl = inputs?.urls?.matterPack?.signedUrl || null;
+      const idxUrl = inputs?.urls?.indexGenerated?.signedUrl || null;
+      const glUrl = inputs?.urls?.glossaryGenerated?.signedUrl || null;
+      if (mpUrl) matterPack = await withRetries(() => downloadJsonFromSignedUrl(mpUrl), { attempts: 3 });
+      if (idxUrl) indexGenerated = await withRetries(() => downloadJsonFromSignedUrl(idxUrl), { attempts: 3 });
+      if (glUrl) glossaryGenerated = await withRetries(() => downloadJsonFromSignedUrl(glUrl), { attempts: 3 });
+
+      // Fail loudly: full-book “matter PNG pages” require these inputs.
+      if (!matterPack) throw new Error("BLOCKED: matter-pack.json is REQUIRED for full-book rendering with matter pages");
+      if (!indexGenerated) throw new Error("BLOCKED: index.generated.json is REQUIRED (run book_generate_index first)");
+      if (!glossaryGenerated) throw new Error("BLOCKED: glossary.generated.json is REQUIRED (run book_generate_glossary first)");
+
+      // Validate shape (no silent fallback)
+      requireMatterPack(matterPack, { context: `${bookId}/${bookVersionId}` });
     }
 
     let skeleton = null;
@@ -3215,12 +3409,20 @@ Return STRICT JSON ONLY:
       chapterOpeners,
       placeholdersOnly,
       coverUrl,
+      // For full-book renders, we are going to build a separate “matter pages” TOC later.
+      // Keep the body-only HTML clean so page mapping remains stable.
+      ...(target === "book" ? { includeToc: false, includeCover: false } : {}),
     });
 
     const htmlPath = path.join(workDir, "render.html");
     const assembledPath = path.join(workDir, "assembled.json");
     const pdfPath = path.join(workDir, "output.pdf");
     const logPath = path.join(workDir, renderProvider === "docraptor_api" ? "docraptor.log" : "prince.log");
+    let effectiveLogPath = logPath;
+    let finalHtmlPath = null;
+    let finalLogPath = null;
+    let bodyOnlyPdfBuf = null;
+    let bodyOnlyLogBuf = null;
 
     // Missing images policy:
     // - strict (default): hard fail before rendering
@@ -3265,12 +3467,12 @@ Return STRICT JSON ONLY:
     // Post-patch validation gate (should pass even in placeholder mode).
     await validateLocalImageAssets({ html, workDir });
 
-    // 4) Render PDF
+    // 4) Render body-only PDF (chapter content only; matter TOC is handled separately)
     if (isBookGenPro) {
       await reportProgress({
         stage: "render:pdf",
-        percent: target === "book" ? 90 : 85,
-        message: `Rendering PDF via ${renderProvider}…`,
+        percent: target === "book" ? 80 : 85,
+        message: `Rendering body PDF via ${renderProvider}…`,
       }).catch(() => {});
     }
     const renderStartMs = Date.now();
@@ -3283,6 +3485,159 @@ Return STRICT JSON ONLY:
       throw new Error("PDF render produced an empty file");
     }
     await verifyLogNoFatal({ logPath, provider: renderProvider });
+    if (target === "book") {
+      // Preserve body-only artifacts (page-map/index refs are derived from this PDF).
+      try {
+        bodyOnlyPdfBuf = await readFile(pdfPath);
+      } catch {
+        bodyOnlyPdfBuf = null;
+      }
+      try {
+        bodyOnlyLogBuf = await readFile(logPath);
+      } catch {
+        bodyOnlyLogBuf = null;
+      }
+    }
+
+    // 4b) Page-map (body-only) + rasterize matter pages for TOC/index alignment
+    let pageMap = null;
+    let matterPngs = null;
+    if (target === "book") {
+      await reportProgress({
+        stage: "matter:page-map",
+        percent: 92,
+        message: "Extracting page map for TOC/index…",
+      }).catch(() => {});
+
+      const pages = await extractPdfTextPages(pdfPath);
+      const tocAnchors = extractTocAnchorsFromCanonical(assembled);
+
+      const tocPages = tocAnchors.map((a) => {
+        const page = findFirstPageContaining(pages, a.label);
+        return { ...a, page };
+      });
+
+      const terms = extractIndexTermsFromGeneratedIndex(indexGenerated);
+      const termPages = {};
+      for (const t of terms) {
+        const page = findFirstPageContaining(pages, t);
+        if (page) termPages[t] = page;
+      }
+
+      pageMap = {
+        schemaVersion: "page_map_v1",
+        generatedAt: new Date().toISOString(),
+        bookId,
+        bookVersionId,
+        pages: pages.length,
+        toc: tocPages,
+        index: { matchedTerms: Object.keys(termPages).length, termPages },
+      };
+
+      // Build matter models
+      const tocModel = buildTocModelFromPageMap({ canonical: assembled, pageMap });
+      const indexModel = buildIndexModelFromPageMap({ matterPack, indexGenerated, pageMap });
+
+      // Render matter HTML and rasterize to PNGs (high-res)
+      await reportProgress({
+        stage: "matter:rasterize",
+        percent: 93,
+        message: "Rasterizing matter pages to PNG…",
+      }).catch(() => {});
+
+      if (renderProvider !== "prince_local") {
+        throw new Error("BLOCKED: Full-book matter pages require render_provider=prince_local (DocRaptor does not support rasterization in this pipeline)");
+      }
+      const princePath = String(process.env.PRINCE_PATH || "").trim();
+      if (!princePath) {
+        throw new Error("BLOCKED: PRINCE_PATH is REQUIRED for matter rasterization (set env var before running the worker)");
+      }
+
+      const dpiRaw = String(process.env.BOOK_MATTER_RASTER_DPI || "").trim();
+      const dpi = dpiRaw ? Number(dpiRaw) : 300;
+      const matterDir = path.join(workDir, "matter");
+      await mkdir(matterDir, { recursive: true });
+
+      const collectRasterPngs = async (key) => {
+        const out = [];
+        for (let i = 1; i <= 500; i++) {
+          const p = path.join(matterDir, `matter.${key}-${i}.png`);
+          try {
+            await stat(p);
+            out.push(p);
+          } catch {
+            break;
+          }
+        }
+        if (!out.length) throw new Error(`BLOCKED: Prince raster produced no PNG output for '${key}'`);
+        return out;
+      };
+
+      const rasterDoc = async ({ key, html, filename }) => {
+        const htmlOut = path.join(matterDir, filename);
+        await writeFile(htmlOut, html, "utf-8");
+        const outPattern = path.join(matterDir, `matter.${key}-%d.png`);
+        const logOut = path.join(matterDir, `matter.${key}.prince.log`);
+        await runPrinceRaster({ htmlPath: htmlOut, outPattern, dpi, logPath: logOut });
+        const pngPaths = await collectRasterPngs(key);
+        matterPngs[key] = { pngPaths, logPath: logOut };
+      };
+
+      /** @type {Record<string, { pngPaths: string[], logPath: string }>} */
+      matterPngs = {};
+      await rasterDoc({ key: "title", html: renderMatterTitlePage(matterPack), filename: "matter.title.html" });
+      await rasterDoc({ key: "colophon", html: renderMatterColophonPage(matterPack), filename: "matter.colophon.html" });
+      await rasterDoc({ key: "toc", html: renderMatterTocPage(matterPack, tocModel), filename: "matter.toc.html" });
+      await rasterDoc({ key: "promo", html: renderMatterPromoPage(matterPack), filename: "matter.promo.html" });
+      await rasterDoc({ key: "index", html: renderMatterIndexPage(matterPack, indexModel), filename: "matter.index.html" });
+
+      const bodyPages = typeof pageMap?.pages === "number" ? Math.floor(pageMap.pages) : 0;
+      const indexPages = Array.isArray(matterPngs?.index?.pngPaths) ? matterPngs.index.pngPaths.length : 0;
+      const glossaryModel = buildGlossaryModel({ glossaryGenerated, pageCounterReset: bodyPages + indexPages });
+      await rasterDoc({ key: "glossary", html: renderMatterGlossaryPage(matterPack, glossaryModel), filename: "matter.glossary.html" });
+
+      // Assemble final PDF (matter PNG pages + body HTML), then overwrite output.pdf
+      await reportProgress({
+        stage: "matter:assemble",
+        percent: 95,
+        message: "Assembling final PDF with matter pages…",
+      }).catch(() => {});
+
+      const toRelSrc = (absPath) => {
+        const rel = path.relative(workDir, absPath);
+        return rel.split(path.sep).join("/");
+      };
+      const frontMatterPages = [];
+      for (const p of matterPngs.title.pngPaths) frontMatterPages.push({ kind: "title", src: toRelSrc(p) });
+      for (const p of matterPngs.colophon.pngPaths) frontMatterPages.push({ kind: "colophon", src: toRelSrc(p) });
+      for (const p of matterPngs.toc.pngPaths) frontMatterPages.push({ kind: "toc", src: toRelSrc(p) });
+      for (const p of matterPngs.promo.pngPaths) frontMatterPages.push({ kind: "promo", src: toRelSrc(p) });
+
+      const backMatterPages = [];
+      for (const p of matterPngs.index.pngPaths) backMatterPages.push({ kind: "index", src: toRelSrc(p) });
+      for (const p of matterPngs.glossary.pngPaths) backMatterPages.push({ kind: "glossary", src: toRelSrc(p) });
+
+      const finalHtml = assembleFinalBookHtml({
+        bookHtml: html,
+        frontMatterPages,
+        backMatterPages,
+        pageWidthMm: Number(matterPack.theme.pageWidthMm),
+        pageHeightMm: Number(matterPack.theme.pageHeightMm),
+      });
+
+      finalHtmlPath = path.join(workDir, "final.render.html");
+      finalLogPath = path.join(workDir, "final.prince.log");
+      await writeFile(finalHtmlPath, finalHtml, "utf-8");
+      await validateLocalImageAssets({ html: finalHtml, workDir });
+      await runPrince({ htmlPath: finalHtmlPath, pdfPath, logPath: finalLogPath });
+      await verifyLogNoFatal({ logPath: finalLogPath, provider: "prince_local" });
+      effectiveLogPath = finalLogPath;
+
+      const finalPdfStat = await stat(pdfPath);
+      if (!finalPdfStat || finalPdfStat.size <= 0) {
+        throw new Error("Final PDF render produced an empty file");
+      }
+    }
 
     // 5) Upload artifacts
     if (isBookGenPro) {
@@ -3296,7 +3651,7 @@ Return STRICT JSON ONLY:
       readFile(htmlPath),
       readFile(assembledPath),
       readFile(pdfPath),
-      readFile(logPath),
+      readFile(effectiveLogPath),
     ]);
 
     const uploaded = [];
@@ -3310,11 +3665,77 @@ Return STRICT JSON ONLY:
       ...(await uploadArtifact({ orgId, jobId, fileName: fileNameForAttempt("assembled.json"), buf: assembledBuf, contentType: "application/json" })),
       chapterIndex,
     });
+    if (pageMap) {
+      const pageMapBuf = Buffer.from(JSON.stringify(pageMap, null, 2), "utf-8");
+      uploaded.push({
+        kind: "layout_report",
+        ...(await uploadArtifact({ orgId, jobId, fileName: fileNameForAttempt("page-map.json"), buf: pageMapBuf, contentType: "application/json" })),
+        chapterIndex,
+      });
+    }
+    if (matterPngs && typeof matterPngs === "object") {
+      for (const [key, info] of Object.entries(matterPngs)) {
+        const pngPaths = Array.isArray(info?.pngPaths) ? info.pngPaths : [];
+        const logP = info?.logPath;
+        for (let i = 0; i < pngPaths.length; i++) {
+          const pngPath = pngPaths[i];
+          if (typeof pngPath !== "string" || !pngPath.trim()) continue;
+          try {
+            const pngBuf = await readFile(pngPath);
+            uploaded.push({
+              kind: "debug",
+              ...(await uploadArtifact({ orgId, jobId, fileName: fileNameForAttempt(`matter.${key}.${i + 1}.png`), buf: pngBuf, contentType: "image/png" })),
+              chapterIndex,
+            });
+          } catch {
+            throw new Error(`BLOCKED: Matter raster output missing for '${key}' (${pngPath})`);
+          }
+        }
+        if (typeof logP === "string") {
+          try {
+            const logBuf2 = await readFile(logP);
+            uploaded.push({
+              kind: "debug",
+              ...(await uploadArtifact({ orgId, jobId, fileName: fileNameForAttempt(`matter.${key}.prince.log`), buf: logBuf2, contentType: "text/plain" })),
+              chapterIndex,
+            });
+          } catch {
+            // ignore
+          }
+        }
+      }
+    }
     uploaded.push({
       kind: "pdf",
       ...(await uploadArtifact({ orgId, jobId, fileName: fileNameForAttempt("output.pdf"), buf: pdfBuf, contentType: "application/pdf" })),
       chapterIndex,
     });
+    if (bodyOnlyPdfBuf) {
+      uploaded.push({
+        kind: "debug",
+        ...(await uploadArtifact({
+          orgId,
+          jobId,
+          fileName: fileNameForAttempt("body-only.output.pdf"),
+          buf: bodyOnlyPdfBuf,
+          contentType: "application/pdf",
+        })),
+        chapterIndex,
+      });
+    }
+    if (bodyOnlyLogBuf) {
+      uploaded.push({
+        kind: "debug",
+        ...(await uploadArtifact({
+          orgId,
+          jobId,
+          fileName: fileNameForAttempt("body-only.prince.log"),
+          buf: bodyOnlyLogBuf,
+          contentType: "text/plain",
+        })),
+        chapterIndex,
+      });
+    }
     uploaded.push({
       kind: renderProvider === "docraptor_api" ? "debug" : "prince_log",
       ...(await uploadArtifact({
@@ -3326,6 +3747,31 @@ Return STRICT JSON ONLY:
       })),
       chapterIndex,
     });
+
+    if (finalHtmlPath && typeof finalHtmlPath === "string") {
+      try {
+        const buf = await readFile(finalHtmlPath);
+        uploaded.push({
+          kind: "debug",
+          ...(await uploadArtifact({ orgId, jobId, fileName: fileNameForAttempt("final.render.html"), buf, contentType: "text/html" })),
+          chapterIndex,
+        });
+      } catch {
+        // ignore
+      }
+    }
+    if (finalLogPath && typeof finalLogPath === "string" && finalLogPath !== effectiveLogPath) {
+      try {
+        const buf = await readFile(finalLogPath);
+        uploaded.push({
+          kind: "debug",
+          ...(await uploadArtifact({ orgId, jobId, fileName: fileNameForAttempt("final.prince.log"), buf, contentType: "text/plain" })),
+          chapterIndex,
+        });
+      } catch {
+        // ignore
+      }
+    }
 
     if (missingImageReport) {
       const reportBuf = Buffer.from(JSON.stringify(missingImageReport, null, 2), "utf-8");

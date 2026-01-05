@@ -159,6 +159,27 @@ function safeStr(v: unknown): string {
   return typeof v === "string" ? v : "";
 }
 
+function describeUiError(e: unknown): string {
+  // Prefer real Error messages, but also surface structured ApiError-ish metadata when present.
+  if (e instanceof Error) {
+    const anyE = e as any;
+    const code = typeof anyE?.code === "string" ? anyE.code : "";
+    const status = typeof anyE?.status === "number" ? anyE.status : null;
+    const requestId = typeof anyE?.requestId === "string" ? anyE.requestId : "";
+    const parts = [];
+    if (code) parts.push(code);
+    if (typeof status === "number") parts.push(String(status));
+    if (requestId) parts.push(`req ${requestId.slice(0, 8)}`);
+    const suffix = parts.length ? ` (${parts.join(" · ")})` : "";
+    return `${e.message || "Unknown error"}${suffix}`;
+  }
+  try {
+    return JSON.stringify(e);
+  } catch {
+    return "Unknown error";
+  }
+}
+
 function stripHtml(s: string): string {
   return String(s || "").replace(/<[^>]*>/g, "");
 }
@@ -441,27 +462,53 @@ export default function BookStudioChapterEditor() {
     if (!bookId) throw new Error("Missing bookId");
     if (chapterIdx === null) throw new Error("Invalid chapterIndex");
 
-    let resolvedBookVersionId = bookVersionId;
+    // Always validate query-param selections against the current DB state.
+    // This avoids stale deep-links after resets/purges (common in admin workflows).
+    const v = await mcp.callGet("lms.bookList", { scope: "versions", bookId, limit: "200", offset: "0" });
+    if (!(v as any)?.ok) throw new Error((v as any)?.error?.message || "Failed to load versions");
+    const versions = Array.isArray((v as any)?.versions) ? ((v as any).versions as any[]) : [];
+    const pickFirstVersionId = () => safeStr(versions?.[0]?.book_version_id);
+
+    let resolvedBookVersionId = safeStr(bookVersionId).trim();
     if (!resolvedBookVersionId) {
-      const v = await mcp.callGet("lms.bookList", { scope: "versions", bookId, limit: "1", offset: "0" });
-      if (!(v as any)?.ok) throw new Error((v as any)?.error?.message || "Failed to load versions");
-      const first = (v as any)?.versions?.[0]?.book_version_id;
-      resolvedBookVersionId = safeStr(first);
+      resolvedBookVersionId = pickFirstVersionId();
       if (!resolvedBookVersionId) throw new Error("No versions found for book");
       setBookVersionId(resolvedBookVersionId);
+    } else {
+      const exists = versions.some((row) => safeStr(row?.book_version_id) === resolvedBookVersionId);
+      if (!exists) {
+        // Stale URL: reset to newest.
+        resolvedBookVersionId = pickFirstVersionId();
+        if (!resolvedBookVersionId) throw new Error("No versions found for book");
+        setBookVersionId(resolvedBookVersionId);
+        // Overlays are version-scoped; clear any stale overlay param too.
+        if (overlayId) setOverlayId("");
+      }
     }
 
     let resolvedOverlayId = overlayId;
+
+    // Fetch overlays and validate the requested one (if any).
+    const list = await mcp.callGet("lms.bookList", {
+      scope: "overlays",
+      bookId,
+      bookVersionId: resolvedBookVersionId,
+      limit: "200",
+      offset: "0",
+    });
+    if (!(list as any)?.ok) throw new Error((list as any)?.error?.message || "Failed to load overlays");
+    const overlays = Array.isArray((list as any)?.overlays) ? ((list as any).overlays as any[]) : [];
+
+    if (resolvedOverlayId) {
+      const exists = overlays.some((o) => safeStr(o?.id) === safeStr(resolvedOverlayId));
+      if (!exists) {
+        // Stale URL: clear and continue (we'll pick/create below).
+        resolvedOverlayId = "";
+        setOverlayId("");
+      }
+    }
+
     if (!resolvedOverlayId) {
-      const list = await mcp.callGet("lms.bookList", {
-        scope: "overlays",
-        bookId,
-        bookVersionId: resolvedBookVersionId,
-        limit: "200",
-        offset: "0",
-      });
-      if (!(list as any)?.ok) throw new Error((list as any)?.error?.message || "Failed to load overlays");
-      const overlays = Array.isArray((list as any)?.overlays) ? ((list as any).overlays as any[]) : [];
       const preferred = overlays.find((o) => String(o?.label || "").trim().toLowerCase() === "book studio") || overlays[0] || null;
       if (preferred?.id) {
         resolvedOverlayId = String(preferred.id);
@@ -586,7 +633,7 @@ export default function BookStudioChapterEditor() {
     } catch (e) {
       toast({
         title: "Failed to load chapter",
-        description: e instanceof Error ? e.message : "Unknown error",
+        description: describeUiError(e),
         variant: "destructive",
       });
     } finally {

@@ -317,6 +317,28 @@
       "prompt_template": "Generate content for a single section in a skeleton-first book pipeline (internal). Return JSON {\"bookId\": string, \"bookVersionId\": string, \"chapterIndex\": number, \"sectionIndex\": number}."
     },
     {
+      "id": "book_generate_index",
+      "target_entity": "BookVersion",
+      "execution_mode": "async",
+      "ui": {
+        "label": "Generate Book Index (matter)",
+        "icon": "List",
+        "placement": "admin"
+      },
+      "prompt_template": "Generate an index term list for a canonical book version (no page numbers yet). Return JSON {\"bookId\": string, \"bookVersionId\": string}."
+    },
+    {
+      "id": "book_generate_glossary",
+      "target_entity": "BookVersion",
+      "execution_mode": "async",
+      "ui": {
+        "label": "Generate Glossary (Begrippen)",
+        "icon": "BookOpenCheck",
+        "placement": "admin"
+      },
+      "prompt_template": "Generate a glossary / begrippenlijst for a canonical book version. Return JSON {\"bookId\": string, \"bookVersionId\": string}."
+    },
+    {
       "id": "draft_assignment_plan",
       "target_entity": "Assignment",
       "execution_mode": "synchronous",

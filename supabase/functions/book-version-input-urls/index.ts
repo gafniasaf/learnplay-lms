@@ -27,6 +27,14 @@ interface Body {
   overlayId?: string;
   expiresIn?: number;
   /**
+   * If true, include signed URLs for matter-pack + generated index/glossary artifacts
+   * (stored under books/{bookId}/{bookVersionId}/matter/*).
+   *
+   * NOTE: These are optional at the edge layer (may be null if absent). The worker
+   * is responsible for failing loudly when a render requires them.
+   */
+  includeMatter?: boolean;
+  /**
    * If true, return persisted semantic figure placements (when present) from book_versions.figure_placements.
    * This allows the worker (and Book Studio) to avoid filename-based figure->chapter inference.
    */
@@ -258,6 +266,7 @@ serve(async (req: Request): Promise<Response> => {
 
     const expiresIn = typeof body.expiresIn === "number" && body.expiresIn > 0 ? Math.min(body.expiresIn, 60 * 60 * 24) : 3600;
     const allowMissingImages = body.allowMissingImages === true;
+    const includeMatter = body.includeMatter === true;
     const includeFigurePlacements = body.includeFigurePlacements === true;
     const includeChapterOpeners = body.includeChapterOpeners === true;
     const autoAttachLibraryImages = body.autoAttachLibraryImages === true;
@@ -323,6 +332,12 @@ serve(async (req: Request): Promise<Response> => {
     const skeletonSchemaVersion = (version as any).skeleton_schema_version ?? null;
     const promptPackId = (version as any).prompt_pack_id ?? null;
     const promptPackVersion = (version as any).prompt_pack_version ?? null;
+
+    // Matter pack + generated artifacts (optional)
+    const matterBase = `books/${body.bookId}/${body.bookVersionId}/matter`;
+    const matterPack = includeMatter ? await signedOptional(`${matterBase}/matter-pack.json`) : null;
+    const indexGenerated = includeMatter ? await signedOptional(`${matterBase}/index.generated.json`) : null;
+    const glossaryGenerated = includeMatter ? await signedOptional(`${matterBase}/glossary.generated.json`) : null;
 
     // Optional: resolve canonical image src -> signed URL (avoid requiring assets.zip for large books).
     let imageSrcMap: Record<string, string> | null = null;
@@ -768,6 +783,10 @@ serve(async (req: Request): Promise<Response> => {
         // Skeleton-first: when authoringMode='skeleton', these contain the primary source of truth
         skeleton,
         compiledCanonical,
+        // Matter pack + generated artifacts (optional)
+        matterPack,
+        indexGenerated,
+        glossaryGenerated,
       },
       // Skeleton-first metadata
       authoringMode,

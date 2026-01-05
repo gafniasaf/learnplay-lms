@@ -164,6 +164,8 @@ export function renderBookHtml(
     chapterOpeners,
     placeholdersOnly = false,
     coverUrl = null,
+    includeCover = true,
+    includeToc = true,
   } = {},
 ) {
   // Prince-first textbook layout (PASS2-inspired).
@@ -1513,6 +1515,7 @@ figcaption.figure-caption {
 
   function renderCover() {
     if (target === "chapter") return "";
+    if (includeCover !== true) return "";
 
     const url = typeof coverUrl === "string" ? coverUrl.trim() : "";
     if (!url) {
@@ -1533,6 +1536,7 @@ figcaption.figure-caption {
 
   function renderToc() {
     if (target === "chapter") return "";
+    if (includeToc !== true) return "";
     let out = `<div class="toc">\n`;
     out += `  <div class="toc-meta">\n`;
     out += `    <div>${escapeHtml(metaTitle)}</div>\n`;

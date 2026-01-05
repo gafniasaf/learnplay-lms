@@ -18,15 +18,17 @@ describe('JOB_MODES configuration', () => {
     expect(JOB_MODES.book_ingest_version).toBe('async');
     expect(JOB_MODES.book_render_chapter).toBe('async');
     expect(JOB_MODES.book_render_full).toBe('async');
+    expect(JOB_MODES.book_generate_index).toBe('async');
+    expect(JOB_MODES.book_generate_glossary).toBe('async');
     expect(JOB_MODES.material_ingest).toBe('async');
     expect(JOB_MODES.material_analyze).toBe('async');
     expect(JOB_MODES.lessonkit_build).toBe('async');
     expect(JOB_MODES.mes_corpus_index).toBe('async');
   });
 
-  it('has all 18 job types defined', () => {
+  it('has all 20 job types defined', () => {
     const jobTypes = Object.keys(JOB_MODES);
-    expect(jobTypes).toHaveLength(18);
+    expect(jobTypes).toHaveLength(20);
     expect(jobTypes).toContain('draft_assignment_plan');
     expect(jobTypes).toContain('ai_course_generate');
     expect(jobTypes).toContain('guard_course');
@@ -38,6 +40,8 @@ describe('JOB_MODES configuration', () => {
     expect(jobTypes).toContain('book_generate_full');
     expect(jobTypes).toContain('book_generate_chapter');
     expect(jobTypes).toContain('book_generate_section');
+    expect(jobTypes).toContain('book_generate_index');
+    expect(jobTypes).toContain('book_generate_glossary');
     expect(jobTypes).toContain('material_ingest');
     expect(jobTypes).toContain('material_analyze');
     expect(jobTypes).toContain('lessonkit_build');

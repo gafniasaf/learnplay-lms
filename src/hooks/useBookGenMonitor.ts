@@ -285,6 +285,10 @@ export function useBookGenMonitor() {
 
       const stats: ContentStats = { verdieping: 0, praktijk: 0, figures: 0 };
       walkJson(json, (obj) => {
+        // Canonical format uses `praktijk` / `verdieping` (compiled from skeleton's praktijkHtml/verdiepingHtml).
+        // Some draft/legacy shapes may still use `praktijkHtml` / `verdiepingHtml`.
+        if (typeof obj?.praktijk === "string" && obj.praktijk.trim()) stats.praktijk += 1;
+        if (typeof obj?.verdieping === "string" && obj.verdieping.trim()) stats.verdieping += 1;
         if (typeof obj?.praktijkHtml === "string" && obj.praktijkHtml.trim()) stats.praktijk += 1;
         if (typeof obj?.verdiepingHtml === "string" && obj.verdiepingHtml.trim()) stats.verdieping += 1;
 

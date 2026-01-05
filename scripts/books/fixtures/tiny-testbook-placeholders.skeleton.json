@@ -1,0 +1,195 @@
+{
+  "meta": {
+    "bookId": "__BOOK_ID__",
+    "bookVersionId": "__BOOK_VERSION_ID__",
+    "title": "Tiny testbook (placeholders) — 3 hoofdstukken",
+    "level": "n4",
+    "language": "nl",
+    "schemaVersion": "skeleton_v1"
+  },
+  "styleProfile": null,
+  "chapters": [
+    {
+      "id": "ch-1",
+      "number": 1,
+      "title": "1. Mini hoofdstuk 1",
+      "openerImageSrc": null,
+      "sections": [
+        {
+          "id": "1.1",
+          "title": "1.1 Basisbegrippen",
+          "blocks": [
+            {
+              "type": "subparagraph",
+              "id": "1.1.1",
+              "title": "1.1.1 Wat is een cel",
+              "blocks": [
+                {
+                  "type": "subparagraph",
+                  "title": "Kern",
+                  "blocks": [
+                    {
+                      "type": "paragraph",
+                      "id": "seed-p-0001",
+                      "basisHtml": "Een <<BOLD_START>>cel<<BOLD_END>> is de kleinste bouwsteen van het lichaam. In dit testboek houden we alles expres kort.",
+                      "praktijkHtml": "<span class=\"box-lead\">Op de werkvloer</span> Je herkent cellen in een microscooppreparaat vooral aan een duidelijke begrenzing en vaak een celkern.",
+                      "images": [
+                        {
+                          "src": "placeholder://tiny/ch1/fig1",
+                          "alt": "Schematische cel",
+                          "caption": "Voorbeeldfiguur: dit is een placeholder (geen echt beeldbestand).",
+                          "figureNumber": "1.1"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "subparagraph",
+              "id": "1.1.2",
+              "title": "1.1.2 Diffusie en osmose",
+              "blocks": [
+                {
+                  "type": "paragraph",
+                  "id": "seed-p-0002",
+                  "basisHtml": "<<BOLD_START>>Diffusie<<BOLD_END>> is het verspreiden van <<BOLD_START>>deeltjes<<BOLD_END>> van een plek met veel naar een plek met weinig. <<BOLD_START>>Osmose<<BOLD_END>> is diffusie van <<BOLD_START>>water<<BOLD_END>> door een <<BOLD_START>>membraan<<BOLD_END>>.",
+                  "verdiepingHtml": "<span class=\"box-lead\">Extra uitleg</span> Bij <<BOLD_START>>osmose<<BOLD_END>> draait het om het verschil in hoeveelheid opgeloste <<BOLD_START>>stoffen<<BOLD_END>> aan beide kanten van het membraan.",
+                  "images": [
+                    {
+                      "src": "placeholder://tiny/ch1/fig2",
+                      "alt": "Diffusie en osmose",
+                      "caption": "Voorbeeldfiguur: pijl van hoog naar laag concentratie.",
+                      "figureNumber": "1.2"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ch-2",
+      "number": 2,
+      "title": "2. Mini hoofdstuk 2",
+      "openerImageSrc": null,
+      "sections": [
+        {
+          "id": "2.1",
+          "title": "2.1 Weefsels",
+          "blocks": [
+            {
+              "type": "subparagraph",
+              "id": "2.1.1",
+              "title": "2.1.1 Wat is een weefsel",
+              "blocks": [
+                {
+                  "type": "paragraph",
+                  "id": "seed-p-0003",
+                  "basisHtml": "Een <<BOLD_START>>weefsel<<BOLD_END>> is een groep <<BOLD_START>>cellen<<BOLD_END>> die samen één taak uitvoert. Denk aan <<BOLD_START>>spierweefsel<<BOLD_END>> of <<BOLD_START>>zenuwweefsel<<BOLD_END>>.",
+                  "praktijkHtml": "<span class=\"box-lead\">Voorbeeld</span> In de zorg zie je spierweefsel aan het werk wanneer iemand een hand knijpt of opstaat. Dat gebeurt via <<BOLD_START>>spieren<<BOLD_END>> en <<BOLD_START>>zenuwen<<BOLD_END>>.",
+                  "images": [
+                    {
+                      "src": "placeholder://tiny/ch2/fig1",
+                      "alt": "Weefsel",
+                      "caption": "Voorbeeldfiguur: cellen die samen een laag vormen.",
+                      "figureNumber": "2.1"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "subparagraph",
+              "id": "2.1.2",
+              "title": "2.1.2 Van cel naar orgaan",
+              "blocks": [
+                {
+                  "type": "subparagraph",
+                  "title": "Stap voor stap",
+                  "blocks": [
+                    {
+                      "type": "paragraph",
+                      "id": "seed-p-0004",
+                      "basisHtml": "<<BOLD_START>>Cellen<<BOLD_END>> vormen <<BOLD_START>>weefsels<<BOLD_END>> en weefsels vormen <<BOLD_START>>organen<<BOLD_END>>. Organen werken samen in een <<BOLD_START>>orgaanstelsel<<BOLD_END>>.",
+                      "verdiepingHtml": "<span class=\"box-lead\">Onthouden</span> Deze opbouw helpt je om klachten te koppelen aan het juiste niveau: <<BOLD_START>>cel<<BOLD_END>>, <<BOLD_START>>weefsel<<BOLD_END>>, <<BOLD_START>>orgaan<<BOLD_END>> of <<BOLD_START>>stelsel<<BOLD_END>>.",
+                      "images": [
+                        {
+                          "src": "placeholder://tiny/ch2/fig2",
+                          "alt": "Opbouw van het lichaam",
+                          "caption": "Voorbeeldfiguur: cel → weefsel → orgaan → orgaanstelsel.",
+                          "figureNumber": "2.2"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ch-3",
+      "number": 3,
+      "title": "3. Mini hoofdstuk 3",
+      "openerImageSrc": null,
+      "sections": [
+        {
+          "id": "3.1",
+          "title": "3.1 Organen en orgaanstelsels",
+          "blocks": [
+            {
+              "type": "subparagraph",
+              "id": "3.1.1",
+              "title": "3.1.1 Wat is een orgaan",
+              "blocks": [
+                {
+                  "type": "paragraph",
+                  "id": "seed-p-0005",
+                  "basisHtml": "Een <<BOLD_START>>orgaan<<BOLD_END>> is een deel van het lichaam met een specifieke functie. Je <<BOLD_START>>hart<<BOLD_END>> pompt bijvoorbeeld <<BOLD_START>>bloed<<BOLD_END>> rond.",
+                  "praktijkHtml": "<span class=\"box-lead\">In de zorg</span> Meten van <<BOLD_START>>pols<<BOLD_END>> en <<BOLD_START>>bloeddruk<<BOLD_END>> geeft indirect informatie over hoe het hart functioneert.",
+                  "images": [
+                    {
+                      "src": "placeholder://tiny/ch3/fig1",
+                      "alt": "Hart als orgaan",
+                      "caption": "Voorbeeldfiguur: eenvoudig hartdiagram.",
+                      "figureNumber": "3.1"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "subparagraph",
+              "id": "3.1.2",
+              "title": "3.1.2 Orgaanstelsels",
+              "blocks": [
+                {
+                  "type": "paragraph",
+                  "id": "seed-p-0006",
+                  "basisHtml": "<<BOLD_START>>Orgaanstelsels<<BOLD_END>> zijn groepen organen die samenwerken. Het <<BOLD_START>>ademhalingsstelsel<<BOLD_END>> werkt bijvoorbeeld samen met het <<BOLD_START>>circulatiestelsel<<BOLD_END>>.",
+                  "verdiepingHtml": "<span class=\"box-lead\">Samenhang</span> <<BOLD_START>>Zuurstof<<BOLD_END>> die je inademt, wordt via het bloed naar cellen vervoerd waar <<BOLD_START>>energie<<BOLD_END>> wordt gemaakt.",
+                  "images": [
+                    {
+                      "src": "placeholder://tiny/ch3/fig2",
+                      "alt": "Samenwerking stelsels",
+                      "caption": "Voorbeeldfiguur: longen ↔ bloedvaten.",
+                      "figureNumber": "3.2"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+
+

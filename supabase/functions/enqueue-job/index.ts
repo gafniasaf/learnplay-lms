@@ -141,6 +141,8 @@ serve(async (req: Request): Promise<Response> => {
       "book_generate_full",
       "book_generate_chapter",
       "book_generate_section",
+      "book_generate_index",
+      "book_generate_glossary",
       // System / tooling
       "compile_mockups",
       "plan_matrix_run",

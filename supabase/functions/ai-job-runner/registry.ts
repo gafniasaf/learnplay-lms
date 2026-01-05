@@ -7,6 +7,8 @@ import { GeneratedBookRenderFull } from './strategies/gen-book_render_full.ts';
 import { BookGenerateFull } from './strategies/book_generate_full.ts';
 import { BookGenerateChapter } from './strategies/book_generate_chapter.ts';
 import { BookGenerateSection } from './strategies/book_generate_section.ts';
+import { BookGenerateIndex } from './strategies/book_generate_index.ts';
+import { BookGenerateGlossary } from './strategies/book_generate_glossary.ts';
 import { GeneratedDraftAssignmentPlan } from './strategies/gen-draft_assignment_plan.ts';
 import { GeneratedAiCourseGenerate } from './strategies/gen-ai_course_generate.ts';
 import { GeneratedGuardCourse } from './strategies/gen-guard_course.ts';
@@ -27,6 +29,8 @@ export const JobRegistry: Record<string, JobExecutor> = {
   'book_generate_full': new BookGenerateFull(),
   'book_generate_chapter': new BookGenerateChapter(),
   'book_generate_section': new BookGenerateSection(),
+  'book_generate_index': new BookGenerateIndex(),
+  'book_generate_glossary': new BookGenerateGlossary(),
   'draft_assignment_plan': new GeneratedDraftAssignmentPlan(),
   'ai_course_generate': new GeneratedAiCourseGenerate(),
   'guard_course': new GeneratedGuardCourse(),

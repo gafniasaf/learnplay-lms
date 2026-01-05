@@ -1,4 +1,4 @@
-import { createClient } from "npm:@supabase/supabase-js@2";
+import { createClient } from "@supabase/supabase-js";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { loadLocalEnvForTests } from "../../tests/helpers/load-local-env";
@@ -32,24 +32,23 @@ async function main() {
   const meta = skeleton.meta || {};
   const title = meta.title || path.basename(filePath, ".json");
   const level = meta.level || "n4"; // default to n4 if missing
-  const language = meta.language || "nl";
 
   // 1. Create Book
-  console.log(`Creating book: "${title}" (${level}/${language})...`);
+  console.log(`Creating book: "${title}" (${level})...`);
+  const bookId = crypto.randomUUID();
   const { data: book, error: bookErr } = await supabase
     .from("books")
     .insert({
+      id: bookId,
       organization_id: ORG_ID,
       title,
       level,
-      language,
-      status: "draft",
+      source: "INGEST_SKELETON_FIXTURE",
     })
     .select()
     .single();
 
   if (bookErr) throw new Error(`Failed to create book: ${bookErr.message}`);
-  const bookId = book.id;
   console.log(`✅ Book created: ${bookId}`);
 
   // 2. Create Version
