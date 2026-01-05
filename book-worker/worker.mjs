@@ -329,7 +329,8 @@ function buildTocModelFromPageMap({ canonical, pageMap }) {
     target.push(chapterRows[i]);
     // Include that chapter’s sections directly under it in same column.
     const chNum = chapterRows[i].num;
-    const secs = sectionRows.filter((r) => r.num && (r.num.startsWith(`${chNum}.`) || r.num.startsWith(`${chNum}.`)));
+    const prefix = `${chNum}.`;
+    const secs = sectionRows.filter((r) => r.num && r.num.startsWith(prefix));
     for (const r of secs) target.push(r);
   }
 
