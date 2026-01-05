@@ -51,9 +51,21 @@ async function main() {
     chapterIndex: startChapterIndex,
     chapterCount,
     // Defaults for professional/PASS2 output
-    topic: skeleton.meta?.title || "Educational Content", 
-    level: skeleton.meta?.level || "n4",
-    language: skeleton.meta?.language || "nl",
+    topic: (() => {
+      const t = typeof skeleton?.meta?.title === "string" ? skeleton.meta.title.trim() : "";
+      if (!t) throw new Error("BLOCKED: skeleton.meta.title is REQUIRED");
+      return t;
+    })(),
+    level: (() => {
+      const raw = typeof skeleton?.meta?.level === "string" ? skeleton.meta.level.trim() : "";
+      if (raw !== "n3" && raw !== "n4") throw new Error("BLOCKED: skeleton.meta.level is REQUIRED (n3|n4)");
+      return raw;
+    })(),
+    language: (() => {
+      const t = typeof skeleton?.meta?.language === "string" ? skeleton.meta.language.trim() : "";
+      if (!t) throw new Error("BLOCKED: skeleton.meta.language is REQUIRED");
+      return t;
+    })(),
     layoutProfile: "pass2",
     microheadingDensity: "medium",
     imagePromptLanguage: "book",
@@ -68,7 +80,7 @@ async function main() {
   };
 
   console.log("🚀 Enqueuing book_generate_chapter job...");
-  console.log("Payload:", JSON.stringify(payload, null, 2));
+  console.log(`bookId=${bookId} bookVersionId=${bookVersionId} chapterIndex=${startChapterIndex} chapterCount=${chapterCount}`);
 
   const res = await fetch(`${SUPABASE_URL}/functions/v1/enqueue-job`, {
     method: "POST",

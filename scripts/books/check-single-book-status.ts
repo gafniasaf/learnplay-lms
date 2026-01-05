@@ -33,8 +33,9 @@ async function checkBookJobs() {
   // Get book version
   const { data: versions, error: versionError } = await supabase
     .from('book_versions')
-    .select('id')
-    .eq('book_id', BOOK_ID);
+    .select('id, book_version_id, status, exported_at, authoring_mode, skeleton_schema_version')
+    .eq('book_id', BOOK_ID)
+    .order('exported_at', { ascending: false });
 
   if (versionError) {
     console.error('Error fetching versions:', versionError);
