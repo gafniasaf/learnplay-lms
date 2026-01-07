@@ -826,6 +826,17 @@ export default function BookMonitor() {
       topic: title.trim(),
       language,
       level,
+      // Match the "PASS2-style" generation defaults we use elsewhere (more microheadings + better scannability).
+      layoutProfile: "pass2",
+      microheadingDensity: "medium",
+      imagePromptLanguage: "book",
+      userInstructions:
+        "Schrijf in vriendelijk, leerlinggericht Nederlands (zoals het referentieboek). " +
+        "Gebruik vaak 'je'. " +
+        "Leg begrippen stap voor stap uit met zinnen als: 'Dit betekent dat...' en 'Hierbij kun je bijvoorbeeld denken aan...'. " +
+        "Vermijd een te academische toon en introduceer afkortingen pas als ze logisch zijn. " +
+        "Houd de tekst vlot en begrijpelijk, met duidelijke verbanden ('Hierdoor...', 'Doordat...', 'Op dezelfde manier...'). " +
+        "Zorg dat 'In de praktijk' en 'Verdieping' kaders concreet en relevant zijn waar de outline dat vraagt.",
       writeModel: "anthropic:claude-sonnet-4-5",
     };
 

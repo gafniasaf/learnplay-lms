@@ -104,9 +104,31 @@ function isPosixAbsPath(s) {
   return String(s).startsWith("/");
 }
 
+function placeholderSvgDataUrl(label) {
+  const safe = String(label || "placeholder").slice(0, 80);
+  const svg = `<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1000" viewBox="0 0 1600 1000">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#eef2f6"/>
+      <stop offset="100%" stop-color="#dfe7ef"/>
+    </linearGradient>
+  </defs>
+  <rect x="0" y="0" width="1600" height="1000" fill="url(#bg)"/>
+  <text x="800" y="520" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="46" fill="#334155" opacity="0.55">${escapeHtml(safe)}</text>
+</svg>`;
+  return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+}
+
 function resolveAssetSrc(raw, { assetsBaseUrl = "assets", srcMap } = {}) {
   const src = String(raw || "").trim();
   if (!src) return null;
+
+  const srcLower = src.toLowerCase();
+  if (srcLower.startsWith("placeholder:") || srcLower.startsWith("placeholder://")) {
+    const label = src.replace(/^placeholder:\/*/i, "") || "placeholder";
+    return placeholderSvgDataUrl(label);
+  }
 
   if (isDataUrl(src) || isHttpUrl(src) || isFileUrl(src)) return src;
 
@@ -497,6 +519,7 @@ h2.section-title {
   margin: var(--h2-space-before) 0 var(--h2-space-after) 0;
   padding-bottom: 1.2mm;
   border-bottom: 0.5pt solid var(--rule);
+  position: relative;
 }
 h2.section-title .section-number {
   display: inline-block;
@@ -527,8 +550,31 @@ p.micro-title {
   orphans: var(--orphans);
   widows: var(--widows);
   text-align: justify;
+  position: relative;
 }
 .p + .p { text-indent: 0; }
+/* Page-map tokens (invisible, for deterministic page number extraction) */
+.page-map-anchor { position: relative; }
+.page-map-anchor::before {
+  content: attr(data-page-map);
+  position: absolute;
+  left: 0;
+  top: 0;
+  font-size: 0.5pt;
+  line-height: 1;
+  color: #000;
+  opacity: 0.01;
+  white-space: nowrap;
+  hyphens: none;
+  prince-hyphens: none;
+  pointer-events: none;
+}
+/* Token-only anchors should not affect layout flow (used when a block has no visible body text) */
+.page-map-anchor.token-only {
+  display: block;
+  height: 0;
+}
+
 .p + .p,
 .p + ul.bullets,
 .p + ol.steps,
@@ -957,8 +1003,15 @@ figcaption.figure-caption {
         const pidRaw = typeof b.id === "string" ? b.id : "";
         const pid = pidRaw ? `pid-${toSafeDomId(pidRaw)}` : "";
         const dataPid = pidRaw ? ` data-paragraph-id="${escapeHtml(pidRaw)}"` : "";
+        const pm = pid ? ` data-page-map="${escapeHtml(`PAGEMAP:PID:${pid}`)}"` : "";
+        const pidId = pid ? ` id="${escapeHtml(pid)}"` : "";
         if (basis.trim()) {
-          out += `<p class="p role-body"${dataPid}${pid ? ` id="${escapeHtml(pid)}"` : ""}>${sanitizeInlineBookHtml(basis)}</p>\n`;
+          out += `<p class="p role-body page-map-anchor"${dataPid}${pidId}${pm}>${sanitizeInlineBookHtml(basis)}</p>\n`;
+        } else if (pid) {
+          // Ensure every paragraph block has a deterministic PID token, even if it only contains
+          // praktijk/verdieping boxes and/or figures. Without this, index term → page mapping
+          // fails loudly because the worker cannot resolve the block's PID token.
+          out += `<span class="page-map-anchor token-only"${dataPid}${pidId}${pm}></span>\n`;
         }
 
         if (typeof b.praktijk === "string" && b.praktijk.trim()) {
@@ -973,6 +1026,9 @@ figcaption.figure-caption {
       }
 
       if (t === "list") {
+        const bidRaw = typeof b.id === "string" ? b.id : "";
+        const bid = bidRaw ? `pid-${toSafeDomId(bidRaw)}` : "";
+        const pm = bid ? ` class="page-map-anchor" id="${escapeHtml(bid)}" data-page-map="${escapeHtml(`PAGEMAP:PID:${bid}`)}"` : "";
         const items = Array.isArray(b.items) ? b.items : [];
         const ordered = b.ordered === true;
         const clean = items
@@ -980,11 +1036,11 @@ figcaption.figure-caption {
           .filter((x) => !!x);
         if (clean.length) {
           if (ordered) {
-            out += `<ol class="steps">\n`;
+            out += `<ol class="steps"${pm}>\n`;
             for (const it of clean) out += `  <li>${sanitizeInlineBookHtml(it)}</li>\n`;
             out += `</ol>\n`;
           } else {
-            out += `<ul class="bullets">\n`;
+            out += `<ul class="bullets"${pm}>\n`;
             for (const it of clean) out += `  <li>${sanitizeInlineBookHtml(it)}</li>\n`;
             out += `</ul>\n`;
           }
@@ -994,12 +1050,15 @@ figcaption.figure-caption {
       }
 
       if (t === "steps") {
+        const bidRaw = typeof b.id === "string" ? b.id : "";
+        const bid = bidRaw ? `pid-${toSafeDomId(bidRaw)}` : "";
+        const pm = bid ? ` class="page-map-anchor" id="${escapeHtml(bid)}" data-page-map="${escapeHtml(`PAGEMAP:PID:${bid}`)}"` : "";
         const items = Array.isArray(b.items) ? b.items : [];
         const clean = items
           .map((x) => (typeof x === "string" ? x.trim() : ""))
           .filter((x) => !!x);
         if (clean.length) {
-          out += `<ol class="steps">\n`;
+          out += `<ol class="steps"${pm}>\n`;
           for (const it of clean) out += `  <li>${sanitizeInlineBookHtml(it)}</li>\n`;
           out += `</ol>\n`;
         }
@@ -1364,31 +1423,31 @@ figcaption.figure-caption {
 
     const openerRaw =
       (chapterOpeners && typeof chapterOpeners === "object" ? chapterOpeners[idx] : null) ||
+      ch?.openerImageSrc ||
       ch?.openerImage ||
       ch?.opener_image ||
       null;
-    const hasOpener = !!openerRaw;
-    const openerSrc = !placeholdersOnly && openerRaw
+    // REQUIREMENT: every chapter gets a full-page opener. If none is provided, render a placeholder image.
+    const hasOpener = true;
+    const openerLabel = `Hoofdstuk ${idx + 1} opener`;
+    const openerSrc = openerRaw
       ? resolveAssetSrc(openerRaw, { assetsBaseUrl, srcMap: figures?.srcMap || figures?.src_map })
-      : null;
+      : placeholderSvgDataUrl(openerLabel);
 
     let out = `<div class="chapter${hasOpener ? " has-opener" : ""}" id="ch-${idx + 1}">\n`;
-    out += `  <div class="chapter-title-block">\n`;
+
+    const chDomId = `ch-${idx + 1}`;
+    out += `  <div class="chapter-title-block page-map-anchor" data-page-map="${escapeHtml(`PAGEMAP:CH:${chDomId}`)}">\n`;
     out += `    <div class="chapter-number">Hoofdstuk ${idx + 1}</div>\n`;
     out += `    <h1 class="chapter-title" data-bookmark="${escapeHtml(bookmark)}">${escapeHtml(displayTitle)}</h1>\n`;
     out += `  </div>\n\n`;
 
     if (hasOpener) {
-      if (placeholdersOnly) {
-        const label = `Hoofdstuk ${idx + 1} opener`;
-        out += `  <figure class="figure-block full-width chapter-opener figure-placeholder">\n`;
-        out += `    <div class="image-placeholder" role="img" aria-label="${escapeHtml(label)}"><div class="image-placeholder-inner">${escapeHtml(label)}</div></div>\n`;
-        out += `  </figure>\n\n`;
-      } else if (openerSrc) {
-        out += `  <figure class="figure-block full-width chapter-opener">\n`;
-        out += `    <img src="${escapeHtml(openerSrc)}" alt="${escapeHtml(`Hoofdstuk ${idx + 1} opener`)}">\n`;
-        out += `  </figure>\n\n`;
-      }
+      // IMPORTANT: keep opener AFTER title block. The title block is absolutely positioned
+      // for chapters with openers, so it overlays on top of this full-page figure.
+      out += `  <figure class="figure-block full-width chapter-opener">\n`;
+      out += `    <img src="${escapeHtml(openerSrc)}" alt="${escapeHtml(openerLabel)}">\n`;
+      out += `  </figure>\n\n`;
     }
 
     const sections = Array.isArray(ch?.sections) ? ch.sections : [];
@@ -1411,7 +1470,8 @@ figcaption.figure-caption {
         const { number, title } = splitNumberedTitle(rawSt);
         const secId = typeof s.id === "string" && s.id.trim() ? s.id.trim() : `${idx + 1}.${sections.indexOf(s) + 1}`;
         const bookmarkLabel = number ? `${number} ${title}` : title;
-        out += `    <h2 class="section-title" id="sec-${escapeHtml(secId)}" data-section-id="${escapeHtml(secId)}" data-bookmark="${escapeHtml(bookmarkLabel)}">`;
+        const secDomId = `sec-${secId}`;
+        out += `    <h2 class="section-title page-map-anchor" data-page-map="${escapeHtml(`PAGEMAP:SEC:${secDomId}`)}" id="${escapeHtml(secDomId)}" data-section-id="${escapeHtml(secId)}" data-bookmark="${escapeHtml(bookmarkLabel)}">`;
         if (number) out += `<span class="section-number">${escapeHtml(number)}</span> `;
         out += `${escapeHtml(title)}</h2>\n`;
       }

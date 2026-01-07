@@ -153,6 +153,23 @@ function normalizeInlineHtml(raw: unknown): string {
   return s;
 }
 
+function extractStrongTerms(raw: unknown): string[] {
+  const s0 = typeof raw === "string" ? raw : "";
+  if (!s0) return [];
+  const out: string[] = [];
+  const re = /<\s*(strong|b)\b[^>]*>([\s\S]*?)<\s*\/\s*\1\s*>/gi;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(s0))) {
+    const innerRaw = String(m[2] || "");
+    const inner = normalizeWs(innerRaw.replace(/<[^>]+>/g, " "));
+    if (!inner) continue;
+    const t = inner.replace(/^[\s,.;:!?()\[\]«»"']+/, "").replace(/[\s,.;:!?()\[\]«»"']+$/, "").trim();
+    if (!t) continue;
+    out.push(t);
+  }
+  return out;
+}
+
 function safeItems(raw: unknown): string[] {
   if (!Array.isArray(raw)) return [];
   return raw
@@ -499,6 +516,7 @@ function buildSystem(opts: {
     "Output MUST be valid JSON ONLY (no markdown).\n" +
     "Write for MBO students: clear, concrete, and example-driven.\n" +
     "Use short sentences. Define terms the first time you use them.\n" +
+    "Terminology emphasis (REQUIRED): wrap key terms (concepts, body parts, processes) in <strong> on first mention.\n" +
     `Layout profile: ${layoutProfile}\n` +
     `Microheading density: ${microheadingDensity}\n` +
     "- Do NOT include the labels 'In de praktijk:' or 'Verdieping:' in the text; the renderer adds them.\n" +
@@ -802,6 +820,48 @@ function validateDraftSectionDensity(opts: {
   }
 }
 
+function assertTerminologyEmphasis(opts: { draft: DraftSection; layoutProfile: ChapterLayoutProfile }) {
+  // Required so index/glossary generation can be deterministic (terms come from canonical; no guessing).
+  const blocksIn = Array.isArray((opts.draft as any)?.blocks) ? (opts.draft as any).blocks : [];
+
+  const collect = (b: any, acc: string[]) => {
+    if (!b || typeof b !== "object") return;
+    const t = String((b as any).type || "");
+    if (t === "paragraph") {
+      acc.push(...extractStrongTerms((b as any).basisHtml));
+      acc.push(...extractStrongTerms((b as any).praktijkHtml));
+      acc.push(...extractStrongTerms((b as any).verdiepingHtml));
+      return;
+    }
+    if (t === "list" || t === "steps") {
+      const items = Array.isArray((b as any).items) ? (b as any).items : [];
+      for (const it of items) acc.push(...extractStrongTerms(it));
+      return;
+    }
+    if (t === "subparagraph") {
+      const kids = Array.isArray((b as any).blocks) ? (b as any).blocks : [];
+      for (const k of kids) collect(k, acc);
+    }
+  };
+
+  const terms: string[] = [];
+  for (const b of blocksIn) collect(b, terms);
+  const uniq = new Set<string>(terms.map((t) => normalizeWs(t).toLowerCase()).filter(Boolean));
+
+  const min =
+    opts.layoutProfile === "pass2"
+      ? 8
+      : opts.layoutProfile === "sparse"
+        ? 4
+        : 6;
+  if (uniq.size < min) {
+    throw new Error(
+      `BLOCKED: Not enough <strong> terminology emphasis in section draft (got ${uniq.size}, expected >= ${min}). ` +
+        "Wrap key terms in <strong> on first mention.",
+    );
+  }
+}
+
 function assertMicroheadingsAreSingleLevel(opts: {
   draft: DraftSection;
   requiredSubparagraphTitles: string[];
@@ -915,6 +975,19 @@ export class BookGenerateSection implements JobExecutor {
         "medium";
     const writeModelSpec = parseModelSpec(p.writeModel);
     const requireImageSuggestion = (p as any).requireImageSuggestion === true;
+    // Bounded retry (yield-based):
+    // If the first draft fails validation, requeue the job for ONE retry instead of doing a second LLM call
+    // in the same Edge invocation (which can exceed runtime limits and get marked as "stalled").
+    const draftAttemptRaw = (p as any).__draftAttempt;
+    const draftAttempt =
+      typeof draftAttemptRaw === "number" && Number.isFinite(draftAttemptRaw)
+        ? Math.max(0, Math.floor(draftAttemptRaw))
+        : 0;
+    const prevDraftFailureReasonRaw = (p as any).__draftFailureReason;
+    const prevDraftFailureReason =
+      typeof prevDraftFailureReasonRaw === "string" && prevDraftFailureReasonRaw.trim()
+        ? prevDraftFailureReasonRaw.trim().slice(0, 800)
+        : null;
 
     const sectionMaxTokens = (() => {
       const raw = p.sectionMaxTokens;
@@ -959,7 +1032,14 @@ export class BookGenerateSection implements JobExecutor {
     if (!sectionId) throw new Error("BLOCKED: Skeleton section is missing id");
 
     const expectedSectionTitle = typeof sectionRaw.title === "string" ? normalizeWs(sectionRaw.title) : "";
-    const requiredSubparagraphTitles = collectRequiredNumberedSubparagraphTitles(sectionRaw);
+    const requiredSubparagraphTitlesAll = collectRequiredNumberedSubparagraphTitles(sectionRaw);
+    // Guardrail: some PASS1 sources produce sections with huge lists (e.g. 19 numbered titles).
+    // Enforcing an exact match becomes brittle and frequently fails JSON validation.
+    // For oversized outlines, we switch to "topic coverage" mode (no locked titles).
+    const MAX_LOCKED_OUTLINE_SUBS = 10;
+    const lockedOutline = requiredSubparagraphTitlesAll.length > 0 && requiredSubparagraphTitlesAll.length <= MAX_LOCKED_OUTLINE_SUBS;
+    const requiredSubparagraphTitles = lockedOutline ? requiredSubparagraphTitlesAll : [];
+    const outlineTopics = !lockedOutline ? requiredSubparagraphTitlesAll : [];
 
     // 2) Load book title (for better prompts)
     const { data: bookRow, error: bookErr } = await adminSupabase.from("books").select("title").eq("id", bookId).single();
@@ -973,6 +1053,36 @@ export class BookGenerateSection implements JobExecutor {
 
     const system = buildSystem({ language, level, imagePromptLanguage, layoutProfile, microheadingDensity });
     const sectionNumber = sectionId;
+    const outlineTopicHints =
+      outlineTopics.length
+        ? [
+            "OUTLINE TOPICS (cover these concepts; do NOT treat these as required headings):",
+            ...outlineTopics.slice(0, 40).map((t) => `- ${stripNumberPrefix(normalizeWs(t)) || normalizeWs(t)}`),
+          ].join("\n")
+        : null;
+    const effectiveUserInstructions =
+      draftAttempt > 0
+        ? [
+            userInstructions,
+            prevDraftFailureReason ? `Previous validation failure:\n${prevDraftFailureReason}` : null,
+            outlineTopicHints,
+            "CRITICAL:\n" +
+              "- Follow the OUTLINE exactly (titles + required numbered subparagraphs).\n" +
+              "- Do NOT leave basisHtml empty.\n" +
+              "- For every microheading, write 2-4 short sentences.\n" +
+              "- Microheading titles MUST NOT contain punctuation (: ; ? !). Do NOT use 'X: Y' headings. Example: use 'G1 fase groei voorbereiding' (no colon).\n" +
+              "- Do NOT nest microheadings inside microheadings (no subparagraph blocks inside microheading blocks).\n" +
+              "- If layout targets are provided, you MUST include the corresponding praktijkHtml/verdiepingHtml inside EACH target title.\n" +
+              "- If PASS2: make it long enough (many microheadings + many basis paragraphs).\n" +
+              (requireImageSuggestion
+                ? "- Include at least ONE image suggestion using images: [{ suggestedPrompt: \"...\", alt?: \"...\" }].\n"
+                : "") +
+              "- Return valid JSON only (no markdown).",
+          ]
+            .filter((x) => typeof x === "string" && x.trim())
+            .map((x) => String(x).trim())
+            .join("\n\n")
+        : [userInstructions, outlineTopicHints].filter((x) => typeof x === "string" && x.trim()).map((x) => String(x).trim()).join("\n\n");
     const prompt = buildPrompt({
       topic,
       bookTitle,
@@ -980,7 +1090,7 @@ export class BookGenerateSection implements JobExecutor {
       sectionNumber,
       sectionTitle: stripNumberPrefix(expectedSectionTitle) || expectedSectionTitle || `Section ${sectionNumber}`,
       requiredSubparagraphTitles,
-      userInstructions,
+      userInstructions: effectiveUserInstructions,
       language,
       imagePromptLanguage,
       layoutProfile,
@@ -995,7 +1105,7 @@ export class BookGenerateSection implements JobExecutor {
       model: writeModelSpec.model,
       system,
       prompt,
-      maxTokens: sectionMaxTokens,
+      maxTokens: draftAttempt > 0 ? Math.min(12_000, sectionMaxTokens + 2_000) : sectionMaxTokens,
       tool: TOOL_DRAFT_BOOK_SECTION,
     })) as DraftSection;
 
@@ -1039,8 +1149,15 @@ export class BookGenerateSection implements JobExecutor {
       }
 
       validateDraftSectionDensity({ draft: d, requiredSubparagraphTitles, layoutProfile, microheadingDensity });
+      assertTerminologyEmphasis({ draft: d, layoutProfile });
       assertMicroheadingsAreSingleLevel({ draft: d, requiredSubparagraphTitles, layoutProfile, microheadingDensity });
-      assertBoxTargetsSatisfied({ draft: d, requiredSubparagraphTitles, praktijkTargets, verdiepingTargets });
+      // Only enforce box placement targets when the outline is locked (small enough to match reliably).
+      assertBoxTargetsSatisfied({
+        draft: d,
+        requiredSubparagraphTitles,
+        praktijkTargets: lockedOutline ? praktijkTargets : null,
+        verdiepingTargets: lockedOutline ? verdiepingTargets : null,
+      });
 
       if (requireImageSuggestion) {
         const blocksIn = Array.isArray((d as any)?.blocks) ? (d as any).blocks : [];
@@ -1055,7 +1172,11 @@ export class BookGenerateSection implements JobExecutor {
       validateAll(draft);
     } catch (e) {
       const reason = e instanceof Error ? e.message : String(e);
-      await emitAgentJobEvent(jobId, "generating", 25, "Draft did not meet requirements; retrying once", {
+      if (draftAttempt >= 1) {
+        throw new Error(`BLOCKED: Draft did not meet requirements after retry: ${reason.slice(0, 800)}`);
+      }
+
+      await emitAgentJobEvent(jobId, "generating", 25, "Draft did not meet requirements; requeueing for retry", {
         chapterIndex,
         sectionIndex,
         layoutProfile,
@@ -1063,52 +1184,14 @@ export class BookGenerateSection implements JobExecutor {
         reason: reason.slice(0, 800),
       }).catch(() => {});
 
-      const retryNotes = [
-        userInstructions,
-        "CRITICAL:\n" +
-          "- Follow the OUTLINE exactly (titles + required numbered subparagraphs).\n" +
-          "- Do NOT leave basisHtml empty.\n" +
-          "- For every microheading, write 2-4 short sentences.\n" +
-          "- Microheading titles MUST NOT contain punctuation (: ; ? !). Do NOT use 'X: Y' headings. Example: use 'G1 fase groei voorbereiding' (no colon).\n" +
-          "- Do NOT nest microheadings inside microheadings (no subparagraph blocks inside microheading blocks).\n" +
-          "- If layout targets are provided, you MUST include the corresponding praktijkHtml/verdiepingHtml inside EACH target title.\n" +
-          "- If PASS2: make it long enough (many microheadings + many basis paragraphs).\n" +
-          (requireImageSuggestion
-            ? "- Include at least ONE image suggestion using images: [{ suggestedPrompt: \"...\", alt?: \"...\" }].\n"
-            : "") +
-          "- Return valid JSON only (no markdown).",
-      ]
-        .filter((x) => typeof x === "string" && x.trim())
-        .map((x) => String(x).trim())
-        .join("\n\n");
-
-      const retryPrompt = buildPrompt({
-        topic,
-        bookTitle,
-        chapterNumber: chapterIndex + 1,
-        sectionNumber,
-        sectionTitle: stripNumberPrefix(expectedSectionTitle) || expectedSectionTitle || `Section ${sectionNumber}`,
-        requiredSubparagraphTitles,
-        userInstructions: retryNotes,
-        language,
-        imagePromptLanguage,
-        layoutProfile,
-        microheadingDensity,
-        requireImageSuggestion,
-        praktijkTargets,
-        verdiepingTargets,
-      });
-
-      draft = (await llmGenerateJson({
-        provider: writeModelSpec.provider,
-        model: writeModelSpec.model,
-        system,
-        prompt: retryPrompt,
-        maxTokens: Math.min(12_000, sectionMaxTokens + 2_000),
-        tool: TOOL_DRAFT_BOOK_SECTION,
-      })) as DraftSection;
-
-      validateAll(draft);
+      return {
+        yield: true,
+        message: "Draft did not meet requirements; retrying via requeue",
+        payloadPatch: {
+          __draftAttempt: 1,
+          __draftFailureReason: reason.slice(0, 800),
+        },
+      };
     }
 
     // 4) Apply to skeleton: replace this section's content

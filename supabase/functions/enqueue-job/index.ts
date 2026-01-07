@@ -162,12 +162,27 @@ serve(async (req: Request): Promise<Response> => {
       const idempotencyKey = typeof idempotencyKeyRaw === "string" ? idempotencyKeyRaw.trim() : "";
       const stableJobId = idempotencyKey ? await deterministicJobIdFromKey(idempotencyKey) : null;
 
+      // Factory job retry defaults:
+      // - Most jobs: keep default DB max_retries
+      // - BookGen: increase retries because provider/Edge hiccups can trigger "stalled" reconciler failures
+      //   and these should recover automatically without human intervention.
+      const jobType = String(body.jobType || "");
+      const maxRetries =
+        jobType === "book_generate_chapter" || jobType === "book_generate_section"
+          ? 10
+          : jobType.startsWith("book_generate_")
+            ? 6
+            : null;
+
       const insertRow: Record<string, unknown> = {
         job_type: body.jobType,
         payload: payload,
         organization_id: organizationId,
         status: "queued",
       };
+      if (typeof maxRetries === "number" && Number.isFinite(maxRetries) && maxRetries > 0) {
+        insertRow.max_retries = Math.floor(maxRetries);
+      }
       if (stableJobId) {
         insertRow.id = stableJobId;
       }

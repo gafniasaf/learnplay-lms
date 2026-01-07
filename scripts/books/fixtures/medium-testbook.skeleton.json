@@ -1,0 +1,211 @@
+{
+  "meta": {
+    "bookId": "__BOOK_ID__",
+    "bookVersionId": "__BOOK_VERSION_ID__",
+    "title": "Medium testbook — Anatomie & Fysiologie Basis",
+    "level": "n4",
+    "language": "nl",
+    "schemaVersion": "skeleton_v1"
+  },
+  "styleProfile": null,
+  "chapters": [
+    {
+      "id": "ch-1",
+      "number": 1,
+      "title": "1. De cel",
+      "openerImageSrc": "placeholder://medium/ch1/opener",
+      "sections": [
+        {
+          "id": "1.1",
+          "title": "1.1 Celstructuur",
+          "blocks": [
+            {
+              "type": "paragraph",
+              "id": "p-1-1-1",
+              "basisHtml": "Een <<BOLD_START>>cel<<BOLD_END>> is de kleinste levende eenheid. Elke cel bevat een <<BOLD_START>>celkern<<BOLD_END>> (of <<BOLD_START>>nucleus<<BOLD_END>>), <<BOLD_START>>cytoplasma<<BOLD_END>> en een <<BOLD_START>>celmembraan<<BOLD_END>>. De celkern bevat het <<BOLD_START>>DNA<<BOLD_END>> met alle erfelijke informatie.",
+              "verdiepingHtml": "<span class=\"box-lead\">Extra</span> Het <<BOLD_START>>endoplasmatisch reticulum<<BOLD_END>> en de <<BOLD_START>>ribosomen<<BOLD_END>> zorgen voor eiwitproductie. <<BOLD_START>>Mitochondriën<<BOLD_END>> maken <<BOLD_START>>ATP<<BOLD_END>> (energie).",
+              "images": [{"src": "placeholder://medium/ch1/fig1", "alt": "Celstructuur", "caption": "Schematische weergave van een cel.", "figureNumber": "1.1"}]
+            },
+            {
+              "type": "paragraph",
+              "id": "p-1-1-2",
+              "basisHtml": "Het <<BOLD_START>>Golgi-apparaat<<BOLD_END>> verpakt stoffen voor transport. <<BOLD_START>>Lysosomen<<BOLD_END>> breken afvalstoffen af. Het <<BOLD_START>>centriool<<BOLD_END>> speelt een rol bij celdeling.",
+              "praktijkHtml": "<span class=\"box-lead\">Praktijk</span> Bij een <<BOLD_START>>biopsie<<BOLD_END>> bekijk je cellen onder de microscoop om <<BOLD_START>>afwijkingen<<BOLD_END>> te ontdekken."
+            }
+          ]
+        },
+        {
+          "id": "1.2",
+          "title": "1.2 Celdeling",
+          "blocks": [
+            {
+              "type": "paragraph",
+              "id": "p-1-2-1",
+              "basisHtml": "<<BOLD_START>>Mitose<<BOLD_END>> is celdeling waarbij twee identieke dochtercellen ontstaan. Tijdens <<BOLD_START>>meiose<<BOLD_END>> ontstaan geslachtscellen met de helft van de <<BOLD_START>>chromosomen<<BOLD_END>>.",
+              "verdiepingHtml": "<span class=\"box-lead\">Verdieping</span> De celcyclus bestaat uit <<BOLD_START>>interfase<<BOLD_END>> (groei en DNA-kopie) en <<BOLD_START>>mitosefase<<BOLD_END>> (deling). <<BOLD_START>>Apoptose<<BOLD_END>> is geprogrammeerde celdood."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ch-2",
+      "number": 2,
+      "title": "2. Weefsels",
+      "openerImageSrc": "placeholder://medium/ch2/opener",
+      "sections": [
+        {
+          "id": "2.1",
+          "title": "2.1 Soorten weefsels",
+          "blocks": [
+            {
+              "type": "paragraph",
+              "id": "p-2-1-1",
+              "basisHtml": "Er zijn vier hoofdtypen <<BOLD_START>>weefsel<<BOLD_END>>: <<BOLD_START>>epitheelweefsel<<BOLD_END>>, <<BOLD_START>>bindweefsel<<BOLD_END>>, <<BOLD_START>>spierweefsel<<BOLD_END>> en <<BOLD_START>>zenuwweefsel<<BOLD_END>>. <<BOLD_START>>Epitheelweefsel<<BOLD_END>> bedekt oppervlakken en bekleedt holtes.",
+              "praktijkHtml": "<span class=\"box-lead\">Praktijk</span> <<BOLD_START>>Wondgenezing<<BOLD_END>> begint met het sluiten van beschadigd epitheelweefsel door nieuwe celgroei."
+            },
+            {
+              "type": "paragraph",
+              "id": "p-2-1-2",
+              "basisHtml": "<<BOLD_START>>Bindweefsel<<BOLD_END>> verbindt en ondersteunt. Voorbeelden zijn <<BOLD_START>>kraakbeen<<BOLD_END>>, <<BOLD_START>>bot<<BOLD_END>>, <<BOLD_START>>bloed<<BOLD_END>> en <<BOLD_START>>vetweefsel<<BOLD_END>>. <<BOLD_START>>Collageen<<BOLD_END>> geeft stevigheid.",
+              "verdiepingHtml": "<span class=\"box-lead\">Extra</span> <<BOLD_START>>Elastine<<BOLD_END>> maakt weefsel rekbaar. <<BOLD_START>>Fibroblasten<<BOLD_END>> produceren deze vezels."
+            }
+          ]
+        },
+        {
+          "id": "2.2",
+          "title": "2.2 Spier- en zenuwweefsel",
+          "blocks": [
+            {
+              "type": "paragraph",
+              "id": "p-2-2-1",
+              "basisHtml": "<<BOLD_START>>Spierweefsel<<BOLD_END>> kan samentrekken. We onderscheiden <<BOLD_START>>dwarsgestreept spierweefsel<<BOLD_END>> (skeletspieren), <<BOLD_START>>glad spierweefsel<<BOLD_END>> (organen) en <<BOLD_START>>hartspierweefsel<<BOLD_END>>.",
+              "praktijkHtml": "<span class=\"box-lead\">Praktijk</span> Bij <<BOLD_START>>spierkramp<<BOLD_END>> trekt de spier onwillekeurig samen door <<BOLD_START>>elektrolytstoornis<<BOLD_END>>."
+            },
+            {
+              "type": "paragraph",
+              "id": "p-2-2-2",
+              "basisHtml": "<<BOLD_START>>Zenuwweefsel<<BOLD_END>> geleidt signalen. <<BOLD_START>>Neuronen<<BOLD_END>> zijn de functionele cellen; <<BOLD_START>>gliacellen<<BOLD_END>> ondersteunen. Een <<BOLD_START>>axon<<BOLD_END>> stuurt signalen weg; <<BOLD_START>>dendrieten<<BOLD_END>> ontvangen ze.",
+              "verdiepingHtml": "<span class=\"box-lead\">Verdieping</span> <<BOLD_START>>Myeline<<BOLD_END>> isoleert axonen en versnelt signaaloverdracht. <<BOLD_START>>Synapsen<<BOLD_END>> zijn contactpunten tussen neuronen."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ch-3",
+      "number": 3,
+      "title": "3. Het skelet",
+      "openerImageSrc": "placeholder://medium/ch3/opener",
+      "sections": [
+        {
+          "id": "3.1",
+          "title": "3.1 Botweefsel",
+          "blocks": [
+            {
+              "type": "paragraph",
+              "id": "p-3-1-1",
+              "basisHtml": "<<BOLD_START>>Bot<<BOLD_END>> is levend weefsel. <<BOLD_START>>Osteocyten<<BOLD_END>> zijn volwassen botcellen. <<BOLD_START>>Osteoblasten<<BOLD_END>> bouwen bot op; <<BOLD_START>>osteoclasten<<BOLD_END>> breken het af.",
+              "verdiepingHtml": "<span class=\"box-lead\">Extra</span> <<BOLD_START>>Calcium<<BOLD_END>> en <<BOLD_START>>fosfor<<BOLD_END>> geven bot hardheid. <<BOLD_START>>Vitamine D<<BOLD_END>> is nodig voor calciumopname."
+            },
+            {
+              "type": "paragraph",
+              "id": "p-3-1-2",
+              "basisHtml": "<<BOLD_START>>Compacte bot<<BOLD_END>> vormt de buitenlaag; <<BOLD_START>>spongieus bot<<BOLD_END>> zit binnenin met <<BOLD_START>>beenmerg<<BOLD_END>>. In het <<BOLD_START>>rode beenmerg<<BOLD_END>> worden bloedcellen gemaakt.",
+              "praktijkHtml": "<span class=\"box-lead\">Praktijk</span> Bij <<BOLD_START>>osteoporose<<BOLD_END>> is de botdichtheid verminderd, wat het risico op <<BOLD_START>>fracturen<<BOLD_END>> verhoogt."
+            }
+          ]
+        },
+        {
+          "id": "3.2",
+          "title": "3.2 Gewrichten",
+          "blocks": [
+            {
+              "type": "paragraph",
+              "id": "p-3-2-1",
+              "basisHtml": "Een <<BOLD_START>>gewricht<<BOLD_END>> is een verbinding tussen botten. <<BOLD_START>>Synoviaal gewricht<<BOLD_END>> is beweeglijk en bevat <<BOLD_START>>synoviaal vocht<<BOLD_END>> als smeermiddel.",
+              "verdiepingHtml": "<span class=\"box-lead\">Verdieping</span> <<BOLD_START>>Ligamenten<<BOLD_END>> verbinden bot met bot; <<BOLD_START>>pezen<<BOLD_END>> verbinden spier met bot."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ch-4",
+      "number": 4,
+      "title": "4. Bloed en circulatie",
+      "openerImageSrc": "placeholder://medium/ch4/opener",
+      "sections": [
+        {
+          "id": "4.1",
+          "title": "4.1 Bloedsamenstelling",
+          "blocks": [
+            {
+              "type": "paragraph",
+              "id": "p-4-1-1",
+              "basisHtml": "<<BOLD_START>>Bloed<<BOLD_END>> bestaat uit <<BOLD_START>>bloedplasma<<BOLD_END>> en bloedcellen. <<BOLD_START>>Rode bloedcellen<<BOLD_END>> (<<BOLD_START>>erytrocyten<<BOLD_END>>) vervoeren <<BOLD_START>>zuurstof<<BOLD_END>> via <<BOLD_START>>hemoglobine<<BOLD_END>>.",
+              "verdiepingHtml": "<span class=\"box-lead\">Extra</span> <<BOLD_START>>Witte bloedcellen<<BOLD_END>> (<<BOLD_START>>leukocyten<<BOLD_END>>) beschermen tegen infecties. <<BOLD_START>>Bloedplaatjes<<BOLD_END>> (<<BOLD_START>>trombocyten<<BOLD_END>>) stoppen bloedingen."
+            },
+            {
+              "type": "paragraph",
+              "id": "p-4-1-2",
+              "basisHtml": "<<BOLD_START>>Bloedplasma<<BOLD_END>> bevat water, eiwitten (<<BOLD_START>>albumine<<BOLD_END>>, <<BOLD_START>>globulines<<BOLD_END>>, <<BOLD_START>>fibrinogeen<<BOLD_END>>), voedingsstoffen en afvalstoffen.",
+              "praktijkHtml": "<span class=\"box-lead\">Praktijk</span> Bij <<BOLD_START>>bloedonderzoek<<BOLD_END>> meet je waarden als <<BOLD_START>>Hb<<BOLD_END>> (hemoglobine) en <<BOLD_START>>leukocytenaantal<<BOLD_END>>."
+            }
+          ]
+        },
+        {
+          "id": "4.2",
+          "title": "4.2 Het hart",
+          "blocks": [
+            {
+              "type": "paragraph",
+              "id": "p-4-2-1",
+              "basisHtml": "Het <<BOLD_START>>hart<<BOLD_END>> is een holle spier met vier kamers: twee <<BOLD_START>>boezems<<BOLD_END>> (<<BOLD_START>>atria<<BOLD_END>>) en twee <<BOLD_START>>kamers<<BOLD_END>> (<<BOLD_START>>ventrikels<<BOLD_END>>). <<BOLD_START>>Hartkleppen<<BOLD_END>> voorkomen terugstroom.",
+              "verdiepingHtml": "<span class=\"box-lead\">Verdieping</span> De <<BOLD_START>>sinusknoop<<BOLD_END>> geeft het ritme aan. Het signaal gaat via de <<BOLD_START>>AV-knoop<<BOLD_END>> naar de <<BOLD_START>>bundel van His<<BOLD_END>>."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ch-5",
+      "number": 5,
+      "title": "5. Ademhaling",
+      "openerImageSrc": "placeholder://medium/ch5/opener",
+      "sections": [
+        {
+          "id": "5.1",
+          "title": "5.1 Luchtwegen",
+          "blocks": [
+            {
+              "type": "paragraph",
+              "id": "p-5-1-1",
+              "basisHtml": "De <<BOLD_START>>luchtwegen<<BOLD_END>> bestaan uit <<BOLD_START>>neus<<BOLD_END>>, <<BOLD_START>>keelholte<<BOLD_END>> (<<BOLD_START>>farynx<<BOLD_END>>), <<BOLD_START>>strottenhoofd<<BOLD_END>> (<<BOLD_START>>larynx<<BOLD_END>>), <<BOLD_START>>luchtpijp<<BOLD_END>> (<<BOLD_START>>trachea<<BOLD_END>>) en <<BOLD_START>>bronchiën<<BOLD_END>>.",
+              "praktijkHtml": "<span class=\"box-lead\">Praktijk</span> Bij <<BOLD_START>>astma<<BOLD_END>> vernauwen de bronchiën door <<BOLD_START>>ontsteking<<BOLD_END>> en <<BOLD_START>>slijmvorming<<BOLD_END>>."
+            },
+            {
+              "type": "paragraph",
+              "id": "p-5-1-2",
+              "basisHtml": "<<BOLD_START>>Trilhaarepitheel<<BOLD_END>> en <<BOLD_START>>slijm<<BOLD_END>> vangen stofdeeltjes op en voeren ze af richting de keel.",
+              "verdiepingHtml": "<span class=\"box-lead\">Extra</span> <<BOLD_START>>Roken<<BOLD_END>> beschadigt trilhaarcellen, waardoor slijm zich ophoopt (<<BOLD_START>>COPD<<BOLD_END>>)."
+            }
+          ]
+        },
+        {
+          "id": "5.2",
+          "title": "5.2 Gaswisseling",
+          "blocks": [
+            {
+              "type": "paragraph",
+              "id": "p-5-2-1",
+              "basisHtml": "<<BOLD_START>>Gaswisseling<<BOLD_END>> vindt plaats in de <<BOLD_START>>longblaasjes<<BOLD_END>> (<<BOLD_START>>alveoli<<BOLD_END>>). <<BOLD_START>>Zuurstof<<BOLD_END>> diffundeert naar het bloed; <<BOLD_START>>kooldioxide<<BOLD_END>> gaat de andere kant op.",
+              "verdiepingHtml": "<span class=\"box-lead\">Verdieping</span> <<BOLD_START>>Surfactant<<BOLD_END>> verlaagt de oppervlaktespanning zodat longblaasjes niet inklappen."
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+

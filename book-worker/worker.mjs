@@ -20,7 +20,8 @@ import { assembleFinalBookHtml } from "./lib/matterAssemble.js";
 // Optional networking tweak:
 // Some Windows / ISP / corporate networks have broken TLS over IPv6 for specific hosts.
 // Allow forcing IPv4-first DNS resolution to avoid ECONNRESET during HTTPS handshakes.
-const DNS_RESULT_ORDER = String(process.env.BOOK_WORKER_DNS_RESULT_ORDER || "").trim().toLowerCase();
+const dnsResultOrderEnv = process.env.BOOK_WORKER_DNS_RESULT_ORDER;
+const DNS_RESULT_ORDER = typeof dnsResultOrderEnv === "string" ? dnsResultOrderEnv.trim().toLowerCase() : "";
 if (DNS_RESULT_ORDER) {
   if (!["ipv4first", "verbatim"].includes(DNS_RESULT_ORDER)) {
     console.error("❌ BOOK_WORKER_DNS_RESULT_ORDER must be ipv4first or verbatim");
@@ -231,9 +232,70 @@ function normalizeWsForPageMap(s) {
     .trim();
 }
 
+function canonicalizeForPageMapSearch(s) {
+  // Lowercase + strip all non-alphanumerics so words split by spaces/hyphens still match
+  return normalizeWsForPageMap(s)
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "");
+}
+
+function stripHtmlToTextForPageMap(s) {
+  return normalizeWsForPageMap(String(s || "").replace(/<[^>]*>/g, " "));
+}
+
+function toSafeDomId(raw) {
+  const s = String(raw || "").trim();
+  if (!s) return "";
+  // Match renderer: letters/numbers/_/-
+  return s
+    .toLowerCase()
+    .replace(/[^a-z0-9_-]+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+function findTermLocationInCanonical({ canonical, term }) {
+  const needle = canonicalizeForPageMapSearch(term);
+  if (!needle) return null;
+
+  const chapters = Array.isArray(canonical?.chapters) ? canonical.chapters : [];
+  for (let ci = 0; ci < chapters.length; ci++) {
+    const ch = chapters[ci];
+    const sections = Array.isArray(ch?.sections) ? ch.sections : [];
+    for (const s of sections) {
+      const sid = typeof s?.id === "string" ? s.id : "";
+      const stack = [];
+      const start = s?.content || s?.blocks || s?.items;
+      if (Array.isArray(start)) stack.push(...start);
+      while (stack.length) {
+        const b = stack.pop();
+        if (!b || typeof b !== "object") continue;
+        const texts = [];
+        if (typeof b?.basisHtml === "string") texts.push(b.basisHtml);
+        if (typeof b?.praktijkHtml === "string") texts.push(b.praktijkHtml);
+        if (typeof b?.verdiepingHtml === "string") texts.push(b.verdiepingHtml);
+        if (typeof b?.text === "string") texts.push(b.text);
+        if (typeof b?.title === "string") texts.push(b.title);
+        if (typeof b?.content === "string") texts.push(b.content);
+        for (const t of texts) {
+          const hay = canonicalizeForPageMapSearch(stripHtmlToTextForPageMap(t));
+          if (hay && hay.includes(needle)) {
+            return { chapterIndex: ci, sectionId: sid || "" };
+          }
+        }
+        const kids = b?.content || b?.blocks || b?.items;
+        if (Array.isArray(kids)) stack.push(...kids);
+      }
+    }
+  }
+  return null;
+}
+
 async function extractPdfTextPages(pdfPath) {
   const buf = await readFile(pdfPath);
-  const loadingTask = pdfjs.getDocument({ data: buf });
+  // pdfjs-dist v4+ requires Uint8Array, not Buffer
+  const data = new Uint8Array(buf.buffer, buf.byteOffset, buf.byteLength);
+  const loadingTask = pdfjs.getDocument({ data });
   const pdf = await loadingTask.promise;
   const pages = [];
   for (let i = 1; i <= pdf.numPages; i++) {
@@ -246,13 +308,47 @@ async function extractPdfTextPages(pdfPath) {
 }
 
 function findFirstPageContaining(pages, needle) {
-  const n = normalizeWsForPageMap(needle).toLowerCase();
-  if (!n) return null;
+  const n0 = normalizeWsForPageMap(needle).toLowerCase();
+  const n1 = canonicalizeForPageMapSearch(needle);
+  if (!n0 && !n1) return null;
   for (let i = 0; i < pages.length; i++) {
-    const hay = String(pages[i] || "").toLowerCase();
-    if (hay.includes(n)) return i + 1; // 1-based page numbers
+    const hay0 = String(pages[i] || "").toLowerCase();
+    if (n0 && hay0.includes(n0)) return i + 1; // 1-based page numbers
+    if (n1) {
+      const hay1 = canonicalizeForPageMapSearch(pages[i] || "");
+      if (hay1.includes(n1)) return i + 1;
+    }
   }
   return null;
+}
+
+async function extractPdfPageMapTokens(pdfPath) {
+  const buf = await readFile(pdfPath);
+  // pdfjs-dist v4+ requires Uint8Array, not Buffer
+  const data = new Uint8Array(buf.buffer, buf.byteOffset, buf.byteLength);
+  const loadingTask = pdfjs.getDocument({ data });
+  const pdf = await loadingTask.promise;
+
+  /** @type {Record<string, Record<string, number>>} */
+  const tokens = { CH: {}, SEC: {}, PID: {} };
+  const re = /PAGEMAP:(CH|SEC|PID):([A-Za-z0-9._-]+)/g;
+
+  for (let i = 1; i <= pdf.numPages; i++) {
+    const page = await pdf.getPage(i);
+    const text = await page.getTextContent();
+    const str = (text.items || []).map((it) => (it && typeof it.str === "string" ? it.str : "")).join(" ");
+    const hay = normalizeWsForPageMap(str);
+    let m;
+    while ((m = re.exec(hay))) {
+      const kind = String(m[1] || "");
+      const id = String(m[2] || "");
+      if (!kind || !id) continue;
+      if (!tokens[kind]) tokens[kind] = {};
+      if (!tokens[kind][id] || i < tokens[kind][id]) tokens[kind][id] = i;
+    }
+  }
+
+  return { numPages: pdf.numPages, tokens };
 }
 
 function extractTocAnchorsFromCanonical(canonical) {
@@ -280,6 +376,55 @@ function extractIndexTermsFromGeneratedIndex(indexJson) {
     .slice(0, 2000);
 }
 
+function collectIndexableTextBlocksFromCanonical(canonical) {
+  /** @type {Array<{ anchorId: string, text: string }>} */
+  const out = [];
+
+  const push = (blockIdRaw, textRaw) => {
+    const bid = typeof blockIdRaw === "string" ? blockIdRaw.trim() : "";
+    const safe = bid ? `pid-${toSafeDomId(bid)}` : "";
+    if (!safe) return;
+    const text = stripHtmlToTextForPageMap(textRaw);
+    if (!text) return;
+    out.push({ anchorId: safe, text });
+  };
+
+  const walkBlocks = (blocksRaw) => {
+    const blocks = Array.isArray(blocksRaw) ? blocksRaw : [];
+    for (const b of blocks) {
+      if (!b || typeof b !== "object") continue;
+      const t = typeof b.type === "string" ? String(b.type) : "";
+      if (t === "paragraph") {
+        const basis = typeof b.basis === "string" ? b.basis : "";
+        const praktijk = typeof b.praktijk === "string" ? b.praktijk : "";
+        const verdieping = typeof b.verdieping === "string" ? b.verdieping : "";
+        push(b.id, [basis, praktijk, verdieping].filter(Boolean).join(" "));
+        continue;
+      }
+      if (t === "list" || t === "steps") {
+        const items = Array.isArray(b.items) ? b.items : [];
+        const text = items.map((x) => (typeof x === "string" ? x : "")).join(" ");
+        push(b.id, text);
+        continue;
+      }
+      if (t === "subparagraph") {
+        walkBlocks(b?.content || b?.blocks || b?.items);
+        continue;
+      }
+    }
+  };
+
+  const chapters = Array.isArray(canonical?.chapters) ? canonical.chapters : [];
+  for (const ch of chapters) {
+    const sections = Array.isArray(ch?.sections) ? ch.sections : [];
+    for (const s of sections) {
+      walkBlocks(s?.content || s?.blocks || s?.items);
+    }
+    walkBlocks(ch?.content || ch?.blocks || ch?.items);
+  }
+  return out;
+}
+
 function splitNumberedTitle(raw) {
   const t = normalizeWsForPageMap(String(raw || ""));
   const m = t.match(/^(\d+(?:\.\d+)*)\s+(.+)$/);
@@ -293,10 +438,11 @@ function stripChapterNumberPrefix(raw) {
   return m ? m[1] : t;
 }
 
-function buildTocModelFromPageMap({ canonical, pageMap }) {
+function buildTocModelFromPageMap({ canonical, pageMap, frontMatterPageOffset = 0 }) {
   const tocItems = Array.isArray(pageMap?.toc) ? pageMap.toc : [];
   const chapterRows = [];
   const sectionRows = [];
+  const offset = typeof frontMatterPageOffset === "number" && frontMatterPageOffset > 0 ? frontMatterPageOffset : 0;
 
   const chapters = Array.isArray(canonical?.chapters) ? canonical.chapters : [];
   for (let i = 0; i < chapters.length; i++) {
@@ -304,7 +450,8 @@ function buildTocModelFromPageMap({ canonical, pageMap }) {
     const rawTitle = typeof ch?.title === "string" ? ch.title : `Hoofdstuk ${i + 1}`;
     const label = stripChapterNumberPrefix(rawTitle);
     const hit = tocItems.find((x) => x?.type === "chapter" && Number(x?.chapterIndex) === i);
-    const pageNum = hit?.page ? String(hit.page) : "";
+    const rawPage = hit?.page ? Number(hit.page) : 0;
+    const pageNum = rawPage > 0 ? String(rawPage + offset) : "";
     chapterRows.push({ level: "1", num: String(i + 1), label, page: pageNum });
 
     const sections = Array.isArray(ch?.sections) ? ch.sections : [];
@@ -315,7 +462,8 @@ function buildTocModelFromPageMap({ canonical, pageMap }) {
       const secLabel = title || st;
       const secId = typeof s?.id === "string" && s.id.trim() ? s.id.trim() : "";
       const hitSec = tocItems.find((x) => x?.type === "section" && Number(x?.chapterIndex) === i && (secId ? String(x?.sectionId || "") === secId : true));
-      const pageNum = hitSec?.page ? String(hitSec.page) : "";
+      const rawPage = hitSec?.page ? Number(hitSec.page) : 0;
+      const pageNum = rawPage > 0 ? String(rawPage + offset) : "";
       sectionRows.push({ level: "2", num: number || "", label: secLabel, page: pageNum });
     }
   }
@@ -337,17 +485,22 @@ function buildTocModelFromPageMap({ canonical, pageMap }) {
   return { left, right };
 }
 
-function buildIndexModelFromPageMap({ matterPack, indexGenerated, pageMap }) {
+function buildIndexModelFromPageMap({ matterPack, indexGenerated, pageMap, frontMatterPageOffset = 0 }) {
   const entries = Array.isArray(indexGenerated?.entries) ? indexGenerated.entries : [];
   const termPages = pageMap?.index?.termPages && typeof pageMap.index.termPages === "object" ? pageMap.index.termPages : {};
+  const offset = typeof frontMatterPageOffset === "number" && frontMatterPageOffset > 0 ? frontMatterPageOffset : 0;
 
   // Flatten into terms with page lists (single page refs for now; can be extended to ranges later)
   const rows = [];
   for (const e of entries) {
     const term = typeof e?.term === "string" ? normalizeWsForPageMap(e.term) : "";
     if (!term) continue;
-    const p = termPages?.[term] || null;
-    rows.push({ term, page: p ? String(p) : "" });
+    const raw = termPages?.[term] || null;
+    const pagesArr = Array.isArray(raw)
+      ? raw.filter((n) => typeof n === "number" && Number.isFinite(n) && n > 0).map((n) => n + offset)
+      : (raw && Number(raw) > 0 ? [Number(raw) + offset] : []);
+    const uniq = Array.from(new Set(pagesArr)).sort((a, b) => a - b);
+    rows.push({ term, page: uniq.length ? uniq.join(", ") : "" });
   }
 
   // Sort by term (Dutch)
@@ -1148,16 +1301,27 @@ async function processJob(job) {
       // and the version has no persisted placements yet.
       if (!autoChapterFigures || typeof autoChapterFigures !== "object") return false;
 
-      const providerRaw = String(process.env.BOOK_FIGURE_PLACEMENT_PROVIDER || "").trim().toLowerCase();
-      const provider = providerRaw || (process.env.ANTHROPIC_API_KEY ? "anthropic" : (process.env.OPENAI_API_KEY ? "openai" : ""));
+      const providerEnv = process.env.BOOK_FIGURE_PLACEMENT_PROVIDER;
+      const providerRaw = typeof providerEnv === "string" ? providerEnv.trim().toLowerCase() : "";
+      let provider = providerRaw;
+      if (!provider) {
+        // Explicit auto-selection only when a key exists; otherwise fail loud.
+        if (process.env.ANTHROPIC_API_KEY) provider = "anthropic";
+        else if (process.env.OPENAI_API_KEY) provider = "openai";
+      }
       if (!provider) {
         throw new Error("BLOCKED: BOOK_FIGURE_PLACEMENT_PROVIDER is REQUIRED for semantic figure placement (set to 'anthropic' or 'openai')");
       }
       if (!["anthropic", "openai"].includes(provider)) {
         throw new Error(`Invalid BOOK_FIGURE_PLACEMENT_PROVIDER: ${providerRaw}`);
       }
-      const modelRaw = String(process.env.BOOK_FIGURE_PLACEMENT_MODEL || "").trim();
-      const model = modelRaw || (provider === "anthropic" ? "claude-sonnet-4-5" : "gpt-4o-mini");
+      const modelEnv = process.env.BOOK_FIGURE_PLACEMENT_MODEL;
+      const modelRaw = typeof modelEnv === "string" ? modelEnv.trim() : "";
+      let model = modelRaw;
+      if (!model) {
+        model = provider === "anthropic" ? "claude-sonnet-4-5" : "gpt-4o-mini";
+        console.warn(`[book-worker] BOOK_FIGURE_PLACEMENT_MODEL not set; defaulting to ${model}`);
+      }
       if (provider === "anthropic") requireEnvForFigurePlacement("ANTHROPIC_API_KEY");
       if (provider === "openai") requireEnvForFigurePlacement("OPENAI_API_KEY");
 
@@ -2564,13 +2728,37 @@ ${facts.map((f, idx) => `  ${idx + 1}. ${f}`).join("\n")}
 
       // Pass: hyphenation QA + fix (Claude Sonnet 4.5)
       // Goal: reduce awkward PDF hyphenation artifacts in narrow columns (e.g. cholesteroldeeltjes -> "deeltjes van cholesterol").
-      const hyphenPassEnabled = String(process.env.BOOKGEN_HYPHEN_PASSES || "true").trim().toLowerCase() === "true";
-      const hyphenProvider = String(process.env.BOOKGEN_HYPHEN_PROVIDER || "anthropic").trim().toLowerCase();
+      const hyphenPassesEnv = process.env.BOOKGEN_HYPHEN_PASSES;
+      const hyphenPassEnabled = (() => {
+        if (typeof hyphenPassesEnv === "string" && hyphenPassesEnv.trim()) {
+          return hyphenPassesEnv.trim().toLowerCase() === "true";
+        }
+        console.warn("[book-worker] BOOKGEN_HYPHEN_PASSES not set; defaulting to true");
+        return true;
+      })();
+      const hyphenProviderEnv = process.env.BOOKGEN_HYPHEN_PROVIDER;
+      const hyphenProvider = (() => {
+        if (typeof hyphenProviderEnv === "string" && hyphenProviderEnv.trim()) {
+          return hyphenProviderEnv.trim().toLowerCase();
+        }
+        console.warn("[book-worker] BOOKGEN_HYPHEN_PROVIDER not set; defaulting to anthropic");
+        return "anthropic";
+      })();
       if (hyphenPassEnabled && !["anthropic"].includes(hyphenProvider)) {
         throw new Error(`Invalid BOOKGEN_HYPHEN_PROVIDER: ${hyphenProvider}`);
       }
-      const hyphenCheckModel = String(process.env.BOOKGEN_HYPHEN_CHECK_MODEL || "claude-sonnet-4-5-20250929").trim();
-      const hyphenFixModel = String(process.env.BOOKGEN_HYPHEN_FIX_MODEL || "claude-sonnet-4-5-20250929").trim();
+      const hyphenCheckModelEnv = process.env.BOOKGEN_HYPHEN_CHECK_MODEL;
+      const hyphenCheckModel = (() => {
+        if (typeof hyphenCheckModelEnv === "string" && hyphenCheckModelEnv.trim()) return hyphenCheckModelEnv.trim();
+        console.warn("[book-worker] BOOKGEN_HYPHEN_CHECK_MODEL not set; defaulting to claude-sonnet-4-5-20250929");
+        return "claude-sonnet-4-5-20250929";
+      })();
+      const hyphenFixModelEnv = process.env.BOOKGEN_HYPHEN_FIX_MODEL;
+      const hyphenFixModel = (() => {
+        if (typeof hyphenFixModelEnv === "string" && hyphenFixModelEnv.trim()) return hyphenFixModelEnv.trim();
+        console.warn("[book-worker] BOOKGEN_HYPHEN_FIX_MODEL not set; defaulting to claude-sonnet-4-5-20250929");
+        return "claude-sonnet-4-5-20250929";
+      })();
       if (hyphenPassEnabled && hyphenProvider === "anthropic") requireAnthropicKey();
 
       const stripTags = (s) => String(s || "").replace(/<[^>]*>/g, " ");
@@ -3493,6 +3681,13 @@ Return STRICT JSON ONLY:
       } catch {
         bodyOnlyPdfBuf = null;
       }
+      if (bodyOnlyPdfBuf) {
+        try {
+          await writeFile(path.join(workDir, "body-only.output.pdf"), bodyOnlyPdfBuf);
+        } catch {
+          // best-effort; validation later will fail loud if the copy is missing
+        }
+      }
       try {
         bodyOnlyLogBuf = await readFile(logPath);
       } catch {
@@ -3510,19 +3705,55 @@ Return STRICT JSON ONLY:
         message: "Extracting page map for TOC/index…",
       }).catch(() => {});
 
-      const pages = await extractPdfTextPages(pdfPath);
+      // GUARANTEED page map:
+      // We embed invisible tokens into the body HTML (chapters/sections/blocks) and extract them from the PDF.
+      // If a token is missing, we FAIL LOUD (no guessing).
+      const pageTokens = await extractPdfPageMapTokens(pdfPath);
       const tocAnchors = extractTocAnchorsFromCanonical(assembled);
 
       const tocPages = tocAnchors.map((a) => {
-        const page = findFirstPageContaining(pages, a.label);
-        return { ...a, page };
+        if (a?.type === "chapter") {
+          const id = `ch-${Number(a.chapterIndex) + 1}`;
+          const page = pageTokens.tokens.CH?.[id] || null;
+          if (!page) throw new Error(`BLOCKED: Missing page-map token for chapter '${id}'`);
+          return { ...a, page };
+        }
+        if (a?.type === "section") {
+          const sid = typeof a.sectionId === "string" ? a.sectionId : "";
+          const id = `sec-${sid}`;
+          const page = pageTokens.tokens.SEC?.[id] || null;
+          if (!page) throw new Error(`BLOCKED: Missing page-map token for section '${id}'`);
+          return { ...a, page };
+        }
+        return { ...a, page: null };
       });
 
+      const indexableBlocks = collectIndexableTextBlocksFromCanonical(assembled);
+      const pidPages = pageTokens.tokens.PID || {};
+
       const terms = extractIndexTermsFromGeneratedIndex(indexGenerated);
+      /** @type {Record<string, number[]>} */
       const termPages = {};
+      const missingTerms = [];
       for (const t of terms) {
-        const page = findFirstPageContaining(pages, t);
-        if (page) termPages[t] = page;
+        const needle = canonicalizeForPageMapSearch(t);
+        if (!needle) continue;
+        const pagesSet = new Set();
+        for (const b of indexableBlocks) {
+          const hay = canonicalizeForPageMapSearch(b.text);
+          if (!hay || !hay.includes(needle)) continue;
+          const p = pidPages?.[b.anchorId] || null;
+          if (!p) {
+            throw new Error(`BLOCKED: Missing page-map token for block '${b.anchorId}' (needed for index term '${t}')`);
+          }
+          pagesSet.add(Number(p));
+        }
+        const pagesArr = Array.from(pagesSet).filter((n) => Number.isFinite(n) && n > 0).sort((a, b) => a - b);
+        if (!pagesArr.length) {
+          missingTerms.push(t);
+          continue;
+        }
+        termPages[t] = pagesArr;
       }
 
       pageMap = {
@@ -3530,14 +3761,10 @@ Return STRICT JSON ONLY:
         generatedAt: new Date().toISOString(),
         bookId,
         bookVersionId,
-        pages: pages.length,
+        pages: pageTokens.numPages,
         toc: tocPages,
-        index: { matchedTerms: Object.keys(termPages).length, termPages },
+        index: { matchedTerms: Object.keys(termPages).length, missingTerms: missingTerms.slice(0, 50), termPages },
       };
-
-      // Build matter models
-      const tocModel = buildTocModelFromPageMap({ canonical: assembled, pageMap });
-      const indexModel = buildIndexModelFromPageMap({ matterPack, indexGenerated, pageMap });
 
       // Render matter HTML and rasterize to PNGs (high-res)
       await reportProgress({
@@ -3549,12 +3776,14 @@ Return STRICT JSON ONLY:
       if (renderProvider !== "prince_local") {
         throw new Error("BLOCKED: Full-book matter pages require render_provider=prince_local (DocRaptor does not support rasterization in this pipeline)");
       }
-      const princePath = String(process.env.PRINCE_PATH || "").trim();
+      const princePathEnv = process.env.PRINCE_PATH;
+      const princePath = typeof princePathEnv === "string" ? princePathEnv.trim() : "";
       if (!princePath) {
         throw new Error("BLOCKED: PRINCE_PATH is REQUIRED for matter rasterization (set env var before running the worker)");
       }
 
-      const dpiRaw = String(process.env.BOOK_MATTER_RASTER_DPI || "").trim();
+      const dpiEnv = process.env.BOOK_MATTER_RASTER_DPI;
+      const dpiRaw = typeof dpiEnv === "string" ? dpiEnv.trim() : "";
       const dpi = dpiRaw ? Number(dpiRaw) : 300;
       const matterDir = path.join(workDir, "matter");
       await mkdir(matterDir, { recursive: true });
@@ -3586,10 +3815,35 @@ Return STRICT JSON ONLY:
 
       /** @type {Record<string, { pngPaths: string[], logPath: string }>} */
       matterPngs = {};
+
+      // Phase 1: Render static front matter (title, colophon, promo) to count their pages
       await rasterDoc({ key: "title", html: renderMatterTitlePage(matterPack), filename: "matter.title.html" });
       await rasterDoc({ key: "colophon", html: renderMatterColophonPage(matterPack), filename: "matter.colophon.html" });
-      await rasterDoc({ key: "toc", html: renderMatterTocPage(matterPack, tocModel), filename: "matter.toc.html" });
       await rasterDoc({ key: "promo", html: renderMatterPromoPage(matterPack), filename: "matter.promo.html" });
+
+      // Count static pages; compute TOC pages with a bounded stabilization loop.
+      const titlePages = matterPngs.title.pngPaths.length;
+      const colophonPages = matterPngs.colophon.pngPaths.length;
+      const promoPages = matterPngs.promo.pngPaths.length;
+      let tocPagesCount = 1;
+      let finalOffset = titlePages + colophonPages + tocPagesCount + promoPages;
+      let tocModel = null;
+      let indexModel = null;
+      const MAX_TOC_STABILIZE = 3;
+      for (let attempt = 1; attempt <= MAX_TOC_STABILIZE; attempt++) {
+        finalOffset = titlePages + colophonPages + tocPagesCount + promoPages;
+        console.log(
+          `[matter] Offset attempt ${attempt}/${MAX_TOC_STABILIZE}: ${finalOffset} (title=${titlePages}, colophon=${colophonPages}, toc=${tocPagesCount}, promo=${promoPages})`,
+        );
+        tocModel = buildTocModelFromPageMap({ canonical: assembled, pageMap, frontMatterPageOffset: finalOffset });
+        indexModel = buildIndexModelFromPageMap({ matterPack, indexGenerated, pageMap, frontMatterPageOffset: finalOffset });
+        await rasterDoc({ key: "toc", html: renderMatterTocPage(matterPack, tocModel), filename: "matter.toc.html" });
+        const actual = matterPngs.toc.pngPaths.length;
+        if (actual === tocPagesCount) break;
+        tocPagesCount = actual;
+      }
+
+      // Render index using the stabilized offset
       await rasterDoc({ key: "index", html: renderMatterIndexPage(matterPack, indexModel), filename: "matter.index.html" });
 
       const bodyPages = typeof pageMap?.pages === "number" ? Math.floor(pageMap.pages) : 0;
@@ -3638,6 +3892,44 @@ Return STRICT JSON ONLY:
       if (!finalPdfStat || finalPdfStat.size <= 0) {
         throw new Error("Final PDF render produced an empty file");
       }
+
+      // GUARANTEE: validate that body anchor page numbers match exactly after matter insertion.
+      // We compare tokens from the body-only PDF (pageMap) with tokens extracted from the final PDF.
+      // If anything shifted, FAIL LOUD (no silent wrong TOC/index pages).
+      try {
+        // The body-only PDF was rendered to pdfPath earlier; before final render we overwrote pdfPath.
+        // We persist the body-only PDF as an artifact buffer elsewhere, but for validation we need
+        // the pageMap reference. Re-render body-only token extraction using the saved pageMap.pages
+        // is not sufficient; instead, use the already-created body-only PDF buffer if present.
+        //
+        // We write a copy of the body-only PDF before overwriting so this validation is deterministic.
+        const bodyOnlyPath = path.join(workDir, "body-only.output.pdf");
+        try {
+          await stat(bodyOnlyPath);
+        } catch {
+          // If not present, we can't guarantee correctness. Fail loud.
+          throw new Error("Missing body-only PDF copy (body-only.output.pdf)");
+        }
+        const bodyTokens = await extractPdfPageMapTokens(bodyOnlyPath);
+        const finalTokens = await extractPdfPageMapTokens(pdfPath);
+        const offset = finalOffset;
+        const kinds = ["CH", "SEC", "PID"];
+        for (const k of kinds) {
+          const bmap = bodyTokens.tokens?.[k] || {};
+          const fmap = finalTokens.tokens?.[k] || {};
+          for (const [id, bodyPage] of Object.entries(bmap)) {
+            const expected = Number(bodyPage) + Number(offset);
+            const actual = fmap?.[id] || null;
+            if (!actual) throw new Error(`Missing final token ${k}:${id}`);
+            if (Number(actual) !== expected) {
+              throw new Error(`Page shift for ${k}:${id} (expected ${expected}, got ${actual})`);
+            }
+          }
+        }
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
+        throw new Error(`BLOCKED: Page-map validation failed (cannot guarantee TOC/index correctness): ${msg}`);
+      }
     }
 
     // 5) Upload artifacts
@@ -3681,15 +3973,29 @@ Return STRICT JSON ONLY:
         for (let i = 0; i < pngPaths.length; i++) {
           const pngPath = pngPaths[i];
           if (typeof pngPath !== "string" || !pngPath.trim()) continue;
-          try {
-            const pngBuf = await readFile(pngPath);
+          // Debug artifact uploads must never fail the job. On Windows, newly created files can be
+          // temporarily locked/scanned. Retry briefly, then skip with a warning.
+          let pngBuf = null;
+          for (let attempt = 1; attempt <= 6; attempt++) {
+            try {
+              pngBuf = await readFile(pngPath);
+              break;
+            } catch (e) {
+              if (attempt === 6) {
+                const msg = e instanceof Error ? e.message : String(e);
+                console.warn(`[book-worker] WARNING: Skipping debug upload for matter.${key}.${i + 1}.png (read failed): ${msg}`);
+                pngBuf = null;
+                break;
+              }
+              await sleep(120 * attempt);
+            }
+          }
+          if (pngBuf) {
             uploaded.push({
               kind: "debug",
               ...(await uploadArtifact({ orgId, jobId, fileName: fileNameForAttempt(`matter.${key}.${i + 1}.png`), buf: pngBuf, contentType: "image/png" })),
               chapterIndex,
             });
-          } catch {
-            throw new Error(`BLOCKED: Matter raster output missing for '${key}' (${pngPath})`);
           }
         }
         if (typeof logP === "string") {
@@ -3867,10 +4173,13 @@ Return STRICT JSON ONLY:
 async function main() {
   console.log("[book-worker] Starting…");
   console.log(`[book-worker] Poll interval: ${POLL_INTERVAL_MS}ms`);
-  const runOnce = String(process.env.BOOK_WORKER_RUN_ONCE || "").trim().toLowerCase() === "true";
-  const stopAfterJobIdRaw = String(process.env.BOOK_WORKER_STOP_AFTER_JOB_ID || "").trim();
+  const runOnceEnv = process.env.BOOK_WORKER_RUN_ONCE;
+  const runOnce = typeof runOnceEnv === "string" ? runOnceEnv.trim().toLowerCase() === "true" : false;
+  const stopAfterJobEnv = process.env.BOOK_WORKER_STOP_AFTER_JOB_ID;
+  const stopAfterJobIdRaw = typeof stopAfterJobEnv === "string" ? stopAfterJobEnv.trim() : "";
   const stopAfterJobId = stopAfterJobIdRaw && /^[0-9a-f-]{36}$/i.test(stopAfterJobIdRaw) ? stopAfterJobIdRaw : "";
-  const maxJobsRaw = String(process.env.BOOK_WORKER_MAX_JOBS || "").trim();
+  const maxJobsEnv = process.env.BOOK_WORKER_MAX_JOBS;
+  const maxJobsRaw = typeof maxJobsEnv === "string" ? maxJobsEnv.trim() : "";
   const maxJobs = maxJobsRaw ? Math.max(1, Math.min(500, Number(maxJobsRaw))) : null;
   let processedJobs = 0;
 

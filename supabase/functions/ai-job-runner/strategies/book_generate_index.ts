@@ -86,6 +86,27 @@ function extractBoldTerms(raw: string): string[] {
   return out;
 }
 
+function extractStrongTerms(raw: string): string[] {
+  const s = String(raw || "");
+  const out: string[] = [];
+  const re = /<\s*(strong|b)\b[^>]*>([\s\S]*?)<\s*\/\s*\1\s*>/gi;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(s))) {
+    const innerRaw = String(m[2] || "");
+    const inner = normalizeWs(innerRaw.replace(/<[^>]+>/g, " "));
+    if (!inner) continue;
+    const t = inner.replace(/^[\s,.;:!?()\[\]«»"']+/, "").replace(/[\s,.;:!?()\[\]«»"']+$/, "").trim();
+    if (!t) continue;
+    out.push(t);
+  }
+  return out;
+}
+
+function extractTerminologyCandidates(raw: string): string[] {
+  // Accept both legacy markers (<<BOLD_START>>) and HTML emphasis (<strong>/<b>).
+  return [...extractBoldTerms(raw), ...extractStrongTerms(raw)];
+}
+
 function walkJson(value: unknown, visitor: (s: string) => void) {
   if (!value) return;
   if (Array.isArray(value)) {
@@ -225,7 +246,7 @@ export class BookGenerateIndex implements JobExecutor {
     // Extract candidate terms from <<BOLD_START>> markers (high-signal real terminology).
     const freq = new Map<string, { term: string; count: number }>();
     walkJson(canonical, (s) => {
-      for (const t of extractBoldTerms(s)) {
+      for (const t of extractTerminologyCandidates(s)) {
         const key = normalizeTermKey(t);
         const prev = freq.get(key);
         if (!prev) freq.set(key, { term: t, count: 1 });
@@ -238,7 +259,7 @@ export class BookGenerateIndex implements JobExecutor {
       .map((x) => x.term);
 
     if (candidates.length < 20) {
-      throw new Error("BLOCKED: Not enough terminology markers found in canonical (need >= 20 <<BOLD_START>> terms)");
+      throw new Error("BLOCKED: Not enough terminology emphasis found in canonical (need >= 20 terms marked with <<BOLD_START>> or <strong>)");
     }
 
     // Keep prompt bounded.

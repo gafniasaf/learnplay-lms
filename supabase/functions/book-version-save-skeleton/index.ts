@@ -112,10 +112,10 @@ serve(async (req: Request): Promise<Response> => {
       return json({ ok: false, error: { code: "not_found", message: "Book not found" }, httpStatus: 404, requestId }, 200);
     }
 
-    // Verify version exists
+    // Verify version exists (also load canonical_path so we can keep the worker input up-to-date)
     const { data: version, error: versionErr } = await adminSupabase
       .from("book_versions")
-      .select("book_version_id")
+      .select("book_version_id, canonical_path")
       .eq("book_id", bookId)
       .eq("book_version_id", bookVersionId)
       .single();
@@ -212,6 +212,31 @@ serve(async (req: Request): Promise<Response> => {
         console.error(`[book-version-save-skeleton] Compiled canonical upload failed (${requestId}):`, compileUploadErr);
         return json(
           { ok: false, error: { code: "compiled_upload_failed", message: compileUploadErr.message }, httpStatus: 500, requestId },
+          200,
+        );
+      }
+    }
+
+    // 3b) Skeleton-first: also refresh the worker-facing canonical.json at canonical_path (root path)
+    // This keeps render jobs consistent with the "real book" pipeline (book_generate_full does the same).
+    if (compileCanonical && compiledText) {
+      const canonicalPathRaw = safeString((version as any).canonical_path).trim();
+      if (!canonicalPathRaw) {
+        return json(
+          { ok: false, error: { code: "missing_canonical_path", message: "book_versions.canonical_path is missing" }, httpStatus: 500, requestId },
+          200,
+        );
+      }
+      const { error: canonicalUploadErr } = await adminSupabase.storage
+        .from("books")
+        .upload(canonicalPathRaw, new Blob([compiledText], { type: "application/json" }), {
+          upsert: true,
+          contentType: "application/json",
+        });
+      if (canonicalUploadErr) {
+        console.error(`[book-version-save-skeleton] canonical.json upload failed (${requestId}):`, canonicalUploadErr);
+        return json(
+          { ok: false, error: { code: "canonical_upload_failed", message: canonicalUploadErr.message }, httpStatus: 500, requestId },
           200,
         );
       }

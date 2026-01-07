@@ -495,6 +495,11 @@ function pickTargetsForSection(opts: {
       ? section.numberedSubparagraphTitles.map((t) => normalizeWs(t)).filter(Boolean)
       : [],
   );
+  // If the outline for this section is extremely large, do not enforce box placement targets.
+  // Those targets become brittle and often cause validation failures for long lists (e.g. 19 titles).
+  if (allowed.size > 10) {
+    return { praktijkTargets: [], verdiepingTargets: [] };
+  }
   const take = (arr: string[]): string[] => {
     const out: string[] = [];
     for (const t of arr) {
@@ -565,21 +570,38 @@ export class BookGenerateChapter implements JobExecutor {
       typeof (p as any).orchestratorStartedAt === "string" && String((p as any).orchestratorStartedAt).trim()
         ? String((p as any).orchestratorStartedAt).trim()
         : nowIso;
+    // Progress-based timeout (back-compat):
+    // Previously we enforced a total chapter wall-time of 45 minutes, which is too aggressive when the
+    // system is driving jobs via cron and section jobs can stall/retry. We now enforce:
+    // - MAX_IDLE_MS: no "meaningful progress" for N minutes => fail loud
+    // - MAX_WALL_MS: absolute cap for runaway loops (large, safety only)
+    const orchestratorLastProgressAt =
+      typeof (p as any).orchestratorLastProgressAt === "string" && String((p as any).orchestratorLastProgressAt).trim()
+        ? String((p as any).orchestratorLastProgressAt).trim()
+        : nowIso;
     const attemptsPrev =
       typeof (p as any).orchestratorAttempts === "number" && Number.isFinite((p as any).orchestratorAttempts)
         ? Math.max(0, Math.floor((p as any).orchestratorAttempts))
         : 0;
     const attempts = attemptsPrev + 1;
-    const MAX_ATTEMPTS = 80;
+    const MAX_ATTEMPTS = 600;
     if (attempts > MAX_ATTEMPTS) {
       throw new Error(`BLOCKED: Chapter orchestrator exceeded max attempts (${MAX_ATTEMPTS}). Human review required.`);
     }
     const startedAtMs = Date.parse(orchestratorStartedAt);
     if (Number.isFinite(startedAtMs)) {
       const elapsedMs = Date.now() - startedAtMs;
-      const MAX_WALL_MS = 45 * 60 * 1000;
+      const MAX_WALL_MS = 12 * 60 * 60 * 1000;
       if (elapsedMs > MAX_WALL_MS) {
-        throw new Error("BLOCKED: Chapter orchestrator exceeded max wall time (45 minutes). Human review required.");
+        throw new Error("BLOCKED: Chapter orchestrator exceeded max wall time (12 hours). Human review required.");
+      }
+    }
+    const lastProgressAtMs = Date.parse(orchestratorLastProgressAt);
+    if (Number.isFinite(lastProgressAtMs)) {
+      const idleMs = Date.now() - lastProgressAtMs;
+      const MAX_IDLE_MS = 3 * 60 * 60 * 1000;
+      if (idleMs > MAX_IDLE_MS) {
+        throw new Error("BLOCKED: Chapter orchestrator exceeded max idle time (3 hours). Human review required.");
       }
     }
 
@@ -667,6 +689,7 @@ export class BookGenerateChapter implements JobExecutor {
       ...(microheadingDensity ? { microheadingDensity } : {}),
       writeModel,
       orchestratorStartedAt,
+      orchestratorLastProgressAt,
       orchestratorAttempts: attempts,
       nextSectionIndex: nextSectionIndexPrev,
       ...(layoutPlan ? { layoutPlan } : {}),
@@ -677,7 +700,7 @@ export class BookGenerateChapter implements JobExecutor {
     if (pendingSectionJobId) {
       const { data: secJob, error: secErr } = await adminSupabase
         .from("ai_agent_jobs")
-        .select("id,status,error")
+        .select("id,status,error,retry_count,max_retries")
         .eq("id", pendingSectionJobId)
         .maybeSingle();
       if (secErr) throw new Error(`BLOCKED: Failed to load pending section job: ${secErr.message}`);
@@ -685,6 +708,25 @@ export class BookGenerateChapter implements JobExecutor {
       const st = String((secJob as any).status || "");
       if (st === "failed") {
         const errMsg = typeof (secJob as any).error === "string" ? String((secJob as any).error) : "Unknown error";
+        const retryCountRaw = (secJob as any).retry_count;
+        const maxRetriesRaw = (secJob as any).max_retries;
+        const retryCount = typeof retryCountRaw === "number" && Number.isFinite(retryCountRaw) ? Math.max(0, Math.floor(retryCountRaw)) : 0;
+        const maxRetries = typeof maxRetriesRaw === "number" && Number.isFinite(maxRetriesRaw) ? Math.max(0, Math.floor(maxRetriesRaw)) : 3;
+        // IMPORTANT: ai_agent_jobs has built-in retry semantics (get_next_pending_agent_job retries failed jobs
+        // while retry_count < max_retries). If a section job failed but is still retriable, we should wait
+        // instead of failing the whole chapter orchestrator.
+        if (retryCount < maxRetries) {
+          return {
+            yield: true,
+            message: `Waiting for section job ${pendingSectionJobId} (status=failed, retrying)`,
+            nextPayload: {
+              ...baseNextPayload,
+              pendingSectionJobId,
+              ...(typeof pendingSectionIndex === "number" ? { pendingSectionIndex } : {}),
+            },
+            meta: { pendingSectionJobId, status: "failed", retryCount, maxRetries, error: errMsg.slice(0, 300) },
+          } satisfies ChapterOrchestratorYield;
+        }
         throw new Error(`BLOCKED: Section job failed (${pendingSectionJobId}): ${errMsg}`);
       }
       if (st !== "done") {
@@ -707,6 +749,7 @@ export class BookGenerateChapter implements JobExecutor {
         message: `Section ${nextSectionIndexPrev + 1}/${sectionCount} complete; advancing`,
         nextPayload: {
           ...baseNextPayload,
+          orchestratorLastProgressAt: nowIso,
           nextSectionIndex,
           pendingSectionJobId: null,
           pendingSectionIndex: null,
@@ -769,6 +812,9 @@ export class BookGenerateChapter implements JobExecutor {
             organization_id: organizationId,
             job_type: "book_generate_chapter",
             status: "queued",
+            // BookGen needs more retries than the default because section jobs can be marked stalled
+            // by the reconciler due to upstream/provider hiccups.
+            max_retries: 10,
             payload: {
               bookId,
               bookVersionId,
@@ -834,6 +880,7 @@ export class BookGenerateChapter implements JobExecutor {
         organization_id: organizationId,
         job_type: "book_generate_section",
         status: "queued",
+        max_retries: 10,
         payload: sectionPayload,
       })
       .select("id")
@@ -850,6 +897,7 @@ export class BookGenerateChapter implements JobExecutor {
       message: `Enqueued section job ${queuedSection.id} (section ${sectionIndexToRun + 1}/${sectionCount})`,
       nextPayload: {
         ...baseNextPayload,
+        orchestratorLastProgressAt: nowIso,
         pendingSectionJobId: queuedSection.id,
         pendingSectionIndex: sectionIndexToRun,
       },

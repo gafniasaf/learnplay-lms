@@ -27,9 +27,13 @@ export async function runPrince({ htmlPath, pdfPath, logPath }) {
       err += d.toString();
     });
     child.on("error", (e) => reject(e));
-    child.on("close", (code) => {
+    child.on("close", async (code) => {
       const combined = [out, err].filter(Boolean).join("\n");
-      writeFile(logPath, combined || "(no prince output)\n").catch(() => {});
+      try {
+        await writeFile(logPath, combined || "(no prince output)\n");
+      } catch {
+        // ignore write errors but log file may not exist
+      }
       if (code === 0) return resolve();
       reject(new Error(`Prince failed (exit ${code}). See log: ${logPath}`));
     });
@@ -62,9 +66,13 @@ export async function runPrinceRaster({ htmlPath, outPattern, dpi, logPath }) {
       err += d.toString();
     });
     child.on("error", (e) => reject(e));
-    child.on("close", (code) => {
+    child.on("close", async (code) => {
       const combined = [out, err].filter(Boolean).join("\n");
-      writeFile(logPath, combined || "(no prince output)\n").catch(() => {});
+      try {
+        await writeFile(logPath, combined || "(no prince output)\n");
+      } catch {
+        // ignore write errors but log file may not exist
+      }
       if (code === 0) return resolve();
       reject(new Error(`Prince raster failed (exit ${code}). See log: ${logPath}`));
     });
