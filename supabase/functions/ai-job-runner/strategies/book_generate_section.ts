@@ -251,7 +251,10 @@ async function llmGenerateJson(opts: {
   tool?: AnthropicToolSpec;
 }): Promise<any> {
   const { provider, model, system, prompt, maxTokens, tool } = opts;
-  const timeoutMs = 220_000;
+  // IMPORTANT: Keep this comfortably below the Supabase Edge runtime limit so we can
+  // abort/requeue instead of getting killed mid-request (which leaves jobs "processing"
+  // until the reconciler marks them stalled).
+  const timeoutMs = 120_000;
 
   if (provider === "openai") {
     const key = requireEnv("OPENAI_API_KEY");
@@ -318,6 +321,16 @@ async function llmGenerateJson(opts: {
     .join("\n");
   if (!out.trim()) throw new Error("LLM(anthropic) returned empty content");
   return extractJsonFromText(out);
+}
+
+function isAbortTimeout(err: unknown): boolean {
+  const name =
+    err && typeof err === "object" && "name" in err && typeof (err as any).name === "string"
+      ? String((err as any).name)
+      : "";
+  const msg = err instanceof Error ? err.message : String(err ?? "");
+  const s = `${name} ${msg}`.toLowerCase();
+  return s.includes("abort") || s.includes("timeout") || s.includes("timed out");
 }
 
 async function downloadJson(supabase: any, bucket: string, path: string): Promise<any> {
@@ -1002,9 +1015,15 @@ export class BookGenerateSection implements JobExecutor {
         ? normalizeWs(mustFillTitleRaw.trim()).slice(0, 120)
         : null;
 
+    const llmTimeoutAttemptRaw = (p as any).__llmTimeoutAttempt;
+    const llmTimeoutAttempt =
+      typeof llmTimeoutAttemptRaw === "number" && Number.isFinite(llmTimeoutAttemptRaw)
+        ? Math.max(0, Math.floor(llmTimeoutAttemptRaw))
+        : 0;
+
     const sectionMaxTokens = (() => {
       const raw = p.sectionMaxTokens;
-      if (typeof raw !== "number" || !Number.isFinite(raw)) return layoutProfile === "pass2" ? 12_000 : 8000;
+      if (typeof raw !== "number" || !Number.isFinite(raw)) return layoutProfile === "pass2" ? 9_000 : 8000;
       const n = Math.floor(raw);
       return Math.max(1200, Math.min(12_000, n));
     })();
@@ -1073,6 +1092,10 @@ export class BookGenerateSection implements JobExecutor {
             ...outlineTopics.slice(0, 40).map((t) => `- ${stripNumberPrefix(normalizeWs(t)) || normalizeWs(t)}`),
           ].join("\n")
         : null;
+    const timeoutNotes =
+      llmTimeoutAttempt > 0
+        ? `TIMEOUT RECOVERY (attempt ${llmTimeoutAttempt}): Keep the draft SHORTER and more concise. Prefer fewer microheadings and shorter paragraphs while still meeting the outline + minimum basis paragraphs.`
+        : null;
     const effectiveUserInstructions =
       draftAttempt > 0
         ? [
@@ -1081,6 +1104,7 @@ export class BookGenerateSection implements JobExecutor {
             mustFillTitle
               ? `MUST FIX: Add at least 2 basisHtml paragraphs under numbered subparagraph '${mustFillTitle}'. Do not leave its blocks empty.`
               : null,
+            timeoutNotes,
             outlineTopicHints,
             "CRITICAL:\n" +
               "- Follow the OUTLINE exactly (titles + required numbered subparagraphs).\n" +
@@ -1098,7 +1122,7 @@ export class BookGenerateSection implements JobExecutor {
             .filter((x) => typeof x === "string" && x.trim())
             .map((x) => String(x).trim())
             .join("\n\n")
-        : [userInstructions, outlineTopicHints].filter((x) => typeof x === "string" && x.trim()).map((x) => String(x).trim()).join("\n\n");
+        : [userInstructions, timeoutNotes, outlineTopicHints].filter((x) => typeof x === "string" && x.trim()).map((x) => String(x).trim()).join("\n\n");
     const prompt = buildPrompt({
       topic,
       bookTitle,
@@ -1116,14 +1140,49 @@ export class BookGenerateSection implements JobExecutor {
       verdiepingTargets,
     });
 
-    let draft = (await llmGenerateJson({
-      provider: writeModelSpec.provider,
-      model: writeModelSpec.model,
-      system,
-      prompt,
-      maxTokens: draftAttempt > 0 ? Math.min(12_000, sectionMaxTokens + 2_000) : sectionMaxTokens,
-      tool: TOOL_DRAFT_BOOK_SECTION,
-    })) as DraftSection;
+    let draft: DraftSection;
+    try {
+      draft = (await llmGenerateJson({
+        provider: writeModelSpec.provider,
+        model: writeModelSpec.model,
+        system,
+        prompt,
+        maxTokens: sectionMaxTokens,
+        tool: TOOL_DRAFT_BOOK_SECTION,
+      })) as DraftSection;
+    } catch (e) {
+      if (isAbortTimeout(e)) {
+        const MAX_LLM_TIMEOUT_ATTEMPTS = 6;
+        const nextAttempt = llmTimeoutAttempt + 1;
+        if (nextAttempt > MAX_LLM_TIMEOUT_ATTEMPTS) {
+          throw new Error(
+            `BLOCKED: LLM timed out too many times (${llmTimeoutAttempt}/${MAX_LLM_TIMEOUT_ATTEMPTS}). ` +
+              "Try lowering sectionMaxTokens or switching models.",
+          );
+        }
+
+        const nextTokens = Math.max(1200, Math.floor(sectionMaxTokens * 0.75));
+        await emitAgentJobEvent(jobId, "generating", 25, "LLM call timed out; requeueing with lower maxTokens", {
+          chapterIndex,
+          sectionIndex,
+          layoutProfile,
+          microheadingDensity,
+          llmTimeoutAttempt: nextAttempt,
+          prevMaxTokens: sectionMaxTokens,
+          nextMaxTokens: nextTokens,
+        }).catch(() => {});
+
+        return {
+          yield: true,
+          message: `LLM timed out; retrying with lower maxTokens (attempt ${nextAttempt}/${MAX_LLM_TIMEOUT_ATTEMPTS})`,
+          payloadPatch: {
+            __llmTimeoutAttempt: nextAttempt,
+            sectionMaxTokens: nextTokens,
+          },
+        };
+      }
+      throw e;
+    }
 
     // 3) Enforce locked outline + density (bounded retry once).
     const validateAll = (d: DraftSection) => {
