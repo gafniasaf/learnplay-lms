@@ -567,6 +567,7 @@ function buildPrompt(opts: {
   const langLabel = normalizeLanguageLabel(opts.language);
   const imageLangLabel = opts.imagePromptLanguage === "book" ? langLabel : "English";
   const required = opts.requiredSubparagraphTitles.map((t) => t.trim()).filter(Boolean);
+  const isWideOutline = required.length >= 8;
 
   const targetsText =
     (opts.praktijkTargets && opts.praktijkTargets.length) || (opts.verdiepingTargets && opts.verdiepingTargets.length)
@@ -586,35 +587,76 @@ function buildPrompt(opts: {
 
   const requiredText = required.length ? required.join(" | ") : "(none)";
   const microRule =
-    opts.layoutProfile === "pass2"
-      ? (
-        opts.microheadingDensity === "low"
-          ? "1-2"
-          : opts.microheadingDensity === "high"
-            ? "3-4"
-            : "2-3"
-      )
-      : opts.layoutProfile === "sparse"
-        ? (
-          opts.microheadingDensity === "high"
-            ? "1-2"
-            : "0-1"
-        )
-        : (
-          opts.microheadingDensity === "low"
-            ? "0-1"
-            : opts.microheadingDensity === "high"
-              ? "2-3"
-              : "1-2"
-        );
+    isWideOutline
+      ? (opts.microheadingDensity === "high" ? "1-2" : "0-1")
+      : (
+        opts.layoutProfile === "pass2"
+          ? (
+            opts.microheadingDensity === "low"
+              ? "1-2"
+              : opts.microheadingDensity === "high"
+                ? "3-4"
+                : "2-3"
+          )
+          : opts.layoutProfile === "sparse"
+            ? (
+              opts.microheadingDensity === "high"
+                ? "1-2"
+                : "0-1"
+            )
+            : (
+              opts.microheadingDensity === "low"
+                ? "0-1"
+                : opts.microheadingDensity === "high"
+                  ? "2-3"
+                  : "1-2"
+            )
+      );
   const paragraphRule =
-    opts.layoutProfile === "pass2"
-      ? "3-5"
-      : opts.layoutProfile === "sparse"
-        ? "1-2"
-        : "2-4";
+    isWideOutline
+      ? (opts.layoutProfile === "pass2" ? "2-3" : opts.layoutProfile === "sparse" ? "1-2" : "1-2")
+      : (
+        opts.layoutProfile === "pass2"
+          ? "3-5"
+          : opts.layoutProfile === "sparse"
+            ? "1-2"
+            : "2-4"
+      );
 
   const imageRule = opts.requireImageSuggestion ? "1-2 (REQUIRED)" : "0-2";
+
+  const outlineTemplate = (() => {
+    if (!required.length) return "";
+    if (!isWideOutline) return "";
+    const esc = (s: string) => String(s || "").replace(/\\/g, "\\\\").replace(/\"/g, "\\\"");
+    const lines = required
+      .map((t, idx) => {
+        const comma = idx < required.length - 1 ? "," : "";
+        return (
+          `  {\\n` +
+          `    \\\"type\\\": \\\"subparagraph\\\",\\n` +
+          `    \\\"title\\\": \\\"${esc(t)}\\\",\\n` +
+          `    \\\"blocks\\\": [\\n` +
+          `      { \\\"type\\\": \\\"paragraph\\\", \\\"basisHtml\\\": \\\"...\\\" },\\n` +
+          `      { \\\"type\\\": \\\"paragraph\\\", \\\"basisHtml\\\": \\\"...\\\" }\\n` +
+          `    ]\\n` +
+          `  }${comma}`
+        );
+      })
+      .join("\\n");
+    return (
+      "\\nWIDE OUTLINE NOTE:\\n" +
+      `- This section has ${required.length} required numbered subparagraphs. Keep each one concise.\\n` +
+      "- The validator requires at least 2 basis paragraphs per numbered subparagraph.\\n" +
+      "\\nSTRUCTURE TEMPLATE (copy the structure; replace '...' with real text):\\n" +
+      "{\\n" +
+      `  \\\"title\\\": \\\"${esc(opts.sectionTitle)}\\\",\\n` +
+      "  \\\"blocks\\\": [\\n" +
+      lines +
+      "\\n  ]\\n" +
+      "}\\n"
+    );
+  })();
 
   return (
     "Return JSON with this exact shape:\n" +
@@ -654,6 +696,7 @@ function buildPrompt(opts: {
     `- Include ${imageRule} image suggestions in this section via images[].suggestedPrompt.\n` +
     "- Place images on paragraph/list/steps blocks as: images: [{ suggestedPrompt: string, alt?: string, caption?: string, layoutHint?: string }]\n" +
     `- suggestedPrompt MUST be written in ${imageLangLabel}.\n` +
+    outlineTemplate +
     "\nWRITING STYLE (CRITICAL - Dutch MBO textbook style):\n" +
     "- Write in conversational, student-friendly Dutch. Address the reader as 'je' frequently.\n" +
     "- Use simple, flowing sentences. Avoid overly technical or academic language.\n" +
