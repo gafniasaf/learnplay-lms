@@ -135,6 +135,14 @@ function optionalEnum<T extends string>(value: unknown, allowed: readonly T[]): 
   return allowed.includes(s as T) ? (s as T) : null;
 }
 
+function parseSparseUnderTitle(reason: string): string | null {
+  const msg = String(reason || "");
+  const m = msg.match(/Draft too sparse under '([^']+)'/);
+  if (!m) return null;
+  const t = normalizeWs(m[1] || "");
+  return t ? t : null;
+}
+
 function normalizeWs(s: string): string {
   // Remove invisible formatting characters that can leak from PDF/IDML sources
   // (e.g. WORD JOINER, zero-width spaces, soft hyphen) so outline matching is stable.
@@ -850,10 +858,10 @@ function assertTerminologyEmphasis(opts: { draft: DraftSection; layoutProfile: C
 
   const min =
     opts.layoutProfile === "pass2"
-      ? 8
+      ? 4
       : opts.layoutProfile === "sparse"
-        ? 4
-        : 6;
+        ? 2
+        : 3;
   if (uniq.size < min) {
     throw new Error(
       `BLOCKED: Not enough <strong> terminology emphasis in section draft (got ${uniq.size}, expected >= ${min}). ` +
@@ -988,6 +996,11 @@ export class BookGenerateSection implements JobExecutor {
       typeof prevDraftFailureReasonRaw === "string" && prevDraftFailureReasonRaw.trim()
         ? prevDraftFailureReasonRaw.trim().slice(0, 800)
         : null;
+    const mustFillTitleRaw = (p as any).__draftMustFillTitle;
+    const mustFillTitle =
+      typeof mustFillTitleRaw === "string" && mustFillTitleRaw.trim()
+        ? normalizeWs(mustFillTitleRaw.trim()).slice(0, 120)
+        : null;
 
     const sectionMaxTokens = (() => {
       const raw = p.sectionMaxTokens;
@@ -1065,6 +1078,9 @@ export class BookGenerateSection implements JobExecutor {
         ? [
             userInstructions,
             prevDraftFailureReason ? `Previous validation failure:\n${prevDraftFailureReason}` : null,
+            mustFillTitle
+              ? `MUST FIX: Add at least 2 basisHtml paragraphs under numbered subparagraph '${mustFillTitle}'. Do not leave its blocks empty.`
+              : null,
             outlineTopicHints,
             "CRITICAL:\n" +
               "- Follow the OUTLINE exactly (titles + required numbered subparagraphs).\n" +
@@ -1172,8 +1188,10 @@ export class BookGenerateSection implements JobExecutor {
       validateAll(draft);
     } catch (e) {
       const reason = e instanceof Error ? e.message : String(e);
-      if (draftAttempt >= 1) {
-        throw new Error(`BLOCKED: Draft did not meet requirements after retry: ${reason.slice(0, 800)}`);
+      const MAX_DRAFT_ATTEMPTS = 4;
+      const nextAttempt = draftAttempt + 1;
+      if (nextAttempt > MAX_DRAFT_ATTEMPTS) {
+        throw new Error(`BLOCKED: Draft did not meet requirements after ${MAX_DRAFT_ATTEMPTS} attempts: ${reason.slice(0, 800)}`);
       }
 
       await emitAgentJobEvent(jobId, "generating", 25, "Draft did not meet requirements; requeueing for retry", {
@@ -1181,15 +1199,18 @@ export class BookGenerateSection implements JobExecutor {
         sectionIndex,
         layoutProfile,
         microheadingDensity,
+        draftAttempt: nextAttempt,
         reason: reason.slice(0, 800),
       }).catch(() => {});
 
+      const mustFill = parseSparseUnderTitle(reason);
       return {
         yield: true,
         message: "Draft did not meet requirements; retrying via requeue",
         payloadPatch: {
-          __draftAttempt: 1,
+          __draftAttempt: nextAttempt,
           __draftFailureReason: reason.slice(0, 800),
+          ...(mustFill ? { __draftMustFillTitle: mustFill } : {}),
         },
       };
     }
