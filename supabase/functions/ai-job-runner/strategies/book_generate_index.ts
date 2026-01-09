@@ -207,6 +207,70 @@ function normalizeTermKey(raw: string): string {
   return normalizeWs(raw).toLowerCase();
 }
 
+function coerceStringList(raw: unknown): string[] {
+  if (Array.isArray(raw)) {
+    return raw
+      .filter((x) => typeof x === "string")
+      .map((x) => normalizeWs(x))
+      .filter(Boolean);
+  }
+  if (typeof raw !== "string") return [];
+  const s = raw.trim();
+  if (!s) return [];
+
+  // If the model returned a JSON string, try to parse it.
+  if ((s.startsWith("[") && s.endsWith("]")) || (s.startsWith("{") && s.endsWith("}"))) {
+    try {
+      const parsed = JSON.parse(s);
+      if (Array.isArray(parsed)) {
+        return parsed
+          .filter((x) => typeof x === "string")
+          .map((x) => normalizeWs(x))
+          .filter(Boolean);
+      }
+      if (parsed && typeof parsed === "object") {
+        const nested = (parsed as any)?.entries ?? (parsed as any)?.terms ?? (parsed as any)?.items;
+        return coerceStringList(nested);
+      }
+    } catch {
+      // fall through
+    }
+  }
+
+  // Plain text list (newline/comma/semicolon separated).
+  return s
+    .split(/[\r\n;,]+/g)
+    .map((x) => normalizeWs(x))
+    .map((x) => x.replace(/^[\s,.;:!?()\[\]«»"']+/, "").replace(/[\s,.;:!?()\[\]«»"']+$/, "").trim())
+    .filter(Boolean);
+}
+
+function coerceIndexEntries(draft: any): any[] | null {
+  if (!draft) return null;
+
+  // Common shapes.
+  const direct = (draft as any)?.entries;
+  if (Array.isArray(direct)) return direct;
+  const nested = (draft as any)?.index?.entries;
+  if (Array.isArray(nested)) return nested;
+  const terms = (draft as any)?.terms;
+  if (Array.isArray(terms)) return terms.map((t: any) => (typeof t === "string" ? { term: t } : t));
+
+  // Sometimes the model returns entries as a string blob.
+  if (typeof direct === "string") {
+    const list = coerceStringList(direct);
+    if (list.length) return list.map((t) => ({ term: t }));
+  }
+
+  // If the whole draft is string-like.
+  if (typeof draft === "string") {
+    const list = coerceStringList(draft);
+    if (list.length) return list.map((t) => ({ term: t }));
+  }
+
+  return null;
+}
+
 export class BookGenerateIndex implements JobExecutor {
   async execute(context: JobContext): Promise<any> {
     const { jobId, payload } = context;
@@ -262,8 +326,9 @@ export class BookGenerateIndex implements JobExecutor {
       throw new Error("BLOCKED: Not enough terminology emphasis found in canonical (need >= 20 terms marked with <<BOLD_START>> or <strong>)");
     }
 
-    // Keep prompt bounded.
-    const candidateLimit = 800;
+    // Keep prompt bounded (too many candidates increases the chance the model returns a summary
+    // instead of the required JSON payload).
+    const candidateLimit = 350;
     const candidateSample = candidates.slice(0, candidateLimit);
 
     await emitAgentJobEvent(jobId, "generating", 20, "Drafting index terms with LLM", {
@@ -302,7 +367,7 @@ export class BookGenerateIndex implements JobExecutor {
       `  ]\n` +
       `}\n\n` +
       `Regels:\n` +
-      `- 200–450 entries (afhankelijk van de input), alfabetisch sorteren op term\n` +
+      `- 150–300 entries (afhankelijk van de input), alfabetisch sorteren op term\n` +
       `- Korte termen hebben voorkeur boven hele zinnen\n` +
       `- Geen dubbele entries (case-insensitive)\n` +
       `- Geen paginanummers\n`;
@@ -315,16 +380,33 @@ export class BookGenerateIndex implements JobExecutor {
       maxTokens: 7000,
     });
 
-    const entriesRaw = Array.isArray((draft as any)?.entries) ? (draft as any).entries : null;
-    if (!entriesRaw) throw new Error("BLOCKED: LLM returned invalid index JSON (missing entries[])");
+    let entriesRaw = coerceIndexEntries(draft);
+    if (!entriesRaw) {
+      // Deterministic fallback: generate index directly from emphasized terminology.
+      // This is still "real" (derived from the book text), and it unblocks rendering.
+      await emitAgentJobEvent(jobId, "generating", 35, "LLM output invalid; generating index from emphasized terms", {
+        candidateCount: candidates.length,
+        candidateSampleCount: candidateSample.length,
+        draftKeys: draft && typeof draft === "object" ? Object.keys(draft).slice(0, 20) : typeof draft,
+      }).catch(() => {});
+      entriesRaw = candidates.slice(0, 600).map((t) => ({ term: t }));
+    }
 
     // Normalize + dedupe
     const seen = new Set<string>();
     const entries = entriesRaw
       .map((e: any) => ({
         term: typeof e?.term === "string" ? normalizeWs(e.term) : "",
-        variants: Array.isArray(e?.variants) ? e.variants.filter((x: any) => typeof x === "string").map((x: string) => normalizeWs(x)).filter(Boolean).slice(0, 10) : undefined,
-        seeAlso: Array.isArray(e?.seeAlso) ? e.seeAlso.filter((x: any) => typeof x === "string").map((x: string) => normalizeWs(x)).filter(Boolean).slice(0, 10) : undefined,
+        variants: Array.isArray(e?.variants)
+          ? e.variants.filter((x: any) => typeof x === "string").map((x: string) => normalizeWs(x)).filter(Boolean).slice(0, 10)
+          : typeof e?.variants === "string"
+            ? coerceStringList(e.variants).slice(0, 10)
+            : undefined,
+        seeAlso: Array.isArray(e?.seeAlso)
+          ? e.seeAlso.filter((x: any) => typeof x === "string").map((x: string) => normalizeWs(x)).filter(Boolean).slice(0, 10)
+          : typeof e?.seeAlso === "string"
+            ? coerceStringList(e.seeAlso).slice(0, 10)
+            : undefined,
       }))
       .filter((e: any) => !!e.term)
       .filter((e: any) => {
