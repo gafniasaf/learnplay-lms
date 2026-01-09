@@ -14,7 +14,7 @@ function requireEnv(name: string): string {
 
 async function main() {
   const bookId = String(process.argv[2] || "").trim();
-  if (!bookId || !/^[0-9a-f-]{36}$/i.test(bookId)) {
+  if (!bookId) {
     console.error("Usage: npx tsx scripts/books/delete-book-full.ts <bookId>");
     process.exit(1);
   }

@@ -11,15 +11,20 @@ function requireEnv(name: string): string {
   return v.trim();
 }
 
-function isUuid(s: string): boolean {
-  return /^[0-9a-f-]{36}$/i.test(String(s || "").trim());
+function requireId(name: string, raw: unknown): string {
+  const v = String(raw || "").trim();
+  if (!v) {
+    console.error(`BLOCKED: ${name} is REQUIRED`);
+    process.exit(1);
+  }
+  return v;
 }
 
 async function main() {
-  const bookId = String(process.argv[2] || "").trim();
-  const bookVersionId = String(process.argv[3] || "").trim();
+  const bookId = requireId("bookId", process.argv[2]);
+  const bookVersionId = requireId("bookVersionId", process.argv[3]);
   const target = String(process.argv[4] || "book").trim();
-  if (!isUuid(bookId) || !isUuid(bookVersionId)) {
+  if (!bookId || !bookVersionId) {
     console.error("Usage: npx tsx scripts/books/enqueue-book-render.ts <bookId> <bookVersionId> [book|chapter] [chapterIndex]");
     process.exit(1);
   }

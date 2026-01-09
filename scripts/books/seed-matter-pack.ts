@@ -13,14 +13,19 @@ function requireEnv(name: string): string {
   return v.trim();
 }
 
-function isUuid(s: string): boolean {
-  return /^[0-9a-f-]{36}$/i.test(String(s || "").trim());
+function requireId(name: string, raw: unknown): string {
+  const v = String(raw || "").trim();
+  if (!v) {
+    console.error(`BLOCKED: ${name} is REQUIRED`);
+    process.exit(1);
+  }
+  return v;
 }
 
 async function main() {
-  const bookId = String(process.argv[2] || "").trim();
-  const bookVersionId = String(process.argv[3] || "").trim();
-  if (!isUuid(bookId) || !isUuid(bookVersionId)) {
+  const bookId = requireId("bookId", process.argv[2]);
+  const bookVersionId = requireId("bookVersionId", process.argv[3]);
+  if (!bookId || !bookVersionId) {
     console.error("Usage: npx tsx scripts/books/seed-matter-pack.ts <bookId> <bookVersionId>");
     process.exit(1);
   }
