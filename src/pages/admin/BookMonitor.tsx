@@ -905,6 +905,44 @@ export default function BookMonitor() {
     return res.jobId;
   };
 
+  const onNormalizeVoice = async () => {
+    if (!canRun) {
+      toast({ title: "BLOCKED", description: "Select a book + version first.", variant: "destructive" });
+      return;
+    }
+    if (monitor.monitorStatus === "generating") {
+      toast({ title: "BLOCKED", description: "Wait until generation is idle before normalizing voice.", variant: "destructive" });
+      return;
+    }
+    try {
+      const bookId = monitor.selectedBookId.trim();
+      const bookVersionId = monitor.selectedBookVersionId.trim();
+      const language = (monitor.skeletonMeta?.language || "").toString().trim();
+      const chapterCount = monitor.chapterCount;
+
+      if (!bookId) throw new Error("BLOCKED: bookId is missing");
+      if (!bookVersionId) throw new Error("BLOCKED: bookVersionId is missing");
+      if (!language) throw new Error("BLOCKED: language is missing for this book/version");
+      if (!Number.isFinite(chapterCount) || chapterCount <= 0) throw new Error("BLOCKED: chapterCount is missing");
+
+      const payload: Record<string, unknown> = {
+        bookId,
+        bookVersionId,
+        chapterIndex: 0,
+        chapterCount,
+        language,
+        writeModel: "anthropic:claude-sonnet-4-5",
+        enqueueChapters: true,
+      };
+
+      const res = await mcp.enqueueJob("book_normalize_voice", payload);
+      if (!res?.ok || !res.jobId) throw new Error(res?.error || "Failed to enqueue voice normalization job");
+      toast({ title: "Queued", description: `Voice normalization queued (${res.jobId.slice(0, 8)})` });
+    } catch (e) {
+      toast({ title: "Normalize failed", description: e instanceof Error ? e.message : "Unknown error", variant: "destructive" });
+    }
+  };
+
   const onGenerateIndex = async () => {
     if (!canRun) {
       toast({ title: "BLOCKED", description: "Select a book + version first.", variant: "destructive" });
@@ -1295,6 +1333,16 @@ export default function BookMonitor() {
             onClick={() => void onGenerateAll()}
           >
             📚 Generate All
+          </button>
+          <button
+            className="btn btn-secondary"
+            data-cta-id="cta-normalize-voice"
+            data-action="enqueueJob"
+            data-job-type="book_normalize_voice"
+            type="button"
+            onClick={() => void onNormalizeVoice()}
+          >
+            🪄 Normalize Voice (N3)
           </button>
           <button className="btn btn-secondary" data-cta-id="cta-generate-index" data-action="enqueueJob" type="button" onClick={() => void onGenerateIndex()}>
             🗂️ Generate Index

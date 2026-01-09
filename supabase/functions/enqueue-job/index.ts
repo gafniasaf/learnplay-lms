@@ -143,6 +143,7 @@ serve(async (req: Request): Promise<Response> => {
       "book_generate_section",
       "book_generate_index",
       "book_generate_glossary",
+      "book_normalize_voice",
       // System / tooling
       "compile_mockups",
       "plan_matrix_run",
@@ -170,6 +171,8 @@ serve(async (req: Request): Promise<Response> => {
       const maxRetries =
         jobType === "book_generate_chapter" || jobType === "book_generate_section"
           ? 10
+          : jobType === "book_normalize_voice"
+            ? 6
           : jobType.startsWith("book_generate_")
             ? 6
             : null;

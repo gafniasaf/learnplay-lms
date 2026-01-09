@@ -339,6 +339,17 @@
       "prompt_template": "Generate a glossary / begrippenlijst for a canonical book version. Return JSON {\"bookId\": string, \"bookVersionId\": string}."
     },
     {
+      "id": "book_normalize_voice",
+      "target_entity": "BookVersion",
+      "execution_mode": "async",
+      "ui": {
+        "label": "Normalize Voice (N3 style)",
+        "icon": "Sparkles",
+        "placement": "admin"
+      },
+      "prompt_template": "Rewrite the generated book content to match the N3 (student-friendly) voice while preserving structure and correctness. Return JSON {\"bookId\": string, \"bookVersionId\": string}."
+    },
+    {
       "id": "draft_assignment_plan",
       "target_entity": "Assignment",
       "execution_mode": "synchronous",

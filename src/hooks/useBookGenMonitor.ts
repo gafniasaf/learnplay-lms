@@ -184,6 +184,10 @@ export function useBookGenMonitor() {
       })) as BookListResponse;
       if ((res as any)?.ok !== true) throw new Error((res as any)?.error?.message || "Failed to load books");
       setBooks((res as any).books || []);
+    } catch (e) {
+      // Never let transient Edge/network errors crash the monitor UI.
+      console.warn("[useBookGenMonitor] loadBooks failed:", e);
+      setBooks([]);
     } finally {
       setLoading(false);
     }
@@ -213,6 +217,9 @@ export function useBookGenMonitor() {
         const v = bestVersion(vs);
         if (v?.book_version_id) setSelectedBookVersionId(v.book_version_id);
       }
+    } catch (e) {
+      console.warn("[useBookGenMonitor] loadVersions failed:", e);
+      setVersions([]);
     } finally {
       setLoading(false);
     }
@@ -313,13 +320,19 @@ export function useBookGenMonitor() {
       setJobs([]);
       return;
     }
-    const res = (await mcp.listJobs({ sinceHours: 72, limit: 200 })) as ListJobsResponse;
+    let res: ListJobsResponse | null = null;
+    try {
+      res = (await mcp.listJobs({ sinceHours: 72, limit: 200 })) as ListJobsResponse;
+    } catch (e) {
+      console.warn("[useBookGenMonitor] loadJobs failed:", e);
+      return;
+    }
     if ((res as any)?.ok !== true) return;
 
     const all = (res as any).jobs || [];
     const filtered = all.filter((j: AgentJobRow) => {
       const jt = safeStr(j.job_type);
-      if (!jt.startsWith("book_generate_")) return false;
+      if (!(jt.startsWith("book_generate_") || jt === "book_normalize_voice")) return false;
       const p = j.payload || {};
       return safeStr(p.bookId) === bookId && safeStr(p.bookVersionId) === bookVersionId;
     });
@@ -327,8 +340,10 @@ export function useBookGenMonitor() {
 
     // Pick an active chapter job to show logs for (prefer in_progress, else queued)
     const chapterJobs = filtered.filter((j) => j.job_type === "book_generate_chapter");
-    const inProgress = chapterJobs.find((j) => j.status === "in_progress");
-    const queued = chapterJobs.find((j) => j.status === "queued");
+    const voiceJobs = filtered.filter((j) => j.job_type === "book_normalize_voice");
+
+    const inProgress = chapterJobs.find((j) => j.status === "in_progress") || voiceJobs.find((j) => j.status === "in_progress");
+    const queued = chapterJobs.find((j) => j.status === "queued") || voiceJobs.find((j) => j.status === "queued");
     const next = inProgress?.id || queued?.id || "";
     setActiveJobId(next);
   }, [mcp, selectedBookId, selectedBookVersionId]);
@@ -339,9 +354,15 @@ export function useBookGenMonitor() {
       setEvents([]);
       return;
     }
-    const res = (await mcp.callGet("lms.getJob", { id, eventsLimit: "100" })) as GetJobResponse;
-    if ((res as any)?.ok !== true) return;
-    setEvents(Array.isArray((res as any).events) ? (res as any).events : []);
+    try {
+      const res = (await mcp.callGet("lms.getJob", { id, eventsLimit: "100" })) as GetJobResponse;
+      if ((res as any)?.ok !== true) return;
+      setEvents(Array.isArray((res as any).events) ? (res as any).events : []);
+    } catch (e) {
+      console.warn("[useBookGenMonitor] loadEvents failed:", e);
+      // Keep previous events; do not crash.
+      return;
+    }
   }, [mcp, activeJobId]);
 
   const loadControl = useCallback(async () => {

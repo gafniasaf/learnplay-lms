@@ -39,6 +39,27 @@ function truncate(s: string, max: number): string {
   return t.slice(0, max);
 }
 
+function isTransientNetworkError(e: unknown): boolean {
+  const msg =
+    e instanceof Error
+      ? e.message
+      : (e && typeof e === "object" && "message" in e && typeof (e as any).message === "string")
+        ? String((e as any).message)
+        : String(e || "");
+  const m = msg.toLowerCase();
+  return (
+    m.includes("connection reset") ||
+    m.includes("connection error") ||
+    m.includes("connection lost") ||
+    m.includes("network connection lost") ||
+    m.includes("econnreset") ||
+    m.includes("sendrequest") ||
+    m.includes("timed out") ||
+    m.includes("timeout") ||
+    m.includes("network")
+  );
+}
+
 type ControlAction = "get" | "pause" | "resume" | "cancel" | "reset";
 
 serve(async (req: Request): Promise<Response> => {
@@ -139,7 +160,16 @@ serve(async (req: Request): Promise<Response> => {
         .maybeSingle();
 
       if (ctrlErr) {
-        return json({ ok: false, error: { code: "db_error", message: ctrlErr.message }, httpStatus: 500, requestId }, 200);
+        const transient = isTransientNetworkError(ctrlErr);
+        return json(
+          {
+            ok: false,
+            error: { code: transient ? "transient_network" : "db_error", message: ctrlErr.message },
+            httpStatus: transient ? 503 : 500,
+            requestId,
+          },
+          200,
+        );
       }
 
       return json(
@@ -163,7 +193,16 @@ serve(async (req: Request): Promise<Response> => {
       .maybeSingle();
 
     if (currentErr) {
-      return json({ ok: false, error: { code: "db_error", message: currentErr.message }, httpStatus: 500, requestId }, 200);
+      const transient = isTransientNetworkError(currentErr);
+      return json(
+        {
+          ok: false,
+          error: { code: transient ? "transient_network" : "db_error", message: currentErr.message },
+          httpStatus: transient ? 503 : 500,
+          requestId,
+        },
+        200,
+      );
     }
 
     const hasRow = !!current;
@@ -218,14 +257,32 @@ serve(async (req: Request): Promise<Response> => {
       .single();
 
     if (saveErr || !saved) {
-      return json({ ok: false, error: { code: "db_error", message: saveErr?.message || "Failed to save control state" }, httpStatus: 500, requestId }, 200);
+      const transient = isTransientNetworkError(saveErr);
+      return json(
+        {
+          ok: false,
+          error: { code: transient ? "transient_network" : "db_error", message: saveErr?.message || "Failed to save control state" },
+          httpStatus: transient ? 503 : 500,
+          requestId,
+        },
+        200,
+      );
     }
 
     return json({ ok: true, bookId, bookVersionId, control: saved, requestId }, 200);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     console.error(`[book-generation-control] Unhandled error (${requestId}):`, message);
-    return json({ ok: false, error: { code: "internal_error", message }, httpStatus: 500, requestId }, 200);
+    const transient = isTransientNetworkError(error);
+    return json(
+      {
+        ok: false,
+        error: { code: transient ? "transient_network" : "internal_error", message },
+        httpStatus: transient ? 503 : 500,
+        requestId,
+      },
+      200,
+    );
   }
 });
 

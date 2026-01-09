@@ -12,6 +12,57 @@ if (!SUPABASE_URL || !SERVICE_ROLE_KEY) {
 
 const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
 
+function safeStr(v: unknown): string {
+  return typeof v === "string" ? v : "";
+}
+
+function jsonOk(req: Request, body: unknown): Response {
+  // IMPORTANT: avoid non-200 responses to prevent blank screens in preview environments.
+  return new Response(JSON.stringify(body), {
+    status: 200,
+    headers: stdHeaders(req, { "Content-Type": "application/json" }),
+  });
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function isTransientNetworkError(e: unknown): boolean {
+  const msg =
+    e instanceof Error
+      ? e.message
+      : (e && typeof e === "object" && "message" in e && typeof (e as any).message === "string")
+        ? String((e as any).message)
+        : String(e || "");
+  const m = msg.toLowerCase();
+  return (
+    m.includes("connection reset") ||
+    m.includes("connection error") ||
+    m.includes("connection lost") ||
+    m.includes("network") ||
+    m.includes("econnreset") ||
+    m.includes("sendrequest") ||
+    m.includes("timed out") ||
+    m.includes("timeout")
+  );
+}
+
+async function withRetry<T>(fn: () => Promise<T>, attempts = 3): Promise<T> {
+  const max = Math.min(5, Math.max(1, Math.floor(attempts)));
+  let lastErr: unknown = null;
+  for (let i = 1; i <= max; i++) {
+    try {
+      return await fn();
+    } catch (e) {
+      lastErr = e;
+      if (!isTransientNetworkError(e) || i === max) break;
+      await sleep(150 * i);
+    }
+  }
+  throw lastErr;
+}
+
 function isMissingEventsTable(err: unknown): boolean {
   const msg =
     typeof (err as any)?.message === "string"
@@ -32,12 +83,14 @@ async function tryLoadCourseJobEvents(jobId: string, limit: number): Promise<any
   const safeLimit = Math.min(200, Math.max(1, Math.floor(limit)));
 
   try {
-    const { data: events, error } = await supabase
-      .from("job_events")
-      .select("*")
-      .eq("job_id", jobId)
-      .order("created_at", { ascending: true })
-      .limit(safeLimit);
+    const { data: events, error } = await withRetry(() =>
+      supabase
+        .from("job_events")
+        .select("id,job_id,seq,step,status,progress,message,meta,created_at")
+        .eq("job_id", jobId)
+        .order("created_at", { ascending: true })
+        .limit(safeLimit),
+    );
     if (error) {
       if (isMissingEventsTable(error)) return [];
       throw error;
@@ -54,12 +107,14 @@ async function tryLoadAgentJobEvents(jobId: string, limit: number): Promise<any[
   const safeLimit = Math.min(200, Math.max(1, Math.floor(limit)));
 
   try {
-    const { data: events, error } = await supabase
-      .from("agent_job_events")
-      .select("*")
-      .eq("job_id", jobId)
-      .order("created_at", { ascending: true })
-      .limit(safeLimit);
+    const { data: events, error } = await withRetry(() =>
+      supabase
+        .from("agent_job_events")
+        .select("id,job_id,seq,step,status,progress,message,meta,created_at")
+        .eq("job_id", jobId)
+        .order("created_at", { ascending: true })
+        .limit(safeLimit),
+    );
     if (error) {
       if (isMissingEventsTable(error)) return [];
       throw error;
@@ -88,14 +143,18 @@ async function tryDownloadJson(path: string): Promise<unknown | null> {
 }
 
 serve(async (req: Request): Promise<Response> => {
+  const requestId = req.headers.get("x-request-id") || crypto.randomUUID();
+
   if (req.method === "OPTIONS") {
     return handleOptions(req, "get-job");
   }
 
   if (req.method !== "GET") {
-    return new Response("Method Not Allowed", {
-      status: 405,
-      headers: stdHeaders(req),
+    return jsonOk(req, {
+      ok: false,
+      error: { code: "method_not_allowed", message: "Method Not Allowed" },
+      httpStatus: 405,
+      requestId,
     });
   }
 
@@ -105,9 +164,11 @@ serve(async (req: Request): Promise<Response> => {
   const includeArtifacts =
     (url.searchParams.get("includeArtifacts") || url.searchParams.get("include_artifacts")) === "true";
   if (!id) {
-    return new Response(JSON.stringify({ error: "id is required" }), {
-      status: 400,
-      headers: stdHeaders(req, { "Content-Type": "application/json" }),
+    return jsonOk(req, {
+      ok: false,
+      error: { code: "invalid_request", message: "id is required" },
+      httpStatus: 400,
+      requestId,
     });
   }
 
@@ -116,15 +177,31 @@ serve(async (req: Request): Promise<Response> => {
     auth = await authenticateRequest(req);
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unauthorized";
-    return new Response(
-      JSON.stringify({ error: message }),
-      { status: message === "Missing organization_id" ? 400 : 401, headers: stdHeaders(req, { "Content-Type": "application/json" }) }
-    );
+    return jsonOk(req, {
+      ok: false,
+      error: {
+        code: message === "Missing organization_id" ? "missing_organization_id" : "unauthorized",
+        message,
+      },
+      httpStatus: message === "Missing organization_id" ? 400 : 401,
+      requestId,
+    });
   }
 
   // Require org context for consistency across Edge functions (even if some legacy tables
   // don't have organization_id columns in PostgREST schema cache yet).
-  const organizationId = requireOrganizationId(auth);
+  let organizationId = "";
+  try {
+    organizationId = requireOrganizationId(auth);
+  } catch (e) {
+    const message = e instanceof Error ? e.message : "Missing organization_id";
+    return jsonOk(req, {
+      ok: false,
+      error: { code: "missing_organization_id", message },
+      httpStatus: 400,
+      requestId,
+    });
+  }
 
   // Prefer ai_course_jobs (current pipeline), fall back to ai_agent_jobs (legacy).
   let job: any | null = null;
@@ -143,12 +220,41 @@ serve(async (req: Request): Promise<Response> => {
     courseQuery = courseQuery.eq("created_by", auth.userId);
   }
 
-  const { data: courseJob, error: courseErr } = await courseQuery.maybeSingle();
+  let courseJob: any | null = null;
+  let courseErr: any | null = null;
+  try {
+    const res = await withRetry(() => courseQuery.maybeSingle());
+    courseJob = (res as any)?.data ?? null;
+    courseErr = (res as any)?.error ?? null;
+  } catch (e) {
+    if (isTransientNetworkError(e)) {
+      const message = e instanceof Error ? e.message : String(e || "Network connection lost");
+      return jsonOk(req, {
+        ok: false,
+        error: { code: "transient_network", message: message || "Network connection lost" },
+        httpStatus: 503,
+        requestId,
+      });
+    }
+    const message = e instanceof Error ? e.message : String(e || "Unknown error");
+    return jsonOk(req, {
+      ok: false,
+      error: { code: "internal_error", message },
+      httpStatus: 500,
+      requestId,
+    });
+  }
 
   if (courseErr && (courseErr as any)?.code !== "PGRST116") {
-    return new Response(JSON.stringify({ error: courseErr.message }), {
-      status: 500,
-      headers: stdHeaders(req, { "Content-Type": "application/json" }),
+    const isTransient = isTransientNetworkError(courseErr);
+    return jsonOk(req, {
+      ok: false,
+      error: {
+        code: isTransient ? "transient_network" : "upstream_error",
+        message: safeStr((courseErr as any)?.message) || "Failed to load course job",
+      },
+      httpStatus: isTransient ? 503 : 502,
+      requestId,
     });
   }
 
@@ -161,12 +267,43 @@ serve(async (req: Request): Promise<Response> => {
       .select("*")
       .eq("id", id);
 
-    const { data: agentJob, error: agentErr } = await agentQuery.maybeSingle();
+    let agentJob: any | null = null;
+    let agentErr: any | null = null;
+    try {
+      const res = await withRetry(() => agentQuery.maybeSingle());
+      agentJob = (res as any)?.data ?? null;
+      agentErr = (res as any)?.error ?? null;
+    } catch (e) {
+      if (isTransientNetworkError(e)) {
+        const message = e instanceof Error ? e.message : String(e || "Network connection lost");
+        return jsonOk(req, {
+          ok: false,
+          error: { code: "transient_network", message: message || "Network connection lost" },
+          httpStatus: 503,
+          requestId,
+        });
+      }
+      const message = e instanceof Error ? e.message : String(e || "Unknown error");
+      return jsonOk(req, {
+        ok: false,
+        error: { code: "internal_error", message },
+        httpStatus: 500,
+        requestId,
+      });
+    }
 
     if (agentErr) {
-      return new Response(JSON.stringify({ error: agentErr.message }), {
-        status: (agentErr as any)?.code === "PGRST116" ? 404 : 500,
-        headers: stdHeaders(req, { "Content-Type": "application/json" }),
+      const isNotFound = (agentErr as any)?.code === "PGRST116";
+      const isTransient = isTransientNetworkError(agentErr);
+      const message = safeStr((agentErr as any)?.message) || (isNotFound ? "Job not found" : "Failed to load job");
+      return jsonOk(req, {
+        ok: false,
+        error: {
+          code: isTransient ? "transient_network" : isNotFound ? "not_found" : "upstream_error",
+          message,
+        },
+        httpStatus: isTransient ? 503 : isNotFound ? 404 : 502,
+        requestId,
       });
     }
 
@@ -176,9 +313,11 @@ serve(async (req: Request): Promise<Response> => {
       if (auth.type === "user") {
         const jobOrgId = (agentJob as any).organization_id as string | null | undefined;
         if (!jobOrgId || jobOrgId !== organizationId) {
-          return new Response(JSON.stringify({ error: "Job not found" }), {
-            status: 404,
-            headers: stdHeaders(req, { "Content-Type": "application/json" }),
+          return jsonOk(req, {
+            ok: false,
+            error: { code: "not_found", message: "Job not found" },
+            httpStatus: 404,
+            requestId,
           });
         }
       }
@@ -188,9 +327,11 @@ serve(async (req: Request): Promise<Response> => {
   }
 
   if (!job) {
-    return new Response(JSON.stringify({ error: "Job not found" }), {
-      status: 404,
-      headers: stdHeaders(req, { "Content-Type": "application/json" }),
+    return jsonOk(req, {
+      ok: false,
+      error: { code: "not_found", message: "Job not found" },
+      httpStatus: 404,
+      requestId,
     });
   }
 
@@ -200,9 +341,33 @@ serve(async (req: Request): Promise<Response> => {
     if (Number.isFinite(n)) eventsLimit = Math.max(0, Math.floor(n));
   }
   const events =
-    jobSource === "ai_agent_jobs"
-      ? await tryLoadAgentJobEvents(id, eventsLimit)
-      : await tryLoadCourseJobEvents(id, eventsLimit);
+    await (async () => {
+      try {
+        return jobSource === "ai_agent_jobs"
+          ? await tryLoadAgentJobEvents(id, eventsLimit)
+          : await tryLoadCourseJobEvents(id, eventsLimit);
+      } catch (e) {
+        if (isTransientNetworkError(e)) {
+          const message = e instanceof Error ? e.message : String(e || "Network connection lost");
+          return jsonOk(req, {
+            ok: false,
+            error: { code: "transient_network", message: message || "Network connection lost" },
+            httpStatus: 503,
+            requestId,
+          });
+        }
+        const message = e instanceof Error ? e.message : String(e || "Unknown error");
+        return jsonOk(req, {
+          ok: false,
+          error: { code: "internal_error", message },
+          httpStatus: 500,
+          requestId,
+        });
+      }
+    })();
+
+  // If the events loader returned a Response (transient/internal), return it directly.
+  if (events instanceof Response) return events;
 
   let artifacts: Record<string, unknown> | undefined = undefined;
   if (includeArtifacts) {
@@ -216,8 +381,5 @@ serve(async (req: Request): Promise<Response> => {
     };
   }
 
-  return new Response(JSON.stringify({ ok: true, job, events, jobSource, ...(artifacts ? { artifacts } : {}) }), {
-    status: 200,
-    headers: stdHeaders(req, { "Content-Type": "application/json" }),
-  });
+  return jsonOk(req, { ok: true, job, events, jobSource, ...(artifacts ? { artifacts } : {}), requestId });
 });

@@ -21,7 +21,12 @@ function sleep(ms: number): Promise<void> {
 }
 
 function isTransientNetworkError(e: unknown): boolean {
-  const msg = e instanceof Error ? e.message : String(e || "");
+  const msg =
+    e instanceof Error
+      ? e.message
+      : (e && typeof e === "object" && "message" in e && typeof (e as any).message === "string")
+        ? String((e as any).message)
+        : String(e || "");
   const m = msg.toLowerCase();
   return (
     m.includes("connection reset") ||
@@ -178,10 +183,11 @@ serve(async (req: Request): Promise<Response> => {
     if (lastErr) {
       const msg = lastErr instanceof Error ? lastErr.message : String(lastErr || "Unknown error");
       // Lovable-safe: never throw/500 here; report as ok:false so UI can keep rendering.
+      const transient = isTransientNetworkError(lastErr);
       return jsonOk(req, {
         ok: false,
-        error: { code: "upstream_error", message: msg },
-        httpStatus: 502,
+        error: { code: transient ? "transient_network" : "upstream_error", message: msg },
+        httpStatus: transient ? 503 : 502,
         requestId,
       });
     }
