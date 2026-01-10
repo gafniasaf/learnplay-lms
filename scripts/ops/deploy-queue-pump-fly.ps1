@@ -141,6 +141,14 @@ function Ensure-Flyctl() {
   exit 1
 }
 
+function Run-Fly([string[]]$Args, [string]$Desc) {
+  & flyctl @Args
+  if ($LASTEXITCODE -ne 0) {
+    Write-Error "BLOCKED: $Desc failed (exit code $LASTEXITCODE)"
+    exit 1
+  }
+}
+
 function New-TmpDir([string]$Path) {
   if (-not (Test-Path $Path)) { New-Item -ItemType Directory -Path $Path | Out-Null }
 }
@@ -188,31 +196,28 @@ $template = Join-Path $PSScriptRoot "..\\..\\queue-pump\\fly.template.toml"
 $flyToml = Join-Path $tmpDir "fly.queue-pump.generated.toml"
 Replace-Template -TemplatePath $template -OutPath $flyToml -App $AppName -Reg $Region
 
-# Create app if it doesn't exist (idempotent).
-try {
-  flyctl apps create $AppName | Out-Null
+# Create app if it doesn't exist (idempotent) — fail loud if the name is taken.
+& flyctl apps create $AppName | Out-Null
+if ($LASTEXITCODE -eq 0) {
   Write-Host "[fly] Created app: $AppName"
-} catch {
-  # If creation fails, ensure the app is still accessible (name might be taken).
-  try {
-    flyctl apps show -a $AppName | Out-Null
+} else {
+  # If create fails, ensure the app is still accessible (name might be taken).
+  & flyctl apps show -a $AppName | Out-Null
+  if ($LASTEXITCODE -eq 0) {
     Write-Host "[fly] Using existing app: $AppName"
-  } catch {
+  } else {
     Write-Error "BLOCKED: Could not create or access Fly app '$AppName'. The name may be taken. Set a different FLY_APP_NAME and retry."
     exit 1
   }
 }
 
 # Set required runtime secrets (do NOT echo values).
-flyctl secrets set -a $AppName `
-  SUPABASE_URL="$supabaseUrl" `
-  AGENT_TOKEN="$agentToken" `
-  ORGANIZATION_ID="$orgId" | Out-Null
+Run-Fly -Args @("secrets","set","-a",$AppName, "SUPABASE_URL=$supabaseUrl", "AGENT_TOKEN=$agentToken", "ORGANIZATION_ID=$orgId") -Desc "flyctl secrets set"
 
 Write-Host "[fly] Secrets set (SUPABASE_URL, AGENT_TOKEN, ORGANIZATION_ID)"
 
 # Deploy worker.
-flyctl deploy -a $AppName -c $flyToml
+Run-Fly -Args @("deploy","-a",$AppName,"-c",$flyToml) -Desc "flyctl deploy"
 
 Write-Host "[fly] Deploy complete. To view logs: flyctl logs -a $AppName"
 
