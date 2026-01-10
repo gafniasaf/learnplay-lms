@@ -202,7 +202,7 @@ if ($LASTEXITCODE -eq 0) {
   Write-Host "[fly] Created app: $AppName"
 } else {
   # If create fails, ensure the app is still accessible (name might be taken).
-  & flyctl apps show -a $AppName | Out-Null
+  & flyctl status -a $AppName | Out-Null
   if ($LASTEXITCODE -eq 0) {
     Write-Host "[fly] Using existing app: $AppName"
   } else {
