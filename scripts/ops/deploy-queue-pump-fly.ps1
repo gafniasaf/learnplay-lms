@@ -37,7 +37,7 @@ function Load-KeyValueEnvFile([string]$FilePath) {
 
 function Load-RawFlyTokenFile([string]$FilePath) {
   if (-not (Test-Path $FilePath)) { return }
-  $existing = [string]($env:FLY_API_TOKEN)
+  $existing = [string]([Environment]::GetEnvironmentVariable("FLY_API_TOKEN"))
   if ($existing -and $existing.Trim()) { return }
   try {
     $raw = Get-Content -Raw -Path $FilePath -ErrorAction Stop
@@ -61,13 +61,35 @@ function Load-RawFlyTokenFile([string]$FilePath) {
     }
     if (-not $line) { return }
 
-    # Some UIs copy multiple tokens separated by commas; keep the first one.
+    # Some UIs copy multiple tokens separated by commas; pick the first usable token.
+    $candidates = @($line)
     if ($line.Contains(",")) {
-      $line = $line.Split(",", 2)[0].Trim()
+      $candidates = $line.Split(",") | ForEach-Object { [string]($_.Trim()) } | Where-Object { $_ -and $_.Trim() }
     }
 
-    if ($line.Length -lt 20) { return }
-    $env:FLY_API_TOKEN = $line
+    $picked = $null
+    foreach ($cand0 in $candidates) {
+      $cand = [string]$cand0
+      if (-not $cand) { continue }
+      $cand = $cand.Trim()
+      if (-not $cand) { continue }
+
+      # Common copy format: "FlyV1 fm2_...". FLY_API_TOKEN expects the token value (fm2_...).
+      if ($cand -match '^(?i)FlyV1\\s+') {
+        $cand = ($cand -replace '^(?i)FlyV1\\s+', '').Trim()
+      }
+
+      if ($cand -match '^fm2_') {
+        $picked = $cand
+        break
+      }
+      if (-not $picked -and $cand.Length -ge 20) {
+        $picked = $cand
+      }
+    }
+
+    if (-not $picked -or $picked.Length -lt 20) { return }
+    [Environment]::SetEnvironmentVariable("FLY_API_TOKEN", $picked, 'Process')
   } catch {
     # ignore
   }
@@ -131,7 +153,8 @@ function Replace-Template([string]$TemplatePath, [string]$OutPath, [string]$App,
   $raw = Get-Content -Raw -Path $TemplatePath
   $raw = $raw.Replace('REPLACE_ME_APP', $App)
   $raw = $raw.Replace('REPLACE_ME_REGION', $Reg)
-  Set-Content -Path $OutPath -Value $raw -Encoding UTF8
+  # IMPORTANT: Write UTF-8 WITHOUT BOM (PowerShell 5.1 Set-Content UTF8 writes BOM, which breaks fly.toml parsing).
+  [System.IO.File]::WriteAllText($OutPath, $raw, (New-Object System.Text.UTF8Encoding($false)))
 }
 
 # Attempt to resolve required values from local env files (silently; never prints secrets).
