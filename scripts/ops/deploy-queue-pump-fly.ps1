@@ -35,6 +35,44 @@ function Load-KeyValueEnvFile([string]$FilePath) {
   }
 }
 
+function Load-RawFlyTokenFile([string]$FilePath) {
+  if (-not (Test-Path $FilePath)) { return }
+  $existing = [string]($env:FLY_API_TOKEN)
+  if ($existing -and $existing.Trim()) { return }
+  try {
+    $raw = Get-Content -Raw -Path $FilePath -ErrorAction Stop
+    if (-not $raw) { return }
+    $raw = $raw.Trim()
+    if (-not $raw) { return }
+
+    # If the file is key=value, let the normal parser handle it.
+    if ($raw -match "(?m)^\\s*FLY_API_TOKEN\\s*=") { return }
+
+    # Otherwise treat the first non-empty, non-comment line as the token.
+    $line = $null
+    foreach ($l in ($raw -split \"`n\")) {
+      $t = [string]$l
+      if (-not $t) { continue }
+      $t = $t.Trim()
+      if (-not $t) { continue }
+      if ($t.StartsWith("#")) { continue }
+      $line = $t
+      break
+    }
+    if (-not $line) { return }
+
+    # Some UIs copy multiple tokens separated by commas; keep the first one.
+    if ($line.Contains(",")) {
+      $line = $line.Split(",", 2)[0].Trim()
+    }
+
+    if ($line.Length -lt 20) { return }
+    $env:FLY_API_TOKEN = $line
+  } catch {
+    # ignore
+  }
+}
+
 function Load-LocalEnvFiles([string]$RepoRoot) {
   $candidates = @(
     (Join-Path $RepoRoot "supabase\\.deploy.env"),
@@ -42,9 +80,19 @@ function Load-LocalEnvFiles([string]$RepoRoot) {
     (Join-Path $RepoRoot ".env"),
     (Join-Path $RepoRoot ".env.local"),
     (Join-Path $RepoRoot ".env.development"),
-    (Join-Path $RepoRoot ".env.production")
+    (Join-Path $RepoRoot ".env.production"),
+    # Optional local-only token file for Fly (gitignored by *.env)
+    (Join-Path $RepoRoot "flytoken.env")
   )
   foreach ($f in $candidates) { Load-KeyValueEnvFile $f }
+
+  # Optional override: explicitly point to a fly token env file.
+  if ($env:FLY_ENV_PATH -and $env:FLY_ENV_PATH.Trim() -and (Test-Path $env:FLY_ENV_PATH)) {
+    Load-KeyValueEnvFile $env:FLY_ENV_PATH
+    Load-RawFlyTokenFile $env:FLY_ENV_PATH
+  }
+  # Support raw-token style flytoken.env as well.
+  Load-RawFlyTokenFile (Join-Path $RepoRoot "flytoken.env")
 
   # Normalize common aliases.
   if ($env:SUPABASE_URL -and (-not $env:VITE_SUPABASE_URL -or -not $env:VITE_SUPABASE_URL.Trim())) {
@@ -122,7 +170,14 @@ try {
   flyctl apps create $AppName | Out-Null
   Write-Host "[fly] Created app: $AppName"
 } catch {
-  Write-Host "[fly] App may already exist: $AppName (continuing)"
+  # If creation fails, ensure the app is still accessible (name might be taken).
+  try {
+    flyctl apps show -a $AppName | Out-Null
+    Write-Host "[fly] Using existing app: $AppName"
+  } catch {
+    Write-Error "BLOCKED: Could not create or access Fly app '$AppName'. The name may be taken. Set a different FLY_APP_NAME and retry."
+    exit 1
+  }
 }
 
 # Set required runtime secrets (do NOT echo values).
