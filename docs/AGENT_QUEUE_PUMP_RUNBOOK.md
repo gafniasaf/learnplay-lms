@@ -57,6 +57,40 @@ docker logs -f ignitezero-agent-queue-pump
 docker compose -f docker-compose.queue-pump.yml down
 ```
 
+## Option B: Fly.io (managed always-on machine)
+
+This is the simplest “no-SSH” option, but requires:
+- A Fly.io account with billing enabled
+- `flyctl` installed
+- A `FLY_API_TOKEN` (do NOT paste it in chat; set it as an env var / secret file locally)
+
+### Deploy
+
+1) Set required env vars in your shell (or in a local secret env file you do not commit):
+- `FLY_API_TOKEN`
+- `FLY_APP_NAME` (must be globally unique, e.g. `ignitezero-queue-pump-yourname`)
+- `SUPABASE_URL`
+- `AGENT_TOKEN`
+- `ORGANIZATION_ID`
+
+2) Install `flyctl` (official installer):
+
+```powershell
+iwr https://fly.io/install.ps1 -useb | iex
+```
+
+3) Run the deploy script:
+
+```powershell
+.\scripts\ops\deploy-queue-pump-fly.ps1
+```
+
+4) Watch logs:
+
+```powershell
+flyctl logs -a $env:FLY_APP_NAME
+```
+
 ## Option B: Run as a plain Node process (no Docker)
 
 If you have Node 18+ installed:

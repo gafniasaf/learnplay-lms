@@ -1,0 +1,16 @@
+app = "REPLACE_ME_APP"
+primary_region = "REPLACE_ME_REGION"
+
+[build]
+  dockerfile = "queue-pump/Dockerfile"
+
+[processes]
+  # No inbound service; this is a background worker loop.
+  worker = "node worker.mjs"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "256mb"
+  processes = ["worker"]
+
+
