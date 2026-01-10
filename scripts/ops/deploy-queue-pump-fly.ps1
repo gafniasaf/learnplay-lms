@@ -22,12 +22,12 @@ function Load-KeyValueEnvFile([string]$FilePath) {
       if (-not $k) { continue }
       if (-not $v) { continue }
       # Strip surrounding quotes (best-effort)
-      if ($v.StartsWith("\"") -and $v.EndsWith("\"")) { $v = $v.Substring(1, $v.Length - 2) }
+      if ($v.StartsWith('"') -and $v.EndsWith('"')) { $v = $v.Substring(1, $v.Length - 2) }
       if ($v.StartsWith("'") -and $v.EndsWith("'")) { $v = $v.Substring(1, $v.Length - 2) }
 
-      $existing = [string]($env:$k)
+      $existing = [string]([Environment]::GetEnvironmentVariable($k))
       if (-not $existing -or -not $existing.Trim()) {
-        $env:$k = $v
+        [Environment]::SetEnvironmentVariable($k, $v, 'Process')
       }
     }
   } catch {
@@ -50,7 +50,7 @@ function Load-RawFlyTokenFile([string]$FilePath) {
 
     # Otherwise treat the first non-empty, non-comment line as the token.
     $line = $null
-    foreach ($l in ($raw -split \"`n\")) {
+    foreach ($l in ($raw -split "`n")) {
       $t = [string]$l
       if (-not $t) { continue }
       $t = $t.Trim()
@@ -104,7 +104,7 @@ function Load-LocalEnvFiles([string]$RepoRoot) {
 }
 
 function Require-Env([string]$Name) {
-  $v = [string]($env:$Name)
+  $v = [string]([Environment]::GetEnvironmentVariable($Name))
   if (-not $v -or -not $v.Trim()) {
     Write-Error "BLOCKED: $Name is REQUIRED"
     exit 1
@@ -135,7 +135,7 @@ function Replace-Template([string]$TemplatePath, [string]$OutPath, [string]$App,
 }
 
 # Attempt to resolve required values from local env files (silently; never prints secrets).
-$repoRoot = Resolve-Path (Join-Path $PSScriptRoot "..\\..")
+$repoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..\\..")).Path
 Load-LocalEnvFiles $repoRoot
 
 # Required creds (do not print values)
