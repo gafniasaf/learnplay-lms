@@ -62,7 +62,10 @@ docker compose -f docker-compose.queue-pump.yml down
 This is the simplest “no-SSH” option, but requires:
 - A Fly.io account with billing enabled
 - `flyctl` installed
-- A `FLY_API_TOKEN` (do NOT paste it in chat; set it as an env var / secret file locally)
+- A `FLY_API_TOKEN` (**Personal Access Token / Organization token**, not “App Deploy Token”)
+  - If the Fly UI asks you to “select an app”, you’re creating an **App Deploy Token** — that won’t work until an app exists.
+  - Create a **Personal Access Token** instead (or use the “old Access Tokens” page link), then we will create the app via `flyctl`.
+  - Do NOT paste tokens in chat; set them in a local env file (gitignored) or in your shell.
 
 ### Deploy
 
