@@ -1,0 +1,21 @@
+services:
+  ignitezero-agent-queue-pump:
+    build:
+      context: .
+      dockerfile: queue-pump/Dockerfile
+    image: ignitezero-agent-queue-pump:latest
+    container_name: ignitezero-agent-queue-pump
+    restart: unless-stopped
+
+    environment:
+      SUPABASE_URL: ${SUPABASE_URL:?SUPABASE_URL is required}
+      AGENT_TOKEN: ${AGENT_TOKEN:?AGENT_TOKEN is required}
+      ORGANIZATION_ID: ${ORGANIZATION_ID:?ORGANIZATION_ID is required}
+
+      # Optional tuning:
+      QUEUE_PUMP_IDLE_SLEEP_MS: ${QUEUE_PUMP_IDLE_SLEEP_MS-}
+      QUEUE_PUMP_TICK_SLEEP_MS: ${QUEUE_PUMP_TICK_SLEEP_MS-}
+      QUEUE_PUMP_HTTP_TIMEOUT_MS: ${QUEUE_PUMP_HTTP_TIMEOUT_MS-}
+      QUEUE_PUMP_LOG_EVERY: ${QUEUE_PUMP_LOG_EVERY-}
+
+
