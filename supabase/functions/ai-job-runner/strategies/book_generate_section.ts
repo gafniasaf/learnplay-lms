@@ -324,6 +324,18 @@ async function llmGenerateJson(opts: {
 
   if (provider === "openai") {
     const key = requireEnv("OPENAI_API_KEY");
+    const response_format = tool?.input_schema
+      ? {
+          // Prefer strict schema enforcement when we have a locked-outline spec.
+          // This prevents valid-but-empty JSON like { title, blocks: [] } which repeatedly fails validation.
+          type: "json_schema",
+          json_schema: {
+            name: tool.name || "draft_book_section",
+            schema: tool.input_schema,
+            strict: true,
+          },
+        }
+      : { type: "json_object" };
     const resp = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
       headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
@@ -333,7 +345,7 @@ async function llmGenerateJson(opts: {
           { role: "system", content: system },
           { role: "user", content: prompt },
         ],
-        response_format: { type: "json_object" },
+        response_format,
         temperature: 0.4,
         max_tokens: maxTokens,
       }),
@@ -1433,6 +1445,7 @@ export class BookGenerateSection implements JobExecutor {
               system,
               prompt,
               maxTokens: Math.max(2200, Math.min(7000, Math.floor(sectionMaxTokens * 0.85))),
+              tool: buildDraftBookSectionToolSpec(requiredSubparagraphTitles),
             })) as DraftSection;
 
             validateAll(recovered);
