@@ -135,6 +135,34 @@ function buildDraftBookSectionToolSpec(requiredSubparagraphTitles: string[]): An
   };
 }
 
+function buildDraftNumberedSubparagraphToolSpec(requiredNumberedTitle: string): AnthropicToolSpec {
+  const title = normalizeWs(requiredNumberedTitle);
+  if (!title) {
+    throw new Error("BLOCKED: requiredNumberedTitle is missing for split subparagraph generation");
+  }
+  return {
+    name: "draft_numbered_subparagraph",
+    description:
+      "Return ONLY the numbered subparagraph JSON object: { title, blocks }. " +
+      "title MUST match the provided numbered subparagraph title exactly. " +
+      "blocks MUST be a non-empty DraftBlock[] (nested microheadings + paragraphs/lists/steps).",
+    input_schema: {
+      type: "object",
+      additionalProperties: true,
+      required: ["title", "blocks"],
+      properties: {
+        // Allow only the requested numbered title (prevents outline drift).
+        title: { type: "string", enum: [title] },
+        blocks: {
+          type: "array",
+          minItems: 1,
+          items: { type: "object", additionalProperties: true },
+        },
+      },
+    },
+  };
+}
+
 function requireEnv(name: string): string {
   const v = Deno.env.get(name);
   if (!v || typeof v !== "string" || !v.trim()) {
@@ -467,6 +495,103 @@ function renumberChapterImages(chapter: any, chapterNumber: number) {
   for (const s of sections) {
     walkBlocks(Array.isArray(s?.blocks) ? s.blocks : []);
   }
+}
+
+function convertDraftBlockToSkeletonBlock(opts: {
+  bookId: string;
+  chapterIndex: number;
+  sectionIndex: number;
+  keyParts: number[];
+  block: DraftBlock;
+}): any {
+  const { bookId, chapterIndex, sectionIndex, keyParts, block } = opts;
+  const chNum = chapterIndex + 1;
+
+  const toImages = (imgsRaw: any[], blockKey: string): SkeletonImage[] | null => {
+    if (!imgsRaw.length) return null;
+    const safeKey = String(blockKey || "").replace(/[^a-z0-9_]+/gi, "_");
+    return imgsRaw.slice(0, 6).map((img: any, ii: number) => {
+      const src = `figures/${bookId}/ch${chNum}/img_${safeKey}_${ii + 1}.png`;
+      return {
+        src,
+        alt: typeof img?.alt === "string" ? img.alt : null,
+        caption: typeof img?.caption === "string" ? img.caption : null,
+        // figureNumber is set later by renumberChapterImages()
+        layoutHint: typeof img?.layoutHint === "string" ? img.layoutHint : null,
+        suggestedPrompt: typeof img?.suggestedPrompt === "string" ? img.suggestedPrompt : null,
+      };
+    });
+  };
+
+  const convert = (b: any, kp: number[]): any => {
+    const t = typeof b?.type === "string" ? b.type : "";
+    const key = kp.join("_");
+    const blockId = `ch-${chNum}-b-${key}`;
+
+    if (t === "subparagraph") {
+      const title = typeof b?.title === "string" ? b.title.trim() : "";
+      const mNum = title.match(/^(\d+(?:\.\d+){2,})\s+/);
+      const numberedId = mNum ? String(mNum[1] || "").trim() : "";
+      const innerIn = Array.isArray(b?.blocks) ? b.blocks : [];
+      const innerBlocks = innerIn.slice(0, 20).map((ib: any, ii: number) => convert(ib, kp.concat([ii + 1])));
+      return {
+        type: "subparagraph",
+        ...(numberedId ? { id: numberedId } : {}),
+        title,
+        blocks: innerBlocks,
+      };
+    }
+
+    if (t === "paragraph") {
+      const imgsRaw = Array.isArray(b.images) ? b.images : [];
+      const images = toImages(imgsRaw, key);
+      const praktijkHtml = typeof b.praktijkHtml === "string"
+        ? ensureBoxLeadSpan(normalizeInlineHtml(b.praktijkHtml), { maxWords: 3 })
+        : null;
+      const verdiepingHtml = typeof b.verdiepingHtml === "string"
+        ? ensureBoxLeadSpan(normalizeInlineHtml(b.verdiepingHtml), { maxWords: 5 })
+        : null;
+      return {
+        type: "paragraph",
+        id: blockId,
+        basisHtml: normalizeInlineHtml(b.basisHtml),
+        ...(praktijkHtml ? { praktijkHtml } : {}),
+        ...(verdiepingHtml ? { verdiepingHtml } : {}),
+        ...(images ? { images } : {}),
+      };
+    }
+
+    if (t === "list") {
+      const imgsRaw = Array.isArray(b.images) ? b.images : [];
+      const images = toImages(imgsRaw, key);
+      return {
+        type: "list",
+        id: blockId,
+        ordered: b.ordered === true,
+        items: safeItems(b.items),
+        ...(images ? { images } : {}),
+      };
+    }
+
+    if (t === "steps") {
+      const imgsRaw = Array.isArray(b.images) ? b.images : [];
+      const images = toImages(imgsRaw, key);
+      return {
+        type: "steps",
+        id: blockId,
+        items: safeItems(b.items),
+        ...(images ? { images } : {}),
+      };
+    }
+
+    // Default to paragraph
+    return { type: "paragraph", id: blockId, basisHtml: normalizeInlineHtml((b as any)?.basisHtml ?? "") };
+  };
+
+  // keyParts for this section begin with [sectionIndex+1, ...] but are not otherwise used.
+  if (sectionIndex < 0) throw new Error("BLOCKED: sectionIndex must be >= 0");
+  if (!Array.isArray(keyParts) || keyParts.length < 2) throw new Error("BLOCKED: keyParts must include sectionIndex and block index");
+  return convert(block, keyParts);
 }
 
 function convertDraftBlocksToSkeletonSection(opts: {
@@ -808,6 +933,122 @@ function buildPrompt(opts: {
   );
 }
 
+function buildNumberedSubparagraphPrompt(opts: {
+  topic: string;
+  bookTitle: string;
+  chapterNumber: number;
+  sectionNumber: string;
+  sectionTitle: string;
+  numberedSubparagraphTitle: string;
+  requiredNumberedSubparagraphTitles: string[];
+  alreadyIntroducedTerms: string[];
+  userInstructions?: string | null;
+  language: string;
+  imagePromptLanguage: ImagePromptLanguage;
+  layoutProfile: ChapterLayoutProfile;
+  microheadingDensity: MicroheadingDensity;
+  requireImageSuggestion: boolean;
+  requirePraktijkBox: boolean;
+  requireVerdiepingBox: boolean;
+}) {
+  const langLabel = normalizeLanguageLabel(opts.language);
+  const imageLangLabel = opts.imagePromptLanguage === "book" ? langLabel : "English";
+  const requiredAll = Array.isArray(opts.requiredNumberedSubparagraphTitles)
+    ? opts.requiredNumberedSubparagraphTitles.map((t) => normalizeWs(t)).filter(Boolean).slice(0, 40)
+    : [];
+  const requiredText = requiredAll.length ? requiredAll.join(" | ") : "(none)";
+  const terms = Array.isArray(opts.alreadyIntroducedTerms)
+    ? opts.alreadyIntroducedTerms.map((t) => normalizeWs(t)).filter(Boolean).slice(0, 40)
+    : [];
+  const termsText = terms.length ? terms.join(", ") : "(none)";
+
+  const isWideOutline = requiredAll.length >= 8;
+  const microRule =
+    isWideOutline
+      ? (opts.microheadingDensity === "high" ? "1-2" : "0-1")
+      : (
+        opts.layoutProfile === "pass2"
+          ? (opts.microheadingDensity === "low" ? "1-2" : opts.microheadingDensity === "high" ? "3-4" : "2-3")
+          : opts.layoutProfile === "sparse"
+            ? (opts.microheadingDensity === "high" ? "1-2" : "0-1")
+            : (opts.microheadingDensity === "low" ? "0-1" : opts.microheadingDensity === "high" ? "2-3" : "1-2")
+      );
+  const paragraphRule =
+    isWideOutline
+      ? (opts.layoutProfile === "pass2" ? "2-3" : opts.layoutProfile === "sparse" ? "1-2" : "1-2")
+      : (
+        opts.layoutProfile === "pass2"
+          ? "3-5"
+          : opts.layoutProfile === "sparse"
+            ? "1-2"
+            : "2-4"
+      );
+  const imageRule = opts.requireImageSuggestion ? "1-2 (REQUIRED in this subparagraph)" : "0-1";
+  const boxRules = (() => {
+    if (opts.requirePraktijkBox && opts.requireVerdiepingBox) {
+      return (
+        "- Include EXACTLY ONE praktijkHtml paragraph AND EXACTLY ONE verdiepingHtml paragraph inside this numbered subparagraph.\n" +
+        "- Each box must start with <span class=\"box-lead\">...</span>.\n"
+      );
+    }
+    if (opts.requirePraktijkBox) {
+      return (
+        "- Include EXACTLY ONE praktijkHtml paragraph inside this numbered subparagraph.\n" +
+        "- praktijkHtml must start with <span class=\"box-lead\">...</span> and contain 2-4 short sentences.\n" +
+        "- Do NOT include verdiepingHtml anywhere in this numbered subparagraph.\n"
+      );
+    }
+    if (opts.requireVerdiepingBox) {
+      return (
+        "- Include EXACTLY ONE verdiepingHtml paragraph inside this numbered subparagraph.\n" +
+        "- verdiepingHtml must start with <span class=\"box-lead\">...</span> and contain 2-4 short sentences.\n" +
+        "- Do NOT include praktijkHtml anywhere in this numbered subparagraph.\n"
+      );
+    }
+    return (
+      "- Do NOT include praktijkHtml or verdiepingHtml anywhere in this numbered subparagraph.\n"
+    );
+  })();
+
+  return (
+    "Return JSON with this exact shape:\n" +
+    "{\n" +
+    '  \"title\": string,\n' +
+    '  \"blocks\": [ /* DraftBlock[] */ ]\n' +
+    "}\n\n" +
+    `Book title: ${opts.bookTitle}\n` +
+    `Topic: ${opts.topic}\n` +
+    `Chapter number: ${opts.chapterNumber}\n` +
+    `Section: ${opts.sectionNumber} ${opts.sectionTitle}\n` +
+    `Book language: ${opts.language} (${langLabel})\n` +
+    `Image suggestedPrompt language: ${imageLangLabel}\n` +
+    (opts.userInstructions ? `User instructions: ${opts.userInstructions}\n` : "") +
+    "\nCONTEXT (keep it consistent; avoid redundancy):\n" +
+    `- Already introduced key terms (avoid re-defining): ${termsText}\n\n` +
+    "\nFULL OUTLINE (for context; do NOT write these other parts now):\n" +
+    `- Required numbered subparagraph titles in this section: ${requiredText}\n\n` +
+    "YOU ARE WRITING ONLY THIS NUMBERED SUBPARAGRAPH:\n" +
+    `- title (MUST match exactly): ${normalizeWs(opts.numberedSubparagraphTitle)}\n\n` +
+    "Constraints:\n" +
+    "- title MUST match the numbered subparagraph title exactly.\n" +
+    "- blocks MUST be NON-EMPTY.\n" +
+    "- Do NOT create any numbered subparagraph titles inside blocks.\n" +
+    `- Add ${microRule} microheadings as nested subparagraph blocks (1-6 words).\n` +
+    "- Microheading titles MUST NOT contain punctuation characters: : ; ? !\n" +
+    `- Include ${paragraphRule} paragraph blocks (basisHtml) across the microheadings.\n` +
+    boxRules +
+    `- Include ${imageRule} image suggestions via images[].suggestedPrompt.\n` +
+    "- Place images on paragraph/list/steps blocks as: images: [{ suggestedPrompt: string, alt?: string, caption?: string, layoutHint?: string }]\n" +
+    `- suggestedPrompt MUST be written in ${imageLangLabel}.\n`
+    +
+    "\nWRITING STYLE (Dutch MBO textbook style):\n" +
+    "- Write in conversational, student-friendly Dutch. Address the reader as 'je' where natural.\n" +
+    "- Use simple, flowing sentences. Explain terms the first time (unless already introduced).\n" +
+    "- Use small concrete examples ('bijvoorbeeld').\n" +
+    "- Keep it practical; avoid academic tone.\n"
+  );
+}
+
 const NUMBERED_SUBPARA_TITLE_RE = /^\d+(?:\.\d+){2,}\s+/;
 
 function collectRequiredNumberedSubparagraphTitles(sectionRaw: any): string[] {
@@ -874,6 +1115,65 @@ function countDraftImages(blocksRaw: any[]): { total: number; withPrompt: number
 
   walk(blocksRaw);
   return { total, withPrompt };
+}
+
+function hasMeaningfulContent(blocksRaw: any[]): boolean {
+  const blocks = Array.isArray(blocksRaw) ? blocksRaw : [];
+
+  const walk = (raw: any[]): boolean => {
+    const arr = Array.isArray(raw) ? raw : [];
+    for (const b of arr) {
+      if (!b || typeof b !== "object") continue;
+      const t = String((b as any).type || "");
+      if (t === "paragraph") {
+        const basis = typeof (b as any).basisHtml === "string" ? String((b as any).basisHtml).trim() : "";
+        const text = basis.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+        if (text.length >= 20) return true;
+        const prak = typeof (b as any).praktijkHtml === "string" ? String((b as any).praktijkHtml).trim() : "";
+        const verd = typeof (b as any).verdiepingHtml === "string" ? String((b as any).verdiepingHtml).trim() : "";
+        if (prak || verd) return true;
+        continue;
+      }
+      if (t === "list" || t === "steps") {
+        const items = Array.isArray((b as any).items) ? (b as any).items : [];
+        if (items.some((x: any) => typeof x === "string" && x.trim().length >= 8)) return true;
+        continue;
+      }
+      if (t === "subparagraph") {
+        if (walk(Array.isArray((b as any).blocks) ? (b as any).blocks : [])) return true;
+      }
+    }
+    return false;
+  };
+
+  return walk(blocks);
+}
+
+function collectStrongTermsFromBlocks(blocksRaw: any[]): string[] {
+  const out: string[] = [];
+  const walk = (raw: any[]) => {
+    const blocks = Array.isArray(raw) ? raw : [];
+    for (const b of blocks) {
+      if (!b || typeof b !== "object") continue;
+      const t = String((b as any).type || "");
+      if (t === "paragraph") {
+        out.push(...extractStrongTerms((b as any).basisHtml));
+        out.push(...extractStrongTerms((b as any).praktijkHtml));
+        out.push(...extractStrongTerms((b as any).verdiepingHtml));
+        continue;
+      }
+      if (t === "list" || t === "steps") {
+        const items = Array.isArray((b as any).items) ? (b as any).items : [];
+        for (const it of items) out.push(...extractStrongTerms(it));
+        continue;
+      }
+      if (t === "subparagraph") {
+        walk(Array.isArray((b as any).blocks) ? (b as any).blocks : []);
+      }
+    }
+  };
+  walk(blocksRaw);
+  return out;
 }
 
 function hasBoxHtmlWithinNumberedSubparagraph(opts: {
@@ -1236,6 +1536,373 @@ export class BookGenerateSection implements JobExecutor {
     const { data: bookRow, error: bookErr } = await adminSupabase.from("books").select("title").eq("id", bookId).single();
     if (bookErr || !bookRow) throw new Error(bookErr?.message || "Book not found");
     const bookTitle = String((bookRow as any).title || "").trim();
+
+    // Split-mode (robustness): For heavy locked outlines, generate ONE numbered subparagraph at a time.
+    // This keeps each LLM call small enough to reliably complete within Edge timeouts and avoids stalling
+    // the whole section on a single long request.
+    const forceSplitLockedOutline = (p as any).splitLockedOutline === true;
+    const useSplitLockedOutline =
+      lockedOutline && requiredSubparagraphTitles.length > 0 && (forceSplitLockedOutline || requiredSubparagraphTitles.length >= 8);
+
+    if (useSplitLockedOutline) {
+      const sectionBlocksIn = Array.isArray((sectionRaw as any)?.blocks) ? (sectionRaw as any).blocks : [];
+      const required = requiredSubparagraphTitles.map((t) => normalizeWs(t)).filter(Boolean);
+      if (!required.length) throw new Error("BLOCKED: splitLockedOutline requires requiredSubparagraphTitles");
+
+      const requiredSet = new Set<string>(required);
+      const byTitle = new Map<string, any>();
+      const indexByTitle = new Map<string, number>();
+      for (let i = 0; i < sectionBlocksIn.length; i++) {
+        const b = sectionBlocksIn[i];
+        if (!b || typeof b !== "object") continue;
+        if (String((b as any).type || "") !== "subparagraph") continue;
+        const tRaw = typeof (b as any).title === "string" ? String((b as any).title) : "";
+        const t = normalizeWs(tRaw);
+        if (!t) continue;
+        if (!requiredSet.has(t)) continue;
+        byTitle.set(t, b);
+        indexByTitle.set(t, i);
+      }
+
+      const missingTitles = required.filter((t) => {
+        const b = byTitle.get(t);
+        if (!b) return true;
+        const inner = Array.isArray((b as any).blocks) ? (b as any).blocks : [];
+        return !hasMeaningfulContent(inner);
+      });
+      const doneCount = required.length - missingTitles.length;
+
+      // If everything is already filled, just validate + compile canonical and finish.
+      if (missingTitles.length === 0) {
+        const draftFromSkeleton: DraftSection = {
+          title: expectedSectionTitle || (typeof (sectionRaw as any)?.title === "string" ? String((sectionRaw as any).title) : `Section ${sectionId}`),
+          blocks: sectionBlocksIn as any,
+        };
+
+        // Final validation pass over the assembled skeleton blocks.
+        validateDraftSectionDensity({ draft: draftFromSkeleton, requiredSubparagraphTitles, layoutProfile, microheadingDensity });
+        assertTerminologyEmphasis({ draft: draftFromSkeleton, layoutProfile });
+        assertMicroheadingsAreSingleLevel({ draft: draftFromSkeleton, requiredSubparagraphTitles, layoutProfile, microheadingDensity });
+        assertBoxTargetsSatisfied({
+          draft: draftFromSkeleton,
+          requiredSubparagraphTitles,
+          praktijkTargets: lockedOutline ? praktijkTargets : null,
+          verdiepingTargets: lockedOutline ? verdiepingTargets : null,
+        });
+        if (requireImageSuggestion) {
+          const counts = countDraftImages(sectionBlocksIn);
+          if (counts.withPrompt < 1) {
+            throw new Error("BLOCKED: Draft missing image suggestions (need at least 1 images[].suggestedPrompt)");
+          }
+        }
+
+        const vFinal = validateBookSkeleton(sk);
+        if (!vFinal.ok) throw new Error(`BLOCKED: Updated skeleton validation failed (${vFinal.issues.length} issue(s))`);
+
+        await emitAgentJobEvent(jobId, "storage_write", 60, "Split-mode: saving skeleton + compiling canonical", {
+          skeletonPath,
+          splitMode: true,
+          chapterIndex,
+          sectionIndex,
+        }).catch(() => {});
+
+        const saveRes = await callEdgeAsAgent({
+          orgId: organizationId,
+          path: "book-version-save-skeleton",
+          body: {
+            bookId,
+            bookVersionId,
+            skeleton: vFinal.skeleton,
+            note: `BookGen Pro split: ch${chapterIndex + 1} sec${sectionIndex + 1} finalize`,
+            compileCanonical: true,
+          },
+        });
+        if (saveRes?.ok !== true) throw new Error("Failed to save skeleton");
+
+        const canonicalPath = `${bookId}/${bookVersionId}/canonical.json`;
+        const compiled = compileSkeletonToCanonical(vFinal.skeleton);
+        await uploadJson(adminSupabase, "books", canonicalPath, compiled, true);
+
+        await emitAgentJobEvent(jobId, "done", 100, "Section generated (split-mode)", {
+          bookId,
+          bookVersionId,
+          chapterIndex,
+          sectionIndex,
+          splitMode: true,
+        }).catch(() => {});
+
+        return { ok: true, bookId, bookVersionId, chapterIndex, sectionIndex };
+      }
+
+      const currentTitle = missingTitles[0];
+      const currentReqIndex = required.indexOf(currentTitle);
+      if (currentReqIndex < 0) throw new Error("BLOCKED: splitLockedOutline could not locate current title index");
+      const currentBlockIndex = indexByTitle.get(currentTitle);
+      if (typeof currentBlockIndex !== "number") {
+        throw new Error(`BLOCKED: splitLockedOutline missing top-level subparagraph block for '${currentTitle}'`);
+      }
+
+      // Context packet: list already-introduced <strong> terms from completed subparagraphs (avoid redundancy).
+      const introducedTerms: string[] = [];
+      for (const t of required) {
+        if (t === currentTitle) break;
+        const b = byTitle.get(t);
+        const inner = b && typeof b === "object" ? (Array.isArray((b as any).blocks) ? (b as any).blocks : []) : [];
+        if (!inner.length) continue;
+        introducedTerms.push(...collectStrongTermsFromBlocks(inner));
+      }
+      const uniqTerms = Array.from(new Set(introducedTerms.map((x) => normalizeWs(x).toLowerCase()).filter(Boolean))).slice(0, 35);
+
+      const targetsP = Array.isArray(praktijkTargets) ? praktijkTargets.map((t) => normalizeWs(t)).filter(Boolean) : [];
+      const targetsV = Array.isArray(verdiepingTargets) ? verdiepingTargets.map((t) => normalizeWs(t)).filter(Boolean) : [];
+      const requirePraktijkBox = targetsP.includes(currentTitle);
+      const requireVerdiepingBox = targetsV.includes(currentTitle);
+
+      const needImage = requireImageSuggestion && countDraftImages(sectionBlocksIn).withPrompt < 1;
+      const timeoutNotes =
+        llmTimeoutAttempt > 0
+          ? `TIMEOUT RECOVERY (attempt ${llmTimeoutAttempt}): Keep the subparagraph SHORTER and more concise while meeting constraints.`
+          : null;
+      const effectiveUserInstructions =
+        draftAttempt > 0
+          ? [
+              userInstructions,
+              prevDraftFailureReason ? `Previous validation failure:\n${prevDraftFailureReason}` : null,
+              mustFillTitle ? `MUST FIX: Add at least 2 basisHtml paragraphs under numbered subparagraph '${mustFillTitle}'.` : null,
+              mustBoxKind && mustBoxTitle
+                ? `MUST FIX: Add exactly ONE ${mustBoxKind} paragraph inside numbered subparagraph '${mustBoxTitle}'.`
+                : null,
+              timeoutNotes,
+              "CRITICAL: You are writing ONLY the requested numbered subparagraph (do not write other numbered titles).",
+            ]
+              .filter((x) => typeof x === "string" && x.trim())
+              .map((x) => String(x).trim())
+              .join("\n\n")
+          : [userInstructions, timeoutNotes].filter((x) => typeof x === "string" && x.trim()).map((x) => String(x).trim()).join("\n\n");
+
+      const system = buildSystem({ language, level, imagePromptLanguage, layoutProfile, microheadingDensity });
+      const sectionNumber = sectionId;
+      const subMaxTokens = (() => {
+        // Derive a per-subparagraph budget from the section budget.
+        const per = Math.floor(sectionMaxTokens / Math.max(1, required.length));
+        return Math.max(900, Math.min(3200, Math.floor(per * 2)));
+      })();
+
+      await emitAgentJobEvent(jobId, "generating", 20, "Split-mode: drafting numbered subparagraph", {
+        chapterIndex,
+        sectionIndex,
+        splitMode: true,
+        doneCount,
+        total: required.length,
+        currentTitle,
+        maxTokens: subMaxTokens,
+        requirePraktijkBox,
+        requireVerdiepingBox,
+        requireImageSuggestion: needImage,
+      }).catch(() => {});
+
+      const prompt = buildNumberedSubparagraphPrompt({
+        topic,
+        bookTitle,
+        chapterNumber: chapterIndex + 1,
+        sectionNumber,
+        sectionTitle: stripNumberPrefix(expectedSectionTitle) || expectedSectionTitle || `Section ${sectionNumber}`,
+        numberedSubparagraphTitle: currentTitle,
+        requiredNumberedSubparagraphTitles: required,
+        alreadyIntroducedTerms: uniqTerms,
+        userInstructions: effectiveUserInstructions,
+        language,
+        imagePromptLanguage,
+        layoutProfile,
+        microheadingDensity,
+        requireImageSuggestion: needImage,
+        requirePraktijkBox,
+        requireVerdiepingBox,
+      });
+
+      let subDraft: { title: string; blocks: DraftBlock[] };
+      try {
+        const raw = await llmGenerateJson({
+          provider: writeModelSpec.provider,
+          model: writeModelSpec.model,
+          system,
+          prompt,
+          maxTokens: subMaxTokens,
+          tool: buildDraftNumberedSubparagraphToolSpec(currentTitle),
+        });
+        const title = typeof (raw as any)?.title === "string" ? String((raw as any).title).trim() : "";
+        const blocks = Array.isArray((raw as any)?.blocks) ? ((raw as any).blocks as DraftBlock[]) : [];
+        subDraft = { title, blocks };
+      } catch (e) {
+        if (isAbortTimeout(e)) {
+          const MAX_LLM_TIMEOUT_ATTEMPTS = 6;
+          const nextAttempt = llmTimeoutAttempt + 1;
+          if (nextAttempt > MAX_LLM_TIMEOUT_ATTEMPTS) {
+            throw new Error(
+              `BLOCKED: LLM timed out too many times (${llmTimeoutAttempt}/${MAX_LLM_TIMEOUT_ATTEMPTS}). ` +
+                "Try lowering sectionMaxTokens or switching models.",
+            );
+          }
+          const nextTokens = Math.max(1200, Math.floor(sectionMaxTokens * 0.75));
+          await emitAgentJobEvent(jobId, "generating", 25, "Split-mode: LLM call timed out; requeueing with lower maxTokens", {
+            chapterIndex,
+            sectionIndex,
+            splitMode: true,
+            currentTitle,
+            llmTimeoutAttempt: nextAttempt,
+            prevMaxTokens: sectionMaxTokens,
+            nextMaxTokens: nextTokens,
+          }).catch(() => {});
+          return {
+            yield: true,
+            message: `Split-mode: LLM timed out; retrying with lower maxTokens (attempt ${nextAttempt}/${MAX_LLM_TIMEOUT_ATTEMPTS})`,
+            payloadPatch: {
+              __splitCurrentTitle: currentTitle,
+              __llmTimeoutAttempt: nextAttempt,
+              sectionMaxTokens: nextTokens,
+            },
+          };
+        }
+        throw e;
+      }
+
+      try {
+        // Validate + deterministic fixes.
+        const top: DraftBlock = { type: "subparagraph", title: normalizeWs(subDraft.title), blocks: subDraft.blocks };
+        if (!top.title || normalizeWs(top.title) !== currentTitle) {
+          throw new Error(
+            `BLOCKED: LLM returned wrong numbered subparagraph title (got='${top.title}', expected='${currentTitle}')`,
+          );
+        }
+        if (!Array.isArray(top.blocks) || top.blocks.length === 0) {
+          throw new Error(`BLOCKED: Draft too sparse under '${currentTitle}' (basisParagraphs=0, min=2)`);
+        }
+
+        // Re-use microheading validator + its deterministic punctuation sanitization.
+        assertMicroheadingsAreSingleLevel({
+          draft: { title: expectedSectionTitle || sectionNumber, blocks: [top] } as any,
+          requiredSubparagraphTitles: [currentTitle],
+          layoutProfile,
+          microheadingDensity,
+        });
+
+        // Basic density check for this numbered subparagraph.
+        const minBasisPerSub = layoutProfile === "sparse" ? 1 : 2;
+        const basisCount = countBasisParagraphs(top.blocks);
+        if (basisCount < minBasisPerSub) {
+          throw new Error(`BLOCKED: Draft too sparse under '${currentTitle}' (basisParagraphs=${basisCount}, min=${minBasisPerSub})`);
+        }
+
+        // Box targets must be satisfied within this numbered subparagraph if required.
+        const oneDraft: DraftSection = { title: expectedSectionTitle || sectionNumber, blocks: [top] as any };
+        if (
+          requirePraktijkBox &&
+          !hasBoxHtmlWithinNumberedSubparagraph({ draft: oneDraft, numberedSubparagraphTitle: currentTitle, kind: "praktijkHtml" })
+        ) {
+          throw new Error(`BLOCKED: Missing praktijkHtml for target numbered subparagraph '${currentTitle}'`);
+        }
+        if (
+          requireVerdiepingBox &&
+          !hasBoxHtmlWithinNumberedSubparagraph({ draft: oneDraft, numberedSubparagraphTitle: currentTitle, kind: "verdiepingHtml" })
+        ) {
+          throw new Error(`BLOCKED: Missing verdiepingHtml for target numbered subparagraph '${currentTitle}'`);
+        }
+
+        if (needImage) {
+          const counts = countDraftImages([top]);
+          if (counts.withPrompt < 1) {
+            throw new Error("BLOCKED: Draft missing image suggestions (need at least 1 images[].suggestedPrompt)");
+          }
+        }
+
+        // Convert this numbered subparagraph into skeleton blocks and persist progress.
+        const skTop = convertDraftBlockToSkeletonBlock({
+          bookId,
+          chapterIndex,
+          sectionIndex,
+          keyParts: [sectionIndex + 1, currentReqIndex + 1],
+          block: top,
+        });
+        sectionBlocksIn[currentBlockIndex] = skTop;
+
+        (sk as any).chapters[chapterIndex] = {
+          ...(chapter as any),
+          sections: sections.map((s: any, idx: number) =>
+            idx === sectionIndex ? { ...(sectionRaw as any), blocks: sectionBlocksIn } : s),
+        };
+        renumberChapterImages((sk as any).chapters[chapterIndex], chapterIndex + 1);
+
+        const v1 = validateBookSkeleton(sk);
+        if (!v1.ok) throw new Error(`BLOCKED: Updated skeleton validation failed (${v1.issues.length} issue(s))`);
+
+        await emitAgentJobEvent(jobId, "storage_write", 55, "Split-mode: saving partial skeleton", {
+          skeletonPath,
+          splitMode: true,
+          doneCount: doneCount + 1,
+          total: required.length,
+          currentTitle,
+        }).catch(() => {});
+
+        const saveRes = await callEdgeAsAgent({
+          orgId: organizationId,
+          path: "book-version-save-skeleton",
+          body: {
+            bookId,
+            bookVersionId,
+            skeleton: v1.skeleton,
+            note: `BookGen Pro split: ch${chapterIndex + 1} sec${sectionIndex + 1} ${currentTitle}`,
+            compileCanonical: false,
+          },
+        });
+        if (saveRes?.ok !== true) throw new Error("Failed to save skeleton");
+
+        const nextTitle = missingTitles.length >= 2 ? missingTitles[1] : null;
+        return {
+          yield: true,
+          message: `Split-mode: wrote ${doneCount + 1}/${required.length} numbered subparagraphs; continuing`,
+          payloadPatch: {
+            __splitCurrentTitle: nextTitle || currentTitle,
+            __draftAttempt: 0,
+            __draftFailureReason: null,
+            __draftMustFillTitle: null,
+            __draftMustBoxKind: null,
+            __draftMustBoxTitle: null,
+            __llmTimeoutAttempt: 0,
+            sectionMaxTokens: null,
+          },
+        };
+      } catch (e) {
+        const reason = e instanceof Error ? e.message : String(e);
+        const MAX_DRAFT_ATTEMPTS = 4;
+        const nextAttempt = draftAttempt + 1;
+        if (nextAttempt > MAX_DRAFT_ATTEMPTS) {
+          throw new Error(`BLOCKED: Draft did not meet requirements after ${MAX_DRAFT_ATTEMPTS} attempts: ${reason.slice(0, 800)}`);
+        }
+
+        await emitAgentJobEvent(jobId, "generating", 25, "Split-mode: draft did not meet requirements; requeueing for retry", {
+          chapterIndex,
+          sectionIndex,
+          splitMode: true,
+          currentTitle,
+          draftAttempt: nextAttempt,
+          reason: reason.slice(0, 800),
+        }).catch(() => {});
+
+        const mustFill = parseSparseUnderTitle(reason);
+        const mustBox = parseMissingBoxTarget(reason);
+        return {
+          yield: true,
+          message: "Split-mode: draft did not meet requirements; retrying via requeue",
+          payloadPatch: {
+            __splitCurrentTitle: currentTitle,
+            __draftAttempt: nextAttempt,
+            __draftFailureReason: reason.slice(0, 800),
+            ...(mustFill ? { __draftMustFillTitle: mustFill } : {}),
+            ...(mustBox ? { __draftMustBoxKind: mustBox.kind, __draftMustBoxTitle: mustBox.title } : {}),
+          },
+        };
+      }
+    }
 
     await emitAgentJobEvent(jobId, "generating", 20, "Calling LLM to draft section content", {
       chapterIndex,

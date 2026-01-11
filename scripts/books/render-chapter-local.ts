@@ -16,10 +16,6 @@ function requireEnv(name: string): string {
   return String(v).trim();
 }
 
-function isUuid(s: string): boolean {
-  return /^[0-9a-f-]{36}$/i.test(String(s || "").trim());
-}
-
 async function downloadJson(supabase: any, bucket: string, filePath: string): Promise<any> {
   const { data, error } = await supabase.storage.from(bucket).download(filePath);
   if (error || !data) throw new Error(error?.message || `Failed to download ${bucket}/${filePath}`);
@@ -45,7 +41,7 @@ async function main(): Promise<void> {
   const bookVersionId = String(process.argv[3] || "").trim();
   const chapterNumberRaw = String(process.argv[4] || "8").trim();
   const chapterNumber = Number(chapterNumberRaw);
-  if (!isUuid(bookId) || !isUuid(bookVersionId) || !Number.isFinite(chapterNumber) || chapterNumber < 1) {
+  if (!bookId || !bookVersionId || !Number.isFinite(chapterNumber) || chapterNumber < 1) {
     console.error("Usage: npx tsx scripts/books/render-chapter-local.ts <bookId> <bookVersionId> <chapterNumber(1-based)>");
     process.exit(1);
   }
@@ -90,7 +86,9 @@ async function main(): Promise<void> {
     chapterOpeners: { [chapterIndex]: `placeholder://chapter-opener/ch${chapterNumber}` },
   });
 
-  const outDir = path.join(process.cwd(), "tmp", "local-renders", "chapters", bookId, bookVersionId);
+  const safeBookId = bookId.replace(/[^a-z0-9_-]+/gi, "_");
+  const safeBookVersionId = bookVersionId.replace(/[^a-z0-9_-]+/gi, "_");
+  const outDir = path.join(process.cwd(), "tmp", "local-renders", "chapters", safeBookId, safeBookVersionId);
   await mkdir(outDir, { recursive: true });
 
   const htmlPath = path.join(outDir, `chapter-${chapterNumber}.html`);
