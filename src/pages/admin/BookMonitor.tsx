@@ -763,8 +763,8 @@ export default function BookMonitor() {
   const canRun = useMemo(() => {
     const bookId = monitor.selectedBookId.trim();
     const bookVersionId = monitor.selectedBookVersionId.trim();
-    return Boolean(bookId && bookVersionId && monitor.chapterCount > 0);
-  }, [monitor.selectedBookId, monitor.selectedBookVersionId, monitor.chapterCount]);
+    return Boolean(bookId && bookVersionId && monitor.chapterCount > 0 && monitor.integrityOk);
+  }, [monitor.selectedBookId, monitor.selectedBookVersionId, monitor.chapterCount, monitor.integrityOk]);
 
   // Auth guards (after all hooks)
   if (authLoading) {
@@ -786,6 +786,8 @@ export default function BookMonitor() {
   const chapterCount = monitor.chapterCount;
   const versionShort = monitor.selectedBookVersionId ? monitor.selectedBookVersionId.slice(0, 8) : "—";
   const skeletonLabel = monitor.skeletonReady ? "Skeleton v1" : "Legacy";
+  const canonicalTitle = (monitor.canonicalMeta?.title || "").trim();
+  const canonicalId = (monitor.canonicalMeta?.id || "").trim();
 
   const pct = Math.max(0, Math.min(100, Math.round(monitor.totals.pct)));
 
@@ -1118,8 +1120,11 @@ export default function BookMonitor() {
               <div className="book-details">
                 <h2>{bookTitle}</h2>
                 <div className="book-meta">
+                  ID: <span style={{ fontFamily: "JetBrains Mono, monospace" }}>{monitor.selectedBookId || "—"}</span> •{" "}
                   {chapterCount} chapters • Version: {versionShort} • {skeletonLabel}
                   {bookLevel ? ` • Level: ${bookLevel.toUpperCase()}` : ""}
+                  {canonicalTitle ? ` • Canonical: ${canonicalTitle}` : ""}
+                  {canonicalId && canonicalId !== monitor.selectedBookId ? ` • ⚠️ canonical.meta.id=${canonicalId}` : ""}
                 </div>
               </div>
             </div>
@@ -1179,6 +1184,22 @@ export default function BookMonitor() {
             ))}
           </div>
         </div>
+
+        {!monitor.integrityOk && monitor.integrityIssues.length > 0 ? (
+          <div className="card" style={{ borderColor: "var(--error)", background: "var(--error-dim)" }}>
+            <div className="card-title">BLOCKED: Integrity check failed</div>
+            <div style={{ color: "var(--text-secondary)", fontSize: "0.9rem", lineHeight: 1.5 }}>
+              This selection appears to be mixing book/version data (e.g. A&F canonical under a Pathologie label). Generation and rendering are disabled to avoid corrupting content.
+              <ul style={{ marginTop: "0.75rem", paddingLeft: "1.25rem" }}>
+                {monitor.integrityIssues.map((msg) => (
+                  <li key={msg} style={{ marginBottom: "0.35rem" }}>
+                    {msg}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        ) : null}
 
         <div className="grid-3">
           <div className="card">
@@ -1320,6 +1341,7 @@ export default function BookMonitor() {
             data-action="enqueueJob"
             data-job-type="book_generate_chapter"
             type="button"
+            disabled={!canRun}
             onClick={() => void onGenerateChapter()}
           >
             ▶️ Generate Chapter
@@ -1330,6 +1352,7 @@ export default function BookMonitor() {
             data-action="enqueueJob"
             data-job-type="book_generate_chapter"
             type="button"
+            disabled={!canRun}
             onClick={() => void onGenerateAll()}
           >
             📚 Generate All
@@ -1340,11 +1363,12 @@ export default function BookMonitor() {
             data-action="enqueueJob"
             data-job-type="book_normalize_voice"
             type="button"
+            disabled={!canRun}
             onClick={() => void onNormalizeVoice()}
           >
             🪄 Normalize Voice (N3)
           </button>
-          <button className="btn btn-secondary" data-cta-id="cta-generate-index" data-action="enqueueJob" type="button" onClick={() => void onGenerateIndex()}>
+          <button className="btn btn-secondary" data-cta-id="cta-generate-index" data-action="enqueueJob" type="button" disabled={!canRun} onClick={() => void onGenerateIndex()}>
             🗂️ Generate Index
           </button>
           <button
@@ -1352,23 +1376,24 @@ export default function BookMonitor() {
             data-cta-id="cta-generate-glossary"
             data-action="enqueueJob"
             type="button"
+            disabled={!canRun}
             onClick={() => void onGenerateGlossary()}
           >
             📘 Generate Begrippen
           </button>
-          <button className="btn btn-warning" data-cta-id="cta-pause" data-action="action" type="button" onClick={() => void onPause()}>
+          <button className="btn btn-warning" data-cta-id="cta-pause" data-action="action" type="button" disabled={!monitor.selectedBookId || !monitor.selectedBookVersionId} onClick={() => void onPause()}>
             ⏸️ Pause
           </button>
-          <button className="btn btn-success" data-cta-id="cta-resume" data-action="action" type="button" onClick={() => void onResume()}>
+          <button className="btn btn-success" data-cta-id="cta-resume" data-action="action" type="button" disabled={!canRun} onClick={() => void onResume()}>
             ▶️ Resume
           </button>
-          <button className="btn btn-danger" data-cta-id="cta-cancel" data-action="action" type="button" onClick={() => void onCancel()}>
+          <button className="btn btn-danger" data-cta-id="cta-cancel" data-action="action" type="button" disabled={!monitor.selectedBookId || !monitor.selectedBookVersionId} onClick={() => void onCancel()}>
             ⏹️ Cancel
           </button>
-          <button className="btn btn-secondary" data-cta-id="cta-render-pdf" data-action="action" type="button" onClick={() => void onRenderPdf()}>
+          <button className="btn btn-secondary" data-cta-id="cta-render-pdf" data-action="action" type="button" disabled={!canRun} onClick={() => void onRenderPdf()}>
             📄 Render Book PDF
           </button>
-          <button className="btn btn-primary" data-cta-id="cta-download-pdf" data-action="action" type="button" onClick={() => void onDownloadPdf()}>
+          <button className="btn btn-primary" data-cta-id="cta-download-pdf" data-action="action" type="button" disabled={!monitor.selectedBookId || !monitor.selectedBookVersionId} onClick={() => void onDownloadPdf()}>
             📥 Download PDF
           </button>
         </div>
