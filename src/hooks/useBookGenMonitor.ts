@@ -90,6 +90,22 @@ export type TimingStats = {
   speed: string;
 };
 
+type SkeletonMetaVm = {
+  language: string;
+  level: string;
+  schemaVersion: string;
+  bookId?: string;
+  bookVersionId?: string;
+  title?: string;
+  chapterCount?: number;
+};
+
+type CanonicalMetaVm = {
+  id: string;
+  title: string;
+  chapterCount: number;
+};
+
 function safeStr(v: unknown): string {
   return typeof v === "string" ? v : "";
 }
@@ -156,7 +172,9 @@ export function useBookGenMonitor() {
   const [canonicalReady, setCanonicalReady] = useState(false);
   const [canonicalError, setCanonicalError] = useState<string>("");
   const [skeletonReady, setSkeletonReady] = useState<boolean | null>(null);
-  const [skeletonMeta, setSkeletonMeta] = useState<{ language: string; level: string; schemaVersion: string } | null>(null);
+  const [skeletonMeta, setSkeletonMeta] = useState<SkeletonMetaVm | null>(null);
+  const [canonicalMeta, setCanonicalMeta] = useState<CanonicalMetaVm | null>(null);
+  const [integrityIssues, setIntegrityIssues] = useState<string[]>([]);
   const [contentStats, setContentStats] = useState<ContentStats>({ verdieping: 0, praktijk: 0, figures: 0 });
 
   const [jobs, setJobs] = useState<AgentJobRow[]>([]);
@@ -233,6 +251,8 @@ export function useBookGenMonitor() {
     setChapters([]);
     setSkeletonReady(null);
     setSkeletonMeta(null);
+    setCanonicalMeta(null);
+    setIntegrityIssues([]);
     setContentStats({ verdieping: 0, praktijk: 0, figures: 0 });
 
     if (!bookId || !bookVersionId) return;
@@ -264,8 +284,20 @@ export function useBookGenMonitor() {
             const language = safeStr(meta?.language).trim();
             const level = safeStr(meta?.level).trim();
             const schemaVersion = safeStr(meta?.schemaVersion).trim();
+            const skBookId = safeStr(meta?.bookId).trim();
+            const skBookVersionId = safeStr(meta?.bookVersionId).trim();
+            const skTitle = safeStr(meta?.title).trim();
+            const skChapterCount = Array.isArray((sk as any)?.chapters) ? ((sk as any).chapters as any[]).length : null;
             if (language && level && schemaVersion) {
-              setSkeletonMeta({ language, level, schemaVersion });
+              setSkeletonMeta({
+                language,
+                level,
+                schemaVersion,
+                ...(skBookId ? { bookId: skBookId } : {}),
+                ...(skBookVersionId ? { bookVersionId: skBookVersionId } : {}),
+                ...(skTitle ? { title: skTitle } : {}),
+                ...(typeof skChapterCount === "number" ? { chapterCount: skChapterCount } : {}),
+              });
             }
           }
         } catch {
@@ -281,6 +313,39 @@ export function useBookGenMonitor() {
       if (!r.ok) throw new Error(`Failed to download canonical (${r.status})`);
       const json = await r.json().catch(() => null);
       if (!json || typeof json !== "object") throw new Error("BLOCKED: canonical.json could not be parsed");
+
+      const canonicalChapters = Array.isArray((json as any).chapters) ? ((json as any).chapters as any[]) : [];
+      const canonicalMetaId = safeStr((json as any)?.meta?.id).trim();
+      const canonicalMetaTitle = safeStr((json as any)?.meta?.title).trim();
+      setCanonicalMeta({
+        id: canonicalMetaId,
+        title: canonicalMetaTitle,
+        chapterCount: canonicalChapters.length,
+      });
+
+      // Hard integrity checks (prevents cross-book corruption & confusing UI).
+      const issues: string[] = [];
+      const sk = skeletonMeta;
+      const skBookId = safeStr(sk?.bookId).trim();
+      const skBookVersionId = safeStr(sk?.bookVersionId).trim();
+      if (skBookId && skBookId !== bookId) {
+        issues.push(`Skeleton meta mismatch: skeleton.meta.bookId='${skBookId}' but selected bookId='${bookId}'`);
+      }
+      if (skBookVersionId && skBookVersionId !== bookVersionId) {
+        issues.push(
+          `Skeleton meta mismatch: skeleton.meta.bookVersionId='${skBookVersionId}' but selected bookVersionId='${bookVersionId}'`,
+        );
+      }
+      if (canonicalMetaId && canonicalMetaId !== bookId) {
+        issues.push(`Canonical meta mismatch: canonical.meta.id='${canonicalMetaId}' but selected bookId='${bookId}'`);
+      }
+      if (issues.length) {
+        setIntegrityIssues(issues);
+        setCanonicalReady(false);
+        setChapters([]);
+        setCanonicalError(`BLOCKED: Book/version integrity check failed.\n- ${issues.join("\n- ")}`);
+        return;
+      }
 
       const chs = Array.isArray((json as any).chapters) ? ((json as any).chapters as any[]) : [];
       const vm = chs.map((c) => {
@@ -410,8 +475,8 @@ export function useBookGenMonitor() {
   useEffect(() => {
     if (selectedBookId) return;
     if (!books.length) return;
-    const preferred = books.find((b) => b.id === "mbo-aandf-4")?.id;
-    setSelectedBookId(preferred || books[0].id);
+    // Prefer the most recently updated book (book-list already sorts by updated_at desc).
+    setSelectedBookId(books[0].id);
   }, [books, selectedBookId]);
 
   // Load versions when book changes
@@ -648,6 +713,9 @@ export function useBookGenMonitor() {
     canonicalError,
     skeletonReady,
     skeletonMeta,
+    canonicalMeta,
+    integrityIssues,
+    integrityOk: integrityIssues.length === 0,
     control,
     controlError,
     activeJobs,
