@@ -350,19 +350,167 @@ async function llmGenerateJson(opts: {
   // until the reconciler marks them stalled).
   const timeoutMs = 120_000;
 
+  function buildOpenAiStrictSchemaFromTool(toolSpec: AnthropicToolSpec): { name: string; schema: any; strict: true } | null {
+    const toolName = typeof toolSpec?.name === "string" ? toolSpec.name.trim() : "";
+    const schemaIn = toolSpec?.input_schema && typeof toolSpec.input_schema === "object" ? toolSpec.input_schema : null;
+    if (!toolName || !schemaIn) return null;
+
+    const imageSchema = {
+      type: "object",
+      additionalProperties: false,
+      required: ["suggestedPrompt"],
+      properties: {
+        suggestedPrompt: { type: "string" },
+        alt: { type: "string" },
+        caption: { type: "string" },
+        layoutHint: { type: "string" },
+      },
+    };
+
+    const paragraphSchema = {
+      type: "object",
+      additionalProperties: false,
+      required: ["type", "basisHtml"],
+      properties: {
+        type: { type: "string", enum: ["paragraph"] },
+        basisHtml: { type: "string" },
+        praktijkHtml: { type: "string" },
+        verdiepingHtml: { type: "string" },
+        images: { type: "array", items: imageSchema },
+      },
+    };
+
+    const listSchema = {
+      type: "object",
+      additionalProperties: false,
+      required: ["type", "ordered", "items"],
+      properties: {
+        type: { type: "string", enum: ["list"] },
+        ordered: { type: "boolean" },
+        items: { type: "array", items: { type: "string" }, minItems: 1 },
+        images: { type: "array", items: imageSchema },
+      },
+    };
+
+    const stepsSchema = {
+      type: "object",
+      additionalProperties: false,
+      required: ["type", "items"],
+      properties: {
+        type: { type: "string", enum: ["steps"] },
+        items: { type: "array", items: { type: "string" }, minItems: 1 },
+        images: { type: "array", items: imageSchema },
+      },
+    };
+
+    // Generic subparagraph schema for nested microheadings (title is free-form).
+    const subparagraphSchema = {
+      type: "object",
+      additionalProperties: false,
+      required: ["type", "title", "blocks"],
+      properties: {
+        type: { type: "string", enum: ["subparagraph"] },
+        title: { type: "string" },
+        blocks: { type: "array", items: { $ref: "#/$defs/block" }, minItems: 1 },
+      },
+    };
+
+    const blockSchema = {
+      anyOf: [
+        subparagraphSchema,
+        paragraphSchema,
+        listSchema,
+        stepsSchema,
+      ],
+    };
+
+    const baseSectionSchema = {
+      type: "object",
+      additionalProperties: false,
+      required: ["title", "blocks"],
+      properties: {
+        title: { type: "string" },
+        blocks: { type: "array", items: { $ref: "#/$defs/block" }, minItems: 1 },
+      },
+      $defs: {
+        block: blockSchema,
+      },
+    };
+
+    const baseSubparagraphToolSchema = {
+      type: "object",
+      additionalProperties: false,
+      required: ["title", "blocks"],
+      properties: {
+        title: { type: "string" },
+        blocks: { type: "array", items: { $ref: "#/$defs/block" }, minItems: 1 },
+      },
+      $defs: {
+        block: blockSchema,
+      },
+    };
+
+    // draft_book_section:
+    // If this is a locked-outline spec, enforce exact top-level numbered titles via enum + exact count.
+    if (toolName === "draft_book_section") {
+      const blocksSchema = (schemaIn as any)?.properties?.blocks;
+      const minItems = typeof blocksSchema?.minItems === "number" && Number.isFinite(blocksSchema.minItems) ? Math.floor(blocksSchema.minItems) : null;
+      const maxItems = typeof blocksSchema?.maxItems === "number" && Number.isFinite(blocksSchema.maxItems) ? Math.floor(blocksSchema.maxItems) : null;
+      const allowedTitles = Array.isArray(blocksSchema?.items?.properties?.title?.enum) ? blocksSchema.items.properties.title.enum : null;
+
+      if (typeof minItems === "number" && typeof maxItems === "number" && minItems > 0 && maxItems === minItems && Array.isArray(allowedTitles) && allowedTitles.length) {
+        const titles = allowedTitles.filter((t: any) => typeof t === "string" && t.trim()).map((t: string) => t.trim()).slice(0, 40);
+        const topNumberedSubparagraphSchema = {
+          type: "object",
+          additionalProperties: false,
+          required: ["type", "title", "blocks"],
+          properties: {
+            type: { type: "string", enum: ["subparagraph"] },
+            title: { type: "string", enum: titles },
+            blocks: { type: "array", items: { $ref: "#/$defs/block" }, minItems: 1 },
+          },
+        };
+
+        const lockedSchema = {
+          ...baseSectionSchema,
+          properties: {
+            ...(baseSectionSchema as any).properties,
+            blocks: {
+              type: "array",
+              minItems,
+              maxItems,
+              items: topNumberedSubparagraphSchema,
+            },
+          },
+        };
+        return { name: toolName, schema: lockedSchema, strict: true };
+      }
+
+      // Unlocked / freeform: just ensure valid DraftSection JSON with known block union.
+      return { name: toolName, schema: baseSectionSchema, strict: true };
+    }
+
+    if (toolName === "draft_numbered_subparagraph") {
+      const titleEnum = (schemaIn as any)?.properties?.title?.enum;
+      const allowedTitle = Array.isArray(titleEnum) && typeof titleEnum[0] === "string" ? String(titleEnum[0]).trim() : "";
+      const schema = {
+        ...baseSubparagraphToolSchema,
+        properties: {
+          ...(baseSubparagraphToolSchema as any).properties,
+          title: allowedTitle ? { type: "string", enum: [allowedTitle] } : { type: "string" },
+        },
+      };
+      return { name: toolName, schema, strict: true };
+    }
+
+    return null;
+  }
+
   if (provider === "openai") {
     const key = requireEnv("OPENAI_API_KEY");
-    const response_format = tool?.input_schema
-      ? {
-          // Prefer strict schema enforcement when we have a locked-outline spec.
-          // This prevents valid-but-empty JSON like { title, blocks: [] } which repeatedly fails validation.
-          type: "json_schema",
-          json_schema: {
-            name: tool.name || "draft_book_section",
-            schema: tool.input_schema,
-            strict: true,
-          },
-        }
+    const strict = tool ? buildOpenAiStrictSchemaFromTool(tool) : null;
+    const response_format = strict
+      ? { type: "json_schema", json_schema: strict }
       : { type: "json_object" };
     const resp = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
