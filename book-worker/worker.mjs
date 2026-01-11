@@ -1319,7 +1319,7 @@ async function processJob(job) {
       const modelRaw = typeof modelEnv === "string" ? modelEnv.trim() : "";
       let model = modelRaw;
       if (!model) {
-        model = provider === "anthropic" ? "claude-sonnet-4-5" : "gpt-4o-mini";
+        model = provider === "anthropic" ? "claude-sonnet-4-5" : "gpt-5.2";
         console.warn(`[book-worker] BOOK_FIGURE_PLACEMENT_MODEL not set; defaulting to ${model}`);
       }
       if (provider === "anthropic") requireEnvForFigurePlacement("ANTHROPIC_API_KEY");
@@ -1505,7 +1505,7 @@ Hard requirements:
 
       // --- Per-stage model selection from job payload ---
       const skeletonProvider = payload.skeletonProvider || payload.planProvider || "openai";
-      const skeletonModel = payload.skeletonModel || payload.planModel || "gpt-4o-mini";
+      const skeletonModel = payload.skeletonModel || payload.planModel || "gpt-5.2";
       const validateProvider = payload.validateProvider || skeletonProvider;
       const validateModel = payload.validateModel || skeletonModel;
       const writeProvider = payload.writeProvider || payload.rewriteProvider || "anthropic";
@@ -1594,14 +1594,14 @@ Hard requirements:
         : "";
       const planModel = typeof payload.planModel === "string" && payload.planModel.trim()
         ? payload.planModel.trim()
-        : (planModelEnv || (planProvider === "anthropic" ? (anthropicModelEnv || "claude-sonnet-4-5") : "gpt-4o-mini"));
+        : (planModelEnv || (planProvider === "anthropic" ? (anthropicModelEnv || "claude-sonnet-4-5") : "gpt-5.2"));
 
       const rewriteModelEnv = process.env.BOOKGEN_REWRITE_MODEL && String(process.env.BOOKGEN_REWRITE_MODEL).trim()
         ? String(process.env.BOOKGEN_REWRITE_MODEL).trim()
         : "";
       const rewriteModel = typeof payload.rewriteModel === "string" && payload.rewriteModel.trim()
         ? payload.rewriteModel.trim()
-        : (rewriteModelEnv || (rewriteProvider === "anthropic" ? (anthropicModelEnv || "claude-sonnet-4-5") : "gpt-4o-mini"));
+        : (rewriteModelEnv || (rewriteProvider === "anthropic" ? (anthropicModelEnv || "claude-sonnet-4-5") : "gpt-5.2"));
 
       // Fail loudly (no silent provider fallback).
       if (planProvider === "openai") requireOpenAiKey();

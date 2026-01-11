@@ -45,7 +45,7 @@ function requireWriteModelSpec(): string {
   const hasAnthropic = !!(process.env.ANTHROPIC_API_KEY || process.env.VITE_ANTHROPIC_API_KEY);
   const hasOpenai = !!(process.env.OPENAI_API_KEY || process.env.VITE_OPENAI_API_KEY);
   if (hasAnthropic) return "anthropic:claude-sonnet-4-5";
-  if (hasOpenai) return "openai:gpt-4o-mini";
+  if (hasOpenai) return "openai:gpt-5.2";
   throw new Error("BLOCKED: Set ANTHROPIC_API_KEY or OPENAI_API_KEY (or set E2E_BOOK_WRITE_MODEL) to run live BookGen tests");
 }
 

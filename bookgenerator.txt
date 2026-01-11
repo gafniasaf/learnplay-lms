@@ -69,7 +69,7 @@ Users should be able to:
 | **Canonical Snapshot** | Deterministic N4 IDML snapshot | `./_source_exports/...FROM_DOWNLOADS.idml` |
 | **Output Target** | Student PDF (KD-free) | “student-facing PDFs only” |
 | **Validation Gates** | Must be green before “validated” | numbering gate + JSON preflight + Prince validation suite |
-| **LLM Provider/Models** | Models for planning + rewriting | planning: OpenAI `gpt-4o-mini`; rewriting: Anthropic `claude-sonnet-4-5-20250929` |
+| **LLM Provider/Models** | Models for planning + rewriting | planning: OpenAI `gpt-5.2`; rewriting: Anthropic `claude-sonnet-4-5-20250929` |
 | **Telemetry** | Real Supabase (no dummy keys) | Supabase Realtime + Edge functions |
  
 ---
@@ -539,7 +539,7 @@ Important notes:
 ### Provider + model parameters
  
 - Provider: `openai`
-- Model: `gpt-4o-mini`
+- Model: `gpt-5.2`
 - Temperature: `0.2`
 - Max tokens: `4000`
  

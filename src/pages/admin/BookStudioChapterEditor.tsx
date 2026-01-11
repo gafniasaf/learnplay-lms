@@ -422,8 +422,8 @@ export default function BookStudioChapterEditor() {
   const [skeletonDirty, setSkeletonDirty] = useState(false);
 
   // Per-stage model selection (for skeleton-first pipeline)
-  const [skeletonModel, setSkeletonModel] = useState<string>("gpt-4o-mini");
-  const [validateModel, setValidateModel] = useState<string>("gpt-4o-mini");
+  const [skeletonModel, setSkeletonModel] = useState<string>("gpt-5.2");
+  const [validateModel, setValidateModel] = useState<string>("gpt-5.2");
   const [writeModel, setWriteModel] = useState<string>("claude-sonnet-4-5-20250929");
   const [passesModel, setPassesModel] = useState<string>("claude-sonnet-4-5-20250929");
   const [userInstructions, setUserInstructions] = useState<string>("");
@@ -1385,7 +1385,7 @@ export default function BookStudioChapterEditor() {
                     className="w-full text-xs border rounded px-2 py-1 bg-background"
                     data-cta-id="cta-bookstudio-model-skeleton"
                   >
-                    <option value="gpt-4o-mini">gpt-4o-mini</option>
+                    <option value="gpt-5.2">gpt-5.2</option>
                     <option value="gpt-4o">gpt-4o</option>
                     <option value="o1">o1</option>
                     <option value="claude-sonnet-4-5-20250929">claude-sonnet-4.5</option>
@@ -1400,7 +1400,7 @@ export default function BookStudioChapterEditor() {
                     className="w-full text-xs border rounded px-2 py-1 bg-background"
                     data-cta-id="cta-bookstudio-model-validate"
                   >
-                    <option value="gpt-4o-mini">gpt-4o-mini</option>
+                    <option value="gpt-5.2">gpt-5.2</option>
                     <option value="gpt-4o">gpt-4o</option>
                     <option value="o1">o1</option>
                     <option value="claude-sonnet-4-5-20250929">claude-sonnet-4.5</option>
@@ -1415,7 +1415,7 @@ export default function BookStudioChapterEditor() {
                     className="w-full text-xs border rounded px-2 py-1 bg-background"
                     data-cta-id="cta-bookstudio-model-write"
                   >
-                    <option value="gpt-4o-mini">gpt-4o-mini</option>
+                    <option value="gpt-5.2">gpt-5.2</option>
                     <option value="gpt-4o">gpt-4o</option>
                     <option value="o1">o1</option>
                     <option value="claude-sonnet-4-5-20250929">claude-sonnet-4.5</option>
@@ -1430,7 +1430,7 @@ export default function BookStudioChapterEditor() {
                     className="w-full text-xs border rounded px-2 py-1 bg-background"
                     data-cta-id="cta-bookstudio-model-passes"
                   >
-                    <option value="gpt-4o-mini">gpt-4o-mini</option>
+                    <option value="gpt-5.2">gpt-5.2</option>
                     <option value="gpt-4o">gpt-4o</option>
                     <option value="o1">o1</option>
                     <option value="claude-sonnet-4-5-20250929">claude-sonnet-4.5</option>

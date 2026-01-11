@@ -204,8 +204,8 @@ async function main() {
 
   // Default to the requested Anthropic model unless overridden.
   const defaultAnthropicModel = "claude-haiku-4-5-20251001";
-  const planModel = String(process.env.BOOKGEN_PLAN_MODEL || (planProvider === "anthropic" ? defaultAnthropicModel : "gpt-4o-mini")).trim();
-  const rewriteModel = String(process.env.BOOKGEN_REWRITE_MODEL || (rewriteProvider === "anthropic" ? defaultAnthropicModel : "gpt-4o-mini")).trim();
+  const planModel = String(process.env.BOOKGEN_PLAN_MODEL || (planProvider === "anthropic" ? defaultAnthropicModel : "gpt-5.2")).trim();
+  const rewriteModel = String(process.env.BOOKGEN_REWRITE_MODEL || (rewriteProvider === "anthropic" ? defaultAnthropicModel : "gpt-5.2")).trim();
   if (!planModel) throw new Error("BLOCKED: BOOKGEN_PLAN_MODEL resolved to empty");
   if (!rewriteModel) throw new Error("BLOCKED: BOOKGEN_REWRITE_MODEL resolved to empty");
   process.env.BOOKGEN_PLAN_MODEL = planModel;

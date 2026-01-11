@@ -90,6 +90,51 @@ const TOOL_DRAFT_BOOK_SECTION: AnthropicToolSpec = {
   },
 };
 
+function buildDraftBookSectionToolSpec(requiredSubparagraphTitles: string[]): AnthropicToolSpec {
+  const requiredCount = Array.isArray(requiredSubparagraphTitles) ? requiredSubparagraphTitles.length : 0;
+  if (!requiredCount) return TOOL_DRAFT_BOOK_SECTION;
+
+  const allowedTitles = Array.isArray(requiredSubparagraphTitles)
+    ? requiredSubparagraphTitles.filter((t) => typeof t === "string" && t.trim()).map((t) => t.trim()).slice(0, 40)
+    : [];
+
+  // For locked outlines, prevent the model from returning `blocks: []` (which repeatedly fails validation).
+  // We keep the schema permissive for nested block shapes (additionalProperties=true), but enforce:
+  // - top-level blocks exist
+  // - count matches the locked outline count
+  // - each top-level block is a subparagraph with a title + nested blocks
+  return {
+    name: TOOL_DRAFT_BOOK_SECTION.name,
+    description:
+      TOOL_DRAFT_BOOK_SECTION.description +
+      ` Locked outline: blocks MUST contain exactly ${requiredCount} top-level subparagraph blocks.`,
+    input_schema: {
+      type: "object",
+      additionalProperties: true,
+      required: ["title", "blocks"],
+      properties: {
+        title: { type: "string" },
+        blocks: {
+          type: "array",
+          minItems: requiredCount,
+          maxItems: requiredCount,
+          items: {
+            type: "object",
+            additionalProperties: true,
+            required: ["type", "title", "blocks"],
+            properties: {
+              type: { type: "string", enum: ["subparagraph"] },
+              // Prevent empty titles; constrain to the known locked-outline titles to avoid got=0 from blank/whitespace.
+              title: allowedTitles.length ? { type: "string", enum: allowedTitles } : { type: "string", minLength: 1 },
+              blocks: { type: "array", minItems: 1, items: { type: "object", additionalProperties: true } },
+            },
+          },
+        },
+      },
+    },
+  };
+}
+
 function requireEnv(name: string): string {
   const v = Deno.env.get(name);
   if (!v || typeof v !== "string" || !v.trim()) {
@@ -627,34 +672,53 @@ function buildPrompt(opts: {
 
   const outlineTemplate = (() => {
     if (!required.length) return "";
-    if (!isWideOutline) return "";
-    const esc = (s: string) => String(s || "").replace(/\\/g, "\\\\").replace(/\"/g, "\\\"");
+
+    // Give the LLM a concrete JSON template for locked outlines. This dramatically improves
+    // compliance with required numbered subparagraphs and prevents "blocks: []" outputs.
+    const q = (s: string) => JSON.stringify(String(s || ""));
     const lines = required
       .map((t, idx) => {
         const comma = idx < required.length - 1 ? "," : "";
         return (
-          `  {\\n` +
-          `    \\\"type\\\": \\\"subparagraph\\\",\\n` +
-          `    \\\"title\\\": \\\"${esc(t)}\\\",\\n` +
-          `    \\\"blocks\\\": [\\n` +
-          `      { \\\"type\\\": \\\"paragraph\\\", \\\"basisHtml\\\": \\\"...\\\" },\\n` +
-          `      { \\\"type\\\": \\\"paragraph\\\", \\\"basisHtml\\\": \\\"...\\\" }\\n` +
-          `    ]\\n` +
+          `  {\n` +
+          `    "type": "subparagraph",\n` +
+          `    "title": ${q(t)},\n` +
+          `    "blocks": [\n` +
+          `      {\n` +
+          `        "type": "subparagraph",\n` +
+          `        "title": "Voorbeeld microheading",\n` +
+          `        "blocks": [\n` +
+          `          { "type": "paragraph", "basisHtml": "..." },\n` +
+          `          { "type": "paragraph", "basisHtml": "..." }\n` +
+          `        ]\n` +
+          `      }\n` +
+          `    ]\n` +
           `  }${comma}`
         );
       })
-      .join("\\n");
+      .join("\n");
+
+    const note = isWideOutline
+      ? (
+        `\nWIDE OUTLINE NOTE:\n` +
+        `- This section has ${required.length} required numbered subparagraphs. Keep each one concise.\n` +
+        `- The validator requires at least 2 basis paragraphs per numbered subparagraph.\n`
+      )
+      : (
+        `\nLOCKED OUTLINE NOTE:\n` +
+        `- You MUST include every numbered subparagraph title exactly as listed (including the number) and in the same order.\n` +
+        `- You MUST NOT return an empty "blocks" array.\n`
+      );
+
     return (
-      "\\nWIDE OUTLINE NOTE:\\n" +
-      `- This section has ${required.length} required numbered subparagraphs. Keep each one concise.\\n` +
-      "- The validator requires at least 2 basis paragraphs per numbered subparagraph.\\n" +
-      "\\nSTRUCTURE TEMPLATE (copy the structure; replace '...' with real text):\\n" +
-      "{\\n" +
-      `  \\\"title\\\": \\\"${esc(opts.sectionTitle)}\\\",\\n` +
-      "  \\\"blocks\\\": [\\n" +
+      note +
+      `\nSTRUCTURE TEMPLATE (copy the structure; replace every "..." with real text):\n` +
+      `{\n` +
+      `  "title": ${q(opts.sectionTitle)},\n` +
+      `  "blocks": [\n` +
       lines +
-      "\\n  ]\\n" +
-      "}\\n"
+      `\n  ]\n` +
+      `}\n`
     );
   })();
 
@@ -1191,7 +1255,7 @@ export class BookGenerateSection implements JobExecutor {
         system,
         prompt,
         maxTokens: sectionMaxTokens,
-        tool: TOOL_DRAFT_BOOK_SECTION,
+        tool: buildDraftBookSectionToolSpec(requiredSubparagraphTitles),
       })) as DraftSection;
     } catch (e) {
       if (isAbortTimeout(e)) {
@@ -1289,32 +1353,93 @@ export class BookGenerateSection implements JobExecutor {
     try {
       validateAll(draft);
     } catch (e) {
-      const reason = e instanceof Error ? e.message : String(e);
-      const MAX_DRAFT_ATTEMPTS = 4;
-      const nextAttempt = draftAttempt + 1;
-      if (nextAttempt > MAX_DRAFT_ATTEMPTS) {
-        throw new Error(`BLOCKED: Draft did not meet requirements after ${MAX_DRAFT_ATTEMPTS} attempts: ${reason.slice(0, 800)}`);
+      let reason = e instanceof Error ? e.message : String(e);
+
+      // Recovery: Some Anthropic tool outputs degrade to `{ title, blocks: [] }` for locked outlines.
+      // This leads to repeated `got=0` failures. If OpenAI is configured, attempt a bounded recovery.
+      const emptyBlocksMismatch =
+        requiredSubparagraphTitles.length > 0 &&
+        reason.includes("BLOCKED: Numbered subparagraph count mismatch (got=0");
+
+      const emptyRecoveriesRaw = (p as any).__emptyBlocksRecoveries;
+      const emptyRecoveries =
+        typeof emptyRecoveriesRaw === "number" && Number.isFinite(emptyRecoveriesRaw)
+          ? Math.max(0, Math.floor(emptyRecoveriesRaw))
+          : 0;
+
+      let recoveredOk = false;
+      if (emptyBlocksMismatch && emptyRecoveries < 2 && writeModelSpec.provider === "anthropic") {
+        const openaiKey = Deno.env.get("OPENAI_API_KEY");
+        if (openaiKey && openaiKey.trim()) {
+          await emitAgentJobEvent(jobId, "generating", 23, "Empty outline from Anthropic; attempting OpenAI recovery", {
+            chapterIndex,
+            sectionIndex,
+            expectedSubparagraphs: requiredSubparagraphTitles.length,
+            openAiModel: "gpt-5.2",
+            attempt: emptyRecoveries + 1,
+          }).catch(() => {});
+
+          try {
+            const recovered = (await llmGenerateJson({
+              provider: "openai",
+              model: "gpt-5.2",
+              system,
+              prompt,
+              maxTokens: Math.max(2200, Math.min(7000, Math.floor(sectionMaxTokens * 0.85))),
+            })) as DraftSection;
+
+            validateAll(recovered);
+            draft = recovered;
+            recoveredOk = true;
+
+            await emitAgentJobEvent(jobId, "generating", 24, "OpenAI recovery succeeded; continuing", {
+              chapterIndex,
+              sectionIndex,
+            }).catch(() => {});
+          } catch (e2) {
+            const msg = e2 instanceof Error ? e2.message : String(e2);
+            await emitAgentJobEvent(jobId, "generating", 24, "OpenAI recovery failed; continuing normal retry flow", {
+              chapterIndex,
+              sectionIndex,
+              reason: msg.slice(0, 600),
+            }).catch(() => {});
+
+            // Record that we attempted this recovery (bounded).
+            (p as any).__emptyBlocksRecoveries = emptyRecoveries + 1;
+          }
+        }
       }
 
-      await emitAgentJobEvent(jobId, "generating", 25, "Draft did not meet requirements; requeueing for retry", {
-        chapterIndex,
-        sectionIndex,
-        layoutProfile,
-        microheadingDensity,
-        draftAttempt: nextAttempt,
-        reason: reason.slice(0, 800),
-      }).catch(() => {});
+      if (!recoveredOk) {
+        const MAX_DRAFT_ATTEMPTS = 4;
+        const nextAttempt = draftAttempt + 1;
+        if (nextAttempt > MAX_DRAFT_ATTEMPTS) {
+          throw new Error(`BLOCKED: Draft did not meet requirements after ${MAX_DRAFT_ATTEMPTS} attempts: ${reason.slice(0, 800)}`);
+        }
 
-      const mustFill = parseSparseUnderTitle(reason);
-      return {
-        yield: true,
-        message: "Draft did not meet requirements; retrying via requeue",
-        payloadPatch: {
-          __draftAttempt: nextAttempt,
-          __draftFailureReason: reason.slice(0, 800),
-          ...(mustFill ? { __draftMustFillTitle: mustFill } : {}),
-        },
-      };
+        await emitAgentJobEvent(jobId, "generating", 25, "Draft did not meet requirements; requeueing for retry", {
+          chapterIndex,
+          sectionIndex,
+          layoutProfile,
+          microheadingDensity,
+          draftAttempt: nextAttempt,
+          reason: reason.slice(0, 800),
+        }).catch(() => {});
+
+        const mustFill = parseSparseUnderTitle(reason);
+        return {
+          yield: true,
+          message: "Draft did not meet requirements; retrying via requeue",
+          payloadPatch: {
+            __draftAttempt: nextAttempt,
+            __draftFailureReason: reason.slice(0, 800),
+            ...(typeof (p as any).__emptyBlocksRecoveries === "number"
+              ? { __emptyBlocksRecoveries: (p as any).__emptyBlocksRecoveries }
+              : {}),
+            ...(mustFill ? { __draftMustFillTitle: mustFill } : {}),
+          },
+        };
+      }
     }
 
     // 4) Apply to skeleton: replace this section's content
