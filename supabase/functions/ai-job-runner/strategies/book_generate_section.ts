@@ -188,6 +188,20 @@ function parseSparseUnderTitle(reason: string): string | null {
   return t ? t : null;
 }
 
+function parseMissingBoxTarget(
+  reason: string,
+): { kind: "praktijkHtml" | "verdiepingHtml"; title: string } | null {
+  const msg = String(reason || "");
+  const m = msg.match(/Missing (praktijkHtml|verdiepingHtml) for target numbered subparagraph '([^']+)'/);
+  if (!m) return null;
+  const kindRaw = String(m[1] || "").trim();
+  const kind = kindRaw === "praktijkHtml" || kindRaw === "verdiepingHtml" ? (kindRaw as any) : null;
+  if (!kind) return null;
+  const title = normalizeWs(m[2] || "");
+  if (!title) return null;
+  return { kind, title };
+}
+
 function normalizeWs(s: string): string {
   // Remove invisible formatting characters that can leak from PDF/IDML sources
   // (e.g. WORD JOINER, zero-width spaces, soft hyphen) so outline matching is stable.
@@ -1011,6 +1025,7 @@ function assertMicroheadingsAreSingleLevel(opts: {
   const blocksIn = Array.isArray((opts.draft as any)?.blocks) ? (opts.draft as any).blocks : [];
 
   const punctRe = /[?!;:]/u;
+  const sanitizeMicroheadingTitle = (raw: string) => normalizeWs(String(raw || "").replace(/[?!;:]/gu, " "));
   const countWords = (s: string) => normalizeWs(s).split(/\s+/).filter(Boolean).length;
 
   const isNumbered = (title: string) => NUMBERED_SUBPARA_TITLE_RE.test(normalizeWs(title));
@@ -1056,9 +1071,16 @@ function assertMicroheadingsAreSingleLevel(opts: {
       const mhTitle = typeof (b as any).title === "string" ? String((b as any).title) : "";
       if (!isMicroheadingTitle(mhTitle)) continue;
 
-      const t = normalizeWs(mhTitle);
+      let t = normalizeWs(mhTitle);
       if (punctRe.test(t)) {
-        throw new Error(`BLOCKED: Microheading contains punctuation (remove punctuation): '${t}'`);
+        // Deterministic repair: strip forbidden punctuation from microheadings to avoid stalling
+        // the whole section on a minor style issue. (Content correctness is preserved.)
+        const cleaned = sanitizeMicroheadingTitle(t);
+        if (!cleaned) {
+          throw new Error(`BLOCKED: Microheading became empty after stripping punctuation: '${t}'`);
+        }
+        (b as any).title = cleaned;
+        t = cleaned;
       }
       const wc = countWords(t);
       if (wc < 1 || wc > 6) {
@@ -1127,6 +1149,17 @@ export class BookGenerateSection implements JobExecutor {
     const mustFillTitle =
       typeof mustFillTitleRaw === "string" && mustFillTitleRaw.trim()
         ? normalizeWs(mustFillTitleRaw.trim()).slice(0, 120)
+        : null;
+
+    const mustBoxKindRaw = (p as any).__draftMustBoxKind;
+    const mustBoxKind =
+      mustBoxKindRaw === "praktijkHtml" || mustBoxKindRaw === "verdiepingHtml"
+        ? (mustBoxKindRaw as "praktijkHtml" | "verdiepingHtml")
+        : null;
+    const mustBoxTitleRaw = (p as any).__draftMustBoxTitle;
+    const mustBoxTitle =
+      mustBoxKind && typeof mustBoxTitleRaw === "string" && mustBoxTitleRaw.trim()
+        ? normalizeWs(mustBoxTitleRaw.trim()).slice(0, 160)
         : null;
 
     const llmTimeoutAttemptRaw = (p as any).__llmTimeoutAttempt;
@@ -1217,6 +1250,13 @@ export class BookGenerateSection implements JobExecutor {
             prevDraftFailureReason ? `Previous validation failure:\n${prevDraftFailureReason}` : null,
             mustFillTitle
               ? `MUST FIX: Add at least 2 basisHtml paragraphs under numbered subparagraph '${mustFillTitle}'. Do not leave its blocks empty.`
+              : null,
+            mustBoxKind && mustBoxTitle
+              ? (
+                `MUST FIX: Add exactly ONE ${mustBoxKind} paragraph inside numbered subparagraph '${mustBoxTitle}'.\n` +
+                `- Put it on a PARAGRAPH block field named '${mustBoxKind}' (NOT in basisHtml).\n` +
+                `- ${mustBoxKind} must start with <span class="box-lead">...</span> and contain 2-4 short sentences.`
+              )
               : null,
             timeoutNotes,
             outlineTopicHints,
@@ -1434,6 +1474,7 @@ export class BookGenerateSection implements JobExecutor {
         }).catch(() => {});
 
         const mustFill = parseSparseUnderTitle(reason);
+        const mustBox = parseMissingBoxTarget(reason);
         return {
           yield: true,
           message: "Draft did not meet requirements; retrying via requeue",
@@ -1444,6 +1485,7 @@ export class BookGenerateSection implements JobExecutor {
               ? { __emptyBlocksRecoveries: (p as any).__emptyBlocksRecoveries }
               : {}),
             ...(mustFill ? { __draftMustFillTitle: mustFill } : {}),
+            ...(mustBox ? { __draftMustBoxKind: mustBox.kind, __draftMustBoxTitle: mustBox.title } : {}),
           },
         };
       }
