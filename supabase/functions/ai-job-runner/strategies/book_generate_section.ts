@@ -192,7 +192,14 @@ function normalizeWs(s: string): string {
   // Remove invisible formatting characters that can leak from PDF/IDML sources
   // (e.g. WORD JOINER, zero-width spaces, soft hyphen) so outline matching is stable.
   return String(s || "")
+    // Normalize to a compatibility form so comparisons are stable across sources.
+    // This helps with things like ligatures/fullwidth chars that can appear in extracted text.
+    .normalize("NFKC")
     .replace(/[\u00AD\u200B-\u200D\u2060\uFEFF]/g, "")
+    // Normalize common typographic punctuation (PDF/IDML often uses curly quotes/dashes).
+    .replace(/[\u2018\u2019\u201B\u02BC\uFF07]/g, "'") // ‘ ’ ‛ ʼ ＇ -> '
+    .replace(/[\u201C\u201D\u2033\uFF02]/g, '"') // “ ” ″ ＂ -> "
+    .replace(/[\u2010\u2011\u2012\u2013\u2014\u2212]/g, "-") // hyphen variants -> -
     .replace(/\s+/g, " ")
     .trim();
 }
