@@ -98,6 +98,52 @@ function safeNum(v: unknown): number | null {
   return typeof v === "number" && Number.isFinite(v) ? v : null;
 }
 
+function stripHtmlToText(html: unknown): string {
+  const s = typeof html === "string" ? html : "";
+  return s.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+}
+
+function hasMeaningfulText(html: unknown, minChars: number): boolean {
+  return stripHtmlToText(html).length >= minChars;
+}
+
+function sectionHasMeaningfulContent(sectionRaw: any): boolean {
+  const blocks = Array.isArray(sectionRaw?.blocks) ? sectionRaw.blocks : [];
+
+  const walk = (raw: any[]): boolean => {
+    const arr = Array.isArray(raw) ? raw : [];
+    for (const b of arr) {
+      if (!b || typeof b !== "object") continue;
+      const t = safeStr((b as any).type);
+      if (t === "paragraph") {
+        if (hasMeaningfulText((b as any).basisHtml, 20)) return true;
+        // Boxes count as content too.
+        if (safeStr((b as any).praktijkHtml).trim()) return true;
+        if (safeStr((b as any).verdiepingHtml).trim()) return true;
+        continue;
+      }
+      if (t === "list" || t === "steps") {
+        const items = Array.isArray((b as any).items) ? (b as any).items : [];
+        if (items.some((x: any) => typeof x === "string" && x.trim().length >= 8)) return true;
+        continue;
+      }
+      if (t === "subparagraph") {
+        if (walk(Array.isArray((b as any).blocks) ? (b as any).blocks : [])) return true;
+      }
+    }
+    return false;
+  };
+
+  return walk(blocks);
+}
+
+function normalizeAgentJobStatus(raw: unknown): string {
+  const s = safeStr(raw).trim().toLowerCase();
+  // ai_agent_jobs uses "processing" in Postgres; older UI code expects "in_progress".
+  if (s === "processing") return "in_progress";
+  return s;
+}
+
 function parseIsoMs(iso: string | null | undefined): number | null {
   if (!iso) return null;
   const ms = Date.parse(iso);
@@ -153,6 +199,7 @@ export function useBookGenMonitor() {
   const [selectedBookVersionId, setSelectedBookVersionId] = useState<string>("");
 
   const [chapters, setChapters] = useState<Array<{ title: string; sectionCount: number }>>([]);
+  const [doneByChapter, setDoneByChapter] = useState<number[] | null>(null);
   const [canonicalReady, setCanonicalReady] = useState(false);
   const [canonicalError, setCanonicalError] = useState<string>("");
   const [skeletonReady, setSkeletonReady] = useState<boolean | null>(null);
@@ -231,6 +278,7 @@ export function useBookGenMonitor() {
     setCanonicalReady(false);
     setCanonicalError("");
     setChapters([]);
+    setDoneByChapter(null);
     setSkeletonReady(null);
     setSkeletonMeta(null);
     setContentStats({ verdieping: 0, praktijk: 0, figures: 0 });
@@ -256,21 +304,56 @@ export function useBookGenMonitor() {
       setSkeletonReady(Boolean(skeletonUrl));
 
       if (skeletonUrl) {
-        try {
-          const sr = await fetch(skeletonUrl);
-          if (sr.ok) {
-            const sk = await sr.json().catch(() => null);
-            const meta = sk && typeof sk === "object" ? (sk as any).meta : null;
-            const language = safeStr(meta?.language).trim();
-            const level = safeStr(meta?.level).trim();
-            const schemaVersion = safeStr(meta?.schemaVersion).trim();
-            if (language && level && schemaVersion) {
-              setSkeletonMeta({ language, level, schemaVersion });
-            }
-          }
-        } catch {
-          // best-effort
+        const sr = await fetch(skeletonUrl);
+        if (!sr.ok) throw new Error(`Failed to download skeleton (${sr.status})`);
+        const skJson = await sr.json().catch(() => null);
+        if (!skJson || typeof skJson !== "object") throw new Error("BLOCKED: skeleton.json could not be parsed");
+
+        const meta = (skJson as any).meta;
+        const metaBookId = safeStr(meta?.bookId).trim();
+        const metaBookVersionId = safeStr(meta?.bookVersionId).trim();
+        if (metaBookId && metaBookId !== bookId) {
+          throw new Error(`BLOCKED: skeleton.meta.bookId mismatch (got '${metaBookId}', expected '${bookId}')`);
         }
+        if (metaBookVersionId && metaBookVersionId !== bookVersionId) {
+          throw new Error(`BLOCKED: skeleton.meta.bookVersionId mismatch (got '${metaBookVersionId}', expected '${bookVersionId}')`);
+        }
+
+        const language = safeStr(meta?.language).trim();
+        const level = safeStr(meta?.level).trim();
+        const schemaVersion = safeStr(meta?.schemaVersion).trim();
+        if (language && level && schemaVersion) {
+          setSkeletonMeta({ language, level, schemaVersion });
+        }
+
+        // Use skeleton as the source of truth for chapter/section structure (canonical may lag during split-mode).
+        const skChs = Array.isArray((skJson as any)?.chapters) ? ((skJson as any).chapters as any[]) : [];
+        const vm = skChs.map((c) => {
+          const title = safeStr(c?.title) || "Untitled";
+          const sectionCount = Array.isArray(c?.sections) ? c.sections.length : 0;
+          return { title, sectionCount };
+        });
+        setChapters(vm);
+
+        const done = skChs.map((c) => {
+          const secs = Array.isArray(c?.sections) ? c.sections : [];
+          let n = 0;
+          for (const s of secs) {
+            if (sectionHasMeaningfulContent(s)) n += 1;
+          }
+          return n;
+        });
+        setDoneByChapter(done);
+
+        // Content stats from skeleton (reflects latest writes, even before canonical recompile).
+        const stats: ContentStats = { verdieping: 0, praktijk: 0, figures: 0 };
+        walkJson(skJson, (obj) => {
+          if (typeof obj?.praktijkHtml === "string" && obj.praktijkHtml.trim()) stats.praktijk += 1;
+          if (typeof obj?.verdiepingHtml === "string" && obj.verdiepingHtml.trim()) stats.verdieping += 1;
+          if (obj?.type === "paragraph" && Array.isArray(obj.images)) stats.figures += obj.images.length;
+          if ((obj?.type === "list" || obj?.type === "steps") && Array.isArray(obj.images)) stats.figures += obj.images.length;
+        });
+        setContentStats(stats);
       }
 
       if (!canonicalUrl) {
@@ -282,28 +365,11 @@ export function useBookGenMonitor() {
       const json = await r.json().catch(() => null);
       if (!json || typeof json !== "object") throw new Error("BLOCKED: canonical.json could not be parsed");
 
-      const chs = Array.isArray((json as any).chapters) ? ((json as any).chapters as any[]) : [];
-      const vm = chs.map((c) => {
-        const title = safeStr(c?.title) || "Untitled";
-        const sectionCount = Array.isArray(c?.sections) ? c.sections.length : 0;
-        return { title, sectionCount };
-      });
-      setChapters(vm);
-
-      const stats: ContentStats = { verdieping: 0, praktijk: 0, figures: 0 };
-      walkJson(json, (obj) => {
-        // Canonical format uses `praktijk` / `verdieping` (compiled from skeleton's praktijkHtml/verdiepingHtml).
-        // Some draft/legacy shapes may still use `praktijkHtml` / `verdiepingHtml`.
-        if (typeof obj?.praktijk === "string" && obj.praktijk.trim()) stats.praktijk += 1;
-        if (typeof obj?.verdieping === "string" && obj.verdieping.trim()) stats.verdieping += 1;
-        if (typeof obj?.praktijkHtml === "string" && obj.praktijkHtml.trim()) stats.praktijk += 1;
-        if (typeof obj?.verdiepingHtml === "string" && obj.verdiepingHtml.trim()) stats.verdieping += 1;
-
-        const t = typeof obj?.type === "string" ? String(obj.type) : "";
-        if (t.toLowerCase().includes("figure")) stats.figures += 1;
-        if (t === "paragraph" && Array.isArray(obj.images)) stats.figures += obj.images.length;
-      });
-      setContentStats(stats);
+      // Sanity check: canonical meta.id should match bookId (prevents cross-book cache/mixups).
+      const metaId = safeStr((json as any)?.meta?.id).trim();
+      if (metaId && metaId !== bookId) {
+        throw new Error(`BLOCKED: canonical.meta.id mismatch (got '${metaId}', expected '${bookId}')`);
+      }
 
       setCanonicalReady(true);
     } catch (e) {
@@ -336,7 +402,7 @@ export function useBookGenMonitor() {
       const p = j.payload || {};
       return safeStr(p.bookId) === bookId && safeStr(p.bookVersionId) === bookVersionId;
     });
-    setJobs(filtered);
+    setJobs(filtered.map((j) => ({ ...j, status: normalizeAgentJobStatus(j.status) })));
 
     // Pick an active chapter job to show logs for (prefer in_progress, else queued)
     const chapterJobs = filtered.filter((j) => j.job_type === "book_generate_chapter");
@@ -511,11 +577,17 @@ export function useBookGenMonitor() {
     const out: ChapterVm[] = [];
     for (let i = 0; i < chapters.length; i += 1) {
       const sectionCount = chapters[i]?.sectionCount ?? 0;
-      let doneSections = 0;
-      for (let s = 0; s < sectionCount; s += 1) {
-        const key = `${i}.${s}`;
-        const st = sectionStatusMap.get(key)?.status;
-        if (st === "done") doneSections += 1;
+      // Prefer skeleton-derived completion (authoritative), fall back to job-derived status map.
+      let doneSections =
+        Array.isArray(doneByChapter) && typeof doneByChapter[i] === "number"
+          ? Math.min(sectionCount, Math.max(0, Math.floor(doneByChapter[i] as number)))
+          : 0;
+      if (!(Array.isArray(doneByChapter) && typeof doneByChapter[i] === "number")) {
+        for (let s = 0; s < sectionCount; s += 1) {
+          const key = `${i}.${s}`;
+          const st = sectionStatusMap.get(key)?.status;
+          if (st === "done") doneSections += 1;
+        }
       }
 
       const chJob = chapterStatusMap.get(i);
@@ -536,7 +608,7 @@ export function useBookGenMonitor() {
       });
     }
     return out;
-  }, [chapters, chapterStatusMap, sectionStatusMap]);
+  }, [chapters, chapterStatusMap, doneByChapter, sectionStatusMap]);
 
   const totals = useMemo(() => {
     const totalSections = chapterVms.reduce((sum, c) => sum + (c.sectionCount || 0), 0);
