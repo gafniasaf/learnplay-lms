@@ -109,18 +109,18 @@ function applyEscalationsForSection(payload: any, sig: string, attempts: number)
 
   // Most common hard-fail: model returns blocks:[] (validator sees got=0).
   if (sig.includes("Numbered subparagraph count mismatch (got=0")) {
-    // Escalate to OpenAI after repeated failures.
-    if (attempts >= 2) {
-      p.writeModel = "openai:gpt-5.2";
-    }
+    // Prefer stable Sonnet for retries (GPT-5.2 is currently incompatible with our OpenAI param wiring).
+    if (attempts >= 2) p.writeModel = "anthropic:claude-sonnet-4-5";
     // Keep token budget moderate to reduce timeouts.
     p.sectionMaxTokens = 5000;
+    // Force split-mode for locked outlines so we generate one numbered subparagraph per tick.
+    p.splitLockedOutline = true;
   }
 
   // If we hit LLM timeout many times, lower tokens and switch model.
   if (sig.toLowerCase().includes("timed out")) {
     p.sectionMaxTokens = 3500;
-    if (attempts >= 2) p.writeModel = "openai:gpt-5.2";
+    if (attempts >= 2) p.writeModel = "anthropic:claude-sonnet-4-5";
   }
 
   return p;
@@ -224,6 +224,11 @@ async function main() {
         nextPayload = applyEscalationsForSection(payload, sig, attempts);
       } else if (jobType === "book_generate_chapter") {
         nextPayload = stripRuntimeKeysForChapter(payload);
+        // Keep chapter orchestration on the stable default model too.
+        nextPayload.writeModel = "anthropic:claude-sonnet-4-5";
+        if (typeof nextPayload.recapModel === "string" && nextPayload.recapModel.trim()) {
+          nextPayload.recapModel = "anthropic:claude-sonnet-4-5";
+        }
       } else {
         // Other job types: just reset status/error counters, keep payload.
         nextPayload = payload;

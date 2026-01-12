@@ -422,8 +422,8 @@ export default function BookStudioChapterEditor() {
   const [skeletonDirty, setSkeletonDirty] = useState(false);
 
   // Per-stage model selection (for skeleton-first pipeline)
-  const [skeletonModel, setSkeletonModel] = useState<string>("gpt-5.2");
-  const [validateModel, setValidateModel] = useState<string>("gpt-5.2");
+  const [skeletonModel, setSkeletonModel] = useState<string>("claude-sonnet-4-5-20250929");
+  const [validateModel, setValidateModel] = useState<string>("claude-sonnet-4-5-20250929");
   const [writeModel, setWriteModel] = useState<string>("claude-sonnet-4-5-20250929");
   const [passesModel, setPassesModel] = useState<string>("claude-sonnet-4-5-20250929");
   const [userInstructions, setUserInstructions] = useState<string>("");

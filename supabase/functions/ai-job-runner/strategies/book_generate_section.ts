@@ -2073,62 +2073,23 @@ export class BookGenerateSection implements JobExecutor {
       let reason = e instanceof Error ? e.message : String(e);
 
       // Recovery: Some Anthropic tool outputs degrade to `{ title, blocks: [] }` for locked outlines.
-      // This leads to repeated `got=0` failures. If OpenAI is configured, attempt a bounded recovery.
+      // This leads to repeated `got=0` failures. Prefer an Anthropic-only recovery:
+      // force split-mode next attempt (one numbered subparagraph per tick) instead of switching providers.
       const emptyBlocksMismatch =
         requiredSubparagraphTitles.length > 0 &&
         reason.includes("BLOCKED: Numbered subparagraph count mismatch (got=0");
 
-      const emptyRecoveriesRaw = (p as any).__emptyBlocksRecoveries;
-      const emptyRecoveries =
-        typeof emptyRecoveriesRaw === "number" && Number.isFinite(emptyRecoveriesRaw)
-          ? Math.max(0, Math.floor(emptyRecoveriesRaw))
-          : 0;
-
-      let recoveredOk = false;
-      if (emptyBlocksMismatch && emptyRecoveries < 2 && writeModelSpec.provider === "anthropic") {
-        const openaiKey = Deno.env.get("OPENAI_API_KEY");
-        if (openaiKey && openaiKey.trim()) {
-          await emitAgentJobEvent(jobId, "generating", 23, "Empty outline from Anthropic; attempting OpenAI recovery", {
-            chapterIndex,
-            sectionIndex,
-            expectedSubparagraphs: requiredSubparagraphTitles.length,
-            openAiModel: "gpt-5.2",
-            attempt: emptyRecoveries + 1,
-          }).catch(() => {});
-
-          try {
-            const recovered = (await llmGenerateJson({
-              provider: "openai",
-              model: "gpt-5.2",
-              system,
-              prompt,
-              maxTokens: Math.max(2200, Math.min(7000, Math.floor(sectionMaxTokens * 0.85))),
-              tool: buildDraftBookSectionToolSpec(requiredSubparagraphTitles),
-            })) as DraftSection;
-
-            validateAll(recovered);
-            draft = recovered;
-            recoveredOk = true;
-
-            await emitAgentJobEvent(jobId, "generating", 24, "OpenAI recovery succeeded; continuing", {
-              chapterIndex,
-              sectionIndex,
-            }).catch(() => {});
-          } catch (e2) {
-            const msg = e2 instanceof Error ? e2.message : String(e2);
-            await emitAgentJobEvent(jobId, "generating", 24, "OpenAI recovery failed; continuing normal retry flow", {
-              chapterIndex,
-              sectionIndex,
-              reason: msg.slice(0, 600),
-            }).catch(() => {});
-
-            // Record that we attempted this recovery (bounded).
-            (p as any).__emptyBlocksRecoveries = emptyRecoveries + 1;
-          }
-        }
+      const forceSplitLockedOutlineForRetry = emptyBlocksMismatch && writeModelSpec.provider === "anthropic";
+      if (forceSplitLockedOutlineForRetry) {
+        await emitAgentJobEvent(jobId, "generating", 23, "Empty outline; forcing split-mode retry (Anthropic-only)", {
+          chapterIndex,
+          sectionIndex,
+          expectedSubparagraphs: requiredSubparagraphTitles.length,
+          splitLockedOutline: true,
+        }).catch(() => {});
       }
 
-      if (!recoveredOk) {
+      {
         const MAX_DRAFT_ATTEMPTS = 4;
         const nextAttempt = draftAttempt + 1;
         if (nextAttempt > MAX_DRAFT_ATTEMPTS) {
@@ -2152,11 +2113,9 @@ export class BookGenerateSection implements JobExecutor {
           payloadPatch: {
             __draftAttempt: nextAttempt,
             __draftFailureReason: reason.slice(0, 800),
-            ...(typeof (p as any).__emptyBlocksRecoveries === "number"
-              ? { __emptyBlocksRecoveries: (p as any).__emptyBlocksRecoveries }
-              : {}),
             ...(mustFill ? { __draftMustFillTitle: mustFill } : {}),
             ...(mustBox ? { __draftMustBoxKind: mustBox.kind, __draftMustBoxTitle: mustBox.title } : {}),
+            ...(forceSplitLockedOutlineForRetry ? { splitLockedOutline: true } : {}),
           },
         };
       }

@@ -416,7 +416,52 @@ function buildChapterDigest(opts: { chapter: any; maxCharsTotal?: number; maxCha
   return out.trim();
 }
 
-function validateChapterRecap(raw: any, allowedSectionIds: Set<string>): ChapterRecap {
+type ChapterRecapBudgets = {
+  objectivesMin: number;
+  objectivesMax: number;
+  glossaryMin: number;
+  glossaryMax: number;
+  questionsMin: number;
+  questionsMax: number;
+  objectivesUniqueMin: number;
+  glossaryUniqueMin: number;
+  questionsUniqueMin: number;
+};
+
+function pickChapterRecapBudgets(sectionCount: number): ChapterRecapBudgets {
+  const n = Math.max(1, Math.floor(sectionCount));
+  const clampInt = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, Math.floor(v)));
+  const clampUniqueMin = (desiredLo: number, value: number) => {
+    const lo = n >= desiredLo ? desiredLo : 1;
+    return Math.min(n, Math.max(lo, value));
+  };
+
+  const objectivesMin = clampInt(Math.ceil(n * 0.45), 4, 20);
+  const objectivesMax = clampInt(Math.ceil(n * 0.65), Math.max(6, objectivesMin), 28);
+  const glossaryMin = clampInt(Math.ceil(n * 0.9), 10, 40);
+  const glossaryMax = clampInt(Math.ceil(n * 1.25), Math.max(14, glossaryMin), 60);
+  const questionsMin = clampInt(Math.ceil(n * 0.35), 4, 18);
+  const questionsMax = clampInt(Math.ceil(n * 0.5), Math.max(6, questionsMin), 26);
+
+  // Encourage broad coverage: require many distinct sectionId references.
+  const objectivesUniqueMin = clampUniqueMin(3, Math.min(objectivesMin, 12));
+  const glossaryUniqueMin = clampUniqueMin(4, Math.min(glossaryMin, 16));
+  const questionsUniqueMin = clampUniqueMin(3, Math.min(questionsMin, 10));
+
+  return {
+    objectivesMin,
+    objectivesMax,
+    glossaryMin,
+    glossaryMax,
+    questionsMin,
+    questionsMax,
+    objectivesUniqueMin,
+    glossaryUniqueMin,
+    questionsUniqueMin,
+  };
+}
+
+function validateChapterRecap(raw: any, allowedSectionIds: Set<string>, budgets: ChapterRecapBudgets): ChapterRecap {
   if (!raw || typeof raw !== "object") throw new Error("BLOCKED: Chapter recap must be a JSON object");
 
   const objectivesRaw = (raw as any).objectives;
@@ -432,17 +477,47 @@ function validateChapterRecap(raw: any, allowedSectionIds: Set<string>): Chapter
   const glossaryIn = normalizeArr(glossaryRaw, "glossary");
   const questionsIn = normalizeArr(questionsRaw, "selfCheckQuestions");
 
+  const enforceCount = (key: string, n: number, lo: number, hi: number) => {
+    if (n < lo || n > hi) {
+      throw new Error(`BLOCKED: recap.${key} must contain ${lo}..${hi} items (got=${n})`);
+    }
+  };
+  enforceCount("objectives", objectivesIn.length, budgets.objectivesMin, budgets.objectivesMax);
+  enforceCount("glossary", glossaryIn.length, budgets.glossaryMin, budgets.glossaryMax);
+  enforceCount("selfCheckQuestions", questionsIn.length, budgets.questionsMin, budgets.questionsMax);
+
+  const enforceUnique = (key: string, values: string[]) => {
+    const seen = new Set<string>();
+    for (const v of values) {
+      const k = String(v || "").toLowerCase();
+      if (!k) continue;
+      if (seen.has(k)) throw new Error(`BLOCKED: recap.${key} contains duplicate values (must be unique)`);
+      seen.add(k);
+    }
+  };
+
+  const enforceUniqueSectionIds = (key: string, ids: string[], minUnique: number) => {
+    const uniq = new Set(ids.filter(Boolean));
+    if (uniq.size < minUnique) {
+      throw new Error(`BLOCKED: recap.${key} references too few distinct sectionId values (got=${uniq.size}, min=${minUnique}). Spread across the chapter.`);
+    }
+  };
+
   const objectives = objectivesIn.map((it: any, i: number) => {
     if (!it || typeof it !== "object") throw new Error(`BLOCKED: objectives[${i}] must be an object`);
     const text = typeof it.text === "string" ? normalizeWs(it.text) : "";
     const sectionId = typeof it.sectionId === "string" ? String(it.sectionId).trim() : "";
     if (!text) throw new Error(`BLOCKED: objectives[${i}].text is required`);
+    if (text.length < 16) throw new Error(`BLOCKED: objectives[${i}].text is too short`);
+    if (text.length > 220) throw new Error(`BLOCKED: objectives[${i}].text is too long`);
     if (!sectionId) throw new Error(`BLOCKED: objectives[${i}].sectionId is required`);
     if (!allowedSectionIds.has(sectionId)) {
       throw new Error(`BLOCKED: objectives[${i}].sectionId '${sectionId}' is not a valid sectionId in this chapter`);
     }
     return { text, sectionId };
   });
+  enforceUnique("objectives.text", objectives.map((o) => o.text));
+  enforceUniqueSectionIds("objectives", objectives.map((o) => o.sectionId), budgets.objectivesUniqueMin);
 
   const glossary = glossaryIn.map((it: any, i: number) => {
     if (!it || typeof it !== "object") throw new Error(`BLOCKED: glossary[${i}] must be an object`);
@@ -450,32 +525,41 @@ function validateChapterRecap(raw: any, allowedSectionIds: Set<string>): Chapter
     const definition = typeof it.definition === "string" ? normalizeWs(it.definition) : "";
     const sectionId = typeof it.sectionId === "string" ? String(it.sectionId).trim() : "";
     if (!term) throw new Error(`BLOCKED: glossary[${i}].term is required`);
+    if (term.length > 60) throw new Error(`BLOCKED: glossary[${i}].term is too long`);
     if (!definition) throw new Error(`BLOCKED: glossary[${i}].definition is required`);
+    if (definition.length < 20) throw new Error(`BLOCKED: glossary[${i}].definition is too short`);
+    if (definition.length > 420) throw new Error(`BLOCKED: glossary[${i}].definition is too long`);
     if (!sectionId) throw new Error(`BLOCKED: glossary[${i}].sectionId is required`);
     if (!allowedSectionIds.has(sectionId)) {
       throw new Error(`BLOCKED: glossary[${i}].sectionId '${sectionId}' is not a valid sectionId in this chapter`);
     }
     return { term, definition, sectionId };
   });
+  enforceUnique("glossary.term", glossary.map((g) => g.term));
+  enforceUniqueSectionIds("glossary", glossary.map((g) => g.sectionId), budgets.glossaryUniqueMin);
 
   const selfCheckQuestions = questionsIn.map((it: any, i: number) => {
     if (!it || typeof it !== "object") throw new Error(`BLOCKED: selfCheckQuestions[${i}] must be an object`);
     const question = typeof it.question === "string" ? normalizeWs(it.question) : "";
     const sectionId = typeof it.sectionId === "string" ? String(it.sectionId).trim() : "";
     if (!question) throw new Error(`BLOCKED: selfCheckQuestions[${i}].question is required`);
+    if (question.length < 12) throw new Error(`BLOCKED: selfCheckQuestions[${i}].question is too short`);
+    if (question.length > 260) throw new Error(`BLOCKED: selfCheckQuestions[${i}].question is too long`);
     if (!sectionId) throw new Error(`BLOCKED: selfCheckQuestions[${i}].sectionId is required`);
     if (!allowedSectionIds.has(sectionId)) {
       throw new Error(`BLOCKED: selfCheckQuestions[${i}].sectionId '${sectionId}' is not a valid sectionId in this chapter`);
     }
     return { question, sectionId };
   });
+  enforceUnique("selfCheckQuestions.question", selfCheckQuestions.map((q) => q.question));
+  enforceUniqueSectionIds("selfCheckQuestions", selfCheckQuestions.map((q) => q.sectionId), budgets.questionsUniqueMin);
 
   return { objectives, glossary, selfCheckQuestions };
 }
 
-function isRecapComplete(raw: any, allowedSectionIds: Set<string>): boolean {
+function isRecapComplete(raw: any, allowedSectionIds: Set<string>, budgets: ChapterRecapBudgets): boolean {
   try {
-    validateChapterRecap(raw, allowedSectionIds);
+    validateChapterRecap(raw, allowedSectionIds, budgets);
     return true;
   } catch {
     return false;
@@ -507,6 +591,7 @@ function buildChapterRecapPrompt(opts: {
   chapterTitle: string;
   sectionRefs: Array<{ id: string; title: string }>;
   digest: string;
+  budgets: ChapterRecapBudgets;
   userInstructions?: string | null;
 }): string {
   const sectionList = opts.sectionRefs.map((s) => `- ${s.id}: ${s.title}`).join("\n");
@@ -524,9 +609,13 @@ function buildChapterRecapPrompt(opts: {
     "Valid section IDs (choose sectionId ONLY from this list):\n" +
     sectionList +
     "\n\nRequirements:\n" +
-    "- objectives: 4–6 bullets, each starts with 'Je kunt ...' (Dutch), concrete and chapter-specific.\n" +
-    "- glossary: 8–12 items, term is short; definition is 1–2 sentences, clear for MBO students.\n" +
-    "- selfCheckQuestions: 4 items, mix definitions + application; avoid nonsensical comparisons.\n" +
+    `- objectives: ${opts.budgets.objectivesMin}–${opts.budgets.objectivesMax} bullets, each starts with 'Je kunt ...' (Dutch), concrete and chapter-specific.\n` +
+    `  - Spread across the chapter: use at least ${opts.budgets.objectivesUniqueMin} different sectionId values.\n` +
+    `- glossary: ${opts.budgets.glossaryMin}–${opts.budgets.glossaryMax} items. Term is short; definition is 1–2 sentences, clear for MBO students.\n` +
+    `  - Spread across the chapter: use at least ${opts.budgets.glossaryUniqueMin} different sectionId values.\n` +
+    `- selfCheckQuestions: ${opts.budgets.questionsMin}–${opts.budgets.questionsMax} items. Mix definitions + application. Avoid nonsensical comparisons.\n` +
+    `  - Spread across the chapter: use at least ${opts.budgets.questionsUniqueMin} different sectionId values.\n` +
+    "- IMPORTANT: Do NOT only cover the first 1–2 sections. Cover the chapter broadly.\n" +
     "\nChapter digest (content summary):\n" +
     opts.digest +
     "\n"
@@ -1046,7 +1135,9 @@ export class BookGenerateChapter implements JobExecutor {
         throw new Error("BLOCKED: Chapter has no section ids; cannot generate recap");
       }
 
-      if (!isRecapComplete((existingChapter as any)?.recap, allowedSectionIds)) {
+      const recapBudgets = pickChapterRecapBudgets(allowedSectionIds.size);
+
+      if (!isRecapComplete((existingChapter as any)?.recap, allowedSectionIds, recapBudgets)) {
         await emitAgentJobEvent(jobId, "generating", 70, "Generating chapter recap (objectives / glossary / self-check)", {
           bookId,
           bookVersionId,
@@ -1082,6 +1173,7 @@ export class BookGenerateChapter implements JobExecutor {
               chapterTitle: chapterTitle || `Hoofdstuk ${chapterIndex + 1}`,
               sectionRefs,
               digest,
+              budgets: recapBudgets,
               userInstructions,
             }) +
             (lastErr
@@ -1093,10 +1185,10 @@ export class BookGenerateChapter implements JobExecutor {
               model: recapModelSpec.model,
               system,
               prompt,
-              maxTokens: 1800,
+              maxTokens: 3200,
               tool: TOOL_DRAFT_CHAPTER_RECAP,
             });
-            recap = validateChapterRecap(raw, allowedSectionIds);
+            recap = validateChapterRecap(raw, allowedSectionIds, recapBudgets);
             break;
           } catch (e) {
             const msg = e instanceof Error ? e.message : String(e);

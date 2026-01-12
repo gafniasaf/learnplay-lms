@@ -1319,7 +1319,9 @@ async function processJob(job) {
       const modelRaw = typeof modelEnv === "string" ? modelEnv.trim() : "";
       let model = modelRaw;
       if (!model) {
-        model = provider === "anthropic" ? "claude-sonnet-4-5" : "gpt-5.2";
+        // Avoid defaulting to gpt-5.2 here: our OpenAI calls still use `max_tokens`,
+        // and gpt-5.x requires `max_completion_tokens` (otherwise OpenAI 400).
+        model = provider === "anthropic" ? "claude-sonnet-4-5" : "gpt-4o";
         console.warn(`[book-worker] BOOK_FIGURE_PLACEMENT_MODEL not set; defaulting to ${model}`);
       }
       if (provider === "anthropic") requireEnvForFigurePlacement("ANTHROPIC_API_KEY");
@@ -1504,8 +1506,9 @@ Hard requirements:
       }
 
       // --- Per-stage model selection from job payload ---
-      const skeletonProvider = payload.skeletonProvider || payload.planProvider || "openai";
-      const skeletonModel = payload.skeletonModel || payload.planModel || "gpt-5.2";
+      // Prefer Anthropic/Sonnet by default (stability). OpenAI remains opt-in via payload/env.
+      const skeletonProvider = payload.skeletonProvider || payload.planProvider || payload.rewriteProvider || (process.env.ANTHROPIC_API_KEY ? "anthropic" : "openai");
+      const skeletonModel = payload.skeletonModel || payload.planModel || (skeletonProvider === "anthropic" ? "claude-sonnet-4-5" : "gpt-4o");
       const validateProvider = payload.validateProvider || skeletonProvider;
       const validateModel = payload.validateModel || skeletonModel;
       const writeProvider = payload.writeProvider || payload.rewriteProvider || "anthropic";
@@ -1570,7 +1573,7 @@ Hard requirements:
       if (planProviderEnv && !["openai", "anthropic"].includes(planProviderEnv)) {
         throw new Error(`Invalid BOOKGEN_PLAN_PROVIDER env var: ${planProviderEnv}`);
       }
-      const planProvider = planProviderRaw || planProviderEnv || "openai";
+      const planProvider = planProviderRaw || planProviderEnv || (ANTHROPIC_API_KEY ? "anthropic" : "openai");
 
       const rewriteProviderRaw = typeof payload.rewriteProvider === "string" && payload.rewriteProvider.trim()
         ? payload.rewriteProvider.trim()
@@ -1594,14 +1597,14 @@ Hard requirements:
         : "";
       const planModel = typeof payload.planModel === "string" && payload.planModel.trim()
         ? payload.planModel.trim()
-        : (planModelEnv || (planProvider === "anthropic" ? (anthropicModelEnv || "claude-sonnet-4-5") : "gpt-5.2"));
+        : (planModelEnv || (planProvider === "anthropic" ? (anthropicModelEnv || "claude-sonnet-4-5") : "gpt-4o"));
 
       const rewriteModelEnv = process.env.BOOKGEN_REWRITE_MODEL && String(process.env.BOOKGEN_REWRITE_MODEL).trim()
         ? String(process.env.BOOKGEN_REWRITE_MODEL).trim()
         : "";
       const rewriteModel = typeof payload.rewriteModel === "string" && payload.rewriteModel.trim()
         ? payload.rewriteModel.trim()
-        : (rewriteModelEnv || (rewriteProvider === "anthropic" ? (anthropicModelEnv || "claude-sonnet-4-5") : "gpt-5.2"));
+        : (rewriteModelEnv || (rewriteProvider === "anthropic" ? (anthropicModelEnv || "claude-sonnet-4-5") : "gpt-4o"));
 
       // Fail loudly (no silent provider fallback).
       if (planProvider === "openai") requireOpenAiKey();
