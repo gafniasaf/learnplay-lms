@@ -1199,9 +1199,35 @@ figcaption.figure-caption {
     return uniq;
   }
 
+  function pickEvenlySpacedIndices(n, max) {
+    const nn = typeof n === "number" && Number.isFinite(n) ? Math.max(0, Math.floor(n)) : 0;
+    const mm = typeof max === "number" && Number.isFinite(max) ? Math.max(0, Math.floor(max)) : 0;
+    if (nn <= 0 || mm <= 0) return [];
+    if (nn <= mm) return Array.from({ length: nn }, (_, i) => i);
+    if (mm === 1) return [0];
+
+    const idxs = new Set();
+    for (let i = 0; i < mm; i++) {
+      const t = i / (mm - 1);
+      const idx = Math.round(t * (nn - 1));
+      idxs.add(idx);
+    }
+    // If rounding produced duplicates, fill from the front to ensure we hit mm items.
+    const out = Array.from(idxs).sort((a, b) => a - b);
+    for (let i = 0; i < nn && out.length < mm; i++) {
+      if (idxs.has(i)) continue;
+      idxs.add(i);
+      out.push(i);
+    }
+    return out.sort((a, b) => a - b);
+  }
+
   function deriveLearningObjectivesFromSections(sections, max = 4) {
     const out = [];
-    for (const s of sections.slice(0, max)) {
+    const list = Array.isArray(sections) ? sections : [];
+    const idxs = pickEvenlySpacedIndices(list.length, max);
+    for (const idx of idxs) {
+      const s = list[idx];
       const rawSt = s?.title || s?.meta?.title || "";
       if (!rawSt) continue;
       const { title } = splitNumberedTitle(rawSt);
@@ -1227,7 +1253,8 @@ figcaption.figure-caption {
     const out = [];
     const idx = typeof chapterIndex === "number" && Number.isFinite(chapterIndex) ? chapterIndex : 0;
     const list = Array.isArray(sections) ? sections : [];
-    for (let j = 0; j < list.length && out.length < max; j++) {
+    const picked = pickEvenlySpacedIndices(list.length, max);
+    for (const j of picked) {
       const s = list[j];
       const rawSt = s?.title || s?.meta?.title || "";
       if (!rawSt) continue;
@@ -1395,29 +1422,169 @@ figcaption.figure-caption {
     const out = [];
     const terms = Array.isArray(keyTerms) ? keyTerms : [];
     const paras = Array.isArray(paragraphs) ? paragraphs : [];
+
+    const escapeRegex = (s) => String(s || "").replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const splitSentences = (text) => {
+      const t = normalizeWhitespace(text);
+      if (!t) return [];
+      return t.split(/(?<=[.!?])\s+/).map((s) => String(s || "").trim()).filter(Boolean);
+    };
+    const countWords = (text) => normalizeWhitespace(text).split(/\s+/).filter(Boolean).length;
+
+    const isDefinitionSentence = (sentence, termLower) => {
+      const s = normalizeWhitespace(sentence);
+      if (!s) return false;
+      const lower = s.toLowerCase();
+      if (!lower.includes(termLower)) return false;
+
+      // Avoid intro boilerplate.
+      if (/^welkom\b/i.test(s) || /^in dit hoofdstuk\b/i.test(s) || /^stel je voor\b/i.test(s)) return false;
+
+      const termRe = escapeRegex(termLower);
+      // Term is the subject (best case): "Term is/ontstaat/betekent/..."
+      const subject = new RegExp(
+        `^(?:de\\s+|het\\s+|een\\s+)?${termRe}\\b[\\s\\S]{0,120}\\b(?:is|zijn|betekent|staat\\s+voor|ontstaat|ontstaan|komt\\s+voor|komt)\\b`,
+        "i",
+      );
+      if (subject.test(lower)) return true;
+
+      // Term is named (also good): "... noemen we Term" / "Dit heet Term" / "in medische termen Term"
+      const named = new RegExp(
+        `\\b(?:noemen\\s+we|noem\\s+je|dit\\s+noemen\\s+we|heet|dit\\s+heet|wordt\\s+genoemd|in\\s+medische\\s+termen?)\\b[\\s\\S]{0,120}\\b${termRe}\\b`,
+        "i",
+      );
+      if (named.test(lower)) return true;
+
+      return false;
+    };
+
+    const scoreDefinition = (sentence, termLower) => {
+      const s = normalizeWhitespace(sentence);
+      if (!s) return -9999;
+      const lower = s.toLowerCase();
+      if (!lower.includes(termLower)) return -9999;
+
+      if (!isDefinitionSentence(s, termLower)) return -9999;
+
+      let score = 0;
+      // Prefer definitional language.
+      if (/\b(is|zijn|betekent|noem\s+je|noemen\s+we|heet|staat\s+voor|ontstaat|ontstaan)\b/i.test(s)) score += 7;
+
+      // Prefer when the term is introduced early.
+      const pos = lower.indexOf(termLower);
+      if (pos >= 0 && pos <= 14) score += 2;
+
+      // Prefer sentences that start by defining the term.
+      if (
+        lower.startsWith(termLower) ||
+        lower.startsWith(`de ${termLower}`) ||
+        lower.startsWith(`het ${termLower}`) ||
+        lower.startsWith(`een ${termLower}`)
+      ) {
+        score += 3;
+      }
+
+      // Length sweet spot.
+      const wc = countWords(s);
+      if (wc >= 7 && wc <= 24) score += 2;
+      else if (wc < 5) score -= 4;
+      else if (wc > 34) score -= 2;
+
+      return score;
+    };
+
+    const definitionCandidatesForTerm = (term) => {
+      const needle = normalizeWhitespace(term);
+      const needleLower = needle.toLowerCase();
+      if (!needleLower) return [];
+
+      /** @type {{ score: number, sentence: string, href: string }[]} */
+      const candidates = [];
+      for (const p of paras) {
+        const text = typeof p?.text === "string" ? p.text : "";
+        const lower = text.toLowerCase();
+        if (!lower.includes(needleLower)) continue;
+
+        const sentences = splitSentences(text);
+        // Scan a few sentences; definitions are usually early.
+        for (const sent of sentences.slice(0, 8)) {
+          if (!String(sent).toLowerCase().includes(needleLower)) continue;
+          const sc = scoreDefinition(sent, needleLower);
+          if (sc <= -9999) continue;
+          const clipped = sent.length > 320 ? `${sent.slice(0, 317).trim()}…` : sent;
+          candidates.push({
+            score: sc,
+            sentence: clipped,
+            href: p?.id ? `#pid-${toSafeDomId(p.id)}` : "",
+          });
+        }
+      }
+
+      candidates.sort((a, b) => b.score - a.score);
+      // De-dupe by sentence text and keep a few alternatives.
+      const seen = new Set();
+      const uniq = [];
+      for (const c of candidates) {
+        const key = c.sentence.toLowerCase();
+        if (seen.has(key)) continue;
+        seen.add(key);
+        uniq.push(c);
+        if (uniq.length >= 5) break;
+      }
+      return uniq;
+    };
+
+    const usedTerms = new Set();
+    const usedDefs = new Set();
     for (const term of terms) {
       if (out.length >= max) break;
-      const needle = String(term || "").trim();
+      const needle = normalizeWhitespace(term);
       if (!needle) continue;
-      const found = paras.find((p) => String(p?.text || "").toLowerCase().includes(needle.toLowerCase()));
-      if (!found) continue;
-      const def = sentenceContaining(found.text, needle);
-      if (!def) continue;
-      const href = found.id ? `#pid-${toSafeDomId(found.id)}` : "";
-      out.push({ term: needle, definition: def, href });
+      const termKey = needle.toLowerCase();
+      if (usedTerms.has(termKey)) continue;
+
+      const candidates = definitionCandidatesForTerm(needle);
+      const picked = candidates.find((c) => c && typeof c.sentence === "string" && !usedDefs.has(c.sentence.toLowerCase())) || null;
+      if (!picked) continue;
+
+      usedTerms.add(termKey);
+      usedDefs.add(picked.sentence.toLowerCase());
+      out.push({ term: needle, definition: picked.sentence, href: picked.href });
     }
     return out;
   }
 
   function deriveCheckQuestions({ sections, keyTerms, max = 4 }) {
     const qs = [];
-    const terms = Array.isArray(keyTerms) ? keyTerms : [];
-    const secTitles = Array.isArray(sections) ? sections.map((s) => splitNumberedTitle(s?.title || "").title).filter(Boolean) : [];
+    const seen = new Set();
+    const push = (q) => {
+      const t = normalizeWhitespace(q);
+      if (!t) return;
+      const key = t.toLowerCase();
+      if (seen.has(key)) return;
+      seen.add(key);
+      qs.push(t);
+    };
 
-    if (terms[0]) qs.push(`Wat bedoelen we met “${terms[0]}”?`);
-    if (terms[1]) qs.push(`Wat is het verschil tussen “${terms[0]}” en “${terms[1]}”?`);
-    if (secTitles[0]) qs.push(`Vat de kern van “${secTitles[0]}” samen in twee zinnen.`);
-    if (terms[2]) qs.push(`Noem een voorbeeld van “${terms[2]}” in het lichaam.`);
+    const terms = Array.isArray(keyTerms) ? keyTerms.map((t) => String(t || "").trim()).filter(Boolean) : [];
+    const secTitles = Array.isArray(sections)
+      ? sections.map((s) => splitNumberedTitle(s?.title || "").title).map((t) => normalizeWhitespace(t)).filter(Boolean)
+      : [];
+
+    const nonIntroTitles = secTitles.filter((t) => !/^inleiding$/i.test(t));
+    const pickTitle = (i) => nonIntroTitles[i] || secTitles[i] || "";
+
+    if (terms[0]) push(`Wat bedoelen we met “${terms[0]}”?`);
+
+    // Prefer a concrete topic (skip "Inleiding" when possible).
+    const topic1 = pickTitle(0);
+    if (topic1) push(`Vat de kern van “${topic1}” samen in twee zinnen.`);
+
+    const topic2 = pickTitle(1);
+    if (topic2) push(`Noem twee belangrijke punten over “${topic2}”.`);
+
+    const appTerm = terms[1] || terms[2] || "";
+    if (appTerm) push(`Geef een voorbeeld van “${appTerm}” uit de zorgpraktijk.`);
 
     return qs.slice(0, max);
   }
@@ -1490,12 +1657,15 @@ figcaption.figure-caption {
     }
 
     // Chapter recap (deterministic, content-derived; no AI / no placeholders).
-    const keyTerms = deriveKeyTermsForChapter(ch).slice(0, 10);
+    // NOTE: Keep a small list for summaries/questions, but use a wider pool for glossary
+    // so we can pick terms that actually have definitional sentences.
+    const keyTermsAll = deriveKeyTermsForChapter(ch);
+    const keyTerms = keyTermsAll.slice(0, 10);
     const questions = deriveCheckQuestions({ sections, keyTerms, max: 4 });
     const objectivesWithRefs = deriveLearningObjectivesWithRefs(sections, { chapterIndex: idx, max: 6 });
     const summaries = deriveSectionSummaries(sections, { max: 6, keyTerms });
     const paragraphs = collectParagraphRefsForChapter(ch);
-    const glossary = deriveGlossaryItems({ keyTerms, paragraphs, max: 10 });
+    const glossary = deriveGlossaryItems({ keyTerms: keyTermsAll, paragraphs, max: 10 });
 
     if (keyTerms.length || questions.length || objectivesWithRefs.length || summaries.length || glossary.length) {
       out += `\n    <div class="chapter-recap">\n`;
