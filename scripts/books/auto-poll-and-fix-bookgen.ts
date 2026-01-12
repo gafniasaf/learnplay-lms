@@ -113,9 +113,6 @@ function applyEscalationsForSection(payload: any, sig: string, attempts: number)
     if (attempts >= 2) {
       p.writeModel = "openai:gpt-5.2";
     }
-    if (attempts >= 4) {
-      p.writeModel = "openai:gpt-4o";
-    }
     // Keep token budget moderate to reduce timeouts.
     p.sectionMaxTokens = 5000;
   }
