@@ -35,6 +35,12 @@ type ChapterLayoutPlan = {
   notes?: string | null;
 };
 
+type ChapterRecap = {
+  objectives: Array<{ text: string; sectionId: string }>;
+  glossary: Array<{ term: string; definition: string; sectionId: string }>;
+  selfCheckQuestions: Array<{ question: string; sectionId: string }>;
+};
+
 type ChapterOutline = {
   chapterTitle?: string;
   sections: Array<{
@@ -63,6 +69,57 @@ const TOOL_PLAN_CHAPTER_LAYOUT: AnthropicToolSpec = {
       praktijkSubparagraphTitles: { type: "array", items: { type: "string" } },
       verdiepingSubparagraphTitles: { type: "array", items: { type: "string" } },
       notes: { anyOf: [{ type: "string" }, { type: "null" }] },
+    },
+  },
+};
+
+const TOOL_DRAFT_CHAPTER_RECAP: AnthropicToolSpec = {
+  name: "draft_chapter_recap",
+  description:
+    "Draft high-quality learning objectives, a short glossary (with definitions), and self-check questions for a Dutch MBO chapter. " +
+    "Use ONLY the provided chapter content summary and ONLY reference provided section IDs.",
+  input_schema: {
+    type: "object",
+    additionalProperties: true,
+    required: ["objectives", "glossary", "selfCheckQuestions"],
+    properties: {
+      objectives: {
+        type: "array",
+        items: {
+          type: "object",
+          additionalProperties: true,
+          required: ["text", "sectionId"],
+          properties: {
+            text: { type: "string" },
+            sectionId: { type: "string" },
+          },
+        },
+      },
+      glossary: {
+        type: "array",
+        items: {
+          type: "object",
+          additionalProperties: true,
+          required: ["term", "definition", "sectionId"],
+          properties: {
+            term: { type: "string" },
+            definition: { type: "string" },
+            sectionId: { type: "string" },
+          },
+        },
+      },
+      selfCheckQuestions: {
+        type: "array",
+        items: {
+          type: "object",
+          additionalProperties: true,
+          required: ["question", "sectionId"],
+          properties: {
+            question: { type: "string" },
+            sectionId: { type: "string" },
+          },
+        },
+      },
     },
   },
 };
@@ -264,6 +321,216 @@ async function downloadJson(supabase: any, bucket: string, path: string): Promis
   if (error || !data) throw new Error(error?.message || `Failed to download ${bucket}/${path}`);
   const text = await data.text();
   return text ? JSON.parse(text) : null;
+}
+
+async function callEdgeAsAgent(opts: { orgId: string; path: string; body: unknown }) {
+  const SUPABASE_URL = requireEnv("SUPABASE_URL").replace(/\/$/, "");
+  const AGENT_TOKEN = requireEnv("AGENT_TOKEN");
+  const res = await fetch(`${SUPABASE_URL}/functions/v1/${opts.path}`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-agent-token": AGENT_TOKEN,
+      "x-organization-id": opts.orgId,
+    },
+    body: JSON.stringify(opts.body),
+  });
+  const json = await res.json().catch(() => null);
+  if (!res.ok) {
+    const msg = typeof json?.error?.message === "string" ? json.error.message : `Edge call failed (${res.status})`;
+    throw new Error(msg);
+  }
+  return json;
+}
+
+function stripHtmlToText(raw: unknown): string {
+  const s = String(raw || "")
+    .replace(/<\s*br\b[^>]*\/?>/gi, " ")
+    .replace(/<[^>]+>/g, " ");
+  return normalizeWs(s);
+}
+
+function buildChapterDigest(opts: { chapter: any; maxCharsTotal?: number; maxCharsPerSection?: number }): string {
+  const maxCharsTotal =
+    typeof opts.maxCharsTotal === "number" && Number.isFinite(opts.maxCharsTotal) ? Math.max(4000, Math.floor(opts.maxCharsTotal)) : 40_000;
+  const maxCharsPerSection =
+    typeof opts.maxCharsPerSection === "number" && Number.isFinite(opts.maxCharsPerSection)
+      ? Math.max(400, Math.floor(opts.maxCharsPerSection))
+      : 1800;
+
+  const chapter = opts.chapter && typeof opts.chapter === "object" ? opts.chapter : null;
+  const sections = Array.isArray(chapter?.sections) ? chapter.sections : [];
+  let out = "";
+
+  const walkBlocks = (blocksRaw: any[], push: (line: string) => void) => {
+    const blocks = Array.isArray(blocksRaw) ? blocksRaw : [];
+    for (const b of blocks) {
+      if (!b || typeof b !== "object") continue;
+      const t = typeof b.type === "string" ? b.type : "";
+      if (t === "subparagraph") {
+        const title = typeof b.title === "string" ? normalizeWs(b.title) : "";
+        if (title) push(`- ${title}`);
+        walkBlocks(Array.isArray(b.blocks) ? b.blocks : [], push);
+        continue;
+      }
+      if (t === "paragraph") {
+        const basis = stripHtmlToText((b as any).basisHtml);
+        const praktijk = stripHtmlToText((b as any).praktijkHtml);
+        const verdieping = stripHtmlToText((b as any).verdiepingHtml);
+        if (basis) push(basis);
+        if (praktijk) push(`[Praktijk] ${praktijk}`);
+        if (verdieping) push(`[Verdieping] ${verdieping}`);
+        continue;
+      }
+      if (t === "list" || t === "steps") {
+        const items = Array.isArray((b as any).items) ? (b as any).items : [];
+        const lines = items.map((x: any) => stripHtmlToText(x)).filter((x: string) => !!x);
+        if (lines.length) push(lines.map((x: string) => `• ${x}`).join(" "));
+        continue;
+      }
+    }
+  };
+
+  for (const s of sections) {
+    if (out.length >= maxCharsTotal) break;
+    if (!s || typeof s !== "object") continue;
+    const sid = typeof (s as any).id === "string" ? String((s as any).id).trim() : "";
+    const st = typeof (s as any).title === "string" ? normalizeWs((s as any).title) : "";
+    if (!sid && !st) continue;
+
+    let buf = "";
+    const push = (line: string) => {
+      const t = normalizeWs(line);
+      if (!t) return;
+      if (buf.length >= maxCharsPerSection) return;
+      buf += (buf ? " " : "") + t;
+    };
+    walkBlocks(Array.isArray((s as any).blocks) ? (s as any).blocks : [], push);
+    if (buf.length > maxCharsPerSection) buf = buf.slice(0, maxCharsPerSection).trim();
+
+    out += `\n[${sid}] ${st}\n`;
+    if (buf) out += `${buf}\n`;
+  }
+
+  if (out.length > maxCharsTotal) out = out.slice(0, maxCharsTotal).trim();
+  return out.trim();
+}
+
+function validateChapterRecap(raw: any, allowedSectionIds: Set<string>): ChapterRecap {
+  if (!raw || typeof raw !== "object") throw new Error("BLOCKED: Chapter recap must be a JSON object");
+
+  const objectivesRaw = (raw as any).objectives;
+  const glossaryRaw = (raw as any).glossary;
+  const questionsRaw = (raw as any).selfCheckQuestions;
+
+  const normalizeArr = (v: any, key: string) => {
+    if (!Array.isArray(v) || v.length === 0) throw new Error(`BLOCKED: recap.${key} must be a non-empty array`);
+    return v;
+  };
+
+  const objectivesIn = normalizeArr(objectivesRaw, "objectives");
+  const glossaryIn = normalizeArr(glossaryRaw, "glossary");
+  const questionsIn = normalizeArr(questionsRaw, "selfCheckQuestions");
+
+  const objectives = objectivesIn.map((it: any, i: number) => {
+    if (!it || typeof it !== "object") throw new Error(`BLOCKED: objectives[${i}] must be an object`);
+    const text = typeof it.text === "string" ? normalizeWs(it.text) : "";
+    const sectionId = typeof it.sectionId === "string" ? String(it.sectionId).trim() : "";
+    if (!text) throw new Error(`BLOCKED: objectives[${i}].text is required`);
+    if (!sectionId) throw new Error(`BLOCKED: objectives[${i}].sectionId is required`);
+    if (!allowedSectionIds.has(sectionId)) {
+      throw new Error(`BLOCKED: objectives[${i}].sectionId '${sectionId}' is not a valid sectionId in this chapter`);
+    }
+    return { text, sectionId };
+  });
+
+  const glossary = glossaryIn.map((it: any, i: number) => {
+    if (!it || typeof it !== "object") throw new Error(`BLOCKED: glossary[${i}] must be an object`);
+    const term = typeof it.term === "string" ? normalizeWs(it.term) : "";
+    const definition = typeof it.definition === "string" ? normalizeWs(it.definition) : "";
+    const sectionId = typeof it.sectionId === "string" ? String(it.sectionId).trim() : "";
+    if (!term) throw new Error(`BLOCKED: glossary[${i}].term is required`);
+    if (!definition) throw new Error(`BLOCKED: glossary[${i}].definition is required`);
+    if (!sectionId) throw new Error(`BLOCKED: glossary[${i}].sectionId is required`);
+    if (!allowedSectionIds.has(sectionId)) {
+      throw new Error(`BLOCKED: glossary[${i}].sectionId '${sectionId}' is not a valid sectionId in this chapter`);
+    }
+    return { term, definition, sectionId };
+  });
+
+  const selfCheckQuestions = questionsIn.map((it: any, i: number) => {
+    if (!it || typeof it !== "object") throw new Error(`BLOCKED: selfCheckQuestions[${i}] must be an object`);
+    const question = typeof it.question === "string" ? normalizeWs(it.question) : "";
+    const sectionId = typeof it.sectionId === "string" ? String(it.sectionId).trim() : "";
+    if (!question) throw new Error(`BLOCKED: selfCheckQuestions[${i}].question is required`);
+    if (!sectionId) throw new Error(`BLOCKED: selfCheckQuestions[${i}].sectionId is required`);
+    if (!allowedSectionIds.has(sectionId)) {
+      throw new Error(`BLOCKED: selfCheckQuestions[${i}].sectionId '${sectionId}' is not a valid sectionId in this chapter`);
+    }
+    return { question, sectionId };
+  });
+
+  return { objectives, glossary, selfCheckQuestions };
+}
+
+function isRecapComplete(raw: any, allowedSectionIds: Set<string>): boolean {
+  try {
+    validateChapterRecap(raw, allowedSectionIds);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function buildChapterRecapSystem(opts: { language: string; level: "n3" | "n4" }) {
+  const langLabel = normalizeLanguageLabel(opts.language);
+  return (
+    "You are an expert textbook author for Dutch MBO education.\n" +
+    "You will write the chapter recap components as a human author would:\n" +
+    "- Learning objectives ('In dit hoofdstuk leer je')\n" +
+    "- A short glossary with concise definitions\n" +
+    "- Self-check questions ('Controleer jezelf')\n" +
+    "Return JSON only.\n" +
+    `Book language: ${opts.language} (${langLabel})\n` +
+    `Level: ${opts.level}\n\n` +
+    "Hard rules:\n" +
+    "- Use ONLY the provided chapter digest (do not invent topics that aren't present).\n" +
+    "- Every item MUST reference a valid sectionId from the provided list.\n" +
+    "- No markdown. No extra commentary.\n"
+  );
+}
+
+function buildChapterRecapPrompt(opts: {
+  bookTitle: string;
+  topic: string;
+  chapterNumber: number;
+  chapterTitle: string;
+  sectionRefs: Array<{ id: string; title: string }>;
+  digest: string;
+  userInstructions?: string | null;
+}): string {
+  const sectionList = opts.sectionRefs.map((s) => `- ${s.id}: ${s.title}`).join("\n");
+  return (
+    "Return JSON with this exact shape:\n" +
+    "{\n" +
+    '  "objectives": [{ "text": string, "sectionId": string }],\n' +
+    '  "glossary": [{ "term": string, "definition": string, "sectionId": string }],\n' +
+    '  "selfCheckQuestions": [{ "question": string, "sectionId": string }]\n' +
+    "}\n\n" +
+    `Book title: ${opts.bookTitle}\n` +
+    `Topic: ${opts.topic}\n` +
+    `Chapter: ${opts.chapterNumber} — ${opts.chapterTitle}\n` +
+    (opts.userInstructions ? `User instructions:\n${opts.userInstructions}\n\n` : "") +
+    "Valid section IDs (choose sectionId ONLY from this list):\n" +
+    sectionList +
+    "\n\nRequirements:\n" +
+    "- objectives: 4–6 bullets, each starts with 'Je kunt ...' (Dutch), concrete and chapter-specific.\n" +
+    "- glossary: 8–12 items, term is short; definition is 1–2 sentences, clear for MBO students.\n" +
+    "- selfCheckQuestions: 4 items, mix definitions + application; avoid nonsensical comparisons.\n" +
+    "\nChapter digest (content summary):\n" +
+    opts.digest +
+    "\n"
+  );
 }
 
 function pickLayoutBudgets(profile: ChapterLayoutProfile, candidateCount: number): {
@@ -556,11 +823,16 @@ export class BookGenerateChapter implements JobExecutor {
     const writeModel = requireString(p, "writeModel");
     const writeModelSpec = parseModelSpec(writeModel);
 
+    const recapModelRaw = optionalString(p, "recapModel");
+    const recapModel = recapModelRaw ? recapModelRaw : writeModel;
+    const recapModelSpec = parseModelSpec(recapModel);
+
     await emitAgentJobEvent(jobId, "generating", 5, `Orchestrating chapter ${chapterIndex + 1}/${chapterCount}`, {
       bookId,
       bookVersionId,
       chapterIndex,
       writeModel: `${writeModelSpec.provider}:${writeModelSpec.model}`,
+      recapModel: `${recapModelSpec.provider}:${recapModelSpec.model}`,
       layoutProfile,
     }).catch(() => {});
 
@@ -688,6 +960,7 @@ export class BookGenerateChapter implements JobExecutor {
       layoutProfile,
       ...(microheadingDensity ? { microheadingDensity } : {}),
       writeModel,
+      recapModel,
       orchestratorStartedAt,
       orchestratorLastProgressAt,
       orchestratorAttempts: attempts,
@@ -760,6 +1033,107 @@ export class BookGenerateChapter implements JobExecutor {
 
     // 4) All sections done -> chain next chapter / finish
     if (nextSectionIndexPrev >= sectionCount) {
+      // 4a) Chapter recap: LLM-authored learning objectives + glossary + self-check questions.
+      // Persist into skeleton chapter.recap so rendering uses authored content (no heuristic fallback).
+      const sectionsIn = Array.isArray(existingChapter?.sections) ? existingChapter.sections : [];
+      const allowedSectionIds = new Set<string>(
+        sectionsIn
+          .map((s: any) => (typeof s?.id === "string" ? String(s.id).trim() : ""))
+          .filter((x: string) => !!x),
+      );
+
+      if (!allowedSectionIds.size) {
+        throw new Error("BLOCKED: Chapter has no section ids; cannot generate recap");
+      }
+
+      if (!isRecapComplete((existingChapter as any)?.recap, allowedSectionIds)) {
+        await emitAgentJobEvent(jobId, "generating", 70, "Generating chapter recap (objectives / glossary / self-check)", {
+          bookId,
+          bookVersionId,
+          chapterIndex,
+          recapModel: `${recapModelSpec.provider}:${recapModelSpec.model}`,
+        }).catch(() => {});
+
+        const { data: bookRow, error: bookErr } = await adminSupabase.from("books").select("title").eq("id", bookId).single();
+        if (bookErr || !bookRow) throw new Error(bookErr?.message || "Book not found");
+        const bookTitle = String((bookRow as any).title || "").trim();
+
+        const chapterTitle = typeof (existingChapter as any).title === "string" ? normalizeWs((existingChapter as any).title) : "";
+        const sectionRefs = sectionsIn
+          .map((s: any) => ({
+            id: typeof s?.id === "string" ? String(s.id).trim() : "",
+            title: typeof s?.title === "string" ? normalizeWs(s.title) : "",
+          }))
+          .filter((s: any) => !!s.id);
+
+        const digest = buildChapterDigest({ chapter: existingChapter, maxCharsTotal: 40_000, maxCharsPerSection: 1800 });
+        if (!digest) throw new Error("BLOCKED: Chapter digest is empty; cannot generate recap");
+
+        const system = buildChapterRecapSystem({ language, level });
+        let lastErr = "";
+        let recap: ChapterRecap | null = null;
+        const MAX_ATTEMPTS_RECAP = 3;
+        for (let attempt = 1; attempt <= MAX_ATTEMPTS_RECAP; attempt++) {
+          const prompt =
+            buildChapterRecapPrompt({
+              bookTitle,
+              topic,
+              chapterNumber: chapterIndex + 1,
+              chapterTitle: chapterTitle || `Hoofdstuk ${chapterIndex + 1}`,
+              sectionRefs,
+              digest,
+              userInstructions,
+            }) +
+            (lastErr
+              ? `\n\nVALIDATION ERROR (attempt ${attempt - 1}/${MAX_ATTEMPTS_RECAP}):\n${lastErr}\nFix the JSON and try again.\n`
+              : "");
+          try {
+            const raw = await llmGenerateJson({
+              provider: recapModelSpec.provider,
+              model: recapModelSpec.model,
+              system,
+              prompt,
+              maxTokens: 1800,
+              tool: TOOL_DRAFT_CHAPTER_RECAP,
+            });
+            recap = validateChapterRecap(raw, allowedSectionIds);
+            break;
+          } catch (e) {
+            const msg = e instanceof Error ? e.message : String(e);
+            lastErr = msg.slice(0, 1600);
+            recap = null;
+          }
+        }
+        if (!recap) {
+          throw new Error(`BLOCKED: Chapter recap generation failed after ${MAX_ATTEMPTS_RECAP} attempts: ${lastErr || "unknown error"}`);
+        }
+
+        // Persist recap to skeleton and compile canonical via book-version-save-skeleton.
+        (existingChapter as any).recap = recap;
+        (sk as any).chapters[chapterIndex] = existingChapter;
+        const v1 = validateBookSkeleton(sk);
+        if (!v1.ok) throw new Error(`BLOCKED: Updated skeleton validation failed (${v1.issues.length} issue(s))`);
+
+        await emitAgentJobEvent(jobId, "storage_write", 78, "Saving chapter recap to skeleton", {
+          bookId,
+          bookVersionId,
+          chapterIndex,
+        }).catch(() => {});
+
+        const saveRes = await callEdgeAsAgent({
+          orgId: organizationId,
+          path: "book-version-save-skeleton",
+          body: {
+            bookId,
+            bookVersionId,
+            skeleton: v1.skeleton,
+            note: `BookGen Pro recap: ch${chapterIndex + 1}`,
+            compileCanonical: true,
+          },
+        });
+        if (saveRes?.ok !== true) throw new Error("Failed to save chapter recap");
+      }
+
       if (chapterIndex < chapterCount - 1) {
         // BookGen control plane: allow operators to pause/cancel chaining between chapters.
         const { data: control, error: ctrlErr } = await adminSupabase
@@ -828,6 +1202,7 @@ export class BookGenerateChapter implements JobExecutor {
               layoutProfile,
               ...(microheadingDensity ? { microheadingDensity } : {}),
               writeModel,
+              recapModel,
               ...(typeof p.sectionMaxTokens === "number" && Number.isFinite(p.sectionMaxTokens) ? { sectionMaxTokens: Math.floor(p.sectionMaxTokens) } : {}),
             },
           })

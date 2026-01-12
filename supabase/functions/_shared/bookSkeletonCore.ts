@@ -83,11 +83,34 @@ export type SkeletonSection = {
   blocks: SkeletonBlock[];
 };
 
+export type SkeletonChapterRecapObjective = {
+  text: string;
+  sectionId: string;
+};
+
+export type SkeletonChapterRecapGlossaryItem = {
+  term: string;
+  definition: string;
+  sectionId: string;
+};
+
+export type SkeletonChapterRecapQuestion = {
+  question: string;
+  sectionId: string;
+};
+
+export type SkeletonChapterRecap = {
+  objectives: SkeletonChapterRecapObjective[];
+  glossary: SkeletonChapterRecapGlossaryItem[];
+  selfCheckQuestions: SkeletonChapterRecapQuestion[];
+};
+
 export type SkeletonChapter = {
   id: string;
   number: number;
   title: string;
   openerImageSrc?: string | null;
+  recap?: SkeletonChapterRecap | null;
   sections: SkeletonSection[];
 };
 
@@ -298,6 +321,7 @@ export function validateBookSkeleton(
         continue;
       }
 
+      const allowedSectionIds = new Set<string>();
       for (let si = 0; si < sections.length; si++) {
         const s = sections[si];
         const sPath = chPath.concat(["sections", String(si)]);
@@ -309,6 +333,7 @@ export function validateBookSkeleton(
         const st = asString((s as any).title).trim();
         if (!sid) push("error", "missing_section_id", "section.id is required", sPath.concat(["id"]));
         if (sid) {
+          allowedSectionIds.add(sid);
           const key = `${id || ci}:${sid}`;
           if (seenSectionIds.has(key)) push("error", "duplicate_section_id", `Duplicate section id: ${sid}`, sPath.concat(["id"]));
           seenSectionIds.add(key);
@@ -322,6 +347,78 @@ export function validateBookSkeleton(
         }
         for (let bi = 0; bi < blocks.length; bi++) {
           validateBlock(blocks[bi], sPath.concat(["blocks", String(bi)]));
+        }
+      }
+
+      // Optional: chapter recap authored by an LLM pass (objectives/glossary/self-check).
+      const recapRaw = (ch as any).recap;
+      if (typeof recapRaw !== "undefined" && recapRaw !== null) {
+        if (!isPlainObject(recapRaw)) {
+          push("error", "invalid_chapter_recap", "chapter.recap must be an object when present", chPath.concat(["recap"]));
+        } else {
+          const validateItems = (
+            key: string,
+            itemsRaw: unknown,
+            itemValidator: (item: unknown, itemPath: string[]) => void,
+          ) => {
+            const base = chPath.concat(["recap", key]);
+            if (!Array.isArray(itemsRaw) || itemsRaw.length === 0) {
+              push("error", "invalid_chapter_recap", `chapter.recap.${key} must be a non-empty array`, base);
+              return;
+            }
+            for (let i = 0; i < itemsRaw.length; i++) {
+              itemValidator(itemsRaw[i], base.concat([String(i)]));
+            }
+          };
+
+          const requireSectionId = (item: any, itemPath: string[]) => {
+            const sid = asString(item?.sectionId).trim();
+            if (!sid) {
+              push("error", "invalid_chapter_recap", "recap item sectionId is required", itemPath.concat(["sectionId"]));
+              return "";
+            }
+            if (!allowedSectionIds.has(sid)) {
+              push(
+                "error",
+                "invalid_chapter_recap",
+                `recap item sectionId '${sid}' does not match any section.id in this chapter`,
+                itemPath.concat(["sectionId"]),
+              );
+            }
+            return sid;
+          };
+
+          validateItems("objectives", (recapRaw as any).objectives, (item, itemPath) => {
+            if (!isPlainObject(item)) {
+              push("error", "invalid_chapter_recap", "objective must be an object", itemPath);
+              return;
+            }
+            const text = asString((item as any).text).trim();
+            if (!text) push("error", "invalid_chapter_recap", "objective.text is required", itemPath.concat(["text"]));
+            requireSectionId(item as any, itemPath);
+          });
+
+          validateItems("glossary", (recapRaw as any).glossary, (item, itemPath) => {
+            if (!isPlainObject(item)) {
+              push("error", "invalid_chapter_recap", "glossary item must be an object", itemPath);
+              return;
+            }
+            const term = asString((item as any).term).trim();
+            const def = asString((item as any).definition).trim();
+            if (!term) push("error", "invalid_chapter_recap", "glossary.term is required", itemPath.concat(["term"]));
+            if (!def) push("error", "invalid_chapter_recap", "glossary.definition is required", itemPath.concat(["definition"]));
+            requireSectionId(item as any, itemPath);
+          });
+
+          validateItems("selfCheckQuestions", (recapRaw as any).selfCheckQuestions, (item, itemPath) => {
+            if (!isPlainObject(item)) {
+              push("error", "invalid_chapter_recap", "selfCheckQuestion must be an object", itemPath);
+              return;
+            }
+            const q = asString((item as any).question).trim();
+            if (!q) push("error", "invalid_chapter_recap", "selfCheckQuestions[].question is required", itemPath.concat(["question"]));
+            requireSectionId(item as any, itemPath);
+          });
         }
       }
     }
@@ -412,6 +509,12 @@ export function compileSkeletonToCanonical(sk: BookSkeletonV1): unknown {
     };
     const opener = asString(ch?.openerImageSrc).trim();
     if (opener) out.openerImage = opener;
+
+    const recap = (ch as any)?.recap;
+    if (recap && isPlainObject(recap)) {
+      // Pass-through (validated on skeleton). Renderers can use this directly.
+      out.recap = recap;
+    }
     return out;
   });
 

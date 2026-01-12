@@ -62,6 +62,24 @@ function requireModelSpec(p: Record<string, unknown>, key: string): string {
   return `${provider}:${model}`;
 }
 
+function optionalModelSpec(p: Record<string, unknown>, key: string): string | null {
+  const raw = optionalString(p, key);
+  if (!raw) return null;
+  const parts = raw.split(":").map((x) => x.trim()).filter(Boolean);
+  if (parts.length < 2) {
+    throw new Error(`BLOCKED: ${key} must be prefixed with provider (use 'openai:<model>' or 'anthropic:<model>')`);
+  }
+  const provider = parts[0];
+  if (provider !== "openai" && provider !== "anthropic") {
+    throw new Error(`BLOCKED: ${key} provider must be 'openai' or 'anthropic'`);
+  }
+  const model = parts.slice(1).join(":").trim();
+  if (!model) {
+    throw new Error(`BLOCKED: ${key} model is missing`);
+  }
+  return `${provider}:${model}`;
+}
+
 function requireNumber(p: Record<string, unknown>, key: string): number {
   const v = p[key];
   if (typeof v !== "number" || !Number.isFinite(v)) {
@@ -240,6 +258,7 @@ export class BookGenerateFull implements JobExecutor {
     const enqueueChapters = optionalBoolean(p, "enqueueChapters") ?? true;
 
     const writeModel = requireModelSpec(p, "writeModel");
+    const recapModel = optionalModelSpec(p, "recapModel");
 
     const title =
       mode === "create"
@@ -415,6 +434,7 @@ export class BookGenerateFull implements JobExecutor {
           ...(typeof sectionMaxTokens === "number" ? { sectionMaxTokens } : {}),
           // Model selection is required by the chapter job (write stage)
           writeModel,
+          ...(recapModel ? { recapModel } : {}),
         },
       })
       .select("id")

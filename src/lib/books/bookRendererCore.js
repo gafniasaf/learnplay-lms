@@ -1624,12 +1624,16 @@ figcaption.figure-caption {
     }
 
     const sections = Array.isArray(ch?.sections) ? ch.sections : [];
-    const objectives = deriveLearningObjectivesFromSections(sections, 4);
-    if (objectives.length) {
+    const recapRaw = ch?.recap && typeof ch.recap === "object" ? ch.recap : null;
+    const introObjectives = (Array.isArray(recapRaw?.objectives) ? recapRaw.objectives : [])
+      .map((o) => normalizeWhitespace(o?.text))
+      .filter(Boolean)
+      .slice(0, 10);
+    if (introObjectives.length) {
       out += `  <div class="chapter-intro">\n`;
       out += `    <div class="intro-title">In dit hoofdstuk leer je:</div>\n`;
       out += `    <ul class="bullets">\n`;
-      for (const o of objectives) out += `      <li>${escapeHtml(o)}</li>\n`;
+      for (const o of introObjectives) out += `      <li>${escapeHtml(o)}</li>\n`;
       out += `    </ul>\n`;
       out += `  </div>\n\n`;
     }
@@ -1656,18 +1660,39 @@ figcaption.figure-caption {
       out += renderContentBlocks(ch?.content || ch?.blocks || ch?.items);
     }
 
-    // Chapter recap (deterministic, content-derived; no AI / no placeholders).
-    // NOTE: Keep a small list for summaries/questions, but use a wider pool for glossary
-    // so we can pick terms that actually have definitional sentences.
-    const keyTermsAll = deriveKeyTermsForChapter(ch);
-    const keyTerms = keyTermsAll.slice(0, 10);
-    const questions = deriveCheckQuestions({ sections, keyTerms, max: 4 });
-    const objectivesWithRefs = deriveLearningObjectivesWithRefs(sections, { chapterIndex: idx, max: 6 });
-    const summaries = deriveSectionSummaries(sections, { max: 6, keyTerms });
-    const paragraphs = collectParagraphRefsForChapter(ch);
-    const glossary = deriveGlossaryItems({ keyTerms: keyTermsAll, paragraphs, max: 10 });
+    // Chapter recap (LLM-authored; persisted in canonical via skeleton chapter.recap).
+    // IMPORTANT: No deterministic fallback. If recap is missing, we render nothing.
+    const recapObjectives = Array.isArray(recapRaw?.objectives) ? recapRaw.objectives : [];
+    const recapGlossary = Array.isArray(recapRaw?.glossary) ? recapRaw.glossary : [];
+    const recapSelfCheck = Array.isArray(recapRaw?.selfCheckQuestions) ? recapRaw.selfCheckQuestions : [];
 
-    if (keyTerms.length || questions.length || objectivesWithRefs.length || summaries.length || glossary.length) {
+    const objectivesWithRefs = recapObjectives
+      .map((o) => ({
+        text: normalizeWhitespace(o?.text),
+        sectionId: typeof o?.sectionId === "string" ? o.sectionId.trim() : "",
+      }))
+      .filter((o) => !!o.text && !!o.sectionId)
+      .map((o) => ({ objective: o.text, href: `#sec-${o.sectionId}` }));
+
+    const glossary = recapGlossary
+      .map((g) => ({
+        term: normalizeWhitespace(g?.term),
+        definition: normalizeWhitespace(g?.definition),
+        sectionId: typeof g?.sectionId === "string" ? g.sectionId.trim() : "",
+      }))
+      .filter((g) => !!g.term && !!g.definition && !!g.sectionId)
+      .map((g) => ({ term: g.term, definition: g.definition, href: `#sec-${g.sectionId}` }));
+
+    const questions = recapSelfCheck
+      .map((q) => ({
+        question: normalizeWhitespace(q?.question),
+        sectionId: typeof q?.sectionId === "string" ? q.sectionId.trim() : "",
+      }))
+      .filter((q) => !!q.question)
+      .map((q) => q.question)
+      .slice(0, 10);
+
+    if (objectivesWithRefs.length || glossary.length || questions.length) {
       out += `\n    <div class="chapter-recap">\n`;
 
       if (objectivesWithRefs.length) {
@@ -1679,30 +1704,6 @@ figcaption.figure-caption {
           const href = typeof o.href === "string" ? o.href : "";
           out += `          <li>${href ? `<a class="recap-link" href="${escapeHtml(href)}">${escapeHtml(txt)}</a>` : escapeHtml(txt)}</li>\n`;
         }
-        out += `        </ul>\n`;
-        out += `      </div>\n`;
-      }
-
-      if (summaries.length) {
-        out += `      <div class="recap-module kernsamenvatting">\n`;
-        out += `        <div class="module-title">Kernsamenvatting</div>\n`;
-        out += `        <ul class="bullets">\n`;
-        for (const s of summaries) {
-          const href = typeof s.href === "string" ? s.href : "";
-          const line = `${s.label} — ${s.sentence}`;
-          out += `          <li>${href ? `<a class="recap-link" href="${escapeHtml(href)}">${escapeHtml(line)}</a>` : escapeHtml(line)}</li>\n`;
-        }
-        out += `        </ul>\n`;
-        out += `      </div>\n`;
-      }
-
-      // "Kernbegrippen" is redundant when we already render definitions below.
-      // Keep it only as a fallback when we couldn't derive any glossary items.
-      if (keyTerms.length && glossary.length === 0) {
-        out += `      <div class="recap-module kernbegrippen">\n`;
-        out += `        <div class="module-title">Kernbegrippen</div>\n`;
-        out += `        <ul class="bullets">\n`;
-        for (const t of keyTerms) out += `          <li><strong>${escapeHtml(t)}</strong></li>\n`;
         out += `        </ul>\n`;
         out += `      </div>\n`;
       }
