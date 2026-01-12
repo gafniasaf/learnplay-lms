@@ -145,6 +145,89 @@ async function downloadBinaryFromSignedUrl(signedUrl) {
   return Buffer.from(ab);
 }
 
+function toSafeFileName(raw) {
+  const s = String(raw || "").trim();
+  if (!s) return "";
+  // Keep dots/underscores/dashes for extensions; replace everything else with underscore.
+  return s.replace(/[^a-zA-Z0-9._-]+/g, "_").replace(/^_+/, "").replace(/_+$/, "");
+}
+
+function extFromUrl(rawUrl) {
+  try {
+    const u = new URL(String(rawUrl || ""));
+    return path.extname(u.pathname || "");
+  } catch {
+    return "";
+  }
+}
+
+async function materializeSignedImageSrcMapToAssets({ imageSrcMap, workDir, allowMissingImages }) {
+  const srcMap = imageSrcMap && typeof imageSrcMap === "object" ? imageSrcMap : null;
+  if (!srcMap) return null;
+
+  const entries = Object.entries(srcMap).filter(([, v]) => typeof v === "string" && isHttpUrl(v));
+  if (!entries.length) return srcMap;
+
+  const assetsDir = path.join(workDir, "assets");
+  const outDir = path.join(assetsDir, "library-cache");
+  await mkdir(outDir, { recursive: true });
+
+  /** @type {Record<string, string>} */
+  const next = { ...srcMap };
+  const used = new Map();
+
+  let ok = 0;
+  for (const [canonicalSrc, signedUrl] of entries) {
+    const base = basenameLike(canonicalSrc) || String(canonicalSrc || "").trim() || "image";
+    const safeBase = toSafeFileName(base) || "image";
+
+    const ext = extFromUrl(signedUrl) || path.extname(safeBase) || ".bin";
+    let fileName = safeBase;
+    if (!fileName.toLowerCase().endsWith(ext.toLowerCase())) fileName = `${fileName}${ext}`;
+
+    const prev = used.get(fileName) || 0;
+    used.set(fileName, prev + 1);
+    if (prev > 0) {
+      const dot = fileName.lastIndexOf(".");
+      const b = dot > 0 ? fileName.slice(0, dot) : fileName;
+      const e = dot > 0 ? fileName.slice(dot) : "";
+      fileName = `${b}__dup${prev}${e}`;
+    }
+
+    const rel = `library-cache/${fileName}`;
+    const abs = path.join(assetsDir, rel);
+
+    // Skip if already present from a previous attempt.
+    try {
+      await stat(abs);
+      next[canonicalSrc] = rel;
+      ok += 1;
+      continue;
+    } catch {
+      // continue to download
+    }
+
+    try {
+      const buf = await withRetries(() => downloadBinaryFromSignedUrl(signedUrl), { attempts: 6, baseDelayMs: 400 });
+      await writeFile(abs, buf);
+      next[canonicalSrc] = rel;
+      ok += 1;
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      if (allowMissingImages) {
+        // Avoid leaking signed URLs; surface the canonical name only.
+        console.warn(`[book-worker] WARNING: Failed to download image '${base}' (${msg}). Using placeholder.`);
+        next[canonicalSrc] = `placeholder:${base}`;
+        continue;
+      }
+      throw new Error(`BLOCKED: Failed to download required image '${base}': ${msg}`);
+    }
+  }
+
+  console.log(`[book-worker] Materialized ${ok}/${entries.length} signed images into local assets`);
+  return next;
+}
+
 async function runCmd(cmd, args, { cwd } = {}) {
   await new Promise((resolve, reject) => {
     const child = spawn(cmd, args, { stdio: ["ignore", "pipe", "pipe"], cwd });
@@ -975,6 +1058,12 @@ async function processJob(job) {
       const assetsDir = path.join(workDir, "assets");
       await writeFile(zipPath, zipBuf);
       await extractZip(zipPath, assetsDir);
+    }
+
+    // 1b2) If the edge function returned a signed imageSrcMap, download those images into local assets.
+    // This avoids flaky remote fetches (502/timeout) inside Prince when rendering large books with many figures.
+    if (imageSrcMap) {
+      imageSrcMap = await materializeSignedImageSrcMapToAssets({ imageSrcMap, workDir, allowMissingImages });
     }
 
     // 1c) Auto-discover chapter openers from extracted assets (convention-based).

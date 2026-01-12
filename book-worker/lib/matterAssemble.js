@@ -61,6 +61,13 @@ export function assembleFinalBookHtml(opts) {
   const bookBodyInner = extractBodyInner(bookHtml);
   const title = extractTitleFromHtml(bookHtml) || "Book";
 
+  // If the body begins with a chapter opener page, we must ensure the first body page uses
+  // the same page master (`chapter-first`) to avoid inserting an extra blank page when switching
+  // from front matter pages (`@page matter`) to chapter opener pages.
+  const bodyHead = String(bookBodyInner || "").trimStart().slice(0, 1024);
+  const firstChapterHasOpener = /<div\b[^>]*class=\"[^\"]*\bchapter\b[^\"]*\bhas-opener\b[^\"]*\"/i.test(bodyHead);
+  const bodyStartPageDecl = firstChapterHasOpener ? "  page: chapter-first;\\n" : "";
+
   const matterCss = `
 /* Matter pages inserted as full-bleed PNGs (no running headers/folios). */
 @page matter {
@@ -109,10 +116,19 @@ export function assembleFinalBookHtml(opts) {
 }
 
 /* Ensure Chapter 1 starts at page 1 (arabic) for the book body. */
-.book-body {
+.book-body-start {
+${bodyStartPageDecl}  display: block;
   break-before: page;
   counter-reset: page 0;
+  height: 0;
 }
+.book-body-start:first-child { break-before: auto; }
+
+/* IMPORTANT:
+   The book CSS uses .chapter:first-of-type .chapter-title-block { break-before: auto; }.
+   After we insert front-matter pages (which are also <div>), the first chapter is no longer :first-of-type
+   and Prince would add an extra blank page before Chapter 1. Anchor the "first chapter" rule to our marker. */
+.book-body-start + .chapter .chapter-title-block { break-before: auto !important; }
   `.trim();
 
   let out = `<!doctype html>
@@ -138,7 +154,10 @@ export function assembleFinalBookHtml(opts) {
   addPages(frontMatterPages);
 
   // Book body
-  out += `    <div class="book-body">\n${bookBodyInner}\n    </div>\n`;
+  // IMPORTANT: Do NOT wrap the book body in an extra <div>.
+  // The renderer relies on some Prince CSS behaviors (e.g. prince-page-group) that are more stable
+  // when chapters remain top-level siblings. Instead, insert a tiny page-break + counter reset marker.
+  out += `    <span class="book-body-start"></span>\n${bookBodyInner}\n`;
 
   // Back matter pages last
   addPages(backMatterPages);
