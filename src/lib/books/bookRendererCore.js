@@ -1028,7 +1028,11 @@ figcaption.figure-caption {
       if (t === "list") {
         const bidRaw = typeof b.id === "string" ? b.id : "";
         const bid = bidRaw ? `pid-${toSafeDomId(bidRaw)}` : "";
-        const pm = bid ? ` class="page-map-anchor" id="${escapeHtml(bid)}" data-page-map="${escapeHtml(`PAGEMAP:PID:${bid}`)}"` : "";
+        // IMPORTANT: avoid duplicate `class="..."` attributes (invalid HTML).
+        // We must keep `page-map-anchor` on the element so the `::before { content: attr(data-page-map) }`
+        // token gets rendered and can be extracted from the PDF deterministically.
+        const pmClass = bid ? " page-map-anchor" : "";
+        const pmAttrs = bid ? ` id="${escapeHtml(bid)}" data-page-map="${escapeHtml(`PAGEMAP:PID:${bid}`)}"` : "";
         const items = Array.isArray(b.items) ? b.items : [];
         const ordered = b.ordered === true;
         const clean = items
@@ -1036,11 +1040,11 @@ figcaption.figure-caption {
           .filter((x) => !!x);
         if (clean.length) {
           if (ordered) {
-            out += `<ol class="steps"${pm}>\n`;
+            out += `<ol class="steps${pmClass}"${pmAttrs}>\n`;
             for (const it of clean) out += `  <li>${sanitizeInlineBookHtml(it)}</li>\n`;
             out += `</ol>\n`;
           } else {
-            out += `<ul class="bullets"${pm}>\n`;
+            out += `<ul class="bullets${pmClass}"${pmAttrs}>\n`;
             for (const it of clean) out += `  <li>${sanitizeInlineBookHtml(it)}</li>\n`;
             out += `</ul>\n`;
           }
@@ -1052,13 +1056,15 @@ figcaption.figure-caption {
       if (t === "steps") {
         const bidRaw = typeof b.id === "string" ? b.id : "";
         const bid = bidRaw ? `pid-${toSafeDomId(bidRaw)}` : "";
-        const pm = bid ? ` class="page-map-anchor" id="${escapeHtml(bid)}" data-page-map="${escapeHtml(`PAGEMAP:PID:${bid}`)}"` : "";
+        // IMPORTANT: avoid duplicate `class="..."` attributes (invalid HTML) for the same reason as list blocks.
+        const pmClass = bid ? " page-map-anchor" : "";
+        const pmAttrs = bid ? ` id="${escapeHtml(bid)}" data-page-map="${escapeHtml(`PAGEMAP:PID:${bid}`)}"` : "";
         const items = Array.isArray(b.items) ? b.items : [];
         const clean = items
           .map((x) => (typeof x === "string" ? x.trim() : ""))
           .filter((x) => !!x);
         if (clean.length) {
-          out += `<ol class="steps"${pm}>\n`;
+          out += `<ol class="steps${pmClass}"${pmAttrs}>\n`;
           for (const it of clean) out += `  <li>${sanitizeInlineBookHtml(it)}</li>\n`;
           out += `</ol>\n`;
         }
