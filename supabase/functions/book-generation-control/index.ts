@@ -134,7 +134,19 @@ serve(async (req: Request): Promise<Response> => {
       .eq("organization_id", orgId)
       .single();
 
-    if (bookErr || !book) {
+    if (bookErr) {
+      const transient = isTransientNetworkError(bookErr);
+      return json(
+        {
+          ok: false,
+          error: { code: transient ? "transient_network" : "db_error", message: bookErr.message },
+          httpStatus: transient ? 503 : 500,
+          requestId,
+        },
+        200,
+      );
+    }
+    if (!book) {
       return json({ ok: false, error: { code: "not_found", message: "Book not found" }, httpStatus: 404, requestId }, 200);
     }
 
@@ -146,7 +158,19 @@ serve(async (req: Request): Promise<Response> => {
       .eq("book_version_id", bookVersionId)
       .single();
 
-    if (versionErr || !version) {
+    if (versionErr) {
+      const transient = isTransientNetworkError(versionErr);
+      return json(
+        {
+          ok: false,
+          error: { code: transient ? "transient_network" : "db_error", message: versionErr.message },
+          httpStatus: transient ? 503 : 500,
+          requestId,
+        },
+        200,
+      );
+    }
+    if (!version) {
       return json({ ok: false, error: { code: "not_found", message: "Book version not found" }, httpStatus: 404, requestId }, 200);
     }
 

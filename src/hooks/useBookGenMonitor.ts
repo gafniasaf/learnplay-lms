@@ -293,8 +293,10 @@ export function useBookGenMonitor() {
         bookId,
         bookVersionId,
         expiresIn: 3600,
-        target: "book",
-        allowMissingImages: true,
+        // IMPORTANT (Monitor performance):
+        // Do NOT pass target=book|chapter here. That triggers expensive imageSrcMap construction inside
+        // `book-version-input-urls` (downloads/parses canonical + library index) and can exceed the
+        // frontend's 30s edge-call timeout, causing the monitor to show 0 chapters.
       })) as BookVersionInputUrlsResponse;
 
       if (isStale()) return;
