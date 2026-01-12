@@ -217,6 +217,7 @@ export function useBookGenMonitor() {
 
   const pollTimer = useRef<number | null>(null);
   const eventsTimer = useRef<number | null>(null);
+  const canonicalLoadSeq = useRef(0);
 
   const selectedBook = useMemo(() => books.find((b) => b.id === selectedBookId) || null, [books, selectedBookId]);
   const chapterCount = chapters.length;
@@ -275,6 +276,8 @@ export function useBookGenMonitor() {
   const loadCanonical = useCallback(async () => {
     const bookId = selectedBookId.trim();
     const bookVersionId = selectedBookVersionId.trim();
+    const seq = (canonicalLoadSeq.current += 1);
+    const isStale = () => canonicalLoadSeq.current !== seq;
     setCanonicalReady(false);
     setCanonicalError("");
     setChapters([]);
@@ -294,6 +297,7 @@ export function useBookGenMonitor() {
         allowMissingImages: true,
       })) as BookVersionInputUrlsResponse;
 
+      if (isStale()) return;
       if ((urlsRes as any)?.ok !== true) {
         throw new Error((urlsRes as any)?.error?.message || "Failed to sign URLs");
       }
@@ -305,6 +309,7 @@ export function useBookGenMonitor() {
 
       if (skeletonUrl) {
         const sr = await fetch(skeletonUrl);
+        if (isStale()) return;
         if (!sr.ok) throw new Error(`Failed to download skeleton (${sr.status})`);
         const skJson = await sr.json().catch(() => null);
         if (!skJson || typeof skJson !== "object") throw new Error("BLOCKED: skeleton.json could not be parsed");
@@ -361,6 +366,7 @@ export function useBookGenMonitor() {
       }
 
       const r = await fetch(canonicalUrl);
+      if (isStale()) return;
       if (!r.ok) throw new Error(`Failed to download canonical (${r.status})`);
       const json = await r.json().catch(() => null);
       if (!json || typeof json !== "object") throw new Error("BLOCKED: canonical.json could not be parsed");
@@ -373,9 +379,9 @@ export function useBookGenMonitor() {
 
       setCanonicalReady(true);
     } catch (e) {
-      setCanonicalError(e instanceof Error ? e.message : String(e));
+      if (!isStale()) setCanonicalError(e instanceof Error ? e.message : String(e));
     } finally {
-      setLoading(false);
+      if (!isStale()) setLoading(false);
     }
   }, [mcp, selectedBookId, selectedBookVersionId]);
 
