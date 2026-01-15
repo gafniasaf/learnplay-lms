@@ -34,15 +34,78 @@ function json(req: Request, reqId: string, body: unknown): Response {
   });
 }
 
-function scoreText(haystack: string, terms: string[]): number {
-  const h = haystack.toLowerCase();
+const STOPWORDS = new Set([
+  "en", "de", "het", "een", "van", "voor", "met", "in", "op", "te", "aan", "bij", "onder", "over", "tot", "naar", "uit",
+  "is", "zijn", "wordt", "worden", "die", "dat", "dit", "deze", "maar", "ook", "of", "als", "dan", "er",
+]);
+
+function normalizeText(input: string): string {
+  if (!input) return "";
+  return input
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function normalizeQuery(query: string): string {
+  return normalizeText(query);
+}
+
+function extractTerms(query: string): string[] {
+  if (!query) return [];
+  return normalizeQuery(query)
+    .split(" ")
+    .map((t) => t.trim())
+    .filter((t) => t.length >= 3 && !STOPWORDS.has(t))
+    .slice(0, 8);
+}
+
+function expandTerms(terms: string[]): string[] {
+  const expanded = new Set(terms);
+  for (const t of terms) {
+    if (t.length >= 7 && t.endsWith("zorg")) {
+      const root = t.slice(0, -4);
+      if (root.length >= 4) expanded.add(root);
+    }
+    if (t.length >= 11 && t.endsWith("verzorging")) {
+      const root = t.slice(0, -"verzorging".length);
+      if (root.length >= 4) expanded.add(root);
+    }
+  }
+  return Array.from(expanded).slice(0, 12);
+}
+
+function termWeight(term: string): number {
+  if (term.length >= 8) return 3;
+  if (term.length >= 5) return 2;
+  return 1;
+}
+
+function scoreText(haystack: string, terms: string[], weight = 1): number {
+  if (!haystack) return 0;
+  const h = haystack;
   let score = 0;
   for (const t of terms) {
     if (!t) continue;
-    if (h === t) score += 12;
-    else if (h.includes(t)) score += 6;
+    const base = h === t ? 12 : h.includes(t) ? 6 : 0;
+    if (base) score += base * termWeight(t) * weight;
   }
   return score;
+}
+
+function scorePhrase(haystack: string, phrase: string, boost: number): number {
+  if (!haystack || !phrase) return 0;
+  return haystack.includes(phrase) ? boost : 0;
+}
+
+function deriveMboLevel(category: string, courseName: string): string {
+  const src = `${category} ${courseName}`.toLowerCase();
+  if (src.includes("n4") || src.includes("nivo 4") || src.includes("niveau 4")) return "n4";
+  if (src.includes("n3") || src.includes("nivo 3") || src.includes("niveau 3")) return "n3";
+  return "";
 }
 
 serve(async (req: Request): Promise<Response> => {
@@ -95,30 +158,37 @@ serve(async (req: Request): Promise<Response> => {
   const sourceFilter = normalizeString(params.source);
   const languageVariant = normalizeString(params.language_variant);
   const limit = Math.min(50, Math.max(1, Number.isFinite(Number(params.limit)) ? Math.floor(Number(params.limit)) : 10));
+  const normalizedQuery = normalizeQuery(query);
 
   // Curated materials live as entity_records rows with entity="curated-material".
   // This search is read-only and returns only persisted curated packs (no live generation).
-  const { data, error: dbError } = await supabase
+  const candidateLimit = query ? 5000 : 200;
+  let queryBuilder = supabase
     .from("entity_records")
     .select("id, title, data, created_at, updated_at")
     .eq("organization_id", organizationId)
-    .eq("entity", "curated-material")
+    .eq("entity", "curated-material");
+
+  if (materialType) {
+    queryBuilder = queryBuilder.filter("data->>material_type", "eq", materialType);
+  }
+  if (sourceFilter) {
+    queryBuilder = queryBuilder.filter("data->>source", "eq", sourceFilter);
+  }
+  if (categoryFilter) {
+    queryBuilder = queryBuilder.ilike("data->>category", `%${categoryFilter}%`);
+  }
+
+  const { data, error: dbError } = await queryBuilder
     .order("updated_at", { ascending: false })
-    .limit(200);
+    .limit(candidateLimit);
 
   if (dbError) {
     console.error(`[search-curated-materials] db_error (${reqId}):`, dbError);
     return json(req, reqId, { ok: false, error: { code: "db_error", message: dbError.message }, httpStatus: 500, requestId: reqId });
   }
 
-  const terms = query
-    ? query
-        .toLowerCase()
-        .split(/\s+/)
-        .map((t) => t.trim())
-        .filter(Boolean)
-        .slice(0, 8)
-    : [];
+  const terms = expandTerms(extractTerms(query));
 
   const results = (Array.isArray(data) ? data : [])
     .map((row) => {
@@ -133,6 +203,7 @@ serve(async (req: Request): Promise<Response> => {
       const courseName = typeof d?.course_name === "string" ? d.course_name.trim() : "";
       const category = typeof d?.category === "string" ? d.category.trim() : "";
       const mboLevel = typeof d?.mbo_level === "string" ? d.mbo_level.trim() : "";
+      const derivedMboLevel = mboLevel || deriveMboLevel(category, courseName);
       const sourceType = typeof d?.source === "string"
         ? d.source.trim()
         : (d?.source && typeof d.source === "object" && typeof d.source.type === "string")
@@ -164,10 +235,31 @@ serve(async (req: Request): Promise<Response> => {
       const storagePath = typeof variant?.storage_path === "string" ? variant.storage_path.trim() : "";
 
       let score = 0;
-      if (terms.length) {
-        score += scoreText(title, terms) * 2;
-        score += scoreText(preview, terms);
-        score += scoreText(keywords.join(" "), terms);
+      if (query) {
+        const titleNorm = normalizeText(title);
+        const courseNorm = normalizeText(courseName);
+        const categoryNorm = normalizeText(category);
+        const previewNorm = normalizeText(preview);
+        const keywordsNorm = normalizeText(keywords.join(" "));
+        const headerNorm = [titleNorm, courseNorm, categoryNorm].filter(Boolean).join(" ");
+        const combinedNorm = [headerNorm, previewNorm, keywordsNorm].filter(Boolean).join(" ");
+
+        score += scorePhrase(titleNorm, normalizedQuery, 30);
+        score += scorePhrase(courseNorm, normalizedQuery, 28);
+        score += scorePhrase(categoryNorm, normalizedQuery, 18);
+        score += scorePhrase(previewNorm, normalizedQuery, 12);
+        score += scoreText(titleNorm, terms, 3);
+        score += scoreText(courseNorm, terms, 3);
+        score += scoreText(categoryNorm, terms, 2);
+        score += scoreText(previewNorm, terms, 1);
+        score += scoreText(keywordsNorm, terms, 1);
+
+        if (terms.length) {
+          const termHits = terms.filter((t) => combinedNorm.includes(t)).length;
+          score += termHits * 2;
+          if (termHits === terms.length) score += 8;
+          if (termHits === 1 && terms.length > 1) score -= 2;
+        }
       }
       if (kdCode && kdCodes.some((c) => c.toLowerCase() === kdCode.toLowerCase())) score += 5;
       if (materialType && mt.toLowerCase() === materialType.toLowerCase()) score += 2;
@@ -179,7 +271,7 @@ serve(async (req: Request): Promise<Response> => {
         material_type: mt || undefined,
         course_name: courseName || undefined,
         category: category || undefined,
-        mbo_level: mboLevel || undefined,
+        mbo_level: derivedMboLevel || undefined,
         source: sourceType || undefined,
         language_variant: pickedLang || undefined,
         kd_codes: kdCodes,
@@ -187,6 +279,7 @@ serve(async (req: Request): Promise<Response> => {
         storage_bucket: storageBucket || undefined,
         storage_path: storagePath || undefined,
         score,
+        updated_at: row.updated_at || row.created_at || null,
       };
     })
     .filter((r) => {
@@ -199,11 +292,17 @@ serve(async (req: Request): Promise<Response> => {
       // If a language variant was requested, only include records that have that variant.
       if (languageVariant && (r.language_variant || "").toLowerCase() !== languageVariant.toLowerCase()) return false;
       if (languageVariant && (!r.storage_bucket || !r.storage_path)) return false;
-      if (terms.length && r.score <= 0) return false;
+      if (query && r.score <= 0) return false;
       return true;
     })
-    .sort((a, b) => b.score - a.score)
-    .slice(0, limit);
+    .sort((a, b) => {
+      if (b.score !== a.score) return b.score - a.score;
+      const aTime = a.updated_at ? Date.parse(a.updated_at) : 0;
+      const bTime = b.updated_at ? Date.parse(b.updated_at) : 0;
+      return bTime - aTime;
+    })
+    .slice(0, limit)
+    .map(({ updated_at: _updatedAt, ...rest }) => rest);
 
   return json(req, reqId, {
     ok: true,
