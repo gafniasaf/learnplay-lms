@@ -138,6 +138,38 @@ export interface TeacherChatAssistantResponse {
   requestId?: string;
 }
 
+export interface SearchCuratedMaterialsResponse {
+  ok: boolean;
+  query?: string;
+  filters?: {
+    kd_code?: string;
+    material_type?: string;
+    category?: string;
+    mbo_level?: string;
+    source?: string;
+    language_variant?: string;
+    limit?: number;
+  };
+  results?: Array<{
+    id: string;
+    title: string;
+    material_type?: string;
+    course_name?: string;
+    category?: string;
+    mbo_level?: string;
+    source?: string;
+    language_variant?: string;
+    kd_codes?: string[];
+    preview?: string;
+    storage_bucket?: string;
+    storage_path?: string;
+    score: number;
+  }>;
+  error?: { code: string; message: string };
+  httpStatus?: number;
+  requestId?: string;
+}
+
 // Parent-related Edge Function responses
 export interface ParentChildrenResponse {
   children: Array<{

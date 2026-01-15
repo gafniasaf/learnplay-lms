@@ -17,6 +17,7 @@ const METHODS = [
   "lms.saveRecord",
   "lms.getRecord",
   "lms.listRecords",
+  "lms.searchCuratedMaterials",
   // Books (Book Studio / BookGen Pro)
   "lms.bookList",
   "lms.bookVersionInputUrls",
@@ -120,6 +121,10 @@ const server = http.createServer(async (req, res) => {
       }
       case "lms.listRecords": {
         const result = await listRecords(params);
+        return send(res, 200, { ok: true, result });
+      }
+      case "lms.searchCuratedMaterials": {
+        const result = await searchCuratedMaterials(params);
         return send(res, 200, { ok: true, result });
       }
       case "lms.listLibraryCourses": {
@@ -307,6 +312,34 @@ async function listRecords(params: any) {
     method: "POST",
     headers: { "X-Agent-Token": config.agentToken, "X-Organization-Id": requireOrganizationId() },
     body: { entity, limit },
+  });
+}
+
+async function searchCuratedMaterials(params: any) {
+  const query = typeof params?.query === "string" ? params.query.trim() : undefined;
+  const kd_code = typeof params?.kd_code === "string" ? params.kd_code.trim() : undefined;
+  const material_type = typeof params?.material_type === "string" ? params.material_type.trim() : undefined;
+  const category = typeof params?.category === "string" ? params.category.trim() : undefined;
+  const mbo_level = typeof params?.mbo_level === "string" ? params.mbo_level.trim() : undefined;
+  const source = typeof params?.source === "string" ? params.source.trim() : undefined;
+  const language_variant = typeof params?.language_variant === "string" ? params.language_variant.trim() : undefined;
+
+  const limitRaw = Number(params?.limit ?? 10);
+  const limit = Number.isFinite(limitRaw) ? Math.min(50, Math.max(1, Math.floor(limitRaw))) : 10;
+
+  return supabaseFetch("search-curated-materials", {
+    method: "POST",
+    headers: { "X-Agent-Token": config.agentToken, "X-Organization-Id": requireOrganizationId() },
+    body: {
+      ...(query ? { query } : {}),
+      ...(kd_code ? { kd_code } : {}),
+      ...(material_type ? { material_type } : {}),
+      ...(category ? { category } : {}),
+      ...(mbo_level ? { mbo_level } : {}),
+      ...(source ? { source } : {}),
+      ...(language_variant ? { language_variant } : {}),
+      limit,
+    },
   });
 }
 

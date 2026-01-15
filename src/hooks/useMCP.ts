@@ -29,6 +29,7 @@ import type {
   ListMessagesResponse,
   RecommendMesContentResponse,
   TeacherChatAssistantResponse,
+  SearchCuratedMaterialsResponse,
   ListMediaJobsResponse,
   ListAssignmentsResponse,
   GetAssignmentProgressResponse,
@@ -883,6 +884,43 @@ export function useMCP() {
     }
   };
 
+  const searchCuratedMaterials = async (args: {
+    query?: string;
+    kd_code?: string;
+    material_type?: string;
+    category?: string;
+    mbo_level?: string;
+    source?: string;
+    language_variant?: string;
+    limit?: number;
+  }) => {
+    setLoading(true);
+    try {
+      const payload = (args && typeof args === "object") ? args : {};
+
+      if (shouldUseMCPProxy()) {
+        return await callMCP<SearchCuratedMaterialsResponse>(
+          "lms.searchCuratedMaterials",
+          payload as unknown as Record<string, unknown>,
+        );
+      }
+
+      const queryParams: Record<string, string> = {};
+      if (typeof payload.query === "string" && payload.query.trim()) queryParams.query = payload.query.trim();
+      if (typeof payload.kd_code === "string" && payload.kd_code.trim()) queryParams.kd_code = payload.kd_code.trim();
+      if (typeof payload.material_type === "string" && payload.material_type.trim()) queryParams.material_type = payload.material_type.trim();
+      if (typeof payload.category === "string" && payload.category.trim()) queryParams.category = payload.category.trim();
+      if (typeof payload.mbo_level === "string" && payload.mbo_level.trim()) queryParams.mbo_level = payload.mbo_level.trim();
+      if (typeof payload.source === "string" && payload.source.trim()) queryParams.source = payload.source.trim();
+      if (typeof payload.language_variant === "string" && payload.language_variant.trim()) queryParams.language_variant = payload.language_variant.trim();
+      if (typeof payload.limit === "number" && Number.isFinite(payload.limit)) queryParams.limit = String(Math.floor(payload.limit));
+
+      return await callEdgeFunctionGet<SearchCuratedMaterialsResponse>("search-curated-materials", queryParams);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Job Management Methods (additional)
   const listMediaJobsFiltered = async (params: {
     courseId?: string;
@@ -1359,6 +1397,7 @@ export function useMCP() {
     // TeacherGPT (live)
     recommendMesContent,
     teacherChatAssistant,
+    searchCuratedMaterials,
     // Additional Job Management methods
     listMediaJobsFiltered,
     // Assignment methods
