@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Digitale Boeken - ExpertCollege | Interactief lesmateriaal voor MBO Zorg</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --ec-orange: #f97316; --ec-orange-dark: #ea580c;
+      --ec-cyan: #0891b2; --ec-purple: #7c3aed; --ec-green: #22c55e;
+      --bg-primary: #ffffff; --bg-secondary: #f8fafc; --bg-tertiary: #f1f5f9;
+      --text-primary: #0f172a; --text-secondary: #475569; --text-muted: #94a3b8;
+      --border: #e2e8f0; --shadow-md: 0 4px 6px -1px rgba(15, 23, 42, 0.08);
+      --shadow-lg: 0 10px 15px -3px rgba(15, 23, 42, 0.1); --container-max: 1200px;
+    }
+    body { font-family: 'Space Grotesk', sans-serif; background: var(--bg-primary); color: var(--text-primary); line-height: 1.6; }
+    .container { max-width: var(--container-max); margin: 0 auto; padding: 0 1.5rem; }
+    .header { background: var(--bg-primary); border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 100; }
+    .header-inner { display: flex; justify-content: space-between; align-items: center; padding: 1rem 1.5rem; max-width: var(--container-max); margin: 0 auto; }
+    .logo { font-size: 1.5rem; font-weight: 700; color: var(--ec-orange); text-decoration: none; display: flex; align-items: center; gap: 0.5rem; }
+    .logo-icon { width: 32px; height: 32px; background: linear-gradient(135deg, var(--ec-orange), var(--ec-orange-dark)); border-radius: 8px; display: flex; align-items: center; justify-content: center; color: white; }
+    .nav { display: flex; align-items: center; gap: 2rem; }
+    .nav-links { display: flex; gap: 1.5rem; list-style: none; }
+    .nav-link { color: var(--text-secondary); text-decoration: none; font-weight: 500; }
+    .nav-link:hover { color: var(--ec-orange); }
+    .btn { display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.75rem 1.5rem; border-radius: 8px; font-weight: 600; text-decoration: none; transition: all 0.2s; border: none; cursor: pointer; }
+    .btn-primary { background: linear-gradient(135deg, var(--ec-orange), var(--ec-orange-dark)); color: white; }
+    .btn-outline { background: transparent; color: var(--ec-orange); border: 2px solid var(--ec-orange); }
+    .btn-outline:hover { background: var(--ec-orange); color: white; }
+    .btn-lg { padding: 1rem 2rem; font-size: 1.1rem; }
+
+    .hero { background: linear-gradient(135deg, #f97316 0%, #ea580c 100%); color: white; padding: 5rem 1.5rem; }
+    .hero-inner { max-width: var(--container-max); margin: 0 auto; display: grid; grid-template-columns: 1fr 1fr; gap: 4rem; align-items: center; }
+    .hero h1 { font-size: 3rem; font-weight: 700; margin-bottom: 1.5rem; }
+    .hero p { font-size: 1.2rem; margin-bottom: 2rem; opacity: 0.95; }
+    .hero-badge { display: inline-block; background: rgba(255,255,255,0.2); padding: 0.5rem 1rem; border-radius: 50px; font-size: 0.9rem; margin-bottom: 1.5rem; }
+    .hero-visual { background: white; border-radius: 16px; padding: 2rem; box-shadow: var(--shadow-lg); }
+    .book-preview { display: flex; flex-direction: column; gap: 1rem; }
+    .book-cover { background: linear-gradient(135deg, #fef3c7, #fde68a); border-radius: 8px; padding: 2rem; text-align: center; }
+    .book-cover h3 { color: var(--ec-orange-dark); margin-bottom: 0.5rem; }
+    .book-cover p { color: var(--text-secondary); font-size: 0.9rem; }
+    .book-features { display: flex; gap: 1rem; flex-wrap: wrap; }
+    .book-feature { background: var(--bg-tertiary); padding: 0.5rem 1rem; border-radius: 8px; font-size: 0.85rem; }
+
+    .section { padding: 5rem 1.5rem; }
+    .section-alt { background: var(--bg-secondary); }
+    .section-header { text-align: center; margin-bottom: 3rem; }
+    .section-title { font-size: 2.25rem; font-weight: 700; margin-bottom: 1rem; }
+    .section-desc { font-size: 1.1rem; color: var(--text-secondary); max-width: 700px; margin: 0 auto; }
+
+    .books-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2rem; }
+    .book-card { background: white; border-radius: 16px; overflow: hidden; box-shadow: var(--shadow-md); transition: transform 0.2s; }
+    .book-card:hover { transform: translateY(-4px); }
+    .book-card-cover { background: linear-gradient(135deg, #fef3c7, #fde68a); padding: 2rem; text-align: center; }
+    .book-card-cover.n3 { background: linear-gradient(135deg, #dbeafe, #bfdbfe); }
+    .book-card-cover.n4 { background: linear-gradient(135deg, #f3e8ff, #e9d5ff); }
+    .book-card-cover.arabic { background: linear-gradient(135deg, #dcfce7, #bbf7d0); }
+    .book-icon { font-size: 3rem; margin-bottom: 0.5rem; }
+    .book-card-body { padding: 1.5rem; }
+    .book-card h3 { margin-bottom: 0.5rem; }
+    .book-card p { color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 1rem; }
+    .book-tags { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 1rem; }
+    .book-tag { padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.75rem; font-weight: 600; }
+    .book-tag.n3 { background: #dbeafe; color: #1d4ed8; }
+    .book-tag.n4 { background: #f3e8ff; color: #7c3aed; }
+    .book-tag.arabic { background: #dcfce7; color: #16a34a; }
+    .book-tag.kd { background: #ecfeff; color: #0891b2; }
+
+    .features-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 2rem; }
+    .feature-card { display: flex; gap: 1.5rem; align-items: flex-start; }
+    .feature-icon { width: 56px; height: 56px; background: linear-gradient(135deg, var(--ec-orange), var(--ec-orange-dark)); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; flex-shrink: 0; }
+    .feature-card h3 { margin-bottom: 0.5rem; }
+    .feature-card p { color: var(--text-secondary); font-size: 0.95rem; }
+
+    .cta-section { background: linear-gradient(135deg, #0f172a, #1e293b); color: white; padding: 4rem 1.5rem; text-align: center; }
+    .cta-section h2 { font-size: 2rem; margin-bottom: 1rem; }
+    .cta-section p { margin-bottom: 2rem; opacity: 0.9; }
+    .cta-buttons { display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; }
+
+    .footer { background: var(--bg-tertiary); padding: 3rem 1.5rem; }
+    .footer-inner { max-width: var(--container-max); margin: 0 auto; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 2rem; }
+    .footer-col h4 { margin-bottom: 1rem; }
+    .footer-col ul { list-style: none; }
+    .footer-col a { color: var(--text-secondary); text-decoration: none; display: block; padding: 0.25rem 0; }
+    .footer-col a:hover { color: var(--ec-orange); }
+    .footer-bottom { text-align: center; padding-top: 2rem; margin-top: 2rem; border-top: 1px solid var(--border); color: var(--text-muted); }
+
+    @media (max-width: 768px) {
+      .hero-inner { grid-template-columns: 1fr; }
+      .hero h1 { font-size: 2rem; }
+      .books-grid, .features-grid { grid-template-columns: 1fr; }
+      .nav-links { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <header class="header">
+    <div class="header-inner">
+      <a href="../expertcollege-mbo-portal.html" class="logo" data-cta-id="cta-logo-home">
+        <span class="logo-icon">E</span>
+        ExpertCollege
+      </a>
+      <nav class="nav">
+        <ul class="nav-links">
+          <li><a href="kd-tools.html" class="nav-link">KD 2026 Tools</a></li>
+          <li><a href="e-xpert-sam.html" class="nav-link">e-Xpert SAM</a></li>
+          <li><a href="digitale-boeken.html" class="nav-link">Producten</a></li>
+          <li><a href="event-15-mei.html" class="nav-link">Event 15 mei</a></li>
+        </ul>
+        <a href="demo-aanvraag.html" class="btn btn-primary" data-cta-id="cta-nav-demo">Vraag demo aan</a>
+      </nav>
+    </div>
+  </header>
+
+  <section class="hero">
+    <div class="hero-inner">
+      <div>
+        <span class="hero-badge">Digitale Boeken</span>
+        <h1>Interactief lesmateriaal voor MBO Zorg</h1>
+        <p>Digitale boeken in B1-taalniveau, met directe KD-koppeling per hoofdstuk. Studenten werken zelfstandig, jij houdt overzicht. Ook beschikbaar in het Arabisch.</p>
+        <div class="cta-buttons">
+          <a href="demo-aanvraag.html" class="btn btn-primary btn-lg" data-cta-id="cta-hero-demo">Bekijk voorbeeld</a>
+          <a href="contact.html" class="btn btn-outline btn-lg" style="border-color: white; color: white;" data-cta-id="cta-hero-contact">Vraag offerte aan</a>
+        </div>
+      </div>
+      <div class="hero-visual">
+        <div class="book-preview">
+          <div class="book-cover">
+            <h3>Zorg & Welzijn Niveau 3</h3>
+            <p>Basisdeel - KD 2026 compliant</p>
+          </div>
+          <div class="book-features">
+            <span class="book-feature">📖 B1 taalniveau</span>
+            <span class="book-feature">🎯 KD-gekoppeld</span>
+            <span class="book-feature">🌍 Ook in Arabisch</span>
+            <span class="book-feature">💻 Interactief</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="container">
+      <div class="section-header">
+        <h2 class="section-title">Onze boekenserie</h2>
+        <p class="section-desc">Complete dekking van basisdeel en profieldeel, voor VZ-IG niveau 3 en VP niveau 4.</p>
+      </div>
+      <div class="books-grid">
+        <div class="book-card">
+          <div class="book-card-cover n3">
+            <div class="book-icon">📘</div>
+          </div>
+          <div class="book-card-body">
+            <h3>Verzorgende-IG Niveau 3</h3>
+            <p>Complete dekking van het basisdeel voor VZ-IG. Alle kerntaken B1-K1 t/m B1-K3 uitgewerkt.</p>
+            <div class="book-tags">
+              <span class="book-tag n3">Niveau 3</span>
+              <span class="book-tag kd">KD 2026</span>
+            </div>
+            <a href="demo-aanvraag.html" class="btn btn-outline" data-cta-id="cta-book-n3">Bekijk inhoud</a>
+          </div>
+        </div>
+        <div class="book-card">
+          <div class="book-card-cover n4">
+            <div class="book-icon">📕</div>
+          </div>
+          <div class="book-card-body">
+            <h3>Verpleegkundige Niveau 4</h3>
+            <p>Basisdeel plus profieldeel P2-K1 (coördineren). Verdieping op alle kernthema's voor VP.</p>
+            <div class="book-tags">
+              <span class="book-tag n4">Niveau 4</span>
+              <span class="book-tag kd">KD 2026</span>
+            </div>
+            <a href="demo-aanvraag.html" class="btn btn-outline" data-cta-id="cta-book-n4">Bekijk inhoud</a>
+          </div>
+        </div>
+        <div class="book-card">
+          <div class="book-card-cover arabic">
+            <div class="book-icon">📗</div>
+          </div>
+          <div class="book-card-body">
+            <h3>Arabische variant</h3>
+            <p>Dezelfde kwaliteit, volledig in het Arabisch. Ideaal voor NT2-studenten met Arabische achtergrond.</p>
+            <div class="book-tags">
+              <span class="book-tag arabic">Arabisch</span>
+              <span class="book-tag n3">N3</span>
+              <span class="book-tag n4">N4</span>
+            </div>
+            <a href="demo-aanvraag.html" class="btn btn-outline" data-cta-id="cta-book-arabic">Bekijk inhoud</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section section-alt">
+    <div class="container">
+      <div class="section-header">
+        <h2 class="section-title">Waarom onze digitale boeken?</h2>
+      </div>
+      <div class="features-grid">
+        <div class="feature-card">
+          <div class="feature-icon">📖</div>
+          <div>
+            <h3>B1 taalniveau</h3>
+            <p>Geschreven in helder, toegankelijk Nederlands. Perfect voor NT2-studenten en iedereen die duidelijke taal waardeert. Korte zinnen, concrete voorbeelden.</p>
+          </div>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">🎯</div>
+          <div>
+            <h3>KD-koppeling per hoofdstuk</h3>
+            <p>Elk hoofdstuk is direct gekoppeld aan KD-werkprocessen. Je weet precies welke content welk examenonderdeel dekt. Geen uitzoekwerk meer.</p>
+          </div>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">💻</div>
+          <div>
+            <h3>Interactieve elementen</h3>
+            <p>Ingebouwde toetsvragen, reflectiemomenten en praktijkopdrachten. Studenten leren actief in plaats van passief lezen.</p>
+          </div>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">📊</div>
+          <div>
+            <h3>Voortgang bijhouden</h3>
+            <p>Als docent zie je precies waar elke student staat. Wie heeft welk hoofdstuk afgerond? Waar lopen ze vast?</p>
+          </div>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">🌍</div>
+          <div>
+            <h3>Meertalig beschikbaar</h3>
+            <p>Naast Nederlands ook volledig in het Arabisch. Zo kunnen NT2-studenten in hun moedertaal de stof doorwerken.</p>
+          </div>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">🔄</div>
+          <div>
+            <h3>Altijd up-to-date</h3>
+            <p>Digitale boeken worden automatisch bijgewerkt bij wijzigingen in het KD. Geen verouderde edities meer.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="cta-section">
+    <div class="container">
+      <h2>Klaar om onze boeken te bekijken?</h2>
+      <p>Vraag een demo aan of neem contact op voor een offerte op maat.</p>
+      <div class="cta-buttons">
+        <a href="demo-aanvraag.html" class="btn btn-primary btn-lg" data-cta-id="cta-cta-demo">Vraag demo aan</a>
+        <a href="contact.html" class="btn btn-outline btn-lg" style="border-color: white; color: white;" data-cta-id="cta-cta-contact">Neem contact op</a>
+      </div>
+    </div>
+  </section>
+
+  <footer class="footer">
+    <div class="footer-inner">
+      <div class="footer-col">
+        <h4>Producten</h4>
+        <ul>
+          <li><a href="kd-tools.html" data-cta-id="cta-footer-kd">KD 2026 Tools</a></li>
+          <li><a href="e-xpert-sam.html" data-cta-id="cta-footer-sam">e-Xpert SAM</a></li>
+          <li><a href="digitale-boeken.html" data-cta-id="cta-footer-boeken">Digitale Boeken</a></li>
+          <li><a href="e-learning-modules.html" data-cta-id="cta-footer-modules">E-learning Modules</a></li>
+          <li><a href="klassikale-opdrachten.html" data-cta-id="cta-footer-opdrachten">Klassikale opdrachten</a></li>
+          <li><a href="bpv-materiaal.html" data-cta-id="cta-footer-bpv">BPV-materiaal</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>Aan de slag</h4>
+        <ul>
+          <li><a href="kd-checker.html" data-cta-id="cta-footer-checker">Probeer KD-Checker</a></li>
+          <li><a href="e-xpert-sam.html" data-cta-id="cta-footer-sam-try">Vraag SAM om advies</a></li>
+          <li><a href="demo-aanvraag.html" data-cta-id="cta-footer-demo">Vraag demo aan</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>ExpertCollege</h4>
+        <ul>
+          <li><a href="over-expertcollege.html" data-cta-id="cta-footer-about">Over ons</a></li>
+          <li><a href="event-15-mei.html" data-cta-id="cta-footer-event">Event 15 mei</a></li>
+          <li><a href="contact.html" data-cta-id="cta-footer-contact">Contact</a></li>
+          <li><a href="privacy.html" data-cta-id="cta-footer-privacy">Privacy</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <p>&copy; 2026 ExpertCollege. Gemaakt met zorg voor zorgonderwijs.</p>
+    </div>
+  </footer>
+</body>
+</html>

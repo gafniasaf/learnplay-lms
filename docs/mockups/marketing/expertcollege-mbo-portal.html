@@ -1,0 +1,1737 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ExpertCollege - KD 2026 Tools & e-Xpert SAM | MBO Verzorging & Verpleging</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    /* ===== CSS RESET & BASE ===== */
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    :root {
+      /* ExpertCollege Brand Colors */
+      --ec-orange: #f97316;
+      --ec-orange-light: #fb923c;
+      --ec-orange-dark: #ea580c;
+      --ec-blue: #0ea5e9;
+      --ec-cyan: #0891b2;
+      --ec-purple: #7c3aed;
+      --ec-green: #22c55e;
+      --ec-warm: #fef7ed;
+      
+      /* Neutral Colors */
+      --bg-primary: #ffffff;
+      --bg-secondary: #f8fafc;
+      --bg-tertiary: #f1f5f9;
+      --text-primary: #0f172a;
+      --text-secondary: #475569;
+      --text-muted: #94a3b8;
+      --border: #e2e8f0;
+      --border-strong: #cbd5e1;
+      
+      /* KD Status Colors */
+      --kd-covered: #059669;
+      --kd-partial: #d97706;
+      --kd-gap: #dc2626;
+      
+      /* Shadows */
+      --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.05);
+      --shadow-md: 0 4px 6px -1px rgba(15, 23, 42, 0.08), 0 2px 4px -2px rgba(15, 23, 42, 0.05);
+      --shadow-lg: 0 10px 15px -3px rgba(15, 23, 42, 0.1), 0 4px 6px -4px rgba(15, 23, 42, 0.05);
+      --shadow-xl: 0 20px 25px -5px rgba(15, 23, 42, 0.1), 0 8px 10px -6px rgba(15, 23, 42, 0.05);
+      
+      /* Spacing */
+      --section-padding: 5rem 1.5rem;
+      --container-max: 1200px;
+    }
+
+    body {
+      font-family: 'Space Grotesk', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      line-height: 1.6;
+    }
+
+    .container {
+      max-width: var(--container-max);
+      margin: 0 auto;
+      padding: 0 1.5rem;
+    }
+
+    /* ===== HEADER ===== */
+    .header {
+      background: var(--bg-primary);
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .header-inner {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1rem 0;
+      max-width: var(--container-max);
+      margin: 0 auto;
+      padding-left: 1.5rem;
+      padding-right: 1.5rem;
+    }
+
+    .logo {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--ec-orange);
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .logo-icon {
+      width: 32px;
+      height: 32px;
+      background: linear-gradient(135deg, var(--ec-orange), var(--ec-orange-dark));
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 1.25rem;
+    }
+
+    .nav {
+      display: flex;
+      align-items: center;
+      gap: 2rem;
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 1.5rem;
+      list-style: none;
+    }
+
+    .nav-link {
+      color: var(--text-secondary);
+      text-decoration: none;
+      font-weight: 500;
+      font-size: 0.95rem;
+      transition: color 0.2s;
+    }
+
+    .nav-link:hover {
+      color: var(--ec-orange);
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.75rem 1.5rem;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 0.95rem;
+      text-decoration: none;
+      transition: all 0.2s;
+      cursor: pointer;
+      border: none;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--ec-orange), var(--ec-orange-dark));
+      color: white;
+      box-shadow: 0 4px 14px rgba(249, 115, 22, 0.3);
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(249, 115, 22, 0.4);
+    }
+
+    .btn-secondary {
+      background: var(--bg-tertiary);
+      color: var(--text-primary);
+      border: 1px solid var(--border);
+    }
+
+    .btn-secondary:hover {
+      background: var(--border);
+    }
+
+    .btn-outline {
+      background: transparent;
+      color: var(--ec-orange);
+      border: 2px solid var(--ec-orange);
+    }
+
+    .btn-outline:hover {
+      background: var(--ec-orange);
+      color: white;
+    }
+
+    .btn-white {
+      background: white;
+      color: var(--ec-orange);
+    }
+
+    .btn-white:hover {
+      background: var(--bg-tertiary);
+    }
+
+    .btn-sam {
+      background: linear-gradient(135deg, var(--ec-purple), #6d28d9);
+      color: white;
+      box-shadow: 0 4px 14px rgba(124, 58, 237, 0.3);
+    }
+
+    .btn-sam:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(124, 58, 237, 0.4);
+    }
+
+    .btn-kd {
+      background: linear-gradient(135deg, var(--ec-cyan), #0e7490);
+      color: white;
+      box-shadow: 0 4px 14px rgba(8, 145, 178, 0.3);
+    }
+
+    .btn-kd:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(8, 145, 178, 0.4);
+    }
+
+    .btn-lg {
+      padding: 1rem 2rem;
+      font-size: 1.1rem;
+    }
+
+    /* ===== HERO SECTION ===== */
+    .hero {
+      background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+      color: white;
+      padding: 5rem 1.5rem;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .hero::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: 
+        radial-gradient(ellipse at 20% 50%, rgba(249, 115, 22, 0.15) 0%, transparent 50%),
+        radial-gradient(ellipse at 80% 50%, rgba(124, 58, 237, 0.15) 0%, transparent 50%);
+      pointer-events: none;
+    }
+
+    .hero-inner {
+      max-width: var(--container-max);
+      margin: 0 auto;
+      position: relative;
+      z-index: 1;
+      text-align: center;
+    }
+
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: rgba(255,255,255,0.1);
+      padding: 0.5rem 1rem;
+      border-radius: 50px;
+      font-size: 0.875rem;
+      font-weight: 500;
+      margin-bottom: 1.5rem;
+      backdrop-filter: blur(8px);
+    }
+
+    .hero-title {
+      font-size: 3.5rem;
+      font-weight: 700;
+      line-height: 1.1;
+      margin-bottom: 1.5rem;
+      max-width: 900px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    .hero-title .kd {
+      background: linear-gradient(135deg, var(--ec-cyan), #22d3ee);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .hero-title .sam {
+      background: linear-gradient(135deg, var(--ec-purple), #a78bfa);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .hero-description {
+      font-size: 1.25rem;
+      color: rgba(255,255,255,0.8);
+      margin-bottom: 2.5rem;
+      max-width: 700px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    .hero-buttons {
+      display: flex;
+      gap: 1rem;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-bottom: 3rem;
+    }
+
+    .hero-products {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 2rem;
+      max-width: 900px;
+      margin: 0 auto;
+    }
+
+    .hero-product-card {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 16px;
+      padding: 2rem;
+      text-align: left;
+      transition: all 0.3s;
+    }
+
+    .hero-product-card:hover {
+      background: rgba(255,255,255,0.08);
+      transform: translateY(-4px);
+    }
+
+    .hero-product-card.kd {
+      border-color: rgba(8, 145, 178, 0.3);
+    }
+
+    .hero-product-card.sam {
+      border-color: rgba(124, 58, 237, 0.3);
+    }
+
+    .hero-product-icon {
+      font-size: 2.5rem;
+      margin-bottom: 1rem;
+    }
+
+    .hero-product-name {
+      font-size: 1.5rem;
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+    }
+
+    .hero-product-name.kd {
+      color: #22d3ee;
+    }
+
+    .hero-product-name.sam {
+      color: #a78bfa;
+    }
+
+    .hero-product-desc {
+      font-size: 0.95rem;
+      color: rgba(255,255,255,0.7);
+      margin-bottom: 1rem;
+    }
+
+    .hero-product-features {
+      list-style: none;
+      font-size: 0.9rem;
+      color: rgba(255,255,255,0.6);
+    }
+
+    .hero-product-features li {
+      padding: 0.25rem 0;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .hero-product-features li::before {
+      content: '→';
+      opacity: 0.5;
+    }
+
+    /* ===== SECTION STYLES ===== */
+    .section {
+      padding: var(--section-padding);
+    }
+
+    .section-alt {
+      background: var(--bg-secondary);
+    }
+
+    .section-header {
+      text-align: center;
+      max-width: 700px;
+      margin: 0 auto 3rem;
+    }
+
+    .section-badge {
+      display: inline-block;
+      background: rgba(249, 115, 22, 0.1);
+      color: var(--ec-orange);
+      padding: 0.5rem 1rem;
+      border-radius: 50px;
+      font-size: 0.875rem;
+      font-weight: 600;
+      margin-bottom: 1rem;
+    }
+
+    .section-badge.kd {
+      background: rgba(8, 145, 178, 0.1);
+      color: var(--ec-cyan);
+    }
+
+    .section-badge.sam {
+      background: rgba(124, 58, 237, 0.1);
+      color: var(--ec-purple);
+    }
+
+    .section-title {
+      font-size: 2.5rem;
+      font-weight: 700;
+      margin-bottom: 1rem;
+      color: var(--text-primary);
+    }
+
+    .section-description {
+      font-size: 1.1rem;
+      color: var(--text-secondary);
+    }
+
+    /* ===== KD TOOLS SECTION ===== */
+    .kd-tools-section {
+      background: linear-gradient(135deg, #ecfeff 0%, #cffafe 100%);
+      padding: var(--section-padding);
+    }
+
+    .kd-tools-inner {
+      max-width: var(--container-max);
+      margin: 0 auto;
+    }
+
+    .kd-tools-header {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 4rem;
+      align-items: center;
+      margin-bottom: 4rem;
+    }
+
+    .kd-tools-content h2 {
+      font-size: 2.5rem;
+      font-weight: 700;
+      margin-bottom: 1rem;
+      color: var(--text-primary);
+    }
+
+    .kd-tools-content h2 span {
+      color: var(--ec-cyan);
+    }
+
+    .kd-tools-content p {
+      font-size: 1.1rem;
+      color: var(--text-secondary);
+      margin-bottom: 2rem;
+    }
+
+    .kd-tools-visual {
+      background: white;
+      border-radius: 16px;
+      padding: 1.5rem;
+      box-shadow: var(--shadow-xl);
+    }
+
+    .kd-coverage-preview {
+      background: var(--bg-tertiary);
+      border-radius: 12px;
+      padding: 1.5rem;
+    }
+
+    .kd-coverage-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+    }
+
+    .kd-coverage-title {
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .kd-coverage-score {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--ec-green);
+    }
+
+    .kd-coverage-bars {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .kd-bar-item {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .kd-bar-label {
+      font-size: 0.75rem;
+      font-weight: 600;
+      width: 110px;
+      color: var(--text-secondary);
+    }
+
+    .kd-bar-group-label {
+      font-size: 0.7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--kd-primary);
+      margin-bottom: 0.25rem;
+    }
+
+    .kd-bar-track {
+      flex: 1;
+      height: 12px;
+      background: var(--border);
+      border-radius: 50px;
+      overflow: hidden;
+    }
+
+    .kd-bar-fill {
+      height: 100%;
+      border-radius: 50px;
+      background: linear-gradient(90deg, var(--ec-cyan), var(--ec-green));
+    }
+
+    .kd-bar-value {
+      font-size: 0.85rem;
+      font-weight: 600;
+      width: 45px;
+      text-align: right;
+      color: var(--ec-green);
+    }
+
+    .kd-tools-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 1.5rem;
+    }
+
+    .kd-tool-card {
+      background: white;
+      border-radius: 16px;
+      padding: 2rem;
+      box-shadow: var(--shadow-md);
+      transition: all 0.3s;
+    }
+
+    .kd-tool-card:hover {
+      transform: translateY(-4px);
+      box-shadow: var(--shadow-lg);
+    }
+
+    .kd-tool-icon {
+      width: 56px;
+      height: 56px;
+      background: linear-gradient(135deg, rgba(8, 145, 178, 0.1), rgba(8, 145, 178, 0.05));
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.75rem;
+      margin-bottom: 1.25rem;
+    }
+
+    .kd-tool-title {
+      font-size: 1.25rem;
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+    }
+
+    .kd-tool-desc {
+      font-size: 0.95rem;
+      color: var(--text-secondary);
+      margin-bottom: 1rem;
+    }
+
+    .kd-tool-link {
+      color: var(--ec-cyan);
+      font-weight: 600;
+      text-decoration: none;
+      font-size: 0.9rem;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+    }
+
+    .kd-tool-link:hover {
+      text-decoration: underline;
+    }
+
+    /* ===== E-XPERT SAM SECTION ===== */
+    .sam-section {
+      background: linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%);
+      padding: var(--section-padding);
+    }
+
+    .sam-inner {
+      max-width: var(--container-max);
+      margin: 0 auto;
+    }
+
+    .sam-header {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 4rem;
+      align-items: center;
+      margin-bottom: 4rem;
+    }
+
+    .sam-visual {
+      order: -1;
+    }
+
+    .sam-content h2 {
+      font-size: 2.5rem;
+      font-weight: 700;
+      margin-bottom: 1rem;
+      color: var(--text-primary);
+    }
+
+    .sam-content h2 span {
+      color: var(--ec-purple);
+    }
+
+    .sam-content p {
+      font-size: 1.1rem;
+      color: var(--text-secondary);
+      margin-bottom: 2rem;
+    }
+
+    .sam-chat-preview {
+      background: white;
+      border-radius: 16px;
+      padding: 1.5rem;
+      box-shadow: var(--shadow-xl);
+    }
+
+    .sam-chat-header {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding-bottom: 1rem;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 1rem;
+    }
+
+    .sam-avatar {
+      width: 40px;
+      height: 40px;
+      background: linear-gradient(135deg, var(--ec-purple), #6d28d9);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: 700;
+      font-size: 1rem;
+    }
+
+    .sam-name {
+      font-weight: 600;
+    }
+
+    .sam-status {
+      font-size: 0.8rem;
+      color: var(--ec-green);
+    }
+
+    .sam-messages {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .sam-message {
+      display: flex;
+      gap: 0.75rem;
+      align-items: flex-start;
+    }
+
+    .sam-message.user {
+      flex-direction: row-reverse;
+    }
+
+    .sam-message-avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.8rem;
+      flex-shrink: 0;
+    }
+
+    .sam-message.sam .sam-message-avatar {
+      background: linear-gradient(135deg, var(--ec-purple), #6d28d9);
+      color: white;
+    }
+
+    .sam-message.user .sam-message-avatar {
+      background: var(--bg-tertiary);
+      color: var(--text-secondary);
+    }
+
+    .sam-message-bubble {
+      background: var(--bg-tertiary);
+      padding: 0.75rem 1rem;
+      border-radius: 12px;
+      font-size: 0.9rem;
+      max-width: 280px;
+    }
+
+    .sam-message.sam .sam-message-bubble {
+      background: linear-gradient(135deg, rgba(124, 58, 237, 0.1), rgba(124, 58, 237, 0.05));
+    }
+
+    .sam-features-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1.5rem;
+    }
+
+    .sam-feature-card {
+      background: white;
+      border-radius: 16px;
+      padding: 2rem;
+      box-shadow: var(--shadow-md);
+      transition: all 0.3s;
+    }
+
+    .sam-feature-card:hover {
+      transform: translateY(-4px);
+      box-shadow: var(--shadow-lg);
+    }
+
+    .sam-feature-icon {
+      width: 56px;
+      height: 56px;
+      background: linear-gradient(135deg, rgba(124, 58, 237, 0.1), rgba(124, 58, 237, 0.05));
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.75rem;
+      margin-bottom: 1.25rem;
+    }
+
+    .sam-feature-title {
+      font-size: 1.25rem;
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+    }
+
+    .sam-feature-desc {
+      font-size: 0.95rem;
+      color: var(--text-secondary);
+    }
+
+    /* ===== OTHER PRODUCTS SECTION ===== */
+    .products-section {
+      padding: var(--section-padding);
+      background: var(--bg-secondary);
+    }
+
+    .products-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 2rem;
+    }
+
+    .product-card {
+      background: var(--bg-primary);
+      border-radius: 16px;
+      box-shadow: var(--shadow-md);
+      border: 1px solid var(--border);
+      overflow: hidden;
+      transition: all 0.3s;
+    }
+
+    .product-card:hover {
+      transform: translateY(-4px);
+      box-shadow: var(--shadow-xl);
+    }
+
+    .product-card-header {
+      padding: 1.5rem 1.5rem 1rem;
+      display: flex;
+      align-items: flex-start;
+      gap: 1rem;
+    }
+
+    .product-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+      flex-shrink: 0;
+    }
+
+    .product-icon.books {
+      background: linear-gradient(135deg, #fef3c7, #fde68a);
+    }
+
+    .product-icon.elearning {
+      background: linear-gradient(135deg, #dbeafe, #bfdbfe);
+    }
+
+    .product-icon.materials {
+      background: linear-gradient(135deg, #dcfce7, #bbf7d0);
+    }
+
+    .product-icon.assignments {
+      background: linear-gradient(135deg, #fef3c7, #fde68a);
+    }
+
+    .product-card-title {
+      font-size: 1.25rem;
+      font-weight: 700;
+      margin-bottom: 0.25rem;
+    }
+
+    .product-card-subtitle {
+      font-size: 0.9rem;
+      color: var(--text-secondary);
+    }
+
+    .product-card-body {
+      padding: 0 1.5rem 1.5rem;
+    }
+
+    .product-features {
+      list-style: none;
+      margin-bottom: 1.25rem;
+    }
+
+    .product-features li {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.5rem;
+      padding: 0.35rem 0;
+      font-size: 0.9rem;
+      color: var(--text-secondary);
+    }
+
+    .product-features li::before {
+      content: '✓';
+      color: var(--kd-covered);
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+
+    .product-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+    }
+
+    .product-tag {
+      background: var(--bg-tertiary);
+      padding: 0.2rem 0.6rem;
+      border-radius: 50px;
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+    }
+
+    .product-tag.n3 {
+      background: rgba(14, 165, 233, 0.1);
+      color: var(--ec-blue);
+    }
+
+    .product-tag.n4 {
+      background: rgba(249, 115, 22, 0.1);
+      color: var(--ec-orange);
+    }
+
+    /* ===== STATS BAR ===== */
+    .stats-bar {
+      background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+      color: white;
+      padding: 3rem 1.5rem;
+    }
+
+    .stats-grid {
+      max-width: var(--container-max);
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 2rem;
+      text-align: center;
+    }
+
+    .stat-item {
+      padding: 1rem;
+    }
+
+    .stat-value {
+      font-size: 2.5rem;
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+    }
+
+    .stat-value.kd {
+      color: #22d3ee;
+    }
+
+    .stat-value.sam {
+      color: #a78bfa;
+    }
+
+    .stat-value.orange {
+      color: var(--ec-orange);
+    }
+
+    .stat-label {
+      font-size: 0.95rem;
+      color: rgba(255,255,255,0.7);
+    }
+
+    /* ===== TESTIMONIAL ===== */
+    .testimonial-section {
+      background: var(--bg-primary);
+      padding: var(--section-padding);
+    }
+
+    .testimonial-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 2rem;
+      max-width: var(--container-max);
+      margin: 0 auto;
+    }
+
+    .testimonial-card {
+      background: var(--bg-secondary);
+      border-radius: 16px;
+      padding: 2rem;
+    }
+
+    .testimonial-badge {
+      display: inline-block;
+      padding: 0.25rem 0.75rem;
+      border-radius: 50px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      margin-bottom: 1rem;
+    }
+
+    .testimonial-badge.kd {
+      background: rgba(8, 145, 178, 0.1);
+      color: var(--ec-cyan);
+    }
+
+    .testimonial-badge.sam {
+      background: rgba(124, 58, 237, 0.1);
+      color: var(--ec-purple);
+    }
+
+    .testimonial-quote {
+      font-size: 1.1rem;
+      color: var(--text-primary);
+      margin-bottom: 1.5rem;
+      line-height: 1.6;
+    }
+
+    .testimonial-author {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .testimonial-avatar {
+      width: 44px;
+      height: 44px;
+      background: linear-gradient(135deg, var(--ec-orange), var(--ec-orange-dark));
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: 700;
+      font-size: 1rem;
+    }
+
+    .testimonial-info {
+      text-align: left;
+    }
+
+    .testimonial-name {
+      font-weight: 600;
+      font-size: 0.95rem;
+    }
+
+    .testimonial-role {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+
+    /* ===== EVENT BANNER ===== */
+    .event-banner {
+      background: linear-gradient(135deg, var(--ec-purple), #6d28d9);
+      color: white;
+      padding: 2rem 1.5rem;
+    }
+
+    .event-banner-inner {
+      max-width: var(--container-max);
+      margin: 0 auto;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 1.5rem;
+    }
+
+    .event-content {
+      display: flex;
+      align-items: center;
+      gap: 1.5rem;
+    }
+
+    .event-date {
+      background: rgba(255,255,255,0.15);
+      padding: 1rem;
+      border-radius: 12px;
+      text-align: center;
+      min-width: 80px;
+    }
+
+    .event-date-day {
+      font-size: 2rem;
+      font-weight: 700;
+      line-height: 1;
+    }
+
+    .event-date-month {
+      font-size: 0.875rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .event-info h3 {
+      font-size: 1.25rem;
+      margin-bottom: 0.25rem;
+    }
+
+    .event-info p {
+      opacity: 0.9;
+      font-size: 0.95rem;
+    }
+
+    /* ===== CTA SECTION ===== */
+    .cta-section {
+      background: linear-gradient(135deg, var(--ec-orange), var(--ec-orange-dark));
+      color: white;
+      padding: var(--section-padding);
+      text-align: center;
+    }
+
+    .cta-title {
+      font-size: 2.5rem;
+      font-weight: 700;
+      margin-bottom: 1rem;
+    }
+
+    .cta-description {
+      font-size: 1.25rem;
+      opacity: 0.9;
+      margin-bottom: 2rem;
+      max-width: 600px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    .cta-buttons {
+      display: flex;
+      justify-content: center;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+
+    /* ===== FOOTER ===== */
+    .footer {
+      background: var(--text-primary);
+      color: rgba(255,255,255,0.7);
+      padding: 4rem 1.5rem 2rem;
+    }
+
+    .footer-grid {
+      max-width: var(--container-max);
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 2fr repeat(3, 1fr);
+      gap: 3rem;
+      margin-bottom: 3rem;
+    }
+
+    .footer-brand {
+      max-width: 300px;
+    }
+
+    .footer-logo {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--ec-orange);
+      margin-bottom: 1rem;
+    }
+
+    .footer-description {
+      font-size: 0.95rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .footer-title {
+      color: white;
+      font-weight: 600;
+      margin-bottom: 1rem;
+    }
+
+    .footer-links {
+      list-style: none;
+    }
+
+    .footer-links li {
+      margin-bottom: 0.75rem;
+    }
+
+    .footer-links a {
+      color: rgba(255,255,255,0.7);
+      text-decoration: none;
+      font-size: 0.95rem;
+      transition: color 0.2s;
+    }
+
+    .footer-links a:hover {
+      color: var(--ec-orange);
+    }
+
+    .footer-bottom {
+      max-width: var(--container-max);
+      margin: 0 auto;
+      padding-top: 2rem;
+      border-top: 1px solid rgba(255,255,255,0.1);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.875rem;
+    }
+
+    /* ===== RESPONSIVE ===== */
+    @media (max-width: 1024px) {
+      .hero-title {
+        font-size: 2.5rem;
+      }
+
+      .hero-products {
+        grid-template-columns: 1fr;
+      }
+
+      .kd-tools-header,
+      .sam-header {
+        grid-template-columns: 1fr;
+      }
+
+      .sam-visual {
+        order: 0;
+      }
+
+      .kd-tools-grid,
+      .sam-features-grid,
+      .products-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      .testimonial-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .footer-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+
+    @media (max-width: 768px) {
+      .header-inner {
+        flex-direction: column;
+        gap: 1rem;
+      }
+
+      .nav {
+        flex-direction: column;
+        gap: 1rem;
+      }
+
+      .nav-links {
+        flex-wrap: wrap;
+        justify-content: center;
+      }
+
+      .hero {
+        padding: 3rem 1.5rem;
+      }
+
+      .hero-title {
+        font-size: 2rem;
+      }
+
+      .section-title {
+        font-size: 1.75rem;
+      }
+
+      .event-banner-inner {
+        flex-direction: column;
+        text-align: center;
+      }
+
+      .event-content {
+        flex-direction: column;
+      }
+
+      .stats-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .cta-buttons {
+        flex-direction: column;
+        align-items: center;
+      }
+
+      .footer-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .footer-bottom {
+        flex-direction: column;
+        gap: 1rem;
+        text-align: center;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- ===== HEADER ===== -->
+  <header class="header">
+    <div class="header-inner">
+      <a href="expertcollege-mbo-portal.html" class="logo" data-cta-id="cta-logo-home">
+        <span class="logo-icon">E</span>
+        ExpertCollege
+      </a>
+      <nav class="nav">
+        <ul class="nav-links">
+          <li><a href="pages/kd-tools.html" class="nav-link" data-cta-id="cta-nav-kd">KD 2026 Tools</a></li>
+          <li><a href="pages/e-xpert-sam.html" class="nav-link" data-cta-id="cta-nav-sam">e-Xpert SAM</a></li>
+          <li><a href="#producten" class="nav-link" data-cta-id="cta-nav-producten">Meer producten</a></li>
+          <li><a href="pages/event-15-mei.html" class="nav-link" data-cta-id="cta-nav-event">Event 15 mei</a></li>
+        </ul>
+        <a href="pages/demo-aanvraag.html" class="btn btn-primary" data-cta-id="cta-nav-demo">Vraag demo aan</a>
+      </nav>
+    </div>
+  </header>
+
+  <!-- ===== HERO ===== -->
+  <section class="hero">
+    <div class="hero-inner">
+      <div class="hero-badge">
+        <span>Nieuw</span> Volledig afgestemd op KD 2026
+      </div>
+      <h1 class="hero-title">
+        <span class="kd">KD 2026</span> in de vingers met <span class="sam">e-Xpert SAM</span>
+      </h1>
+      <p class="hero-description">
+        Twee tools die je lesvoorbereiding lichter maken. Check je KD-dekking in minuten. Laat SAM het juiste materiaal voor je vinden en advies geven. Sluit aan op wat je al doet.
+      </p>
+      <div class="hero-buttons">
+        <a href="pages/kd-tools.html" class="btn btn-kd btn-lg" data-cta-id="cta-hero-kd">Ontdek KD Tools</a>
+        <a href="pages/e-xpert-sam.html" class="btn btn-sam btn-lg" data-cta-id="cta-hero-sam">Ontmoet e-Xpert SAM</a>
+      </div>
+
+      <div class="hero-products">
+        <div class="hero-product-card kd">
+          <div class="hero-product-icon">📊</div>
+          <h3 class="hero-product-name kd">KD 2026 Tools</h3>
+          <p class="hero-product-desc">Direct inzicht in je curriculum-dekking. Geen uitzoekwerk, geen twijfel.</p>
+          <ul class="hero-product-features">
+            <li>KD-Checker voor je lesplan</li>
+            <li>Gap-analyse per werkproces</li>
+            <li>Materiaal-suggesties</li>
+          </ul>
+        </div>
+        <div class="hero-product-card sam">
+          <div class="hero-product-icon">🤖</div>
+          <h3 class="hero-product-name sam">e-Xpert SAM</h3>
+          <p class="hero-product-desc">Je persoonlijke assistent die het juiste materiaal vindt en adviseert.</p>
+          <ul class="hero-product-features">
+            <li>Vindt passend materiaal</li>
+            <li>Toont gaps en adviseert</li>
+            <li>Selecteert op N3/N4 niveau</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== KD TOOLS SECTION ===== -->
+  <section class="kd-tools-section" id="kd-tools">
+    <div class="kd-tools-inner">
+      <div class="kd-tools-header">
+        <div class="kd-tools-content">
+          <div class="section-badge kd">KD 2026 Tools</div>
+          <h2>Weet waar je staat met <span>KD 2026</span></h2>
+          <p>
+            Basisdeel en profieldeel volledig in beeld. Upload je lesplan en zie binnen 2 minuten welke werkprocessen je al dekt - voor combiklassen, klassikaal en BPV apart. Gewoon beginnen waar je nu bent.
+          </p>
+          <a href="pages/kd-checker.html" class="btn btn-kd" data-cta-id="cta-kd-section-checker">Probeer de KD-Checker</a>
+        </div>
+        <div class="kd-tools-visual">
+          <div class="kd-coverage-preview">
+            <div class="kd-coverage-header">
+              <span class="kd-coverage-title">Jouw KD-dekking</span>
+              <span class="kd-coverage-score">87%</span>
+            </div>
+            <div class="kd-coverage-bars">
+              <div class="kd-bar-group-label">Basisdeel</div>
+              <div class="kd-bar-item">
+                <span class="kd-bar-label">B1-K1 Ondersteunen</span>
+                <div class="kd-bar-track">
+                  <div class="kd-bar-fill" style="width: 100%;"></div>
+                </div>
+                <span class="kd-bar-value">100%</span>
+              </div>
+              <div class="kd-bar-item">
+                <span class="kd-bar-label">B1-K2 Participatie</span>
+                <div class="kd-bar-track">
+                  <div class="kd-bar-fill" style="width: 85%;"></div>
+                </div>
+                <span class="kd-bar-value">85%</span>
+              </div>
+              <div class="kd-bar-item">
+                <span class="kd-bar-label">B1-K3 Zorgproces</span>
+                <div class="kd-bar-track">
+                  <div class="kd-bar-fill" style="width: 75%;"></div>
+                </div>
+                <span class="kd-bar-value">75%</span>
+              </div>
+              <div class="kd-bar-group-label" style="margin-top: 0.75rem;">Profieldeel VP</div>
+              <div class="kd-bar-item">
+                <span class="kd-bar-label">P2-K1 Coördineren</span>
+                <div class="kd-bar-track">
+                  <div class="kd-bar-fill" style="width: 90%;"></div>
+                </div>
+                <span class="kd-bar-value">90%</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="kd-tools-grid">
+        <div class="kd-tool-card">
+          <div class="kd-tool-icon">🔍</div>
+          <h3 class="kd-tool-title">KD-Checker</h3>
+          <p class="kd-tool-desc">Upload je lesplan - voor klassikaal, combigroep of BPV - en zie direct welke werkprocessen je al dekt. Basisdeel én profieldeel.</p>
+          <a href="pages/kd-checker.html" class="kd-tool-link" data-cta-id="cta-tool-checker">Probeer gratis →</a>
+        </div>
+        <div class="kd-tool-card">
+          <div class="kd-tool-icon">📈</div>
+          <h3 class="kd-tool-title">Gap-analyse</h3>
+          <p class="kd-tool-desc">Zie per kerntaak waar aanvulling helpt. Apart voor theorie, praktijkopdrachten en BPV-activiteiten. Inclusief materiaal-suggesties.</p>
+          <a href="pages/gap-analyse.html" class="kd-tool-link" data-cta-id="cta-tool-gap">Bekijk voorbeeld →</a>
+        </div>
+        <div class="kd-tool-card">
+          <div class="kd-tool-icon">👥</div>
+          <h3 class="kd-tool-title">Combigroep-filter</h3>
+          <p class="kd-tool-desc">VZ-IG en VP in één klas? Filter op niveau 3 én 4 tegelijk. Zie welk materiaal voor beide werkt en waar differentiatie nodig is.</p>
+          <a href="pages/combigroep-filter.html" class="kd-tool-link" data-cta-id="cta-tool-combi">Bekijk voorbeeld →</a>
+        </div>
+        <div class="kd-tool-card">
+          <div class="kd-tool-icon">📚</div>
+          <h3 class="kd-tool-title">Materiaal-koppeling</h3>
+          <p class="kd-tool-desc">Elk werkproces gekoppeld aan klassikale opdrachten, e-learning modules én BPV-formulieren. Klik en download.</p>
+          <a href="pages/materiaal-koppeling.html" class="kd-tool-link" data-cta-id="cta-tool-materiaal">Bekijk materiaal →</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== E-XPERT SAM SECTION ===== -->
+  <section class="sam-section" id="expert-sam">
+    <div class="sam-inner">
+      <div class="sam-header">
+        <div class="sam-content">
+          <div class="section-badge sam">e-Xpert SAM</div>
+          <h2>Je persoonlijke <span>materiaal-adviseur</span></h2>
+          <p>
+            SAM doorzoekt onze complete materialenbank en selecteert precies wat jij nodig hebt. Toont waar je KD-dekking mist en adviseert welk materiaal dat gat vult. Jij beslist, SAM wijst de weg.
+          </p>
+          <a href="pages/e-xpert-sam.html" class="btn btn-sam" data-cta-id="cta-sam-section-btn">Ontmoet e-Xpert SAM</a>
+        </div>
+        <div class="sam-visual">
+          <div class="sam-chat-preview">
+            <div class="sam-chat-header">
+              <div class="sam-avatar">S</div>
+              <div>
+                <div class="sam-name">e-Xpert SAM</div>
+                <div class="sam-status">Online</div>
+              </div>
+            </div>
+            <div class="sam-messages">
+              <div class="sam-message user">
+                <div class="sam-message-avatar">JK</div>
+                <div class="sam-message-bubble">Ik geef combigroep, zoek klassikale opdracht over SBAR, 30 min</div>
+              </div>
+              <div class="sam-message sam">
+                <div class="sam-message-avatar">S</div>
+                <div class="sam-message-bubble">Gevonden! Klasopdracht SBAR-overdracht (B1-K3-W2) met N3 én N4 variant. Ook een BPV-vervolgopdracht beschikbaar. Downloaden?</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="sam-features-grid">
+        <div class="sam-feature-card">
+          <div class="sam-feature-icon">🏫</div>
+          <h3 class="sam-feature-title">Klassikale opdrachten</h3>
+          <p class="sam-feature-desc">Zoek op thema en krijg direct klassikale werkopdrachten met leerdoel, instructie en beoordelingscriteria. Kant-en-klaar.</p>
+        </div>
+        <div class="sam-feature-card">
+          <div class="sam-feature-icon">👥</div>
+          <h3 class="sam-feature-title">Combigroep-ready</h3>
+          <p class="sam-feature-desc">VZ-IG en VP in één klas? SAM selecteert materiaal dat voor beide niveaus werkt, of geeft N3 én N4 varianten.</p>
+        </div>
+        <div class="sam-feature-card">
+          <div class="sam-feature-icon">🏥</div>
+          <h3 class="sam-feature-title">BPV-materiaal</h3>
+          <p class="sam-feature-desc">Van observatielog tot SBAR-formulier. SAM vindt BPV-opdrachten die aansluiten bij je klassikale les.</p>
+        </div>
+        <div class="sam-feature-card">
+          <div class="sam-feature-icon">📊</div>
+          <h3 class="sam-feature-title">Gap-detectie</h3>
+          <p class="sam-feature-desc">SAM analyseert je lesplan en toont welke werkprocessen uit basisdeel of profieldeel nog aandacht nodig hebben.</p>
+        </div>
+        <div class="sam-feature-card">
+          <div class="sam-feature-icon">💡</div>
+          <h3 class="sam-feature-title">Materiaal-advies</h3>
+          <p class="sam-feature-desc">Per gap adviseert SAM welke module, klasopdracht of BPV-formulier uit onze bibliotheek dat gat het beste vult.</p>
+        </div>
+        <div class="sam-feature-card">
+          <div class="sam-feature-icon">⭐</div>
+          <h3 class="sam-feature-title">Expert-kwaliteit</h3>
+          <p class="sam-feature-desc">Al onze materialen zijn door vakexperts ontwikkeld en KD 2026-proof. SAM selecteert alleen het beste.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== STATS BAR ===== -->
+  <div class="stats-bar">
+    <div class="stats-grid">
+      <div class="stat-item">
+        <div class="stat-value kd">100%</div>
+        <div class="stat-label">KD 2026 werkprocessen gedekt</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-value sam">2 uur</div>
+        <div class="stat-label">Bespaard per week door slim zoeken</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-value orange">500+</div>
+        <div class="stat-label">Kant-en-klare oefeningen</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-value orange">15</div>
+        <div class="stat-label">E-learning modules</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== OTHER PRODUCTS ===== -->
+  <section class="products-section" id="producten">
+    <div class="container">
+      <div class="section-header">
+        <div class="section-badge">Meer producten</div>
+        <h2 class="section-title">Van klassikaal tot BPV - alles klaar voor gebruik</h2>
+        <p class="section-description">
+          Naast KD-tools en e-Xpert SAM: digitale boeken, klassikale werkopdrachten, e-learning en BPV-materiaal. Voor combigroepen en enkelvoudige klassen, basisdeel en profieldeel.
+        </p>
+      </div>
+
+      <div class="products-grid">
+        <!-- Digitale Boeken -->
+        <div class="product-card">
+          <div class="product-card-header">
+            <div class="product-icon books">📖</div>
+            <div>
+              <h3 class="product-card-title">Digitale Boeken</h3>
+              <p class="product-card-subtitle">Interactief lesmateriaal</p>
+            </div>
+          </div>
+          <div class="product-card-body">
+            <div class="product-tags">
+              <span class="product-tag n3">Niveau 3</span>
+              <span class="product-tag n4">Niveau 4</span>
+              <span class="product-tag">Arabisch</span>
+            </div>
+            <ul class="product-features">
+              <li>B1-taalniveau, ook voor NT2</li>
+              <li>Directe KD-koppeling per hoofdstuk</li>
+              <li>Arabische variant beschikbaar</li>
+              <li>Studenten werken zelfstandig</li>
+            </ul>
+            <a href="pages/digitale-boeken.html" class="btn btn-outline" style="width: 100%; justify-content: center;" data-cta-id="cta-prod-boeken">Bekijk boeken</a>
+          </div>
+        </div>
+
+        <!-- E-learning Modules -->
+        <div class="product-card">
+          <div class="product-card-header">
+            <div class="product-icon elearning">💻</div>
+            <div>
+              <h3 class="product-card-title">E-learning Modules</h3>
+              <p class="product-card-subtitle">15 kant-en-klare modules</p>
+            </div>
+          </div>
+          <div class="product-card-body">
+            <div class="product-tags">
+              <span class="product-tag">30-60 min</span>
+              <span class="product-tag">ACTIE</span>
+              <span class="product-tag">EBP</span>
+            </div>
+            <ul class="product-features">
+              <li>SBAR, klinisch redeneren, medicatie</li>
+              <li>Inclusief checks en reflectie</li>
+              <li>VZ-IG3 en VP4 varianten</li>
+              <li>Vrij aan te passen</li>
+            </ul>
+            <a href="pages/e-learning-modules.html" class="btn btn-outline" style="width: 100%; justify-content: center;" data-cta-id="cta-prod-modules">Bekijk modules</a>
+          </div>
+        </div>
+
+        <!-- BPV Materiaal -->
+        <div class="product-card">
+          <div class="product-card-header">
+            <div class="product-icon materials">📁</div>
+            <div>
+              <h3 class="product-card-title">BPV-materiaal</h3>
+              <p class="product-card-subtitle">Van school naar praktijk</p>
+            </div>
+          </div>
+          <div class="product-card-body">
+            <div class="product-tags">
+              <span class="product-tag">Logs</span>
+              <span class="product-tag">SBAR</span>
+              <span class="product-tag">Reflectie</span>
+            </div>
+            <ul class="product-features">
+              <li>Observatielogs (3-diensten format)</li>
+              <li>SBAR-overdracht formulieren</li>
+              <li>Speak-up en veiligheidscommunicatie</li>
+              <li>Werkbegeleider-instructiekaarten</li>
+              <li>Koppeling klassikale les ↔ BPV</li>
+            </ul>
+            <a href="pages/bpv-materiaal.html" class="btn btn-outline" style="width: 100%; justify-content: center;" data-cta-id="cta-prod-bpv">Download voorbeelden</a>
+          </div>
+        </div>
+
+        <!-- Klassikale Werkopdrachten -->
+        <div class="product-card">
+          <div class="product-card-header">
+            <div class="product-icon assignments">📝</div>
+            <div>
+              <h3 class="product-card-title">Klassikale werkopdrachten</h3>
+              <p class="product-card-subtitle">Direct inzetbaar in de les</p>
+            </div>
+          </div>
+          <div class="product-card-body">
+            <div class="product-tags">
+              <span class="product-tag n3">N3</span>
+              <span class="product-tag n4">N4</span>
+              <span class="product-tag">Combi</span>
+            </div>
+            <ul class="product-features">
+              <li>Casussen met beoordelingsmodel</li>
+              <li>Samenwerkingsopdrachten (duo/groep)</li>
+              <li>Differentiatie N3/N4 ingebouwd</li>
+              <li>Aansluitend BPV-vervolg</li>
+              <li>Alle KD-werkprocessen gedekt</li>
+            </ul>
+            <a href="pages/klassikale-opdrachten.html" class="btn btn-outline" style="width: 100%; justify-content: center;" data-cta-id="cta-prod-opdrachten">Bekijk opdrachten</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== TESTIMONIALS ===== -->
+  <section class="testimonial-section">
+    <div class="container">
+      <div class="section-header">
+        <h2 class="section-title">Wat docenten zeggen</h2>
+      </div>
+      <div class="testimonial-grid">
+        <div class="testimonial-card">
+          <span class="testimonial-badge kd">Over KD-tools</span>
+          <p class="testimonial-quote">
+            "De KD-Checker scheelt me echt een uur per week aan uitzoekwerk. Ik zie direct waar ik sta en wat ik nog moet aanvullen. Geen gedoe, gewoon duidelijkheid."
+          </p>
+          <div class="testimonial-author">
+            <div class="testimonial-avatar">MV</div>
+            <div class="testimonial-info">
+              <div class="testimonial-name">Marieke Verhoeven</div>
+              <div class="testimonial-role">Docent Verpleging, KW1C</div>
+            </div>
+          </div>
+        </div>
+        <div class="testimonial-card">
+          <span class="testimonial-badge sam">Over e-Xpert SAM</span>
+          <p class="testimonial-quote">
+            "Ik heb een combigroep VZ-IG en VP. SAM vindt in één keer materiaal dat voor beide niveaus werkt, of geeft me direct de N3 en N4 variant. Scheelt zoeken én differentiëren."
+          </p>
+          <div class="testimonial-author">
+            <div class="testimonial-avatar">PJ</div>
+            <div class="testimonial-info">
+              <div class="testimonial-name">Peter Jansen</div>
+              <div class="testimonial-role">Docent VIG, ROC Nijmegen</div>
+            </div>
+          </div>
+        </div>
+        <div class="testimonial-card">
+          <span class="testimonial-badge" style="background: #10b981; color: white;">Over BPV-koppeling</span>
+          <p class="testimonial-quote">
+            "Eindelijk sluit mijn klassikale les aan op wat studenten in de praktijk doen. De BPV-opdrachten bouwen voort op wat we in de klas behandelen. Werkbegeleiders snappen nu wat ik van ze vraag."
+          </p>
+          <div class="testimonial-author">
+            <div class="testimonial-avatar">LB</div>
+            <div class="testimonial-info">
+              <div class="testimonial-name">Linda de Boer</div>
+              <div class="testimonial-role">Docent Verpleegkunde, Alfa-college</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== EVENT BANNER ===== -->
+  <section class="event-banner" id="event">
+    <div class="event-banner-inner">
+      <div class="event-content">
+        <div class="event-date">
+          <div class="event-date-day">15</div>
+          <div class="event-date-month">Mei '26</div>
+        </div>
+        <div class="event-info">
+          <h3>MBO-docenten aan zet 2026</h3>
+          <p>Ontdek KD-tools en e-Xpert SAM in de praktijk. Workshops, netwerken en gratis materiaal.</p>
+        </div>
+      </div>
+      <a href="pages/event-15-mei.html" class="btn btn-white" data-cta-id="cta-event-banner">Schrijf je in</a>
+    </div>
+  </section>
+
+  <!-- ===== CTA SECTION ===== -->
+  <section class="cta-section" id="demo">
+    <div class="container">
+      <h2 class="cta-title">Probeer het zelf</h2>
+      <p class="cta-description">
+        Vraag een demo aan en ontdek hoe KD-tools en e-Xpert SAM jouw lesvoorbereiding lichter maken. Geen verplichtingen, gewoon even kijken.
+      </p>
+      <div class="cta-buttons">
+        <a href="pages/demo-aanvraag.html" class="btn btn-white btn-lg" data-cta-id="cta-cta-demo">Vraag demo aan</a>
+        <a href="pages/contact.html" class="btn btn-outline btn-lg" style="border-color: white; color: white;" data-cta-id="cta-cta-contact">Neem contact op</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== FOOTER ===== -->
+  <footer class="footer">
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <div class="footer-logo">ExpertCollege</div>
+        <p class="footer-description">
+          KD 2026 tools en e-Xpert SAM - vind het juiste materiaal, zie waar gaps zitten, krijg advies. Sluit aan op wat je al doet.
+        </p>
+        <p style="font-size: 0.875rem;">
+          Een initiatief van MBOleren.nl
+        </p>
+      </div>
+      <div>
+        <h4 class="footer-title">Producten</h4>
+        <ul class="footer-links">
+          <li><a href="pages/kd-tools.html" data-cta-id="cta-footer-kd">KD 2026 Tools</a></li>
+          <li><a href="pages/e-xpert-sam.html" data-cta-id="cta-footer-sam">e-Xpert SAM</a></li>
+          <li><a href="pages/digitale-boeken.html" data-cta-id="cta-footer-boeken">Digitale Boeken</a></li>
+          <li><a href="pages/e-learning-modules.html" data-cta-id="cta-footer-modules">E-learning Modules</a></li>
+          <li><a href="pages/klassikale-opdrachten.html" data-cta-id="cta-footer-opdrachten">Klassikale opdrachten</a></li>
+          <li><a href="pages/bpv-materiaal.html" data-cta-id="cta-footer-bpv">BPV-materiaal</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4 class="footer-title">Direct starten</h4>
+        <ul class="footer-links">
+          <li><a href="pages/kd-checker.html" data-cta-id="cta-footer-checker">Probeer KD-Checker</a></li>
+          <li><a href="pages/e-xpert-sam.html" data-cta-id="cta-footer-sam-try">Vraag SAM om advies</a></li>
+          <li><a href="pages/e-learning-modules.html" data-cta-id="cta-footer-modules-dl">Download module</a></li>
+          <li><a href="pages/demo-aanvraag.html" data-cta-id="cta-footer-demo">Vraag demo aan</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4 class="footer-title">Over ons</h4>
+        <ul class="footer-links">
+          <li><a href="pages/over-expertcollege.html" data-cta-id="cta-footer-about">Over ExpertCollege</a></li>
+          <li><a href="pages/event-15-mei.html" data-cta-id="cta-footer-event">Event 15 mei</a></li>
+          <li><a href="pages/contact.html" data-cta-id="cta-footer-contact">Contact</a></li>
+          <li><a href="pages/privacy.html" data-cta-id="cta-footer-privacy">Privacy</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <p>&copy; 2026 ExpertCollege. Gemaakt met ❤️ voor zorgonderwijs.</p>
+    </div>
+  </footer>
+</body>
+</html>

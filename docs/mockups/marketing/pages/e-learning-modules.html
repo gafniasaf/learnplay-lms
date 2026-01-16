@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>E-learning Modules - ExpertCollege | 15+ kant-en-klare modules</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --ec-orange: #f97316; --ec-orange-dark: #ea580c;
+      --ec-cyan: #0891b2; --ec-purple: #7c3aed; --ec-green: #22c55e;
+      --bg-primary: #ffffff; --bg-secondary: #f8fafc; --bg-tertiary: #f1f5f9;
+      --text-primary: #0f172a; --text-secondary: #475569; --text-muted: #94a3b8;
+      --border: #e2e8f0; --shadow-md: 0 4px 6px -1px rgba(15, 23, 42, 0.08);
+      --shadow-lg: 0 10px 15px -3px rgba(15, 23, 42, 0.1); --container-max: 1200px;
+    }
+    body { font-family: 'Space Grotesk', sans-serif; background: var(--bg-primary); color: var(--text-primary); line-height: 1.6; }
+    .container { max-width: var(--container-max); margin: 0 auto; padding: 0 1.5rem; }
+    .header { background: var(--bg-primary); border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 100; }
+    .header-inner { display: flex; justify-content: space-between; align-items: center; padding: 1rem 1.5rem; max-width: var(--container-max); margin: 0 auto; }
+    .logo { font-size: 1.5rem; font-weight: 700; color: var(--ec-orange); text-decoration: none; display: flex; align-items: center; gap: 0.5rem; }
+    .logo-icon { width: 32px; height: 32px; background: linear-gradient(135deg, var(--ec-orange), var(--ec-orange-dark)); border-radius: 8px; display: flex; align-items: center; justify-content: center; color: white; }
+    .nav { display: flex; align-items: center; gap: 2rem; }
+    .nav-links { display: flex; gap: 1.5rem; list-style: none; }
+    .nav-link { color: var(--text-secondary); text-decoration: none; font-weight: 500; }
+    .nav-link:hover { color: var(--ec-orange); }
+    .btn { display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.75rem 1.5rem; border-radius: 8px; font-weight: 600; text-decoration: none; transition: all 0.2s; border: none; cursor: pointer; }
+    .btn-primary { background: linear-gradient(135deg, var(--ec-orange), var(--ec-orange-dark)); color: white; }
+    .btn-outline { background: transparent; color: var(--ec-orange); border: 2px solid var(--ec-orange); }
+    .btn-outline:hover { background: var(--ec-orange); color: white; }
+    .btn-lg { padding: 1rem 2rem; font-size: 1.1rem; }
+
+    .hero { background: linear-gradient(135deg, #f97316 0%, #ea580c 100%); color: white; padding: 5rem 1.5rem; text-align: center; }
+    .hero h1 { font-size: 3rem; font-weight: 700; margin-bottom: 1rem; }
+    .hero p { font-size: 1.2rem; max-width: 700px; margin: 0 auto 2rem; opacity: 0.95; }
+    .hero-badge { display: inline-block; background: rgba(255,255,255,0.2); padding: 0.5rem 1rem; border-radius: 50px; font-size: 0.9rem; margin-bottom: 1.5rem; }
+
+    .section { padding: 5rem 1.5rem; }
+    .section-alt { background: var(--bg-secondary); }
+    .section-header { text-align: center; margin-bottom: 3rem; }
+    .section-title { font-size: 2.25rem; font-weight: 700; margin-bottom: 1rem; }
+    .section-desc { font-size: 1.1rem; color: var(--text-secondary); max-width: 700px; margin: 0 auto; }
+
+    .modules-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem; }
+    .module-card { background: white; border-radius: 12px; padding: 1.5rem; box-shadow: var(--shadow-md); transition: transform 0.2s; }
+    .module-card:hover { transform: translateY(-2px); }
+    .module-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1rem; }
+    .module-icon { font-size: 2rem; }
+    .module-duration { background: var(--bg-tertiary); padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.8rem; color: var(--text-secondary); }
+    .module-card h3 { font-size: 1.1rem; margin-bottom: 0.5rem; }
+    .module-card p { font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 1rem; }
+    .module-tags { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+    .module-tag { padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.7rem; font-weight: 600; }
+    .module-tag.kd { background: #ecfeff; color: #0891b2; }
+    .module-tag.n3 { background: #dbeafe; color: #1d4ed8; }
+    .module-tag.n4 { background: #f3e8ff; color: #7c3aed; }
+    .module-tag.actie { background: #fef3c7; color: #d97706; }
+    .module-tag.ebp { background: #dcfce7; color: #16a34a; }
+
+    .features-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 2rem; margin-bottom: 3rem; }
+    .feature-stat { text-align: center; }
+    .feature-stat-value { font-size: 2.5rem; font-weight: 700; color: var(--ec-orange); }
+    .feature-stat-label { color: var(--text-secondary); }
+
+    .structure-demo { background: white; border-radius: 16px; padding: 2rem; box-shadow: var(--shadow-lg); max-width: 700px; margin: 0 auto; }
+    .structure-title { font-size: 1.25rem; font-weight: 600; margin-bottom: 1.5rem; text-align: center; }
+    .structure-steps { display: flex; flex-direction: column; gap: 1rem; }
+    .structure-step { display: flex; gap: 1rem; align-items: center; padding: 1rem; background: var(--bg-tertiary); border-radius: 8px; }
+    .structure-step-num { width: 36px; height: 36px; background: var(--ec-orange); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; flex-shrink: 0; }
+    .structure-step h4 { margin-bottom: 0.25rem; }
+    .structure-step p { font-size: 0.85rem; color: var(--text-secondary); }
+
+    .cta-section { background: linear-gradient(135deg, #0f172a, #1e293b); color: white; padding: 4rem 1.5rem; text-align: center; }
+    .cta-section h2 { font-size: 2rem; margin-bottom: 1rem; }
+    .cta-section p { margin-bottom: 2rem; opacity: 0.9; }
+    .cta-buttons { display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; }
+
+    .footer { background: var(--bg-tertiary); padding: 3rem 1.5rem; }
+    .footer-inner { max-width: var(--container-max); margin: 0 auto; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 2rem; }
+    .footer-col h4 { margin-bottom: 1rem; }
+    .footer-col ul { list-style: none; }
+    .footer-col a { color: var(--text-secondary); text-decoration: none; display: block; padding: 0.25rem 0; }
+    .footer-col a:hover { color: var(--ec-orange); }
+    .footer-bottom { text-align: center; padding-top: 2rem; margin-top: 2rem; border-top: 1px solid var(--border); color: var(--text-muted); }
+
+    @media (max-width: 768px) {
+      .hero h1 { font-size: 2rem; }
+      .modules-grid { grid-template-columns: 1fr; }
+      .features-row { grid-template-columns: repeat(2, 1fr); }
+      .nav-links { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <header class="header">
+    <div class="header-inner">
+      <a href="../expertcollege-mbo-portal.html" class="logo" data-cta-id="cta-logo-home">
+        <span class="logo-icon">E</span>
+        ExpertCollege
+      </a>
+      <nav class="nav">
+        <ul class="nav-links">
+          <li><a href="kd-tools.html" class="nav-link">KD 2026 Tools</a></li>
+          <li><a href="e-xpert-sam.html" class="nav-link">e-Xpert SAM</a></li>
+          <li><a href="digitale-boeken.html" class="nav-link">Producten</a></li>
+          <li><a href="event-15-mei.html" class="nav-link">Event 15 mei</a></li>
+        </ul>
+        <a href="demo-aanvraag.html" class="btn btn-primary" data-cta-id="cta-nav-demo">Vraag demo aan</a>
+      </nav>
+    </div>
+  </header>
+
+  <section class="hero">
+    <div class="container">
+      <span class="hero-badge">E-learning Modules</span>
+      <h1>15+ kant-en-klare modules</h1>
+      <p>Van klinisch redeneren tot medicatieveiligheid. Elke module met theorie, checks en reflectie. VZ-IG3 en VP4 varianten beschikbaar.</p>
+      <div class="cta-buttons">
+        <a href="demo-aanvraag.html" class="btn btn-primary btn-lg" data-cta-id="cta-hero-demo">Bekijk modules</a>
+        <a href="e-xpert-sam.html" class="btn btn-outline btn-lg" style="border-color: white; color: white;" data-cta-id="cta-hero-sam">Laat SAM zoeken</a>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="container">
+      <div class="features-row">
+        <div class="feature-stat">
+          <div class="feature-stat-value">15+</div>
+          <div class="feature-stat-label">Modules</div>
+        </div>
+        <div class="feature-stat">
+          <div class="feature-stat-value">30-60</div>
+          <div class="feature-stat-label">Minuten per module</div>
+        </div>
+        <div class="feature-stat">
+          <div class="feature-stat-value">N3+N4</div>
+          <div class="feature-stat-label">Beide niveaus</div>
+        </div>
+        <div class="feature-stat">
+          <div class="feature-stat-value">KD 2026</div>
+          <div class="feature-stat-label">Compliant</div>
+        </div>
+      </div>
+
+      <div class="section-header">
+        <h2 class="section-title">Module-overzicht</h2>
+        <p class="section-desc">Klik op een module voor meer informatie of vraag een demo aan om ze uit te proberen.</p>
+      </div>
+      <div class="modules-grid">
+        <div class="module-card">
+          <div class="module-header">
+            <span class="module-icon">🔍</span>
+            <span class="module-duration">45-60 min</span>
+          </div>
+          <h3>Systematisch observeren</h3>
+          <p>Leer signalen herkennen en gestructureerd waarnemen. Van NEWS-score tot ADL-observatie.</p>
+          <div class="module-tags">
+            <span class="module-tag kd">B1-K3</span>
+            <span class="module-tag n3">N3</span>
+            <span class="module-tag n4">N4</span>
+          </div>
+        </div>
+        <div class="module-card">
+          <div class="module-header">
+            <span class="module-icon">📋</span>
+            <span class="module-duration">30-45 min</span>
+          </div>
+          <h3>SBAR-communicatie</h3>
+          <p>Effectieve overdracht met de SBAR-methode. Inclusief oefencasussen en closed-loop communicatie.</p>
+          <div class="module-tags">
+            <span class="module-tag kd">B1-K3</span>
+            <span class="module-tag n3">N3</span>
+            <span class="module-tag n4">N4</span>
+          </div>
+        </div>
+        <div class="module-card">
+          <div class="module-header">
+            <span class="module-icon">💊</span>
+            <span class="module-duration">45-60 min</span>
+          </div>
+          <h3>Medicatieveiligheid</h3>
+          <p>De 5 J's in de praktijk. Dubbelcheck, risicosignalering en wat te doen bij fouten.</p>
+          <div class="module-tags">
+            <span class="module-tag kd">B1-K3</span>
+            <span class="module-tag n3">N3</span>
+            <span class="module-tag n4">N4</span>
+          </div>
+        </div>
+        <div class="module-card">
+          <div class="module-header">
+            <span class="module-icon">🧠</span>
+            <span class="module-duration">45-60 min</span>
+          </div>
+          <h3>Klinisch redeneren (ACTIE)</h3>
+          <p>Het ACTIE-model: van aanleiding tot evaluatie. Systematisch denken in de zorg.</p>
+          <div class="module-tags">
+            <span class="module-tag kd">B1-K3</span>
+            <span class="module-tag actie">ACTIE</span>
+            <span class="module-tag n4">N4</span>
+          </div>
+        </div>
+        <div class="module-card">
+          <div class="module-header">
+            <span class="module-icon">📊</span>
+            <span class="module-duration">45 min</span>
+          </div>
+          <h3>Evidence-Based Practice</h3>
+          <p>Van praktijkvraag naar PICO. Slim zoeken, kritisch beoordelen en toepassen.</p>
+          <div class="module-tags">
+            <span class="module-tag kd">B1-K3</span>
+            <span class="module-tag ebp">EBP</span>
+            <span class="module-tag n4">N4</span>
+          </div>
+        </div>
+        <div class="module-card">
+          <div class="module-header">
+            <span class="module-icon">🤝</span>
+            <span class="module-duration">30-45 min</span>
+          </div>
+          <h3>Participatie en eigen regie</h3>
+          <p>Cliënt en mantelzorger betrekken bij zorgbeslissingen. Gedeelde besluitvorming.</p>
+          <div class="module-tags">
+            <span class="module-tag kd">B1-K2</span>
+            <span class="module-tag n3">N3</span>
+            <span class="module-tag n4">N4</span>
+          </div>
+        </div>
+        <div class="module-card">
+          <div class="module-header">
+            <span class="module-icon">📝</span>
+            <span class="module-duration">45 min</span>
+          </div>
+          <h3>Dossiervoering</h3>
+          <p>Registreren volgens ACTIE-stappen. Juridisch en AVG-proof werken.</p>
+          <div class="module-tags">
+            <span class="module-tag kd">B1-K3</span>
+            <span class="module-tag n3">N3</span>
+            <span class="module-tag n4">N4</span>
+          </div>
+        </div>
+        <div class="module-card">
+          <div class="module-header">
+            <span class="module-icon">👥</span>
+            <span class="module-duration">45-60 min</span>
+          </div>
+          <h3>Coördineren en prioriteren</h3>
+          <p>Dagstart, prioriteitenmatrix en taakverdeling. Voor VP4 en als exposure voor VZ-IG3.</p>
+          <div class="module-tags">
+            <span class="module-tag kd">P2-K1</span>
+            <span class="module-tag n4">N4</span>
+          </div>
+        </div>
+        <div class="module-card">
+          <div class="module-header">
+            <span class="module-icon">🔒</span>
+            <span class="module-duration">30-45 min</span>
+          </div>
+          <h3>Veiligheidscommunicatie</h3>
+          <p>Speak-up bij onveilige situaties. Escalatieroutes en closed-loop feedback.</p>
+          <div class="module-tags">
+            <span class="module-tag kd">B1-K3</span>
+            <span class="module-tag n3">N3</span>
+            <span class="module-tag n4">N4</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section section-alt">
+    <div class="container">
+      <div class="section-header">
+        <h2 class="section-title">Opbouw van elke module</h2>
+        <p class="section-desc">Elke module volgt dezelfde bewezen structuur voor effectief leren.</p>
+      </div>
+      <div class="structure-demo">
+        <div class="structure-title">Voorbeeld: SBAR-module (30-45 min)</div>
+        <div class="structure-steps">
+          <div class="structure-step">
+            <div class="structure-step-num">1</div>
+            <div>
+              <h4>Introductie</h4>
+              <p>Leerdoel en relevantie voor de praktijk. Waarom is dit belangrijk?</p>
+            </div>
+          </div>
+          <div class="structure-step">
+            <div class="structure-step-num">2</div>
+            <div>
+              <h4>Theorie</h4>
+              <p>Uitleg van het SBAR-model in B1-taal. Concrete voorbeelden uit de zorg.</p>
+            </div>
+          </div>
+          <div class="structure-step">
+            <div class="structure-step-num">3</div>
+            <div>
+              <h4>Oefening</h4>
+              <p>Interactieve casus: vul zelf een SBAR-overdracht in. Direct feedback.</p>
+            </div>
+          </div>
+          <div class="structure-step">
+            <div class="structure-step-num">4</div>
+            <div>
+              <h4>Check</h4>
+              <p>Toetsvragen om te controleren of je het snapt. Herkansbaar.</p>
+            </div>
+          </div>
+          <div class="structure-step">
+            <div class="structure-step-num">5</div>
+            <div>
+              <h4>Reflectie</h4>
+              <p>Wat neem je mee naar de praktijk? Link naar BPV-opdracht.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="cta-section">
+    <div class="container">
+      <h2>Probeer de modules uit</h2>
+      <p>Vraag een demo aan en bekijk de modules in actie.</p>
+      <div class="cta-buttons">
+        <a href="demo-aanvraag.html" class="btn btn-primary btn-lg" data-cta-id="cta-cta-demo">Vraag demo aan</a>
+        <a href="klassikale-opdrachten.html" class="btn btn-outline btn-lg" style="border-color: white; color: white;" data-cta-id="cta-cta-opdrachten">Bekijk klassikale opdrachten</a>
+      </div>
+    </div>
+  </section>
+
+  <footer class="footer">
+    <div class="footer-inner">
+      <div class="footer-col">
+        <h4>Producten</h4>
+        <ul>
+          <li><a href="kd-tools.html" data-cta-id="cta-footer-kd">KD 2026 Tools</a></li>
+          <li><a href="e-xpert-sam.html" data-cta-id="cta-footer-sam">e-Xpert SAM</a></li>
+          <li><a href="digitale-boeken.html" data-cta-id="cta-footer-boeken">Digitale Boeken</a></li>
+          <li><a href="e-learning-modules.html" data-cta-id="cta-footer-modules">E-learning Modules</a></li>
+          <li><a href="klassikale-opdrachten.html" data-cta-id="cta-footer-opdrachten">Klassikale opdrachten</a></li>
+          <li><a href="bpv-materiaal.html" data-cta-id="cta-footer-bpv">BPV-materiaal</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>Aan de slag</h4>
+        <ul>
+          <li><a href="kd-checker.html" data-cta-id="cta-footer-checker">Probeer KD-Checker</a></li>
+          <li><a href="e-xpert-sam.html" data-cta-id="cta-footer-sam-try">Vraag SAM om advies</a></li>
+          <li><a href="demo-aanvraag.html" data-cta-id="cta-footer-demo">Vraag demo aan</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>ExpertCollege</h4>
+        <ul>
+          <li><a href="over-expertcollege.html" data-cta-id="cta-footer-about">Over ons</a></li>
+          <li><a href="event-15-mei.html" data-cta-id="cta-footer-event">Event 15 mei</a></li>
+          <li><a href="contact.html" data-cta-id="cta-footer-contact">Contact</a></li>
+          <li><a href="privacy.html" data-cta-id="cta-footer-privacy">Privacy</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <p>&copy; 2026 ExpertCollege. Gemaakt met zorg voor zorgonderwijs.</p>
+    </div>
+  </footer>
+</body>
+</html>

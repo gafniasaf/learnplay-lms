@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Privacybeleid - ExpertCollege</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --ec-orange: #f97316; --ec-orange-dark: #ea580c;
+      --bg-primary: #ffffff; --bg-secondary: #f8fafc; --bg-tertiary: #f1f5f9;
+      --text-primary: #0f172a; --text-secondary: #475569; --text-muted: #94a3b8;
+      --border: #e2e8f0; --container-max: 1200px;
+    }
+    body { font-family: 'Space Grotesk', sans-serif; background: var(--bg-primary); color: var(--text-primary); line-height: 1.6; }
+    .container { max-width: var(--container-max); margin: 0 auto; padding: 0 1.5rem; }
+    .header { background: var(--bg-primary); border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 100; }
+    .header-inner { display: flex; justify-content: space-between; align-items: center; padding: 1rem 1.5rem; max-width: var(--container-max); margin: 0 auto; }
+    .logo { font-size: 1.5rem; font-weight: 700; color: var(--ec-orange); text-decoration: none; display: flex; align-items: center; gap: 0.5rem; }
+    .logo-icon { width: 32px; height: 32px; background: linear-gradient(135deg, var(--ec-orange), var(--ec-orange-dark)); border-radius: 8px; display: flex; align-items: center; justify-content: center; color: white; }
+    .nav { display: flex; align-items: center; gap: 2rem; }
+    .nav-links { display: flex; gap: 1.5rem; list-style: none; }
+    .nav-link { color: var(--text-secondary); text-decoration: none; font-weight: 500; }
+    .nav-link:hover { color: var(--ec-orange); }
+    .btn { display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.75rem 1.5rem; border-radius: 8px; font-weight: 600; text-decoration: none; transition: all 0.2s; border: none; cursor: pointer; }
+    .btn-primary { background: linear-gradient(135deg, var(--ec-orange), var(--ec-orange-dark)); color: white; }
+
+    .page-header { background: var(--bg-secondary); padding: 4rem 1.5rem; text-align: center; }
+    .page-header h1 { font-size: 2.5rem; margin-bottom: 0.5rem; }
+    .page-header p { color: var(--text-muted); }
+
+    .content { max-width: 800px; margin: 0 auto; padding: 4rem 1.5rem; }
+    .content h2 { font-size: 1.5rem; margin-top: 2.5rem; margin-bottom: 1rem; color: var(--ec-orange); }
+    .content h2:first-of-type { margin-top: 0; }
+    .content p { margin-bottom: 1rem; color: var(--text-secondary); }
+    .content ul { margin-bottom: 1rem; margin-left: 1.5rem; color: var(--text-secondary); }
+    .content li { margin-bottom: 0.5rem; }
+    .content strong { color: var(--text-primary); }
+    .content a { color: var(--ec-orange); }
+
+    .footer { background: var(--bg-tertiary); padding: 3rem 1.5rem; margin-top: 4rem; }
+    .footer-inner { max-width: var(--container-max); margin: 0 auto; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 2rem; }
+    .footer-col h4 { margin-bottom: 1rem; }
+    .footer-col ul { list-style: none; }
+    .footer-col a { color: var(--text-secondary); text-decoration: none; display: block; padding: 0.25rem 0; }
+    .footer-col a:hover { color: var(--ec-orange); }
+    .footer-bottom { text-align: center; padding-top: 2rem; margin-top: 2rem; border-top: 1px solid var(--border); color: var(--text-muted); }
+
+    @media (max-width: 768px) {
+      .page-header h1 { font-size: 2rem; }
+      .nav-links { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <header class="header">
+    <div class="header-inner">
+      <a href="../expertcollege-mbo-portal.html" class="logo" data-cta-id="cta-logo-home">
+        <span class="logo-icon">E</span>
+        ExpertCollege
+      </a>
+      <nav class="nav">
+        <ul class="nav-links">
+          <li><a href="kd-tools.html" class="nav-link">KD 2026 Tools</a></li>
+          <li><a href="e-xpert-sam.html" class="nav-link">e-Xpert SAM</a></li>
+          <li><a href="digitale-boeken.html" class="nav-link">Producten</a></li>
+          <li><a href="event-15-mei.html" class="nav-link">Event 15 mei</a></li>
+        </ul>
+        <a href="demo-aanvraag.html" class="btn btn-primary" data-cta-id="cta-nav-demo">Vraag demo aan</a>
+      </nav>
+    </div>
+  </header>
+
+  <section class="page-header">
+    <h1>Privacybeleid</h1>
+    <p>Laatst bijgewerkt: januari 2026</p>
+  </section>
+
+  <section class="content">
+    <h2>1. Inleiding</h2>
+    <p>ExpertCollege hecht veel waarde aan de bescherming van uw persoonsgegevens. In dit privacybeleid leggen we uit welke gegevens we verzamelen, waarom we dat doen en hoe we ermee omgaan.</p>
+    <p>Dit beleid is van toepassing op alle diensten van ExpertCollege, waaronder onze website, KD 2026 Tools, e-Xpert SAM en alle lesmateriaal-platformen.</p>
+
+    <h2>2. Welke gegevens verzamelen we?</h2>
+    <p>We verzamelen de volgende categorieën gegevens:</p>
+    <ul>
+      <li><strong>Contactgegevens:</strong> naam, e-mailadres, telefoonnummer, school/instelling</li>
+      <li><strong>Accountgegevens:</strong> gebruikersnaam, wachtwoord (versleuteld), rol (docent, teamleider, etc.)</li>
+      <li><strong>Gebruiksgegevens:</strong> welke materialen je bekijkt, downloads, zoekopdrachten</li>
+      <li><strong>Technische gegevens:</strong> IP-adres, browsertype, apparaatgegevens (geanonimiseerd)</li>
+    </ul>
+
+    <h2>3. Waarom verzamelen we deze gegevens?</h2>
+    <p>We gebruiken uw gegevens voor de volgende doeleinden:</p>
+    <ul>
+      <li><strong>Dienstverlening:</strong> om u toegang te geven tot onze tools en materialen</li>
+      <li><strong>Personalisatie:</strong> om e-Xpert SAM relevante suggesties te laten doen</li>
+      <li><strong>Communicatie:</strong> om u te informeren over updates, events en nieuwe materialen</li>
+      <li><strong>Verbetering:</strong> om onze diensten te verbeteren op basis van gebruikspatronen</li>
+      <li><strong>Wettelijke verplichtingen:</strong> om te voldoen aan wettelijke eisen</li>
+    </ul>
+
+    <h2>4. Rechtsgronden</h2>
+    <p>We verwerken uw gegevens op basis van:</p>
+    <ul>
+      <li><strong>Uitvoering overeenkomst:</strong> voor het leveren van onze diensten</li>
+      <li><strong>Gerechtvaardigd belang:</strong> voor het verbeteren van onze diensten</li>
+      <li><strong>Toestemming:</strong> voor het versturen van nieuwsbrieven (u kunt zich altijd afmelden)</li>
+    </ul>
+
+    <h2>5. Delen met derden</h2>
+    <p>We delen uw gegevens <strong>niet</strong> met derden voor commerciele doeleinden. We werken met de volgende partijen:</p>
+    <ul>
+      <li><strong>Hostingproviders:</strong> voor het hosten van onze diensten (binnen de EU)</li>
+      <li><strong>E-mailprovider:</strong> voor het versturen van berichten</li>
+      <li><strong>Analysetools:</strong> geanonimiseerd, voor inzicht in gebruik</li>
+    </ul>
+    <p>Met al deze partijen hebben we verwerkersovereenkomsten afgesloten.</p>
+
+    <h2>6. Bewaartermijnen</h2>
+    <p>We bewaren uw gegevens niet langer dan noodzakelijk:</p>
+    <ul>
+      <li><strong>Accountgegevens:</strong> tot 2 jaar na laatste activiteit</li>
+      <li><strong>Contactformulieren:</strong> tot 1 jaar na afhandeling</li>
+      <li><strong>Gebruiksgegevens:</strong> geanonimiseerd na 1 jaar</li>
+    </ul>
+
+    <h2>7. Uw rechten</h2>
+    <p>U heeft de volgende rechten met betrekking tot uw persoonsgegevens:</p>
+    <ul>
+      <li><strong>Inzage:</strong> u kunt opvragen welke gegevens we van u hebben</li>
+      <li><strong>Correctie:</strong> u kunt onjuiste gegevens laten aanpassen</li>
+      <li><strong>Verwijdering:</strong> u kunt ons verzoeken uw gegevens te verwijderen</li>
+      <li><strong>Bezwaar:</strong> u kunt bezwaar maken tegen bepaalde verwerkingen</li>
+      <li><strong>Overdraagbaarheid:</strong> u kunt uw gegevens in een gangbaar formaat ontvangen</li>
+    </ul>
+    <p>Neem contact met ons op via <a href="mailto:privacy@expertcollege.nl">privacy@expertcollege.nl</a> om uw rechten uit te oefenen.</p>
+
+    <h2>8. Beveiliging</h2>
+    <p>We nemen passende technische en organisatorische maatregelen om uw gegevens te beschermen:</p>
+    <ul>
+      <li>Versleutelde verbindingen (HTTPS)</li>
+      <li>Versleutelde opslag van wachtwoorden</li>
+      <li>Toegangscontrole en logging</li>
+      <li>Regelmatige beveiligingsaudits</li>
+    </ul>
+
+    <h2>9. Cookies</h2>
+    <p>We gebruiken cookies voor:</p>
+    <ul>
+      <li><strong>Functionele cookies:</strong> noodzakelijk voor de werking van de website</li>
+      <li><strong>Analytische cookies:</strong> geanonimiseerd, voor inzicht in gebruik</li>
+    </ul>
+    <p>We gebruiken geen tracking cookies voor advertenties.</p>
+
+    <h2>10. e-Xpert SAM en AI</h2>
+    <p>e-Xpert SAM is onze materiaal-adviseur. Belangrijk om te weten:</p>
+    <ul>
+      <li>SAM <strong>vindt en adviseert</strong> uit onze bestaande materialenbank</li>
+      <li>SAM <strong>genereert geen</strong> nieuwe content of lesmateriaal</li>
+      <li>Uw zoekopdrachten worden <strong>niet</strong> gebruikt om AI-modellen te trainen</li>
+      <li>Gespreksgeschiedenis wordt tijdelijk opgeslagen voor uw gemak en na 30 dagen verwijderd</li>
+    </ul>
+
+    <h2>11. Wijzigingen</h2>
+    <p>We kunnen dit privacybeleid van tijd tot tijd aanpassen. Bij belangrijke wijzigingen informeren we u via e-mail of een melding op onze website.</p>
+
+    <h2>12. Contact</h2>
+    <p>Heeft u vragen over dit privacybeleid of onze gegevensverwerking?</p>
+    <p>
+      <strong>ExpertCollege</strong><br>
+      Maliebaan 50, 3581 CS Utrecht<br>
+      E-mail: <a href="mailto:privacy@expertcollege.nl">privacy@expertcollege.nl</a><br>
+      Telefoon: 030 - 123 45 67
+    </p>
+    <p>U kunt ook een klacht indienen bij de Autoriteit Persoonsgegevens als u vindt dat wij niet correct met uw gegevens omgaan.</p>
+  </section>
+
+  <footer class="footer">
+    <div class="footer-inner">
+      <div class="footer-col">
+        <h4>Producten</h4>
+        <ul>
+          <li><a href="kd-tools.html" data-cta-id="cta-footer-kd">KD 2026 Tools</a></li>
+          <li><a href="e-xpert-sam.html" data-cta-id="cta-footer-sam">e-Xpert SAM</a></li>
+          <li><a href="digitale-boeken.html" data-cta-id="cta-footer-boeken">Digitale Boeken</a></li>
+          <li><a href="e-learning-modules.html" data-cta-id="cta-footer-modules">E-learning Modules</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>Aan de slag</h4>
+        <ul>
+          <li><a href="kd-checker.html" data-cta-id="cta-footer-checker">Probeer KD-Checker</a></li>
+          <li><a href="e-xpert-sam.html" data-cta-id="cta-footer-sam-try">Vraag SAM om advies</a></li>
+          <li><a href="demo-aanvraag.html" data-cta-id="cta-footer-demo">Vraag demo aan</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>ExpertCollege</h4>
+        <ul>
+          <li><a href="over-expertcollege.html" data-cta-id="cta-footer-about">Over ons</a></li>
+          <li><a href="event-15-mei.html" data-cta-id="cta-footer-event">Event 15 mei</a></li>
+          <li><a href="contact.html" data-cta-id="cta-footer-contact">Contact</a></li>
+          <li><a href="privacy.html" data-cta-id="cta-footer-privacy">Privacy</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <p>&copy; 2026 ExpertCollege. Gemaakt met zorg voor zorgonderwijs.</p>
+    </div>
+  </footer>
+</body>
+</html>

@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>KD 2026 Tools - ExpertCollege | Check je KD-dekking in minuten</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --ec-orange: #f97316; --ec-orange-light: #fb923c; --ec-orange-dark: #ea580c;
+      --ec-blue: #0ea5e9; --ec-cyan: #0891b2; --ec-purple: #7c3aed; --ec-green: #22c55e;
+      --bg-primary: #ffffff; --bg-secondary: #f8fafc; --bg-tertiary: #f1f5f9;
+      --text-primary: #0f172a; --text-secondary: #475569; --text-muted: #94a3b8;
+      --border: #e2e8f0; --shadow-md: 0 4px 6px -1px rgba(15, 23, 42, 0.08);
+      --shadow-lg: 0 10px 15px -3px rgba(15, 23, 42, 0.1); --container-max: 1200px;
+    }
+    body { font-family: 'Space Grotesk', sans-serif; background: var(--bg-primary); color: var(--text-primary); line-height: 1.6; }
+    .container { max-width: var(--container-max); margin: 0 auto; padding: 0 1.5rem; }
+    .header { background: var(--bg-primary); border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 100; }
+    .header-inner { display: flex; justify-content: space-between; align-items: center; padding: 1rem 1.5rem; max-width: var(--container-max); margin: 0 auto; }
+    .logo { font-size: 1.5rem; font-weight: 700; color: var(--ec-orange); text-decoration: none; display: flex; align-items: center; gap: 0.5rem; }
+    .logo-icon { width: 32px; height: 32px; background: linear-gradient(135deg, var(--ec-orange), var(--ec-orange-dark)); border-radius: 8px; display: flex; align-items: center; justify-content: center; color: white; }
+    .nav { display: flex; align-items: center; gap: 2rem; }
+    .nav-links { display: flex; gap: 1.5rem; list-style: none; }
+    .nav-link { color: var(--text-secondary); text-decoration: none; font-weight: 500; font-size: 0.95rem; }
+    .nav-link:hover, .nav-link.active { color: var(--ec-cyan); }
+    .btn { display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.75rem 1.5rem; border-radius: 8px; font-weight: 600; text-decoration: none; transition: all 0.2s; border: none; cursor: pointer; }
+    .btn-primary { background: linear-gradient(135deg, var(--ec-orange), var(--ec-orange-dark)); color: white; }
+    .btn-kd { background: linear-gradient(135deg, var(--ec-cyan), #0e7490); color: white; }
+    .btn-outline { background: transparent; color: var(--ec-cyan); border: 2px solid var(--ec-cyan); }
+    .btn-outline:hover { background: var(--ec-cyan); color: white; }
+    .btn-lg { padding: 1rem 2rem; font-size: 1.1rem; }
+
+    .hero { background: linear-gradient(135deg, #0e7490 0%, #0891b2 100%); color: white; padding: 5rem 1.5rem; text-align: center; }
+    .hero h1 { font-size: 3rem; font-weight: 700; margin-bottom: 1.5rem; }
+    .hero p { font-size: 1.25rem; max-width: 700px; margin: 0 auto 2rem; opacity: 0.95; }
+    .hero-badge { display: inline-block; background: rgba(255,255,255,0.2); padding: 0.5rem 1rem; border-radius: 50px; font-size: 0.9rem; margin-bottom: 1.5rem; }
+
+    .section { padding: 5rem 1.5rem; }
+    .section-alt { background: var(--bg-secondary); }
+    .section-header { text-align: center; margin-bottom: 3rem; }
+    .section-title { font-size: 2.25rem; font-weight: 700; margin-bottom: 1rem; }
+    .section-desc { font-size: 1.1rem; color: var(--text-secondary); max-width: 700px; margin: 0 auto; }
+
+    .problem-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 2rem; margin-bottom: 3rem; }
+    .problem-card { background: white; border-radius: 12px; padding: 2rem; box-shadow: var(--shadow-md); border-left: 4px solid #dc2626; }
+    .problem-card h3 { color: #dc2626; margin-bottom: 0.5rem; }
+
+    .solution-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 2rem; }
+    .solution-card { background: white; border-radius: 12px; padding: 2rem; box-shadow: var(--shadow-md); border-left: 4px solid var(--ec-cyan); }
+    .solution-card h3 { color: var(--ec-cyan); margin-bottom: 0.5rem; }
+
+    .tools-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 2rem; }
+    .tool-card { background: white; border-radius: 16px; padding: 2rem; box-shadow: var(--shadow-lg); transition: transform 0.2s; }
+    .tool-card:hover { transform: translateY(-4px); }
+    .tool-icon { font-size: 3rem; margin-bottom: 1rem; }
+    .tool-card h3 { font-size: 1.5rem; margin-bottom: 0.75rem; }
+    .tool-card p { color: var(--text-secondary); margin-bottom: 1.5rem; }
+    .tool-features { list-style: none; margin-bottom: 1.5rem; }
+    .tool-features li { padding: 0.5rem 0; padding-left: 1.5rem; position: relative; }
+    .tool-features li::before { content: "✓"; position: absolute; left: 0; color: var(--ec-green); font-weight: bold; }
+
+    .use-cases { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem; }
+    .use-case { background: white; border-radius: 12px; padding: 1.5rem; text-align: center; }
+    .use-case-icon { font-size: 2.5rem; margin-bottom: 1rem; }
+    .use-case h4 { margin-bottom: 0.5rem; }
+    .use-case p { font-size: 0.9rem; color: var(--text-secondary); }
+
+    .cta-section { background: linear-gradient(135deg, #0f172a, #1e293b); color: white; padding: 4rem 1.5rem; text-align: center; }
+    .cta-section h2 { font-size: 2rem; margin-bottom: 1rem; }
+    .cta-section p { margin-bottom: 2rem; opacity: 0.9; }
+    .cta-buttons { display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; }
+
+    .footer { background: var(--bg-tertiary); padding: 3rem 1.5rem; }
+    .footer-inner { max-width: var(--container-max); margin: 0 auto; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 2rem; }
+    .footer-col h4 { margin-bottom: 1rem; color: var(--text-primary); }
+    .footer-col ul { list-style: none; }
+    .footer-col a { color: var(--text-secondary); text-decoration: none; display: block; padding: 0.25rem 0; }
+    .footer-col a:hover { color: var(--ec-orange); }
+    .footer-bottom { text-align: center; padding-top: 2rem; margin-top: 2rem; border-top: 1px solid var(--border); color: var(--text-muted); }
+
+    @media (max-width: 768px) {
+      .hero h1 { font-size: 2rem; }
+      .problem-grid, .solution-grid, .tools-grid, .use-cases { grid-template-columns: 1fr; }
+      .nav-links { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <header class="header">
+    <div class="header-inner">
+      <a href="../expertcollege-mbo-portal.html" class="logo" data-cta-id="cta-logo-home">
+        <span class="logo-icon">E</span>
+        ExpertCollege
+      </a>
+      <nav class="nav">
+        <ul class="nav-links">
+          <li><a href="kd-tools.html" class="nav-link active">KD 2026 Tools</a></li>
+          <li><a href="e-xpert-sam.html" class="nav-link">e-Xpert SAM</a></li>
+          <li><a href="digitale-boeken.html" class="nav-link">Producten</a></li>
+          <li><a href="event-15-mei.html" class="nav-link">Event 15 mei</a></li>
+        </ul>
+        <a href="demo-aanvraag.html" class="btn btn-primary" data-cta-id="cta-nav-demo">Vraag demo aan</a>
+      </nav>
+    </div>
+  </header>
+
+  <section class="hero">
+    <div class="container">
+      <span class="hero-badge">KD 2026 Tools</span>
+      <h1>Weet waar je staat met KD 2026</h1>
+      <p>Basisdeel en profieldeel volledig in beeld. Check je KD-dekking in minuten, niet uren. Voor combiklassen, klassikaal en BPV apart.</p>
+      <div class="cta-buttons">
+        <a href="kd-checker.html" class="btn btn-kd btn-lg" data-cta-id="cta-hero-kd-checker">Probeer de KD-Checker</a>
+        <a href="demo-aanvraag.html" class="btn btn-outline btn-lg" style="border-color: white; color: white;" data-cta-id="cta-hero-demo">Vraag een demo aan</a>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="container">
+      <div class="section-header">
+        <h2 class="section-title">Het probleem dat we oplossen</h2>
+        <p class="section-desc">KD 2026 is nieuw, complex en vraagt om overzicht. Docenten worstelen met dezelfde vragen.</p>
+      </div>
+      <div class="problem-grid">
+        <div class="problem-card">
+          <h3>Uren uitzoekwerk</h3>
+          <p>Excel-sheets vergelijken met het kwalificatiedossier. Welke werkprocessen dek ik al? Wat mis ik nog? Het kost avonden om dit uit te zoeken.</p>
+        </div>
+        <div class="problem-card">
+          <h3>Combiklassen zijn complex</h3>
+          <p>VZ-IG en VP in dezelfde klas? Dan moet je weten welk materiaal voor beide niveaus werkt en waar je moet differentiëren. Dubbel werk.</p>
+        </div>
+        <div class="problem-card">
+          <h3>BPV-koppeling onduidelijk</h3>
+          <p>Welke BPV-opdrachten sluiten aan bij je klassikale les? Werkbegeleiders vragen om duidelijkheid, maar je hebt geen overzicht.</p>
+        </div>
+        <div class="problem-card">
+          <h3>Basisdeel vs profieldeel</h3>
+          <p>B1-K1, B1-K2, B1-K3, P2-K1... Welke kerntaken horen bij welk deel? En hoe ver ben je met elk?</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section section-alt">
+    <div class="container">
+      <div class="section-header">
+        <h2 class="section-title">Onze oplossing: 4 tools die samenwerken</h2>
+        <p class="section-desc">Upload je lesplan en krijg direct inzicht. Geen gedoe, gewoon duidelijkheid.</p>
+      </div>
+      <div class="tools-grid">
+        <div class="tool-card">
+          <div class="tool-icon">🔍</div>
+          <h3>KD-Checker</h3>
+          <p>Upload je lesplan en zie direct welke werkprocessen je al dekt. Basisdeel én profieldeel. Binnen 2 minuten weet je waar je staat.</p>
+          <ul class="tool-features">
+            <li>Automatische herkenning van KD-codes</li>
+            <li>Percentage per kerntaak</li>
+            <li>Export naar PDF voor verantwoording</li>
+          </ul>
+          <a href="kd-checker.html" class="btn btn-kd" data-cta-id="cta-tool-kd-checker">Probeer gratis</a>
+        </div>
+        <div class="tool-card">
+          <div class="tool-icon">📈</div>
+          <h3>Gap-analyse</h3>
+          <p>Zie per kerntaak en werkproces waar aanvulling helpt. Apart voor theorie, praktijkopdrachten en BPV-activiteiten. Inclusief materiaal-suggesties.</p>
+          <ul class="tool-features">
+            <li>Prioriteitslijst: wat eerst aanpakken?</li>
+            <li>Directe link naar passend materiaal</li>
+            <li>Rekening houden met studielast</li>
+          </ul>
+          <a href="gap-analyse.html" class="btn btn-kd" data-cta-id="cta-tool-gap-analyse">Bekijk voorbeeld</a>
+        </div>
+        <div class="tool-card">
+          <div class="tool-icon">👥</div>
+          <h3>Combigroep-filter</h3>
+          <p>VZ-IG en VP in één klas? Filter op niveau 3 én 4 tegelijk. Zie welk materiaal voor beide werkt en waar differentiatie nodig is.</p>
+          <ul class="tool-features">
+            <li>Overlap-indicator per opdracht</li>
+            <li>Differentiatie-suggesties</li>
+            <li>Aparte N3/N4 varianten beschikbaar</li>
+          </ul>
+          <a href="combigroep-filter.html" class="btn btn-kd" data-cta-id="cta-tool-combigroep">Bekijk voorbeeld</a>
+        </div>
+        <div class="tool-card">
+          <div class="tool-icon">📚</div>
+          <h3>Materiaal-koppeling</h3>
+          <p>Elk werkproces gekoppeld aan klassikale opdrachten, e-learning modules én BPV-formulieren. Klik en download.</p>
+          <ul class="tool-features">
+            <li>500+ oefeningen en modules</li>
+            <li>Filter op type: theorie, praktijk, BPV</li>
+            <li>Direct downloaden als Word/PDF</li>
+          </ul>
+          <a href="materiaal-koppeling.html" class="btn btn-kd" data-cta-id="cta-tool-materiaal">Bekijk materiaal</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="container">
+      <div class="section-header">
+        <h2 class="section-title">Voor elke situatie</h2>
+        <p class="section-desc">Of je nu combiklassen geeft, BPV begeleidt of klassikaal lesgeeft - KD Tools passen zich aan.</p>
+      </div>
+      <div class="use-cases">
+        <div class="use-case">
+          <div class="use-case-icon">🏫</div>
+          <h4>Klassikaal lesgeven</h4>
+          <p>Check of je klassikale lessen alle werkprocessen dekken. Vind snel aanvullende opdrachten waar nodig.</p>
+        </div>
+        <div class="use-case">
+          <div class="use-case-icon">👥</div>
+          <h4>Combiklassen</h4>
+          <p>N3 en N4 in één klas? Zie direct welk materiaal voor beide werkt en waar je moet differentiëren.</p>
+        </div>
+        <div class="use-case">
+          <div class="use-case-icon">🏥</div>
+          <h4>BPV-begeleiding</h4>
+          <p>Koppel je klassikale les aan BPV-opdrachten. Werkbegeleiders krijgen duidelijke instructies.</p>
+        </div>
+        <div class="use-case">
+          <div class="use-case-icon">📋</div>
+          <h4>Verantwoording</h4>
+          <p>Exporteer je KD-dekking als PDF voor audits, teamoverleg of de opleidingsmanager.</p>
+        </div>
+        <div class="use-case">
+          <div class="use-case-icon">🔄</div>
+          <h4>Curriculumherziening</h4>
+          <p>Nieuw curriculum opzetten? Zie direct welke werkprocessen nog niet gedekt zijn.</p>
+        </div>
+        <div class="use-case">
+          <div class="use-case-icon">👨‍🏫</div>
+          <h4>Nieuwe docenten</h4>
+          <p>Nieuwe collega's sneller inwerken. Ze zien direct waar ze staan en wat er gedaan moet worden.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="cta-section">
+    <div class="container">
+      <h2>Klaar om je KD-dekking te checken?</h2>
+      <p>Probeer de KD-Checker gratis of vraag een demo aan voor je hele team.</p>
+      <div class="cta-buttons">
+        <a href="kd-checker.html" class="btn btn-kd btn-lg" data-cta-id="cta-footer-kd-checker">Probeer KD-Checker gratis</a>
+        <a href="demo-aanvraag.html" class="btn btn-outline btn-lg" style="border-color: white; color: white;" data-cta-id="cta-footer-demo">Vraag team-demo aan</a>
+      </div>
+    </div>
+  </section>
+
+  <footer class="footer">
+    <div class="footer-inner">
+      <div class="footer-col">
+        <h4>Producten</h4>
+        <ul>
+          <li><a href="kd-tools.html" data-cta-id="cta-footer-kd-tools">KD 2026 Tools</a></li>
+          <li><a href="e-xpert-sam.html" data-cta-id="cta-footer-sam">e-Xpert SAM</a></li>
+          <li><a href="digitale-boeken.html" data-cta-id="cta-footer-boeken">Digitale Boeken</a></li>
+          <li><a href="e-learning-modules.html" data-cta-id="cta-footer-modules">E-learning Modules</a></li>
+          <li><a href="klassikale-opdrachten.html" data-cta-id="cta-footer-opdrachten">Klassikale opdrachten</a></li>
+          <li><a href="bpv-materiaal.html" data-cta-id="cta-footer-bpv">BPV-materiaal</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>Aan de slag</h4>
+        <ul>
+          <li><a href="kd-checker.html" data-cta-id="cta-footer-try-checker">Probeer KD-Checker</a></li>
+          <li><a href="e-xpert-sam.html" data-cta-id="cta-footer-try-sam">Vraag SAM om advies</a></li>
+          <li><a href="demo-aanvraag.html" data-cta-id="cta-footer-demo-2">Vraag demo aan</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>ExpertCollege</h4>
+        <ul>
+          <li><a href="over-expertcollege.html" data-cta-id="cta-footer-about">Over ons</a></li>
+          <li><a href="event-15-mei.html" data-cta-id="cta-footer-event">Event 15 mei</a></li>
+          <li><a href="contact.html" data-cta-id="cta-footer-contact">Contact</a></li>
+          <li><a href="privacy.html" data-cta-id="cta-footer-privacy">Privacy</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <p>&copy; 2026 ExpertCollege. Gemaakt met zorg voor zorgonderwijs.</p>
+    </div>
+  </footer>
+</body>
+</html>

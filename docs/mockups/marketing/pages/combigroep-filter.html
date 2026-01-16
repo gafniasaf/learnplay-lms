@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Combigroep-filter - ExpertCollege | N3 en N4 in één klas</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --ec-orange: #f97316; --ec-orange-dark: #ea580c;
+      --ec-cyan: #0891b2; --ec-purple: #7c3aed; --ec-green: #22c55e;
+      --bg-primary: #ffffff; --bg-secondary: #f8fafc; --bg-tertiary: #f1f5f9;
+      --text-primary: #0f172a; --text-secondary: #475569; --text-muted: #94a3b8;
+      --border: #e2e8f0; --shadow-md: 0 4px 6px -1px rgba(15, 23, 42, 0.08);
+      --shadow-lg: 0 10px 15px -3px rgba(15, 23, 42, 0.1); --container-max: 1200px;
+    }
+    body { font-family: 'Space Grotesk', sans-serif; background: var(--bg-primary); color: var(--text-primary); line-height: 1.6; }
+    .container { max-width: var(--container-max); margin: 0 auto; padding: 0 1.5rem; }
+    .header { background: var(--bg-primary); border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 100; }
+    .header-inner { display: flex; justify-content: space-between; align-items: center; padding: 1rem 1.5rem; max-width: var(--container-max); margin: 0 auto; }
+    .logo { font-size: 1.5rem; font-weight: 700; color: var(--ec-orange); text-decoration: none; display: flex; align-items: center; gap: 0.5rem; }
+    .logo-icon { width: 32px; height: 32px; background: linear-gradient(135deg, var(--ec-orange), var(--ec-orange-dark)); border-radius: 8px; display: flex; align-items: center; justify-content: center; color: white; }
+    .nav { display: flex; align-items: center; gap: 2rem; }
+    .nav-links { display: flex; gap: 1.5rem; list-style: none; }
+    .nav-link { color: var(--text-secondary); text-decoration: none; font-weight: 500; }
+    .nav-link:hover { color: var(--ec-cyan); }
+    .btn { display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.75rem 1.5rem; border-radius: 8px; font-weight: 600; text-decoration: none; transition: all 0.2s; border: none; cursor: pointer; }
+    .btn-primary { background: linear-gradient(135deg, var(--ec-orange), var(--ec-orange-dark)); color: white; }
+    .btn-kd { background: linear-gradient(135deg, var(--ec-cyan), #0e7490); color: white; }
+    .btn-outline { background: transparent; color: var(--ec-cyan); border: 2px solid var(--ec-cyan); }
+    .btn-outline:hover { background: var(--ec-cyan); color: white; }
+    .btn-lg { padding: 1rem 2rem; font-size: 1.1rem; }
+
+    .hero { background: linear-gradient(135deg, #0e7490 0%, #0891b2 100%); color: white; padding: 4rem 1.5rem; text-align: center; }
+    .hero h1 { font-size: 2.75rem; font-weight: 700; margin-bottom: 1rem; }
+    .hero p { font-size: 1.2rem; max-width: 600px; margin: 0 auto 2rem; opacity: 0.95; }
+    .breadcrumb { font-size: 0.9rem; margin-bottom: 1rem; opacity: 0.8; }
+    .breadcrumb a { color: white; text-decoration: none; }
+    .breadcrumb a:hover { text-decoration: underline; }
+
+    .section { padding: 4rem 1.5rem; }
+    .section-alt { background: var(--bg-secondary); }
+    .section-header { text-align: center; margin-bottom: 3rem; }
+    .section-title { font-size: 2rem; font-weight: 700; margin-bottom: 1rem; }
+    .section-desc { font-size: 1.1rem; color: var(--text-secondary); max-width: 600px; margin: 0 auto; }
+
+    .demo-panel { background: white; border-radius: 16px; padding: 2rem; box-shadow: var(--shadow-lg); max-width: 900px; margin: -3rem auto 0; position: relative; z-index: 10; }
+    .demo-title { font-size: 1.25rem; font-weight: 600; margin-bottom: 1.5rem; }
+    
+    .material-grid { display: flex; flex-direction: column; gap: 1rem; }
+    .material-item { display: grid; grid-template-columns: 1fr auto auto auto; gap: 1rem; align-items: center; padding: 1rem; border-radius: 8px; background: var(--bg-tertiary); }
+    .material-info h4 { margin-bottom: 0.25rem; font-size: 1rem; }
+    .material-info p { font-size: 0.85rem; color: var(--text-secondary); }
+    .level-badge { padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.75rem; font-weight: 600; }
+    .level-badge.n3 { background: #dbeafe; color: #1d4ed8; }
+    .level-badge.n4 { background: #f3e8ff; color: #7c3aed; }
+    .level-badge.both { background: #dcfce7; color: #16a34a; }
+    .overlap-indicator { font-size: 0.85rem; color: var(--text-secondary); }
+    .overlap-indicator.high { color: var(--ec-green); }
+    .material-action { color: var(--ec-cyan); font-size: 0.9rem; font-weight: 500; text-decoration: none; }
+    .material-action:hover { text-decoration: underline; }
+
+    .problem-solution { display: grid; grid-template-columns: 1fr 1fr; gap: 3rem; align-items: start; }
+    .problem-box { background: #fef2f2; border: 1px solid #fecaca; border-radius: 12px; padding: 2rem; }
+    .problem-box h3 { color: #dc2626; margin-bottom: 1rem; }
+    .problem-box ul { list-style: none; }
+    .problem-box li { padding: 0.5rem 0; padding-left: 1.5rem; position: relative; }
+    .problem-box li::before { content: "✗"; position: absolute; left: 0; color: #dc2626; }
+    .solution-box { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 12px; padding: 2rem; }
+    .solution-box h3 { color: #16a34a; margin-bottom: 1rem; }
+    .solution-box ul { list-style: none; }
+    .solution-box li { padding: 0.5rem 0; padding-left: 1.5rem; position: relative; }
+    .solution-box li::before { content: "✓"; position: absolute; left: 0; color: #16a34a; font-weight: bold; }
+
+    .features-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 2rem; }
+    .feature-card { background: white; border-radius: 12px; padding: 1.5rem; box-shadow: var(--shadow-md); }
+    .feature-card h3 { margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem; }
+    .feature-card h3 span { font-size: 1.5rem; }
+    .feature-card p { color: var(--text-secondary); font-size: 0.95rem; }
+
+    .cta-section { background: linear-gradient(135deg, #0f172a, #1e293b); color: white; padding: 4rem 1.5rem; text-align: center; }
+    .cta-section h2 { font-size: 2rem; margin-bottom: 1rem; }
+    .cta-section p { margin-bottom: 2rem; opacity: 0.9; }
+    .cta-buttons { display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; }
+
+    .footer { background: var(--bg-tertiary); padding: 3rem 1.5rem; }
+    .footer-inner { max-width: var(--container-max); margin: 0 auto; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 2rem; }
+    .footer-col h4 { margin-bottom: 1rem; }
+    .footer-col ul { list-style: none; }
+    .footer-col a { color: var(--text-secondary); text-decoration: none; display: block; padding: 0.25rem 0; }
+    .footer-col a:hover { color: var(--ec-orange); }
+    .footer-bottom { text-align: center; padding-top: 2rem; margin-top: 2rem; border-top: 1px solid var(--border); color: var(--text-muted); }
+
+    @media (max-width: 768px) {
+      .hero h1 { font-size: 2rem; }
+      .problem-solution, .features-grid { grid-template-columns: 1fr; }
+      .material-item { grid-template-columns: 1fr; gap: 0.5rem; }
+      .nav-links { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <header class="header">
+    <div class="header-inner">
+      <a href="../expertcollege-mbo-portal.html" class="logo" data-cta-id="cta-logo-home">
+        <span class="logo-icon">E</span>
+        ExpertCollege
+      </a>
+      <nav class="nav">
+        <ul class="nav-links">
+          <li><a href="kd-tools.html" class="nav-link">KD 2026 Tools</a></li>
+          <li><a href="e-xpert-sam.html" class="nav-link">e-Xpert SAM</a></li>
+          <li><a href="digitale-boeken.html" class="nav-link">Producten</a></li>
+          <li><a href="event-15-mei.html" class="nav-link">Event 15 mei</a></li>
+        </ul>
+        <a href="demo-aanvraag.html" class="btn btn-primary" data-cta-id="cta-nav-demo">Vraag demo aan</a>
+      </nav>
+    </div>
+  </header>
+
+  <section class="hero">
+    <div class="container">
+      <div class="breadcrumb">
+        <a href="kd-tools.html" data-cta-id="cta-breadcrumb-kd">KD 2026 Tools</a> / Combigroep-filter
+      </div>
+      <h1>Combigroep-filter</h1>
+      <p>VZ-IG en VP in één klas? Zie direct welk materiaal voor beide niveaus werkt en waar je moet differentiëren.</p>
+    </div>
+  </section>
+
+  <div class="container">
+    <div class="demo-panel">
+      <div class="demo-title">Voorbeeld: Materiaal voor SBAR-overdracht (B1-K3-W2)</div>
+      <div class="material-grid">
+        <div class="material-item">
+          <div class="material-info">
+            <h4>Klasopdracht SBAR-basis</h4>
+            <p>30 minuten | Casus + beoordelingsmodel</p>
+          </div>
+          <span class="level-badge both">N3 + N4</span>
+          <span class="overlap-indicator high">100% overlap</span>
+          <a href="demo-aanvraag.html" class="material-action" data-cta-id="cta-demo-download-1">Download →</a>
+        </div>
+        <div class="material-item">
+          <div class="material-info">
+            <h4>E-learning SBAR-verdieping</h4>
+            <p>45 minuten | Complexe casussen</p>
+          </div>
+          <span class="level-badge n4">Alleen N4</span>
+          <span class="overlap-indicator">VP-specifiek</span>
+          <a href="demo-aanvraag.html" class="material-action" data-cta-id="cta-demo-download-2">Download →</a>
+        </div>
+        <div class="material-item">
+          <div class="material-info">
+            <h4>BPV-formulier SBAR-overdracht</h4>
+            <p>Praktijkopdracht | 3 observaties</p>
+          </div>
+          <span class="level-badge both">N3 + N4</span>
+          <span class="overlap-indicator high">100% overlap</span>
+          <a href="demo-aanvraag.html" class="material-action" data-cta-id="cta-demo-download-3">Download →</a>
+        </div>
+        <div class="material-item">
+          <div class="material-info">
+            <h4>Meekijkopdracht coördinatie</h4>
+            <p>30 minuten | Observatie-opdracht</p>
+          </div>
+          <span class="level-badge n3">Alleen N3</span>
+          <span class="overlap-indicator">VZ-IG exposure</span>
+          <a href="demo-aanvraag.html" class="material-action" data-cta-id="cta-demo-download-4">Download →</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <section class="section">
+    <div class="container">
+      <div class="section-header">
+        <h2 class="section-title">Het probleem met combigroepen</h2>
+      </div>
+      <div class="problem-solution">
+        <div class="problem-box">
+          <h3>Zonder Combigroep-filter</h3>
+          <ul>
+            <li>Uren zoeken naar materiaal dat voor beide niveaus werkt</li>
+            <li>Per ongeluk N4-stof geven aan N3-studenten</li>
+            <li>Dubbel voorbereiden: apart voor VZ-IG en VP</li>
+            <li>Geen overzicht waar differentiatie echt nodig is</li>
+            <li>Werkbegeleiders krijgen verkeerd niveau-materiaal</li>
+          </ul>
+        </div>
+        <div class="solution-box">
+          <h3>Met Combigroep-filter</h3>
+          <ul>
+            <li>Direct zien welk materiaal voor beide werkt</li>
+            <li>Duidelijke niveau-indicatie per item</li>
+            <li>Overlap-percentage toont combineer-potentieel</li>
+            <li>Aparte N3/N4 varianten waar nodig</li>
+            <li>BPV-materiaal automatisch op juist niveau</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section section-alt">
+    <div class="container">
+      <div class="section-header">
+        <h2 class="section-title">Hoe werkt het?</h2>
+      </div>
+      <div class="features-grid">
+        <div class="feature-card">
+          <h3><span>🎯</span> Overlap-indicator</h3>
+          <p>Per materiaal zie je hoeveel procent geschikt is voor beide niveaus. 100% overlap = direct inzetbaar voor de hele klas.</p>
+        </div>
+        <div class="feature-card">
+          <h3><span>🏷️</span> Niveau-badges</h3>
+          <p>Duidelijke kleuren: groen = beide, blauw = alleen N3, paars = alleen N4. Geen verwarring meer.</p>
+        </div>
+        <div class="feature-card">
+          <h3><span>📊</span> Differentiatie-suggesties</h3>
+          <p>Bij materiaal met lage overlap krijg je automatisch de N3 én N4 variant aangeboden. Download beide met één klik.</p>
+        </div>
+        <div class="feature-card">
+          <h3><span>🏥</span> BPV-koppeling</h3>
+          <p>BPV-materiaal wordt automatisch op het juiste niveau getoond. Werkbegeleiders krijgen de juiste instructies.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="cta-section">
+    <div class="container">
+      <h2>Combigroep? Geen probleem meer.</h2>
+      <p>Vraag een demo aan en ontdek hoe de Combigroep-filter je voorbereiding halveert.</p>
+      <div class="cta-buttons">
+        <a href="demo-aanvraag.html" class="btn btn-kd btn-lg" data-cta-id="cta-cta-demo">Vraag demo aan</a>
+        <a href="kd-tools.html" class="btn btn-outline btn-lg" style="border-color: white; color: white;" data-cta-id="cta-cta-tools">Alle KD Tools</a>
+      </div>
+    </div>
+  </section>
+
+  <footer class="footer">
+    <div class="footer-inner">
+      <div class="footer-col">
+        <h4>KD 2026 Tools</h4>
+        <ul>
+          <li><a href="kd-checker.html" data-cta-id="cta-footer-checker">KD-Checker</a></li>
+          <li><a href="gap-analyse.html" data-cta-id="cta-footer-gap">Gap-analyse</a></li>
+          <li><a href="combigroep-filter.html" data-cta-id="cta-footer-combi">Combigroep-filter</a></li>
+          <li><a href="materiaal-koppeling.html" data-cta-id="cta-footer-materiaal">Materiaal-koppeling</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>Producten</h4>
+        <ul>
+          <li><a href="e-xpert-sam.html" data-cta-id="cta-footer-sam">e-Xpert SAM</a></li>
+          <li><a href="digitale-boeken.html" data-cta-id="cta-footer-boeken">Digitale Boeken</a></li>
+          <li><a href="e-learning-modules.html" data-cta-id="cta-footer-modules">E-learning Modules</a></li>
+          <li><a href="bpv-materiaal.html" data-cta-id="cta-footer-bpv">BPV-materiaal</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>ExpertCollege</h4>
+        <ul>
+          <li><a href="over-expertcollege.html" data-cta-id="cta-footer-about">Over ons</a></li>
+          <li><a href="event-15-mei.html" data-cta-id="cta-footer-event">Event 15 mei</a></li>
+          <li><a href="contact.html" data-cta-id="cta-footer-contact">Contact</a></li>
+          <li><a href="privacy.html" data-cta-id="cta-footer-privacy">Privacy</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <p>&copy; 2026 ExpertCollege. Gemaakt met zorg voor zorgonderwijs.</p>
+    </div>
+  </footer>
+</body>
+</html>

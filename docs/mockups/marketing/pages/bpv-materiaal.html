@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BPV-materiaal - ExpertCollege | Van school naar praktijk</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --ec-orange: #f97316; --ec-orange-dark: #ea580c;
+      --ec-cyan: #0891b2; --ec-purple: #7c3aed; --ec-green: #22c55e;
+      --bg-primary: #ffffff; --bg-secondary: #f8fafc; --bg-tertiary: #f1f5f9;
+      --text-primary: #0f172a; --text-secondary: #475569; --text-muted: #94a3b8;
+      --border: #e2e8f0; --shadow-md: 0 4px 6px -1px rgba(15, 23, 42, 0.08);
+      --shadow-lg: 0 10px 15px -3px rgba(15, 23, 42, 0.1); --container-max: 1200px;
+    }
+    body { font-family: 'Space Grotesk', sans-serif; background: var(--bg-primary); color: var(--text-primary); line-height: 1.6; }
+    .container { max-width: var(--container-max); margin: 0 auto; padding: 0 1.5rem; }
+    .header { background: var(--bg-primary); border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 100; }
+    .header-inner { display: flex; justify-content: space-between; align-items: center; padding: 1rem 1.5rem; max-width: var(--container-max); margin: 0 auto; }
+    .logo { font-size: 1.5rem; font-weight: 700; color: var(--ec-orange); text-decoration: none; display: flex; align-items: center; gap: 0.5rem; }
+    .logo-icon { width: 32px; height: 32px; background: linear-gradient(135deg, var(--ec-orange), var(--ec-orange-dark)); border-radius: 8px; display: flex; align-items: center; justify-content: center; color: white; }
+    .nav { display: flex; align-items: center; gap: 2rem; }
+    .nav-links { display: flex; gap: 1.5rem; list-style: none; }
+    .nav-link { color: var(--text-secondary); text-decoration: none; font-weight: 500; }
+    .nav-link:hover { color: var(--ec-green); }
+    .btn { display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.75rem 1.5rem; border-radius: 8px; font-weight: 600; text-decoration: none; transition: all 0.2s; border: none; cursor: pointer; }
+    .btn-primary { background: linear-gradient(135deg, var(--ec-orange), var(--ec-orange-dark)); color: white; }
+    .btn-green { background: linear-gradient(135deg, var(--ec-green), #16a34a); color: white; }
+    .btn-outline { background: transparent; color: var(--ec-green); border: 2px solid var(--ec-green); }
+    .btn-outline:hover { background: var(--ec-green); color: white; }
+    .btn-lg { padding: 1rem 2rem; font-size: 1.1rem; }
+
+    .hero { background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%); color: white; padding: 5rem 1.5rem; text-align: center; }
+    .hero h1 { font-size: 3rem; font-weight: 700; margin-bottom: 1rem; }
+    .hero p { font-size: 1.2rem; max-width: 700px; margin: 0 auto 2rem; opacity: 0.95; }
+    .hero-badge { display: inline-block; background: rgba(255,255,255,0.2); padding: 0.5rem 1rem; border-radius: 50px; font-size: 0.9rem; margin-bottom: 1.5rem; }
+
+    .section { padding: 5rem 1.5rem; }
+    .section-alt { background: var(--bg-secondary); }
+    .section-header { text-align: center; margin-bottom: 3rem; }
+    .section-title { font-size: 2.25rem; font-weight: 700; margin-bottom: 1rem; }
+    .section-desc { font-size: 1.1rem; color: var(--text-secondary); max-width: 700px; margin: 0 auto; }
+
+    .materials-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2rem; }
+    .material-card { background: white; border-radius: 16px; overflow: hidden; box-shadow: var(--shadow-md); transition: transform 0.2s; }
+    .material-card:hover { transform: translateY(-4px); }
+    .material-card-header { background: linear-gradient(135deg, #dcfce7, #bbf7d0); padding: 1.5rem; text-align: center; }
+    .material-icon { font-size: 3rem; }
+    .material-card-body { padding: 1.5rem; }
+    .material-card h3 { margin-bottom: 0.5rem; }
+    .material-card p { color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 1rem; }
+    .material-tags { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 1rem; }
+    .tag { padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.75rem; font-weight: 600; }
+    .tag.kd { background: #ecfeff; color: #0891b2; }
+    .tag.n3 { background: #dbeafe; color: #1d4ed8; }
+    .tag.n4 { background: #f3e8ff; color: #7c3aed; }
+
+    .connection-visual { background: white; border-radius: 16px; padding: 2rem; box-shadow: var(--shadow-lg); max-width: 800px; margin: 0 auto; }
+    .connection-title { text-align: center; font-size: 1.25rem; font-weight: 600; margin-bottom: 2rem; }
+    .connection-flow { display: flex; justify-content: space-between; align-items: center; gap: 1rem; }
+    .connection-box { flex: 1; background: var(--bg-tertiary); border-radius: 12px; padding: 1.5rem; text-align: center; }
+    .connection-box.school { border: 2px solid var(--ec-orange); }
+    .connection-box.bpv { border: 2px solid var(--ec-green); }
+    .connection-box h4 { margin-bottom: 0.5rem; }
+    .connection-box p { font-size: 0.85rem; color: var(--text-secondary); }
+    .connection-arrow { font-size: 2rem; color: var(--text-muted); }
+
+    .stakeholder-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 2rem; }
+    .stakeholder-card { background: white; border-radius: 12px; padding: 2rem; box-shadow: var(--shadow-md); }
+    .stakeholder-card h3 { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1rem; }
+    .stakeholder-card h3 span { font-size: 1.5rem; }
+    .stakeholder-card ul { list-style: none; }
+    .stakeholder-card li { padding: 0.5rem 0; padding-left: 1.5rem; position: relative; color: var(--text-secondary); }
+    .stakeholder-card li::before { content: "✓"; position: absolute; left: 0; color: var(--ec-green); font-weight: bold; }
+
+    .cta-section { background: linear-gradient(135deg, #0f172a, #1e293b); color: white; padding: 4rem 1.5rem; text-align: center; }
+    .cta-section h2 { font-size: 2rem; margin-bottom: 1rem; }
+    .cta-section p { margin-bottom: 2rem; opacity: 0.9; }
+    .cta-buttons { display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; }
+
+    .footer { background: var(--bg-tertiary); padding: 3rem 1.5rem; }
+    .footer-inner { max-width: var(--container-max); margin: 0 auto; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 2rem; }
+    .footer-col h4 { margin-bottom: 1rem; }
+    .footer-col ul { list-style: none; }
+    .footer-col a { color: var(--text-secondary); text-decoration: none; display: block; padding: 0.25rem 0; }
+    .footer-col a:hover { color: var(--ec-orange); }
+    .footer-bottom { text-align: center; padding-top: 2rem; margin-top: 2rem; border-top: 1px solid var(--border); color: var(--text-muted); }
+
+    @media (max-width: 768px) {
+      .hero h1 { font-size: 2rem; }
+      .materials-grid, .stakeholder-grid { grid-template-columns: 1fr; }
+      .connection-flow { flex-direction: column; }
+      .connection-arrow { transform: rotate(90deg); }
+      .nav-links { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <header class="header">
+    <div class="header-inner">
+      <a href="../expertcollege-mbo-portal.html" class="logo" data-cta-id="cta-logo-home">
+        <span class="logo-icon">E</span>
+        ExpertCollege
+      </a>
+      <nav class="nav">
+        <ul class="nav-links">
+          <li><a href="kd-tools.html" class="nav-link">KD 2026 Tools</a></li>
+          <li><a href="e-xpert-sam.html" class="nav-link">e-Xpert SAM</a></li>
+          <li><a href="digitale-boeken.html" class="nav-link">Producten</a></li>
+          <li><a href="event-15-mei.html" class="nav-link">Event 15 mei</a></li>
+        </ul>
+        <a href="demo-aanvraag.html" class="btn btn-primary" data-cta-id="cta-nav-demo">Vraag demo aan</a>
+      </nav>
+    </div>
+  </header>
+
+  <section class="hero">
+    <div class="container">
+      <span class="hero-badge">BPV-materiaal</span>
+      <h1>Van school naar praktijk</h1>
+      <p>Observatielogs, SBAR-formulieren en praktijkopdrachten. Met werkbegeleider-instructies. Sluit naadloos aan bij je klassikale les.</p>
+      <div class="cta-buttons">
+        <a href="demo-aanvraag.html" class="btn btn-green btn-lg" data-cta-id="cta-hero-demo">Bekijk materiaal</a>
+        <a href="e-xpert-sam.html" class="btn btn-outline btn-lg" style="border-color: white; color: white;" data-cta-id="cta-hero-sam">Laat SAM zoeken</a>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="container">
+      <div class="section-header">
+        <h2 class="section-title">BPV-materiaal per type</h2>
+        <p class="section-desc">Alles wat je nodig hebt om theorie en praktijk te verbinden.</p>
+      </div>
+      <div class="materials-grid">
+        <div class="material-card">
+          <div class="material-card-header">
+            <div class="material-icon">📋</div>
+          </div>
+          <div class="material-card-body">
+            <h3>Observatielogs</h3>
+            <p>Gestructureerde formulieren voor het loggen van observaties over meerdere diensten. Inclusief criteria voor trend en afwijking.</p>
+            <div class="material-tags">
+              <span class="tag kd">B1-K3</span>
+              <span class="tag n3">N3</span>
+              <span class="tag n4">N4</span>
+            </div>
+            <a href="demo-aanvraag.html" class="btn btn-outline" data-cta-id="cta-mat-logs">Download voorbeeld</a>
+          </div>
+        </div>
+        <div class="material-card">
+          <div class="material-card-header">
+            <div class="material-icon">📝</div>
+          </div>
+          <div class="material-card-body">
+            <h3>SBAR-formulieren</h3>
+            <p>Kant-en-klare formulieren voor gestructureerde overdracht. Met voorbeelden en ruimte voor feedback van werkbegeleider.</p>
+            <div class="material-tags">
+              <span class="tag kd">B1-K3</span>
+              <span class="tag n3">N3</span>
+              <span class="tag n4">N4</span>
+            </div>
+            <a href="demo-aanvraag.html" class="btn btn-outline" data-cta-id="cta-mat-sbar">Download voorbeeld</a>
+          </div>
+        </div>
+        <div class="material-card">
+          <div class="material-card-header">
+            <div class="material-icon">🔒</div>
+          </div>
+          <div class="material-card-body">
+            <h3>Speak-up training</h3>
+            <p>Opdrachten rond veiligheidscommunicatie. Hoe spreek je je uit bij onveilige situaties? Inclusief rollog en reflectie.</p>
+            <div class="material-tags">
+              <span class="tag kd">B1-K3</span>
+              <span class="tag n3">N3</span>
+              <span class="tag n4">N4</span>
+            </div>
+            <a href="demo-aanvraag.html" class="btn btn-outline" data-cta-id="cta-mat-speakup">Download voorbeeld</a>
+          </div>
+        </div>
+        <div class="material-card">
+          <div class="material-card-header">
+            <div class="material-icon">📊</div>
+          </div>
+          <div class="material-card-body">
+            <h3>Risicoprofiel-formulieren</h3>
+            <p>Formulieren voor val-, ondervoeding- en decubitusrisico. Scores invullen, interventies kiezen, monitoring afspreken.</p>
+            <div class="material-tags">
+              <span class="tag kd">B1-K3</span>
+              <span class="tag n3">N3</span>
+              <span class="tag n4">N4</span>
+            </div>
+            <a href="demo-aanvraag.html" class="btn btn-outline" data-cta-id="cta-mat-risico">Download voorbeeld</a>
+          </div>
+        </div>
+        <div class="material-card">
+          <div class="material-card-header">
+            <div class="material-icon">👥</div>
+          </div>
+          <div class="material-card-body">
+            <h3>Coördinatie-opdrachten</h3>
+            <p>Meekijkopdrachten en dagstart-observaties voor VP4. Exposure voor VZ-IG3. Prioriteitenlijst en argumentatie.</p>
+            <div class="material-tags">
+              <span class="tag kd">P2-K1</span>
+              <span class="tag n4">N4</span>
+            </div>
+            <a href="demo-aanvraag.html" class="btn btn-outline" data-cta-id="cta-mat-coord">Download voorbeeld</a>
+          </div>
+        </div>
+        <div class="material-card">
+          <div class="material-card-header">
+            <div class="material-icon">👨‍🏫</div>
+          </div>
+          <div class="material-card-body">
+            <h3>Werkbegeleider-instructies</h3>
+            <p>Korte instructiekaarten voor werkbegeleiders. Wat wordt er van de student verwacht? Hoe geef je feedback?</p>
+            <div class="material-tags">
+              <span class="tag n3">N3</span>
+              <span class="tag n4">N4</span>
+            </div>
+            <a href="demo-aanvraag.html" class="btn btn-outline" data-cta-id="cta-mat-wb">Download voorbeeld</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section section-alt">
+    <div class="container">
+      <div class="section-header">
+        <h2 class="section-title">School en praktijk verbonden</h2>
+        <p class="section-desc">Ons BPV-materiaal sluit direct aan bij de klassikale les.</p>
+      </div>
+      <div class="connection-visual">
+        <div class="connection-title">Voorbeeld: SBAR-overdracht</div>
+        <div class="connection-flow">
+          <div class="connection-box school">
+            <h4>Klassikale les</h4>
+            <p>E-learning module + klassikale oefening met oefencasus</p>
+          </div>
+          <div class="connection-arrow">→</div>
+          <div class="connection-box bpv">
+            <h4>BPV-opdracht</h4>
+            <p>SBAR-formulier invullen op echte situatie + feedback werkbegeleider</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="container">
+      <div class="section-header">
+        <h2 class="section-title">Voor iedereen in de keten</h2>
+      </div>
+      <div class="stakeholder-grid">
+        <div class="stakeholder-card">
+          <h3><span>👨‍🏫</span> Voor docenten</h3>
+          <ul>
+            <li>Direct koppelen aan je klassikale les</li>
+            <li>KD-dekking ook in BPV zichtbaar</li>
+            <li>Voorbeelden voor studenten beschikbaar</li>
+            <li>Eenvoudig delen met werkbegeleiders</li>
+          </ul>
+        </div>
+        <div class="stakeholder-card">
+          <h3><span>👩‍🎓</span> Voor studenten</h3>
+          <ul>
+            <li>Duidelijke opdrachten met criteria</li>
+            <li>Weten wat er van je verwacht wordt</li>
+            <li>Reflectie ingebouwd in elk formulier</li>
+            <li>Portfolio-waardig bewijs verzamelen</li>
+          </ul>
+        </div>
+        <div class="stakeholder-card">
+          <h3><span>👨‍⚕️</span> Voor werkbegeleiders</h3>
+          <ul>
+            <li>Korte, duidelijke instructies</li>
+            <li>Weten wat de student al geleerd heeft</li>
+            <li>Feedback geven met rubric</li>
+            <li>Minder uitzoekwerk, meer begeleiden</li>
+          </ul>
+        </div>
+        <div class="stakeholder-card">
+          <h3><span>📋</span> Voor opleidingsmanagers</h3>
+          <ul>
+            <li>Consistente kwaliteit in alle BPV-plekken</li>
+            <li>KD 2026 compliant materiaal</li>
+            <li>Audit-proof documentatie</li>
+            <li>Verbinding theorie-praktijk aantoonbaar</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="cta-section">
+    <div class="container">
+      <h2>BPV-materiaal uitproberen?</h2>
+      <p>Download voorbeeldformulieren of vraag een demo aan.</p>
+      <div class="cta-buttons">
+        <a href="demo-aanvraag.html" class="btn btn-green btn-lg" data-cta-id="cta-cta-demo">Vraag demo aan</a>
+        <a href="klassikale-opdrachten.html" class="btn btn-outline btn-lg" style="border-color: white; color: white;" data-cta-id="cta-cta-klassikaal">Bekijk klassikale opdrachten</a>
+      </div>
+    </div>
+  </section>
+
+  <footer class="footer">
+    <div class="footer-inner">
+      <div class="footer-col">
+        <h4>Producten</h4>
+        <ul>
+          <li><a href="kd-tools.html" data-cta-id="cta-footer-kd">KD 2026 Tools</a></li>
+          <li><a href="e-xpert-sam.html" data-cta-id="cta-footer-sam">e-Xpert SAM</a></li>
+          <li><a href="digitale-boeken.html" data-cta-id="cta-footer-boeken">Digitale Boeken</a></li>
+          <li><a href="e-learning-modules.html" data-cta-id="cta-footer-modules">E-learning Modules</a></li>
+          <li><a href="klassikale-opdrachten.html" data-cta-id="cta-footer-opdrachten">Klassikale opdrachten</a></li>
+          <li><a href="bpv-materiaal.html" data-cta-id="cta-footer-bpv">BPV-materiaal</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>Aan de slag</h4>
+        <ul>
+          <li><a href="kd-checker.html" data-cta-id="cta-footer-checker">Probeer KD-Checker</a></li>
+          <li><a href="e-xpert-sam.html" data-cta-id="cta-footer-sam-try">Vraag SAM om advies</a></li>
+          <li><a href="demo-aanvraag.html" data-cta-id="cta-footer-demo">Vraag demo aan</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>ExpertCollege</h4>
+        <ul>
+          <li><a href="over-expertcollege.html" data-cta-id="cta-footer-about">Over ons</a></li>
+          <li><a href="event-15-mei.html" data-cta-id="cta-footer-event">Event 15 mei</a></li>
+          <li><a href="contact.html" data-cta-id="cta-footer-contact">Contact</a></li>
+          <li><a href="privacy.html" data-cta-id="cta-footer-privacy">Privacy</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <p>&copy; 2026 ExpertCollege. Gemaakt met zorg voor zorgonderwijs.</p>
+    </div>
+  </footer>
+</body>
+</html>

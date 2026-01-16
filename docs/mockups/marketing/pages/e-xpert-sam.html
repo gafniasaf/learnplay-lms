@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>e-Xpert SAM - ExpertCollege | Je persoonlijke materiaal-adviseur</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --ec-orange: #f97316; --ec-orange-dark: #ea580c;
+      --ec-cyan: #0891b2; --ec-purple: #7c3aed; --ec-green: #22c55e;
+      --bg-primary: #ffffff; --bg-secondary: #f8fafc; --bg-tertiary: #f1f5f9;
+      --text-primary: #0f172a; --text-secondary: #475569; --text-muted: #94a3b8;
+      --border: #e2e8f0; --shadow-md: 0 4px 6px -1px rgba(15, 23, 42, 0.08);
+      --shadow-lg: 0 10px 15px -3px rgba(15, 23, 42, 0.1); --container-max: 1200px;
+    }
+    body { font-family: 'Space Grotesk', sans-serif; background: var(--bg-primary); color: var(--text-primary); line-height: 1.6; }
+    .container { max-width: var(--container-max); margin: 0 auto; padding: 0 1.5rem; }
+    .header { background: var(--bg-primary); border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 100; }
+    .header-inner { display: flex; justify-content: space-between; align-items: center; padding: 1rem 1.5rem; max-width: var(--container-max); margin: 0 auto; }
+    .logo { font-size: 1.5rem; font-weight: 700; color: var(--ec-orange); text-decoration: none; display: flex; align-items: center; gap: 0.5rem; }
+    .logo-icon { width: 32px; height: 32px; background: linear-gradient(135deg, var(--ec-orange), var(--ec-orange-dark)); border-radius: 8px; display: flex; align-items: center; justify-content: center; color: white; }
+    .nav { display: flex; align-items: center; gap: 2rem; }
+    .nav-links { display: flex; gap: 1.5rem; list-style: none; }
+    .nav-link { color: var(--text-secondary); text-decoration: none; font-weight: 500; }
+    .nav-link:hover, .nav-link.active { color: var(--ec-purple); }
+    .btn { display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.75rem 1.5rem; border-radius: 8px; font-weight: 600; text-decoration: none; transition: all 0.2s; border: none; cursor: pointer; }
+    .btn-primary { background: linear-gradient(135deg, var(--ec-orange), var(--ec-orange-dark)); color: white; }
+    .btn-sam { background: linear-gradient(135deg, var(--ec-purple), #6d28d9); color: white; }
+    .btn-outline { background: transparent; color: var(--ec-purple); border: 2px solid var(--ec-purple); }
+    .btn-outline:hover { background: var(--ec-purple); color: white; }
+    .btn-lg { padding: 1rem 2rem; font-size: 1.1rem; }
+
+    .hero { background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%); color: white; padding: 5rem 1.5rem; }
+    .hero-inner { max-width: var(--container-max); margin: 0 auto; display: grid; grid-template-columns: 1fr 1fr; gap: 4rem; align-items: center; }
+    .hero h1 { font-size: 3rem; font-weight: 700; margin-bottom: 1.5rem; }
+    .hero p { font-size: 1.25rem; margin-bottom: 2rem; opacity: 0.95; }
+    .hero-badge { display: inline-block; background: rgba(255,255,255,0.2); padding: 0.5rem 1rem; border-radius: 50px; font-size: 0.9rem; margin-bottom: 1.5rem; }
+    
+    .chat-preview { background: white; border-radius: 16px; padding: 1.5rem; box-shadow: var(--shadow-lg); }
+    .chat-header { display: flex; align-items: center; gap: 1rem; margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 1px solid var(--border); }
+    .chat-avatar { width: 48px; height: 48px; background: linear-gradient(135deg, var(--ec-purple), #6d28d9); border-radius: 12px; display: flex; align-items: center; justify-content: center; color: white; font-weight: 700; font-size: 1.25rem; }
+    .chat-name { font-weight: 600; color: var(--text-primary); }
+    .chat-status { font-size: 0.85rem; color: var(--ec-green); }
+    .chat-messages { display: flex; flex-direction: column; gap: 1rem; }
+    .chat-message { display: flex; gap: 0.75rem; }
+    .chat-message.user { flex-direction: row-reverse; }
+    .chat-bubble { padding: 1rem; border-radius: 12px; max-width: 85%; font-size: 0.95rem; color: var(--text-primary); }
+    .chat-message.sam .chat-bubble { background: var(--bg-tertiary); }
+    .chat-message.user .chat-bubble { background: var(--ec-purple); color: white; }
+    .msg-avatar { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 0.8rem; font-weight: 600; flex-shrink: 0; }
+    .chat-message.sam .msg-avatar { background: linear-gradient(135deg, var(--ec-purple), #6d28d9); color: white; }
+    .chat-message.user .msg-avatar { background: var(--bg-tertiary); color: var(--text-primary); }
+
+    .section { padding: 5rem 1.5rem; }
+    .section-alt { background: var(--bg-secondary); }
+    .section-header { text-align: center; margin-bottom: 3rem; }
+    .section-title { font-size: 2.25rem; font-weight: 700; margin-bottom: 1rem; }
+    .section-desc { font-size: 1.1rem; color: var(--text-secondary); max-width: 700px; margin: 0 auto; }
+
+    .highlight-box { background: linear-gradient(135deg, #faf5ff, #f3e8ff); border: 2px solid var(--ec-purple); border-radius: 16px; padding: 2rem; margin-bottom: 3rem; text-align: center; }
+    .highlight-box h3 { color: var(--ec-purple); font-size: 1.5rem; margin-bottom: 1rem; }
+    .highlight-box p { font-size: 1.1rem; color: var(--text-secondary); }
+
+    .features-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2rem; }
+    .feature-card { background: white; border-radius: 16px; padding: 2rem; box-shadow: var(--shadow-md); text-align: center; }
+    .feature-icon { font-size: 3rem; margin-bottom: 1rem; }
+    .feature-card h3 { margin-bottom: 0.75rem; }
+    .feature-card p { color: var(--text-secondary); font-size: 0.95rem; }
+
+    .how-it-works { display: grid; grid-template-columns: repeat(4, 1fr); gap: 2rem; }
+    .step { text-align: center; position: relative; }
+    .step::after { content: '→'; position: absolute; right: -1rem; top: 2rem; font-size: 1.5rem; color: var(--ec-purple); }
+    .step:last-child::after { display: none; }
+    .step-number { width: 48px; height: 48px; background: linear-gradient(135deg, var(--ec-purple), #6d28d9); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 1.25rem; margin: 0 auto 1rem; }
+    .step h4 { margin-bottom: 0.5rem; }
+    .step p { font-size: 0.9rem; color: var(--text-secondary); }
+
+    .examples-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 2rem; }
+    .example-card { background: white; border-radius: 12px; padding: 1.5rem; box-shadow: var(--shadow-md); }
+    .example-query { background: var(--ec-purple); color: white; padding: 1rem; border-radius: 8px; margin-bottom: 1rem; font-style: italic; }
+    .example-response { color: var(--text-secondary); }
+    .example-response strong { color: var(--text-primary); }
+
+    .cta-section { background: linear-gradient(135deg, #0f172a, #1e293b); color: white; padding: 4rem 1.5rem; text-align: center; }
+    .cta-section h2 { font-size: 2rem; margin-bottom: 1rem; }
+    .cta-section p { margin-bottom: 2rem; opacity: 0.9; }
+    .cta-buttons { display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; }
+
+    .footer { background: var(--bg-tertiary); padding: 3rem 1.5rem; }
+    .footer-inner { max-width: var(--container-max); margin: 0 auto; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 2rem; }
+    .footer-col h4 { margin-bottom: 1rem; }
+    .footer-col ul { list-style: none; }
+    .footer-col a { color: var(--text-secondary); text-decoration: none; display: block; padding: 0.25rem 0; }
+    .footer-col a:hover { color: var(--ec-orange); }
+    .footer-bottom { text-align: center; padding-top: 2rem; margin-top: 2rem; border-top: 1px solid var(--border); color: var(--text-muted); }
+
+    @media (max-width: 768px) {
+      .hero-inner { grid-template-columns: 1fr; }
+      .hero h1 { font-size: 2rem; }
+      .features-grid, .examples-grid { grid-template-columns: 1fr; }
+      .how-it-works { grid-template-columns: 1fr 1fr; }
+      .step::after { display: none; }
+      .nav-links { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <header class="header">
+    <div class="header-inner">
+      <a href="../expertcollege-mbo-portal.html" class="logo" data-cta-id="cta-logo-home">
+        <span class="logo-icon">E</span>
+        ExpertCollege
+      </a>
+      <nav class="nav">
+        <ul class="nav-links">
+          <li><a href="kd-tools.html" class="nav-link">KD 2026 Tools</a></li>
+          <li><a href="e-xpert-sam.html" class="nav-link active">e-Xpert SAM</a></li>
+          <li><a href="digitale-boeken.html" class="nav-link">Producten</a></li>
+          <li><a href="event-15-mei.html" class="nav-link">Event 15 mei</a></li>
+        </ul>
+        <a href="demo-aanvraag.html" class="btn btn-primary" data-cta-id="cta-nav-demo">Vraag demo aan</a>
+      </nav>
+    </div>
+  </header>
+
+  <section class="hero">
+    <div class="hero-inner">
+      <div>
+        <span class="hero-badge">e-Xpert SAM</span>
+        <h1>Je persoonlijke materiaal-adviseur</h1>
+        <p>SAM doorzoekt onze complete materialenbank en selecteert precies wat jij nodig hebt. Toont waar je KD-dekking mist en adviseert welk materiaal dat gat vult. Jij beslist, SAM wijst de weg.</p>
+        <div class="cta-buttons">
+          <a href="demo-aanvraag.html" class="btn btn-sam btn-lg" data-cta-id="cta-hero-sam-demo">Ontmoet e-Xpert SAM</a>
+          <a href="kd-tools.html" class="btn btn-outline btn-lg" style="border-color: white; color: white;" data-cta-id="cta-hero-kd-link">Bekijk KD Tools</a>
+        </div>
+      </div>
+      <div class="chat-preview">
+        <div class="chat-header">
+          <div class="chat-avatar">S</div>
+          <div>
+            <div class="chat-name">e-Xpert SAM</div>
+            <div class="chat-status">Online</div>
+          </div>
+        </div>
+        <div class="chat-messages">
+          <div class="chat-message user">
+            <div class="msg-avatar">JK</div>
+            <div class="chat-bubble">Ik geef combigroep, zoek klassikale opdracht over SBAR, 30 min</div>
+          </div>
+          <div class="chat-message sam">
+            <div class="msg-avatar">S</div>
+            <div class="chat-bubble">Gevonden! Klasopdracht SBAR-overdracht (B1-K3-W2) met N3 én N4 variant. Ook een BPV-vervolgopdracht beschikbaar. Downloaden?</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="container">
+      <div class="highlight-box">
+        <h3>SAM vindt en adviseert - SAM maakt niet</h3>
+        <p>e-Xpert SAM selecteert uit onze 500+ expert-ontwikkelde materialen. Geen AI-gegenereerde content, maar bewezen kwaliteitsmateriaal dat door vakexperts is geschreven en KD 2026-proof is gemaakt.</p>
+      </div>
+
+      <div class="section-header">
+        <h2 class="section-title">Wat SAM voor je doet</h2>
+        <p class="section-desc">Slim zoeken, gaps detecteren, en advies geven - allemaal gebaseerd op ons expert-materiaal.</p>
+      </div>
+      <div class="features-grid">
+        <div class="feature-card">
+          <div class="feature-icon">🏫</div>
+          <h3>Klassikale opdrachten</h3>
+          <p>Zoek op thema en krijg direct klassikale werkopdrachten met leerdoel, instructie en beoordelingscriteria. Kant-en-klaar.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">👥</div>
+          <h3>Combigroep-ready</h3>
+          <p>VZ-IG en VP in één klas? SAM selecteert materiaal dat voor beide niveaus werkt, of geeft N3 én N4 varianten.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">🏥</div>
+          <h3>BPV-materiaal</h3>
+          <p>Van observatielog tot SBAR-formulier. SAM vindt BPV-opdrachten die aansluiten bij je klassikale les.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">📊</div>
+          <h3>Gap-detectie</h3>
+          <p>SAM analyseert je lesplan en toont welke werkprocessen uit basisdeel of profieldeel nog aandacht nodig hebben.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">💡</div>
+          <h3>Materiaal-advies</h3>
+          <p>Per gap adviseert SAM welke module, klasopdracht of BPV-formulier uit onze bibliotheek dat gat het beste vult.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">⭐</div>
+          <h3>Expert-kwaliteit</h3>
+          <p>Al onze materialen zijn door vakexperts ontwikkeld en KD 2026-proof. SAM selecteert alleen het beste.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section section-alt">
+    <div class="container">
+      <div class="section-header">
+        <h2 class="section-title">Hoe werkt het?</h2>
+        <p class="section-desc">Van vraag tot materiaal in 4 simpele stappen.</p>
+      </div>
+      <div class="how-it-works">
+        <div class="step">
+          <div class="step-number">1</div>
+          <h4>Stel je vraag</h4>
+          <p>Typ wat je zoekt: onderwerp, niveau, tijdsduur, type opdracht.</p>
+        </div>
+        <div class="step">
+          <div class="step-number">2</div>
+          <h4>SAM zoekt</h4>
+          <p>SAM doorzoekt 500+ modules, opdrachten en formulieren.</p>
+        </div>
+        <div class="step">
+          <div class="step-number">3</div>
+          <h4>SAM adviseert</h4>
+          <p>Je krijgt de beste matches met KD-koppeling en niveau-indicatie.</p>
+        </div>
+        <div class="step">
+          <div class="step-number">4</div>
+          <h4>Downloaden</h4>
+          <p>Kies wat je wilt en download direct als Word of PDF.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="container">
+      <div class="section-header">
+        <h2 class="section-title">Voorbeelden uit de praktijk</h2>
+        <p class="section-desc">Dit zijn echte vragen die docenten aan SAM stellen.</p>
+      </div>
+      <div class="examples-grid">
+        <div class="example-card">
+          <div class="example-query">"Ik zoek een klassikale opdracht over medicatieveiligheid voor niveau 3, maximaal 45 minuten"</div>
+          <div class="example-response">
+            <strong>SAM vindt:</strong> Klasopdracht "5 J's in de praktijk" (B1-K3-W4), 40 minuten, inclusief casus en beoordelingsmodel. Ook beschikbaar: e-learning module "Medicatieveiligheid" (30 min) als voorbereiding.
+          </div>
+        </div>
+        <div class="example-card">
+          <div class="example-query">"Welke BPV-opdrachten sluiten aan bij mijn les over klinisch redeneren?"</div>
+          <div class="example-response">
+            <strong>SAM vindt:</strong> 3 BPV-opdrachten: Observatielog (3 diensten), ACTIE-formulier, en SBAR-overdracht. Alle drie gekoppeld aan B1-K3 en geschikt voor zowel VZ-IG als VP.
+          </div>
+        </div>
+        <div class="example-card">
+          <div class="example-query">"Ik heb een combigroep en mis nog dekking op P2-K1 coördineren"</div>
+          <div class="example-response">
+            <strong>SAM adviseert:</strong> Voor P2-K1 zijn 4 opdrachten beschikbaar. De opdracht "Dagstart prioriteren" werkt voor beide niveaus. Voor VP4 is er ook de verdieping "MDO-voorbereiding". Voor VZ-IG3 een light-versie "Meekijkopdracht coördinatie".
+          </div>
+        </div>
+        <div class="example-card">
+          <div class="example-query">"Geef me een overzicht van mijn gaps in het basisdeel"</div>
+          <div class="example-response">
+            <strong>SAM toont:</strong> B1-K1: 100% gedekt. B1-K2: 85% - mist participatie-opdracht. B1-K3: 75% - mist medicatie en risicosignalering. Per gap staat er passend materiaal klaar om te downloaden.
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="cta-section">
+    <div class="container">
+      <h2>Laat SAM je helpen</h2>
+      <p>Vraag een demo aan en ontdek hoe SAM je lesvoorbereiding lichter maakt.</p>
+      <div class="cta-buttons">
+        <a href="demo-aanvraag.html" class="btn btn-sam btn-lg" data-cta-id="cta-footer-sam-demo">Ontmoet e-Xpert SAM</a>
+        <a href="kd-tools.html" class="btn btn-outline btn-lg" style="border-color: white; color: white;" data-cta-id="cta-footer-kd">Bekijk KD Tools</a>
+      </div>
+    </div>
+  </section>
+
+  <footer class="footer">
+    <div class="footer-inner">
+      <div class="footer-col">
+        <h4>Producten</h4>
+        <ul>
+          <li><a href="kd-tools.html" data-cta-id="cta-footer-kd-tools">KD 2026 Tools</a></li>
+          <li><a href="e-xpert-sam.html" data-cta-id="cta-footer-sam">e-Xpert SAM</a></li>
+          <li><a href="digitale-boeken.html" data-cta-id="cta-footer-boeken">Digitale Boeken</a></li>
+          <li><a href="e-learning-modules.html" data-cta-id="cta-footer-modules">E-learning Modules</a></li>
+          <li><a href="klassikale-opdrachten.html" data-cta-id="cta-footer-opdrachten">Klassikale opdrachten</a></li>
+          <li><a href="bpv-materiaal.html" data-cta-id="cta-footer-bpv">BPV-materiaal</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>Aan de slag</h4>
+        <ul>
+          <li><a href="kd-checker.html" data-cta-id="cta-footer-checker">Probeer KD-Checker</a></li>
+          <li><a href="e-xpert-sam.html" data-cta-id="cta-footer-sam-try">Vraag SAM om advies</a></li>
+          <li><a href="demo-aanvraag.html" data-cta-id="cta-footer-demo">Vraag demo aan</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>ExpertCollege</h4>
+        <ul>
+          <li><a href="over-expertcollege.html" data-cta-id="cta-footer-about">Over ons</a></li>
+          <li><a href="event-15-mei.html" data-cta-id="cta-footer-event">Event 15 mei</a></li>
+          <li><a href="contact.html" data-cta-id="cta-footer-contact">Contact</a></li>
+          <li><a href="privacy.html" data-cta-id="cta-footer-privacy">Privacy</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <p>&copy; 2026 ExpertCollege. Gemaakt met zorg voor zorgonderwijs.</p>
+    </div>
+  </footer>
+</body>
+</html>

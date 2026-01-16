@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Vraag een demo aan - ExpertCollege | KD 2026 Tools & e-Xpert SAM</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --ec-orange: #f97316; --ec-orange-dark: #ea580c;
+      --ec-cyan: #0891b2; --ec-purple: #7c3aed; --ec-green: #22c55e;
+      --bg-primary: #ffffff; --bg-secondary: #f8fafc; --bg-tertiary: #f1f5f9;
+      --text-primary: #0f172a; --text-secondary: #475569; --text-muted: #94a3b8;
+      --border: #e2e8f0; --shadow-md: 0 4px 6px -1px rgba(15, 23, 42, 0.08);
+      --shadow-lg: 0 10px 15px -3px rgba(15, 23, 42, 0.1); --container-max: 1200px;
+    }
+    body { font-family: 'Space Grotesk', sans-serif; background: var(--bg-secondary); color: var(--text-primary); line-height: 1.6; }
+    .container { max-width: var(--container-max); margin: 0 auto; padding: 0 1.5rem; }
+    .header { background: var(--bg-primary); border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 100; }
+    .header-inner { display: flex; justify-content: space-between; align-items: center; padding: 1rem 1.5rem; max-width: var(--container-max); margin: 0 auto; }
+    .logo { font-size: 1.5rem; font-weight: 700; color: var(--ec-orange); text-decoration: none; display: flex; align-items: center; gap: 0.5rem; }
+    .logo-icon { width: 32px; height: 32px; background: linear-gradient(135deg, var(--ec-orange), var(--ec-orange-dark)); border-radius: 8px; display: flex; align-items: center; justify-content: center; color: white; }
+    .nav { display: flex; align-items: center; gap: 2rem; }
+    .nav-links { display: flex; gap: 1.5rem; list-style: none; }
+    .nav-link { color: var(--text-secondary); text-decoration: none; font-weight: 500; }
+    .nav-link:hover { color: var(--ec-orange); }
+    .btn { display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.75rem 1.5rem; border-radius: 8px; font-weight: 600; text-decoration: none; transition: all 0.2s; border: none; cursor: pointer; }
+    .btn-primary { background: linear-gradient(135deg, var(--ec-orange), var(--ec-orange-dark)); color: white; }
+
+    .demo-page { padding: 4rem 1.5rem; }
+    .demo-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4rem; max-width: 1000px; margin: 0 auto; align-items: start; }
+
+    .demo-info h1 { font-size: 2.5rem; margin-bottom: 1rem; }
+    .demo-info p { font-size: 1.1rem; color: var(--text-secondary); margin-bottom: 2rem; }
+    .demo-benefits { list-style: none; margin-bottom: 2rem; }
+    .demo-benefits li { display: flex; gap: 0.75rem; align-items: flex-start; padding: 0.75rem 0; }
+    .demo-benefits li::before { content: "✓"; width: 24px; height: 24px; background: var(--ec-green); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 0.8rem; flex-shrink: 0; }
+    
+    .demo-testimonial { background: var(--bg-primary); border-radius: 12px; padding: 1.5rem; margin-top: 2rem; }
+    .demo-testimonial p { font-style: italic; color: var(--text-secondary); margin-bottom: 1rem; }
+    .demo-testimonial-author { display: flex; align-items: center; gap: 0.75rem; }
+    .demo-testimonial-avatar { width: 40px; height: 40px; background: var(--ec-orange); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 600; }
+    .demo-testimonial-name { font-weight: 600; }
+    .demo-testimonial-role { font-size: 0.85rem; color: var(--text-muted); }
+
+    .demo-form-card { background: var(--bg-primary); border-radius: 16px; padding: 2rem; box-shadow: var(--shadow-lg); }
+    .demo-form-card h2 { margin-bottom: 0.5rem; }
+    .demo-form-card .subtitle { color: var(--text-secondary); margin-bottom: 1.5rem; }
+    .form-group { margin-bottom: 1.25rem; }
+    .form-group label { display: block; margin-bottom: 0.5rem; font-weight: 500; font-size: 0.95rem; }
+    .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 0.875rem 1rem; border: 1px solid var(--border); border-radius: 8px; font-size: 1rem; font-family: inherit; }
+    .form-group input:focus, .form-group select:focus, .form-group textarea:focus { outline: none; border-color: var(--ec-orange); }
+    .form-group textarea { resize: vertical; min-height: 100px; }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+    .form-submit { width: 100%; padding: 1rem; font-size: 1rem; }
+    .form-note { font-size: 0.85rem; color: var(--text-muted); margin-top: 1rem; text-align: center; }
+
+    .footer { background: var(--bg-tertiary); padding: 3rem 1.5rem; margin-top: 4rem; }
+    .footer-inner { max-width: var(--container-max); margin: 0 auto; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 2rem; }
+    .footer-col h4 { margin-bottom: 1rem; }
+    .footer-col ul { list-style: none; }
+    .footer-col a { color: var(--text-secondary); text-decoration: none; display: block; padding: 0.25rem 0; }
+    .footer-col a:hover { color: var(--ec-orange); }
+    .footer-bottom { text-align: center; padding-top: 2rem; margin-top: 2rem; border-top: 1px solid var(--border); color: var(--text-muted); }
+
+    @media (max-width: 768px) {
+      .demo-grid { grid-template-columns: 1fr; }
+      .demo-info h1 { font-size: 2rem; }
+      .form-row { grid-template-columns: 1fr; }
+      .nav-links { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <header class="header">
+    <div class="header-inner">
+      <a href="../expertcollege-mbo-portal.html" class="logo" data-cta-id="cta-logo-home">
+        <span class="logo-icon">E</span>
+        ExpertCollege
+      </a>
+      <nav class="nav">
+        <ul class="nav-links">
+          <li><a href="kd-tools.html" class="nav-link">KD 2026 Tools</a></li>
+          <li><a href="e-xpert-sam.html" class="nav-link">e-Xpert SAM</a></li>
+          <li><a href="digitale-boeken.html" class="nav-link">Producten</a></li>
+          <li><a href="event-15-mei.html" class="nav-link">Event 15 mei</a></li>
+        </ul>
+        <a href="contact.html" class="btn btn-primary" data-cta-id="cta-nav-contact">Contact</a>
+      </nav>
+    </div>
+  </header>
+
+  <section class="demo-page">
+    <div class="demo-grid">
+      <div class="demo-info">
+        <h1>Vraag een demo aan</h1>
+        <p>Ontdek hoe KD 2026 Tools en e-Xpert SAM je lesvoorbereiding lichter maken. In 30 minuten laten we je zien hoe het werkt - aangepast aan jouw situatie.</p>
+        
+        <ul class="demo-benefits">
+          <li>Persoonlijke rondleiding door de KD-Checker en Gap-analyse</li>
+          <li>Live demo van e-Xpert SAM met jouw vragen</li>
+          <li>Advies op maat voor jouw school of team</li>
+          <li>Antwoord op al je vragen over implementatie</li>
+          <li>Gratis proefperiode na de demo</li>
+        </ul>
+
+        <div class="demo-testimonial">
+          <p>"Na de demo was ik direct overtuigd. Binnen een week gebruikte ons hele team de KD-Checker. De tijdsbesparing is enorm."</p>
+          <div class="demo-testimonial-author">
+            <div class="demo-testimonial-avatar">MV</div>
+            <div>
+              <div class="demo-testimonial-name">Marieke Verhoeven</div>
+              <div class="demo-testimonial-role">Teamleider Verpleging, KW1C</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="demo-form-card">
+        <h2>Plan je demo</h2>
+        <p class="subtitle">Vul het formulier in en we nemen binnen 24 uur contact op.</p>
+        
+        <form>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="firstName">Voornaam *</label>
+              <input type="text" id="firstName" name="firstName" required>
+            </div>
+            <div class="form-group">
+              <label for="lastName">Achternaam *</label>
+              <input type="text" id="lastName" name="lastName" required>
+            </div>
+          </div>
+          
+          <div class="form-group">
+            <label for="email">Zakelijk e-mailadres *</label>
+            <input type="email" id="email" name="email" required>
+          </div>
+          
+          <div class="form-group">
+            <label for="phone">Telefoonnummer</label>
+            <input type="tel" id="phone" name="phone">
+          </div>
+          
+          <div class="form-group">
+            <label for="school">School / instelling *</label>
+            <input type="text" id="school" name="school" required>
+          </div>
+          
+          <div class="form-group">
+            <label for="role">Je rol</label>
+            <select id="role" name="role">
+              <option value="">Selecteer je rol</option>
+              <option value="docent">Docent</option>
+              <option value="teamleider">Teamleider</option>
+              <option value="opleidingsmanager">Opleidingsmanager</option>
+              <option value="coordinator">BPV-coordinator</option>
+              <option value="anders">Anders</option>
+            </select>
+          </div>
+          
+          <div class="form-group">
+            <label for="interest">Waar ben je het meest in geinteresseerd?</label>
+            <select id="interest" name="interest">
+              <option value="">Selecteer een optie</option>
+              <option value="kd-tools">KD 2026 Tools (Checker, Gap-analyse)</option>
+              <option value="sam">e-Xpert SAM</option>
+              <option value="materiaal">Lesmateriaal (boeken, modules, opdrachten)</option>
+              <option value="alles">Alles - geef me een totaaloverzicht</option>
+            </select>
+          </div>
+          
+          <div class="form-group">
+            <label for="message">Opmerkingen of specifieke vragen</label>
+            <textarea id="message" name="message" placeholder="Bijvoorbeeld: we hebben combigroepen VZ-IG/VP, hoe werkt dat?"></textarea>
+          </div>
+          
+          <button type="submit" class="btn btn-primary form-submit" data-cta-id="cta-demo-submit">Vraag demo aan</button>
+          
+          <p class="form-note">We nemen binnen 24 uur contact met je op. Geen spam, beloofd.</p>
+        </form>
+      </div>
+    </div>
+  </section>
+
+  <footer class="footer">
+    <div class="footer-inner">
+      <div class="footer-col">
+        <h4>Producten</h4>
+        <ul>
+          <li><a href="kd-tools.html" data-cta-id="cta-footer-kd">KD 2026 Tools</a></li>
+          <li><a href="e-xpert-sam.html" data-cta-id="cta-footer-sam">e-Xpert SAM</a></li>
+          <li><a href="digitale-boeken.html" data-cta-id="cta-footer-boeken">Digitale Boeken</a></li>
+          <li><a href="e-learning-modules.html" data-cta-id="cta-footer-modules">E-learning Modules</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>Aan de slag</h4>
+        <ul>
+          <li><a href="kd-checker.html" data-cta-id="cta-footer-checker">Probeer KD-Checker</a></li>
+          <li><a href="e-xpert-sam.html" data-cta-id="cta-footer-sam-try">Vraag SAM om advies</a></li>
+          <li><a href="demo-aanvraag.html" data-cta-id="cta-footer-demo">Vraag demo aan</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>ExpertCollege</h4>
+        <ul>
+          <li><a href="over-expertcollege.html" data-cta-id="cta-footer-about">Over ons</a></li>
+          <li><a href="event-15-mei.html" data-cta-id="cta-footer-event">Event 15 mei</a></li>
+          <li><a href="contact.html" data-cta-id="cta-footer-contact">Contact</a></li>
+          <li><a href="privacy.html" data-cta-id="cta-footer-privacy">Privacy</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <p>&copy; 2026 ExpertCollege. Gemaakt met zorg voor zorgonderwijs.</p>
+    </div>
+  </footer>
+</body>
+</html>
