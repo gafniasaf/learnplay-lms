@@ -250,5 +250,12 @@ export interface LessonKitProtocol {
   };
 }
 
+// Quality thresholds for validation
+export interface QualityThresholds {
+  minGroundingScore: number;
+  minCoverageScore: number;
+  maxHallucinations: number;
+}
+
 
 

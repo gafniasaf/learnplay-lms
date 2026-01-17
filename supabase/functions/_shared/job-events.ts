@@ -21,6 +21,7 @@ export type JobEventStep =
   | "reviewing"
   | "images"
   | "enriching"
+  | "storage_read"
   | "storage_write"
   | "catalog_update"
   | "verifying"

@@ -2592,9 +2592,9 @@ export class BookGenerateSection implements JobExecutor {
           .map((b: any) => (typeof (b as any).title === "string" ? normalizeWs((b as any).title) : ""))
           .filter(Boolean);
 
-        const gotNumbered = got.filter((t) => NUMBERED_SUBPARA_TITLE_RE.test(t));
+        const gotNumbered = got.filter((t: string) => NUMBERED_SUBPARA_TITLE_RE.test(t));
         if (gotNumbered.length !== got.length) {
-          const bad = got.filter((t) => !NUMBERED_SUBPARA_TITLE_RE.test(t)).slice(0, 3);
+          const bad = got.filter((t: string) => !NUMBERED_SUBPARA_TITLE_RE.test(t)).slice(0, 3);
           throw new Error(`BLOCKED: Found unnumbered subparagraph(s) at section top level: ${bad.join(" | ")}`);
         }
 
