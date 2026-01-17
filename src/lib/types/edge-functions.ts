@@ -148,6 +148,13 @@ export interface SearchCuratedMaterialsResponse {
     mbo_level?: string;
     source?: string;
     language_variant?: string;
+    mbo_track?: string;
+    module_family?: string;
+    topic_tag?: string;
+    exercise_format?: string;
+    scenario_present?: boolean;
+    law_topic?: string;
+    communication_context?: string;
     limit?: number;
   };
   results?: Array<{
@@ -159,6 +166,15 @@ export interface SearchCuratedMaterialsResponse {
     mbo_level?: string;
     source?: string;
     language_variant?: string;
+    metadata?: {
+      mbo_track?: string;
+      module_family?: string;
+      topic_tags?: string[];
+      exercise_format?: string;
+      scenario_present?: boolean;
+      law_topics?: string[];
+      communication_context?: string[];
+    };
     kd_codes?: string[];
     preview?: string;
     storage_bucket?: string;

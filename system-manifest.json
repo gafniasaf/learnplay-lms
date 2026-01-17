@@ -428,6 +428,17 @@
       "prompt_template": "Build a grounded lesson kit from the provided material/course context. Return JSON {\"lesson_kit\": json, \"status\": \"ready\"|\"failed\", \"notes\": string}."
     },
     {
+      "id": "curated_arabic_variant_build",
+      "target_entity": "CuratedMaterial",
+      "execution_mode": "async",
+      "ui": {
+        "label": "Generate Arabic Variant (Curated)",
+        "icon": "Languages",
+        "placement": "teacher"
+      },
+      "prompt_template": "Generate an Arabic (RTL) variant of a pre-rendered curated material pack. Arabic output must include Dutch keywords in blue parentheses for terminology learning. Return JSON {\"ok\": boolean, \"curated_material_id\": string, \"language_variant\": \"ar\"}."
+    },
+    {
       "id": "standards_ingest",
       "target_entity": "StandardsDocument",
       "execution_mode": "async",
@@ -530,6 +541,27 @@
       "id": "teacher-chat-assistant",
       "input": { "messages": "json", "scope": "string", "materialId": "string" },
       "output": { "ok": "boolean", "answer": "string", "citations": "json" }
+    },
+    {
+      "id": "search-curated-materials",
+      "input": {
+        "query": "string",
+        "kd_code": "string",
+        "material_type": "string",
+        "category": "string",
+        "mbo_level": "string",
+        "source": "string",
+        "language_variant": "string",
+        "mbo_track": "string",
+        "module_family": "string",
+        "topic_tag": "string",
+        "exercise_format": "string",
+        "scenario_present": "boolean",
+        "law_topic": "string",
+        "communication_context": "string",
+        "limit": "number"
+      },
+      "output": { "ok": "boolean", "results": "json" }
     }
   ]
 }

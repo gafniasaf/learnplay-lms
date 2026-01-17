@@ -447,6 +447,12 @@ export const JobPayloadSchema = z.discriminatedUnion('jobType', [
   }),
 
   z.object({
+    jobType: z.literal('curated_arabic_variant_build'),
+    learnerprofileId: z.string().uuid().optional(), 
+    payload: z.record(z.any()).optional().describe("Input for curated_arabic_variant_build")
+  }),
+
+  z.object({
     jobType: z.literal('standards_ingest'),
     learnerprofileId: z.string().uuid().optional(), 
     payload: z.record(z.any()).optional().describe("Input for standards_ingest")
@@ -1143,6 +1149,7 @@ export const JOB_MODES = {
   "material_ingest": "async",
   "material_analyze": "async",
   "lessonkit_build": "async",
+  "curated_arabic_variant_build": "async",
   "standards_ingest": "async",
   "standards_map": "async",
   "standards_export": "async",
@@ -1495,6 +1502,30 @@ export const EDGE_FUNCTION_SCHEMAS = [
       "ok": "boolean",
       "answer": "string",
       "citations": "json"
+    }
+  },
+  {
+    "id": "search-curated-materials",
+    "input": {
+      "query": "string",
+      "kd_code": "string",
+      "material_type": "string",
+      "category": "string",
+      "mbo_level": "string",
+      "source": "string",
+      "language_variant": "string",
+      "mbo_track": "string",
+      "module_family": "string",
+      "topic_tag": "string",
+      "exercise_format": "string",
+      "scenario_present": "boolean",
+      "law_topic": "string",
+      "communication_context": "string",
+      "limit": "number"
+    },
+    "output": {
+      "ok": "boolean",
+      "results": "json"
     }
   }
 ] as const;

@@ -40,6 +40,15 @@ type SearchResult = {
   mbo_level?: string;
   language_variant?: string;
   score?: number;
+  metadata?: {
+    mbo_track?: string;
+    module_family?: string;
+    topic_tags?: string[];
+    exercise_format?: string;
+    scenario_present?: boolean;
+    law_topics?: string[];
+    communication_context?: string[];
+  };
 };
 
 const TEST_CASES: TestCase[] = [
@@ -133,6 +142,8 @@ async function verifyResults(
     material_type: r.material_type,
     source: r.source,
     mbo_level: r.mbo_level,
+    language_variant: r.language_variant,
+    metadata: r.metadata,
   }));
 
   const prompt = [

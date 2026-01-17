@@ -208,23 +208,25 @@ Requires `ANTHROPIC_API_KEY` or `OPENAI_API_KEY` in `learnplay.env`.
 
 **Pass Rate: 7/13 (54%)**
 
+**Last evaluation:** 2026-01-15
+
 ### Passing
-- privacy, wet-zorg-en-dwang, zorgverzekeringswet
+- wet-zorg-en-dwang, zorgverzekeringswet
 - anatomie-fysiologie, klinisch-redeneren, hygiene
-- wetgeving-category-filter
+- wetgeving, wetgeving-category-filter
 
 ### Failing (Corpus Gaps)
 
 | Query | Issue |
 |-------|-------|
-| zorgplicht | Only 1 item in corpus |
-| communicatie-client | Content exists but not practical exercises |
-| wondzorg | Only VMS surgical content, no general wound care |
-| veiligheid-incident | VIM content is basic knowledge, not scenarios |
-| wetgeving | Content too basic for B2 level |
-| medicatie | Only medication verification, no pharmacology |
+| zorgplicht | Results are tangential to duty of care and miss explicit zorgplicht framing or scenarios |
+| privacy | Mostly generic AVG knowledge checks, not healthcare-specific privacy dilemmas |
+| communicatie-client | Theory-heavy questions; lacks practical communication/role-play exercises |
+| veiligheid-incident | No practical incident reporting or analysis assignments |
+| wondzorg | Specialized triage/surgery content, no foundational wound care theory |
+| medicatie | Overly concentrated on VMS high-risk meds; missing foundational pharmacology topics |
 
-These failures are **corpus content gaps**, not search ranking issues. The search correctly returns the most relevant content available.
+These failures are **corpus content gaps**, not search ranking issues. The search returns the most relevant content available, but the corpus lacks practical, foundational materials for these intents.
 
 ---
 
@@ -232,20 +234,19 @@ These failures are **corpus content gaps**, not search ranking issues. The searc
 
 ### To Reach 80% Pass Rate
 
-1. **Index more MES courses:**
-   - Pvwh (Persoonlijke verzorging en woonzorg)
-   - Communication skills courses
-   - General wound care (not just VMS)
-   - Foundational pharmacology
+1. **Index/ingest additional MES coverage:**
+   - Zorgplicht and professional conduct modules with explicit duty-of-care framing
+   - Practical privacy cases in healthcare settings (patient data, dossiers, consent)
+   - Communication skills with role-play or scenario formats
+   - Foundational wound care theory modules (healing phases, assessment)
+   - Foundational pharmacology (drug classes, dosing, routes, side effects)
 
-2. **Consider adjusting LLM verifier:**
-   - Current verifier is strict about B2 complexity
-   - MES content may not be labeled with B2 markers
-   - Could relax criteria or add B2 level metadata to indexed content
+2. **Use metadata-driven filtering in the cockpit:**
+   - Encourage teachers to filter by topic tags and scenario presence
+   - Prioritize scenario-present exercises when the query implies practice
 
-3. **Expand term expansion:**
-   - Add more Dutch compound word patterns
-   - Consider synonym expansion for common healthcare terms
+3. **Improve preview richness (optional):**
+   - Longer excerpts for scenario-based exercises so teachers can judge fit quickly
 
 ---
 

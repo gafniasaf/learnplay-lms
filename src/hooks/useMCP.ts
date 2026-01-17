@@ -892,6 +892,13 @@ export function useMCP() {
     mbo_level?: string;
     source?: string;
     language_variant?: string;
+    mbo_track?: string;
+    module_family?: string;
+    topic_tag?: string;
+    exercise_format?: string;
+    scenario_present?: boolean;
+    law_topic?: string;
+    communication_context?: string;
     limit?: number;
   }) => {
     setLoading(true);
@@ -913,6 +920,13 @@ export function useMCP() {
       if (typeof payload.mbo_level === "string" && payload.mbo_level.trim()) queryParams.mbo_level = payload.mbo_level.trim();
       if (typeof payload.source === "string" && payload.source.trim()) queryParams.source = payload.source.trim();
       if (typeof payload.language_variant === "string" && payload.language_variant.trim()) queryParams.language_variant = payload.language_variant.trim();
+      if (typeof payload.mbo_track === "string" && payload.mbo_track.trim()) queryParams.mbo_track = payload.mbo_track.trim();
+      if (typeof payload.module_family === "string" && payload.module_family.trim()) queryParams.module_family = payload.module_family.trim();
+      if (typeof payload.topic_tag === "string" && payload.topic_tag.trim()) queryParams.topic_tag = payload.topic_tag.trim();
+      if (typeof payload.exercise_format === "string" && payload.exercise_format.trim()) queryParams.exercise_format = payload.exercise_format.trim();
+      if (typeof payload.scenario_present === "boolean") queryParams.scenario_present = payload.scenario_present ? "true" : "false";
+      if (typeof payload.law_topic === "string" && payload.law_topic.trim()) queryParams.law_topic = payload.law_topic.trim();
+      if (typeof payload.communication_context === "string" && payload.communication_context.trim()) queryParams.communication_context = payload.communication_context.trim();
       if (typeof payload.limit === "number" && Number.isFinite(payload.limit)) queryParams.limit = String(Math.floor(payload.limit));
 
       return await callEdgeFunctionGet<SearchCuratedMaterialsResponse>("search-curated-materials", queryParams);

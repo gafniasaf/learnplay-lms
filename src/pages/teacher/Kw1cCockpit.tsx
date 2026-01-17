@@ -19,6 +19,15 @@ type CuratedResult = {
   material_type?: string;
   language_variant?: string;
   kd_codes?: string[];
+  metadata?: {
+    mbo_track?: string;
+    module_family?: string;
+    topic_tags?: string[];
+    exercise_format?: string;
+    scenario_present?: boolean;
+    law_topics?: string[];
+    communication_context?: string[];
+  };
 };
 
 const MATERIAL_TYPE_LABELS: Record<string, string> = {
@@ -29,9 +38,77 @@ const MATERIAL_TYPE_LABELS: Record<string, string> = {
   oefening: "Oefening",
 };
 
+const MBO_TRACK_LABELS: Record<string, string> = {
+  verpleegkunde: "Verpleegkunde",
+  verzorgende_ig: "Verzorgende IG",
+  assisterende_gezondheidszorg: "Assisterende Gezondheidszorg",
+  ggz: "GGZ",
+  doktersassistent: "Doktersassistent",
+  apothekersassistent: "Apothekersassistent",
+  tandartsassistent: "Tandartsassistent",
+  vvt: "VVT",
+};
+
+const MODULE_FAMILY_LABELS: Record<string, string> = {
+  pvwh: "Pvwh",
+  pkr: "Pkr",
+  triage: "Triage",
+  vms: "VMS",
+  wetgeving: "Wetgeving",
+  communicatie: "Communicatie",
+  verpleegtechnische_handelingen: "Verpleegtechnische handelingen",
+  pathologie: "Pathologie",
+};
+
+const TOPIC_TAG_LABELS: Record<string, string> = {
+  communication: "Communicatie",
+  woundcare: "Wondzorg",
+  medication: "Medicatie",
+  incident: "Incidenten",
+  law: "Wetgeving",
+  privacy: "Privacy",
+  hygiene: "Hygiene",
+  clinical_reasoning: "Klinisch redeneren",
+  anatomy: "Anatomie",
+  physiology: "Fysiologie",
+  triage: "Triage",
+  patient_safety: "Patientveiligheid",
+  ethics: "Ethiek",
+};
+
+const LAW_TOPIC_LABELS: Record<string, string> = {
+  wkkgz: "Wkkgz",
+  wzd: "Wzd",
+  wvggz: "Wvggz",
+  zvw: "Zvw",
+  wlz: "Wlz",
+  big: "BIG",
+  wgbo: "WGBO",
+  avg: "AVG",
+};
+
+const COMMUNICATION_CONTEXT_LABELS: Record<string, string> = {
+  triage: "Triage",
+  voorlichting: "Voorlichting",
+  advies: "Advies",
+  instructie: "Instructie",
+  weigering: "Weigering",
+  clientgesprek: "Clientgesprek",
+};
+
 function formatMaterialType(value?: string): string {
   const key = (value || "").trim().toLowerCase();
   return MATERIAL_TYPE_LABELS[key] || (value || "");
+}
+
+function formatTag(value: string | undefined, labels: Record<string, string>): string {
+  const key = (value || "").trim().toLowerCase();
+  if (!key) return "";
+  return labels[key] || value || "";
+}
+
+function uniqueSorted(values: string[]): string[] {
+  return Array.from(new Set(values.filter(Boolean))).sort((a, b) => a.localeCompare(b));
 }
 
 function formatSource(value?: string): string {
@@ -81,6 +158,12 @@ export default function Kw1cCockpit() {
   const [categoryFilter, setCategoryFilter] = React.useState("");
   const [mboLevelFilter, setMboLevelFilter] = React.useState("");
   const [sourceFilter, setSourceFilter] = React.useState("");
+  const [mboTrackFilter, setMboTrackFilter] = React.useState("");
+  const [moduleFamilyFilter, setModuleFamilyFilter] = React.useState("");
+  const [topicTagFilter, setTopicTagFilter] = React.useState("");
+  const [lawTopicFilter, setLawTopicFilter] = React.useState("");
+  const [communicationContextFilter, setCommunicationContextFilter] = React.useState("");
+  const [scenarioOnly, setScenarioOnly] = React.useState(false);
   const [languageVariant, setLanguageVariant] = React.useState<"b2" | "b1" | "a2" | "ar">("b2");
 
   const [curatedResults, setCuratedResults] = React.useState<CuratedResult[]>([]);
@@ -168,6 +251,12 @@ export default function Kw1cCockpit() {
         category: categoryFilter.trim() || undefined,
         mbo_level: mboLevelFilter.trim() || undefined,
         source: sourceFilter.trim() || undefined,
+        mbo_track: mboTrackFilter.trim() || undefined,
+        module_family: moduleFamilyFilter.trim() || undefined,
+        topic_tag: topicTagFilter.trim() || undefined,
+        law_topic: lawTopicFilter.trim() || undefined,
+        communication_context: communicationContextFilter.trim() || undefined,
+        scenario_present: scenarioOnly ? true : undefined,
         language_variant: languageVariant,
         limit: 20,
       });
@@ -194,16 +283,33 @@ export default function Kw1cCockpit() {
           const category = typeof r?.category === "string" ? r.category : "";
           const mboLevel = typeof r?.mbo_level === "string" ? r.mbo_level : "";
           const source = typeof r?.source === "string" ? r.source : "";
+          const metadata = (r?.metadata && typeof r.metadata === "object") ? r.metadata as Record<string, unknown> : {};
+          const mboTrack = typeof metadata.mbo_track === "string" ? metadata.mbo_track : "";
+          const moduleFamily = typeof metadata.module_family === "string" ? metadata.module_family : "";
+          const topicTags = Array.isArray(metadata.topic_tags) ? metadata.topic_tags : [];
+          const scenarioPresent = metadata.scenario_present === true;
           const storage_bucket = typeof r?.storage_bucket === "string" ? r.storage_bucket : "";
           const storage_path = typeof r?.storage_path === "string" ? r.storage_path : "";
           const sourceLabel = formatSource(source);
           const mboLabel = formatMboLevel(mboLevel);
           const typeLabel = formatMaterialType(mt);
+          const trackLabel = formatTag(mboTrack, MBO_TRACK_LABELS);
+          const moduleLabel = formatTag(moduleFamily, MODULE_FAMILY_LABELS);
+          const topicLabel = topicTags
+            .map((tag) => formatTag(tag, TOPIC_TAG_LABELS))
+            .filter(Boolean)
+            .slice(0, 2)
+            .join(", ");
+          const scenarioLabel = scenarioPresent ? "Scenario" : "";
           const metaParts = [
             sourceLabel ? sourceLabel : null,
             mboLabel ? mboLabel : null,
             typeLabel ? typeLabel : null,
             lv ? lv.toUpperCase() : null,
+            trackLabel ? trackLabel : null,
+            moduleLabel ? moduleLabel : null,
+            topicLabel ? topicLabel : null,
+            scenarioLabel ? scenarioLabel : null,
             kd.length ? kd.slice(0, 3).join(", ") : null,
           ].filter(Boolean);
           return {
@@ -215,6 +321,7 @@ export default function Kw1cCockpit() {
             category: category || undefined,
             mbo_level: mboLevel || undefined,
             source: source || undefined,
+            metadata: r?.metadata,
             storage_bucket: storage_bucket || undefined,
             storage_path: storage_path || undefined,
             material_type: mt || undefined,
@@ -230,7 +337,22 @@ export default function Kw1cCockpit() {
     } finally {
       setSearchLoading(false);
     }
-  }, [mcp, query, kdCode, materialType, categoryFilter, mboLevelFilter, sourceFilter, languageVariant]);
+  }, [
+    mcp,
+    query,
+    kdCode,
+    materialType,
+    categoryFilter,
+    mboLevelFilter,
+    sourceFilter,
+    mboTrackFilter,
+    moduleFamilyFilter,
+    topicTagFilter,
+    lawTopicFilter,
+    communicationContextFilter,
+    scenarioOnly,
+    languageVariant,
+  ]);
 
   const categoryOptions = React.useMemo(() => {
     const unique = new Set<string>();
@@ -238,6 +360,51 @@ export default function Kw1cCockpit() {
       extractCategoryLabels(r.category).forEach((label) => unique.add(label));
     });
     return Array.from(unique).sort((a, b) => a.localeCompare(b));
+  }, [curatedResults]);
+
+  const mboTrackOptions = React.useMemo(() => {
+    const values: string[] = [];
+    curatedResults.forEach((r) => {
+      const track = r.metadata?.mbo_track;
+      if (track) values.push(track);
+    });
+    return uniqueSorted(values);
+  }, [curatedResults]);
+
+  const moduleFamilyOptions = React.useMemo(() => {
+    const values: string[] = [];
+    curatedResults.forEach((r) => {
+      const moduleFamily = r.metadata?.module_family;
+      if (moduleFamily) values.push(moduleFamily);
+    });
+    return uniqueSorted(values);
+  }, [curatedResults]);
+
+  const topicTagOptions = React.useMemo(() => {
+    const values: string[] = [];
+    curatedResults.forEach((r) => {
+      const tags = r.metadata?.topic_tags || [];
+      tags.forEach((tag) => values.push(tag));
+    });
+    return uniqueSorted(values);
+  }, [curatedResults]);
+
+  const lawTopicOptions = React.useMemo(() => {
+    const values: string[] = [];
+    curatedResults.forEach((r) => {
+      const topics = r.metadata?.law_topics || [];
+      topics.forEach((topic) => values.push(topic));
+    });
+    return uniqueSorted(values);
+  }, [curatedResults]);
+
+  const communicationContextOptions = React.useMemo(() => {
+    const values: string[] = [];
+    curatedResults.forEach((r) => {
+      const contexts = r.metadata?.communication_context || [];
+      contexts.forEach((context) => values.push(context));
+    });
+    return uniqueSorted(values);
   }, [curatedResults]);
 
   const openCuratedResult = React.useCallback(async (result: CuratedResult) => {
@@ -477,6 +644,132 @@ export default function Kw1cCockpit() {
                 <option value="n3">N3</option>
                 <option value="n4">N4</option>
               </select>
+            </label>
+
+            <label>
+              MBO track
+              <select
+                data-cta-id="cta-kw1c-mbo-track"
+                data-action="select"
+                value={mboTrackFilter}
+                onChange={(e) => setMboTrackFilter(e.target.value)}
+              >
+                <option value="">Alle tracks</option>
+                {mboTrackOptions.length === 0 ? (
+                  <option value="" disabled>
+                    Geen tracks gevonden (eerst zoeken)
+                  </option>
+                ) : (
+                  mboTrackOptions.map((track) => (
+                    <option key={track} value={track}>
+                      {formatTag(track, MBO_TRACK_LABELS)}
+                    </option>
+                  ))
+                )}
+              </select>
+            </label>
+
+            <label>
+              Module
+              <select
+                data-cta-id="cta-kw1c-module-family"
+                data-action="select"
+                value={moduleFamilyFilter}
+                onChange={(e) => setModuleFamilyFilter(e.target.value)}
+              >
+                <option value="">Alle modules</option>
+                {moduleFamilyOptions.length === 0 ? (
+                  <option value="" disabled>
+                    Geen modules gevonden (eerst zoeken)
+                  </option>
+                ) : (
+                  moduleFamilyOptions.map((moduleFamily) => (
+                    <option key={moduleFamily} value={moduleFamily}>
+                      {formatTag(moduleFamily, MODULE_FAMILY_LABELS)}
+                    </option>
+                  ))
+                )}
+              </select>
+            </label>
+
+            <label>
+              Onderwerp
+              <select
+                data-cta-id="cta-kw1c-topic-tag"
+                data-action="select"
+                value={topicTagFilter}
+                onChange={(e) => setTopicTagFilter(e.target.value)}
+              >
+                <option value="">Alle onderwerpen</option>
+                {topicTagOptions.length === 0 ? (
+                  <option value="" disabled>
+                    Geen onderwerpen gevonden (eerst zoeken)
+                  </option>
+                ) : (
+                  topicTagOptions.map((topic) => (
+                    <option key={topic} value={topic}>
+                      {formatTag(topic, TOPIC_TAG_LABELS)}
+                    </option>
+                  ))
+                )}
+              </select>
+            </label>
+
+            <label>
+              Wetgeving onderwerp
+              <select
+                data-cta-id="cta-kw1c-law-topic"
+                data-action="select"
+                value={lawTopicFilter}
+                onChange={(e) => setLawTopicFilter(e.target.value)}
+              >
+                <option value="">Alle onderwerpen</option>
+                {lawTopicOptions.length === 0 ? (
+                  <option value="" disabled>
+                    Geen wetgeving gevonden (eerst zoeken)
+                  </option>
+                ) : (
+                  lawTopicOptions.map((topic) => (
+                    <option key={topic} value={topic}>
+                      {formatTag(topic, LAW_TOPIC_LABELS)}
+                    </option>
+                  ))
+                )}
+              </select>
+            </label>
+
+            <label>
+              Communicatie context
+              <select
+                data-cta-id="cta-kw1c-communication-context"
+                data-action="select"
+                value={communicationContextFilter}
+                onChange={(e) => setCommunicationContextFilter(e.target.value)}
+              >
+                <option value="">Alle contexten</option>
+                {communicationContextOptions.length === 0 ? (
+                  <option value="" disabled>
+                    Geen context gevonden (eerst zoeken)
+                  </option>
+                ) : (
+                  communicationContextOptions.map((context) => (
+                    <option key={context} value={context}>
+                      {formatTag(context, COMMUNICATION_CONTEXT_LABELS)}
+                    </option>
+                  ))
+                )}
+              </select>
+            </label>
+
+            <label>
+              Alleen scenario
+              <input
+                data-cta-id="cta-kw1c-scenario"
+                data-action="toggle"
+                type="checkbox"
+                checked={scenarioOnly}
+                onChange={(e) => setScenarioOnly(e.target.checked)}
+              />
             </label>
 
             <label>

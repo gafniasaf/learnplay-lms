@@ -54,6 +54,17 @@ export const CuratedMaterialPackV1Schema = z.object({
 });
 export type CuratedMaterialPackV1 = z.infer<typeof CuratedMaterialPackV1Schema>;
 
+export const CuratedMaterialMetadataSchema = z.object({
+  mbo_track: z.string().min(1).optional(),
+  module_family: z.string().min(1).optional(),
+  topic_tags: z.array(z.string().min(1)).default([]),
+  exercise_format: z.string().min(1).optional(),
+  scenario_present: z.boolean().optional(),
+  law_topics: z.array(z.string().min(1)).default([]),
+  communication_context: z.array(z.string().min(1)).default([]),
+});
+export type CuratedMaterialMetadata = z.infer<typeof CuratedMaterialMetadataSchema>;
+
 /**
  * Search/index record stored in `entity_records.data` for entity="curated-material".
  * This record must be sufficient for `search-curated-materials` to rank + preview results
@@ -67,6 +78,7 @@ export const CuratedMaterialIndexRecordV1Schema = z.object({
   kd_codes: z.array(z.string().min(1)).default([]),
   // Shared search keywords (e.g. module/domain tags); per-variant keywords live under `variants`.
   keywords: z.array(z.string().min(1)).default([]),
+  metadata: CuratedMaterialMetadataSchema.optional(),
   variants: z.object({
     b2: z.object({
       storage_bucket: z.literal(CURATED_STORAGE_BUCKET),
