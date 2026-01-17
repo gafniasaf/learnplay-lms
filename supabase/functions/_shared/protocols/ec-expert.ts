@@ -454,7 +454,7 @@ function lintExercise(ex: any, idx: number, ctx?: { studyText?: string }): LintI
   }
 
   // Option hygiene (common senior revision flags)
-  const optionLens = options.map((o) => String(o).trim().length).filter((n) => n > 0);
+  const optionLens = options.map((o: unknown) => String(o).trim().length).filter((n: number) => n > 0);
   if (optionLens.length >= 3) {
     const min = Math.min(...optionLens);
     const max = Math.max(...optionLens);
@@ -479,7 +479,7 @@ function lintExercise(ex: any, idx: number, ctx?: { studyText?: string }): LintI
   }
 
   const capFlags = options.map(startsWithCapitalOrDigit);
-  if (capFlags.some((ok) => !ok)) {
+  if (capFlags.some((ok: boolean) => !ok)) {
     issues.push({
       code: "option_capitalization",
       severity: "warn",
@@ -1859,7 +1859,21 @@ BELANGRIJK:
     }));
 
     const items = Array.isArray(workingSkeleton.items) ? workingSkeleton.items : [];
-    const filledItems = items.map((sk: any) => ({
+    const filledItems: Array<{
+      _meta?: any;
+      id: any;
+      text: string;
+      groupId: any;
+      clusterId: any;
+      variant: any;
+      mode: any;
+      options?: string[];
+      correctIndex?: number;
+      explain?: string;
+      hints?: HintSet;
+      learningObjectiveId?: string;
+      relatedStudyTextIds?: string[];
+    }> = items.map((sk: any) => ({
       id: sk.id,
       text: "__FILL__",
       groupId: sk.groupId,
