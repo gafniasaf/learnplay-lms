@@ -269,7 +269,7 @@ serve(async (req: Request): Promise<Response> => {
       paused: nextPaused,
       cancelled: nextCancelled,
       note: nextNote,
-      updated_by: auth.user?.id ?? null,
+      updated_by: auth.userId ?? null,
       updated_at: new Date().toISOString(),
     };
 

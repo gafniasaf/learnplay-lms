@@ -29,7 +29,7 @@ function truncateForEmbedding(input: string, maxChars = 12000): string {
 }
 
 async function downloadBytes(
-  supabase: ReturnType<typeof createClient>,
+  supabase: any,
   bucket: string,
   path: string,
 ): Promise<Uint8Array> {
@@ -40,7 +40,7 @@ async function downloadBytes(
 }
 
 async function uploadText(
-  supabase: ReturnType<typeof createClient>,
+  supabase: any,
   bucket: string,
   path: string,
   text: string,
@@ -52,7 +52,7 @@ async function uploadText(
 }
 
 async function uploadJson(
-  supabase: ReturnType<typeof createClient>,
+  supabase: any,
   bucket: string,
   path: string,
   data: unknown,

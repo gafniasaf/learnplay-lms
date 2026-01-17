@@ -261,7 +261,7 @@ serve(async (req: Request): Promise<Response> => {
           if (termHits === 1 && terms.length > 1) score -= 2;
         }
       }
-      if (kdCode && kdCodes.some((c) => c.toLowerCase() === kdCode.toLowerCase())) score += 5;
+      if (kdCode && kdCodes.some((c: string) => c.toLowerCase() === kdCode.toLowerCase())) score += 5;
       if (materialType && mt.toLowerCase() === materialType.toLowerCase()) score += 2;
       if (pickedLang && languageVariant && pickedLang.toLowerCase() === languageVariant.toLowerCase()) score += 2;
 
@@ -284,7 +284,7 @@ serve(async (req: Request): Promise<Response> => {
     })
     .filter((r) => {
       if (!r.title) return false;
-      if (kdCode && !(r.kd_codes || []).some((c) => c.toLowerCase() === kdCode.toLowerCase())) return false;
+      if (kdCode && !(r.kd_codes || []).some((c: string) => c.toLowerCase() === kdCode.toLowerCase())) return false;
       if (materialType && (r.material_type || "").toLowerCase() !== materialType.toLowerCase()) return false;
       if (categoryFilter && !(r.category || "").toLowerCase().includes(categoryFilter.toLowerCase())) return false;
       if (mboLevelFilter && (r.mbo_level || "").toLowerCase() !== mboLevelFilter.toLowerCase()) return false;

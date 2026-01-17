@@ -20,7 +20,7 @@ type Body = {
   courseId: string;
 };
 
-function json(req: Request, body: unknown, requestId: string, status = 200): Response {
+function json(req: Request, body: Record<string, unknown>, requestId: string, status = 200): Response {
   return new Response(JSON.stringify({ ...body, requestId }), {
     status,
     headers: stdHeaders(req, { "Content-Type": "application/json", "X-Request-Id": requestId }),

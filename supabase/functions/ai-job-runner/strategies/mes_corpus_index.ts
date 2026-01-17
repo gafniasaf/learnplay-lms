@@ -68,7 +68,7 @@ type MesCorpusIndexFile = {
 };
 
 async function downloadJsonOrNull(
-  supabase: ReturnType<typeof createClient>,
+  supabase: any,
   bucket: string,
   path: string,
 ): Promise<any | null> {
@@ -84,7 +84,7 @@ async function downloadJsonOrNull(
 }
 
 async function uploadJson(
-  supabase: ReturnType<typeof createClient>,
+  supabase: any,
   bucket: string,
   path: string,
   data: unknown,
