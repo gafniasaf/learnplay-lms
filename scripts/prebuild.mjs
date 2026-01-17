@@ -21,7 +21,7 @@ function parseEnvFile(filePath) {
     const text = fs.readFileSync(filePath, "utf-8");
     const out = {};
     for (const raw of text.split(/\r?\n/)) {
-      const line = String(raw ?? "").trim();
+      const line = typeof raw === "string" ? raw.trim() : "";
       if (!line || line.startsWith("#")) continue;
       const idx = line.indexOf("=");
       if (idx <= 0) continue;
@@ -53,20 +53,25 @@ function findMcpEnvFile() {
   return null;
 }
 
+function readEnv(name) {
+  const v = process.env[name];
+  return typeof v === "string" ? v.trim() : "";
+}
+
 function hasMcpConfig() {
-  const token = String(process.env.MCP_AUTH_TOKEN || "").trim();
-  const baseUrl = String(process.env.MCP_BASE_URL || "").trim();
-  const host = String(process.env.HOST || "").trim();
-  const port = String(process.env.PORT || "").trim();
+  const token = readEnv("MCP_AUTH_TOKEN");
+  const baseUrl = readEnv("MCP_BASE_URL");
+  const host = readEnv("HOST");
+  const port = readEnv("PORT");
   if (token && (baseUrl || (host && port))) return true;
 
   const envFile = findMcpEnvFile();
   if (!envFile) return false;
   const env = parseEnvFile(envFile);
-  const fileToken = String(env.MCP_AUTH_TOKEN || "").trim();
-  const fileBaseUrl = String(env.MCP_BASE_URL || "").trim();
-  const fileHost = String(env.HOST || "").trim();
-  const filePort = String(env.PORT || "").trim();
+  const fileToken = typeof env.MCP_AUTH_TOKEN === "string" ? env.MCP_AUTH_TOKEN.trim() : "";
+  const fileBaseUrl = typeof env.MCP_BASE_URL === "string" ? env.MCP_BASE_URL.trim() : "";
+  const fileHost = typeof env.HOST === "string" ? env.HOST.trim() : "";
+  const filePort = typeof env.PORT === "string" ? env.PORT.trim() : "";
   return !!(fileToken && (fileBaseUrl || (fileHost && filePort)));
 }
 
