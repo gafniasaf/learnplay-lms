@@ -1,4 +1,4 @@
-import { Toaster } from "@/components/ui/toaster";
+﻿import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -33,6 +33,7 @@ const AdminImportLegacyCourse = lazy(() => import("./pages/admin/ImportLegacyCou
 const AdminLibraryCourses = lazy(() => import("./pages/admin/LibraryCourses"));
 const AdminLibraryCourseDetail = lazy(() => import("./pages/admin/LibraryCourseDetail"));
 const TeacherAssignments = lazy(() => import("./pages/teacher/Assignments"));
+const TeacherKw1cCockpit = lazy(() => import("./pages/teacher/Kw1cCockpit"));
 const TeacherLessonKits = lazy(() => import("./pages/teacher/LessonKits"));
 const TeacherMaterials = lazy(() => import("./pages/teacher/Materials"));
 const TeacherStandards = lazy(() => import("./pages/teacher/Standards"));
@@ -446,6 +447,7 @@ const App = () => {
                       <Route path="/admin/library-courses" element={<AdminLibraryCourses />} />
                       <Route path="/admin/library-courses/:courseId" element={<AdminLibraryCourseDetail />} />
                       <Route path="/teacher/assignment-progress" element={<TeacherAssignments />} />
+                      <Route path="/teacher/kw1c-cockpit" element={<TeacherKw1cCockpit />} />
                       <Route path="/teacher/lesson-kits" element={<TeacherLessonKits />} />
                       <Route path="/teacher/materials" element={<TeacherMaterials />} />
                       <Route path="/teacher/standards" element={<TeacherStandards />} />
