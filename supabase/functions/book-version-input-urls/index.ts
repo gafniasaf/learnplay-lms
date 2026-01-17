@@ -451,7 +451,7 @@ serve(async (req: Request): Promise<Response> => {
         const selectedChapterIndices =
           body.target === "chapter" && imageMapChapterIndex !== null
             ? [imageMapChapterIndex]
-            : chaptersAll.map((_, i) => i);
+            : chaptersAll.map((_: unknown, i: number) => i);
 
         const extraNeeded = new Set<string>();
 

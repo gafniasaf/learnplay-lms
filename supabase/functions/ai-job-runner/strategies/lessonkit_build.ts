@@ -32,7 +32,7 @@ function requireEnv(name: string): string {
 }
 
 async function uploadJson(
-  supabase: ReturnType<typeof createClient>,
+  supabase: any,
   path: string,
   data: unknown,
 ): Promise<void> {
@@ -46,7 +46,7 @@ async function uploadJson(
 }
 
 async function downloadText(
-  supabase: ReturnType<typeof createClient>,
+  supabase: any,
   bucket: string,
   path: string,
 ): Promise<string> {

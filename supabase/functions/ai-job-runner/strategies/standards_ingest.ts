@@ -23,7 +23,7 @@ function requireString(payload: Record<string, unknown>, key: string): string {
 }
 
 async function downloadBytes(
-  supabase: ReturnType<typeof createClient>,
+  supabase: any,
   bucket: string,
   path: string,
 ): Promise<Uint8Array> {
@@ -34,7 +34,7 @@ async function downloadBytes(
 }
 
 async function uploadJson(
-  supabase: ReturnType<typeof createClient>,
+  supabase: any,
   bucket: string,
   path: string,
   data: unknown,

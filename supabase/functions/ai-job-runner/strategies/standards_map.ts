@@ -22,7 +22,7 @@ function optionalNumber(payload: Record<string, unknown>, key: string): number |
 }
 
 async function uploadJson(
-  supabase: ReturnType<typeof createClient>,
+  supabase: any,
   bucket: string,
   path: string,
   data: unknown,
@@ -33,7 +33,7 @@ async function uploadJson(
 }
 
 async function downloadJson(
-  supabase: ReturnType<typeof createClient>,
+  supabase: any,
   bucket: string,
   path: string,
 ): Promise<any> {

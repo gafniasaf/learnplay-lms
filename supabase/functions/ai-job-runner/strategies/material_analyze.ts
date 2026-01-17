@@ -17,7 +17,7 @@ function optionalString(payload: Record<string, unknown>, key: string): string |
 }
 
 async function downloadText(
-  supabase: ReturnType<typeof createClient>,
+  supabase: any,
   bucket: string,
   path: string,
 ): Promise<string> {
@@ -30,7 +30,7 @@ async function downloadText(
 }
 
 async function uploadJson(
-  supabase: ReturnType<typeof createClient>,
+  supabase: any,
   bucket: string,
   path: string,
   data: unknown,

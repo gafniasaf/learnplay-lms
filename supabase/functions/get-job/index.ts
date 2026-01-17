@@ -83,14 +83,12 @@ async function tryLoadCourseJobEvents(jobId: string, limit: number): Promise<any
   const safeLimit = Math.min(200, Math.max(1, Math.floor(limit)));
 
   try {
-    const { data: events, error } = await withRetry(() =>
-      supabase
+    const { data: events, error } = await supabase
         .from("job_events")
         .select("id,job_id,seq,step,status,progress,message,meta,created_at")
         .eq("job_id", jobId)
         .order("created_at", { ascending: true })
-        .limit(safeLimit),
-    );
+        .limit(safeLimit);
     if (error) {
       if (isMissingEventsTable(error)) return [];
       throw error;
@@ -107,14 +105,12 @@ async function tryLoadAgentJobEvents(jobId: string, limit: number): Promise<any[
   const safeLimit = Math.min(200, Math.max(1, Math.floor(limit)));
 
   try {
-    const { data: events, error } = await withRetry(() =>
-      supabase
+    const { data: events, error } = await supabase
         .from("agent_job_events")
         .select("id,job_id,seq,step,status,progress,message,meta,created_at")
         .eq("job_id", jobId)
         .order("created_at", { ascending: true })
-        .limit(safeLimit),
-    );
+        .limit(safeLimit);
     if (error) {
       if (isMissingEventsTable(error)) return [];
       throw error;
@@ -223,9 +219,9 @@ serve(async (req: Request): Promise<Response> => {
   let courseJob: any | null = null;
   let courseErr: any | null = null;
   try {
-    const res = await withRetry(() => courseQuery.maybeSingle());
-    courseJob = (res as any)?.data ?? null;
-    courseErr = (res as any)?.error ?? null;
+    const res = await courseQuery.maybeSingle();
+    courseJob = res?.data ?? null;
+    courseErr = res?.error ?? null;
   } catch (e) {
     if (isTransientNetworkError(e)) {
       const message = e instanceof Error ? e.message : String(e || "Network connection lost");
@@ -270,9 +266,9 @@ serve(async (req: Request): Promise<Response> => {
     let agentJob: any | null = null;
     let agentErr: any | null = null;
     try {
-      const res = await withRetry(() => agentQuery.maybeSingle());
-      agentJob = (res as any)?.data ?? null;
-      agentErr = (res as any)?.error ?? null;
+      const res = await agentQuery.maybeSingle();
+      agentJob = res?.data ?? null;
+      agentErr = res?.error ?? null;
     } catch (e) {
       if (isTransientNetworkError(e)) {
         const message = e instanceof Error ? e.message : String(e || "Network connection lost");
