@@ -90,6 +90,37 @@ const TOOL_DRAFT_BOOK_SECTION: AnthropicToolSpec = {
   },
 };
 
+const TOOL_REPAIR_BOX: AnthropicToolSpec = {
+  name: "repair_box_html",
+  description:
+    "Return ONLY JSON with { basisHtml, boxHtml }. " +
+    "basisHtml is 1-2 short sentences; boxHtml is 2-4 short sentences and MUST start with <span class=\"box-lead\">...</span>.",
+  input_schema: {
+    type: "object",
+    additionalProperties: true,
+    required: ["basisHtml", "boxHtml"],
+    properties: {
+      basisHtml: { type: "string" },
+      boxHtml: { type: "string" },
+    },
+  },
+};
+
+const TOOL_REPAIR_MICROHEADING: AnthropicToolSpec = {
+  name: "repair_microheading_content",
+  description:
+    "Return ONLY JSON with { basisHtml }. " +
+    "basisHtml is 2-4 short sentences for a microheading; inline HTML only.",
+  input_schema: {
+    type: "object",
+    additionalProperties: true,
+    required: ["basisHtml"],
+    properties: {
+      basisHtml: { type: "string" },
+    },
+  },
+};
+
 function buildDraftBookSectionToolSpec(requiredSubparagraphTitles: string[]): AnthropicToolSpec {
   const requiredCount = Array.isArray(requiredSubparagraphTitles) ? requiredSubparagraphTitles.length : 0;
   if (!requiredCount) return TOOL_DRAFT_BOOK_SECTION;
@@ -156,7 +187,24 @@ function buildDraftNumberedSubparagraphToolSpec(requiredNumberedTitle: string): 
         blocks: {
           type: "array",
           minItems: 1,
-          items: { type: "object", additionalProperties: true },
+          // Keep nested block shapes flexible, but require a `type` field so validators
+          // (basis paragraph counting, microheading checks) don't see an array of untyped objects.
+          items: {
+            type: "object",
+            additionalProperties: true,
+            required: ["type"],
+            properties: {
+              type: { type: "string", enum: ["subparagraph", "paragraph", "list", "steps"] },
+              title: { type: "string" },
+              blocks: { type: "array", items: { type: "object", additionalProperties: true } },
+              basisHtml: { type: "string" },
+              praktijkHtml: { type: "string" },
+              verdiepingHtml: { type: "string" },
+              ordered: { type: "boolean" },
+              items: { type: "array", items: { type: "string" } },
+              images: { type: "array", items: { type: "object", additionalProperties: true } },
+            },
+          },
         },
       },
     },
@@ -228,6 +276,14 @@ function parseMissingBoxTarget(
   const title = normalizeWs(m[2] || "");
   if (!title) return null;
   return { kind, title };
+}
+
+function parseMissingMicroheadingTitle(reason: string): string | null {
+  const msg = String(reason || "");
+  const m = msg.match(/Microheading '([^']+)' has no meaningful content/);
+  if (!m) return null;
+  const title = normalizeWs(m[1] || "");
+  return title || null;
 }
 
 function normalizeWs(s: string): string {
@@ -975,6 +1031,7 @@ function buildNumberedSubparagraphPrompt(opts: {
             : "2-4"
       );
   const imageRule = opts.requireImageSuggestion ? "1-2 (REQUIRED in this subparagraph)" : "0-1";
+  const minBasisPerSub = opts.layoutProfile === "sparse" ? 1 : 2;
   const boxRules = (() => {
     if (opts.requirePraktijkBox && opts.requireVerdiepingBox) {
       return (
@@ -1027,6 +1084,8 @@ function buildNumberedSubparagraphPrompt(opts: {
     `- Add ${microRule} microheadings as nested subparagraph blocks (1-6 words).\n` +
     "- Microheading titles MUST NOT contain punctuation characters: : ; ? !\n" +
     `- Include ${paragraphRule} paragraph blocks (basisHtml) across the microheadings.\n` +
+    `- MUST include at least ${minBasisPerSub} paragraph block(s) with NON-EMPTY basisHtml (2-4 short sentences each).\n` +
+    "- IMPORTANT: list/steps items do NOT count as basisHtml paragraphs.\n" +
     boxRules +
     `- Include ${imageRule} image suggestions via images[].suggestedPrompt.\n` +
     "- Place images on paragraph/list/steps blocks as: images: [{ suggestedPrompt: string, alt?: string, caption?: string, layoutHint?: string }]\n" +
@@ -1067,6 +1126,468 @@ function countBasisParagraphs(blocksRaw: any[]): number {
     }
   }
   return n;
+}
+
+function stripHtmlToText(html: unknown): string {
+  const s = typeof html === "string" ? html : "";
+  return s.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+}
+
+function collectContextSnippet(blocksRaw: any[], maxChars: number): string {
+  const limit = Math.max(0, Math.floor(maxChars || 0));
+  if (!limit) return "";
+  let out = "";
+  const push = (raw: unknown) => {
+    if (!raw || out.length >= limit) return;
+    const text = stripHtmlToText(raw);
+    if (!text) return;
+    const next = out ? `${out} ${text}` : text;
+    out = next.length > limit ? next.slice(0, limit) : next;
+  };
+  const walk = (raw: any[]) => {
+    const blocks = Array.isArray(raw) ? raw : [];
+    for (const b of blocks) {
+      if (out.length >= limit) return;
+      if (!b || typeof b !== "object") continue;
+      const t = String((b as any).type || "");
+      if (t === "paragraph") {
+        push((b as any).basisHtml);
+        continue;
+      }
+      if (t === "list" || t === "steps") {
+        const items = Array.isArray((b as any).items) ? (b as any).items : [];
+        for (const it of items) {
+          if (out.length >= limit) break;
+          push(it);
+        }
+        continue;
+      }
+      if (t === "subparagraph") {
+        walk(Array.isArray((b as any).blocks) ? (b as any).blocks : []);
+      }
+    }
+  };
+  walk(blocksRaw);
+  return out.trim();
+}
+
+function findNumberedSubparagraphBlock(draft: DraftSection, title: string): DraftBlock | null {
+  const want = normalizeWs(title);
+  const blocks = Array.isArray((draft as any)?.blocks) ? (draft as any).blocks : [];
+  for (const b of blocks) {
+    if (!b || typeof b !== "object") continue;
+    if ((b as any).type !== "subparagraph") continue;
+    const t = typeof (b as any).title === "string" ? normalizeWs((b as any).title) : "";
+    if (t === want) return b as DraftBlock;
+  }
+  return null;
+}
+
+type MicroheadingTarget = {
+  parentTitle: string;
+  parentBlock: DraftBlock;
+  microheading: DraftBlock;
+};
+
+function findMicroheadingInDraft(draft: DraftSection, microheadingTitle: string): MicroheadingTarget | null {
+  const want = normalizeWs(microheadingTitle);
+  const blocks = Array.isArray((draft as any)?.blocks) ? (draft as any).blocks : [];
+  for (const b of blocks) {
+    if (!b || typeof b !== "object") continue;
+    if ((b as any).type !== "subparagraph") continue;
+    const parentTitle = typeof (b as any).title === "string" ? normalizeWs((b as any).title) : "";
+    const inner = Array.isArray((b as any).blocks) ? (b as any).blocks : [];
+    for (const mh of inner) {
+      if (!mh || typeof mh !== "object") continue;
+      if ((mh as any).type !== "subparagraph") continue;
+      const t = typeof (mh as any).title === "string" ? normalizeWs((mh as any).title) : "";
+      if (t === want) {
+        return { parentTitle, parentBlock: b as DraftBlock, microheading: mh as DraftBlock };
+      }
+    }
+  }
+  return null;
+}
+
+function attachBoxHtmlToSubparagraphBlocks(opts: {
+  blocks: DraftBlock[];
+  kind: "praktijkHtml" | "verdiepingHtml";
+  boxHtml: string;
+  basisHtml: string;
+}): boolean {
+  const blocks = Array.isArray(opts.blocks) ? opts.blocks : [];
+  const kind = opts.kind;
+  const boxHtml = String(opts.boxHtml || "").trim();
+  const basisHtml = String(opts.basisHtml || "").trim();
+  if (!boxHtml) return false;
+
+  const walk = (arr: DraftBlock[]): boolean => {
+    for (const b of arr) {
+      if (!b || typeof b !== "object") continue;
+      const t = String((b as any).type || "");
+      if (t === "paragraph") {
+        const existing = typeof (b as any)[kind] === "string" ? String((b as any)[kind]).trim() : "";
+        if (!existing) {
+          (b as any)[kind] = boxHtml;
+          return true;
+        }
+        continue;
+      }
+      if (t === "subparagraph") {
+        const inner = Array.isArray((b as any).blocks) ? (b as any).blocks : [];
+        if (walk(inner as DraftBlock[])) return true;
+      }
+    }
+    return false;
+  };
+
+  if (walk(blocks)) return true;
+  if (!basisHtml) return false;
+  blocks.push({
+    type: "paragraph",
+    basisHtml,
+    ...(kind === "praktijkHtml" ? { praktijkHtml: boxHtml } : { verdiepingHtml: boxHtml }),
+  } as DraftBlock);
+  return true;
+}
+
+function buildBoxRepairPrompt(opts: {
+  bookTitle: string;
+  topic: string;
+  chapterNumber: number;
+  sectionNumber: string;
+  sectionTitle: string;
+  numberedSubparagraphTitle: string;
+  kind: "praktijkHtml" | "verdiepingHtml";
+  userInstructions?: string | null;
+  language: string;
+  contextSnippet: string;
+}): string {
+  const langLabel = normalizeLanguageLabel(opts.language);
+  const kindLabel = opts.kind === "praktijkHtml" ? "praktijk" : "verdieping";
+  return (
+    "Return JSON with this exact shape:\n" +
+    "{\n" +
+    '  "basisHtml": string,\n' +
+    '  "boxHtml": string\n' +
+    "}\n\n" +
+    `Book title: ${opts.bookTitle}\n` +
+    `Topic: ${opts.topic}\n` +
+    `Chapter: ${opts.chapterNumber}\n` +
+    `Section: ${opts.sectionNumber} ${opts.sectionTitle}\n` +
+    `Numbered subparagraph: ${opts.numberedSubparagraphTitle}\n` +
+    `Box kind: ${kindLabel}\n` +
+    `Book language: ${opts.language} (${langLabel})\n` +
+    (opts.userInstructions ? `User instructions: ${opts.userInstructions}\n` : "") +
+    "\nContext from this subparagraph:\n" +
+    (opts.contextSnippet || "(none)") +
+    "\n\nRequirements:\n" +
+    "- basisHtml: 1-2 short sentences that introduce the box context.\n" +
+    "- boxHtml: 2-4 short sentences; MUST start with <span class=\"box-lead\">...</span>.\n" +
+    "- Use only topics present in the context; do NOT invent new topics.\n" +
+    "- Inline HTML only. No markdown.\n"
+  );
+}
+
+function buildMicroheadingRepairPrompt(opts: {
+  bookTitle: string;
+  topic: string;
+  chapterNumber: number;
+  sectionNumber: string;
+  sectionTitle: string;
+  numberedSubparagraphTitle: string;
+  microheadingTitle: string;
+  userInstructions?: string | null;
+  language: string;
+  contextSnippet: string;
+}): string {
+  const langLabel = normalizeLanguageLabel(opts.language);
+  return (
+    "Return JSON with this exact shape:\n" +
+    "{\n" +
+    '  "basisHtml": string\n' +
+    "}\n\n" +
+    `Book title: ${opts.bookTitle}\n` +
+    `Topic: ${opts.topic}\n` +
+    `Chapter: ${opts.chapterNumber}\n` +
+    `Section: ${opts.sectionNumber} ${opts.sectionTitle}\n` +
+    `Numbered subparagraph: ${opts.numberedSubparagraphTitle}\n` +
+    `Microheading: ${opts.microheadingTitle}\n` +
+    `Book language: ${opts.language} (${langLabel})\n` +
+    (opts.userInstructions ? `User instructions: ${opts.userInstructions}\n` : "") +
+    "\nContext from this subparagraph:\n" +
+    (opts.contextSnippet || "(none)") +
+    "\n\nRequirements:\n" +
+    "- basisHtml: 2-4 short sentences for the microheading.\n" +
+    "- Use only topics present in the context; do NOT invent new topics.\n" +
+    "- Inline HTML only. No markdown.\n"
+  );
+}
+
+async function repairMissingBoxInDraft(opts: {
+  draft: DraftSection;
+  kind: "praktijkHtml" | "verdiepingHtml";
+  numberedSubparagraphTitle: string;
+  provider: Provider;
+  model: string;
+  system: string;
+  bookTitle: string;
+  topic: string;
+  chapterNumber: number;
+  sectionNumber: string;
+  sectionTitle: string;
+  language: string;
+  userInstructions?: string | null;
+}): Promise<boolean> {
+  const target = findNumberedSubparagraphBlock(opts.draft, opts.numberedSubparagraphTitle);
+  if (!target || (target as any).type !== "subparagraph") return false;
+  const blocks = Array.isArray((target as any).blocks) ? (target as any).blocks : [];
+  const contextSnippet = collectContextSnippet(blocks, 900);
+  const prompt = buildBoxRepairPrompt({
+    bookTitle: opts.bookTitle,
+    topic: opts.topic,
+    chapterNumber: opts.chapterNumber,
+    sectionNumber: opts.sectionNumber,
+    sectionTitle: opts.sectionTitle,
+    numberedSubparagraphTitle: opts.numberedSubparagraphTitle,
+    kind: opts.kind,
+    userInstructions: opts.userInstructions,
+    language: opts.language,
+    contextSnippet,
+  });
+  const raw = await llmGenerateJson({
+    provider: opts.provider,
+    model: opts.model,
+    system: opts.system,
+    prompt,
+    maxTokens: 700,
+    tool: TOOL_REPAIR_BOX,
+  });
+  const basisHtml = typeof (raw as any)?.basisHtml === "string" ? String((raw as any).basisHtml).trim() : "";
+  const boxHtmlRaw = typeof (raw as any)?.boxHtml === "string" ? String((raw as any).boxHtml).trim() : "";
+  if (!basisHtml) throw new Error("BLOCKED: Box repair returned empty basisHtml");
+  if (!boxHtmlRaw) throw new Error("BLOCKED: Box repair returned empty boxHtml");
+  const normalizedBox = ensureBoxLeadSpan(boxHtmlRaw, { maxWords: 4 }) || boxHtmlRaw;
+  if (stripHtmlToText(normalizedBox).length < 20) {
+    throw new Error("BLOCKED: Box repair produced too little content");
+  }
+  const ok = attachBoxHtmlToSubparagraphBlocks({
+    blocks: blocks as DraftBlock[],
+    kind: opts.kind,
+    boxHtml: normalizedBox,
+    basisHtml,
+  });
+  return ok;
+}
+
+async function repairMissingMicroheadingInDraft(opts: {
+  draft: DraftSection;
+  microheadingTitle: string;
+  provider: Provider;
+  model: string;
+  system: string;
+  bookTitle: string;
+  topic: string;
+  chapterNumber: number;
+  sectionNumber: string;
+  sectionTitle: string;
+  language: string;
+  userInstructions?: string | null;
+}): Promise<boolean> {
+  const target = findMicroheadingInDraft(opts.draft, opts.microheadingTitle);
+  if (!target) return false;
+  const parentBlocks = Array.isArray((target.parentBlock as any)?.blocks) ? (target.parentBlock as any).blocks : [];
+  const contextSnippet = collectContextSnippet(parentBlocks, 900);
+  const prompt = buildMicroheadingRepairPrompt({
+    bookTitle: opts.bookTitle,
+    topic: opts.topic,
+    chapterNumber: opts.chapterNumber,
+    sectionNumber: opts.sectionNumber,
+    sectionTitle: opts.sectionTitle,
+    numberedSubparagraphTitle: target.parentTitle || opts.sectionTitle,
+    microheadingTitle: opts.microheadingTitle,
+    userInstructions: opts.userInstructions,
+    language: opts.language,
+    contextSnippet,
+  });
+  const raw = await llmGenerateJson({
+    provider: opts.provider,
+    model: opts.model,
+    system: opts.system,
+    prompt,
+    maxTokens: 600,
+    tool: TOOL_REPAIR_MICROHEADING,
+  });
+  const basisHtml = typeof (raw as any)?.basisHtml === "string" ? String((raw as any).basisHtml).trim() : "";
+  if (!basisHtml) throw new Error("BLOCKED: Microheading repair returned empty basisHtml");
+  if (stripHtmlToText(basisHtml).length < 20) {
+    throw new Error("BLOCKED: Microheading repair produced too little content");
+  }
+  const blocks = Array.isArray((target.microheading as any).blocks) ? (target.microheading as any).blocks : [];
+  blocks.push({ type: "paragraph", basisHtml } as DraftBlock);
+  (target.microheading as any).blocks = blocks;
+  return true;
+}
+
+async function attemptRepairForReason(opts: {
+  reason: string;
+  draft: DraftSection;
+  provider: Provider;
+  model: string;
+  system: string;
+  bookTitle: string;
+  topic: string;
+  chapterNumber: number;
+  sectionNumber: string;
+  sectionTitle: string;
+  language: string;
+  userInstructions?: string | null;
+  jobId: string;
+  chapterIndex: number;
+  sectionIndex: number;
+  splitMode: boolean;
+}): Promise<boolean> {
+  const missingBox = parseMissingBoxTarget(opts.reason);
+  if (missingBox) {
+    await emitAgentJobEvent(
+      opts.jobId,
+      "generating",
+      24,
+      "Auto-repair: filling missing box",
+      {
+        chapterIndex: opts.chapterIndex,
+        sectionIndex: opts.sectionIndex,
+        splitMode: opts.splitMode,
+        targetTitle: missingBox.title,
+        kind: missingBox.kind,
+      },
+    ).catch(() => {});
+    return await repairMissingBoxInDraft({
+      draft: opts.draft,
+      kind: missingBox.kind,
+      numberedSubparagraphTitle: missingBox.title,
+      provider: opts.provider,
+      model: opts.model,
+      system: opts.system,
+      bookTitle: opts.bookTitle,
+      topic: opts.topic,
+      chapterNumber: opts.chapterNumber,
+      sectionNumber: opts.sectionNumber,
+      sectionTitle: opts.sectionTitle,
+      language: opts.language,
+      userInstructions: opts.userInstructions,
+    });
+  }
+
+  const missingMicro = parseMissingMicroheadingTitle(opts.reason);
+  if (missingMicro) {
+    await emitAgentJobEvent(
+      opts.jobId,
+      "generating",
+      24,
+      "Auto-repair: filling empty microheading",
+      {
+        chapterIndex: opts.chapterIndex,
+        sectionIndex: opts.sectionIndex,
+        splitMode: opts.splitMode,
+        microheadingTitle: missingMicro,
+      },
+    ).catch(() => {});
+    return await repairMissingMicroheadingInDraft({
+      draft: opts.draft,
+      microheadingTitle: missingMicro,
+      provider: opts.provider,
+      model: opts.model,
+      system: opts.system,
+      bookTitle: opts.bookTitle,
+      topic: opts.topic,
+      chapterNumber: opts.chapterNumber,
+      sectionNumber: opts.sectionNumber,
+      sectionTitle: opts.sectionTitle,
+      language: opts.language,
+      userInstructions: opts.userInstructions,
+    });
+  }
+  return false;
+}
+
+function coerceListItemsIntoBasisParagraphs(opts: { blocksRaw: any[]; minBasis: number }): void {
+  const blocks = Array.isArray(opts.blocksRaw) ? opts.blocksRaw : [];
+  const minBasis = Math.max(0, Math.floor(opts.minBasis || 0));
+  if (!minBasis) return;
+
+  // If we're already meeting the threshold, no-op.
+  let need = minBasis - countBasisParagraphs(blocks);
+  if (need <= 0) return;
+
+  const MIN_CHARS = 20; // matches countBasisParagraphs()
+
+  const makeParagraph = (basisHtml: string, images: any[] | null): any => {
+    const b: any = { type: "paragraph", basisHtml };
+    if (images && Array.isArray(images) && images.length) b.images = images;
+    return b;
+  };
+
+  const walk = (arrRaw: any[]) => {
+    if (need <= 0) return;
+    const arr = Array.isArray(arrRaw) ? arrRaw : [];
+
+    for (let i = 0; i < arr.length && need > 0; i++) {
+      const b = arr[i];
+      if (!b || typeof b !== "object") continue;
+      const t = String((b as any).type || "");
+
+      if (t === "subparagraph") {
+        walk(Array.isArray((b as any).blocks) ? (b as any).blocks : []);
+        continue;
+      }
+
+      if (t !== "list" && t !== "steps") continue;
+
+      const itemsIn = Array.isArray((b as any).items) ? (b as any).items : [];
+      const items: string[] = itemsIn
+        .map((x: any) => (typeof x === "string" ? x.trim() : ""))
+        .filter((x: string) => !!x);
+      if (!items.length) continue;
+
+      // Preserve images by attaching them to the first generated paragraph (if any).
+      let images: any[] | null = Array.isArray((b as any).images) ? (b as any).images : null;
+
+      const newBlocks: any[] = [];
+      let remaining = items.slice();
+
+      while (need > 0 && remaining.length) {
+        const chunk: string[] = [];
+        while (remaining.length && stripHtmlToText(chunk.join(" ")).length < MIN_CHARS) {
+          const next = String(remaining.shift() || "").trim();
+          if (!next) continue;
+          chunk.push(next);
+        }
+        const html = chunk.join(" ").trim();
+        if (!html) break;
+        // Ensure it will count.
+        if (stripHtmlToText(html).length < MIN_CHARS) break;
+        newBlocks.push(makeParagraph(html, images));
+        images = null;
+        need -= 1;
+      }
+
+      // If we still have remaining list items, keep the original list/steps block with leftovers.
+      if (remaining.length) {
+        const keep: any = { ...(b as any), items: remaining };
+        if (images) keep.images = images;
+        newBlocks.push(keep);
+      }
+
+      if (newBlocks.length) {
+        // Replace this list/steps block with generated paragraph(s) + remaining list.
+        arr.splice(i, 1, ...newBlocks);
+        i += newBlocks.length - 1;
+      }
+    }
+  };
+
+  walk(blocks);
 }
 
 function countImmediateMicroheadings(blocksRaw: any[]): number {
@@ -1659,8 +2180,10 @@ export class BookGenerateSection implements JobExecutor {
           ? [
               userInstructions,
               prevDraftFailureReason ? `Previous validation failure:\n${prevDraftFailureReason}` : null,
-              mustFillTitle ? `MUST FIX: Add at least 2 basisHtml paragraphs under numbered subparagraph '${mustFillTitle}'.` : null,
-              mustBoxKind && mustBoxTitle
+              mustFillTitle && mustFillTitle === currentTitle
+                ? `MUST FIX: Add at least 2 *paragraph* blocks with non-empty basisHtml under '${mustFillTitle}' (2-4 short sentences each).`
+                : null,
+              mustBoxKind && mustBoxTitle && mustBoxTitle === currentTitle
                 ? `MUST FIX: Add exactly ONE ${mustBoxKind} paragraph inside numbered subparagraph '${mustBoxTitle}'.`
                 : null,
               timeoutNotes,
@@ -1769,42 +2292,80 @@ export class BookGenerateSection implements JobExecutor {
           throw new Error(`BLOCKED: Draft too sparse under '${currentTitle}' (basisParagraphs=0, min=2)`);
         }
 
-        // Re-use microheading validator + its deterministic punctuation sanitization.
-        assertMicroheadingsAreSingleLevel({
-          draft: { title: expectedSectionTitle || sectionNumber, blocks: [top] } as any,
-          requiredSubparagraphTitles: [currentTitle],
-          layoutProfile,
-          microheadingDensity,
-        });
-
-        // Basic density check for this numbered subparagraph.
-        const minBasisPerSub = layoutProfile === "sparse" ? 1 : 2;
-        const basisCount = countBasisParagraphs(top.blocks);
-        if (basisCount < minBasisPerSub) {
-          throw new Error(`BLOCKED: Draft too sparse under '${currentTitle}' (basisParagraphs=${basisCount}, min=${minBasisPerSub})`);
-        }
-
-        // Box targets must be satisfied within this numbered subparagraph if required.
         const oneDraft: DraftSection = { title: expectedSectionTitle || sectionNumber, blocks: [top] as any };
-        if (
-          requirePraktijkBox &&
-          !hasBoxHtmlWithinNumberedSubparagraph({ draft: oneDraft, numberedSubparagraphTitle: currentTitle, kind: "praktijkHtml" })
-        ) {
-          throw new Error(`BLOCKED: Missing praktijkHtml for target numbered subparagraph '${currentTitle}'`);
-        }
-        if (
-          requireVerdiepingBox &&
-          !hasBoxHtmlWithinNumberedSubparagraph({ draft: oneDraft, numberedSubparagraphTitle: currentTitle, kind: "verdiepingHtml" })
-        ) {
-          throw new Error(`BLOCKED: Missing verdiepingHtml for target numbered subparagraph '${currentTitle}'`);
-        }
+        const validateTop = () => {
+          // Re-use microheading validator + its deterministic punctuation sanitization.
+          assertMicroheadingsAreSingleLevel({
+            draft: oneDraft,
+            requiredSubparagraphTitles: [currentTitle],
+            layoutProfile,
+            microheadingDensity,
+          });
 
-        if (needImage) {
-          const counts = countDraftImages([top]);
-          if (counts.withPrompt < 1) {
-            throw new Error("BLOCKED: Draft missing image suggestions (need at least 1 images[].suggestedPrompt)");
+          // Basic density check for this numbered subparagraph.
+          const minBasisPerSub = layoutProfile === "sparse" ? 1 : 2;
+          // Deterministic salvage: if the model wrote lists/steps but not enough paragraphs,
+          // convert some list/steps items into paragraph blocks so density checks can pass.
+          coerceListItemsIntoBasisParagraphs({ blocksRaw: top.blocks, minBasis: minBasisPerSub });
+          const basisCount = countBasisParagraphs(top.blocks);
+          if (basisCount < minBasisPerSub) {
+            throw new Error(`BLOCKED: Draft too sparse under '${currentTitle}' (basisParagraphs=${basisCount}, min=${minBasisPerSub})`);
+          }
+
+          // Box targets must be satisfied within this numbered subparagraph if required.
+          if (
+            requirePraktijkBox &&
+            !hasBoxHtmlWithinNumberedSubparagraph({ draft: oneDraft, numberedSubparagraphTitle: currentTitle, kind: "praktijkHtml" })
+          ) {
+            throw new Error(`BLOCKED: Missing praktijkHtml for target numbered subparagraph '${currentTitle}'`);
+          }
+          if (
+            requireVerdiepingBox &&
+            !hasBoxHtmlWithinNumberedSubparagraph({ draft: oneDraft, numberedSubparagraphTitle: currentTitle, kind: "verdiepingHtml" })
+          ) {
+            throw new Error(`BLOCKED: Missing verdiepingHtml for target numbered subparagraph '${currentTitle}'`);
+          }
+
+          if (needImage) {
+            const counts = countDraftImages([top]);
+            if (counts.withPrompt < 1) {
+              throw new Error("BLOCKED: Draft missing image suggestions (need at least 1 images[].suggestedPrompt)");
+            }
+          }
+        };
+
+        const MAX_REPAIR_ATTEMPTS = 2;
+        let lastErr = "";
+        for (let attempt = 0; attempt <= MAX_REPAIR_ATTEMPTS; attempt++) {
+          try {
+            validateTop();
+            lastErr = "";
+            break;
+          } catch (e) {
+            lastErr = e instanceof Error ? e.message : String(e);
+            if (attempt >= MAX_REPAIR_ATTEMPTS) break;
+            const repaired = await attemptRepairForReason({
+              reason: lastErr,
+              draft: oneDraft,
+              provider: writeModelSpec.provider,
+              model: writeModelSpec.model,
+              system,
+              bookTitle,
+              topic,
+              chapterNumber: chapterIndex + 1,
+              sectionNumber,
+              sectionTitle: stripNumberPrefix(expectedSectionTitle) || expectedSectionTitle || `Section ${sectionNumber}`,
+              language,
+              userInstructions,
+              jobId,
+              chapterIndex,
+              sectionIndex,
+              splitMode: true,
+            });
+            if (!repaired) break;
           }
         }
+        if (lastErr) throw new Error(lastErr);
 
         // Convert this numbered subparagraph into skeleton blocks and persist progress.
         const skTop = convertDraftBlockToSkeletonBlock({
@@ -1855,9 +2416,9 @@ export class BookGenerateSection implements JobExecutor {
             __splitCurrentTitle: nextTitle || currentTitle,
             __draftAttempt: 0,
             __draftFailureReason: null,
-            __draftMustFillTitle: null,
-            __draftMustBoxKind: null,
-            __draftMustBoxTitle: null,
+            __draftMustFillTitle: mustFillTitle && mustFillTitle !== currentTitle ? mustFillTitle : null,
+            __draftMustBoxKind: mustBoxTitle && mustBoxTitle !== currentTitle ? mustBoxKind : null,
+            __draftMustBoxTitle: mustBoxTitle && mustBoxTitle !== currentTitle ? mustBoxTitle : null,
             __llmTimeoutAttempt: 0,
             sectionMaxTokens: null,
           },
@@ -2067,10 +2628,39 @@ export class BookGenerateSection implements JobExecutor {
       }
     };
 
-    try {
-      validateAll(draft);
-    } catch (e) {
-      let reason = e instanceof Error ? e.message : String(e);
+    let validationError = "";
+    const MAX_REPAIR_ATTEMPTS = 2;
+    for (let attempt = 0; attempt <= MAX_REPAIR_ATTEMPTS; attempt++) {
+      try {
+        validateAll(draft);
+        validationError = "";
+        break;
+      } catch (e) {
+        validationError = e instanceof Error ? e.message : String(e);
+        if (attempt >= MAX_REPAIR_ATTEMPTS) break;
+        const repaired = await attemptRepairForReason({
+          reason: validationError,
+          draft,
+          provider: writeModelSpec.provider,
+          model: writeModelSpec.model,
+          system,
+          bookTitle,
+          topic,
+          chapterNumber: chapterIndex + 1,
+          sectionNumber,
+          sectionTitle: stripNumberPrefix(expectedSectionTitle) || expectedSectionTitle || `Section ${sectionNumber}`,
+          language,
+          userInstructions,
+          jobId,
+          chapterIndex,
+          sectionIndex,
+          splitMode: false,
+        });
+        if (!repaired) break;
+      }
+    }
+    if (validationError) {
+      const reason = validationError;
 
       // Recovery: Some Anthropic tool outputs degrade to `{ title, blocks: [] }` for locked outlines.
       // This leads to repeated `got=0` failures. Prefer an Anthropic-only recovery:
@@ -2089,36 +2679,34 @@ export class BookGenerateSection implements JobExecutor {
         }).catch(() => {});
       }
 
-      {
-        const MAX_DRAFT_ATTEMPTS = 4;
-        const nextAttempt = draftAttempt + 1;
-        if (nextAttempt > MAX_DRAFT_ATTEMPTS) {
-          throw new Error(`BLOCKED: Draft did not meet requirements after ${MAX_DRAFT_ATTEMPTS} attempts: ${reason.slice(0, 800)}`);
-        }
-
-        await emitAgentJobEvent(jobId, "generating", 25, "Draft did not meet requirements; requeueing for retry", {
-          chapterIndex,
-          sectionIndex,
-          layoutProfile,
-          microheadingDensity,
-          draftAttempt: nextAttempt,
-          reason: reason.slice(0, 800),
-        }).catch(() => {});
-
-        const mustFill = parseSparseUnderTitle(reason);
-        const mustBox = parseMissingBoxTarget(reason);
-        return {
-          yield: true,
-          message: "Draft did not meet requirements; retrying via requeue",
-          payloadPatch: {
-            __draftAttempt: nextAttempt,
-            __draftFailureReason: reason.slice(0, 800),
-            ...(mustFill ? { __draftMustFillTitle: mustFill } : {}),
-            ...(mustBox ? { __draftMustBoxKind: mustBox.kind, __draftMustBoxTitle: mustBox.title } : {}),
-            ...(forceSplitLockedOutlineForRetry ? { splitLockedOutline: true } : {}),
-          },
-        };
+      const MAX_DRAFT_ATTEMPTS = 4;
+      const nextAttempt = draftAttempt + 1;
+      if (nextAttempt > MAX_DRAFT_ATTEMPTS) {
+        throw new Error(`BLOCKED: Draft did not meet requirements after ${MAX_DRAFT_ATTEMPTS} attempts: ${reason.slice(0, 800)}`);
       }
+
+      await emitAgentJobEvent(jobId, "generating", 25, "Draft did not meet requirements; requeueing for retry", {
+        chapterIndex,
+        sectionIndex,
+        layoutProfile,
+        microheadingDensity,
+        draftAttempt: nextAttempt,
+        reason: reason.slice(0, 800),
+      }).catch(() => {});
+
+      const mustFill = parseSparseUnderTitle(reason);
+      const mustBox = parseMissingBoxTarget(reason);
+      return {
+        yield: true,
+        message: "Draft did not meet requirements; retrying via requeue",
+        payloadPatch: {
+          __draftAttempt: nextAttempt,
+          __draftFailureReason: reason.slice(0, 800),
+          ...(mustFill ? { __draftMustFillTitle: mustFill } : {}),
+          ...(mustBox ? { __draftMustBoxKind: mustBox.kind, __draftMustBoxTitle: mustBox.title } : {}),
+          ...(forceSplitLockedOutlineForRetry ? { splitLockedOutline: true } : {}),
+        },
+      };
     }
 
     // 4) Apply to skeleton: replace this section's content

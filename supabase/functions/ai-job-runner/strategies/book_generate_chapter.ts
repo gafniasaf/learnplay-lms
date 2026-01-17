@@ -622,6 +622,76 @@ function buildChapterRecapPrompt(opts: {
   );
 }
 
+function buildRecapSectionIdSequence(opts: {
+  sectionRefs: Array<{ id: string }>;
+  itemCount: number;
+  minUnique: number;
+}): string[] {
+  const itemCount = Math.max(0, Math.floor(opts.itemCount || 0));
+  const ids = Array.isArray(opts.sectionRefs)
+    ? opts.sectionRefs.map((s) => String(s.id || "").trim()).filter((x) => !!x)
+    : [];
+  if (!ids.length || itemCount <= 0) return [];
+  const uniq = Array.from(new Set(ids));
+  const uniqueTarget = Math.min(uniq.length, Math.max(1, Math.min(itemCount, Math.floor(opts.minUnique || 1))));
+  const base = uniq.slice(0, uniqueTarget);
+  const sequence: string[] = [];
+  while (sequence.length < itemCount) {
+    for (const id of base) {
+      if (sequence.length >= itemCount) break;
+      sequence.push(id);
+    }
+    if (sequence.length >= itemCount) break;
+    for (const id of uniq) {
+      if (sequence.length >= itemCount) break;
+      sequence.push(id);
+    }
+  }
+  return sequence.slice(0, itemCount);
+}
+
+function buildChapterRecapRepairPrompt(opts: {
+  bookTitle: string;
+  topic: string;
+  chapterNumber: number;
+  chapterTitle: string;
+  digest: string;
+  userInstructions?: string | null;
+  objectiveIds: string[];
+  glossaryIds: string[];
+  questionIds: string[];
+}): string {
+  const list = (label: string, ids: string[]) =>
+    `${label} (length=${ids.length}):\n` + ids.map((id, i) => `${i + 1}. ${id}`).join("\n");
+  return (
+    "Return JSON with this exact shape:\n" +
+    "{\n" +
+    '  "objectives": [{ "text": string, "sectionId": string }],\n' +
+    '  "glossary": [{ "term": string, "definition": string, "sectionId": string }],\n' +
+    '  "selfCheckQuestions": [{ "question": string, "sectionId": string }]\n' +
+    "}\n\n" +
+    `Book title: ${opts.bookTitle}\n` +
+    `Topic: ${opts.topic}\n` +
+    `Chapter: ${opts.chapterNumber} — ${opts.chapterTitle}\n` +
+    (opts.userInstructions ? `User instructions:\n${opts.userInstructions}\n\n` : "") +
+    "Use these exact sectionId sequences (each item MUST use the matching sectionId in order):\n" +
+    list("objectives.sectionId sequence", opts.objectiveIds) +
+    "\n\n" +
+    list("glossary.sectionId sequence", opts.glossaryIds) +
+    "\n\n" +
+    list("selfCheckQuestions.sectionId sequence", opts.questionIds) +
+    "\n\n" +
+    "Requirements:\n" +
+    "- The number of items MUST match the sequence length for each array.\n" +
+    "- Each item i MUST use sectionId = sequence[i].\n" +
+    "- Use ONLY the chapter digest; do NOT invent new topics.\n" +
+    "- No markdown. Return JSON only.\n" +
+    "\nChapter digest (content summary):\n" +
+    opts.digest +
+    "\n"
+  );
+}
+
 function pickLayoutBudgets(profile: ChapterLayoutProfile, candidateCount: number): {
   praktijkRange: [number, number];
   verdiepingRange: [number, number];
@@ -1194,6 +1264,58 @@ export class BookGenerateChapter implements JobExecutor {
             const msg = e instanceof Error ? e.message : String(e);
             lastErr = msg.slice(0, 1600);
             recap = null;
+          }
+        }
+        if (!recap) {
+          await emitAgentJobEvent(jobId, "generating", 72, "Recap validation failed; attempting targeted repair", {
+            chapterIndex,
+            recapModel: `${recapModelSpec.provider}:${recapModelSpec.model}`,
+            lastErr: lastErr.slice(0, 300),
+          }).catch(() => {});
+
+          const objectiveIds = buildRecapSectionIdSequence({
+            sectionRefs,
+            itemCount: recapBudgets.objectivesMin,
+            minUnique: recapBudgets.objectivesUniqueMin,
+          });
+          const glossaryIds = buildRecapSectionIdSequence({
+            sectionRefs,
+            itemCount: recapBudgets.glossaryMin,
+            minUnique: recapBudgets.glossaryUniqueMin,
+          });
+          const questionIds = buildRecapSectionIdSequence({
+            sectionRefs,
+            itemCount: recapBudgets.questionsMin,
+            minUnique: recapBudgets.questionsUniqueMin,
+          });
+
+          if (objectiveIds.length && glossaryIds.length && questionIds.length) {
+            const repairPrompt = buildChapterRecapRepairPrompt({
+              bookTitle,
+              topic,
+              chapterNumber: chapterIndex + 1,
+              chapterTitle: chapterTitle || `Hoofdstuk ${chapterIndex + 1}`,
+              digest,
+              userInstructions,
+              objectiveIds,
+              glossaryIds,
+              questionIds,
+            });
+            try {
+              const raw = await llmGenerateJson({
+                provider: recapModelSpec.provider,
+                model: recapModelSpec.model,
+                system,
+                prompt: repairPrompt,
+                maxTokens: 3200,
+                tool: TOOL_DRAFT_CHAPTER_RECAP,
+              });
+              recap = validateChapterRecap(raw, allowedSectionIds, recapBudgets);
+            } catch (e) {
+              const msg = e instanceof Error ? e.message : String(e);
+              lastErr = msg.slice(0, 1600);
+              recap = null;
+            }
           }
         }
         if (!recap) {
