@@ -3,7 +3,16 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, HashRouter, Routes, Route, Navigate } from "react-router-dom";
-import { lazy, Suspense, Component, ReactNode, useEffect, useMemo, useState } from "react";
+import {
+  lazy,
+  Suspense,
+  Component,
+  ReactNode,
+  ReactElement,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 import { generatedRouteElements, GeneratedFallback } from "./routes.generated";
 import { useSentryUser } from "./hooks/useSentryUser";
 import { DawnDataProvider } from "./contexts/DawnDataContext";
@@ -441,8 +450,14 @@ const DevAgentSetupGate = ({ children }: { children: React.ReactNode }) => {
 };
 
 const App = () => {
-  const useHashRouter = useMemo(() => isLovableHost(), []);
+  const isLovable = useMemo(() => isLovableHost(), []);
+  const useHashRouter = isLovable;
   const Router = useHashRouter ? HashRouter : BrowserRouter;
+  const generatedRoutes = isLovable
+    ? generatedRouteElements.filter(
+        (route) => (route as ReactElement<{ path?: string }>).props?.path !== "/"
+      )
+    : generatedRouteElements;
 
   // Lovable preview can intermittently fail to load deep links directly (e.g. HTTP 412).
   // Using hash routing in Lovable-hosted previews avoids server-side routing constraints.
@@ -468,6 +483,12 @@ const App = () => {
                   <Layout>
                   <Suspense fallback={<div className="flex items-center justify-center min-h-screen">Loading...</div>}>
                     <Routes>
+                      {isLovable && (
+                        <Route
+                          path="/"
+                          element={<Navigate to="/teacher/teachergpt/chat" replace />}
+                        />
+                      )}
                       <Route path="/admin" element={<Navigate to="/admin/book-monitor" replace />} />
                       {/* Legacy DAWR route aliases (parity redirects) */}
                       <Route path="/admin/courses" element={<AdminCourseSelector />} />
@@ -537,7 +558,7 @@ const App = () => {
                       <Route path="/crm/contacts" element={<CrmContacts />} />
                       <Route path="/demo/generic" element={<GenericList />} />
                       <Route path="/demo/generic/board" element={<GenericBoard />} />
-                      {generatedRouteElements}
+                      {generatedRoutes}
                       <Route path="*" element={<NotFound />} />
                     </Routes>
                     <GeneratedFallback />
