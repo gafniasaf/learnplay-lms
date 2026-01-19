@@ -91,11 +91,11 @@ test.describe('live UI: teacher MES recommendations', () => {
     await page.waitForLoadState('domcontentloaded');
 
     // Search
-    await page.getByLabel('Query').fill(`cardiac anatomy atria ventricles ${token}`);
-    await page.getByRole('button', { name: 'Search' }).click();
+    await page.locator('[data-cta-id="cta-teachergpt-mes-query"]').fill(`cardiac anatomy atria ventricles ${token}`);
+    await page.locator('[data-cta-id="cta-teachergpt-mes-search"]').click();
 
-    // Expect results show the seeded doc_id
-    await expect(page.getByText(new RegExp(doc.doc_id, 'i'))).toBeVisible({ timeout: 60_000 });
+    // Expect results show the seeded doc_id (avoid strict-mode: doc_id can appear in multiple result fields).
+    await expect(page.getByText(new RegExp(doc.doc_id, 'i')).first()).toBeVisible({ timeout: 60_000 });
   });
 });
 

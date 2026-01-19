@@ -1,99 +1,106 @@
-import { Link } from "react-router-dom";
-import { Baby, Users, GraduationCap, Shield } from "lucide-react";
-import { PageContainer } from "@/components/layout/PageContainer";
 
-const roles = [
-  {
-    path: "/kids",
-    label: "Kids",
-    icon: Baby,
-    color: "role-kids",
-    description: "Fun games and interactive learning",
-    ctaId: "nav-kids",
-  },
-  {
-    path: "/parent/dashboard",
-    label: "Parents",
-    icon: Users,
-    color: "role-parents",
-    description: "Track progress and support learning",
-    ctaId: "nav-parents",
-  },
-  {
-    path: "/schools",
-    label: "Schools",
-    icon: GraduationCap,
-    color: "role-schools",
-    description: "Manage classes and curriculum",
-    ctaId: "nav-schools",
-  },
-  {
-    path: "/admin",
-    label: "Admin",
-    icon: Shield,
-    color: "role-admin",
-    description: "System administration and settings",
-    ctaId: "nav-admin",
-  },
-];
+import React from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { toast } from "sonner";
+import { useMCP } from "@/hooks/useMCP";
 
 export default function Landing() {
-  return (
-    <PageContainer>
-      <div className="max-w-4xl mx-auto text-center mb-16">
-        <h1 className="text-4xl md:text-5xl font-bold mb-4">
-          Welcome to LearnPlay
-        </h1>
-        <p className="text-xl text-muted-foreground">
-          Choose your portal to get started
-        </p>
-      </div>
+  const nav = useNavigate();
+  const [searchParams] = useSearchParams();
+  const id = searchParams.get("id");
+  const mcp = useMCP();
+  
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
-        {roles.map(({ path, label, icon: Icon, color, description, ctaId }) => (
-          <Link
-            key={path}
-            to={path}
-            data-cta-id={ctaId}
-            data-action="navigate"
-            data-target={path}
-            aria-labelledby={`${ctaId}-label`}
-            aria-describedby={`${ctaId}-desc`}
-            className="group relative overflow-hidden rounded-2xl border bg-card p-8 transition-all hover:shadow-lg hover:scale-[1.02]"
-            style={{
-              borderColor: `hsl(var(--${color}) / 0.3)`,
-            }}
-          >
-            <div
-              className="absolute top-0 right-0 w-32 h-32 rounded-full blur-3xl opacity-20 group-hover:opacity-30 transition-opacity"
-              style={{
-                backgroundColor: `hsl(var(--${color}))`,
-              }}
-            />
-            
-            <div className="relative">
-              <div
-                className="inline-flex p-3 rounded-2xl mb-4"
-                style={{
-                  backgroundColor: `hsl(var(--${color}) / 0.1)`,
-                }}
-              >
-                <Icon
-                  className="h-8 w-8"
-                  style={{ color: `hsl(var(--${color}))` }}
-                />
-              </div>
-              
-              <h2 id={`${ctaId}-label`} className="text-2xl font-bold mb-2">
-                {label}
-              </h2>
-              <p id={`${ctaId}-desc`} className="text-muted-foreground">
-                {description}
-              </p>
-            </div>
-          </Link>
-        ))}
+  return (
+    <div className="p-6">
+      
+  
+  <header className="header">
+    <a href="/" className="header-brand">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"></path>
+      </svg>
+      LearnPlay
+    </a>
+    <div className="header-actions">
+      <span className="mock-badge">Mock</span>
+      <button data-cta-id="nav-menu" data-action="toggle-menu" className="menu-btn" onClick={() => toast.info("Action: nav-menu")} type="button">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="3" y1="12" x2="21" y2="12"></line>
+          <line x1="3" y1="6" x2="21" y2="6"></line>
+          <line x1="3" y1="18" x2="21" y2="18"></line>
+        </svg>
+      </button>
+    </div>
+  </header>
+
+  
+  <main className="page-container">
+    <div className="main-content">
+      
+      <section className="hero">
+        <h1 className="hero-title">Welcome to LearnPlay</h1>
+        <p className="hero-subtitle">Choose your portal to get started</p>
+      </section>
+
+      
+      <div className="portal-grid">
+        <a href="/student/dashboard" data-cta-id="portal-kid" data-action="navigate" data-target="/student/dashboard" className="portal-card" onClick={() => nav("/student/dashboard")}>
+          <div className="portal-card-icon">🎮</div>
+          <h2 className="portal-card-title">Kid</h2>
+          <p className="portal-card-desc">Fun games and interactive learning</p>
+        </a>
+
+        <a href="/parent/dashboard" data-cta-id="portal-parent" data-action="navigate" data-target="/parent/dashboard" className="portal-card" onClick={() => nav("/parent/dashboard")}>
+          <div className="portal-card-icon">👪</div>
+          <h2 className="portal-card-title">Parent</h2>
+          <p className="portal-card-desc">Track progress and support learning</p>
+        </a>
+
+        <a href="/teacher/dashboard" data-cta-id="portal-school" data-action="navigate" data-target="/teacher/dashboard" className="portal-card" onClick={() => nav("/teacher/dashboard")}>
+          <div className="portal-card-icon">🏫</div>
+          <h2 className="portal-card-title">School</h2>
+          <p className="portal-card-desc">Manage classes and curriculum</p>
+        </a>
+
+        <a href="/admin" data-cta-id="portal-admin" data-action="navigate" data-target="/admin" className="portal-card" onClick={() => nav("/admin")}>
+          <div className="portal-card-icon">⚙️</div>
+          <h2 className="portal-card-title">Admin</h2>
+          <p className="portal-card-desc">System administration and settings</p>
+        </a>
       </div>
-    </PageContainer>
+    </div>
+
+    
+    <footer className="footer">
+      <div className="footer-grid">
+        <div className="footer-section">
+          <h3>Portal</h3>
+          <ul className="footer-links">
+            <li><a href="/student/dashboard">Kid</a></li>
+            <li><a href="/parent/dashboard">Parent</a></li>
+            <li><a href="/teacher/dashboard">School</a></li>
+          </ul>
+        </div>
+        <div className="footer-section">
+          <h3>Resources</h3>
+          <ul className="footer-links">
+            <li><a href="/courses">Courses</a></li>
+            <li><a href="/help">Help</a></li>
+            <li><a href="/about">About</a></li>
+          </ul>
+        </div>
+        <div className="footer-section">
+          <h3>Legal</h3>
+          <ul className="footer-links">
+            <li><a href="/privacy">Privacy</a></li>
+            <li><a href="/terms">Terms</a></li>
+          </ul>
+        </div>
+      </div>
+    </footer>
+  </main>
+
+    </div>
   );
 }

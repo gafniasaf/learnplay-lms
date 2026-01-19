@@ -222,6 +222,16 @@ export function useBookGenMonitor() {
   const selectedBook = useMemo(() => books.find((b) => b.id === selectedBookId) || null, [books, selectedBookId]);
   const chapterCount = chapters.length;
 
+  const includeTestArtifacts = useMemo(() => {
+    if (typeof window === "undefined") return false;
+    try {
+      const p = new URLSearchParams(window.location.search);
+      return p.get("includeTest") === "1" || p.get("includeE2E") === "1";
+    } catch {
+      return false;
+    }
+  }, []);
+
   const loadBooks = useCallback(async () => {
     setLoading(true);
     try {
@@ -229,6 +239,7 @@ export function useBookGenMonitor() {
         scope: "books",
         limit: "200",
         offset: "0",
+        ...(includeTestArtifacts ? { includeTest: "1" } : {}),
       })) as BookListResponse;
       if ((res as any)?.ok !== true) throw new Error((res as any)?.error?.message || "Failed to load books");
       setBooks((res as any).books || []);
@@ -239,7 +250,7 @@ export function useBookGenMonitor() {
     } finally {
       setLoading(false);
     }
-  }, [mcp]);
+  }, [mcp, includeTestArtifacts]);
 
   const loadVersions = useCallback(async () => {
     const bookId = selectedBookId.trim();

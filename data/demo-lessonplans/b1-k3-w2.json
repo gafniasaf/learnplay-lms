@@ -1,0 +1,72 @@
+{
+  "kdAlignment": {
+    "code": "B1-K3-W2",
+    "title": "Reflecteert en ontwikkelt zichzelf als professional"
+  },
+  "quickStart": {
+    "oneLiner": "Studenten leren reflecteren op een situatie en kiezen een verbeterpunt.",
+    "keyConcepts": [
+      "reflectie",
+      "professionele ontwikkeling",
+      "feedback",
+      "leerdoel"
+    ],
+    "timeAllocation": {
+      "start": 10,
+      "kern": 25,
+      "afsluiting": 10
+    }
+  },
+  "teacherScript": [
+    {
+      "time": "0:00",
+      "phase": "start",
+      "action": "OPEN",
+      "content": "Reflectie helpt je groeien in het vak. Vandaag doen we dat met een korte casus."
+    },
+    {
+      "time": "0:05",
+      "phase": "start",
+      "action": "VRAAG",
+      "content": "Wanneer kreeg jij feedback die je echt hielp?"
+    },
+    {
+      "time": "0:10",
+      "phase": "kern",
+      "action": "INTRODUCTIE",
+      "content": "We gebruiken een reflectieformat: situatie, actie, resultaat, leerpunt."
+    },
+    {
+      "time": "0:18",
+      "phase": "kern",
+      "action": "OEFENING",
+      "content": "Studenten schrijven een korte reflectie en kiezen 1 concreet verbeterpunt."
+    },
+    {
+      "time": "0:30",
+      "phase": "afsluiting",
+      "action": "SAMENVATTING",
+      "content": "Laat iedereen 1 leerdoel delen dat direct toepasbaar is in de BPV."
+    }
+  ],
+  "discussionQuestions": [
+    {
+      "question": "Wat maakt een leerdoel concreet en haalbaar?",
+      "expectedAnswers": [
+        "klein en meetbaar",
+        "in je eigen invloed",
+        "gekoppeld aan praktijk"
+      ]
+    }
+  ],
+  "groupWork": {
+    "title": "Reflectie in duo's",
+    "steps": [
+      "Bespreek een korte situatie uit stage",
+      "Beschrijf wat goed ging en wat beter kan",
+      "Formuleer 1 leerdoel",
+      "Geef elkaar 1 tip"
+    ],
+    "durationMinutes": 10
+  }
+}

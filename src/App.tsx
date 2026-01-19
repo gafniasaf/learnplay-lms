@@ -1,4 +1,4 @@
-﻿import { Toaster } from "@/components/ui/toaster";
+import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -32,13 +32,45 @@ const AdminTagApprovalQueue = lazy(() => import("./pages/admin/TagApprovalQueue"
 const AdminImportLegacyCourse = lazy(() => import("./pages/admin/ImportLegacyCourse"));
 const AdminLibraryCourses = lazy(() => import("./pages/admin/LibraryCourses"));
 const AdminLibraryCourseDetail = lazy(() => import("./pages/admin/LibraryCourseDetail"));
+const AdminBookMissingImages = lazy(() => import("./pages/admin/BookMissingImages"));
+const AdminLogs = lazy(() => import("./pages/admin/Logs"));
+const AdminAIPipelineV2 = lazy(() => import("./pages/admin/AIPipelineV2"));
+const AdminCourseEditorV3 = lazy(() => import("./pages/admin/CourseEditorV3"));
+const AdminExpertcollegeExerciseGenerationSelector = lazy(
+  () => import("./pages/admin/ExpertcollegeExerciseGenerationSelector")
+);
+const AdminExpertcollegeExerciseGenerationEditor = lazy(
+  () => import("./pages/admin/ExpertcollegeExerciseGenerationEditor")
+);
+const AdminBookStudioLibrary = lazy(() => import("./pages/admin/BookStudioLibrary"));
+const AdminBookStudioGenerate = lazy(() => import("./pages/admin/BookStudioGenerate"));
+const AdminBookStudioBookDetail = lazy(() => import("./pages/admin/BookStudioBookDetail"));
+const AdminBookStudioVersions = lazy(() => import("./pages/admin/BookStudioVersions"));
+const AdminBookStudioChapterEditor = lazy(() => import("./pages/admin/BookStudioChapterEditor"));
+const StudentDashboard = lazy(() => import("./pages/student/Dashboard"));
+const StudentAssignments = lazy(() => import("./pages/student/Assignments"));
+const StudentAchievements = lazy(() => import("./pages/student/Achievements"));
+const StudentGoals = lazy(() => import("./pages/student/Goals"));
+const StudentTimeline = lazy(() => import("./pages/student/Timeline"));
+const StudentJoinClass = lazy(() => import("./pages/student/JoinClass"));
+const ParentDashboard = lazy(() => import("./pages/parent/Dashboard"));
+const ParentSubjects = lazy(() => import("./pages/parent/Subjects"));
+const ParentTopics = lazy(() => import("./pages/parent/Topics"));
+const ParentTimeline = lazy(() => import("./pages/parent/Timeline"));
+const ParentGoals = lazy(() => import("./pages/parent/Goals"));
+const ParentLinkChild = lazy(() => import("./pages/parent/LinkChild"));
 const TeacherAssignments = lazy(() => import("./pages/teacher/Assignments"));
+const TeacherAnalytics = lazy(() => import("./pages/teacher/Analytics"));
+const TeacherClassProgress = lazy(() => import("./pages/teacher/ClassProgress"));
+const TeacherClasses = lazy(() => import("./pages/teacher/Classes"));
+const TeacherDashboard = lazy(() => import("./pages/teacher/TeacherDashboard"));
 const TeacherKw1cCockpit = lazy(() => import("./pages/teacher/Kw1cCockpit"));
 const TeacherLessonKits = lazy(() => import("./pages/teacher/LessonKits"));
 const TeacherMaterials = lazy(() => import("./pages/teacher/Materials"));
 const TeacherStandards = lazy(() => import("./pages/teacher/Standards"));
 const TeacherChat = lazy(() => import("./pages/teacher/TeacherChat"));
 const TeacherMesRecommendations = lazy(() => import("./pages/teacher/MesRecommendations"));
+const TeacherStudents = lazy(() => import("./pages/teacher/Students"));
 const MessagesInbox = lazy(() => import("./pages/messages/Inbox"));
 const Play = lazy(() => import("./pages/Play"));
 
@@ -439,6 +471,7 @@ const App = () => {
                       <Route path="/admin" element={<Navigate to="/admin/book-monitor" replace />} />
                       {/* Legacy DAWR route aliases (parity redirects) */}
                       <Route path="/admin/courses" element={<AdminCourseSelector />} />
+                      <Route path="/admin/courses/select" element={<AdminCourseSelector />} />
                       <Route path="/admin/course-versions" element={<AdminCourseSelector />} />
                       <Route path="/admin/media-manager" element={<AdminMediaManager />} />
                       <Route path="/admin/tag-approval" element={<AdminTagApprovalQueue />} />
@@ -446,13 +479,51 @@ const App = () => {
                       <Route path="/admin/metrics" element={<AdminMetrics />} />
                       <Route path="/admin/library-courses" element={<AdminLibraryCourses />} />
                       <Route path="/admin/library-courses/:courseId" element={<AdminLibraryCourseDetail />} />
+                      <Route path="/admin/ai-pipeline" element={<AdminAIPipelineV2 />} />
+                      <Route path="/admin/editor/:courseId" element={<AdminCourseEditorV3 />} />
+                      <Route path="/admin/book-studio" element={<AdminBookStudioLibrary />} />
+                      <Route path="/admin/book-studio/generate" element={<AdminBookStudioGenerate />} />
+                      <Route path="/admin/book-studio/:bookId" element={<AdminBookStudioBookDetail />} />
+                      <Route path="/admin/book-studio/:bookId/versions" element={<AdminBookStudioVersions />} />
+                      <Route path="/admin/book-studio/:bookId/chapters/:chapterIndex" element={<AdminBookStudioChapterEditor />} />
+                      <Route
+                        path="/admin/expertcollege-exercise-generation/select"
+                        element={<AdminExpertcollegeExerciseGenerationSelector />}
+                      />
+                      <Route
+                        path="/admin/expertcollege-exercise-generation/:courseId"
+                        element={<AdminExpertcollegeExerciseGenerationEditor />}
+                      />
+                      <Route path="/admin/books/missing-images" element={<AdminBookMissingImages />} />
+                      <Route path="/admin/logs" element={<AdminLogs />} />
+                      <Route path="/student/dashboard" element={<StudentDashboard />} />
+                      <Route path="/student/assignments" element={<StudentAssignments />} />
+                      <Route path="/student/achievements" element={<StudentAchievements />} />
+                      <Route path="/student/goals" element={<StudentGoals />} />
+                      <Route path="/student/timeline" element={<StudentTimeline />} />
+                      <Route path="/student/join-class" element={<StudentJoinClass />} />
+                      <Route path="/parent/dashboard" element={<ParentDashboard />} />
+                      <Route path="/parent/subjects" element={<ParentSubjects />} />
+                      <Route path="/parent/topics" element={<ParentTopics />} />
+                      <Route path="/parent/timeline" element={<ParentTimeline />} />
+                      <Route path="/parent/goals" element={<ParentGoals />} />
+                      <Route path="/parent/link-child" element={<ParentLinkChild />} />
+                      <Route path="/teacher/dashboard" element={<TeacherDashboard />} />
+                      <Route path="/teacher/classes" element={<TeacherClasses />} />
+                      <Route path="/teacher/students" element={<TeacherStudents />} />
+                      <Route path="/teacher/assignments" element={<TeacherAssignments />} />
                       <Route path="/teacher/assignment-progress" element={<TeacherAssignments />} />
+                      <Route path="/teacher/analytics" element={<TeacherAnalytics />} />
+                      <Route path="/teacher/class-progress" element={<TeacherClassProgress />} />
                       <Route path="/teacher/kw1c-cockpit" element={<TeacherKw1cCockpit />} />
                       <Route path="/teacher/lesson-kits" element={<TeacherLessonKits />} />
                       <Route path="/teacher/materials" element={<TeacherMaterials />} />
                       <Route path="/teacher/standards" element={<TeacherStandards />} />
                       <Route path="/teacher/teachergpt/chat" element={<TeacherChat />} />
                       <Route path="/teacher/teachergpt/mes" element={<TeacherMesRecommendations />} />
+                      <Route path="/play" element={<Play />} />
+                      <Route path="/play/:courseId" element={<Play />} />
+                      <Route path="/play/:courseId/welcome" element={<Play />} />
                       <Route path="/play/welcome" element={<Play />} />
                       <Route path="/messages/inbox" element={<MessagesInbox />} />
                       <Route path="/auth" element={<Auth />} />

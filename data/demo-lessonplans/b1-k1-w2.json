@@ -1,0 +1,80 @@
+{
+  "kdAlignment": {
+    "code": "B1-K1-W2",
+    "title": "Stelt het zorgplan op en/of bij"
+  },
+  "quickStart": {
+    "oneLiner": "Studenten leren een zorgplan aanpassen op basis van nieuwe informatie uit een casus.",
+    "keyConcepts": [
+      "zorgplan",
+      "zorgbehoefte",
+      "bijstellen",
+      "overleg met zorgvrager"
+    ],
+    "timeAllocation": {
+      "start": 10,
+      "kern": 25,
+      "afsluiting": 10
+    }
+  },
+  "teacherScript": [
+    {
+      "time": "0:00",
+      "phase": "start",
+      "action": "OPEN",
+      "content": "Vandaag leren we hoe je een zorgplan bijstelt als de situatie verandert."
+    },
+    {
+      "time": "0:03",
+      "phase": "start",
+      "action": "VRAAG",
+      "content": "Wat kan er in de praktijk gebeuren waardoor een zorgplan niet meer klopt?"
+    },
+    {
+      "time": "0:10",
+      "phase": "kern",
+      "action": "INTRODUCTIE",
+      "content": "We bekijken een casus en noteren welke informatie nieuw is en wat dat betekent voor het plan."
+    },
+    {
+      "time": "0:18",
+      "phase": "kern",
+      "action": "OEFENING",
+      "content": "Laat studenten in duo's drie concrete aanpassingen aan het zorgplan formuleren."
+    },
+    {
+      "time": "0:30",
+      "phase": "afsluiting",
+      "action": "SAMENVATTING",
+      "content": "Check: kan iedereen in 1 zin uitleggen waarom het plan is aangepast?"
+    }
+  ],
+  "discussionQuestions": [
+    {
+      "question": "Welke informatie is essentieel voordat je een zorgplan bijstelt?",
+      "expectedAnswers": [
+        "actuele observaties",
+        "input van zorgvrager",
+        "afspraken met het team"
+      ]
+    },
+    {
+      "question": "Wat is het risico als je een zorgplan niet bijstelt?",
+      "expectedAnswers": [
+        "zorg sluit niet meer aan",
+        "doelen worden niet gehaald",
+        "onveilige situaties"
+      ]
+    }
+  ],
+  "groupWork": {
+    "title": "Casus: zorgplan bijstellen",
+    "steps": [
+      "Lees de casus en markeer nieuwe informatie",
+      "Bepaal samen welke doelen moeten wijzigen",
+      "Formuleer 3 aanpassingen in het zorgplan",
+      "Presenteer 1 aanpassing aan de klas"
+    ],
+    "durationMinutes": 10
+  }
+}

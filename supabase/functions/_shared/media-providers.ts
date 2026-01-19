@@ -137,7 +137,7 @@ export const dalleProvider: MediaProvider = {
     const size = params.options?.size as string || '1024x1024';
     const quality = params.options?.quality as string || 'standard';
 
-    const maxAttempts = 3;
+    const maxAttempts = 6;
     let lastErr: UpstreamProviderError | null = null;
 
     for (let attempt = 1; attempt <= maxAttempts; attempt++) {

@@ -1,0 +1,119 @@
+# KD 2026 VIG/VP - Alle KD-codes
+# Kwalificatiedossier Verzorging en verpleging (Crebonr. 23267)
+# Versie 2026, Geldig vanaf 01-08-2020
+
+## BASISDEEL (voor beide kwalificaties: Verzorgende IG en Mbo-Verpleegkundige)
+
+B1-K1: Biedt zorg, ondersteuning en begeleiding
+B1-K1-W1: Inventariseert de behoefte aan zorg en/of ondersteuning
+B1-K1-W2: Stelt het zorgplan op en/of bij
+B1-K1-W3: Voert zorginterventies en/of begeleidingsactiviteiten uit
+B1-K1-W4: Voert verpleegtechnische handelingen uit
+B1-K1-W5: Handelt in onvoorziene en/of acute situaties
+B1-K1-W6: Geeft informatie en advies over zorg en gezondheid
+
+B1-K2: Stemt de zorg en ondersteuning af
+B1-K2-W1: Stemt af met informele zorgverleners
+B1-K2-W2: Werkt samen met andere zorgprofessionals
+
+B1-K3: Draagt bij aan kwaliteit van zorg
+B1-K3-W1: Draagt bij aan het innoveren van zorg
+B1-K3-W2: Evalueert de werkzaamheden en ontwikkelt zichzelf als professional
+B1-K3-W3: Draagt bij aan een sociaal en fysiek veilige werkomgeving
+
+## PROFIELDEEL
+
+### P1: Verzorgende IG (niveau 3)
+# Geen extra kerntaken - alleen basisdeel
+
+### P2: Mbo-Verpleegkundige (niveau 4)
+P2-K1: Organiseert en coördineert de zorgverlening
+P2-K1-W1: Stelt een verpleegkundige diagnose
+P2-K1-W2: Coacht en begeleidt collega's
+P2-K1-W3: Coördineert en optimaliseert de zorgverlening
+
+## VAKKENNIS THEMA'S (voor zoek-matching)
+
+# Communicatie
+- verbale en non-verbale communicatie
+- LSD (luisteren, samenvatten, doorvragen)
+- motiverende gesprekvoering
+- rapportagevaardigheden
+
+# Wetgeving
+- Wet BIG
+- beroepscode
+- Meldcodes huiselijk geweld en kindermishandeling
+- AVG (privacy)
+- ARBO
+- Wet Zorg en Dwang
+- Wet verplichte GGZ
+- WGBO (Wet Geneeskundige Behandelovereenkomst)
+- Wet Langdurige Zorg
+- Zorgverzekeringswet
+- Wet Maatschappelijke Ondersteuning (WMO)
+
+# Medisch/Verpleegtechnisch
+- anatomie
+- fysiologie
+- farmacologie
+- pathologie
+- verpleegtechnische handelingen
+- voorbehouden handelingen
+- medische berekeningen
+- eerste hulp
+- klinisch redeneren (niveau 4)
+
+# Zorgverlening
+- zorgplan
+- zorginterventies
+- begeleidingsactiviteiten
+- persoonlijke verzorging
+- dagbesteding
+- palliatieve zorg
+- preventieve zorg
+- inclusieve zorg
+
+# Doelgroepen
+- gezondheidsverschillen
+- cultuurverschillen
+- ontwikkelingspsychologie
+- copingstrategieën
+- sociale en emotionele problematiek
+
+# Voeding & Leefstijl
+- diëten
+- voedingsrichtlijnen
+- voeding en beweging
+- positieve gezondheid
+- leefstijl
+
+# Veiligheid
+- digitale veiligheid
+- sociale veiligheid
+- fysieke veiligheid
+- veiligheidsplan
+- ontruimingsplan
+- calamiteitenplan
+- agressie
+
+# Technologie & Innovatie
+- technologische hulpmiddelen
+- AI (risico's en gebruik)
+- digitale communicatiemiddelen
+- zorgtechnologie
+
+# Samenwerking
+- ketenzorg
+- sociale kaart
+- informele zorgverleners
+- mantelzorgers
+- interprofessioneel overleg
+
+# Kwaliteit
+- kwaliteitszorg
+- protocollen
+- richtlijnen
+- evidence based practice (EBP)
+- innoveren
+- reflectie

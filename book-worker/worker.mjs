@@ -61,6 +61,14 @@ const POLL_INTERVAL_MS = (() => {
 
 const HEARTBEAT_INTERVAL_MS = 25_000;
 
+// BookGen Pro runs can involve 1000+ LLM calls across a full book.
+// On some networks (especially Windows + DNS/IPv6 setups), transient DNS failures (ENOTFOUND/EAI_AGAIN)
+// or connection resets can occur. We must be resilient without creating infinite loops.
+const BOOKGEN_LLM_RETRY_ATTEMPTS = 8;
+const BOOKGEN_LLM_RETRY_BASE_DELAY_MS = 1000;
+const BOOK_JOB_RESULT_RETRY_ATTEMPTS = 8;
+const BOOK_JOB_RESULT_RETRY_BASE_DELAY_MS = 1500;
+
 function sleep(ms) {
   return new Promise((r) => setTimeout(r, ms));
 }
@@ -517,7 +525,13 @@ function splitNumberedTitle(raw) {
 
 function stripChapterNumberPrefix(raw) {
   const t = normalizeWsForPageMap(String(raw || ""));
-  const m = t.match(/^\d+\.\s+(.+)$/);
+  let m = t.match(/^\d+\.\s+(.+)$/);
+  if (m) return m[1];
+  // Handle malformed chapter titles like ".1 De cel"
+  m = t.match(/^\.\d+\s+(.+)$/);
+  if (m) return m[1];
+  // Fallback: strip "1.1 " style prefixes if they appear on chapter titles
+  m = t.match(/^\d+\.\d+\s+(.+)$/);
   return m ? m[1] : t;
 }
 
@@ -583,7 +597,8 @@ function buildIndexModelFromPageMap({ matterPack, indexGenerated, pageMap, front
       ? raw.filter((n) => typeof n === "number" && Number.isFinite(n) && n > 0).map((n) => n + offset)
       : (raw && Number(raw) > 0 ? [Number(raw) + offset] : []);
     const uniq = Array.from(new Set(pagesArr)).sort((a, b) => a - b);
-    rows.push({ term, page: uniq.length ? uniq.join(", ") : "" });
+    const limited = uniq.slice(0, 5);
+    rows.push({ term, page: limited.length ? limited.join(", ") : "" });
   }
 
   // Sort by term (Dutch)
@@ -1027,6 +1042,7 @@ async function processJob(job) {
     let matterPack = null;
     let indexGenerated = null;
     let glossaryGenerated = null;
+    let skipMatter = false;
     if (target === "book") {
       const mpUrl = inputs?.urls?.matterPack?.signedUrl || null;
       const idxUrl = inputs?.urls?.indexGenerated?.signedUrl || null;
@@ -1035,13 +1051,23 @@ async function processJob(job) {
       if (idxUrl) indexGenerated = await withRetries(() => downloadJsonFromSignedUrl(idxUrl), { attempts: 3 });
       if (glUrl) glossaryGenerated = await withRetries(() => downloadJsonFromSignedUrl(glUrl), { attempts: 3 });
 
-      // Fail loudly: full-book “matter PNG pages” require these inputs.
-      if (!matterPack) throw new Error("BLOCKED: matter-pack.json is REQUIRED for full-book rendering with matter pages");
-      if (!indexGenerated) throw new Error("BLOCKED: index.generated.json is REQUIRED (run book_generate_index first)");
-      if (!glossaryGenerated) throw new Error("BLOCKED: glossary.generated.json is REQUIRED (run book_generate_glossary first)");
+      // For draft renders (allowMissingImages=true), allow skipping matter pages if not yet generated.
+      // This enables preview renders before index/glossary generation is complete.
+      const matterMissing = !matterPack || !indexGenerated || !glossaryGenerated;
+      if (matterMissing && allowMissingImages) {
+        console.log("[book-worker] WARNING: Matter artifacts missing. Skipping matter pages (draft render mode).");
+        skipMatter = true;
+      } else if (matterMissing) {
+        // Fail loudly: full-book "matter PNG pages" require these inputs.
+        if (!matterPack) throw new Error("BLOCKED: matter-pack.json is REQUIRED for full-book rendering with matter pages");
+        if (!indexGenerated) throw new Error("BLOCKED: index.generated.json is REQUIRED (run book_generate_index first)");
+        if (!glossaryGenerated) throw new Error("BLOCKED: glossary.generated.json is REQUIRED (run book_generate_glossary first)");
+      }
 
-      // Validate shape (no silent fallback)
-      requireMatterPack(matterPack, { context: `${bookId}/${bookVersionId}` });
+      // Validate shape (no silent fallback) - only if we have matter
+      if (matterPack && !skipMatter) {
+        requireMatterPack(matterPack, { context: `${bookId}/${bookVersionId}` });
+      }
     }
 
     let skeleton = null;
@@ -1502,7 +1528,10 @@ Hard requirements:
             : await openaiFigureJson({ system, user, model, temperature: 0.1, maxTokens: 600 });
         };
 
-        const planned = await withRetries(() => call(), { attempts: 3 });
+        const planned = await withRetries(
+          () => call(),
+          { attempts: BOOKGEN_LLM_RETRY_ATTEMPTS, baseDelayMs: BOOKGEN_LLM_RETRY_BASE_DELAY_MS },
+        );
         const pid = typeof planned?.paragraph_id === "string" ? planned.paragraph_id.trim() : "";
         if (!pid) throw new Error(`BLOCKED: Figure placement missing paragraph_id for src=${fig.src}`);
         if (!byId.has(pid)) {
@@ -2362,14 +2391,14 @@ Return STRICT JSON ONLY:
           model: planModel,
           temperature: 0.2,
           maxTokens: 4000,
-        }), { attempts: 3 })
+        }), { attempts: BOOKGEN_LLM_RETRY_ATTEMPTS, baseDelayMs: BOOKGEN_LLM_RETRY_BASE_DELAY_MS })
         : await withRetries(() => openaiChatJson({
           system: BOOKGEN_PROMPT_PLAN_SYSTEM,
           user: `INPUT JSON:\n${JSON.stringify(planInput)}`,
           model: planModel,
           temperature: 0.2,
           maxTokens: 4000,
-        }), { attempts: 3 });
+        }), { attempts: BOOKGEN_LLM_RETRY_ATTEMPTS, baseDelayMs: BOOKGEN_LLM_RETRY_BASE_DELAY_MS });
 
       const microHeadingsArr = Array.isArray(plan?.micro_headings) ? plan.micro_headings : [];
       const rawVerd = Array.isArray(plan?.verdieping_unit_ids) ? plan.verdieping_unit_ids : [];
@@ -2676,7 +2705,13 @@ Return STRICT JSON ONLY:
           : `Do NOT include any <<MICRO_TITLE>> markers in the output.`;
 
         const facts = factsForUnit(u);
-        if (!facts.length) throw new Error(`No facts to rewrite for unit ${u.unit_id} (${u.kind || "unknown"})`);
+        if (!facts.length) {
+          // Some legacy/extracted canonicals contain empty list/steps blocks (no items) or
+          // blocks with missing text. Do not fail the entire full-book render for that;
+          // keep the original block unchanged and move on.
+          console.warn(`[book-worker] WARNING: No facts to rewrite for unit ${u.unit_id} (${u.kind || "unknown"}). Keeping original block.`);
+          continue;
+        }
         const userMsg =
 `CONTEXT:
   Book: ${bookTitle}
@@ -2696,12 +2731,12 @@ ${facts.map((f, idx) => `  ${idx + 1}. ${f}`).join("\n")}
         if (rewriteProvider === "anthropic") {
           outText = await withRetries(
             () => anthropicText({ system: BOOKGEN_PROMPT_GENERATE_SYSTEM, user: userMsg, model: rewriteModel, temperature: 0.3, maxTokens: 1024 }),
-            { attempts: 3 },
+            { attempts: BOOKGEN_LLM_RETRY_ATTEMPTS, baseDelayMs: BOOKGEN_LLM_RETRY_BASE_DELAY_MS },
           );
         } else {
           outText = await withRetries(
             () => openaiChatText({ system: BOOKGEN_PROMPT_GENERATE_SYSTEM, user: userMsg, model: rewriteModel, temperature: 0.3, maxTokens: 1024 }),
-            { attempts: 3 },
+            { attempts: BOOKGEN_LLM_RETRY_ATTEMPTS, baseDelayMs: BOOKGEN_LLM_RETRY_BASE_DELAY_MS },
           );
         }
 
@@ -2784,14 +2819,14 @@ ${facts.map((f, idx) => `  ${idx + 1}. ${f}`).join("\n")}
             model: rewriteModel,
             temperature: 0.3,
             maxTokens: 2200,
-          }), { attempts: 3 })
+          }), { attempts: BOOKGEN_LLM_RETRY_ATTEMPTS, baseDelayMs: BOOKGEN_LLM_RETRY_BASE_DELAY_MS })
           : await withRetries(() => openaiChatJson({
             system: BOOKGEN_PROMPT_PRAKTIJK_GENERATE_SYSTEM,
             user: `INPUT JSON:\n${JSON.stringify(praktijkInput)}`,
             model: rewriteModel,
             temperature: 0.3,
             maxTokens: 2200,
-          }), { attempts: 3 });
+          }), { attempts: BOOKGEN_LLM_RETRY_ATTEMPTS, baseDelayMs: BOOKGEN_LLM_RETRY_BASE_DELAY_MS });
 
         const praktijkMapRaw = praktijkOut && typeof praktijkOut === "object" ? praktijkOut.praktijk : null;
         if (!praktijkMapRaw || typeof praktijkMapRaw !== "object") {
@@ -2948,7 +2983,7 @@ Return STRICT JSON ONLY:
             checkOut = hyphenProvider === "anthropic"
               ? await withRetries(
                 () => anthropicJson({ system: HYPHEN_CHECK_SYSTEM, user: `INPUT JSON:\n${JSON.stringify(checkInput)}`, model: hyphenCheckModel, temperature: 0.2, maxTokens: 1200 }),
-                { attempts: 3 },
+                { attempts: BOOKGEN_LLM_RETRY_ATTEMPTS, baseDelayMs: BOOKGEN_LLM_RETRY_BASE_DELAY_MS },
               )
               : null;
           } catch (e) {
@@ -2985,7 +3020,7 @@ Return STRICT JSON ONLY:
               };
               return await withRetries(
                 () => anthropicJson({ system: HYPHEN_FIX_SYSTEM, user: `INPUT JSON:\n${JSON.stringify(fixInput)}`, model: hyphenFixModel, temperature: 0.2, maxTokens: 3200 }),
-                { attempts: 3 },
+                { attempts: BOOKGEN_LLM_RETRY_ATTEMPTS, baseDelayMs: BOOKGEN_LLM_RETRY_BASE_DELAY_MS },
               );
             };
 
@@ -3471,8 +3506,8 @@ Return STRICT JSON ONLY:
 
           const callPlacement = async ({ system, user }) => {
             return planProvider === "anthropic"
-              ? await withRetries(() => anthropicJson({ system, user, model: planModel, temperature: 0.1, maxTokens: 2500 }), { attempts: 3 })
-              : await withRetries(() => openaiChatJson({ system, user, model: planModel, temperature: 0.1, maxTokens: 2500 }), { attempts: 3 });
+              ? await withRetries(() => anthropicJson({ system, user, model: planModel, temperature: 0.1, maxTokens: 2500 }), { attempts: BOOKGEN_LLM_RETRY_ATTEMPTS, baseDelayMs: BOOKGEN_LLM_RETRY_BASE_DELAY_MS })
+              : await withRetries(() => openaiChatJson({ system, user, model: planModel, temperature: 0.1, maxTokens: 2500 }), { attempts: BOOKGEN_LLM_RETRY_ATTEMPTS, baseDelayMs: BOOKGEN_LLM_RETRY_BASE_DELAY_MS });
           };
 
           const validatePlacements = (plannedObj) => {
@@ -3790,7 +3825,17 @@ Return STRICT JSON ONLY:
     // 4b) Page-map (body-only) + rasterize matter pages for TOC/index alignment
     let pageMap = null;
     let matterPngs = null;
-    if (target === "book") {
+    
+    if (target === "book" && skipMatter) {
+      // Draft render: skip matter pages when allowMissingImages=true and matter artifacts are missing.
+      // This allows preview renders before index/glossary generation is complete.
+      console.log("[book-worker] Skipping matter pages (draft render mode)");
+      await reportProgress({
+        stage: "matter:skipped",
+        percent: 95,
+        message: "Matter pages skipped (draft render mode)",
+      }).catch(() => {});
+    } else if (target === "book") {
       await reportProgress({
         stage: "matter:page-map",
         percent: 92,
@@ -3911,12 +3956,15 @@ Return STRICT JSON ONLY:
       // Phase 1: Render static front matter (title, colophon, promo) to count their pages
       await rasterDoc({ key: "title", html: renderMatterTitlePage(matterPack), filename: "matter.title.html" });
       await rasterDoc({ key: "colophon", html: renderMatterColophonPage(matterPack), filename: "matter.colophon.html" });
-      await rasterDoc({ key: "promo", html: renderMatterPromoPage(matterPack), filename: "matter.promo.html" });
+      const promoEnabled = matterPack?.promo?.enabled === true;
+      if (promoEnabled) {
+        await rasterDoc({ key: "promo", html: renderMatterPromoPage(matterPack), filename: "matter.promo.html" });
+      }
 
       // Count static pages; compute TOC pages with a bounded stabilization loop.
       const titlePages = matterPngs.title.pngPaths.length;
       const colophonPages = matterPngs.colophon.pngPaths.length;
-      const promoPages = matterPngs.promo.pngPaths.length;
+      const promoPages = promoEnabled ? matterPngs.promo.pngPaths.length : 0;
       let tocPagesCount = 1;
       let finalOffset = titlePages + colophonPages + tocPagesCount + promoPages;
       let tocModel = null;
@@ -3958,7 +4006,9 @@ Return STRICT JSON ONLY:
       for (const p of matterPngs.title.pngPaths) frontMatterPages.push({ kind: "title", src: toRelSrc(p) });
       for (const p of matterPngs.colophon.pngPaths) frontMatterPages.push({ kind: "colophon", src: toRelSrc(p) });
       for (const p of matterPngs.toc.pngPaths) frontMatterPages.push({ kind: "toc", src: toRelSrc(p) });
-      for (const p of matterPngs.promo.pngPaths) frontMatterPages.push({ kind: "promo", src: toRelSrc(p) });
+      if (promoEnabled) {
+        for (const p of matterPngs.promo.pngPaths) frontMatterPages.push({ kind: "promo", src: toRelSrc(p) });
+      }
 
       const backMatterPages = [];
       for (const p of matterPngs.index.pngPaths) backMatterPages.push({ kind: "index", src: toRelSrc(p) });
@@ -4218,44 +4268,55 @@ Return STRICT JSON ONLY:
     const renderDurationMs = Date.now() - renderStartMs;
 
     const missingCount = missingImageReport?.missingImages?.length ? Number(missingImageReport.missingImages.length) : 0;
-    await callEdge(
-      "book-job-apply-result",
-      {
-        jobId,
-        status: "done",
-        progressStage: "completed",
-        progressPercent: 100,
-        progressMessage: missingCount
-          ? `Rendered via ${renderProvider} in ${renderDurationMs}ms (MISSING IMAGES: ${missingCount})`
-          : `Rendered via ${renderProvider} in ${renderDurationMs}ms`,
-        resultPath: uploaded.find((u) => u.kind === "pdf")?.path || null,
-        processingDurationMs,
-        artifacts: uploaded.map((u) => ({
-          kind: u.kind,
-          path: u.path,
-          sha256: u.sha256,
-          bytes: u.bytes,
-          contentType: u.contentType,
-          chapterIndex: u.chapterIndex,
-        })),
-      },
-      { orgId }
+    await withRetries(
+      () => callEdge(
+        "book-job-apply-result",
+        {
+          jobId,
+          status: "done",
+          progressStage: "completed",
+          progressPercent: 100,
+          progressMessage: missingCount
+            ? `Rendered via ${renderProvider} in ${renderDurationMs}ms (MISSING IMAGES: ${missingCount})`
+            : `Rendered via ${renderProvider} in ${renderDurationMs}ms`,
+          resultPath: uploaded.find((u) => u.kind === "pdf")?.path || null,
+          processingDurationMs,
+          artifacts: uploaded.map((u) => ({
+            kind: u.kind,
+            path: u.path,
+            sha256: u.sha256,
+            bytes: u.bytes,
+            contentType: u.contentType,
+            chapterIndex: u.chapterIndex,
+          })),
+        },
+        { orgId }
+      ),
+      { attempts: BOOK_JOB_RESULT_RETRY_ATTEMPTS, baseDelayMs: BOOK_JOB_RESULT_RETRY_BASE_DELAY_MS },
     );
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
-    await callEdge(
-      "book-job-apply-result",
-      {
-        jobId,
-        status: "failed",
-        error: msg,
-        progressStage: "failed",
-        progressPercent: 0,
-        progressMessage: msg,
-        processingDurationMs: Date.now() - startedAt,
-      },
-      { orgId }
-    ).catch(() => {});
+    try {
+      await withRetries(
+        () => callEdge(
+          "book-job-apply-result",
+          {
+            jobId,
+            status: "failed",
+            error: msg,
+            progressStage: "failed",
+            progressPercent: 0,
+            progressMessage: msg,
+            processingDurationMs: Date.now() - startedAt,
+          },
+          { orgId }
+        ),
+        { attempts: BOOK_JOB_RESULT_RETRY_ATTEMPTS, baseDelayMs: BOOK_JOB_RESULT_RETRY_BASE_DELAY_MS },
+      );
+    } catch (e2) {
+      const msg2 = e2 instanceof Error ? e2.message : String(e2);
+      console.error(`[book-worker] WARNING: Failed to apply job failure result after retries (job may be stuck in processing). jobId=${jobId}: ${msg2}`);
+    }
     throw e;
   } finally {
     stopHeartbeat();

@@ -9,7 +9,7 @@ export default function CatalogBuilder() {
   const [searchParams] = useSearchParams();
   const id = searchParams.get("id");
   const mcp = useMCP();
-  const [title, _setTitle] = React.useState("");
+  const [title, setTitle] = React.useState("");
   const [subject, setSubject] = React.useState("");
   const [difficulty, setDifficulty] = React.useState("");
   const [published, setPublished] = React.useState("");
@@ -47,7 +47,7 @@ export default function CatalogBuilder() {
             try {
               await mcp.saveRecord("CourseBlueprint", { id });
               toast.success("Saved: new-course");
-            } catch (_e) {
+            } catch (e) {
               toast.error("Save failed: new-course");
             }
           }} type="button">
@@ -63,7 +63,7 @@ export default function CatalogBuilder() {
             try {
               await mcp.enqueueJob("ai_course_generate", { planBlueprintId: id });
               toast.success("Job enqueued: ai-generate");
-            } catch (_e) {
+            } catch (e) {
               toast.error("Job failed: ai-generate");
             }
           }} type="button">
@@ -73,7 +73,7 @@ export default function CatalogBuilder() {
             try {
               await mcp.enqueueJob("guard_course", { planBlueprintId: id });
               toast.success("Job enqueued: guard-course");
-            } catch (_e) {
+            } catch (e) {
               toast.error("Job failed: guard-course");
             }
           }} type="button">
@@ -83,7 +83,7 @@ export default function CatalogBuilder() {
             try {
               await mcp.saveRecord("CourseBlueprint", { id });
               toast.success("Saved: save-course");
-            } catch (_e) {
+            } catch (e) {
               toast.error("Save failed: save-course");
             }
           }} type="button">
@@ -118,7 +118,7 @@ export default function CatalogBuilder() {
         <div className="form-group">
           <label>Published</label>
           <select data-field="published" value={published} onChange={(e) => setPublished(e.target.value)}>
-            <option value="true">Yes - Visible to students</option>
+            <option value="true" selected>Yes - Visible to students</option>
             <option value="false">No - Draft only</option>
           </select>
         </div>

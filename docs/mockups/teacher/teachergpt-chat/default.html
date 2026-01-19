@@ -1,42 +1,202 @@
 <!doctype html>
-<html lang="en">
+<html lang="nl">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>TeacherGPT Chat</title>
+    <title>e-Xpert SAM | TeacherGPT Chat</title>
     <style>
-      body { font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; background: #0a0a0f; color: #f3f4f6; margin: 0; }
-      .wrap { max-width: 960px; margin: 0 auto; padding: 24px; }
-      .card { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 16px; }
-      .row { display: flex; gap: 12px; flex-wrap: wrap; }
-      .pill { display: inline-block; padding: 4px 10px; border-radius: 999px; background: rgba(255,255,255,0.08); font-size: 12px; }
-      .input { width: 100%; padding: 10px 12px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.12); background: rgba(0,0,0,0.25); color: #f3f4f6; }
-      .btn { padding: 10px 12px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.12); background: rgba(255,255,255,0.08); color: #f3f4f6; cursor: pointer; }
+      :root {
+        --bg: #0f172a;
+        --surface: #1e293b;
+        --surface2: #334155;
+        --text: #f8fafc;
+        --muted: #94a3b8;
+        --border: rgba(255,255,255,0.10);
+        --primary: #2563eb;
+        --success: #22c55e;
+        --radius: 12px;
+      }
+      * { box-sizing: border-box; }
+      html, body { height: 100%; margin: 0; background: var(--bg); color: var(--text); font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; }
+      .wrap { height: 100%; display: flex; flex-direction: column; }
+      .header {
+        display: flex; align-items: center; justify-content: space-between;
+        padding: 12px 16px; background: var(--surface); border-bottom: 1px solid var(--border);
+      }
+      .brand { display: flex; align-items: center; gap: 10px; }
+      .logo { width: 34px; height: 34px; border-radius: 10px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: grid; place-items: center; font-weight: 700; }
+      .title { font-weight: 700; }
+      .subtitle { font-size: 12px; color: var(--muted); }
+      .controls { display: flex; align-items: center; gap: 10px; }
+      .scope { display: flex; gap: 6px; padding: 4px; background: rgba(255,255,255,0.06); border-radius: 999px; }
+      .btn {
+        border: 1px solid var(--border); background: transparent; color: var(--text);
+        border-radius: 10px; padding: 8px 10px; cursor: pointer;
+      }
+      .btn-primary { background: var(--primary); border-color: var(--primary); }
+      .scope .btn { border-radius: 999px; border: none; padding: 6px 12px; color: var(--muted); }
+      .scope .btn.active { background: var(--primary); color: white; }
+      .settings { padding: 12px 16px; border-bottom: 1px solid var(--border); background: var(--surface); }
+      .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+      .field { display: flex; flex-direction: column; gap: 6px; }
+      .label { font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+      select, input { width: 100%; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--border); background: rgba(0,0,0,0.2); color: var(--text); }
+      .main { flex: 1; display: grid; grid-template-columns: 1fr 380px; min-height: 0; }
+      .chat { min-height: 0; display: flex; flex-direction: column; border-right: 1px solid var(--border); }
+      .messages { flex: 1; min-height: 0; overflow: auto; padding: 16px; display: flex; flex-direction: column; gap: 10px; }
+      .bubble { max-width: 85%; padding: 10px 12px; border-radius: 14px; border: 1px solid var(--border); background: rgba(255,255,255,0.04); }
+      .bubble.user { margin-left: auto; background: var(--primary); border-color: var(--primary); }
+      .inputbar { border-top: 1px solid var(--border); background: var(--surface); padding: 12px 16px; display: flex; flex-direction: column; gap: 10px; }
+      .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+      .chip { padding: 6px 12px; border-radius: 999px; border: 1px solid var(--border); background: rgba(255,255,255,0.06); color: var(--text); cursor: pointer; }
+      .row { display: flex; gap: 10px; }
+      .side { min-height: 0; display: flex; flex-direction: column; background: var(--surface); }
+      .tabs { display: flex; border-bottom: 1px solid var(--border); }
+      .tab { flex: 1; padding: 10px 12px; background: transparent; border: none; color: var(--muted); cursor: pointer; }
+      .tab.active { color: var(--text); border-bottom: 2px solid var(--primary); }
+      .panel { flex: 1; min-height: 0; overflow: auto; padding: 12px; }
+      .card { border: 1px solid var(--border); border-radius: var(--radius); background: rgba(255,255,255,0.03); padding: 12px; margin-bottom: 10px; }
+      .card h3 { margin: 0 0 6px; font-size: 14px; }
+      .muted { color: var(--muted); font-size: 12px; }
+      .check { display: flex; align-items: flex-start; gap: 10px; font-size: 13px; margin-top: 8px; }
+      .tick { width: 18px; height: 18px; border-radius: 50%; background: rgba(34, 197, 94, 0.2); color: var(--success); display: grid; place-items: center; font-weight: 700; }
+      @media (max-width: 1000px) { .main { grid-template-columns: 1fr; } .side { display: none; } .grid { grid-template-columns: 1fr; } }
     </style>
   </head>
   <body data-route="/teacher/teachergpt/chat">
     <div class="wrap">
-      <h1>TeacherGPT Chat</h1>
-      <p class="pill">Mockup coverage placeholder (real page is React)</p>
-
-      <div class="card" style="margin-top: 16px;">
-        <div class="row">
-          <button class="btn" data-cta-id="cta-teachergpt-chat-clear" data-action="click">Clear</button>
-          <select class="input" data-cta-id="cta-teachergpt-chat-scope" data-action="select" style="max-width: 280px;">
-            <option>All</option>
-            <option>Materials</option>
-            <option>MES</option>
-          </select>
-          <select class="input" data-cta-id="cta-teachergpt-chat-material-select" data-action="select" style="flex: 1;">
-            <option>(All materials)</option>
-          </select>
+      <header class="header">
+        <div class="brand">
+          <div class="logo">eX</div>
+          <div>
+            <div class="title">e-Xpert SAM</div>
+            <div class="subtitle">Je lesplan in 1 klik</div>
+          </div>
         </div>
 
-        <div class="row" style="margin-top: 12px;">
-          <input class="input" data-cta-id="cta-teachergpt-chat-input" data-action="edit" placeholder="Ask a question..." />
-          <button class="btn" data-cta-id="cta-teachergpt-chat-send" data-action="click">Send</button>
+        <div class="controls">
+          <div class="scope">
+            <button class="btn active" data-cta-id="cta-teachergpt-chat-scope-all" data-action="click" type="button">Alles</button>
+            <button class="btn" data-cta-id="cta-teachergpt-chat-scope-materials" data-action="click" type="button">Materialen</button>
+            <button class="btn" data-cta-id="cta-teachergpt-chat-scope-mes" data-action="click" type="button">MES</button>
+          </div>
+          <button class="btn" data-cta-id="cta-teachergpt-chat-clear" data-action="click" type="button">Wissen</button>
+          <button class="btn" data-cta-id="cta-teachergpt-chat-settings-toggle" data-action="click" type="button">⚙️</button>
         </div>
-      </div>
+      </header>
+
+      <section class="settings">
+        <div class="grid">
+          <div class="field">
+            <div class="label">Zoekomvang</div>
+            <select data-cta-id="cta-teachergpt-chat-settings-scope" data-action="select">
+              <option value="all">Alles (Materialen + MES)</option>
+              <option value="materials">Alleen Materialen</option>
+              <option value="mes">Alleen MES</option>
+            </select>
+          </div>
+          <div class="field">
+            <div class="label">Materiaal (optioneel)</div>
+            <div class="row">
+              <select data-cta-id="cta-teachergpt-chat-settings-material-select" data-action="select">
+                <option value="">(Alle materialen)</option>
+                <option value="demo">Demo materiaal</option>
+              </select>
+              <button class="btn" data-cta-id="cta-teachergpt-chat-settings-material-refresh" data-action="click" type="button">Refresh</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <main class="main">
+        <section class="chat">
+          <div class="messages">
+            <div class="bubble">Welkom! Kies een suggestie of stel een vraag.</div>
+            <div class="bubble user">Maak een lesplan voor B1-K2-W2 over SBAR-communicatie.</div>
+            <div class="bubble">Top — ik maak een lesplan en zoek passende materialen + bronnen.</div>
+          </div>
+
+          <div class="inputbar">
+            <div class="chips">
+              <button class="chip" data-cta-id="cta-teachergpt-chat-suggestion-b1-k1-w2" data-action="click" type="button">B1-K1-W2 Zorgplan</button>
+              <button class="chip" data-cta-id="cta-teachergpt-chat-suggestion-b1-k1-w3" data-action="click" type="button">B1-K1-W3 Interventies</button>
+              <button class="chip" data-cta-id="cta-teachergpt-chat-suggestion-b1-k1-w5" data-action="click" type="button">B1-K1-W5 ABCDE</button>
+              <button class="chip" data-cta-id="cta-teachergpt-chat-suggestion-b1-k2-w2" data-action="click" type="button">B1-K2-W2 SBAR</button>
+              <button class="chip" data-cta-id="cta-teachergpt-chat-suggestion-b1-k3-w2" data-action="click" type="button">B1-K3-W2 Reflectie</button>
+            </div>
+
+            <div class="row">
+              <input
+                data-cta-id="cta-teachergpt-chat-input"
+                data-action="edit"
+                placeholder="Stel je vraag…"
+                aria-label="Chat input"
+              />
+              <button class="btn btn-primary" data-cta-id="cta-teachergpt-chat-send" data-action="click" type="button">Verstuur</button>
+            </div>
+          </div>
+        </section>
+
+        <aside class="side">
+          <div class="tabs">
+            <button class="tab active" data-cta-id="cta-teachergpt-chat-tab-lesplan" data-action="tab" type="button">Lesplan</button>
+            <button class="tab" data-cta-id="cta-teachergpt-chat-tab-materials" data-action="tab" type="button">Materialen</button>
+            <button class="tab" data-cta-id="cta-teachergpt-chat-tab-sources" data-action="tab" type="button">Bronnen</button>
+          </div>
+
+          <div class="panel">
+            <div class="card">
+              <h3>Lesplan (KD B1-K2-W2)</h3>
+              <div class="muted">Werkt samen met andere zorgprofessionals</div>
+              <div style="display:flex; gap: 8px; margin-top: 10px;">
+                <button class="btn" data-cta-id="cta-teachergpt-chat-lesplan-print" data-action="click" type="button">Print</button>
+                <button class="btn btn-primary" data-cta-id="cta-teachergpt-chat-lesplan-use" data-action="click" type="button">Gebruiken</button>
+              </div>
+            </div>
+
+            <div class="card">
+              <h3>Quick Start</h3>
+              <button class="btn" data-cta-id="cta-teachergpt-chat-section-quick-start" data-action="click" type="button">Open/dicht</button>
+              <div class="muted" style="margin-top: 8px;">Korte voorbereiding + tijdsindeling</div>
+            </div>
+            <div class="card">
+              <h3>Docentenscript</h3>
+              <button class="btn" data-cta-id="cta-teachergpt-chat-section-teacher-script" data-action="click" type="button">Open/dicht</button>
+              <div class="muted" style="margin-top: 8px;">Stapsgewijs met fasen</div>
+            </div>
+            <div class="card">
+              <h3>Discussievragen</h3>
+              <button class="btn" data-cta-id="cta-teachergpt-chat-section-discussion" data-action="click" type="button">Open/dicht</button>
+              <div class="muted" style="margin-top: 8px;">3 vragen met verwachte antwoorden</div>
+            </div>
+            <div class="card">
+              <h3>Groepsopdracht</h3>
+              <button class="btn" data-cta-id="cta-teachergpt-chat-section-group-work" data-action="click" type="button">Open/dicht</button>
+              <div class="muted" style="margin-top: 8px;">Rollenspel overdracht met SBAR</div>
+            </div>
+
+            <div class="card">
+              <h3>KD-Check</h3>
+              <button class="btn" data-cta-id="cta-teachergpt-chat-section-kd-check" data-action="click" type="button">Open/dicht</button>
+              <div class="check"><span class="tick">✓</span> Samenwerken met arts → Rollenspel overdracht</div>
+              <div class="check"><span class="tick">✓</span> Professionele communicatie → SBAR-structuur</div>
+              <div class="check"><span class="tick">✓</span> Praktijkgericht → BPV-transfer expliciet</div>
+              <div style="display:flex; justify-content: space-between; align-items:center; margin-top: 12px;">
+                <div class="muted"><strong style="color: var(--success);">4/4</strong> criteria</div>
+                <button class="btn" data-cta-id="cta-teachergpt-chat-kdcheck-save" data-action="click" type="button">Verificatie opslaan</button>
+              </div>
+            </div>
+
+            <div class="card">
+              <h3>Voorbeeld materiaal</h3>
+              <div class="muted">SBAR-template overdracht (score 69%)</div>
+              <div style="margin-top: 10px;">
+                <button class="btn" data-cta-id="cta-teachergpt-chat-recommendation-use" data-action="click" type="button">Gebruik dit materiaal</button>
+              </div>
+            </div>
+          </div>
+        </aside>
+      </main>
     </div>
   </body>
 </html>

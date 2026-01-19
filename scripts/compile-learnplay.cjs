@@ -34,7 +34,25 @@ function getAllHtmlFiles(dir, baseDir = dir) {
   return results;
 }
 
-const htmlFiles = getAllHtmlFiles(mockupsDir);
+// NOTE: Some demo HTML files (with inline <style>/<script> or literal `{}` content) are not JSX-safe and must not be compiled.
+// Keep them in /docs/mockups or serve them as static assets instead of compiling into TSX.
+const htmlFiles = getAllHtmlFiles(mockupsDir).filter((f) => ![
+  // Teacher routes are implemented as real React pages (not compiled mockups)
+  'teacher/analytics.html',
+  'teacher/assignment-progress.html',
+  'teacher/assignments.html',
+  'teacher/class-progress.html',
+  'teacher/classes.html',
+  'teacher/control.html',
+  'teacher/dashboard.html',
+  'teacher/kw1c-demo.html',
+  'teacher/kw1c-cockpit.html',
+  'teacher/students.html',
+
+  'wysiwyg-exercise-editor.html',
+  'wysiwyg-exercise-editor-v2.html',
+  'wysiwyg-exercise-editor-v3.html',
+].includes(f));
 console.log(`📁 Found ${htmlFiles.length} HTML mockups`);
 
 function slugify(name) {
@@ -101,9 +119,12 @@ for (const file of htmlFiles) {
   });
 
   const fields = [];
+  const seenFieldNames = new Set();
   dom.querySelectorAll('[data-field]').forEach(node => {
     const name = node.getAttribute('data-field');
     if (!name) return;
+    if (seenFieldNames.has(name)) return;
+    seenFieldNames.add(name);
     fields.push({ name, type: node.getAttribute('type') || 'text' });
   });
 
@@ -165,6 +186,11 @@ for (const p of pages) {
     p.ctas.forEach(c => {
       const el = body.querySelector(`[data-cta-id="${c.id}"]`);
       if (el) {
+        // For interactive form controls, we track via data-cta-id but do not inject placeholder onClick handlers.
+        // This avoids noisy toasts and prevents interfering with native input/select behavior.
+        if (['edit', 'select', 'toggle'].includes(String(c.action || '').toLowerCase())) {
+          return;
+        }
         let handler = '';
         if (c.action === 'navigate') {
           handler = `() => nav("${c.target || '/'}")`;

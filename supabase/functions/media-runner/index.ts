@@ -1,7 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { stdHeaders, handleOptions } from "../_shared/cors.ts";
-import { getProvider } from "../_shared/media-providers.ts";
+import { getProvider, UpstreamProviderError } from "../_shared/media-providers.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
@@ -353,13 +353,40 @@ serve(async (req: Request): Promise<Response> => {
       results.push({ id: job.id, status: "done", resultUrl: uploaded.publicUrl });
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
-      await markJob(job.id, {
-        status: "failed",
-        error: msg,
-        completed_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      });
-      results.push({ id: job.id, status: "failed", error: msg });
+
+      // Retry transient upstream errors by re-queueing the job instead of hard-failing.
+      // We persist attempt count in metadata to avoid schema changes.
+      const isRetryableUpstream = e instanceof UpstreamProviderError && e.retryable;
+      const prevAttemptsRaw = (job.metadata as any)?.attempts;
+      const prevAttempts = typeof prevAttemptsRaw === "number" && Number.isFinite(prevAttemptsRaw) ? Math.max(0, Math.floor(prevAttemptsRaw)) : 0;
+      const nextAttempts = prevAttempts + 1;
+      const maxRetryAttempts = 5;
+
+      if (isRetryableUpstream && nextAttempts <= maxRetryAttempts) {
+        await markJob(job.id, {
+          status: "pending",
+          error: msg,
+          metadata: {
+            ...(job.metadata ?? {}),
+            attempts: nextAttempts,
+            last_error: msg,
+            last_error_at: new Date().toISOString(),
+            last_upstream_status: (e as UpstreamProviderError).status,
+          },
+          started_at: null,
+          completed_at: null,
+          updated_at: new Date().toISOString(),
+        });
+        results.push({ id: job.id, status: "pending", error: `retryable (attempt ${nextAttempts}/${maxRetryAttempts}): ${msg}` });
+      } else {
+        await markJob(job.id, {
+          status: "failed",
+          error: msg,
+          completed_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        });
+        results.push({ id: job.id, status: "failed", error: msg });
+      }
     }
   }
 

@@ -1501,7 +1501,13 @@ export const EDGE_FUNCTION_SCHEMAS = [
     "output": {
       "ok": "boolean",
       "answer": "string",
-      "citations": "json"
+      "citations": "json",
+      "recommendations": "json",
+      "lessonPlan": "json",
+      "kdCheck": "json",
+      "error": "json",
+      "httpStatus": "number",
+      "requestId": "string"
     }
   },
   {

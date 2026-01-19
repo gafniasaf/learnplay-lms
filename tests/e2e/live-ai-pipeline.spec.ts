@@ -116,21 +116,29 @@ test.describe('Live AI Pipeline: Course Creation', () => {
       throw new Error(`generate-course failed (HTTP ${status}): ${bodyText.slice(0, 2000)}`);
     }
 
-    // Step 4: Poll job status via list-course-jobs (real DB), up to 5 minutes
+    // Step 4: Poll job status via get-course-job (real DB), up to 5 minutes
     const maxWaitTime = 300000;
     const startTime = Date.now();
     let lastStatus = '';
     let lastFallbackReason: string | null = null;
     while ((Date.now() - startTime) < maxWaitTime) {
-      const statusRes = await page.request.get(`${url}/functions/v1/list-course-jobs?jobId=${encodeURIComponent(jobId)}`, {
-        headers: { apikey: anonKey },
-      });
+      const statusRes = await page.request.get(
+        `${url}/functions/v1/get-course-job?id=${encodeURIComponent(jobId)}&includeEvents=false`,
+        { headers: { apikey: anonKey, Authorization: `Bearer ${anonKey}` } }
+      );
       expect(statusRes.ok()).toBeTruthy();
-      const statusJson = await statusRes.json();
-      const job = Array.isArray(statusJson.jobs) ? statusJson.jobs[0] : null;
+      const statusJson: any = await statusRes.json().catch(() => null);
+
+      if (statusJson?.ok === false && statusJson?.error?.code === 'transient_network') {
+        await page.waitForTimeout(1500);
+        continue;
+      }
+
+      const job = statusJson?.job ?? null;
       const status = job?.status as string | undefined;
       lastStatus = status || '';
       lastFallbackReason = (job?.fallback_reason ?? job?.fallbackReason ?? null) as string | null;
+
       if (status === 'done') break;
       if (status === 'failed') {
         throw new Error(`Job failed: ${job?.error || 'unknown error'}`);
@@ -227,8 +235,10 @@ test.describe('Live AI Pipeline: Course Creation', () => {
       let stim: any = null;
       let lastAfterJson: any = null;
       for (let i = 0; i < 15; i++) {
-        const after = await page.request.get(`${url}/functions/v1/get-course?courseId=${encodeURIComponent(courseId)}`, {
-          headers: { apikey: anonKey, 'Cache-Control': 'no-cache' },
+        // Read directly from Storage with cache-busting to avoid CDN propagation delays.
+        const storageUrl = `${url}/storage/v1/object/public/courses/${encodeURIComponent(courseId)}/course.json?cb=${Date.now()}`;
+        const after = await page.request.get(storageUrl, {
+          headers: { 'Cache-Control': 'no-cache' },
         });
         expect(after.ok()).toBeTruthy();
         lastAfterJson = await after.json().catch(() => null);

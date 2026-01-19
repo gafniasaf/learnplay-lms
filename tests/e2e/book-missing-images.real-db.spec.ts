@@ -60,6 +60,16 @@ test("real-db: book missing-images manager shows report + allows upload", async 
   let primaryError: unknown = null;
   let cleanupError: string | null = null;
 
+  // Ensure an empty image library index exists for this book.
+  // book-ingest-version fails loudly if canonical references local images and there is no index.
+  const emptyIndexPath = `library/${bookId}/images-index.json`;
+  const emptyIndexObjectPath = encodeStoragePath(emptyIndexPath);
+  const emptyIndex = {
+    bookId,
+    updatedAt: new Date().toISOString(),
+    entries: [],
+  };
+
   // Capture IDs/paths for cleanup.
   let bookVersionId = "";
   let runId = "";
@@ -67,6 +77,19 @@ test("real-db: book missing-images manager shows report + allows upload", async 
   let layoutReportObjectPath = "";
 
   try {
+    // 0) Seed empty images-index.json (so ingest can reference a library mapping if canonical includes local images)
+    const indexResp = await request.post(`${SUPABASE_URL}/storage/v1/object/books/${emptyIndexObjectPath}`, {
+      headers: {
+        Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+        apikey: SUPABASE_SERVICE_ROLE_KEY,
+        "Content-Type": "application/json",
+        "x-upsert": "true",
+      },
+      data: Buffer.from(JSON.stringify(emptyIndex, null, 2), "utf-8"),
+      timeout: 60_000,
+    });
+    expect(indexResp.ok()).toBeTruthy();
+
     // 1) Ingest canonical version
     const ingestResp = await request.post(`${SUPABASE_URL}/functions/v1/book-ingest-version`, {
       headers,

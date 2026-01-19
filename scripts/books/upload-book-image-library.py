@@ -230,7 +230,7 @@ class OptimizedImage:
     mode: str
 
 
-def optimize_image(path: Path, *, max_px: int, jpeg_quality: int) -> OptimizedImage:
+def optimize_image(path: Path, *, max_px: int, jpeg_quality: int, alpha_mode: str) -> OptimizedImage:
     """
     Convert to a render-friendly JPEG/PNG and downscale to max_px.
     """
@@ -262,7 +262,22 @@ def optimize_image(path: Path, *, max_px: int, jpeg_quality: int) -> OptimizedIm
 
             buf = BytesIO()
             if has_alpha:
-                # PNG preserves transparency
+                if alpha_mode == "flatten-white-jpeg":
+                    # Many textbook PNGs contain alpha for anti-aliased edges, but are rendered
+                    # on white pages. Flattening to white preserves print readability while
+                    # allowing JPEG compression (much smaller than PNG at full resolution).
+                    bg = Image.new("RGB", im.size, (255, 255, 255))
+                    bg.paste(im, mask=im.split()[-1])
+                    bg.save(
+                        buf,
+                        format="JPEG",
+                        quality=jpeg_quality,
+                        optimize=True,
+                        progressive=True,
+                    )
+                    return OptimizedImage(buf.getvalue(), "jpg", out_w, out_h, "RGB")
+
+                # Default: preserve transparency as PNG
                 im.save(buf, format="PNG", optimize=True)
                 return OptimizedImage(buf.getvalue(), "png", out_w, out_h, im.mode)
             else:
@@ -443,6 +458,18 @@ def main() -> None:
     parser.add_argument("--max-px", type=int, default=3000, help="Max pixel dimension for optimized images.")
     parser.add_argument("--jpeg-quality", type=int, default=85, help="JPEG quality for optimized images.")
     parser.add_argument("--max-upload-mb", type=int, default=40, help="Convert files larger than this MB.")
+    parser.add_argument(
+        "--convert-all",
+        action="store_true",
+        help="Force conversion/optimization for ALL non-SVG images (even if below --max-upload-mb). Useful to reduce PDF size by converting small RGB PNGs to JPEG.",
+    )
+    parser.add_argument(
+        "--alpha-mode",
+        type=str,
+        default="png",
+        choices=["png", "flatten-white-jpeg"],
+        help="How to encode images with an alpha channel: png=preserve transparency (larger), flatten-white-jpeg=flatten onto white and encode JPEG (smaller).",
+    )
     parser.add_argument("--upsert", action="store_true", help="Overwrite existing objects.")
     parser.add_argument("--timeout-s", type=int, default=600, help="HTTP timeout per upload request.")
     parser.add_argument("--retries", type=int, default=5, help="Retry count for transient upload errors.")
@@ -501,6 +528,7 @@ def main() -> None:
             "generatedAt": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
             "maxPx": args.max_px,
             "jpegQuality": args.jpeg_quality,
+            "alphaMode": args.alpha_mode,
             "entries": [],
             "srcMap": {},
         }
@@ -525,7 +553,11 @@ def main() -> None:
                 original_size = 0
 
             # Decide whether to preserve as-is or optimize
-            do_convert = should_convert(path, max_upload_mb=args.max_upload_mb) or ext not in SUPPORTED_PRESERVE_EXTS
+            do_convert = (
+                args.convert_all
+                or should_convert(path, max_upload_mb=args.max_upload_mb)
+                or ext not in SUPPORTED_PRESERVE_EXTS
+            )
 
             object_name: str
             content_type: str
@@ -550,7 +582,7 @@ def main() -> None:
                     opt: Optional[OptimizedImage] = None
                     for _ in range(8):
                         try:
-                            opt = optimize_image(path, max_px=cur_px, jpeg_quality=cur_q)
+                            opt = optimize_image(path, max_px=cur_px, jpeg_quality=cur_q, alpha_mode=args.alpha_mode)
                             if len(opt.output_bytes) <= max_bytes:
                                 break
                             # Reduce size: lower px primarily, then quality if already small.

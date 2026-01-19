@@ -425,10 +425,10 @@ test.describe("Live: book matter PNG pages (real DB + real LLM)", () => {
     expect(has("matter.glossary.1.png")).toBe(true);
 
     // 8) Download page-map + body-only PDF and assert a couple term page refs are consistent
-    async function signedUrlForObject(objectPath: string): Promise<string> {
+    async function signedUrlForArtifact(artifactId: string): Promise<string> {
       const res = await request.post(`${SUPABASE_URL}/functions/v1/book-artifact-url`, {
         headers,
-        data: { path: objectPath, expiresIn: 3600 },
+        data: { artifactId, expiresIn: 3600 },
         timeout: 60_000,
       });
       const j: any = await res.json().catch(() => null);
@@ -439,15 +439,17 @@ test.describe("Live: book matter PNG pages (real DB + real LLM)", () => {
       return url;
     }
 
-    const pageMapPath = paths.find((p: string) => p.includes("page-map.json"))!;
-    const pageMapUrl = await signedUrlForObject(pageMapPath);
+    const pageMapArtifact = artifacts.find((a: any) => String(a?.path || "").includes("page-map.json"));
+    expect(pageMapArtifact?.id).toBeTruthy();
+    const pageMapUrl = await signedUrlForArtifact(String(pageMapArtifact.id));
     const pageMapText = await (await fetch(pageMapUrl)).text();
     const pageMap = JSON.parse(pageMapText);
     expect(pageMap.schemaVersion).toBe("page_map_v1");
     expect(typeof pageMap.pages).toBe("number");
 
-    const bodyPdfPath = paths.find((p: string) => p.includes("body-only.output.pdf"))!;
-    const bodyPdfUrl = await signedUrlForObject(bodyPdfPath);
+    const bodyPdfArtifact = artifacts.find((a: any) => String(a?.path || "").includes("body-only.output.pdf"));
+    expect(bodyPdfArtifact?.id).toBeTruthy();
+    const bodyPdfUrl = await signedUrlForArtifact(String(bodyPdfArtifact.id));
     const bodyPdfBuf = Buffer.from(await (await fetch(bodyPdfUrl)).arrayBuffer());
     const bodyPages = await extractPdfTextPagesFromBuf(bodyPdfBuf);
     expect(bodyPages.length).toBeGreaterThan(0);

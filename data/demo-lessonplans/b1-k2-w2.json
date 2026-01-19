@@ -1,0 +1,72 @@
+{
+  "kdAlignment": {
+    "code": "B1-K2-W2",
+    "title": "Werkt samen met andere zorgprofessionals"
+  },
+  "quickStart": {
+    "oneLiner": "Studenten oefenen samenwerken en duidelijk overleggen met andere zorgprofessionals.",
+    "keyConcepts": [
+      "samenwerken",
+      "overleg",
+      "afstemmen",
+      "rollen"
+    ],
+    "timeAllocation": {
+      "start": 10,
+      "kern": 25,
+      "afsluiting": 10
+    }
+  },
+  "teacherScript": [
+    {
+      "time": "0:00",
+      "phase": "start",
+      "action": "OPEN",
+      "content": "Samenwerken in de zorg gaat over duidelijke afspraken en rollen."
+    },
+    {
+      "time": "0:04",
+      "phase": "start",
+      "action": "VRAAG",
+      "content": "Met wie werk jij samen rond een zorgvrager?"
+    },
+    {
+      "time": "0:10",
+      "phase": "kern",
+      "action": "INTRODUCTIE",
+      "content": "We gebruiken een overlegsituatie en oefenen kort en duidelijk communiceren."
+    },
+    {
+      "time": "0:18",
+      "phase": "kern",
+      "action": "OEFENING",
+      "content": "Rollenspel: student A belt de arts, student B is collega, student C observeert."
+    },
+    {
+      "time": "0:30",
+      "phase": "afsluiting",
+      "action": "CHECK",
+      "content": "Welke afspraak leg je altijd vast na overleg?"
+    }
+  ],
+  "discussionQuestions": [
+    {
+      "question": "Wat maakt overleg effectief in een drukke dienst?",
+      "expectedAnswers": [
+        "kort en duidelijk",
+        "relevante info",
+        "afspraken opschrijven"
+      ]
+    }
+  ],
+  "groupWork": {
+    "title": "Overleg in 4 zinnen",
+    "steps": [
+      "Kies een casus",
+      "Formuleer de kern in 4 zinnen",
+      "Wissel uit met een ander duo",
+      "Geef feedback op duidelijkheid"
+    ],
+    "durationMinutes": 10
+  }
+}

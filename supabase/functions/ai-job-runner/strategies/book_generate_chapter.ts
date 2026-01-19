@@ -1015,9 +1015,31 @@ export class BookGenerateChapter implements JobExecutor {
         ? Math.max(0, Math.floor((p as any).orchestratorAttempts))
         : 0;
     const attempts = attemptsPrev + 1;
+    // Track progress: if we haven't advanced nextSectionIndex in too many attempts, something is stuck.
+    const lastAdvancedSectionIndex =
+      typeof (p as any).lastAdvancedSectionIndex === "number" && Number.isFinite((p as any).lastAdvancedSectionIndex)
+        ? Math.floor((p as any).lastAdvancedSectionIndex)
+        : -1;
+    const attemptsAtCurrentSection =
+      typeof (p as any).attemptsAtCurrentSection === "number" && Number.isFinite((p as any).attemptsAtCurrentSection)
+        ? Math.max(0, Math.floor((p as any).attemptsAtCurrentSection))
+        : 0;
+    
+    // MAX_ATTEMPTS is a safety cap. In practice, we fail faster via MAX_ATTEMPTS_PER_SECTION.
     const MAX_ATTEMPTS = 600;
+    const MAX_ATTEMPTS_PER_SECTION = 100; // If stuck on same section for 100 iterations, fail loudly
+    
     if (attempts > MAX_ATTEMPTS) {
       throw new Error(`BLOCKED: Chapter orchestrator exceeded max attempts (${MAX_ATTEMPTS}). Human review required.`);
+    }
+    
+    // If we've been stuck at the same section for too many attempts, fail with a specific error
+    if (attemptsAtCurrentSection >= MAX_ATTEMPTS_PER_SECTION) {
+      const stuckSection = lastAdvancedSectionIndex + 1;
+      throw new Error(
+        `BLOCKED: Chapter orchestrator stuck at section ${stuckSection} for ${attemptsAtCurrentSection} attempts. ` +
+        `Check section job status and reset via: npx tsx scripts/books/fix-stuck-pipeline.ts <bookVersionId>`
+      );
     }
     const startedAtMs = Date.parse(orchestratorStartedAt);
     if (Number.isFinite(startedAtMs)) {
@@ -1106,6 +1128,12 @@ export class BookGenerateChapter implements JobExecutor {
       }
     }
 
+    // Progress tracking: check if we've advanced from the last tracked section
+    const currentSectionTarget = nextSectionIndexPrev;
+    const hasAdvanced = currentSectionTarget > lastAdvancedSectionIndex;
+    const nextAttemptsAtCurrentSection = hasAdvanced ? 1 : attemptsAtCurrentSection + 1;
+    const nextLastAdvancedSectionIndex = hasAdvanced ? currentSectionTarget : lastAdvancedSectionIndex;
+    
     const baseNextPayload: Record<string, unknown> = {
       bookId,
       bookVersionId,
@@ -1124,6 +1152,9 @@ export class BookGenerateChapter implements JobExecutor {
       orchestratorLastProgressAt,
       orchestratorAttempts: attempts,
       nextSectionIndex: nextSectionIndexPrev,
+      // Progress tracking to detect stuck sections
+      lastAdvancedSectionIndex: nextLastAdvancedSectionIndex,
+      attemptsAtCurrentSection: nextAttemptsAtCurrentSection,
       ...(layoutPlan ? { layoutPlan } : {}),
       ...(typeof p.sectionMaxTokens === "number" && Number.isFinite(p.sectionMaxTokens) ? { sectionMaxTokens: Math.floor(p.sectionMaxTokens) } : {}),
     };

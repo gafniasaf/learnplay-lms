@@ -10,9 +10,21 @@ const PORT = process.env.PORT ? Number(process.env.PORT) : 8081; // Different po
 
 const config: PlaywrightTestConfig = {
   testDir: '.',
-  testMatch: ['tests/e2e/**/*.spec.ts', 'src/e2e/**/*.spec.ts'],
+  // Real DB suite should only include:
+  // - focused real-db specs (live LLM tests use playwright.live.config.ts)
+  testMatch: ['tests/e2e/**/*.real-db.spec.ts'],
   // Never collect tests from legacy snapshots / nested apps (they may carry their own Playwright dependency).
-  testIgnore: ['**/dawn-react-starter/**', '**/_archive/**'],
+  // Also ignore repo-local backup folders / vendored subprojects.
+  // These can include a second node_modules/playwright which crashes the runner.
+  testIgnore: [
+    '**/dawn-react-starter/**',
+    '**/_archive/**',
+    '**/.tmp/**',
+    '**/external/**',
+    // Generated CTA coverage suite is validated via dedicated scripts; it currently contains duplicate titles
+    // and is not part of the real-db suite.
+    '**/tests/e2e/cta-coverage.generated.spec.ts',
+  ],
   timeout: 180_000, // 3 minutes for tests that create real jobs
   retries: 0, // No retries for real DB tests
   reporter: [

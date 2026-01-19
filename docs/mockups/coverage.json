@@ -1174,6 +1174,40 @@
       ]
     },
     {
+      "path": "/teacher/kw1c-cockpit",
+      "name": "KW1C Cockpit",
+      "description": "Teacher cockpit for KD coverage and curated materials search (no live generation)",
+      "states": [
+        {
+          "id": "default",
+          "file": "teacher/kw1c-cockpit/default.html",
+          "description": "Default state",
+          "required": true
+        }
+      ],
+      "requiredCTAs": [
+        { "id": "nav-kids", "target": "/kids" },
+        { "id": "nav-parents", "target": "/parent/dashboard" },
+        { "id": "nav-schools", "target": "/schools" },
+        { "id": "nav-admin", "target": "/admin" },
+        { "id": "cta-kw1c-to-teacher-dashboard", "target": "/teacher/dashboard" },
+        { "id": "cta-kw1c-open-classes", "target": "/teacher/classes" },
+        { "id": "cta-kw1c-open-students", "target": "/teacher/students" },
+        { "id": "cta-kw1c-open-materials", "target": "/teacher/materials" },
+        { "id": "cta-kw1c-open-standards", "target": "/teacher/standards" },
+        { "id": "cta-kw1c-open-lesson-kits", "target": "/teacher/lesson-kits" },
+        { "id": "cta-kw1c-open-teachergpt-chat", "target": "/teacher/teachergpt/chat" },
+        { "id": "cta-kw1c-open-mes", "target": "/teacher/teachergpt/mes" },
+        { "id": "cta-kw1c-query", "target": "edit" },
+        { "id": "cta-kw1c-kd-code", "target": "edit" },
+        { "id": "cta-kw1c-type", "target": "select" },
+        { "id": "cta-kw1c-language", "target": "select" },
+        { "id": "cta-kw1c-search", "target": "action" },
+        { "id": "cta-kw1c-refresh", "target": "action" },
+        { "id": "cta-kw1c-open-result", "target": "action" }
+      ]
+    },
+    {
       "path": "/teacher/assignments",
       "name": "Teacher Assignments",
       "description": "Teacher Assignments",
@@ -1390,11 +1424,41 @@
         }
       ],
       "requiredCTAs": [
-        { "id": "cta-teachergpt-chat-scope", "target": "select" },
-        { "id": "cta-teachergpt-chat-material-select", "target": "select" },
-        { "id": "cta-teachergpt-chat-input", "target": "edit" },
-        { "id": "cta-teachergpt-chat-send", "target": "action" },
-        { "id": "cta-teachergpt-chat-clear", "target": "action" }
+        { "id": "cta-teachergpt-chat-clear", "action": "click" },
+
+        { "id": "cta-teachergpt-chat-scope-all", "action": "click" },
+        { "id": "cta-teachergpt-chat-scope-materials", "action": "click" },
+        { "id": "cta-teachergpt-chat-scope-mes", "action": "click" },
+
+        { "id": "cta-teachergpt-chat-settings-toggle", "action": "click" },
+        { "id": "cta-teachergpt-chat-settings-scope", "action": "select" },
+        { "id": "cta-teachergpt-chat-settings-material-select", "action": "select" },
+        { "id": "cta-teachergpt-chat-settings-material-refresh", "action": "click" },
+
+        { "id": "cta-teachergpt-chat-tab-lesplan", "action": "tab" },
+        { "id": "cta-teachergpt-chat-tab-materials", "action": "tab" },
+        { "id": "cta-teachergpt-chat-tab-sources", "action": "tab" },
+
+        { "id": "cta-teachergpt-chat-suggestion-b1-k1-w2", "action": "click" },
+        { "id": "cta-teachergpt-chat-suggestion-b1-k1-w3", "action": "click" },
+        { "id": "cta-teachergpt-chat-suggestion-b1-k1-w5", "action": "click" },
+        { "id": "cta-teachergpt-chat-suggestion-b1-k2-w2", "action": "click" },
+        { "id": "cta-teachergpt-chat-suggestion-b1-k3-w2", "action": "click" },
+
+        { "id": "cta-teachergpt-chat-input", "action": "edit" },
+        { "id": "cta-teachergpt-chat-send", "action": "click" },
+
+        { "id": "cta-teachergpt-chat-lesplan-print", "action": "click" },
+        { "id": "cta-teachergpt-chat-lesplan-use", "action": "click" },
+
+        { "id": "cta-teachergpt-chat-section-quick-start", "action": "click" },
+        { "id": "cta-teachergpt-chat-section-teacher-script", "action": "click" },
+        { "id": "cta-teachergpt-chat-section-discussion", "action": "click" },
+        { "id": "cta-teachergpt-chat-section-group-work", "action": "click" },
+        { "id": "cta-teachergpt-chat-section-kd-check", "action": "click" },
+
+        { "id": "cta-teachergpt-chat-kdcheck-save", "action": "click" },
+        { "id": "cta-teachergpt-chat-recommendation-use", "action": "click" }
       ]
     },
     {

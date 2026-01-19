@@ -17,7 +17,9 @@ export const Layout = ({ children }: LayoutProps) => {
   const fullscreen = !embedMode && isCourseFullscreen();
 
   // Pixel-perfect admin dashboards that include their own chrome (no app header/banners).
-  const hideChrome = location.pathname === "/admin/book-monitor";
+  const hideChrome =
+    location.pathname === "/admin/book-monitor" ||
+    location.pathname === "/teacher/teachergpt/chat";
   const showChrome = !embedMode && !fullscreen && !hideChrome;
   
   return (

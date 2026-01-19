@@ -237,7 +237,7 @@ test.describe("Live: Admin Book Generation Monitor (real DB + real LLM)", () => 
     expect(saveJson.ok).toBe(true);
 
     // 3) Open monitor UI + select book
-    await page.goto("/admin/book-monitor");
+    await page.goto("/admin/book-monitor?includeTest=1");
     await expect(page.locator("text=Book Generation Monitor")).toBeVisible();
 
     const select = page.locator('select[data-cta-id="cta-bookmonitor-book-select"]');

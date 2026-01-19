@@ -14,6 +14,8 @@ const authFile = 'playwright/.auth/admin.json';
 // Timeout constants for E2E tests
 const LOGIN_FORM_TIMEOUT_MS = 10000; // 10 seconds
 const LOGIN_REDIRECT_TIMEOUT_MS = 20000; // 20 seconds
+const LOGIN_NETWORK_RETRY_ATTEMPTS = 3;
+const LOGIN_NETWORK_RETRY_BASE_DELAY_MS = 750;
 
 // Attempt to auto-resolve required env vars from local env files (learnplay.env), without printing secrets.
 loadLocalEnvForTests();
@@ -30,6 +32,22 @@ function requireEnvVar(name: string): string {
     throw new Error(`${name} environment variable is required`);
   }
   return value;
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((r) => setTimeout(r, ms));
+}
+
+function isRetryableNetworkError(err: unknown): boolean {
+  const msg = err instanceof Error ? err.message.toLowerCase() : String(err).toLowerCase();
+  return (
+    msg.includes("fetch failed") ||
+    msg.includes("econnreset") ||
+    msg.includes("connection reset") ||
+    msg.includes("network") ||
+    msg.includes("timeout") ||
+    msg.includes("undici")
+  );
 }
 
 setup('authenticate as admin', async ({ page }) => {
@@ -60,14 +78,34 @@ setup('authenticate as admin', async ({ page }) => {
   const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     auth: { autoRefreshToken: false, persistSession: false },
   });
-  const { data, error } = await supabase.auth.signInWithPassword({
-    email: adminEmail,
-    password: adminPassword,
-  });
-  if (error || !data?.session) {
-    throw new Error(`Admin programmatic login failed: ${error?.message || 'no session returned'}`);
+  let session: any = null;
+  let lastLoginErr: unknown = null;
+  for (let attempt = 0; attempt < LOGIN_NETWORK_RETRY_ATTEMPTS; attempt++) {
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: adminEmail,
+        password: adminPassword,
+      });
+      if (error || !data?.session) {
+        // If credentials are wrong, supabase returns an error response (not a thrown fetch error).
+        throw new Error(`Admin programmatic login failed: ${error?.message || "no session returned"}`);
+      }
+      session = data.session;
+      break;
+    } catch (e) {
+      lastLoginErr = e;
+      if (attempt < LOGIN_NETWORK_RETRY_ATTEMPTS - 1 && isRetryableNetworkError(e)) {
+        const backoffMs = LOGIN_NETWORK_RETRY_BASE_DELAY_MS * Math.pow(2, attempt);
+        console.warn(`[e2e admin.setup] transient auth network error (attempt ${attempt + 1}/${LOGIN_NETWORK_RETRY_ATTEMPTS}), retrying in ${backoffMs}ms`);
+        await sleep(backoffMs);
+        continue;
+      }
+      throw e;
+    }
   }
-  const session = data.session;
+  if (!session) {
+    throw new Error(`Admin programmatic login failed after ${LOGIN_NETWORK_RETRY_ATTEMPTS} attempts: ${lastLoginErr instanceof Error ? lastLoginErr.message : String(lastLoginErr)}`);
+  }
   const projectRef = new URL(supabaseUrl).hostname.split('.')[0];
   const storageKey = `sb-${projectRef}-auth-token`;
 

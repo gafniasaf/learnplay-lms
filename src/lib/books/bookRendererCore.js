@@ -243,14 +243,14 @@ export function renderBookHtml(
   --h2: 18pt;
   --h3: 14pt;
 
-  --p-space-after: 2mm;
-  --p-space-after-extra: 0.8mm;
+  --p-space-after: 1.5mm;
+  --p-space-after-extra: 0.5mm;
   --block-gap: calc(var(--p-space-after) + var(--p-space-after-extra));
-  --h2-space-before: 4mm;
-  --h2-space-after: 2mm;
-  --h3-space-before: 2mm;
-  --h3-space-after: 1mm;
-  --h3-space-before-scale: 1.25;
+  --h2-space-before: 3mm;
+  --h2-space-after: 1.5mm;
+  --h3-space-before: 1.5mm;
+  --h3-space-after: 0.8mm;
+  --h3-space-before-scale: 1.2;
 
   --praktijk-bg: cmyk(10%, 0%, 10%, 0%);
   --praktijk-border: cmyk(22%, 0%, 22%, 0%);
@@ -267,8 +267,8 @@ export function renderBookHtml(
   --box-pad-bottom: 3mm;
   --box-label-gap: 0.8mm;
 
-  --orphans: 3;
-  --widows: 3;
+  --orphans: 2;
+  --widows: 2;
 
   --body-columns: 2;
   --col-gap: 9mm;
@@ -480,7 +480,7 @@ h3.subparagraph-title {
 .chapter-title-block {
   break-before: page;
   position: relative;
-  margin: 0 0 6mm 0;
+  margin: 0 0 4mm 0;
   padding: 0;
   string-set: chapter-title content();
   /* Prince: treat each chapter as a page group so @page :first can apply per-chapter */
@@ -498,6 +498,8 @@ h3.subparagraph-title {
   padding: var(--margin-top) var(--margin-outer) 0 var(--margin-inner);
   margin: 0;
   column-span: all;
+  /* Override break-before when we have an opener - the opener handles page flow */
+  break-before: auto;
 }
 
 .chapter-number {
@@ -585,8 +587,8 @@ ol.steps + .p {
 
 /* Chapter intro + recap blocks (full width) */
 .chapter-intro {
-  margin: 3mm 0 6mm 0;
-  padding: 3mm 5mm 3.5mm 5mm;
+  margin: 2mm 0 4mm 0;
+  padding: 2.5mm 5mm 3mm 5mm;
   border-left: 3pt solid var(--accent);
   background: cmyk(5%, 0%, 5%, 0%);
 }
@@ -599,15 +601,15 @@ ol.steps + .p {
 
 .chapter-recap {
   column-span: all;
-  margin: 8mm 0 0 0;
-  padding-top: 4mm;
+  margin: 5mm 0 0 0;
+  padding-top: 3mm;
   border-top: 2pt solid var(--accent);
 }
 
 /* Recap module boxes */
 .recap-module {
-  margin: 4mm 0;
-  padding: 3.5mm 5mm 4mm 5mm;
+  margin: 3mm 0;
+  padding: 3mm 5mm 3.5mm 5mm;
   border: 0.5pt solid var(--rule);
   border-left: 3pt solid var(--accent);
   border-radius: 0 2mm 2mm 0;
@@ -690,7 +692,7 @@ ul.checklist {
   list-style: none;
 }
 ul.checklist li {
-  margin: 0 0 1.5mm 0;
+  margin: 0 0 1mm 0;
   padding-left: 7mm;
   text-indent: calc(0mm - 7mm);
   text-align: left;
@@ -710,7 +712,7 @@ ul.checklist li::before {
 /* Glossary */
 .glossary { margin: 0; }
 .glossary-item {
-  margin: 0 0 2.5mm 0;
+  margin: 0 0 1.8mm 0;
   break-inside: avoid;
   page-break-inside: avoid;
 }
@@ -741,7 +743,7 @@ ul.bullets {
   list-style: none;
 }
 ul.bullets li {
-  margin: 0 0 1.5mm 0;
+  margin: 0 0 1mm 0;
   padding-left: 7mm;
   text-indent: calc(0mm - 7mm);
   text-align: left;
@@ -764,7 +766,7 @@ ol.steps {
   counter-reset: step;
 }
 ol.steps li {
-  margin: 0 0 1.8mm 0;
+  margin: 0 0 1.2mm 0;
   padding-left: 9mm;
   position: relative;
 }
@@ -798,7 +800,7 @@ figure,
 
 /* Figures */
 figure.figure-block {
-  margin: 5mm 0 6mm 0;
+  margin: 3mm 0 4mm 0;
   break-inside: avoid;
   page-break-inside: avoid;
 }
@@ -880,7 +882,7 @@ figcaption.figure-caption {
 
 /* Praktijk / Verdieping boxes */
 .box {
-  margin: 5mm 0;
+  margin: 3mm 0;
   padding: var(--box-pad-top) var(--box-pad-x) var(--box-pad-bottom) var(--box-pad-x);
   border: 0.5pt solid var(--rule);
   border-left: 3pt solid var(--accent);
@@ -1625,10 +1627,18 @@ figcaption.figure-caption {
 
     const sections = Array.isArray(ch?.sections) ? ch.sections : [];
     const recapRaw = ch?.recap && typeof ch.recap === "object" ? ch.recap : null;
-    const introObjectives = (Array.isArray(recapRaw?.objectives) ? recapRaw.objectives : [])
+    const recapObjectivesRaw = Array.isArray(recapRaw?.objectives) ? recapRaw.objectives : [];
+
+    // Deterministic chapter intro:
+    // - Prefer persisted (LLM-authored) objectives when available.
+    // - Otherwise derive lightweight objectives from section headings so every chapter has an intro.
+    let introObjectives = recapObjectivesRaw
       .map((o) => normalizeWhitespace(o?.text))
       .filter(Boolean)
       .slice(0, 10);
+    if (!introObjectives.length) {
+      introObjectives = deriveLearningObjectivesFromSections(sections, 4).slice(0, 10);
+    }
     if (introObjectives.length) {
       out += `  <div class="chapter-intro">\n`;
       out += `    <div class="intro-title">In dit hoofdstuk leer je:</div>\n`;

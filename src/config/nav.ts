@@ -55,6 +55,7 @@ export const navSections: NavSection[] = [
 
       // Teacher pages
       { id: "teacher", label: "Dashboard", path: "/teacher", icon: "BarChart", roles: ["teacher"] },
+      { id: "kw1c-cockpit", label: "KW1C Cockpit", path: "/teacher/kw1c-cockpit", icon: "LayoutDashboard", roles: ["teacher", "admin"] },
       { id: "students", label: "Students", path: "/teacher/students", icon: "Users", roles: ["teacher"] },
       { id: "classes", label: "Classes", path: "/teacher/classes", icon: "GraduationCap", roles: ["teacher"] },
       { id: "class-progress", label: "Class Progress", path: "/teacher/class-progress", icon: "Activity", roles: ["teacher"] },
@@ -76,13 +77,13 @@ export const navSections: NavSection[] = [
     ],
   },
   {
-    title: "TeacherGPT",
+    title: "e-Xpert SAM",
     items: [
-      { id: "lesson-kits", label: "Lesson Kits", path: "/teacher/lesson-kits", icon: "WandSparkles", roles: ["teacher", "admin"] },
-      { id: "materials", label: "Materials", path: "/teacher/materials", icon: "FileText", roles: ["teacher", "admin"] },
-      { id: "standards", label: "Standards", path: "/teacher/standards", icon: "ScrollText", roles: ["teacher", "admin"] },
-      { id: "teachergpt-chat", label: "Chat", path: "/teacher/teachergpt/chat", icon: "MessageSquare", roles: ["teacher", "admin"] },
-      { id: "teachergpt-mes", label: "MES Recommendations", path: "/teacher/teachergpt/mes", icon: "Search", roles: ["teacher", "admin"] },
+      { id: "lesson-kits", label: "Lespakketten", path: "/teacher/lesson-kits", icon: "WandSparkles", roles: ["teacher", "admin"] },
+      { id: "materials", label: "Materialen", path: "/teacher/materials", icon: "FileText", roles: ["teacher", "admin"] },
+      { id: "standards", label: "KD 2026", path: "/teacher/standards", icon: "ScrollText", roles: ["teacher", "admin"] },
+      { id: "teachergpt-chat", label: "Materiaal-adviseur", path: "/teacher/teachergpt/chat", icon: "MessageSquare", roles: ["teacher", "admin"] },
+      { id: "teachergpt-mes", label: "MES Aanbevelingen", path: "/teacher/teachergpt/mes", icon: "Search", roles: ["teacher", "admin"] },
     ],
   },
   {

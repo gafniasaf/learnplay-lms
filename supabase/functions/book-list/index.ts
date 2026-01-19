@@ -59,15 +59,21 @@ serve(async (req: Request): Promise<Response> => {
     const runId = url.searchParams.get("runId");
     const limit = Math.min(parseInt(url.searchParams.get("limit") || "50", 10), 100);
     const offset = parseInt(url.searchParams.get("offset") || "0", 10);
+    const includeTest = url.searchParams.get("includeTest") === "1" || url.searchParams.get("includeE2E") === "1";
 
     if (scope === "books") {
-      const { data, error, count } = await adminSupabase
+      let q = adminSupabase
         .from("books")
         .select("*", { count: "exact" })
-        .eq("organization_id", orgId)
-        // Hide test artifacts from admin menus (E2E / integration runs should not pollute real UX).
-        .not("id", "ilike", "e2e-%")
-        .not("id", "ilike", "it-%")
+        .eq("organization_id", orgId);
+
+      // Hide test artifacts from admin menus (E2E / integration runs should not pollute real UX).
+      // Allow explicit override for tests via ?includeTest=1.
+      if (!includeTest) {
+        q = q.not("id", "ilike", "e2e-%").not("id", "ilike", "it-%");
+      }
+
+      const { data, error, count } = await q
         .order("updated_at", { ascending: false })
         .range(offset, offset + limit - 1);
 

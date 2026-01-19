@@ -185,8 +185,11 @@ test('live: option image should fit the option tile (real DB + real LLM, no mock
   expect(baseURL).toBeTruthy();
   await page.goto(`/play/${courseId}/welcome`, { waitUntil: 'domcontentloaded' });
 
-  // Click Start (even if preloading is still running)
-  await page.getByRole('button', { name: 'Start' }).click();
+  // Some builds auto-start the round; others show an explicit Start/Begin CTA.
+  const startBtn = page.getByRole('button', { name: /^Start$/ }).first();
+  if (await startBtn.isVisible({ timeout: 10_000 }).catch(() => false)) {
+    await startBtn.click();
+  }
 
   const optionGroup = page.getByRole('group', { name: 'Answer options' });
   await expect(optionGroup).toBeVisible({ timeout: 120_000 });

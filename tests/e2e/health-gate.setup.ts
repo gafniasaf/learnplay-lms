@@ -65,22 +65,36 @@ setup.describe('Backend Health Gate', () => {
     for (const fn of CRITICAL_FUNCTIONS) {
       const url = `${SUPABASE_URL}/functions/v1/${fn}`;
       
-      try {
-        // OPTIONS request to check if function exists
-        const response = await request.fetch(url, {
-          method: 'OPTIONS',
-          timeout: 10000,
-        });
-        
-        if (response.status() === 503) {
-          failures.push(`${fn}: 503 Service Unavailable (function crashed on startup)`);
-        } else if (response.status() === 404) {
-          failures.push(`${fn}: 404 Not Found (function not deployed)`);
+      // Do bounded retries to avoid flaking on transient network timeouts.
+      const attempts = 3;
+      let lastErr: unknown = null;
+      let ok = false;
+      for (let i = 0; i < attempts; i++) {
+        try {
+          // OPTIONS request to check if function exists.
+          const response = await request.fetch(url, {
+            method: 'OPTIONS',
+            timeout: 30_000,
+          });
+          
+          if (response.status() === 503) {
+            failures.push(`${fn}: 503 Service Unavailable (function crashed on startup)`);
+          } else if (response.status() === 404) {
+            failures.push(`${fn}: 404 Not Found (function not deployed)`);
+          }
+          // 401/403 is OK - means function exists but needs auth
+          // 405 is OK - means function exists but doesn't accept OPTIONS
+          ok = true;
+          break;
+        } catch (error) {
+          lastErr = error;
+          if (i < attempts - 1) {
+            await new Promise((r) => setTimeout(r, 500 * (i + 1)));
+          }
         }
-        // 401/403 is OK - means function exists but needs auth
-        // 405 is OK - means function exists but doesn't accept OPTIONS
-      } catch (error) {
-        failures.push(`${fn}: Connection failed - ${error}`);
+      }
+      if (!ok && lastErr) {
+        failures.push(`${fn}: Connection failed - ${lastErr instanceof Error ? lastErr.message : String(lastErr)}`);
       }
     }
     
@@ -122,12 +136,24 @@ setup.describe('Backend Health Gate', () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const baseUrl = ((page.context() as any)?._options?.baseURL as string | undefined) || process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:8080';
     
-    try {
-      const response = await page.goto(baseUrl, { timeout: 10000 });
-      expect(response?.status()).toBeLessThan(500);
-    } catch (error) {
-      throw new Error(`Frontend dev server not running at ${baseUrl}. Start it with: npm run dev`);
+    // Vite cold start can exceed 10s on Windows; treat slow-start as slow-start (retry), not "server not running".
+    const attempts = 3;
+    let lastErr: unknown = null;
+    for (let i = 0; i < attempts; i++) {
+      try {
+        const response = await page.goto(baseUrl, { timeout: 45_000, waitUntil: 'domcontentloaded' });
+        expect(response?.status()).toBeLessThan(500);
+        return;
+      } catch (error) {
+        lastErr = error;
+        if (i < attempts - 1) await page.waitForTimeout(1500);
+      }
     }
+    throw new Error(
+      `Frontend dev server did not respond at ${baseUrl} after ${attempts} attempts. ` +
+        `If you're running tests without Playwright webServer, start it with: npm run dev. ` +
+        `Last error: ${lastErr instanceof Error ? lastErr.message : String(lastErr)}`
+    );
   });
 
   setup('Frontend loads without crash', async ({ page }) => {

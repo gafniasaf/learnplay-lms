@@ -1,5 +1,5 @@
 
-import React, { useState, useCallback } from "react";
+import React from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import { useMCP } from "@/hooks/useMCP";
@@ -7,58 +7,16 @@ import { useMCP } from "@/hooks/useMCP";
 export default function Settings() {
   const nav = useNavigate();
   const [searchParams] = useSearchParams();
-  const _id = searchParams.get("id");
+  const id = searchParams.get("id");
   const mcp = useMCP();
-  
-  const [displayName, setDisplayName] = useState("Demo User");
-  const [email, setEmail] = useState("demo@example.com");
-  const [role, setRole] = useState("student");
-  const [darkMode, setDarkMode] = useState(false);
-  const [soundEffects, setSoundEffects] = useState(true);
-  const [animations, setAnimations] = useState(true);
-  const [emailNotifications, setEmailNotifications] = useState(true);
-  const [pushNotifications, setPushNotifications] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState("Account");
-
-  const handleSave = useCallback(async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    try {
-      await mcp.saveRecord("settings", {
-        displayName,
-        email,
-        darkMode,
-        soundEffects,
-        animations,
-        emailNotifications,
-        pushNotifications,
-      } as unknown as Record<string, unknown>);
-      toast.success("Settings saved!");
-    } catch {
-      toast.error("Failed to save settings");
-    } finally {
-      setLoading(false);
-    }
-  }, [mcp, displayName, email, darkMode, soundEffects, animations, emailNotifications, pushNotifications]);
-
-  const Toggle = ({ value, onChange }: { value: boolean; onChange: (v: boolean) => void }) => (
-    <div 
-      className={`toggle-switch ${value ? "active" : ""}`} 
-      onClick={() => onChange(!value)}
-      style={{ 
-        width: "50px", height: "28px", borderRadius: "14px", 
-        background: value ? "var(--color-primary)" : "var(--color-border)",
-        position: "relative", cursor: "pointer", transition: "background 0.2s"
-      }}
-    >
-      <div style={{
-        width: "24px", height: "24px", borderRadius: "50%", background: "white",
-        position: "absolute", top: "2px", left: value ? "24px" : "2px",
-        transition: "left 0.2s", boxShadow: "0 2px 4px rgba(0,0,0,0.2)"
-      }} />
-    </div>
-  );
+  const [displayName, setDisplayName] = React.useState("");
+  const [email, setEmail] = React.useState("");
+  const [role, setRole] = React.useState("");
+  const [darkMode, setDarkMode] = React.useState("");
+  const [soundEffects, setSoundEffects] = React.useState("");
+  const [animations, setAnimations] = React.useState("");
+  const [emailNotifications, setEmailNotifications] = React.useState("");
+  const [pushNotifications, setPushNotifications] = React.useState("");
 
   return (
     <div className="p-6">
@@ -71,9 +29,10 @@ export default function Settings() {
   
   <div className="container">
     <div className="settings-nav">
-      {["Account", "Notifications", "Privacy", "API Keys"].map(tab => (
-        <button key={tab} className={`settings-tab ${activeTab === tab ? "active" : ""}`} onClick={() => setActiveTab(tab)}>{tab}</button>
-      ))}
+      <button className="settings-tab active">Account</button>
+      <button className="settings-tab">Notifications</button>
+      <button className="settings-tab">Privacy</button>
+      <button className="settings-tab">API Keys</button>
     </div>
     
     <form data-form-id="settings-form">
@@ -90,7 +49,7 @@ export default function Settings() {
         <div className="form-group">
           <label>Role</label>
           <select data-field="role" disabled value={role} onChange={(e) => setRole(e.target.value)}>
-            <option value="student">Student</option>
+            <option value="student" selected>Student</option>
             <option value="teacher">Teacher</option>
             <option value="parent">Parent</option>
           </select>
@@ -104,21 +63,21 @@ export default function Settings() {
             <h4>Dark Mode</h4>
             <p>Switch between light and dark themes</p>
           </div>
-          <Toggle value={darkMode} onChange={setDarkMode} />
+          <div data-field="darkMode" className="toggle-switch">{darkMode}</div>
         </div>
         <div className="setting-row">
           <div className="setting-info">
             <h4>Sound Effects</h4>
             <p>Play sounds for correct/incorrect answers</p>
           </div>
-          <Toggle value={soundEffects} onChange={setSoundEffects} />
+          <div data-field="soundEffects" className="toggle-switch active">{soundEffects}</div>
         </div>
         <div className="setting-row">
           <div className="setting-info">
             <h4>Celebration Animations</h4>
             <p>Show confetti on achievements</p>
           </div>
-          <Toggle value={animations} onChange={setAnimations} />
+          <div data-field="animations" className="toggle-switch active">{animations}</div>
         </div>
       </div>
       
@@ -129,14 +88,14 @@ export default function Settings() {
             <h4>Email Notifications</h4>
             <p>Receive weekly progress summaries</p>
           </div>
-          <Toggle value={emailNotifications} onChange={setEmailNotifications} />
+          <div data-field="emailNotifications" className="toggle-switch active">{emailNotifications}</div>
         </div>
         <div className="setting-row">
           <div className="setting-info">
             <h4>Push Notifications</h4>
             <p>Get reminders for assignments</p>
           </div>
-          <Toggle value={pushNotifications} onChange={setPushNotifications} />
+          <div data-field="pushNotifications" className="toggle-switch">{pushNotifications}</div>
         </div>
       </div>
       
@@ -160,9 +119,14 @@ export default function Settings() {
       
       <div className="form-actions">
         <button type="button" data-cta-id="cancel" data-action="navigate" data-target="/student/dashboard" className="btn-secondary" onClick={() => nav("/student/dashboard")}>Cancel</button>
-        <button type="submit" data-cta-id="save-settings" data-action="save" data-entity="Settings" data-form="settings-form" className="btn-primary" onClick={handleSave} disabled={loading}>
-          {loading ? "Saving..." : "Save Changes"}
-        </button>
+        <button type="submit" data-cta-id="save-settings" data-action="save" data-entity="Settings" data-form="settings-form" className="btn-primary" onClick={async () => {
+            try {
+              await mcp.saveRecord("Settings", { id });
+              toast.success("Saved: save-settings");
+            } catch (e) {
+              toast.error("Save failed: save-settings");
+            }
+          }}>Save Changes</button>
       </div>
     </form>
   </div>

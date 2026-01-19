@@ -12,7 +12,7 @@ export class GeneratedStandardsIngest implements JobExecutor {
     if (payload) {
         Object.keys(payload).forEach(key => {
         const val = typeof payload[key] === 'object' ? JSON.stringify(payload[key]) : payload[key];
-        prompt = prompt.replace(new RegExp('{{' + key + '}}', 'g'), String(val || ''));
+        prompt = prompt.replace(new RegExp('{{' + key + '}}', 'g'), val || '');
         });
     }
 
@@ -45,12 +45,12 @@ export class GeneratedStandardsIngest implements JobExecutor {
         const data = await response.json();
         try {
             return JSON.parse(data.choices[0].message.content);
-        } catch (_e) {
+        } catch (e) {
             return { raw: data.choices[0].message.content };
         }
-    } catch (err: unknown) {
+    } catch (err) {
         console.error(err);
-        return { error: err instanceof Error ? err.message : String(err) };
+        return { error: err.message };
     }
   }
 }

@@ -34,7 +34,7 @@ async function poll<T>(args: {
 test.describe('live UI: TeacherGPT chat', () => {
   test.use({ storageState: 'playwright/.auth/teacher.json' });
 
-  test('loads chat page and returns an answer with citations', async ({ page, request }) => {
+  test('loads chat page and renders lesson plan + KD-check + sources (data-cta-id locators)', async ({ page, request }) => {
     const SUPABASE_URL = process.env.VITE_SUPABASE_URL || requireEnv('SUPABASE_URL');
     const SUPABASE_SERVICE_ROLE_KEY = requireEnv('SUPABASE_SERVICE_ROLE_KEY');
     const AGENT_TOKEN = requireEnv('AGENT_TOKEN');
@@ -56,7 +56,9 @@ test.describe('live UI: TeacherGPT chat', () => {
     const sampleText = [
       'TeacherGPT UI Test Material',
       `UniqueToken: ${token}`,
-      'Blood flows RA → RV → lungs → LA → LV → aorta.',
+      '',
+      'SBAR stands for Situation, Background, Assessment, Recommendation.',
+      'Use SBAR to structure professional communication during patient handover.',
     ].join('\n');
 
     const uploadResp = await request.post(`${SUPABASE_URL}/storage/v1/object/materials/${objectPath}`, {
@@ -143,13 +145,31 @@ test.describe('live UI: TeacherGPT chat', () => {
     await page.goto('/teacher/teachergpt/chat');
     await page.waitForLoadState('domcontentloaded');
 
-    // Ask a question containing the unique token (retrieval should cite it)
-    await page.getByLabel('Your message').fill(`What is the unique token? ${token}`);
-    await page.getByRole('button', { name: 'Send' }).click();
+    // Tabs exist
+    await expect(page.locator('[data-cta-id="cta-teachergpt-chat-tab-lesplan"]')).toBeVisible();
+    await expect(page.locator('[data-cta-id="cta-teachergpt-chat-tab-materials"]')).toBeVisible();
+    await expect(page.locator('[data-cta-id="cta-teachergpt-chat-tab-sources"]')).toBeVisible();
 
-    // Expect answer area to appear and citations to include the token in snippet
-    await expect(page.getByText('Citations')).toBeVisible({ timeout: 120_000 });
-    await expect(page.getByText(new RegExp(token, 'i')).first()).toBeVisible({ timeout: 120_000 });
+    // Suggestion chip fills prompt
+    await page.locator('[data-cta-id="cta-teachergpt-chat-suggestion-b1-k2-w2"]').click();
+    await expect(page.locator('[data-cta-id="cta-teachergpt-chat-input"]')).toHaveValue(/B1-K2-W2/i);
+
+    // Send
+    await page.locator('[data-cta-id="cta-teachergpt-chat-send"]').click();
+    await expect(page.getByText('Ik heb een lesplan opgesteld')).toBeVisible({ timeout: 180_000 });
+
+    // Lesplan tab shows KD-check items + save button
+    await expect(page.getByText(/Lesplan \(KD/i)).toBeVisible({ timeout: 180_000 });
+    await expect(page.getByText(/SBAR-structuur/i)).toBeVisible({ timeout: 180_000 });
+    await expect(page.locator('[data-cta-id="cta-teachergpt-chat-kdcheck-save"]')).toBeVisible({ timeout: 180_000 });
+
+    // Materialen tab shows at least one recommendation action
+    await page.locator('[data-cta-id="cta-teachergpt-chat-tab-materials"]').click();
+    await expect(page.locator('[data-cta-id="cta-teachergpt-chat-recommendation-use"]').first()).toBeVisible({ timeout: 180_000 });
+
+    // Bronnen tab shows at least one citation card
+    await page.locator('[data-cta-id="cta-teachergpt-chat-tab-sources"]').click();
+    await expect(page.getByText(/chunk\s+\d+/i).first()).toBeVisible({ timeout: 180_000 });
   });
 });
 

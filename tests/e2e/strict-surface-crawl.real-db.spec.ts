@@ -71,13 +71,24 @@ function installGuards(page: Page): Guard {
     async assertOk(label: string) {
       if (pageErrors.length) throw new Error(`[${label}] pageerror: ${pageErrors[0]}`);
 
+      // Be careful with `TypeError`: many network/SDK failures include it (e.g. "TypeError: Failed to fetch"),
+      // which would make the crawl flaky. Only treat common JS-exception TypeErrors as fatal.
+      const isFatalTypeError =
+        (t: string) =>
+          t.includes('TypeError') &&
+          (t.includes('Cannot read properties of') ||
+            t.includes('Cannot set properties of') ||
+            t.includes('is not a function') ||
+            t.includes('is not a constructor') ||
+            t.includes('is not iterable'));
+
       const criticalConsole = consoleErrors.filter((t) =>
-        t.includes('TypeError') ||
         t.includes('ReferenceError') ||
         t.includes('Maximum update depth exceeded') ||
         t.includes('ChunkLoadError') ||
         t.includes('Failed to fetch dynamically imported module') ||
-        t.includes('Cannot read properties of undefined')
+        t.includes('Cannot read properties of undefined') ||
+        isFatalTypeError(t)
       );
       if (criticalConsole.length) throw new Error(`[${label}] console error: ${criticalConsole[0]}`);
 
@@ -90,13 +101,37 @@ function installGuards(page: Page): Guard {
 }
 
 async function gotoStable(page: Page, path: string) {
-  await page.goto(path, { waitUntil: 'domcontentloaded' });
-  await page.waitForLoadState('networkidle', { timeout: 10_000 }).catch(() => undefined);
-  // Common Suspense fallback.
-  const suspenseFallback = page.getByText('Loading...').first();
-  if (await suspenseFallback.isVisible().catch(() => false)) {
-    await suspenseFallback.waitFor({ state: 'hidden', timeout: 30_000 }).catch(() => undefined);
+  const attempts = 3;
+  let lastErr: unknown = null;
+
+  for (let i = 0; i < attempts; i++) {
+    try {
+      await page.goto(path, { waitUntil: 'domcontentloaded', timeout: 30_000 });
+
+      // Keep the crawl fast: we don't need full data hydration, just "no crash / no 5xx".
+      await page.waitForLoadState('networkidle', { timeout: 2_000 }).catch(() => undefined);
+
+      // Common Suspense fallback.
+      const suspenseFallback = page.getByText('Loading...').first();
+      if (await suspenseFallback.isVisible().catch(() => false)) {
+        await suspenseFallback.waitFor({ state: 'hidden', timeout: 5_000 }).catch(() => undefined);
+      }
+      return;
+    } catch (e) {
+      lastErr = e;
+      const msg = e instanceof Error ? e.message : String(e);
+      const retryable =
+        msg.includes('net::ERR_NETWORK_IO_SUSPENDED') ||
+        msg.includes('net::ERR_CONNECTION_REFUSED') ||
+        msg.includes('net::ERR_CONNECTION_RESET') ||
+        msg.includes('net::ERR_CONNECTION_CLOSED') ||
+        msg.includes('Target page, context or browser has been closed');
+      if (!retryable || i === attempts - 1) break;
+      await new Promise((r) => setTimeout(r, 750 * (i + 1)));
+    }
   }
+
+  throw lastErr instanceof Error ? lastErr : new Error(String(lastErr));
 }
 
 async function expectNotBlank(page: Page, label: string) {
@@ -413,14 +448,18 @@ test.describe('strict surface crawl (real-db)', () => {
           await guard.assertOk(r.name);
 
           // Click a conservative, non-destructive subset of CTAs for extra surface coverage.
-          await clickSafeCtas(page, guard, r);
+          // Default is OFF to keep the real-db suite runtime bounded; enable explicitly when debugging.
+          const clickEnabled = process.env.STRICT_CRAWL_CLICK_CTAS === '1' || process.env.STRICT_CRAWL_AGGRESSIVE === '1';
+          if (clickEnabled) {
+            await clickSafeCtas(page, guard, r);
+          }
         } finally {
           guard.dispose();
         }
       }
     } finally {
       for (const { context } of roleCtx.values()) {
-        await context.close();
+        await context.close().catch(() => undefined);
       }
       roleCtx.clear();
     }

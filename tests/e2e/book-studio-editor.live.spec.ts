@@ -77,11 +77,14 @@ async function runAgentJobToDone(opts: {
   agentToken: string;
   organizationId: string;
   jobId: string;
-  maxAttempts?: number;
+  timeoutMs: number;
 }) {
-  const { request, supabaseUrl, agentToken, organizationId, jobId, maxAttempts = 6 } = opts;
-  let final: any = null;
-  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+  const { request, supabaseUrl, agentToken, organizationId, jobId, timeoutMs } = opts;
+  const start = Date.now();
+  let lastStatus = "";
+  let lastErr = "";
+
+  while (Date.now() - start < timeoutMs) {
     const workerResp = await request.post(
       `${supabaseUrl}/functions/v1/ai-job-runner?worker=1&queue=agent&jobId=${encodeURIComponent(jobId)}`,
       {
@@ -101,25 +104,29 @@ async function runAgentJobToDone(opts: {
         "X-Agent-Token": agentToken,
         "X-Organization-Id": organizationId,
       },
+      timeout: 60_000,
     });
     expect(jobResp.ok()).toBeTruthy();
     const jobJson: any = await jobResp.json();
     expect(jobJson.ok).toBe(true);
-    final = jobJson;
+
     const status = String(jobJson.job?.status || "").toLowerCase();
-    if (status === "done") return final;
+    lastStatus = status;
+    lastErr = String(jobJson.job?.error || "");
+    if (status === "done") return jobJson;
     if (status === "failed" || status === "dead_letter" || status === "stale") {
-      const err = String(jobJson.job?.error || "job failed");
-      throw new Error(`Job ${jobId} failed (status=${status}): ${err}`);
+      throw new Error(`Job ${jobId} failed (status=${status}): ${lastErr || "unknown error"}`);
     }
+
     await sleep(2500);
   }
-  throw new Error(`Timed out waiting for job ${jobId} to complete`);
+
+  throw new Error(`Timed out waiting for job ${jobId} to complete (lastStatus=${lastStatus}): ${lastErr}`);
 }
 
 test.describe("Live: Book Studio editor (real DB + real LLM)", () => {
   test("BookGen Pro generates a skeleton-first version and it opens in the chapter editor", async ({ request, page }) => {
-    test.setTimeout(10 * 60 * 1000);
+    test.setTimeout(20 * 60 * 1000);
 
     const supabaseUrl = requireEnvVar("VITE_SUPABASE_URL");
     const agentToken = requireEnvVar("AGENT_TOKEN");
@@ -156,7 +163,7 @@ test.describe("Live: Book Studio editor (real DB + real LLM)", () => {
       agentToken,
       organizationId,
       jobId: rootJobId,
-      maxAttempts: 6,
+      timeoutMs: 10 * 60_000,
     });
     const rootResult = rootFinal?.job?.result || {};
     const bookVersionId = String(rootResult.bookVersionId || "").trim();
@@ -171,7 +178,7 @@ test.describe("Live: Book Studio editor (real DB + real LLM)", () => {
       agentToken,
       organizationId,
       jobId: firstChapterJobId,
-      maxAttempts: 8,
+      timeoutMs: 12 * 60_000,
     });
     const chStatus = String(chFinal?.job?.status || "").toLowerCase();
     expect(chStatus).toBe("done");

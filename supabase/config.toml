@@ -318,3 +318,9 @@ verify_jwt = false
 
 [functions.book-generation-control]
 verify_jwt = false
+
+[functions.search-curated-materials]
+verify_jwt = false
+
+[functions.teacher-chat-assistant]
+verify_jwt = false

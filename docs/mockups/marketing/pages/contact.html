@@ -86,7 +86,7 @@
           <li><a href="kd-tools.html" class="nav-link">KD 2026 Tools</a></li>
           <li><a href="e-xpert-sam.html" class="nav-link">e-Xpert SAM</a></li>
           <li><a href="digitale-boeken.html" class="nav-link">Producten</a></li>
-          <li><a href="event-15-mei.html" class="nav-link">Event 15 mei</a></li>
+          <li><a href="event-20-januari.html" class="nav-link">Event 20 januari</a></li>
         </ul>
         <a href="demo-aanvraag.html" class="btn btn-primary" data-cta-id="cta-nav-demo">Vraag demo aan</a>
       </nav>
@@ -116,7 +116,7 @@
           <div class="contact-icon">📞</div>
           <div>
             <h3>Telefoon</h3>
-            <p><a href="tel:+31301234567">030 - 123 45 67</a></p>
+            <p><a href="tel:+31205453380">020 - 545 33 80</a></p>
             <p>Bereikbaar ma-vr 9:00 - 17:00</p>
           </div>
         </div>
@@ -125,7 +125,7 @@
           <div class="contact-icon">📍</div>
           <div>
             <h3>Bezoekadres</h3>
-            <p>Maliebaan 50<br>3581 CS Utrecht</p>
+            <p>Gondel 1<br>1186 MJ Amstelveen</p>
             <p>Op afspraak welkom.</p>
           </div>
         </div>
@@ -201,7 +201,7 @@
         <h4>ExpertCollege</h4>
         <ul>
           <li><a href="over-expertcollege.html" data-cta-id="cta-footer-about">Over ons</a></li>
-          <li><a href="event-15-mei.html" data-cta-id="cta-footer-event">Event 15 mei</a></li>
+          <li><a href="event-20-januari.html" data-cta-id="cta-footer-event">Event 20 januari</a></li>
           <li><a href="contact.html" data-cta-id="cta-footer-contact">Contact</a></li>
           <li><a href="privacy.html" data-cta-id="cta-footer-privacy">Privacy</a></li>
         </ul>
@@ -211,5 +211,56 @@
       <p>&copy; 2026 ExpertCollege. Gemaakt met zorg voor zorgonderwijs.</p>
     </div>
   </footer>
+
+  <script>
+    // Mock form functionality
+    document.addEventListener('DOMContentLoaded', function() {
+      const form = document.querySelector('.contact-form form');
+      const formContainer = document.querySelector('.contact-form');
+      
+      form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        // Get form data
+        const name = document.getElementById('name').value;
+        const email = document.getElementById('email').value;
+        const subject = document.getElementById('subject').value;
+        const message = document.getElementById('message').value;
+        
+        // Show loading state
+        const submitBtn = form.querySelector('button[type="submit"]');
+        const originalText = submitBtn.textContent;
+        submitBtn.textContent = 'Verzenden...';
+        submitBtn.disabled = true;
+        
+        // Simulate API call
+        setTimeout(function() {
+          // Store mock data
+          const submission = {
+            type: 'contact',
+            name, email, subject, message,
+            timestamp: new Date().toISOString()
+          };
+          
+          const submissions = JSON.parse(localStorage.getItem('ec-submissions') || '[]');
+          submissions.push(submission);
+          localStorage.setItem('ec-submissions', JSON.stringify(submissions));
+          
+          // Show success message
+          formContainer.innerHTML = `
+            <div style="text-align: center; padding: 2rem;">
+              <div style="width: 80px; height: 80px; background: linear-gradient(135deg, #22c55e, #16a34a); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1.5rem; font-size: 2.5rem; color: white;">✓</div>
+              <h2 style="margin-bottom: 0.5rem;">Bericht verzonden!</h2>
+              <p style="color: var(--text-secondary); margin-bottom: 1.5rem;">Bedankt ${name.split(' ')[0]}! We hebben je bericht ontvangen en reageren binnen 24 uur op werkdagen via <strong>${email}</strong>.</p>
+              <div style="background: var(--bg-tertiary); border-radius: 12px; padding: 1rem; margin-bottom: 1.5rem;">
+                <p style="font-size: 0.9rem; color: var(--text-muted);">Referentienummer: EC-${Date.now().toString(36).toUpperCase()}</p>
+              </div>
+              <a href="../expertcollege-mbo-portal.html" class="btn btn-primary" data-cta-id="cta-success-home" style="display: inline-flex;">Terug naar home</a>
+            </div>
+          `;
+        }, 1500);
+      });
+    });
+  </script>
 </body>
 </html>

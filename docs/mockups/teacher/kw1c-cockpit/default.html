@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="nl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>KW1C Cockpit</title>
+  </head>
+  <body>
+    <main data-route="/teacher/kw1c-cockpit">
+      <header>
+        <nav>
+          <a data-cta-id="nav-kids" data-action="navigate" href="/kids">Kids</a>
+          <a data-cta-id="nav-parents" data-action="navigate" href="/parent/dashboard">Parents</a>
+          <a data-cta-id="nav-schools" data-action="navigate" href="/schools">Schools</a>
+          <a data-cta-id="nav-admin" data-action="navigate" href="/admin">Admin</a>
+        </nav>
+        <h1>KW1C Cockpit</h1>
+        <p>Teacher cockpit: KD coverage + curated materials search (no live generation).</p>
+      </header>
+
+      <section>
+        <h2>Navigatie</h2>
+        <button data-cta-id="cta-kw1c-to-teacher-dashboard" data-action="navigate" data-target="/teacher/dashboard" type="button">
+          Naar dashboard
+        </button>
+        <button data-cta-id="cta-kw1c-open-classes" data-action="navigate" data-target="/teacher/classes" type="button">Klassen</button>
+        <button data-cta-id="cta-kw1c-open-students" data-action="navigate" data-target="/teacher/students" type="button">Studenten</button>
+        <button data-cta-id="cta-kw1c-open-materials" data-action="navigate" data-target="/teacher/materials" type="button">Materialen</button>
+        <button data-cta-id="cta-kw1c-open-standards" data-action="navigate" data-target="/teacher/standards" type="button">KD / Standards</button>
+        <button data-cta-id="cta-kw1c-open-lesson-kits" data-action="navigate" data-target="/teacher/lesson-kits" type="button">Lesson Kits</button>
+        <button data-cta-id="cta-kw1c-open-teachergpt-chat" data-action="navigate" data-target="/teacher/teachergpt/chat" type="button">e-Xpert SAM</button>
+        <button data-cta-id="cta-kw1c-open-mes" data-action="navigate" data-target="/teacher/teachergpt/mes" type="button">MES</button>
+      </section>
+
+      <section>
+        <h2>Zoek curated materialen</h2>
+        <p>
+          Casuïstiek, werkopdrachten en examenvragen worden vooraf gebouwd in een kwaliteits-pipeline.
+          In de cockpit zoeken en bevelen we alleen aan wat al bestaat.
+        </p>
+
+        <label>
+          Zoekvraag
+          <input data-cta-id="cta-kw1c-query" data-action="edit" placeholder="COPD, zuurstof, WP2.3" />
+        </label>
+
+        <label>
+          KD code (optioneel)
+          <input data-cta-id="cta-kw1c-kd-code" data-action="edit" placeholder="WP2.3" />
+        </label>
+
+        <label>
+          Type
+          <select data-cta-id="cta-kw1c-type" data-action="select">
+            <option value="">Alles</option>
+            <option value="casus">Casuïstiek</option>
+            <option value="werkopdracht">Werkopdracht</option>
+            <option value="examen">Examenvraag</option>
+          </select>
+        </label>
+
+        <label>
+          Taalvariant
+          <select data-cta-id="cta-kw1c-language" data-action="select">
+            <option value="b2">B2</option>
+            <option value="b1">B1</option>
+            <option value="a2">A2</option>
+            <option value="ar">Arabisch (met NL termen)</option>
+          </select>
+        </label>
+
+        <button data-cta-id="cta-kw1c-search" data-action="action" type="button">Zoeken</button>
+        <button data-cta-id="cta-kw1c-refresh" data-action="action" type="button">Refresh</button>
+      </section>
+
+      <section>
+        <h2>Resultaten</h2>
+        <button data-cta-id="cta-kw1c-open-result" data-action="action" type="button">Open resultaat</button>
+      </section>
+    </main>
+  </body>
+</html>
+

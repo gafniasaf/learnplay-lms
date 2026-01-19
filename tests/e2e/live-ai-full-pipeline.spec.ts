@@ -272,51 +272,41 @@ test.describe('Live AI Full Pipeline: Course Creation', () => {
       // Don't fail immediately - try to find any created course
     }
     
-    // Step 6: Validate course was created - go to admin console to find it
-    console.log('📍 Step 6: Validate course creation');
-    
-    await page.goto('/admin/console');
-    await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(2000);
-    
-    // Find course cards - look for course IDs in the page content
-    const pageContent = await page.locator('body').textContent() || '';
-    const courseIds = pageContent.match(/ID:\s*([a-z0-9-]+)/gi) || [];
-    console.log(`📊 Found ${courseIds.length} course IDs in catalog`);
-    
-    // Extract a valid course ID (prefer one that matches our subject if possible)
-    let courseId: string | null = null;
-    
-    // Look for edit links with query params
-    const editLinks = page.locator('a[href*="?edit="]');
-    const linkCount = await editLinks.count();
-    
-    if (linkCount > 0) {
-      const href = await editLinks.first().getAttribute('href');
-      const match = href?.match(/[?&]edit=([a-z0-9-]+)/i);
-      if (match) courseId = match[1];
+    // Step 6/7: Open the Course Selector and navigate into an editor page.
+    // (Do not scrape /admin/console for IDs — it's not a course list.)
+    console.log('📍 Step 6: Open course selector');
+
+    await page.goto('/admin/courses/select', { waitUntil: 'domcontentloaded' });
+    try {
+      await page.waitForLoadState('networkidle', { timeout: 30_000 });
+    } catch {
+      // Some environments keep long-polling connections open; continue anyway.
     }
-    
-    // If no edit links, extract from page content
-    if (!courseId && courseIds.length > 0) {
-      const idMatch = courseIds[0].match(/ID:\s*([a-z0-9-]+)/i);
-      if (idMatch) courseId = idMatch[1];
+
+    // Narrow the list to our unique subject when possible.
+    const searchBox = page.locator('input[placeholder*="Search by title"]').first();
+    if (await searchBox.isVisible({ timeout: 10_000 }).catch(() => false)) {
+      await searchBox.fill(testSubject);
+      await page.waitForTimeout(1500);
     }
-    
-    console.log(`📋 Course ID: ${courseId || 'unknown'}`);
-    
-    // Step 7: Navigate to course editor (using the correct route)
+
     console.log('📍 Step 7: Navigate to course editor');
-    
-    // The correct route is /admin/editor/:courseId (not /admin/courses/ai?edit=)
-    if (courseId) {
-      await page.goto(`/admin/editor/${courseId}`);
-    } else {
-      // Fallback: go to course selector
-      await page.goto('/admin/courses/select');
+    const editBtn = page.getByRole('button', { name: /^Edit$/ }).first();
+
+    // If the generated course is not yet visible in the catalog, fall back to opening *any* course.
+    if (!(await editBtn.isVisible({ timeout: 10_000 }).catch(() => false))) {
+      const clear = page.getByRole('button', { name: /clear filters/i }).first();
+      if (await clear.isVisible({ timeout: 5_000 }).catch(() => false)) {
+        await clear.click();
+        await page.waitForTimeout(1500);
+      }
     }
-    await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(2000);
+
+    await editBtn.waitFor({ timeout: 60_000 });
+    await editBtn.click();
+    await page.waitForURL(/\/admin\/editor\//, { timeout: 60_000 });
+    await page.waitForLoadState('domcontentloaded');
+    await page.waitForTimeout(1500);
     
     // Verify we're on an editor page (not 404)
     const isOn404 = await page.getByRole('heading', { name: '404' }).isVisible({ timeout: 2000 }).catch(() => false);

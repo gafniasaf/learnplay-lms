@@ -44,7 +44,8 @@ test.describe('Role-based Access Control', () => {
         expect(currentUrl).toMatch(route);
 
         // Page should load (not show access denied)
-        const accessDenied = page.locator('text=/access denied|unauthorized|forbidden/i');
+        // Avoid false positives on pages that legitimately include words like "forbidden" (e.g. validation errors).
+        const accessDenied = page.locator('text=/access denied|unauthorized|not authorized/i').first();
         const hasAccessDenied = await accessDenied.isVisible({ timeout: 2000 }).catch(() => false);
         expect(hasAccessDenied).toBe(false);
       }

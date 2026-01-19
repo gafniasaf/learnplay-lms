@@ -321,10 +321,12 @@ test.describe("Live: BookGen chapter → Prince PDF (microheadings + boxes + CSS
     const inputsJson: any = await inputsResp.json();
     expect(inputsJson.ok).toBe(true);
 
-    const compiledUrl = String(inputsJson?.urls?.compiledCanonical?.signedUrl || "").trim();
-    expect(compiledUrl).toMatch(/^https?:\/\//i);
+    // IMPORTANT: compiledCanonical reflects skeleton-first *structure* (used for image signing),
+    // but the generated chapter content is persisted to canonical.json. Use canonical for rendering assertions.
+    const canonicalUrl = String(inputsJson?.urls?.canonical?.signedUrl || "").trim();
+    expect(canonicalUrl).toMatch(/^https?:\/\//i);
 
-    const canonResp = await request.get(compiledUrl);
+    const canonResp = await request.get(canonicalUrl);
     expect(canonResp.ok()).toBeTruthy();
     const canonical: any = await canonResp.json();
 

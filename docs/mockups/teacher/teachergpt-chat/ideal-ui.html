@@ -1,0 +1,2705 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>e-Xpert SAM | Je lesplan in 1 klik</title>
+  <style>
+    /* ========================================
+       CSS RESET & DESIGN TOKENS
+       ======================================== */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    :root {
+      --primary: #2563eb;
+      --primary-dark: #1d4ed8;
+      --primary-light: #3b82f6;
+      --secondary: #10b981;
+      --accent: #f59e0b;
+      --dark: #0f172a;
+      --dark-surface: #1e293b;
+      --dark-elevated: #334155;
+      --light: #f8fafc;
+      --gray-100: #f1f5f9;
+      --gray-200: #e2e8f0;
+      --gray-300: #cbd5e1;
+      --gray-400: #94a3b8;
+      --gray-500: #64748b;
+      --gray-600: #475569;
+      --success: #22c55e;
+      --warning: #f59e0b;
+      --error: #ef4444;
+      --gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      --shadow-sm: 0 1px 2px rgba(0,0,0,0.3);
+      --shadow-md: 0 4px 6px rgba(0,0,0,0.3);
+      --shadow-lg: 0 10px 15px rgba(0,0,0,0.3);
+      --radius-sm: 6px;
+      --radius-md: 10px;
+      --radius-lg: 16px;
+      --radius-full: 9999px;
+    }
+
+    @font-face {
+      font-family: 'Inter';
+      src: url('https://fonts.gstatic.com/s/inter/v13/UcCO3FwrK3iLTeHuS_fvQtMwCp50KnMw2boKoduKmMEVuLyfAZ9hiJ-Ek-_EeA.woff2') format('woff2');
+    }
+
+    html {
+      height: 100%;
+      overflow: hidden;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--dark);
+      color: var(--light);
+      height: 100%;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ========================================
+       LAYOUT STRUCTURE
+       ======================================== */
+    .app-container {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      max-width: 1400px;
+      margin: 0 auto;
+      width: 100%;
+    }
+
+    /* ========================================
+       HEADER
+       ======================================== */
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 24px;
+      background: var(--dark-surface);
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+      flex-shrink: 0;
+    }
+
+    .header-brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .header-logo {
+      width: 36px;
+      height: 36px;
+      background: var(--gradient);
+      border-radius: var(--radius-md);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 14px;
+    }
+
+    .header-title {
+      font-size: 1.125rem;
+      font-weight: 600;
+    }
+
+    .header-subtitle {
+      font-size: 0.75rem;
+      color: var(--gray-400);
+    }
+
+    .header-controls {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .scope-toggle {
+      display: flex;
+      background: rgba(255,255,255,0.05);
+      border-radius: var(--radius-full);
+      padding: 4px;
+    }
+
+    .scope-btn {
+      padding: 6px 14px;
+      border: none;
+      background: transparent;
+      color: var(--gray-400);
+      font-size: 0.8125rem;
+      font-weight: 500;
+      border-radius: var(--radius-full);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .scope-btn:hover {
+      color: var(--light);
+    }
+
+    .scope-btn.active {
+      background: var(--primary);
+      color: white;
+    }
+
+    .clear-btn {
+      padding: 8px 16px;
+      border: 1px solid rgba(255,255,255,0.12);
+      background: transparent;
+      color: var(--gray-300);
+      font-size: 0.8125rem;
+      font-weight: 500;
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .clear-btn:hover {
+      background: rgba(255,255,255,0.05);
+      border-color: rgba(255,255,255,0.2);
+    }
+
+    .settings-btn {
+      padding: 8px;
+      border: 1px solid rgba(255,255,255,0.12);
+      background: transparent;
+      color: var(--gray-300);
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .settings-btn:hover {
+      background: rgba(255,255,255,0.05);
+    }
+
+    .settings-btn.active {
+      background: var(--primary);
+      border-color: var(--primary);
+      color: white;
+    }
+
+    /* ========================================
+       SETTINGS PANEL
+       ======================================== */
+    .settings-panel {
+      background: var(--dark-surface);
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+      padding: 0;
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.3s ease, padding 0.3s ease;
+    }
+
+    .settings-panel.open {
+      max-height: 200px;
+      padding: 16px 24px;
+    }
+
+    .settings-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    @media (max-width: 768px) {
+      .settings-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .settings-field {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .settings-label {
+      font-size: 0.75rem;
+      font-weight: 500;
+      color: var(--gray-400);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .settings-select {
+      padding: 10px 14px;
+      background: rgba(0,0,0,0.3);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: var(--radius-md);
+      color: var(--light);
+      font-size: 0.875rem;
+      font-family: inherit;
+      cursor: pointer;
+      outline: none;
+      transition: all 0.2s;
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2394a3b8'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 12px center;
+      background-size: 16px;
+      padding-right: 36px;
+    }
+
+    .settings-select:focus {
+      border-color: var(--primary);
+    }
+
+    .settings-select:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .settings-row {
+      display: flex;
+      gap: 8px;
+      align-items: stretch;
+    }
+
+    .settings-row .settings-select {
+      flex: 1;
+    }
+
+    .refresh-btn {
+      padding: 10px 14px;
+      border: 1px solid rgba(255,255,255,0.12);
+      background: transparent;
+      color: var(--gray-300);
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.75rem;
+      white-space: nowrap;
+    }
+
+    .refresh-btn:hover {
+      background: rgba(255,255,255,0.05);
+    }
+
+    .refresh-btn svg {
+      width: 14px;
+      height: 14px;
+    }
+
+    .refresh-btn.loading svg {
+      animation: spin 1s linear infinite;
+    }
+
+    .selected-material {
+      font-size: 0.75rem;
+      color: var(--gray-400);
+      margin-top: 4px;
+    }
+
+    .selected-material strong {
+      color: var(--primary-light);
+    }
+
+    /* ========================================
+       ERROR ALERT
+       ======================================== */
+    .error-alert {
+      background: rgba(239, 68, 68, 0.1);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      border-radius: var(--radius-md);
+      padding: 12px 16px;
+      margin: 16px 24px 0;
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      animation: fadeInUp 0.3s ease;
+    }
+
+    .error-alert-icon {
+      color: var(--error);
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+
+    .error-alert-content {
+      flex: 1;
+    }
+
+    .error-alert-title {
+      font-size: 0.875rem;
+      font-weight: 500;
+      color: var(--error);
+      margin-bottom: 4px;
+    }
+
+    .error-alert-text {
+      font-size: 0.8125rem;
+      color: var(--gray-300);
+    }
+
+    .error-alert-close {
+      background: none;
+      border: none;
+      color: var(--gray-400);
+      cursor: pointer;
+      padding: 4px;
+      display: flex;
+    }
+
+    .error-alert-close:hover {
+      color: var(--light);
+    }
+
+    /* ========================================
+       MAIN CONTENT AREA
+       ======================================== */
+    .main-content {
+      flex: 1;
+      display: grid;
+      grid-template-columns: 1fr 400px;
+      gap: 0;
+      overflow: hidden;
+      /* Critical for grid child to respect boundaries */
+      min-height: 0;
+    }
+
+    @media (max-width: 1024px) {
+      .main-content {
+        grid-template-columns: 1fr;
+      }
+      .side-panel {
+        display: none;
+      }
+    }
+
+    /* ========================================
+       CHAT PANEL
+       ======================================== */
+    .chat-panel {
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      border-right: 1px solid rgba(255,255,255,0.08);
+      /* Critical for flex child to allow scroll */
+      min-height: 0;
+    }
+
+    .chat-messages {
+      flex: 1;
+      overflow-y: auto;
+      overflow-x: hidden;
+      overscroll-behavior: contain;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      scroll-behavior: smooth;
+      /* Ensure this container is the scroll parent */
+      min-height: 0;
+    }
+
+    /* Custom scrollbar for chat */
+    .chat-messages::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    .chat-messages::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    .chat-messages::-webkit-scrollbar-thumb {
+      background: rgba(255,255,255,0.2);
+      border-radius: 3px;
+    }
+
+    .chat-messages::-webkit-scrollbar-thumb:hover {
+      background: rgba(255,255,255,0.3);
+    }
+
+    /* Empty state */
+    .empty-state {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 40px;
+    }
+
+    .empty-state-icon {
+      width: 80px;
+      height: 80px;
+      background: var(--gradient);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2rem;
+      margin-bottom: 24px;
+    }
+
+    .empty-state h2 {
+      font-size: 1.5rem;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+
+    .empty-state p {
+      color: var(--gray-400);
+      max-width: 400px;
+      line-height: 1.6;
+      margin-bottom: 24px;
+    }
+
+    /* Chat messages */
+    .message {
+      display: flex;
+      gap: 12px;
+      max-width: 85%;
+      animation: fadeInUp 0.3s ease;
+    }
+
+    @keyframes fadeInUp {
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .message--user {
+      align-self: flex-end;
+      flex-direction: row-reverse;
+    }
+
+    .message--assistant {
+      align-self: flex-start;
+    }
+
+    .message-avatar {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.875rem;
+      font-weight: 600;
+      flex-shrink: 0;
+    }
+
+    .message--user .message-avatar {
+      background: var(--gray-600);
+    }
+
+    .message--assistant .message-avatar {
+      background: var(--gradient);
+    }
+
+    .message-content {
+      padding: 12px 16px;
+      border-radius: var(--radius-lg);
+      line-height: 1.6;
+    }
+
+    .message--user .message-content {
+      background: var(--primary);
+      color: white;
+      border-bottom-right-radius: 4px;
+    }
+
+    .message--assistant .message-content {
+      background: var(--dark-surface);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-bottom-left-radius: 4px;
+    }
+
+    .message-text {
+      font-size: 0.9375rem;
+    }
+
+    /* Typing indicator */
+    .typing-indicator {
+      display: flex;
+      gap: 4px;
+      padding: 8px 0;
+    }
+
+    .typing-dot {
+      width: 8px;
+      height: 8px;
+      background: var(--gray-400);
+      border-radius: 50%;
+      animation: typing 1.4s infinite ease-in-out;
+    }
+
+    .typing-dot:nth-child(1) { animation-delay: 0s; }
+    .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+    .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+
+    @keyframes typing {
+      0%, 60%, 100% {
+        transform: translateY(0);
+        opacity: 0.4;
+      }
+      30% {
+        transform: translateY(-4px);
+        opacity: 1;
+      }
+    }
+
+    /* ========================================
+       SIDE PANEL (Lesson Plan + Recommendations)
+       ======================================== */
+    .side-panel {
+      display: flex;
+      flex-direction: column;
+      background: var(--dark-surface);
+      overflow: hidden;
+    }
+
+    .side-panel-tabs {
+      display: flex;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+      flex-shrink: 0;
+    }
+
+    .side-panel-tab {
+      flex: 1;
+      padding: 12px 16px;
+      border: none;
+      background: transparent;
+      color: var(--gray-400);
+      font-size: 0.8125rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+      position: relative;
+    }
+
+    .side-panel-tab:hover {
+      color: var(--light);
+      background: rgba(255,255,255,0.02);
+    }
+
+    .side-panel-tab.active {
+      color: var(--light);
+    }
+
+    .side-panel-tab.active::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: var(--primary);
+    }
+
+    .side-panel-content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px;
+    }
+
+    .tab-content {
+      display: none;
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
+    /* ========================================
+       LESSON PLAN DISPLAY
+       ======================================== */
+    .lesson-plan {
+      animation: fadeInUp 0.3s ease;
+    }
+
+    .lesson-plan-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      margin-bottom: 16px;
+    }
+
+    .kd-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      background: rgba(37, 99, 235, 0.15);
+      border: 1px solid rgba(37, 99, 235, 0.3);
+      border-radius: var(--radius-full);
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--primary-light);
+    }
+
+    .kd-badge-icon {
+      width: 14px;
+      height: 14px;
+    }
+
+    .lesson-plan-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .action-btn {
+      padding: 6px 12px;
+      border: 1px solid rgba(255,255,255,0.12);
+      background: transparent;
+      color: var(--gray-300);
+      font-size: 0.75rem;
+      font-weight: 500;
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .action-btn:hover {
+      background: rgba(255,255,255,0.05);
+      border-color: rgba(255,255,255,0.2);
+    }
+
+    .action-btn--primary {
+      background: var(--primary);
+      border-color: var(--primary);
+      color: white;
+    }
+
+    .action-btn--primary:hover {
+      background: var(--primary-dark);
+    }
+
+    /* Collapsible sections */
+    .plan-section {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: var(--radius-md);
+      margin-bottom: 12px;
+      overflow: hidden;
+    }
+
+    .plan-section-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 16px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .plan-section-header:hover {
+      background: rgba(255,255,255,0.02);
+    }
+
+    .plan-section-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.875rem;
+      font-weight: 600;
+    }
+
+    .plan-section-icon {
+      width: 18px;
+      height: 18px;
+      color: var(--accent);
+    }
+
+    .plan-section-toggle {
+      width: 20px;
+      height: 20px;
+      color: var(--gray-400);
+      transition: transform 0.2s;
+    }
+
+    .plan-section.open .plan-section-toggle {
+      transform: rotate(180deg);
+    }
+
+    .plan-section-content {
+      padding: 0 16px 16px;
+      display: none;
+    }
+
+    .plan-section.open .plan-section-content {
+      display: block;
+    }
+
+    /* Quick Start section */
+    .quick-start {
+      background: linear-gradient(135deg, rgba(37, 99, 235, 0.1) 0%, rgba(139, 92, 246, 0.1) 100%);
+      border-color: rgba(37, 99, 235, 0.2);
+    }
+
+    .quick-start-oneliner {
+      font-size: 1rem;
+      font-weight: 500;
+      line-height: 1.5;
+      margin-bottom: 12px;
+    }
+
+    .time-allocation {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .time-block {
+      flex: 1;
+      padding: 8px 12px;
+      background: rgba(0,0,0,0.2);
+      border-radius: var(--radius-sm);
+      text-align: center;
+    }
+
+    .time-block-label {
+      font-size: 0.6875rem;
+      color: var(--gray-400);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .time-block-value {
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--accent);
+    }
+
+    .key-concepts {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .concept-tag {
+      padding: 4px 10px;
+      background: rgba(255,255,255,0.08);
+      border-radius: var(--radius-full);
+      font-size: 0.75rem;
+      color: var(--gray-300);
+    }
+
+    /* Teacher Script */
+    .script-item {
+      display: grid;
+      grid-template-columns: 60px 80px 1fr;
+      gap: 12px;
+      padding: 10px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+      font-size: 0.8125rem;
+    }
+
+    .script-item:last-child {
+      border-bottom: none;
+    }
+
+    .script-time {
+      color: var(--accent);
+      font-weight: 500;
+    }
+
+    .script-phase {
+      color: var(--gray-400);
+    }
+
+    .script-content {
+      color: var(--gray-200);
+      line-height: 1.5;
+    }
+
+    /* Discussion Questions */
+    .question-item {
+      padding: 12px;
+      background: rgba(0,0,0,0.15);
+      border-radius: var(--radius-sm);
+      margin-bottom: 8px;
+    }
+
+    .question-item:last-child {
+      margin-bottom: 0;
+    }
+
+    .question-text {
+      font-size: 0.875rem;
+      font-weight: 500;
+      margin-bottom: 6px;
+    }
+
+    .question-answers {
+      font-size: 0.75rem;
+      color: var(--gray-400);
+    }
+
+    /* Group Work */
+    .group-work-title {
+      font-size: 0.9375rem;
+      font-weight: 500;
+      margin-bottom: 8px;
+    }
+
+    .group-work-duration {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 4px 8px;
+      background: rgba(245, 158, 11, 0.15);
+      border-radius: var(--radius-sm);
+      font-size: 0.75rem;
+      color: var(--accent);
+      margin-bottom: 12px;
+    }
+
+    .group-work-steps {
+      list-style: none;
+      counter-reset: step;
+    }
+
+    .group-work-steps li {
+      counter-increment: step;
+      display: flex;
+      gap: 10px;
+      padding: 8px 0;
+      font-size: 0.8125rem;
+      color: var(--gray-300);
+    }
+
+    .group-work-steps li::before {
+      content: counter(step);
+      width: 20px;
+      height: 20px;
+      background: var(--dark-elevated);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.6875rem;
+      font-weight: 600;
+      flex-shrink: 0;
+    }
+
+    /* KD-Check Section */
+    .kd-check-section {
+      background: linear-gradient(135deg, rgba(34, 197, 94, 0.08) 0%, rgba(16, 185, 129, 0.08) 100%);
+      border-color: rgba(34, 197, 94, 0.2);
+    }
+
+    .kd-check-section .plan-section-icon {
+      color: var(--success);
+    }
+
+    .kd-check-intro {
+      font-size: 0.8125rem;
+      color: var(--gray-400);
+      margin-bottom: 12px;
+    }
+
+    .kd-check-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .kd-check-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      font-size: 0.8125rem;
+    }
+
+    .kd-check-icon {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.75rem;
+      flex-shrink: 0;
+      background: rgba(255,255,255,0.05);
+      color: var(--gray-500);
+    }
+
+    .kd-check-icon.checked {
+      background: rgba(34, 197, 94, 0.2);
+      color: var(--success);
+    }
+
+    .kd-check-text {
+      color: var(--gray-300);
+      line-height: 1.4;
+    }
+
+    .kd-check-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 16px;
+      padding-top: 12px;
+      border-top: 1px solid rgba(255,255,255,0.06);
+    }
+
+    .kd-check-score {
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--success);
+    }
+
+    .kd-check-btn {
+      padding: 6px 12px;
+      background: rgba(34, 197, 94, 0.15);
+      border: 1px solid rgba(34, 197, 94, 0.3);
+      border-radius: var(--radius-md);
+      color: var(--success);
+      font-size: 0.75rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .kd-check-btn:hover {
+      background: rgba(34, 197, 94, 0.25);
+    }
+
+    /* ========================================
+       RECOMMENDATIONS PANEL
+       ======================================== */
+    .recommendations-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .recommendation-card {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: var(--radius-md);
+      padding: 12px;
+      transition: all 0.2s;
+      cursor: pointer;
+    }
+
+    .recommendation-card:hover {
+      background: rgba(255,255,255,0.05);
+      border-color: rgba(255,255,255,0.12);
+    }
+
+    .recommendation-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+
+    .recommendation-title {
+      font-size: 0.875rem;
+      font-weight: 500;
+      line-height: 1.4;
+    }
+
+    .recommendation-score {
+      padding: 2px 8px;
+      background: rgba(34, 197, 94, 0.15);
+      border-radius: var(--radius-full);
+      font-size: 0.6875rem;
+      font-weight: 600;
+      color: var(--success);
+      flex-shrink: 0;
+    }
+
+    .recommendation-meta {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+
+    .file-badge {
+      padding: 2px 8px;
+      background: rgba(255,255,255,0.08);
+      border-radius: var(--radius-sm);
+      font-size: 0.6875rem;
+      color: var(--gray-400);
+    }
+
+    .recommendation-snippet {
+      font-size: 0.75rem;
+      color: var(--gray-400);
+      line-height: 1.5;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .recommendation-action {
+      margin-top: 10px;
+    }
+
+    .use-btn {
+      width: 100%;
+      padding: 8px 12px;
+      border: 1px solid rgba(37, 99, 235, 0.3);
+      background: rgba(37, 99, 235, 0.1);
+      color: var(--primary-light);
+      font-size: 0.75rem;
+      font-weight: 500;
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .use-btn:hover {
+      background: rgba(37, 99, 235, 0.2);
+      border-color: var(--primary);
+    }
+
+    /* ========================================
+       CITATIONS PANEL
+       ======================================== */
+    .citations-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .citation-item {
+      padding: 10px 12px;
+      background: rgba(255,255,255,0.02);
+      border: 1px solid rgba(255,255,255,0.05);
+      border-radius: var(--radius-sm);
+      font-size: 0.75rem;
+    }
+
+    .citation-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 6px;
+    }
+
+    .citation-source {
+      font-weight: 500;
+      color: var(--gray-300);
+    }
+
+    .citation-sim {
+      color: var(--gray-500);
+    }
+
+    .citation-text {
+      color: var(--gray-400);
+      line-height: 1.5;
+    }
+
+    /* ========================================
+       INPUT AREA
+       ======================================== */
+    .input-area {
+      padding: 16px 24px 24px;
+      background: var(--dark-surface);
+      border-top: 1px solid rgba(255,255,255,0.08);
+      flex-shrink: 0;
+    }
+
+    .suggestion-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .suggestion-chip {
+      padding: 6px 14px;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: var(--radius-full);
+      font-size: 0.8125rem;
+      color: var(--gray-300);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .suggestion-chip:hover {
+      background: rgba(255,255,255,0.1);
+      border-color: var(--primary);
+      color: var(--light);
+    }
+
+    .input-row {
+      display: flex;
+      gap: 12px;
+    }
+
+    .chat-input {
+      flex: 1;
+      padding: 14px 18px;
+      background: rgba(0,0,0,0.3);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: var(--radius-lg);
+      color: var(--light);
+      font-size: 0.9375rem;
+      font-family: inherit;
+      outline: none;
+      transition: all 0.2s;
+    }
+
+    .chat-input::placeholder {
+      color: var(--gray-500);
+    }
+
+    .chat-input:focus {
+      border-color: var(--primary);
+      background: rgba(0,0,0,0.4);
+    }
+
+    .send-btn {
+      padding: 14px 24px;
+      background: var(--primary);
+      border: none;
+      border-radius: var(--radius-lg);
+      color: white;
+      font-size: 0.9375rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .send-btn:hover {
+      background: var(--primary-dark);
+    }
+
+    .send-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .send-btn-icon {
+      width: 18px;
+      height: 18px;
+    }
+
+    /* Loading state */
+    .send-btn.loading .send-btn-icon {
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+
+    /* ========================================
+       EMPTY PANELS
+       ======================================== */
+    .panel-empty {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 40px 20px;
+      text-align: center;
+      color: var(--gray-500);
+    }
+
+    .panel-empty-icon {
+      width: 48px;
+      height: 48px;
+      margin-bottom: 12px;
+      opacity: 0.5;
+    }
+
+    .panel-empty p {
+      font-size: 0.8125rem;
+      line-height: 1.5;
+    }
+
+    /* ========================================
+       PRINT STYLES
+       ======================================== */
+    @media print {
+      body {
+        background: white;
+        color: black;
+      }
+
+      .header,
+      .input-area,
+      .side-panel-tabs,
+      .chat-panel,
+      .action-btn,
+      .suggestion-chips {
+        display: none !important;
+      }
+
+      .side-panel {
+        width: 100%;
+        max-width: 100%;
+      }
+
+      .plan-section {
+        background: white;
+        border: 1px solid #ddd;
+      }
+
+      .plan-section-content {
+        display: block !important;
+      }
+
+      .kd-badge {
+        background: #e0e7ff;
+        border-color: #a5b4fc;
+        color: #3730a3;
+      }
+    }
+
+    /* ========================================
+       UTILITIES
+       ======================================== */
+    .hidden {
+      display: none !important;
+    }
+
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      border: 0;
+    }
+
+    /* ========================================
+       TOAST NOTIFICATIONS
+       ======================================== */
+    .toast-container {
+      position: fixed;
+      bottom: 100px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 1000;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      pointer-events: none;
+    }
+
+    .toast {
+      padding: 12px 20px;
+      background: var(--dark-elevated);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: var(--radius-md);
+      color: var(--light);
+      font-size: 0.875rem;
+      box-shadow: var(--shadow-lg);
+      animation: toastIn 0.3s ease, toastOut 0.3s ease 2.7s forwards;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      pointer-events: auto;
+    }
+
+    .toast--success {
+      border-color: var(--success);
+      background: rgba(34, 197, 94, 0.15);
+    }
+
+    .toast--info {
+      border-color: var(--primary);
+      background: rgba(37, 99, 235, 0.15);
+    }
+
+    .toast--warning {
+      border-color: var(--warning);
+      background: rgba(245, 158, 11, 0.15);
+    }
+
+    @keyframes toastIn {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes toastOut {
+      from {
+        opacity: 1;
+        transform: translateY(0);
+      }
+      to {
+        opacity: 0;
+        transform: translateY(-20px);
+      }
+    }
+
+    /* ========================================
+       MODAL
+       ======================================== */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.7);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.2s;
+    }
+
+    .modal-overlay.active {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .modal {
+      background: var(--dark-surface);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      max-width: 400px;
+      width: 90%;
+      transform: scale(0.95);
+      transition: transform 0.2s;
+    }
+
+    .modal-overlay.active .modal {
+      transform: scale(1);
+    }
+
+    .modal-title {
+      font-size: 1.125rem;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+
+    .modal-text {
+      color: var(--gray-400);
+      font-size: 0.875rem;
+      line-height: 1.6;
+      margin-bottom: 20px;
+    }
+
+    .modal-actions {
+      display: flex;
+      gap: 12px;
+      justify-content: flex-end;
+    }
+
+    .modal-btn {
+      padding: 10px 20px;
+      border-radius: var(--radius-md);
+      font-size: 0.875rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .modal-btn--secondary {
+      background: transparent;
+      border: 1px solid rgba(255,255,255,0.12);
+      color: var(--gray-300);
+    }
+
+    .modal-btn--secondary:hover {
+      background: rgba(255,255,255,0.05);
+    }
+
+    .modal-btn--primary {
+      background: var(--primary);
+      border: none;
+      color: white;
+    }
+
+    .modal-btn--primary:hover {
+      background: var(--primary-dark);
+    }
+  </style>
+</head>
+<body data-route="/teacher/teachergpt/chat">
+  <div class="app-container">
+    <!-- ========================================
+         HEADER
+         ======================================== -->
+    <header class="header">
+      <div class="header-brand">
+        <div class="header-logo">eX</div>
+        <div>
+          <div class="header-title">e-Xpert SAM</div>
+          <div class="header-subtitle">Je lesplan in 1 klik</div>
+        </div>
+      </div>
+
+      <div class="header-controls">
+        <div class="scope-toggle">
+          <button class="scope-btn active" data-scope="all" data-cta-id="cta-scope-all">Alles</button>
+          <button class="scope-btn" data-scope="materials" data-cta-id="cta-scope-materials">Materialen</button>
+          <button class="scope-btn" data-scope="mes" data-cta-id="cta-scope-mes">MES</button>
+        </div>
+        <button class="clear-btn" data-cta-id="cta-teachergpt-chat-clear" data-action="click" onclick="clearChat()">
+          Wissen
+        </button>
+        <button class="settings-btn" id="settingsBtn" data-cta-id="cta-settings-toggle" onclick="toggleSettings()">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="3"/>
+            <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/>
+          </svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- Settings Panel (collapsible) -->
+    <div class="settings-panel" id="settingsPanel">
+      <div class="settings-grid">
+        <div class="settings-field">
+          <label class="settings-label" for="scopeSelect">Zoekomvang</label>
+          <select class="settings-select" id="scopeSelect" data-cta-id="cta-teachergpt-scope" onchange="handleScopeChange(this.value)">
+            <option value="all" selected>Alles (Materialen + MES)</option>
+            <option value="materials">Alleen Materialen</option>
+            <option value="mes">Alleen MES</option>
+          </select>
+        </div>
+
+        <div class="settings-field">
+          <label class="settings-label" for="materialSelect">Materiaal (optioneel)</label>
+          <div class="settings-row">
+            <select class="settings-select" id="materialSelect" data-cta-id="cta-teachergpt-material" onchange="handleMaterialChange(this.value)">
+              <option value="">(Alle materialen)</option>
+              <option value="mat-1">Casus Mw. Jansen – zorgplan bijstellen</option>
+              <option value="mat-2">Werkblad zorgdoelen bijstellen</option>
+              <option value="mat-3">Checklist zorginterventies veilig uitvoeren</option>
+              <option value="mat-abcde-1">ABCDE-checklist acute situaties</option>
+              <option value="mat-sbar-1">SBAR-template overdracht</option>
+              <option value="mat-refl-1">STARR-reflectie werkblad</option>
+            </select>
+            <button class="refresh-btn" id="refreshMaterialsBtn" data-cta-id="cta-refresh-materials" onclick="refreshMaterials()">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M23 4v6h-6M1 20v-6h6M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/>
+              </svg>
+              Refresh
+            </button>
+          </div>
+          <div class="selected-material" id="selectedMaterialInfo"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Error Alert (hidden by default) -->
+    <div class="error-alert hidden" id="errorAlert">
+      <svg class="error-alert-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="10"/>
+        <line x1="12" y1="8" x2="12" y2="12"/>
+        <line x1="12" y1="16" x2="12.01" y2="16"/>
+      </svg>
+      <div class="error-alert-content">
+        <div class="error-alert-title">Fout</div>
+        <div class="error-alert-text" id="errorAlertText">Er is iets misgegaan. Probeer het opnieuw.</div>
+      </div>
+      <button class="error-alert-close" onclick="hideError()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="18" y1="6" x2="6" y2="18"/>
+          <line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+      </button>
+    </div>
+
+    <!-- ========================================
+         MAIN CONTENT
+         ======================================== -->
+    <main class="main-content">
+      <!-- Chat Panel -->
+      <div class="chat-panel">
+        <div class="chat-messages" id="chatMessages">
+          <!-- Empty State (shown initially) -->
+          <div class="empty-state" id="emptyState">
+            <div class="empty-state-icon">💡</div>
+            <h2>Welkom bij e-Xpert SAM</h2>
+            <p>
+              Stel een vraag en krijg direct een compleet lesplan, afgestemd op het KD 2026. 
+              Kies een van de suggesties hieronder of typ je eigen vraag.
+            </p>
+          </div>
+
+          <!-- Messages will be inserted here -->
+        </div>
+
+        <!-- Input Area -->
+        <div class="input-area">
+          <div class="suggestion-chips" id="suggestionChips">
+            <!-- All 5 workshop KD codes covered -->
+            <button class="suggestion-chip" data-cta-id="cta-suggestion-1" onclick="useSuggestion('Maak een lesplan voor B1-K1-W2 over het bijstellen van een zorgplan')">
+              📋 B1-K1-W2 Zorgplan
+            </button>
+            <button class="suggestion-chip" data-cta-id="cta-suggestion-2" onclick="useSuggestion('Maak een lesplan voor B1-K1-W3 over zorginterventies en ADL-ondersteuning')">
+              🩺 B1-K1-W3 Interventies
+            </button>
+            <button class="suggestion-chip" data-cta-id="cta-suggestion-3" onclick="useSuggestion('Maak een lesplan voor B1-K1-W5 over ABCDE-methodiek bij acute situaties')">
+              🚨 B1-K1-W5 Acute/ABCDE
+            </button>
+            <button class="suggestion-chip" data-cta-id="cta-suggestion-4" onclick="useSuggestion('Maak een lesplan voor B1-K2-W2 over SBAR-communicatie en samenwerken')">
+              🤝 B1-K2-W2 Samenwerking
+            </button>
+            <button class="suggestion-chip" data-cta-id="cta-suggestion-5" onclick="useSuggestion('Welke materialen heb je over reflecteren en professionele ontwikkeling (B1-K3-W2)?')">
+              🎯 B1-K3-W2 Reflectie
+            </button>
+          </div>
+
+          <div class="input-row">
+            <input 
+              type="text" 
+              class="chat-input" 
+              id="chatInput"
+              placeholder="Stel je vraag, bijv. 'Maak een lesplan voor B1-K1-W5 over acute situaties'..."
+              data-cta-id="cta-teachergpt-chat-input"
+              data-action="edit"
+              onkeydown="handleInputKeydown(event)"
+            />
+            <button class="send-btn" id="sendBtn" data-cta-id="cta-teachergpt-chat-send" data-action="click" onclick="sendMessage()">
+              <span>Verstuur</span>
+              <svg class="send-btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Side Panel -->
+      <div class="side-panel">
+        <div class="side-panel-tabs">
+          <button class="side-panel-tab active" data-tab="lesplan" onclick="switchTab('lesplan')">
+            Lesplan
+          </button>
+          <button class="side-panel-tab" data-tab="materials" onclick="switchTab('materials')">
+            Materialen
+          </button>
+          <button class="side-panel-tab" data-tab="sources" onclick="switchTab('sources')">
+            Bronnen
+          </button>
+        </div>
+
+        <div class="side-panel-content">
+          <!-- Lesson Plan Tab -->
+          <div class="tab-content active" id="tab-lesplan">
+            <div class="panel-empty" id="lesplanEmpty">
+              <svg class="panel-empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+              </svg>
+              <p>Vraag om een lesplan en het verschijnt hier met alle details.</p>
+            </div>
+
+            <!-- Lesson Plan Content (hidden initially) -->
+            <div class="lesson-plan hidden" id="lesplanContent">
+              <!-- Content inserted by JS -->
+            </div>
+          </div>
+
+          <!-- Materials Tab -->
+          <div class="tab-content" id="tab-materials">
+            <div class="panel-empty" id="materialsEmpty">
+              <svg class="panel-empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/>
+              </svg>
+              <p>Relevante materialen verschijnen hier wanneer je een vraag stelt.</p>
+            </div>
+
+            <!-- Recommendations Grid (hidden initially) -->
+            <div class="recommendations-grid hidden" id="materialsContent">
+              <!-- Content inserted by JS -->
+            </div>
+          </div>
+
+          <!-- Sources Tab -->
+          <div class="tab-content" id="tab-sources">
+            <div class="panel-empty" id="sourcesEmpty">
+              <svg class="panel-empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
+              </svg>
+              <p>Gebruikte bronnen en citaten worden hier getoond.</p>
+            </div>
+
+            <!-- Citations List (hidden initially) -->
+            <div class="citations-list hidden" id="sourcesContent">
+              <!-- Content inserted by JS -->
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Toast Container -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <!-- Modal -->
+  <div class="modal-overlay" id="modalOverlay" onclick="closeModal(event)">
+    <div class="modal" onclick="event.stopPropagation()">
+      <div class="modal-title" id="modalTitle">Lesplan opslaan</div>
+      <div class="modal-text" id="modalText">Wil je dit lesplan opslaan in je bibliotheek?</div>
+      <div class="modal-actions">
+        <button class="modal-btn modal-btn--secondary" onclick="closeModal()">Annuleren</button>
+        <button class="modal-btn modal-btn--primary" id="modalConfirm" onclick="confirmModal()">Opslaan</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================
+       JAVASCRIPT
+       ======================================== -->
+  <script>
+    // ========================================
+    // STATE
+    // ========================================
+    const state = {
+      messages: [],
+      currentScope: 'all',
+      isLoading: false,
+      currentPlan: null,
+      selectedMaterial: null,
+      selectedMaterialId: '',
+      modalCallback: null,
+      settingsOpen: false,
+      error: null,
+    };
+
+    // Mock materials data (matching real system structure)
+    const mockMaterials = [
+      { id: 'mat-1', title: 'Casus Mw. Jansen – zorgplan bijstellen', file_name: 'B1-K1-W2-casus-mw-jansen.txt' },
+      { id: 'mat-2', title: 'Werkblad zorgdoelen bijstellen', file_name: 'B1-K1-W2-werkblad-zorgdoelen.txt' },
+      { id: 'mat-3', title: 'Checklist zorginterventies veilig uitvoeren', file_name: 'B1-K1-W3-checklist-zorginterventies.txt' },
+      { id: 'mat-abcde-1', title: 'ABCDE-checklist acute situaties', file_name: 'B1-K1-W5-abcde-checklist.txt' },
+      { id: 'mat-sbar-1', title: 'SBAR-template overdracht', file_name: 'B1-K2-W2-sbar-template.txt' },
+      { id: 'mat-refl-1', title: 'STARR-reflectie werkblad', file_name: 'B1-K3-W2-starr-werkblad.txt' },
+    ];
+
+    // ========================================
+    // DEMO DATA
+    // ========================================
+    const demoLessonPlan = {
+      kdAlignment: {
+        code: "B1-K1-W2",
+        title: "Stelt het zorgplan op en/of bij"
+      },
+      quickStart: {
+        oneLiner: "Studenten leren signalen te herkennen die wijzen op noodzakelijke aanpassingen in het zorgplan en formuleren zelfstandig bijstellingen.",
+        timeAllocation: {
+          start: 10,
+          kern: 30,
+          afsluiting: 10
+        },
+        keyConcepts: ["Klinisch redeneren", "Observatie", "Zorgdoelen", "Rapportage", "Eigen regie"]
+      },
+      teacherScript: [
+        { time: "0-5 min", phase: "Start", action: "Activeer", content: "Begin met een korte casus: 'Mw. Jansen heeft sinds gisteren meer moeite met lopen. Wat doe je?' Laat studenten in duo's brainstormen." },
+        { time: "5-10 min", phase: "Start", action: "Verbind", content: "Koppel de antwoorden aan het KD: 'Dit gaat over B1-K1-W2 - het bijstellen van zorgplannen wanneer de situatie verandert.'" },
+        { time: "10-25 min", phase: "Kern", action: "Instructie", content: "Leg het stappenplan uit: 1) Signaleren, 2) Analyseren, 3) Doelen bijstellen, 4) Interventies aanpassen, 5) Afstemmen met team en zorgvrager." },
+        { time: "25-40 min", phase: "Kern", action: "Oefenen", content: "Studenten werken in groepjes aan de uitgebreide casus Mw. Jansen. Ze schrijven 3 concrete aanpassingen voor het zorgplan." },
+        { time: "40-45 min", phase: "Afsluiting", action: "Delen", content: "Elke groep presenteert 1 aanpassing. Bespreek de kwaliteit: is het SMART? Is het afgestemd op de zorgvrager?" },
+        { time: "45-50 min", phase: "Afsluiting", action: "Reflectie", content: "Vraag: 'Wat vond je lastig? Wat neem je mee naar de praktijk?' Geef een korte vooruitblik naar volgende les." }
+      ],
+      discussionQuestions: [
+        { question: "Wanneer besluit je dat een zorgplan moet worden bijgesteld?", expectedAnswers: ["Bij verandering in toestand", "Na evaluatiemoment", "Op verzoek zorgvrager"] },
+        { question: "Hoe betrek je de zorgvrager bij het bijstellen van doelen?", expectedAnswers: ["Vragen naar wensen", "Samen prioriteiten bepalen", "Uitleggen van opties"] },
+        { question: "Wat doe je als de zorgvrager het niet eens is met jouw voorstel?", expectedAnswers: ["Luisteren naar bezwaren", "Alternatieven bieden", "Samen tot compromis komen"] }
+      ],
+      groupWork: {
+        title: "Casus Mw. Jansen - zorgplan bijstellen",
+        durationMinutes: 15,
+        steps: [
+          "Lees de casus door en markeer relevante signalen",
+          "Bespreek in je groep welke zorgdoelen moeten worden aangepast",
+          "Formuleer 3 concrete aanpassingen voor het zorgplan (SMART)",
+          "Schrijf 2 vragen op die je aan de zorgvrager zou stellen",
+          "Bereid een korte presentatie voor (1 aanpassing uitlichten)"
+        ]
+      }
+    };
+
+    const demoRecommendations = [
+      {
+        id: "mat-1",
+        title: "Casus Mw. Jansen – zorgplan bijstellen (B1-K1-W2)",
+        fileName: "B1-K1-W2-casus-mw-jansen.txt",
+        contentType: "Casus",
+        score: 0.654,
+        snippet: "Mevrouw Jansen (78) verblijft op de geriatrieafdeling. Sinds 2 dagen is ze benauwd, heeft oedeem in de benen en slaapt slecht..."
+      },
+      {
+        id: "mat-2",
+        title: "Werkblad zorgdoelen bijstellen (B1-K1-W2)",
+        fileName: "B1-K1-W2-werkblad-zorgdoelen.txt",
+        contentType: "Werkblad",
+        score: 0.652,
+        snippet: "Stap 1 – Huidige situatie: Wat is de actuele zorgvraag? Welke signalen zijn nieuw? Stap 2 – Doelen: Welk doel is niet meer haalbaar?..."
+      },
+      {
+        id: "mat-3",
+        title: "Checklist zorginterventies veilig uitvoeren (B1-K1-W3)",
+        fileName: "B1-K1-W3-checklist-zorginterventies.txt",
+        contentType: "Checklist",
+        score: 0.565,
+        snippet: "Checklist (praktijk): 1) Controleer zorgplan en afspraken. 2) Leg de interventie uit aan de zorgvrager (eigen regie)..."
+      }
+    ];
+
+    // Citations format matches real system: { source: "material"|"mes", course_id, item_index, similarity, text }
+    const demoCitations = [
+      { source: "mes", course_id: "mes:kd2026-vig-vp", item_index: 2, similarity: 0.89, text: "De beginnend beroepsbeoefenaar stelt het zorgplan op en/of bij. Dit omvat het formuleren van zorgdoelen..." },
+      { source: "material", course_id: "material:a4cf045c", item_index: 0, similarity: 0.65, text: "Mevrouw Jansen (78) verblijft op de geriatrieafdeling. Situatie: Sinds 2 dagen is ze benauwd..." },
+      { source: "material", course_id: "material:7d021336", item_index: 1, similarity: 0.62, text: "Werkblad: Zorgdoelen bijstellen. Stap 1 – Huidige situatie: Wat is de actuele zorgvraag?..." }
+    ];
+
+    // Additional demo data for ABCDE query
+    const demoABCDE = {
+      lessonPlan: {
+        kdAlignment: { code: "B1-K1-W5", title: "Handelt in onvoorziene en/of acute situaties" },
+        quickStart: {
+          oneLiner: "Studenten leren de ABCDE-methodiek systematisch toe te passen bij acute situaties en adequaat te alarmeren.",
+          timeAllocation: { start: 10, kern: 35, afsluiting: 5 },
+          keyConcepts: ["ABCDE-methodiek", "Alarmprocedure", "Klinische blik", "SBAR-communicatie", "Veiligheid"]
+        },
+        teacherScript: [
+          { time: "0-5 min", phase: "Start", action: "Activeer", content: "Toon een korte video of beschrijf een acute situatie. Vraag: 'Wat doe je als eerste?'" },
+          { time: "5-10 min", phase: "Start", action: "Verbind", content: "Introduceer ABCDE als geheugensteun. Link naar KD B1-K1-W5." },
+          { time: "10-30 min", phase: "Kern", action: "Instructie", content: "Loop elke letter door met voorbeelden. A=Airway, B=Breathing, C=Circulation, D=Disability, E=Exposure." },
+          { time: "30-45 min", phase: "Kern", action: "Simulatie", content: "Studenten oefenen in 3-tallen met simulatiescenario allergische reactie." },
+          { time: "45-50 min", phase: "Afsluiting", action: "Reflectie", content: "Nabespreking: wat ging goed? Wat was lastig? Herhaal de alarmprocedure." }
+        ],
+        discussionQuestions: [
+          { question: "Waarom is de volgorde ABCDE belangrijk?", expectedAnswers: ["Prioriteit levensbedreigend", "Systematische aanpak", "Niets overslaan"] },
+          { question: "Wanneer schakel je hulp in?", expectedAnswers: ["Bij twijfel altijd", "Bij verslechtering", "Bij afwijkende vitale functies"] }
+        ],
+        groupWork: {
+          title: "Simulatie: Allergische reactie na medicatie",
+          durationMinutes: 15,
+          steps: ["Verdeel rollen: verpleegkundige, client, observator", "Start simulatie op teken docent", "Pas ABCDE toe", "Formuleer SBAR-melding", "Observator geeft feedback"]
+        }
+      },
+      recommendations: [
+        { id: "mat-abcde-1", title: "ABCDE-checklist acute situaties (B1-K1-W5)", fileName: "B1-K1-W5-abcde-checklist.txt", contentType: "Checklist", score: 0.726, snippet: "A – Airway: controleer of de luchtweg vrij is. B – Breathing: ademhaling, saturatie, benauwdheid..." },
+        { id: "mat-abcde-2", title: "Simulatiescenario allergische reactie (B1-K1-W5)", fileName: "B1-K1-W5-simulatie-allergie.txt", contentType: "Simulatie", score: 0.581, snippet: "Simulatie: Allergische reactie na medicatie. Rol 1: verpleegkundige, Rol 2: client, Rol 3: observator..." }
+      ],
+      citations: [
+        { source: "mes", course_id: "mes:kd2026-vig-vp", item_index: 5, similarity: 0.92, text: "De beginnend beroepsbeoefenaar handelt in onvoorziene en/of acute situaties. Past ABCDE toe..." },
+        { source: "material", course_id: "material:16026510", item_index: 0, similarity: 0.73, text: "ABCDE-checklist: A – Airway: controleer of de luchtweg vrij is. B – Breathing: ademhaling, saturatie..." }
+      ]
+    };
+
+    // Demo data for samenwerking query
+    const demoSamenwerking = {
+      lessonPlan: {
+        kdAlignment: { code: "B1-K2-W2", title: "Werkt samen met andere zorgprofessionals" },
+        quickStart: {
+          oneLiner: "Studenten oefenen effectieve communicatie en samenwerking in een multidisciplinair team met SBAR.",
+          timeAllocation: { start: 10, kern: 30, afsluiting: 10 },
+          keyConcepts: ["SBAR-communicatie", "MDO", "Rolverdeling", "Gezamenlijke besluitvorming", "Rapportage"]
+        },
+        teacherScript: [
+          { time: "0-5 min", phase: "Start", action: "Activeer", content: "Vraag: 'Met welke disciplines werk je samen in de praktijk? Hoe verloopt die samenwerking?'" },
+          { time: "5-10 min", phase: "Start", action: "Verbind", content: "Introduceer SBAR als communicatietool. Toon template." },
+          { time: "10-25 min", phase: "Kern", action: "Instructie", content: "Leg SBAR uit: Situatie, Background, Assessment, Recommendation. Geef voorbeelden." },
+          { time: "25-40 min", phase: "Kern", action: "Rollenspel", content: "Studenten voeren MDO-rollenspel uit in groepen van 4 (verpleegkundige, arts, fysiotherapeut, mantelzorger)." },
+          { time: "40-50 min", phase: "Afsluiting", action: "Reflectie", content: "Bespreek: Was de communicatie duidelijk? Werden alle belangen gehoord?" }
+        ],
+        discussionQuestions: [
+          { question: "Wat maakt SBAR effectief?", expectedAnswers: ["Gestructureerd", "Kort en bondig", "Duidelijke vraag"] },
+          { question: "Hoe ga je om met meningsverschillen in een MDO?", expectedAnswers: ["Luisteren", "Argumenten wegen", "Patient centraal"] }
+        ],
+        groupWork: {
+          title: "Rollenspel multidisciplinair overleg",
+          durationMinutes: 15,
+          steps: ["Verdeel rollen in je groep", "Lees de casus", "Voer het MDO uit", "Maak concrete afspraken", "Leg vast in zorgplan"]
+        }
+      },
+      recommendations: [
+        { id: "mat-sbar-1", title: "SBAR-template overdracht (B1-K2-W2)", fileName: "B1-K2-W2-sbar-template.txt", contentType: "Template", score: 0.687, snippet: "SBAR-template: S – Situatie: Wie ben je en wat is de acute situatie? B – Background: Relevante achtergrond..." },
+        { id: "mat-sbar-2", title: "Rollenspel multidisciplinair overleg (B1-K2-W2)", fileName: "B1-K2-W2-rollenspel-mdo.txt", contentType: "Rollenspel", score: 0.623, snippet: "Rollenspel MDO: Rollen: verpleegkundige, arts, fysiotherapeut, mantelzorger. Opdracht: Bespreek de casus..." }
+      ],
+      citations: [
+        { source: "mes", course_id: "mes:kd2026-vig-vp", item_index: 8, similarity: 0.88, text: "De beginnend beroepsbeoefenaar werkt samen met andere zorgprofessionals..." },
+        { source: "material", course_id: "material:b7697682", item_index: 0, similarity: 0.69, text: "SBAR-template: S – Situatie: Wie ben je en wat is de acute situatie?..." }
+      ]
+    };
+
+    // Demo for reflectie query
+    const demoReflectie = {
+      lessonPlan: null, // No lesson plan for material search
+      recommendations: [
+        { id: "mat-refl-1", title: "STARR-reflectie werkblad (B1-K3-W2)", fileName: "B1-K3-W2-starr-werkblad.txt", contentType: "Werkblad", score: 0.665, snippet: "STARR-reflectie: S – Situatie: wat gebeurde er? T – Taak: wat was jouw verantwoordelijkheid?..." },
+        { id: "mat-refl-2", title: "Reflectievragen stagegesprek (B1-K3-W2)", fileName: "B1-K3-W2-reflectievragen.txt", contentType: "Reflectie", score: 0.605, snippet: "Reflectievragen: 1) Welke situatie vond je lastig en waarom? 2) Wat deed je goed in het contact met de zorgvrager?..." }
+      ],
+      citations: [
+        { source: "mes", course_id: "mes:kd2026-vig-vp", item_index: 12, similarity: 0.85, text: "De beginnend beroepsbeoefenaar evalueert de werkzaamheden en ontwikkelt zichzelf als professional..." }
+      ]
+    };
+
+    // Demo for zorginterventies (B1-K1-W3) - COMPLETES THE 5 WORKSHOP KD CODES
+    const demoZorginterventies = {
+      lessonPlan: {
+        kdAlignment: { code: "B1-K1-W3", title: "Voert zorginterventies en/of begeleidingsactiviteiten uit" },
+        quickStart: {
+          oneLiner: "Studenten leren zorginterventies veilig uit te voeren met aandacht voor eigen regie van de zorgvrager.",
+          timeAllocation: { start: 10, kern: 35, afsluiting: 5 },
+          keyConcepts: ["Veilige zorg", "Eigen regie", "Zorgplan", "Hygiëne", "Rapportage"]
+        },
+        teacherScript: [
+          { time: "0-5 min", phase: "Start", action: "Activeer", content: "Bespreek: 'Welke zorghandeling vind je lastig? Wat kan er misgaan?'" },
+          { time: "5-10 min", phase: "Start", action: "Verbind", content: "Link naar het zorgplan: interventies staan beschreven, maar uitvoering vraagt aandacht." },
+          { time: "10-25 min", phase: "Kern", action: "Demonstratie", content: "Docent demonstreert bloeddruk meten: voorbereiding, uitleg aan cliënt, uitvoering, rapportage." },
+          { time: "25-45 min", phase: "Kern", action: "Oefenen", content: "Studenten oefenen in tweetallen. Partner speelt cliënt, observator checkt protocol." },
+          { time: "45-50 min", phase: "Afsluiting", action: "Reflectie", content: "Klassikale nabespreking: Wat ging goed? Waar moet je op letten? Hoe rapporteer je?" }
+        ],
+        discussionQuestions: [
+          { question: "Hoe vraag je toestemming aan de zorgvrager?", expectedAnswers: ["Uitleggen wat je gaat doen", "Vragen of het goed is", "Alternatieven bieden"] },
+          { question: "Wat doe je als de zorgvrager weigert?", expectedAnswers: ["Respecteren", "Doorvragen naar reden", "Rapporteren en overleggen"] }
+        ],
+        groupWork: {
+          title: "Praktijkoefening: ADL-ondersteuning",
+          durationMinutes: 20,
+          steps: ["Verdeel rollen: verzorgende, cliënt, observator", "Voer een wasbeurt bovenlichaam uit", "Gebruik de checklist voor feedback", "Wissel van rol", "Bespreek verbeterpunten"]
+        }
+      },
+      recommendations: [
+        { id: "mat-zorg-1", title: "Checklist zorginterventies veilig uitvoeren (B1-K1-W3)", fileName: "B1-K1-W3-checklist-zorginterventies.txt", contentType: "Checklist", score: 0.712, snippet: "Checklist (praktijk): 1) Controleer zorgplan en afspraken. 2) Leg de interventie uit aan de zorgvrager (eigen regie)..." },
+        { id: "mat-zorg-2", title: "Protocol ADL-ondersteuning (B1-K1-W3)", fileName: "B1-K1-W3-protocol-adl.txt", contentType: "Protocol", score: 0.645, snippet: "ADL-ondersteuning: Voorbereiding, uitvoering, nazorg. Stap 1: Verzamel materialen en check privacy..." }
+      ],
+      citations: [
+        { source: "mes", course_id: "mes:kd2026-vig-vp", item_index: 3, similarity: 0.91, text: "De beginnend beroepsbeoefenaar voert de interventies uit zoals beschreven in het zorgplan, stimuleert de eigen regie van de zorgvrager..." },
+        { source: "material", course_id: "material:f3a92178", item_index: 0, similarity: 0.71, text: "Checklist zorginterventies: 1) Controleer zorgplan en afspraken. 2) Leg de interventie uit aan de zorgvrager..." }
+      ]
+    };
+
+    // ========================================
+    // TOAST NOTIFICATIONS
+    // ========================================
+    function showToast(message, type = 'info') {
+      const container = document.getElementById('toastContainer');
+      const toast = document.createElement('div');
+      toast.className = `toast toast--${type}`;
+      
+      const icons = {
+        success: '✓',
+        info: 'ℹ',
+        warning: '⚠'
+      };
+      
+      toast.innerHTML = `<span>${icons[type] || 'ℹ'}</span> ${message}`;
+      container.appendChild(toast);
+      
+      setTimeout(() => {
+        toast.remove();
+      }, 3000);
+    }
+
+    // ========================================
+    // MODAL
+    // ========================================
+    function showModal(title, text, confirmText, callback) {
+      document.getElementById('modalTitle').textContent = title;
+      document.getElementById('modalText').textContent = text;
+      document.getElementById('modalConfirm').textContent = confirmText;
+      state.modalCallback = callback;
+      document.getElementById('modalOverlay').classList.add('active');
+    }
+
+    function closeModal(event) {
+      if (event && event.target !== event.currentTarget) return;
+      document.getElementById('modalOverlay').classList.remove('active');
+      state.modalCallback = null;
+    }
+
+    function confirmModal() {
+      if (state.modalCallback) {
+        state.modalCallback();
+      }
+      closeModal();
+    }
+
+    // ========================================
+    // SETTINGS PANEL
+    // ========================================
+    function toggleSettings() {
+      state.settingsOpen = !state.settingsOpen;
+      document.getElementById('settingsPanel').classList.toggle('open', state.settingsOpen);
+      document.getElementById('settingsBtn').classList.toggle('active', state.settingsOpen);
+    }
+
+    function handleScopeChange(scope) {
+      state.currentScope = scope;
+      
+      // Sync with header toggle buttons
+      document.querySelectorAll('.scope-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.scope === scope);
+      });
+      
+      // Update dropdown
+      document.getElementById('scopeSelect').value = scope;
+      
+      const scopeNames = {
+        'all': 'Alles (Materialen + MES)',
+        'materials': 'Alleen Materialen',
+        'mes': 'Alleen MES'
+      };
+      showToast(`Scope: ${scopeNames[scope]}`, 'info');
+    }
+
+    function handleMaterialChange(materialId) {
+      state.selectedMaterialId = materialId;
+      
+      const infoEl = document.getElementById('selectedMaterialInfo');
+      if (materialId) {
+        const material = mockMaterials.find(m => m.id === materialId);
+        if (material) {
+          infoEl.innerHTML = `Geselecteerd: <strong>${material.title}</strong>`;
+          showToast('Materiaal geselecteerd voor gerichte zoekactie', 'success');
+        }
+      } else {
+        infoEl.textContent = '';
+      }
+    }
+
+    function refreshMaterials() {
+      const btn = document.getElementById('refreshMaterialsBtn');
+      btn.classList.add('loading');
+      btn.disabled = true;
+      
+      setTimeout(() => {
+        btn.classList.remove('loading');
+        btn.disabled = false;
+        showToast('Materialen bijgewerkt', 'success');
+      }, 1000);
+    }
+
+    // ========================================
+    // ERROR HANDLING
+    // ========================================
+    function showError(message) {
+      state.error = message;
+      const alertEl = document.getElementById('errorAlert');
+      document.getElementById('errorAlertText').textContent = message;
+      alertEl.classList.remove('hidden');
+    }
+
+    function hideError() {
+      state.error = null;
+      document.getElementById('errorAlert').classList.add('hidden');
+    }
+
+    // ========================================
+    // UI FUNCTIONS
+    // ========================================
+    function switchTab(tabName) {
+      // Update tab buttons
+      document.querySelectorAll('.side-panel-tab').forEach(tab => {
+        tab.classList.toggle('active', tab.dataset.tab === tabName);
+      });
+
+      // Update tab content
+      document.querySelectorAll('.tab-content').forEach(content => {
+        content.classList.toggle('active', content.id === `tab-${tabName}`);
+      });
+    }
+
+    function clearChat() {
+      state.messages = [];
+      state.currentPlan = null;
+      document.getElementById('chatMessages').innerHTML = `
+        <div class="empty-state" id="emptyState">
+          <div class="empty-state-icon">💡</div>
+          <h2>Welkom bij e-Xpert SAM</h2>
+          <p>
+            Stel een vraag en krijg direct een compleet lesplan, afgestemd op het KD 2026. 
+            Kies een van de suggesties hieronder of typ je eigen vraag.
+          </p>
+        </div>
+      `;
+      document.getElementById('suggestionChips').classList.remove('hidden');
+      
+      // Reset panels
+      document.getElementById('lesplanEmpty').classList.remove('hidden');
+      document.getElementById('lesplanContent').classList.add('hidden');
+      document.getElementById('materialsEmpty').classList.remove('hidden');
+      document.getElementById('materialsContent').classList.add('hidden');
+      document.getElementById('sourcesEmpty').classList.remove('hidden');
+      document.getElementById('sourcesContent').classList.add('hidden');
+      
+      showToast('Gesprek gewist', 'info');
+    }
+
+    function useSuggestion(text) {
+      document.getElementById('chatInput').value = text;
+      document.getElementById('chatInput').focus();
+      showToast('Suggestie ingevuld - klik Verstuur', 'info');
+    }
+
+    function handleInputKeydown(event) {
+      if (event.key === 'Enter' && !event.shiftKey) {
+        event.preventDefault();
+        sendMessage();
+      }
+    }
+
+    function detectQueryType(text) {
+      const lowerText = text.toLowerCase();
+      
+      if (lowerText.includes('abcde') || lowerText.includes('acute') || lowerText.includes('b1-k1-w5')) {
+        return 'abcde';
+      }
+      if (lowerText.includes('samenwerk') || lowerText.includes('sbar') || lowerText.includes('mdo') || lowerText.includes('b1-k2-w2')) {
+        return 'samenwerking';
+      }
+      if (lowerText.includes('reflect') || lowerText.includes('starr') || lowerText.includes('stage') || lowerText.includes('b1-k3-w2')) {
+        return 'reflectie';
+      }
+      // B1-K1-W3: zorginterventies, ADL, verpleegtechnisch
+      if (lowerText.includes('interventie') || lowerText.includes('adl') || lowerText.includes('verpleegtechnisch') || lowerText.includes('b1-k1-w3') || lowerText.includes('bloeddruk') || lowerText.includes('wond')) {
+        return 'zorginterventies';
+      }
+      if (lowerText.includes('zorgplan') || lowerText.includes('b1-k1-w2') || lowerText.includes('bijstellen')) {
+        return 'zorgplan';
+      }
+      // Default to zorgplan for demo
+      return 'zorgplan';
+    }
+
+    function sendMessage() {
+      const input = document.getElementById('chatInput');
+      const text = input.value.trim();
+      if (!text || state.isLoading) return;
+
+      // Hide empty state and suggestions
+      const emptyState = document.getElementById('emptyState');
+      if (emptyState) emptyState.remove();
+      document.getElementById('suggestionChips').classList.add('hidden');
+
+      // Add user message
+      addMessage('user', text);
+      input.value = '';
+
+      // Show loading
+      state.isLoading = true;
+      document.getElementById('sendBtn').classList.add('loading');
+      document.getElementById('sendBtn').disabled = true;
+      addTypingIndicator();
+
+      // Detect query type
+      const queryType = detectQueryType(text);
+
+      // Simulate API response
+      setTimeout(() => {
+        removeTypingIndicator();
+        
+        let responseText, plan, recommendations, citations;
+
+        switch (queryType) {
+          case 'abcde':
+            plan = demoABCDE.lessonPlan;
+            recommendations = demoABCDE.recommendations;
+            citations = demoABCDE.citations;
+            responseText = `Ik heb een lesplan gemaakt voor **${plan.kdAlignment.code}** (${plan.kdAlignment.title}).
+
+Dit lesplan focust op de ABCDE-methodiek voor acute situaties. Inclusief een simulatieoefening met allergische reactie.
+
+Bekijk het volledige lesplan rechts. Ik heb ook relevante checklists en simulatiescenario's gevonden.`;
+            break;
+
+          case 'samenwerking':
+            plan = demoSamenwerking.lessonPlan;
+            recommendations = demoSamenwerking.recommendations;
+            citations = demoSamenwerking.citations;
+            responseText = `Ik heb een lesplan gemaakt voor **${plan.kdAlignment.code}** (${plan.kdAlignment.title}).
+
+Dit lesplan draait om effectieve communicatie met SBAR en samenwerking in een MDO-rollenspel.
+
+Bekijk het volledige lesplan rechts. Ik heb ook een SBAR-template en rollenspel-materiaal gevonden.`;
+            break;
+
+          case 'reflectie':
+            plan = null;
+            recommendations = demoReflectie.recommendations;
+            citations = demoReflectie.citations;
+            responseText = `Ik heb **${recommendations.length} relevante materialen** gevonden over reflecteren en professionele ontwikkeling (B1-K3-W2).
+
+**Gevonden materialen:**
+• STARR-reflectie werkblad - voor gestructureerde reflectie
+• Reflectievragen stagegesprek - voor begeleide reflectie
+
+Klik op een materiaal om het te gebruiken in je les.`;
+            break;
+
+          case 'zorginterventies':
+            plan = demoZorginterventies.lessonPlan;
+            recommendations = demoZorginterventies.recommendations;
+            citations = demoZorginterventies.citations;
+            responseText = `Ik heb een lesplan gemaakt voor **${plan.kdAlignment.code}** (${plan.kdAlignment.title}).
+
+Dit lesplan focust op het veilig uitvoeren van zorginterventies met aandacht voor de eigen regie van de zorgvrager. Inclusief een praktijkoefening ADL-ondersteuning.
+
+Bekijk het volledige lesplan rechts. Ik heb ook een checklist en protocol gevonden die je direct kunt gebruiken.`;
+            break;
+
+          default: // zorgplan
+            plan = demoLessonPlan;
+            recommendations = demoRecommendations;
+            citations = demoCitations;
+            responseText = `Ik heb een compleet lesplan gemaakt voor **${plan.kdAlignment.code}** (${plan.kdAlignment.title}). 
+
+Het lesplan bevat een Quick Start voor snelle voorbereiding, een uitgewerkt docentenscript met tijdsindeling, discussievragen en een groepsopdracht.
+
+Bekijk het volledige lesplan in het paneel rechts. Ik heb ook relevante materialen gevonden die je direct kunt gebruiken.`;
+        }
+
+        addMessage('assistant', responseText);
+
+        // Show lesson plan if available
+        if (plan) {
+          state.currentPlan = plan;
+          renderLessonPlan(plan);
+          switchTab('lesplan');
+        } else {
+          // No lesson plan - switch to materials tab
+          switchTab('materials');
+        }
+        
+        // Show recommendations
+        if (recommendations && recommendations.length > 0) {
+          renderRecommendations(recommendations);
+        }
+        
+        // Show citations
+        if (citations && citations.length > 0) {
+          renderCitations(citations);
+        }
+
+        state.isLoading = false;
+        document.getElementById('sendBtn').classList.remove('loading');
+        document.getElementById('sendBtn').disabled = false;
+        
+        showToast('Antwoord gegenereerd', 'success');
+      }, 2000);
+    }
+
+    function addMessage(role, content) {
+      const messagesContainer = document.getElementById('chatMessages');
+      const avatar = role === 'user' ? '👤' : '✨';
+      
+      const messageHtml = `
+        <div class="message message--${role}">
+          <div class="message-avatar">${avatar}</div>
+          <div class="message-content">
+            <div class="message-text">${formatMarkdown(content)}</div>
+          </div>
+        </div>
+      `;
+      
+      messagesContainer.insertAdjacentHTML('beforeend', messageHtml);
+      messagesContainer.scrollTop = messagesContainer.scrollHeight;
+      
+      state.messages.push({ role, content });
+    }
+
+    function addTypingIndicator() {
+      const messagesContainer = document.getElementById('chatMessages');
+      const html = `
+        <div class="message message--assistant" id="typingIndicator">
+          <div class="message-avatar">✨</div>
+          <div class="message-content">
+            <div class="typing-indicator">
+              <div class="typing-dot"></div>
+              <div class="typing-dot"></div>
+              <div class="typing-dot"></div>
+            </div>
+          </div>
+        </div>
+      `;
+      messagesContainer.insertAdjacentHTML('beforeend', html);
+      messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    }
+
+    function removeTypingIndicator() {
+      const indicator = document.getElementById('typingIndicator');
+      if (indicator) indicator.remove();
+    }
+
+    function formatMarkdown(text) {
+      return text
+        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+        .replace(/\n/g, '<br>');
+    }
+
+    // ========================================
+    // RENDER FUNCTIONS
+    // ========================================
+    function renderLessonPlan(plan) {
+      document.getElementById('lesplanEmpty').classList.add('hidden');
+      const container = document.getElementById('lesplanContent');
+      container.classList.remove('hidden');
+
+      container.innerHTML = `
+        <div class="lesson-plan-header">
+          <div class="kd-badge">
+            <svg class="kd-badge-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            KD ${plan.kdAlignment.code}
+          </div>
+          <div class="lesson-plan-actions">
+            <button class="action-btn" onclick="window.print()" data-cta-id="cta-print-lesplan">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M6 9V2h12v7M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2M6 14h12v8H6v-8z"/>
+              </svg>
+              Print
+            </button>
+            <button class="action-btn action-btn--primary" data-cta-id="cta-use-lesplan" onclick="useLessonPlan()">
+              Gebruiken
+            </button>
+          </div>
+        </div>
+
+        <div class="plan-section quick-start open">
+          <div class="plan-section-header" onclick="toggleSection(this.parentElement)">
+            <div class="plan-section-title">
+              <svg class="plan-section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M13 10V3L4 14h7v7l9-11h-7z"/>
+              </svg>
+              Quick Start
+            </div>
+            <svg class="plan-section-toggle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M19 9l-7 7-7-7"/>
+            </svg>
+          </div>
+          <div class="plan-section-content">
+            <div class="quick-start-oneliner">${plan.quickStart.oneLiner}</div>
+            <div class="time-allocation">
+              <div class="time-block">
+                <div class="time-block-label">Start</div>
+                <div class="time-block-value">${plan.quickStart.timeAllocation.start} min</div>
+              </div>
+              <div class="time-block">
+                <div class="time-block-label">Kern</div>
+                <div class="time-block-value">${plan.quickStart.timeAllocation.kern} min</div>
+              </div>
+              <div class="time-block">
+                <div class="time-block-label">Afsluiting</div>
+                <div class="time-block-value">${plan.quickStart.timeAllocation.afsluiting} min</div>
+              </div>
+            </div>
+            <div class="key-concepts">
+              ${plan.quickStart.keyConcepts.map(c => `<span class="concept-tag">${c}</span>`).join('')}
+            </div>
+          </div>
+        </div>
+
+        <div class="plan-section">
+          <div class="plan-section-header" onclick="toggleSection(this.parentElement)">
+            <div class="plan-section-title">
+              <svg class="plan-section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+              </svg>
+              Docentenscript
+            </div>
+            <svg class="plan-section-toggle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M19 9l-7 7-7-7"/>
+            </svg>
+          </div>
+          <div class="plan-section-content">
+            ${plan.teacherScript.map(s => `
+              <div class="script-item">
+                <div class="script-time">${s.time}</div>
+                <div class="script-phase">${s.phase}</div>
+                <div class="script-content"><strong>${s.action}:</strong> ${s.content}</div>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+
+        <div class="plan-section">
+          <div class="plan-section-header" onclick="toggleSection(this.parentElement)">
+            <div class="plan-section-title">
+              <svg class="plan-section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+              </svg>
+              Discussievragen
+            </div>
+            <svg class="plan-section-toggle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M19 9l-7 7-7-7"/>
+            </svg>
+          </div>
+          <div class="plan-section-content">
+            ${plan.discussionQuestions.map(q => `
+              <div class="question-item">
+                <div class="question-text">${q.question}</div>
+                <div class="question-answers">Verwacht: ${q.expectedAnswers.join(' • ')}</div>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+
+        <div class="plan-section">
+          <div class="plan-section-header" onclick="toggleSection(this.parentElement)">
+            <div class="plan-section-title">
+              <svg class="plan-section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
+              </svg>
+              Groepsopdracht
+            </div>
+            <svg class="plan-section-toggle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M19 9l-7 7-7-7"/>
+            </svg>
+          </div>
+          <div class="plan-section-content">
+            <div class="group-work-title">${plan.groupWork.title}</div>
+            <div class="group-work-duration">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"/>
+                <path d="M12 6v6l4 2"/>
+              </svg>
+              ${plan.groupWork.durationMinutes} minuten
+            </div>
+            <ol class="group-work-steps">
+              ${plan.groupWork.steps.map(step => `<li>${step}</li>`).join('')}
+            </ol>
+          </div>
+        </div>
+
+        <div class="plan-section kd-check-section">
+          <div class="plan-section-header" onclick="toggleSection(this.parentElement)">
+            <div class="plan-section-title">
+              <svg class="plan-section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+              </svg>
+              KD-Check
+            </div>
+            <svg class="plan-section-toggle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M19 9l-7 7-7-7"/>
+            </svg>
+          </div>
+          <div class="plan-section-content">
+            <div class="kd-check-intro">Controleer of het lesplan aansluit bij ${plan.kdAlignment.code}:</div>
+            ${generateKdCheckItems(plan.kdAlignment.code)}
+          </div>
+        </div>
+      `;
+
+      // Switch to lesplan tab
+      switchTab('lesplan');
+    }
+
+    // Generate KD-Check items based on KD code
+    function generateKdCheckItems(kdCode) {
+      const kdChecks = {
+        'B1-K1-W2': [
+          { check: true, text: 'Zorgplan opstellen/bijstellen → Casus met veranderende situatie' },
+          { check: true, text: 'Eigen regie zorgvrager → Afstemming met zorgvrager besproken' },
+          { check: true, text: 'Signaleren en analyseren → Observatie en rapportage' },
+          { check: true, text: 'SMART-doelen → Concrete aanpassingen formuleren' },
+        ],
+        'B1-K1-W3': [
+          { check: true, text: 'Zorginterventies uitvoeren → Praktijkoefening opgenomen' },
+          { check: true, text: 'Eigen regie stimuleren → Toestemming vragen besproken' },
+          { check: true, text: 'Veiligheid waarborgen → Protocol en checklist gebruikt' },
+          { check: true, text: 'Rapportage → Vastleggen na handeling' },
+        ],
+        'B1-K1-W5': [
+          { check: true, text: 'Acute situaties herkennen → ABCDE-methodiek centraal' },
+          { check: true, text: 'Alarmprocedure → Wanneer hulp inschakelen' },
+          { check: true, text: 'Veiligheid inschatten → Gevaar voor zelf/anderen' },
+          { check: true, text: 'Praktijkgericht → Simulatieoefening' },
+        ],
+        'B1-K2-W2': [
+          { check: true, text: 'Samenwerken met professionals → Rollenspel MDO/overdracht' },
+          { check: true, text: 'Professionele communicatie → SBAR-structuur' },
+          { check: true, text: 'Informatieoverdracht → Telefoongesprek simulatie' },
+          { check: true, text: 'Afstemmen afspraken → Vastleggen in zorgplan' },
+        ],
+        'B1-K3-W2': [
+          { check: true, text: 'Reflecteren op werkzaamheden → STARR-methode' },
+          { check: true, text: 'Verbeterpunten formuleren → Concrete acties' },
+          { check: true, text: 'Professionele ontwikkeling → Portfolio/stagegesprek' },
+          { check: true, text: 'Feedback ontvangen → Peer feedback' },
+        ],
+      };
+
+      const checks = kdChecks[kdCode] || [
+        { check: true, text: 'Leerdoel aansluitend bij KD' },
+        { check: true, text: 'Werkvormen activerend' },
+        { check: true, text: 'Praktijkgericht' },
+      ];
+
+      return `
+        <div class="kd-check-list">
+          ${checks.map(item => `
+            <div class="kd-check-item">
+              <span class="kd-check-icon ${item.check ? 'checked' : ''}">${item.check ? '✓' : '○'}</span>
+              <span class="kd-check-text">${item.text}</span>
+            </div>
+          `).join('')}
+        </div>
+        <div class="kd-check-footer">
+          <span class="kd-check-score">4/4 criteria voldaan</span>
+          <button class="kd-check-btn" onclick="showToast('KD-alignment geverifieerd!', 'success')">Verificatie opslaan</button>
+        </div>
+      `;
+    }
+
+    function renderRecommendations(recommendations) {
+      document.getElementById('materialsEmpty').classList.add('hidden');
+      const container = document.getElementById('materialsContent');
+      container.classList.remove('hidden');
+
+      container.innerHTML = recommendations.map(r => `
+        <div class="recommendation-card" data-cta-id="cta-sam-recommendation-${r.id}">
+          <div class="recommendation-header">
+            <div class="recommendation-title">${r.title}</div>
+            <div class="recommendation-score">${(r.score * 100).toFixed(0)}%</div>
+          </div>
+          <div class="recommendation-meta">
+            <span class="file-badge">${r.contentType}</span>
+            <span class="file-badge">${r.fileName}</span>
+          </div>
+          <div class="recommendation-snippet">${r.snippet}</div>
+          <div class="recommendation-action">
+            <button class="use-btn" data-cta-id="cta-sam-recommendation-use-${r.id}" onclick="useMaterial('${r.id}', '${r.title.replace(/'/g, "\\'")}')">
+              Gebruik dit materiaal
+            </button>
+          </div>
+        </div>
+      `).join('');
+      
+      // Show materials tab badge
+      showToast(`${recommendations.length} materialen gevonden`, 'success');
+    }
+
+    function renderCitations(citations) {
+      document.getElementById('sourcesEmpty').classList.add('hidden');
+      const container = document.getElementById('sourcesContent');
+      container.classList.remove('hidden');
+
+      // Format matches real system: source (Material/MES), course_id, chunk item_index, similarity
+      container.innerHTML = citations.map(c => {
+        const sourceLabel = c.source === 'mes' ? 'MES' : 'Material';
+        return `
+          <div class="citation-item">
+            <div class="citation-header">
+              <span class="citation-source">${sourceLabel} · ${c.course_id} · chunk ${c.item_index}</span>
+              <span class="citation-sim">sim ${c.similarity.toFixed(3)}</span>
+            </div>
+            <div class="citation-text">${c.text}</div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function toggleSection(section) {
+      section.classList.toggle('open');
+    }
+
+    // ========================================
+    // LESSON PLAN ACTIONS
+    // ========================================
+    function useLessonPlan() {
+      if (!state.currentPlan) {
+        showToast('Geen lesplan beschikbaar', 'warning');
+        return;
+      }
+      
+      showModal(
+        'Lesplan opslaan',
+        `Wil je dit lesplan voor ${state.currentPlan.kdAlignment.code} opslaan in je bibliotheek? Je kunt het later terugvinden bij Lespakketten.`,
+        'Opslaan',
+        () => {
+          showToast(`Lesplan ${state.currentPlan.kdAlignment.code} opgeslagen!`, 'success');
+        }
+      );
+    }
+
+    // ========================================
+    // MATERIAL ACTIONS
+    // ========================================
+    function useMaterial(materialId, materialTitle) {
+      state.selectedMaterial = { id: materialId, title: materialTitle };
+      
+      showModal(
+        'Materiaal gebruiken',
+        `Wil je "${materialTitle}" toevoegen aan je huidige les? Het materiaal wordt gekoppeld aan het lesplan.`,
+        'Toevoegen',
+        () => {
+          showToast(`"${materialTitle}" toegevoegd aan les`, 'success');
+          
+          // Visual feedback on the card
+          const card = document.querySelector(`[data-cta-id="cta-sam-recommendation-${materialId}"]`);
+          if (card) {
+            card.style.borderColor = 'var(--success)';
+            card.style.background = 'rgba(34, 197, 94, 0.1)';
+          }
+        }
+      );
+    }
+
+    // ========================================
+    // SCOPE TOGGLE
+    // ========================================
+    document.querySelectorAll('.scope-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        handleScopeChange(btn.dataset.scope);
+      });
+    });
+
+    // ========================================
+    // KEYBOARD SHORTCUTS
+    // ========================================
+    document.addEventListener('keydown', (e) => {
+      // Escape to close modal
+      if (e.key === 'Escape') {
+        closeModal();
+      }
+      
+      // Ctrl/Cmd + Enter to send message
+      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+        sendMessage();
+      }
+    });
+
+    // ========================================
+    // SCROLL TO BOTTOM ON LOAD IF MESSAGES EXIST
+    // ========================================
+    window.addEventListener('load', () => {
+      const chatMessages = document.getElementById('chatMessages');
+      chatMessages.scrollTop = chatMessages.scrollHeight;
+    });
+
+    // ========================================
+    // FOLLOW-UP RESPONSES
+    // ========================================
+    const followUpResponses = [
+      "Geen probleem! Wil je dat ik nog een **variatie** maak met een andere werkvorm? Of kan ik helpen met een **toetsvorm** die past bij dit onderwerp?",
+      "Zeker! Ik kan ook een **aangepaste versie** maken voor een kortere les (30 min) of juist een uitgebreidere variant (90 min). Wat heeft je voorkeur?",
+      "Goed idee! Ik kan dit lesplan **combineren** met een ander KD-onderdeel als je dat wilt. Welk werkproces wil je erbij betrekken?",
+      "Natuurlijk! Wil je dat ik de **moeilijkheidsgraad** aanpas voor niveau 3 of niveau 4? Of specifieke **differentiatie** toevoegen?",
+      "Prima! Ik kan ook een **PowerPoint-opzet** of **handout** genereren op basis van dit lesplan. Laat het weten!"
+    ];
+
+    let followUpIndex = 0;
+
+    function getFollowUpResponse() {
+      const response = followUpResponses[followUpIndex % followUpResponses.length];
+      followUpIndex++;
+      return response;
+    }
+
+    // Override sendMessage for follow-up handling
+    const originalSendMessage = sendMessage;
+    sendMessage = function() {
+      const input = document.getElementById('chatInput');
+      const text = input.value.trim();
+      
+      // If we already have a conversation and this is a short follow-up
+      if (state.messages.length > 0 && text.length < 50 && !text.toLowerCase().includes('lesplan')) {
+        if (!text || state.isLoading) return;
+        
+        const emptyState = document.getElementById('emptyState');
+        if (emptyState) emptyState.remove();
+        document.getElementById('suggestionChips').classList.add('hidden');
+        
+        addMessage('user', text);
+        input.value = '';
+        
+        state.isLoading = true;
+        document.getElementById('sendBtn').classList.add('loading');
+        document.getElementById('sendBtn').disabled = true;
+        addTypingIndicator();
+        
+        setTimeout(() => {
+          removeTypingIndicator();
+          addMessage('assistant', getFollowUpResponse());
+          state.isLoading = false;
+          document.getElementById('sendBtn').classList.remove('loading');
+          document.getElementById('sendBtn').disabled = false;
+        }, 1500);
+        
+        return;
+      }
+      
+      // Otherwise use original logic
+      originalSendMessage.call(this);
+    };
+
+    // ========================================
+    // DEMO MODE: Test all features
+    // ========================================
+    function runDemo() {
+      console.log('Starting demo mode...');
+      
+      // Clear first
+      clearChat();
+      
+      // Wait a bit then send first message
+      setTimeout(() => {
+        document.getElementById('chatInput').value = 'Maak een lesplan voor B1-K1-W2 over het bijstellen van een zorgplan';
+        sendMessage();
+      }, 500);
+    }
+
+    function runDemoError() {
+      console.log('Simulating error state...');
+      showError('TeacherGPT chat failed: OPENAI_API_KEY is niet geconfigureerd. Neem contact op met de beheerder.');
+    }
+
+    function runDemoSettings() {
+      console.log('Opening settings with pre-selection...');
+      if (!state.settingsOpen) {
+        toggleSettings();
+      }
+      setTimeout(() => {
+        handleMaterialChange('mat-abcde-1');
+        document.getElementById('materialSelect').value = 'mat-abcde-1';
+      }, 300);
+    }
+
+    // Expose demo functions globally
+    window.runDemo = runDemo;
+    window.runDemoError = runDemoError;
+    window.runDemoSettings = runDemoSettings;
+
+    // Console instructions
+    console.log('%c e-Xpert SAM Mockup ', 'background: #2563eb; color: white; padding: 4px 8px; border-radius: 4px;');
+    console.log('Demo commands:');
+    console.log('  runDemo()         - Auto-run lesson plan demo');
+    console.log('  runDemoError()    - Show error state');
+    console.log('  runDemoSettings() - Open settings with material selection');
+    console.log('');
+    console.log('Or click any suggestion chip to try different queries');
+  </script>
+</body>
+</html>

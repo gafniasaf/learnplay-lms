@@ -34,6 +34,15 @@ These changes were added during the Teacherbuddy → LearnPlay port phases. New 
 
 See `docs/TEACHERBUDDY_PORT_STATUS.md` for a single high-signal mapping of ported components + next steps.
 
+## 📚 KD 2026 (VIG/VP) Curriculum Context
+
+KD 2026 data is available for internal KD-mapping and gap analysis:
+
+- Canonical KD JSON: `data/kd-2026-vigvp.json`
+- Flat KD codes list: `data/kd-2026-codes.txt`
+- Raw extracted KD text: `tmp/kd-2026-extracted.txt`
+- Usage guide: `docs/KD_2026.md`
+
 ## 🚨 BUILD PROTOCOL (READ FIRST)
 
 **When asked to "Build," "Implement," "Create pages," or "Make it work":**

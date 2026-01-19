@@ -13,11 +13,13 @@ export default tseslint.config(
   {
     ignores: [
       "dist",
+      ".tmp/**",
       "lms-mcp/dist/**",
       "supabase/functions/**",
       "reports/**",
       "test-results/**",
       "scripts/**",
+      "tmp/**",
       "public/**/*.zip",
       "_archive/**",
       "dawn-react-starter/**",

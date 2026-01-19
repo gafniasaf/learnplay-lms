@@ -540,7 +540,17 @@
     {
       "id": "teacher-chat-assistant",
       "input": { "messages": "json", "scope": "string", "materialId": "string" },
-      "output": { "ok": "boolean", "answer": "string", "citations": "json" }
+      "output": {
+        "ok": "boolean",
+        "answer": "string",
+        "citations": "json",
+        "recommendations": "json",
+        "lessonPlan": "json",
+        "kdCheck": "json",
+        "error": "json",
+        "httpStatus": "number",
+        "requestId": "string"
+      }
     },
     {
       "id": "search-curated-materials",

@@ -125,18 +125,72 @@ export interface RecommendMesContentResponse {
   requestId?: string;
 }
 
-export interface TeacherChatAssistantResponse {
-  ok: boolean;
-  answer: string;
-  citations: Array<{
-    source: 'material' | 'mes';
-    course_id: string;
-    item_index: number;
-    similarity: number;
-    text: string;
+type TeacherChatCitation = {
+  source: "material" | "mes";
+  course_id: string;
+  item_index: number;
+  similarity: number;
+  text: string;
+};
+
+type TeacherChatRecommendation = {
+  material_id: string;
+  title: string;
+  score: number;
+  snippet?: string;
+  file_name?: string;
+  content_type?: string;
+  storage_bucket?: string;
+  storage_path?: string;
+  updated_at?: string;
+};
+
+type TeacherChatLessonPlan = {
+  quickStart: {
+    oneLiner: string;
+    keyConcepts: string[];
+    timeAllocation: { start: number; kern: number; afsluiting: number };
+  };
+  teacherScript: Array<{
+    time: string;
+    phase: "start" | "kern" | "afsluiting";
+    action: string;
+    content: string;
   }>;
-  requestId?: string;
-}
+  discussionQuestions: Array<{
+    question: string;
+    expectedAnswers: string[];
+  }>;
+  groupWork?: {
+    title: string;
+    steps: string[];
+    durationMinutes: number;
+  };
+  kdAlignment: { code: string; title: string };
+};
+
+type TeacherChatKdCheck = {
+  code: string;
+  items: Array<{ ok: boolean; text: string }>;
+  score: { passed: number; total: number };
+};
+
+export type TeacherChatAssistantResponse =
+  | {
+      ok: true;
+      answer: string;
+      citations: TeacherChatCitation[];
+      recommendations?: TeacherChatRecommendation[];
+      lessonPlan?: TeacherChatLessonPlan;
+      kdCheck?: TeacherChatKdCheck;
+      requestId?: string;
+    }
+  | {
+      ok: false;
+      error: { code: string; message: string };
+      httpStatus?: number;
+      requestId?: string;
+    };
 
 export interface SearchCuratedMaterialsResponse {
   ok: boolean;

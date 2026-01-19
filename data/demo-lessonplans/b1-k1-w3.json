@@ -1,0 +1,72 @@
+{
+  "kdAlignment": {
+    "code": "B1-K1-W3",
+    "title": "Voert zorginterventies en/of begeleidingsactiviteiten uit"
+  },
+  "quickStart": {
+    "oneLiner": "Studenten voeren een zorginterventie uit volgens plan en leggen uit waarom.",
+    "keyConcepts": [
+      "zorginterventie",
+      "veilig uitvoeren",
+      "eigen regie",
+      "observeren"
+    ],
+    "timeAllocation": {
+      "start": 10,
+      "kern": 25,
+      "afsluiting": 10
+    }
+  },
+  "teacherScript": [
+    {
+      "time": "0:00",
+      "phase": "start",
+      "action": "OPEN",
+      "content": "We oefenen vandaag een zorginterventie en letten op veiligheid en regie."
+    },
+    {
+      "time": "0:04",
+      "phase": "start",
+      "action": "VRAAG",
+      "content": "Wat is voor jou het verschil tussen helpen en overnemen?"
+    },
+    {
+      "time": "0:10",
+      "phase": "kern",
+      "action": "DEMO",
+      "content": "Docent doet een korte demonstratie met nadruk op observatie en communicatie."
+    },
+    {
+      "time": "0:18",
+      "phase": "kern",
+      "action": "OEFENING",
+      "content": "Studenten oefenen in trio's en geven elkaar feedback op veiligheid en regie."
+    },
+    {
+      "time": "0:30",
+      "phase": "afsluiting",
+      "action": "CHECK",
+      "content": "Welke twee checks doe je altijd voor, tijdens of na een interventie?"
+    }
+  ],
+  "discussionQuestions": [
+    {
+      "question": "Hoe stimuleer je eigen regie bij een zorginterventie?",
+      "expectedAnswers": [
+        "vragen wat iemand zelf wil doen",
+        "keuzes geven",
+        "tempo aanpassen"
+      ]
+    }
+  ],
+  "groupWork": {
+    "title": "Interventie in stappen",
+    "steps": [
+      "Kies 1 interventie uit de lijst",
+      "Beschrijf de stappen in simpele taal",
+      "Noteer 2 observaties die je moet doen",
+      "Deel je stappen met een andere groep"
+    ],
+    "durationMinutes": 10
+  }
+}

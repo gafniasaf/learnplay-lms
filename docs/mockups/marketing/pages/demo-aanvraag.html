@@ -86,7 +86,7 @@
           <li><a href="kd-tools.html" class="nav-link">KD 2026 Tools</a></li>
           <li><a href="e-xpert-sam.html" class="nav-link">e-Xpert SAM</a></li>
           <li><a href="digitale-boeken.html" class="nav-link">Producten</a></li>
-          <li><a href="event-15-mei.html" class="nav-link">Event 15 mei</a></li>
+          <li><a href="event-20-januari.html" class="nav-link">Event 20 januari</a></li>
         </ul>
         <a href="contact.html" class="btn btn-primary" data-cta-id="cta-nav-contact">Contact</a>
       </nav>
@@ -110,10 +110,10 @@
         <div class="demo-testimonial">
           <p>"Na de demo was ik direct overtuigd. Binnen een week gebruikte ons hele team de KD-Checker. De tijdsbesparing is enorm."</p>
           <div class="demo-testimonial-author">
-            <div class="demo-testimonial-avatar">MV</div>
+            <div class="demo-testimonial-avatar">👩‍🏫</div>
             <div>
-              <div class="demo-testimonial-name">Marieke Verhoeven</div>
-              <div class="demo-testimonial-role">Teamleider Verpleging, KW1C</div>
+              <div class="demo-testimonial-name">Teamleider MBO Verpleegkunde</div>
+              <div class="demo-testimonial-role">ROC in Noord-Brabant</div>
             </div>
           </div>
         </div>
@@ -209,7 +209,7 @@
         <h4>ExpertCollege</h4>
         <ul>
           <li><a href="over-expertcollege.html" data-cta-id="cta-footer-about">Over ons</a></li>
-          <li><a href="event-15-mei.html" data-cta-id="cta-footer-event">Event 15 mei</a></li>
+          <li><a href="event-20-januari.html" data-cta-id="cta-footer-event">Event 20 januari</a></li>
           <li><a href="contact.html" data-cta-id="cta-footer-contact">Contact</a></li>
           <li><a href="privacy.html" data-cta-id="cta-footer-privacy">Privacy</a></li>
         </ul>
@@ -219,5 +219,61 @@
       <p>&copy; 2026 ExpertCollege. Gemaakt met zorg voor zorgonderwijs.</p>
     </div>
   </footer>
+
+  <script>
+    // Mock form functionality
+    document.addEventListener('DOMContentLoaded', function() {
+      const form = document.querySelector('.demo-form-card form');
+      const formCard = document.querySelector('.demo-form-card');
+      
+      form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        // Get form data
+        const firstName = document.getElementById('firstName').value;
+        const lastName = document.getElementById('lastName').value;
+        const email = document.getElementById('email').value;
+        const school = document.getElementById('school').value;
+        
+        // Show loading state
+        const submitBtn = form.querySelector('button[type="submit"]');
+        const originalText = submitBtn.textContent;
+        submitBtn.textContent = 'Verzenden...';
+        submitBtn.disabled = true;
+        
+        // Simulate API call
+        setTimeout(function() {
+          // Store mock data
+          const submission = {
+            type: 'demo-request',
+            firstName, lastName, email, school,
+            timestamp: new Date().toISOString()
+          };
+          
+          const submissions = JSON.parse(localStorage.getItem('ec-submissions') || '[]');
+          submissions.push(submission);
+          localStorage.setItem('ec-submissions', JSON.stringify(submissions));
+          
+          // Show success message
+          formCard.innerHTML = `
+            <div style="text-align: center; padding: 2rem;">
+              <div style="width: 80px; height: 80px; background: linear-gradient(135deg, #22c55e, #16a34a); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1.5rem; font-size: 2.5rem; color: white;">✓</div>
+              <h2 style="margin-bottom: 0.5rem;">Bedankt, ${firstName}!</h2>
+              <p style="color: var(--text-secondary); margin-bottom: 1.5rem;">Je demo-aanvraag is ontvangen. We nemen binnen 24 uur contact met je op via <strong>${email}</strong>.</p>
+              <div style="background: var(--bg-secondary); border-radius: 12px; padding: 1.25rem; text-align: left; margin-bottom: 1.5rem;">
+                <p style="font-weight: 600; margin-bottom: 0.5rem;">Wat kun je verwachten?</p>
+                <ul style="list-style: none; color: var(--text-secondary); font-size: 0.95rem;">
+                  <li style="padding: 0.25rem 0;">📧 Bevestigingsmail binnen enkele minuten</li>
+                  <li style="padding: 0.25rem 0;">📞 Telefonisch contact voor het inplannen</li>
+                  <li style="padding: 0.25rem 0;">🎯 30 min persoonlijke demo op jouw tijdstip</li>
+                </ul>
+              </div>
+              <a href="kd-tools.html" class="btn btn-primary" data-cta-id="cta-success-explore" style="display: inline-flex;">Bekijk alvast de KD 2026 Tools →</a>
+            </div>
+          `;
+        }, 1500);
+      });
+    });
+  </script>
 </body>
 </html>

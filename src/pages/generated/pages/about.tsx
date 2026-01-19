@@ -1,0 +1,90 @@
+
+import React from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { toast } from "sonner";
+import { useMCP } from "@/hooks/useMCP";
+
+export default function About() {
+  const nav = useNavigate();
+  const [searchParams] = useSearchParams();
+  const id = searchParams.get("id");
+  const mcp = useMCP();
+  
+
+  return (
+    <div className="p-6">
+      
+  <div className="about-page">
+    <header className="about-header">
+      <a href="/" data-cta-id="back-home" data-action="navigate" data-target="/" className="back-link" onClick={() => nav("/")}>← Back to Home</a>
+      <h1>🎓 About LearnPlay</h1>
+    </header>
+
+    <main className="about-content">
+      <section className="about-section">
+        <h2>Our Mission</h2>
+        <p>LearnPlay is an adaptive learning platform designed to help K-12 students master concepts at their own pace. We believe every student learns differently, and our AI-powered system adjusts to each learner's unique needs.</p>
+      </section>
+
+      <section className="about-section">
+        <h2>How It Works</h2>
+        <div className="feature-list">
+          <div className="feature-item">
+            <span className="feature-icon">🎯</span>
+            <div>
+              <h3>Adaptive Questions</h3>
+              <p>Our variant rotation system ensures students see different versions of questions when they struggle, helping them learn from multiple angles.</p>
+            </div>
+          </div>
+          <div className="feature-item">
+            <span className="feature-icon">📊</span>
+            <div>
+              <h3>Progress Tracking</h3>
+              <p>Students, teachers, and parents each get tailored dashboards showing exactly what matters to them.</p>
+            </div>
+          </div>
+          <div className="feature-item">
+            <span className="feature-icon">🤖</span>
+            <div>
+              <h3>AI-Powered Content</h3>
+              <p>Teachers can generate assignments and courses with intelligent AI assistance, saving hours of preparation time.</p>
+            </div>
+          </div>
+          <div className="feature-item">
+            <span className="feature-icon">🎮</span>
+            <div>
+              <h3>Gamified Learning</h3>
+              <p>Weekly goals, streaks, and achievements keep students motivated and engaged.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="about-section">
+        <h2>For Everyone</h2>
+        <div className="role-grid">
+          <div className="role-card">
+            <h3>👨‍🎓 Students</h3>
+            <p>Practice at your own pace with adaptive questions that match your skill level.</p>
+          </div>
+          <div className="role-card">
+            <h3>👩‍🏫 Teachers</h3>
+            <p>Create assignments, track class progress, and use AI to generate content.</p>
+          </div>
+          <div className="role-card">
+            <h3>👨‍👩‍👧 Parents</h3>
+            <p>Stay informed about your child's learning progress with weekly summaries.</p>
+          </div>
+        </div>
+      </section>
+
+      <section className="about-cta">
+        <h2>Ready to Start?</h2>
+        <button data-cta-id="get-started" data-action="navigate" data-target="/auth" className="btn-primary btn-large" onClick={() => nav("/auth")} type="button">Get Started Free</button>
+      </section>
+    </main>
+  </div>
+
+    </div>
+  );
+}

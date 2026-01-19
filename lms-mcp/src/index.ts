@@ -323,6 +323,13 @@ async function searchCuratedMaterials(params: any) {
   const mbo_level = typeof params?.mbo_level === "string" ? params.mbo_level.trim() : undefined;
   const source = typeof params?.source === "string" ? params.source.trim() : undefined;
   const language_variant = typeof params?.language_variant === "string" ? params.language_variant.trim() : undefined;
+  const mbo_track = typeof params?.mbo_track === "string" ? params.mbo_track.trim() : undefined;
+  const module_family = typeof params?.module_family === "string" ? params.module_family.trim() : undefined;
+  const topic_tag = typeof params?.topic_tag === "string" ? params.topic_tag.trim() : undefined;
+  const exercise_format = typeof params?.exercise_format === "string" ? params.exercise_format.trim() : undefined;
+  const scenario_present = typeof params?.scenario_present === "boolean" ? params.scenario_present : undefined;
+  const law_topic = typeof params?.law_topic === "string" ? params.law_topic.trim() : undefined;
+  const communication_context = typeof params?.communication_context === "string" ? params.communication_context.trim() : undefined;
 
   const limitRaw = Number(params?.limit ?? 10);
   const limit = Number.isFinite(limitRaw) ? Math.min(50, Math.max(1, Math.floor(limitRaw))) : 10;
@@ -338,6 +345,13 @@ async function searchCuratedMaterials(params: any) {
       ...(mbo_level ? { mbo_level } : {}),
       ...(source ? { source } : {}),
       ...(language_variant ? { language_variant } : {}),
+      ...(mbo_track ? { mbo_track } : {}),
+      ...(module_family ? { module_family } : {}),
+      ...(topic_tag ? { topic_tag } : {}),
+      ...(exercise_format ? { exercise_format } : {}),
+      ...(typeof scenario_present === "boolean" ? { scenario_present } : {}),
+      ...(law_topic ? { law_topic } : {}),
+      ...(communication_context ? { communication_context } : {}),
       limit,
     },
   });

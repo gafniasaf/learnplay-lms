@@ -62,7 +62,8 @@ test.describe('Live Student: Play Flow', () => {
     await page.waitForTimeout(2000); // Additional wait for data loading
     
     // Play page should load (could redirect, show error, or show play UI)
-    const hasPlayUI = await page.getByText(/play|question|answer|welcome|start/i).isVisible({ timeout: 5000 }).catch(() => false);
+    // Use `.first()` to avoid strict-mode issues when multiple matches exist (e.g. hidden UI text).
+    const hasPlayUI = await page.getByText(/play|question|answer|welcome|start|submit|next/i).first().isVisible({ timeout: 5000 }).catch(() => false);
     const hasError = await page.getByText(/error|not found|course|select/i).isVisible({ timeout: 2000 }).catch(() => false);
     const isRedirected = !page.url().includes('/play');
     const hasContent = await page.locator('body').textContent().then(t => t && t.length > 100).catch(() => false);

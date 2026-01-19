@@ -20,7 +20,10 @@ test.describe('Live Course Navigation: Full Flow', () => {
     expect(pageContent.length).toBeGreaterThan(100);
     
     // Should have main content
-    const hasMain = await page.locator('main').isVisible({ timeout: 5000 }).catch(() => false);
+    const main = page.locator('main');
+    const hasMain =
+      await main.first().isVisible({ timeout: 5000 }).catch(() => false) ||
+      await main.last().isVisible({ timeout: 5000 }).catch(() => false);
     expect(hasMain).toBeTruthy();
     
     // Step 3: Navigate to admin console to verify course navigation
@@ -61,7 +64,10 @@ test.describe('Live Course Navigation: Full Flow', () => {
     expect(reloadedContent.length).toBeGreaterThan(100);
     
     // Main should be visible
-    const hasMain = await page.locator('main').isVisible({ timeout: 5000 }).catch(() => false);
+    const main = page.locator('main');
+    const hasMain =
+      await main.first().isVisible({ timeout: 5000 }).catch(() => false) ||
+      await main.last().isVisible({ timeout: 5000 }).catch(() => false);
     expect(hasMain).toBeTruthy();
   });
 });
