@@ -3,6 +3,7 @@ import type { KeyboardEvent as ReactKeyboardEvent } from "react";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { useMCP } from "@/hooks/useMCP";
+import { HamburgerMenu } from "@/components/layout/HamburgerMenu";
 import styles from "./TeacherChat.module.css";
 
 import type { TeacherChatAssistantResponse } from "@/lib/types/edge-functions";
@@ -444,7 +445,10 @@ export default function TeacherChat() {
 
   return (
     <div className={styles.root}>
-      <header className={styles.header}>
+      <header className={styles.header} style={{ position: 'relative' }}>
+        <div style={{ position: 'absolute', top: 8, left: 8, zIndex: 50 }}>
+          <HamburgerMenu />
+        </div>
         <div className={styles.brand}>
           <div className={styles.logo}>eX</div>
           <div className={styles.brandText}>
