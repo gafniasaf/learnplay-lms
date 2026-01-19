@@ -7,9 +7,7 @@
   "framework": "vite",
   "outputDirectory": "dist",
   "nodeVersion": "20",
-  "env": {
-    "VITE_USE_MOCK": "true"
-  },
+  "env": {},
   "rules": [
     "DO NOT remove CSS imports from main.tsx",
     "DO NOT modify supabase/functions/_shared/cors.ts",
