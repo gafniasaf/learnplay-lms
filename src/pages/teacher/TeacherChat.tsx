@@ -104,27 +104,27 @@ function buildKdCheck(kdCode: string): KdCheck {
 const SUGGESTIONS: Array<{ cta: string; label: string; prompt: string }> = [
   {
     cta: "cta-teachergpt-chat-suggestion-b1-k1-w2",
-    label: "B1-K1-W2 Zorgplan",
+    label: "\u{1F4CB} B1-K1-W2 Zorgplan",
     prompt: "Maak een lesplan (50 min) voor KD B1-K1-W2 (zorgplan opstellen/bijstellen) met een korte casus, activerende werkvorm en reflectie.",
   },
   {
     cta: "cta-teachergpt-chat-suggestion-b1-k1-w3",
-    label: "B1-K1-W3 Interventies",
+    label: "\u{1FA7A} B1-K1-W3 Interventies",
     prompt: "Maak een lesplan (50 min) voor KD B1-K1-W3 (zorginterventies) met veiligheid, eigen regie, en rapportage als vaste onderdelen.",
   },
   {
     cta: "cta-teachergpt-chat-suggestion-b1-k1-w5",
-    label: "B1-K1-W5 ABCDE",
+    label: "\u{1F6A8} B1-K1-W5 ABCDE",
     prompt: "Maak een lesplan (50 min) voor KD B1-K1-W5 met ABCDE-methodiek en een simulatie-oefening (acute situatie).",
   },
   {
     cta: "cta-teachergpt-chat-suggestion-b1-k2-w2",
-    label: "B1-K2-W2 SBAR",
+    label: "\u{1F91D} B1-K2-W2 SBAR",
     prompt: "Maak een lesplan (50 min) voor KD B1-K2-W2 over samenwerken + SBAR-overdracht met rollenspel en beoordelingscriteria.",
   },
   {
     cta: "cta-teachergpt-chat-suggestion-b1-k3-w2",
-    label: "B1-K3-W2 Reflectie",
+    label: "\u{1F3AF} B1-K3-W2 Reflectie",
     prompt: "Maak een lesplan (50 min) voor KD B1-K3-W2 met STARR-reflectie, feedbackmoment en concrete verbeteracties.",
   },
 ];
@@ -500,13 +500,16 @@ export default function TeacherChat() {
 
           <button
             type="button"
-            className={styles.btn}
+            className={[styles.settingsBtn, settingsOpen ? styles.settingsBtnActive : ""].join(" ")}
             onClick={() => setSettingsOpen((v) => !v)}
             data-cta-id="cta-teachergpt-chat-settings-toggle"
             data-action="click"
             aria-expanded={settingsOpen}
           >
-            ⚙️
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <circle cx="12" cy="12" r="3" />
+              <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z" />
+            </svg>
           </button>
         </div>
       </header>
@@ -575,15 +578,96 @@ export default function TeacherChat() {
           <div ref={messagesRef} className={styles.messages}>
             {messages.length ? (
               messages.map((m) => (
-                <div key={m.id} className={[styles.bubble, m.role === "user" ? styles.bubbleUser : ""].join(" ")}>
-                  <div className={styles.bubbleMeta}>{m.role === "user" ? "Jij" : "e-Xpert SAM"}</div>
-                  {m.content}
+                <div
+                  key={m.id}
+                  className={[styles.message, m.role === "user" ? styles.messageUser : styles.messageAssistant].join(" ")}
+                >
+                  <div className={styles.messageAvatar}>{m.role === "user" ? "\u{1F464}" : "\u2728"}</div>
+                  <div className={styles.messageContent}>
+                    <div className={styles.messageText}>{m.content}</div>
+                  </div>
                 </div>
               ))
             ) : (
-              <div className={styles.bubble}>
-                <div className={styles.bubbleMeta}>e-Xpert SAM</div>
-                Kies een suggestie of stel een vraag. Tip: begin met “Maak een lesplan…”
+              <div className={styles.emptyState}>
+                <div className={styles.emptyStateIcon}>{"\u{1F4A1}"}</div>
+                <h2>Welkom bij e-Xpert SAM</h2>
+                <p>
+                  Stel een vraag en krijg direct een compleet lesplan, afgestemd op het KD 2026.
+                  Kies een van de suggesties hieronder of typ je eigen vraag.
+                </p>
+              </div>
+            )}
+
+            {sending ? (
+              <div className={[styles.message, styles.messageAssistant].join(" ")}>
+                <div className={styles.messageAvatar}>{"\u2728"}</div>
+                <div className={styles.messageContent}>
+                  <div className={styles.typingIndicator}>
+                    <div className={styles.typingDot} />
+                    <div className={styles.typingDot} />
+                    <div className={styles.typingDot} />
+                  </div>
+                </div>
+              </div>
+            ) : null}
+          </div>
+
+          <div className={styles.inputBar}>
+            <div className={styles.chips}>
+              {SUGGESTIONS.map((s) => (
+                <button
+                  key={s.cta}
+                  type="button"
+                  className={styles.chip}
+                  onClick={() => {
+                    setDraft(s.prompt);
+                    inputRef.current?.focus();
+                  }}
+                  data-cta-id={s.cta}
+                  data-action="click"
+                >
+                  {s.label}
+                </button>
+              ))}
+            </div>
+
+            <div className={styles.row}>
+              <input
+                ref={inputRef}
+                className={styles.input}
+                value={draft}
+                onChange={(e) => setDraft(e.target.value)}
+                onKeyDown={onInputKeyDown}
+                placeholder="Stel je vraag, bijv. 'Maak een lesplan voor B1-K1-W5 over acute situaties'..."
+                aria-label="Chat input"
+                data-cta-id="cta-teachergpt-chat-input"
+                data-action="edit"
+              />
+              <button
+                type="button"
+                className={[styles.btn, styles.btnPrimary, styles.sendBtn].join(" ")}
+                onClick={() => void onSend()}
+                disabled={!draft.trim() || sending}
+                data-cta-id="cta-teachergpt-chat-send"
+                data-action="click"
+              >
+                {sending ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <>
+                    <span>Verstuur</span>
+                    <svg className={styles.sendBtnIcon} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z" />
+                    </svg>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </section>
+
+        {/* REMOVED GARBAGE CODE BLOCK START ------ “Maak een lesplan…”
               </div>
             )}
 
@@ -637,8 +721,7 @@ export default function TeacherChat() {
                 {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Verstuur"}
               </button>
             </div>
-          </div>
-        </section>
+*/}
 
         <aside className={styles.side} aria-label="Side panel">
           <div className={styles.tabs} role="tablist" aria-label="Result tabs">
@@ -716,7 +799,7 @@ export default function TeacherChat() {
                     ) : null}
                   </div>
 
-                  <div className={styles.card}>
+                  <div className={[styles.card, styles.quickStartSection].join(" ")}>
                     <button
                       type="button"
                       className={styles.sectionToggleBtn}
@@ -725,16 +808,25 @@ export default function TeacherChat() {
                       data-action="click"
                     >
                       <span>Quick Start</span>
-                      <span>{openSections.quickStart ? "–" : "+"}</span>
+                      <svg className={[styles.sectionChevron, openSections.quickStart ? styles.sectionChevronOpen : ""].join(" ")} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 9l-7 7-7-7" /></svg>
                     </button>
                     {openSections.quickStart ? (
                       <div className={styles.sectionBody}>
                         <div>
                           <strong>{safeText(currentLessonPlan.quickStart?.oneLiner)}</strong>
-                          <div className={styles.muted} style={{ marginTop: 6 }}>
-                            Tijd: start {currentLessonPlan.quickStart?.timeAllocation?.start ?? 0} min · kern{" "}
-                            {currentLessonPlan.quickStart?.timeAllocation?.kern ?? 0} min · afsluiting{" "}
-                            {currentLessonPlan.quickStart?.timeAllocation?.afsluiting ?? 0} min
+                          <div className={styles.timeAllocation}>
+                            <div className={styles.timeBlock}>
+                              <div className={styles.timeBlockLabel}>Start</div>
+                              <div className={styles.timeBlockValue}>{currentLessonPlan.quickStart?.timeAllocation?.start ?? 0} min</div>
+                            </div>
+                            <div className={styles.timeBlock}>
+                              <div className={styles.timeBlockLabel}>Kern</div>
+                              <div className={styles.timeBlockValue}>{currentLessonPlan.quickStart?.timeAllocation?.kern ?? 0} min</div>
+                            </div>
+                            <div className={styles.timeBlock}>
+                              <div className={styles.timeBlockLabel}>Afsluiting</div>
+                              <div className={styles.timeBlockValue}>{currentLessonPlan.quickStart?.timeAllocation?.afsluiting ?? 0} min</div>
+                            </div>
                           </div>
                         </div>
                         <div className={styles.row} style={{ flexWrap: "wrap" }}>
@@ -757,7 +849,7 @@ export default function TeacherChat() {
                       data-action="click"
                     >
                       <span>Docentenscript</span>
-                      <span>{openSections.teacherScript ? "–" : "+"}</span>
+                      <svg className={[styles.sectionChevron, openSections.teacherScript ? styles.sectionChevronOpen : ""].join(" ")} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 9l-7 7-7-7" /></svg>
                     </button>
                     {openSections.teacherScript ? (
                       <div className={styles.sectionBody}>
@@ -782,7 +874,7 @@ export default function TeacherChat() {
                       data-action="click"
                     >
                       <span>Discussievragen</span>
-                      <span>{openSections.discussion ? "–" : "+"}</span>
+                      <svg className={[styles.sectionChevron, openSections.discussion ? styles.sectionChevronOpen : ""].join(" ")} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 9l-7 7-7-7" /></svg>
                     </button>
                     {openSections.discussion ? (
                       <div className={styles.sectionBody}>
@@ -810,7 +902,7 @@ export default function TeacherChat() {
                         data-action="click"
                       >
                         <span>Groepsopdracht</span>
-                        <span>{openSections.groupWork ? "–" : "+"}</span>
+                        <svg className={[styles.sectionChevron, openSections.groupWork ? styles.sectionChevronOpen : ""].join(" ")} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 9l-7 7-7-7" /></svg>
                       </button>
                       {openSections.groupWork ? (
                         <div className={styles.sectionBody}>
@@ -830,7 +922,7 @@ export default function TeacherChat() {
                     </div>
                   ) : null}
 
-                  <div className={styles.card}>
+                  <div className={[styles.card, styles.kdCheckSection].join(" ")}>
                     <button
                       type="button"
                       className={styles.sectionToggleBtn}
@@ -839,7 +931,7 @@ export default function TeacherChat() {
                       data-action="click"
                     >
                       <span>KD-Check</span>
-                      <span>{openSections.kdCheck ? "–" : "+"}</span>
+                      <svg className={[styles.sectionChevron, openSections.kdCheck ? styles.sectionChevronOpen : ""].join(" ")} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 9l-7 7-7-7" /></svg>
                     </button>
 
                     {openSections.kdCheck ? (
