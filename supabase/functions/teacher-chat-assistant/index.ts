@@ -346,6 +346,81 @@ function detectLessonPlanIntent(queryText: string): boolean {
   return triggers.some((t) => q.includes(t));
 }
 
+function detectKdQueryIntent(queryText: string): boolean {
+  const q = normalizeText(queryText);
+  if (!q) return false;
+
+  // Strong KD query triggers
+  const kdTriggers = [
+    // Combiklas / overlap questions
+    "combiklas", "combi-klas", "combiklassen", "combigroep", "combigroepen",
+    "overlap n3", "overlap n4", "n3 en n4", "n3 vs n4", "n4 vs n3",
+    "niveau 3 en 4", "niveau 3 en niveau 4",
+    "alleen n4", "alleen niveau 4", "alleen n3", "alleen niveau 3",
+    "gedeeld tussen", "wat delen",
+    // KD structure questions
+    "in het kd", "in de kd", "volgens het kd", "volgens de kd",
+    "kwalificatiedossier", "basisdeel", "profieldeel",
+    "kerntaken", "werkprocessen",
+    "kd 2026", "kd2026",
+    // Comparison questions
+    "verschil tussen n3 en n4", "verschil n3 n4",
+    "wat is anders", "wat is hetzelfde",
+  ];
+
+  return kdTriggers.some((t) => q.includes(t));
+}
+
+// Pre-computed KD knowledge for combiklas analysis
+const KD_COMBI_CONTEXT = `
+=== KD 2026 COMBIKLAS ANALYSE ===
+
+BASISDEEL (N3 + N4 gedeeld):
+- B1-K1: Biedt zorg, ondersteuning en begeleiding (6 werkprocessen)
+  - B1-K1-W1: Inventariseert de behoefte aan zorg
+  - B1-K1-W2: Stelt het zorgplan op/bij
+  - B1-K1-W3: Voert zorginterventies uit
+  - B1-K1-W4: Voert verpleegtechnische handelingen uit
+  - B1-K1-W5: Handelt in acute situaties
+  - B1-K1-W6: Geeft informatie en advies
+- B1-K2: Stemt de zorg en ondersteuning af (2 werkprocessen)
+  - B1-K2-W1: Stemt af met informele zorgverleners
+  - B1-K2-W2: Werkt samen met andere zorgprofessionals
+- B1-K3: Draagt bij aan kwaliteit van zorg (3 werkprocessen)
+  - B1-K3-W1: Draagt bij aan innoveren
+  - B1-K3-W2: Evalueert en ontwikkelt zichzelf
+  - B1-K3-W3: Draagt bij aan veilige werkomgeving
+
+Totaal basisdeel: 3 kerntaken, 11 werkprocessen (100% gedeeld N3+N4)
+
+ALLEEN N4 (Profieldeel P2-K1):
+- P2-K1: Organiseert en coördineert de zorgverlening (3 werkprocessen)
+  - P2-K1-W1: Stelt verpleegkundige diagnose (klinisch redeneren)
+  - P2-K1-W2: Coacht en begeleidt collega's
+  - P2-K1-W3: Coördineert en optimaliseert zorgverlening
+
+Extra N4 vakkennis:
+- Evidence Based Practice (EBP)
+- Klinisch redeneren
+- Comorbiditeit (brede kennis)
+- Engels (basis)
+
+OVERLAP ANALYSE:
+- N3 heeft: 3 kerntaken, 11 werkprocessen
+- N4 heeft: 4 kerntaken, 14 werkprocessen
+- Gedeeld: 11 werkprocessen (79% overlap)
+- Alleen N4: 3 werkprocessen (P2-K1)
+
+ADVIES VOOR COMBIKLASSEN:
+1. ~80% van het curriculum kan klassikaal worden gegeven
+2. Differentieer specifiek op P2-K1 thema's:
+   - Klinisch redeneren → alleen N4
+   - Coachen collega's → alleen N4
+   - Coördineren zorg → alleen N4
+3. N4 studenten kunnen verdiepen waar N3 de basis leert
+4. Gebruik dezelfde casussen, laat N4 extra analyseren
+`.trim();
+
 async function generateLessonPlan(args: { queryText: string }): Promise<LessonPlan> {
   const kdItems = loadKdContext();
   const matches = selectKdMatches(args.queryText, kdItems);
@@ -689,6 +764,7 @@ serve(async (req: Request): Promise<Response> => {
     const topK = Math.min(20, Math.max(3, Number.isFinite(Number(body?.topK)) ? Math.floor(Number(body.topK)) : 8));
 
     const wantsRecommendations = detectRecommendationIntent(queryText);
+    const wantsKdInfo = detectKdQueryIntent(queryText);
 
     let citations: Citation[] = [];
     if (scope === "materials") {
@@ -756,6 +832,7 @@ serve(async (req: Request): Promise<Response> => {
       "",
       "Je rol:",
       "- Je vindt en selecteert materiaal uit de beschikbare bronnen",
+      "- Je hebt kennis van het KD 2026 (kwalificatiedossier) voor VIG/VP",
       "- Je adviseert, maar maakt zelf geen nieuwe content",
       "- Als je iets niet weet of bronnen ontbreken, geef je dat eerlijk toe",
       "",
@@ -764,11 +841,19 @@ serve(async (req: Request): Promise<Response> => {
       '- Bijvoorbeeld: "Ik heb 3 materialen gevonden..." of "Check [R1] en [R2], die passen goed bij..."',
       "- Vermeld de belangrijkste matches kort en laat de kaarten de details tonen",
       "",
+      "Voor KD-vragen (combiklassen, overlap N3/N4, werkprocessen):",
+      "- Gebruik de KD ANALYSE hieronder voor gedetailleerde antwoorden",
+      "- Geef concrete werkproces-codes en percentages",
+      "- Adviseer praktisch over wat klassikaal kan en waar te differentiëren",
+      "",
       "Voor andere vragen (theorie, uitleg, context):",
       "- Gebruik de BRONNEN hieronder",
       "- Citeer bronnen door [1], [2], etc. te schrijven",
       "- Geef een helder, praktisch antwoord",
       "",
+      // KD context (only when KD query detected)
+      wantsKdInfo ? KD_COMBI_CONTEXT : "",
+      wantsKdInfo ? "" : "",
       recommendations.length ? "=== AANBEVELINGEN (MATERIALEN) ===" : "",
       recContext || "",
       recommendations.length ? "" : "",
