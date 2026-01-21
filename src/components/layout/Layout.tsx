@@ -22,6 +22,15 @@ export const Layout = ({ children }: LayoutProps) => {
     location.pathname === "/teacher/teachergpt/chat";
   const showChrome = !embedMode && !fullscreen && !hideChrome;
   
+  // For hideChrome routes (like TeacherChat), use full viewport height with no flex wrapper
+  if (hideChrome) {
+    return (
+      <div className="h-screen w-screen overflow-hidden">
+        {children}
+      </div>
+    );
+  }
+
   return (
     <div className="flex min-h-screen flex-col">
       {showChrome && <Header />}

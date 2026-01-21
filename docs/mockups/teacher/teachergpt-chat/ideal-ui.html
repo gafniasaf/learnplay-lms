@@ -48,8 +48,11 @@
       src: url('https://fonts.gstatic.com/s/inter/v13/UcCO3FwrK3iLTeHuS_fvQtMwCp50KnMw2boKoduKmMEVuLyfAZ9hiJ-Ek-_EeA.woff2') format('woff2');
     }
 
-    html {
+    html, body {
       height: 100%;
+      width: 100%;
+      margin: 0;
+      padding: 0;
       overflow: hidden;
     }
 
@@ -57,8 +60,6 @@
       font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       background: var(--dark);
       color: var(--light);
-      height: 100%;
-      overflow: hidden;
       display: flex;
       flex-direction: column;
     }
@@ -70,9 +71,8 @@
       display: flex;
       flex-direction: column;
       height: 100vh;
-      max-width: 1400px;
-      margin: 0 auto;
       width: 100%;
+      background: var(--dark);
     }
 
     /* ========================================
@@ -690,6 +690,17 @@
       background: var(--primary-dark);
     }
 
+    .action-btn--download {
+      background: rgba(34, 197, 94, 0.15);
+      border-color: rgba(34, 197, 94, 0.3);
+      color: var(--success);
+    }
+
+    .action-btn--download:hover {
+      background: rgba(34, 197, 94, 0.25);
+      border-color: var(--success);
+    }
+
     /* Collapsible sections */
     .plan-section {
       background: rgba(255,255,255,0.03);
@@ -1131,20 +1142,35 @@
     }
 
     .suggestion-chip {
-      padding: 6px 14px;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      padding: 8px 14px;
       background: rgba(255,255,255,0.05);
       border: 1px solid rgba(255,255,255,0.1);
-      border-radius: var(--radius-full);
+      border-radius: var(--radius-md);
       font-size: 0.8125rem;
       color: var(--gray-300);
       cursor: pointer;
       transition: all 0.2s;
+      text-align: left;
     }
 
     .suggestion-chip:hover {
       background: rgba(255,255,255,0.1);
       border-color: var(--primary);
       color: var(--light);
+    }
+
+    .chip-subtitle {
+      font-size: 0.7rem;
+      color: var(--gray-500);
+      font-weight: 400;
+      margin-top: 2px;
+    }
+
+    .suggestion-chip:hover .chip-subtitle {
+      color: var(--gray-400);
     }
 
     .input-row {
@@ -1546,8 +1572,8 @@
             <div class="empty-state-icon">💡</div>
             <h2>Welkom bij e-Xpert SAM</h2>
             <p>
-              Stel een vraag en krijg direct een compleet lesplan, afgestemd op het KD 2026. 
-              Kies een van de suggesties hieronder of typ je eigen vraag.
+              Vertel wat je wilt bereiken met je les, en ik maak een compleet lesplan voor je.
+              De KD-aansluiting regel ik automatisch. Kies een onderwerp hieronder of typ je eigen vraag.
             </p>
           </div>
 
@@ -1557,21 +1583,26 @@
         <!-- Input Area -->
         <div class="input-area">
           <div class="suggestion-chips" id="suggestionChips">
-            <!-- All 5 workshop KD codes covered -->
-            <button class="suggestion-chip" data-cta-id="cta-suggestion-1" onclick="useSuggestion('Maak een lesplan voor B1-K1-W2 over het bijstellen van een zorgplan')">
-              📋 B1-K1-W2 Zorgplan
+            <!-- All 5 workshop KD codes covered - goal-oriented labels -->
+            <button class="suggestion-chip" data-cta-id="cta-suggestion-1" title="KD B1-K1-W2" onclick="useSuggestion('Hoe leer ik studenten een zorgplan bijstellen als de situatie verandert?')">
+              📋 Zorgplan bijstellen
+              <span class="chip-subtitle">Als de situatie verandert</span>
             </button>
-            <button class="suggestion-chip" data-cta-id="cta-suggestion-2" onclick="useSuggestion('Maak een lesplan voor B1-K1-W3 over zorginterventies en ADL-ondersteuning')">
-              🩺 B1-K1-W3 Interventies
+            <button class="suggestion-chip" data-cta-id="cta-suggestion-2" title="KD B1-K1-W3" onclick="useSuggestion('Maak een les over het veilig uitvoeren van zorghandelingen met aandacht voor eigen regie')">
+              🩺 Zorghandelingen uitvoeren
+              <span class="chip-subtitle">Veilig en met eigen regie</span>
             </button>
-            <button class="suggestion-chip" data-cta-id="cta-suggestion-3" onclick="useSuggestion('Maak een lesplan voor B1-K1-W5 over ABCDE-methodiek bij acute situaties')">
-              🚨 B1-K1-W5 Acute/ABCDE
+            <button class="suggestion-chip" data-cta-id="cta-suggestion-3" title="KD B1-K1-W5" onclick="useSuggestion('Hoe leer ik studenten een noodsituatie herkennen en adequaat handelen?')">
+              🚨 Noodsituaties herkennen
+              <span class="chip-subtitle">ABCDE-methodiek</span>
             </button>
-            <button class="suggestion-chip" data-cta-id="cta-suggestion-4" onclick="useSuggestion('Maak een lesplan voor B1-K2-W2 over SBAR-communicatie en samenwerken')">
-              🤝 B1-K2-W2 Samenwerking
+            <button class="suggestion-chip" data-cta-id="cta-suggestion-4" title="KD B1-K2-W2" onclick="useSuggestion('Maak een les over samenwerken in het team en goede overdracht')">
+              🤝 Samenwerken in het team
+              <span class="chip-subtitle">SBAR-communicatie</span>
             </button>
-            <button class="suggestion-chip" data-cta-id="cta-suggestion-5" onclick="useSuggestion('Welke materialen heb je over reflecteren en professionele ontwikkeling (B1-K3-W2)?')">
-              🎯 B1-K3-W2 Reflectie
+            <button class="suggestion-chip" data-cta-id="cta-suggestion-5" title="KD B1-K3-W2" onclick="useSuggestion('Hoe leer ik studenten reflecteren op hun praktijkervaringen?')">
+              🎯 Reflecteren op je werk
+              <span class="chip-subtitle">STARR-methode</span>
             </button>
           </div>
 
@@ -1580,7 +1611,7 @@
               type="text" 
               class="chat-input" 
               id="chatInput"
-              placeholder="Stel je vraag, bijv. 'Maak een lesplan voor B1-K1-W5 over acute situaties'..."
+              placeholder="Wat wil je je studenten leren? bijv. 'Hoe herkennen ze een noodsituatie?'"
               data-cta-id="cta-teachergpt-chat-input"
               data-action="edit"
               onkeydown="handleInputKeydown(event)"
@@ -1686,6 +1717,7 @@
       currentScope: 'all',
       isLoading: false,
       currentPlan: null,
+      currentCitations: null,
       selectedMaterial: null,
       selectedMaterialId: '',
       modalCallback: null,
@@ -1721,28 +1753,79 @@
         keyConcepts: ["Klinisch redeneren", "Observatie", "Zorgdoelen", "Rapportage", "Eigen regie"]
       },
       teacherScript: [
-        { time: "0-5 min", phase: "Start", action: "Activeer", content: "Begin met een korte casus: 'Mw. Jansen heeft sinds gisteren meer moeite met lopen. Wat doe je?' Laat studenten in duo's brainstormen." },
-        { time: "5-10 min", phase: "Start", action: "Verbind", content: "Koppel de antwoorden aan het KD: 'Dit gaat over B1-K1-W2 - het bijstellen van zorgplannen wanneer de situatie verandert.'" },
-        { time: "10-25 min", phase: "Kern", action: "Instructie", content: "Leg het stappenplan uit: 1) Signaleren, 2) Analyseren, 3) Doelen bijstellen, 4) Interventies aanpassen, 5) Afstemmen met team en zorgvrager." },
-        { time: "25-40 min", phase: "Kern", action: "Oefenen", content: "Studenten werken in groepjes aan de uitgebreide casus Mw. Jansen. Ze schrijven 3 concrete aanpassingen voor het zorgplan." },
-        { time: "40-45 min", phase: "Afsluiting", action: "Delen", content: "Elke groep presenteert 1 aanpassing. Bespreek de kwaliteit: is het SMART? Is het afgestemd op de zorgvrager?" },
-        { time: "45-50 min", phase: "Afsluiting", action: "Reflectie", content: "Vraag: 'Wat vond je lastig? Wat neem je mee naar de praktijk?' Geef een korte vooruitblik naar volgende les." }
+        { time: "0-5 min", phase: "Start", action: "Activeer", content: "Begin met een korte casus: 'Mevrouw Jansen (78) verblijft op de geriatrieafdeling. Gisteren liep ze nog zelfstandig met rollator naar het toilet. Vandaag lukt dit niet meer - ze is kortademig en haar benen zijn dik. Wat doe je?' Laat studenten in duo's 2 minuten brainstormen. Vraag: 'Wat valt jullie op? Welke signalen zijn nieuw?'" },
+        { time: "5-10 min", phase: "Start", action: "Verbind", content: "Koppel de antwoorden aan het KD: 'Dit gaat over B1-K1-W2 - het bijstellen van zorgplannen wanneer de situatie verandert. Als verpleegkundige signaleer je veranderingen en pas je het zorgplan aan.' Leg uit: 'Een zorgplan is geen statisch document - het leeft mee met de zorgvrager. Veranderingen MOETEN worden vastgelegd.'" },
+        { time: "10-18 min", phase: "Kern", action: "Klinisch redeneren", content: "Introduceer de cyclus van klinisch redeneren:\n\n1) SIGNALEREN: 'Wat zie, hoor, ruik, voel je? Wat vertelt de zorgvrager?' Bij mw. Jansen: kortademigheid, dikke benen, minder mobiel, slaapt slecht.\n\n2) ANALYSEREN: 'Wat zou de oorzaak kunnen zijn? Welke verbanden zie je?' Bij mw. Jansen: hartfalen verergerd? Vochtophoping? Medicatie-effect?\n\n3) CONCLUDEREN: 'Wat is je werkhypothese?' Bij mw. Jansen: waarschijnlijk verslechtering hartfalen, arts inschakelen.\n\n4) PLANNEN: 'Welke acties ga je ondernemen?' Doelen aanpassen, interventies wijzigen, afstemmen.\n\n5) EVALUEREN: 'Werkt het plan? Moet er opnieuw worden bijgesteld?'" },
+        { time: "18-28 min", phase: "Kern", action: "SMART doelen", content: "Leg SMART uit - dit is de standaard voor het formuleren van zorgdoelen:\n\nS = SPECIFIEK: Het doel moet concreet en duidelijk zijn.\nNiet: 'Mevrouw moet beter kunnen lopen'\nWel: 'Mevrouw loopt zelfstandig met rollator naar het toilet (10 meter)'\n\nM = MEETBAAR: Je moet kunnen vaststellen of het doel behaald is.\nNiet: 'Mevrouw heeft minder pijn'\nWel: 'Mevrouw geeft pijn aan als VAS-score 3 of lager (nu: 7)'\n\nA = ACCEPTABEL: Het doel moet passen bij de wensen van de zorgvrager.\nVraag: 'Wat vindt mevrouw zelf belangrijk?' 'Ik wil graag naar mijn bridgeclub'\n→ Doel: 'Mevrouw kan over 2 weken 1 uur zitten zonder klachten'\n\nR = REALISTISCH: Het doel moet haalbaar zijn gezien de situatie.\nNiet: 'Mevrouw loopt na 1 week weer normaal' (bij hartfalen)\nWel: 'Mevrouw kan met hulp transfers maken naar de stoel'\n\nT = TIJDGEBONDEN: Wanneer evalueer je het doel?\nNiet: 'Mevrouw kan weer traplopen'\nWel: 'Over 2 weken kan mevrouw met steun de trap af'" },
+        { time: "28-40 min", phase: "Kern", action: "Oefenen", content: "Studenten werken in groepjes van 3 aan de uitgebreide casus Mw. Jansen. Opdracht:\n1) Lees de volledige casus (uitgedeeld werkblad)\n2) Identificeer 3 signalen die wijzen op verandering\n3) Analyseer: wat zou de oorzaak kunnen zijn?\n4) Formuleer 2 nieuwe SMART-doelen (let op alle 5 criteria!)\n5) Bedenk 2 vragen die je aan mevrouw Jansen zou stellen (eigen regie!)\n\nLoop rond en check: zijn de doelen echt SMART? Wordt de zorgvrager betrokken?" },
+        { time: "40-45 min", phase: "Afsluiting", action: "Presentaties", content: "Elke groep presenteert 1 SMART-doel. Laat de klas checken: is het Specifiek? Meetbaar? Acceptabel? Realistisch? Tijdgebonden? Geef directe feedback. Veelgemaakte fouten: te vaag, niet meetbaar, geen tijdsperiode, niet besproken met zorgvrager." },
+        { time: "45-50 min", phase: "Afsluiting", action: "Reflectie", content: "Vraag: 'Wat vond je lastig aan het formuleren van SMART-doelen? Wat neem je mee naar de praktijk?' Sluit af met de boodschap: 'Een goed zorgplan is de basis voor goede zorg. Als je signaleert dat de situatie verandert, MOET je het plan bijstellen. Niet bijstellen is geen optie!' Vooruitblik: volgende les gaan we dieper in op de evaluatiecyclus." }
       ],
       discussionQuestions: [
-        { question: "Wanneer besluit je dat een zorgplan moet worden bijgesteld?", expectedAnswers: ["Bij verandering in toestand", "Na evaluatiemoment", "Op verzoek zorgvrager"] },
-        { question: "Hoe betrek je de zorgvrager bij het bijstellen van doelen?", expectedAnswers: ["Vragen naar wensen", "Samen prioriteiten bepalen", "Uitleggen van opties"] },
-        { question: "Wat doe je als de zorgvrager het niet eens is met jouw voorstel?", expectedAnswers: ["Luisteren naar bezwaren", "Alternatieven bieden", "Samen tot compromis komen"] }
+        { question: "Wanneer besluit je dat een zorgplan moet worden bijgesteld?", expectedAnswers: ["Bij elke verandering in de toestand van de zorgvrager (verbetering of verslechtering)", "Na een gepland evaluatiemoment (bijv. elke week)", "Op verzoek van de zorgvrager of diens naasten", "Als doelen zijn behaald en er nieuwe doelen nodig zijn", "Als interventies niet het gewenste effect hebben", "Bij nieuwe diagnoses of behandelingen"] },
+        { question: "Hoe betrek je de zorgvrager bij het bijstellen van doelen (eigen regie)?", expectedAnswers: ["Vraag wat de zorgvrager zelf belangrijk vindt: 'Waar wilt u naartoe werken?'", "Leg opties uit in begrijpelijke taal, geen vaktermen", "Laat de zorgvrager prioriteiten bepalen: 'Wat vindt u het belangrijkst?'", "Check of de zorgvrager het eens is met het doel", "Respecteer keuzes, ook als ze niet overeenkomen met jouw advies", "Documenteer de wensen en keuzes van de zorgvrager"] },
+        { question: "Wat doe je als de zorgvrager het niet eens is met jouw voorstel?", expectedAnswers: ["Luister naar de bezwaren: 'Wat maakt dat u dit niet wilt?'", "Probeer de achterliggende reden te begrijpen", "Bied alternatieven aan waar mogelijk", "Leg de consequenties uit van niet-behandelen (zonder te dreigen)", "Respecteer uiteindelijk de autonomie van de zorgvrager", "Documenteer het gesprek en de keuze", "Schakel zo nodig collega's of arts in bij complexe situaties"] }
       ],
       groupWork: {
-        title: "Casus Mw. Jansen - zorgplan bijstellen",
+        title: "Casus Mw. Jansen - Zorgplan bijstellen met SMART-doelen",
         durationMinutes: 15,
         steps: [
-          "Lees de casus door en markeer relevante signalen",
-          "Bespreek in je groep welke zorgdoelen moeten worden aangepast",
-          "Formuleer 3 concrete aanpassingen voor het zorgplan (SMART)",
-          "Schrijf 2 vragen op die je aan de zorgvrager zou stellen",
-          "Bereid een korte presentatie voor (1 aanpassing uitlichten)"
+          "Lees de volledige casus: Mw. Jansen (78), geriatrieafdeling, hartfalen. Gisteren: liep zelfstandig met rollator. Vandaag: kortademig in rust, dikke benen (oedeem ++), slaapt slecht door benauwdheid, bloeddruk 95/60, gewicht +2kg in 2 dagen.",
+          "Signaleer: Markeer 3 signalen die wijzen op verandering. Bespreek: zijn dit nieuwe signalen? Hoe urgent is het?",
+          "Analyseer: Wat zou de oorzaak kunnen zijn? (Hint: vochtophoping, verslechtering hartfalen, medicatie?) Welke informatie heb je nog nodig?",
+          "Formuleer 2 SMART-doelen. Check elk criterium! Voorbeeld: 'Over 3 dagen is het oedeem in de benen verminderd van ++ naar +, gemeten door omtrek enkels' (Specifiek, Meetbaar, haalbaar/Acceptabel, Realistisch, Tijdgebonden).",
+          "Bedenk 2 vragen voor het gesprek met mw. Jansen: hoe betrek je haar bij de aanpassingen? Voorbeeld: 'Wat merkt u zelf van de verandering?' 'Wat vindt u het belangrijkst om weer te kunnen?'",
+          "Bereid een korte presentatie voor: presenteer 1 SMART-doel en leg uit waarom het aan alle criteria voldoet."
         ]
+      },
+      // Detailed content for teacher handbook
+      detailedContent: {
+        SMART: {
+          S: {
+            title: "Specifiek",
+            explanation: "Het doel moet concreet en duidelijk zijn. Iedereen moet hetzelfde begrijpen.",
+            wrongExample: "Mevrouw moet beter kunnen lopen",
+            correctExample: "Mevrouw loopt zelfstandig met rollator naar het toilet (10 meter)",
+            checkQuestion: "Is voor iedereen duidelijk wat er bereikt moet worden?"
+          },
+          M: {
+            title: "Meetbaar",
+            explanation: "Je moet kunnen vaststellen of het doel behaald is. Gebruik cijfers, schalen of concrete observaties.",
+            wrongExample: "Mevrouw heeft minder pijn",
+            correctExample: "Mevrouw geeft pijn aan als VAS-score 3 of lager (nu: 7)",
+            checkQuestion: "Hoe kun je meten of het doel behaald is?"
+          },
+          A: {
+            title: "Acceptabel",
+            explanation: "Het doel moet passen bij de wensen en waarden van de zorgvrager. Dit is de kern van eigen regie!",
+            wrongExample: "Mevrouw moet elke dag oefeningen doen (zonder dat ze dit wil)",
+            correctExample: "Mevrouw wil graag naar bridgeclub → Doel: over 2 weken 1 uur zitten zonder klachten",
+            checkQuestion: "Vindt de zorgvrager dit doel belangrijk? Heb je het gevraagd?"
+          },
+          R: {
+            title: "Realistisch",
+            explanation: "Het doel moet haalbaar zijn gezien de situatie, diagnose en mogelijkheden.",
+            wrongExample: "Mevrouw loopt na 1 week weer normaal (bij ernstig hartfalen)",
+            correctExample: "Mevrouw kan met hulp van 1 persoon transfers maken naar de stoel",
+            checkQuestion: "Is dit doel haalbaar gezien de huidige situatie?"
+          },
+          T: {
+            title: "Tijdgebonden",
+            explanation: "Wanneer evalueer je of het doel behaald is? Geef een concrete datum of periode.",
+            wrongExample: "Mevrouw kan weer traplopen",
+            correctExample: "Over 2 weken kan mevrouw met steun van 1 persoon de trap af naar de huiskamer",
+            checkQuestion: "Wanneer evalueer je dit doel?"
+          }
+        },
+        klinischRedeneren: {
+          stappen: [
+            { stap: "Signaleren", beschrijving: "Wat neem je waar? Wat zie, hoor, ruik, voel je? Wat vertelt de zorgvrager?", voorbeeld: "Kortademigheid, dikke benen, minder mobiel, slaapt slecht" },
+            { stap: "Analyseren", beschrijving: "Wat zou de oorzaak kunnen zijn? Welke verbanden zie je? Welke informatie heb je nog nodig?", voorbeeld: "Hartfalen verergerd? Vochtophoping? Medicatie-effect?" },
+            { stap: "Concluderen", beschrijving: "Wat is je werkhypothese? Wat denk je dat er aan de hand is?", voorbeeld: "Waarschijnlijk verslechtering hartfalen, arts inschakelen" },
+            { stap: "Plannen", beschrijving: "Welke acties ga je ondernemen? Doelen aanpassen, interventies wijzigen, afstemmen", voorbeeld: "Vochtbeperking, dagelijks wegen, diuretica op voorschrift" },
+            { stap: "Evalueren", beschrijving: "Werkt het plan? Verbetering of verslechtering? Moet er opnieuw worden bijgesteld?", voorbeeld: "Na 3 dagen: oedeem verminderd, doorgaan met plan" }
+          ]
+        }
       }
     };
 
@@ -1790,29 +1873,80 @@
           keyConcepts: ["ABCDE-methodiek", "Alarmprocedure", "Klinische blik", "SBAR-communicatie", "Veiligheid"]
         },
         teacherScript: [
-          { time: "0-5 min", phase: "Start", action: "Activeer", content: "Toon een korte video of beschrijf een acute situatie. Vraag: 'Wat doe je als eerste?'" },
-          { time: "5-10 min", phase: "Start", action: "Verbind", content: "Introduceer ABCDE als geheugensteun. Link naar KD B1-K1-W5." },
-          { time: "10-30 min", phase: "Kern", action: "Instructie", content: "Loop elke letter door met voorbeelden. A=Airway, B=Breathing, C=Circulation, D=Disability, E=Exposure." },
-          { time: "30-45 min", phase: "Kern", action: "Simulatie", content: "Studenten oefenen in 3-tallen met simulatiescenario allergische reactie." },
-          { time: "45-50 min", phase: "Afsluiting", action: "Reflectie", content: "Nabespreking: wat ging goed? Wat was lastig? Herhaal de alarmprocedure." }
+          { time: "0-5 min", phase: "Start", action: "Activeer", content: "Toon een korte video of beschrijf een acute situatie: 'Een bewoner wordt plotseling benauwd en grijpt naar zijn keel.' Vraag: 'Wat doe je als eerste? Waar begin je?' Laat studenten in duo's 1 minuut brainstormen." },
+          { time: "5-10 min", phase: "Start", action: "Verbind", content: "Introduceer ABCDE als geheugensteun: 'ABCDE is een systematische aanpak die je helpt om in stressvolle situaties niets te vergeten. Je werkt ALTIJD in deze volgorde omdat je eerst de meest levensbedreigende problemen aanpakt.' Link naar KD B1-K1-W5: handelen in acute situaties." },
+          { time: "10-18 min", phase: "Kern", action: "Instructie A+B", content: "A = AIRWAY (Luchtweg): 'De A staat voor Airway. Hier check je of lucht vrij door de grote luchtwegen kan stromen.' Oorzaken obstructie: teruggevallen tong (bewusteloze), vreemd voorwerp (verslikking), zwelling (anafylaxie), bloeding/braaksel. Observeer: kan patiënt praten? (vrije luchtweg = kan praten), stridor/snurken?, thoraxbewegingen zonder lucht? Acties: kinlift, stabiele zijligging, uitzuigen. B = BREATHING (Ademhaling): 'Bij de B beoordeel je of de zuurstofuitwisseling goed verloopt.' Oorzaken: astma/COPD, pneumonie, longembolie, hartfalen. Meet: ademfrequentie (12-20/min normaal), saturatie (>94%), ademarbeid, cyanose. Acties: rechtop zetten, zuurstof geven." },
+          { time: "18-26 min", phase: "Kern", action: "Instructie C+D", content: "C = CIRCULATION (Bloedsomloop): 'Bij de C check je of het hart voldoende bloed rondpompt.' Oorzaken: bloedverlies, dehydratie, sepsis, hartinfarct, shock. Meet: hartfrequentie (60-100/min), bloeddruk (>100 systolisch), capillaire refill (<2 sec), huidkleur (bleek/grauw?), bewustzijn. Acties: Trendelenburg bij shock, infuus, bloeding stelpen. D = DISABILITY (Neurologisch): 'De D gaat over de hersenfunctie.' Oorzaken: hypoglykemie, CVA, epilepsie, intoxicatie, hypoxie. Meet: AVPU-score (Alert/Verbal/Pain/Unresponsive), pupillen, glucose. Acties: glucose bij hypo, stabiele zijligging bij insult." },
+          { time: "26-30 min", phase: "Kern", action: "Instructie E", content: "E = EXPOSURE (Volledig onderzoek): 'Tot slot ontkleed je de patiënt volledig om niets te missen.' Wat doe je: volledig ontkleden (privacy!), van top tot teen inspecteren, temperatuur meten. Let op: huiduitslag (petechieën bij sepsis), zwellingen, wonden. BELANGRIJK: hypothermie voorkomen - dek patiënt weer toe! Waardigheid respecteren." },
+          { time: "30-45 min", phase: "Kern", action: "Simulatie", content: "Studenten oefenen in 3-tallen. Scenario: 'Mevrouw De Vries (68) krijgt een allergische reactie na antibiotica. Ze heeft rode vlekken, is benauwd en voelt zich duizelig.' Rollen: 1) Verpleegkundige (past ABCDE toe), 2) Patiënt (speelt symptomen), 3) Observator (checkt met ABCDE-kaart). Na 5 min wisselen. Observator let op: systematisch werken, hardop denken, juiste volgorde." },
+          { time: "45-50 min", phase: "Afsluiting", action: "Reflectie", content: "Nabespreking in de groep: 'Wat ging goed? Wat was lastig?' Bespreek veelgemaakte fouten: stappen overslaan, te snel naar behandeling gaan. Herhaal de alarmprocedure: 'Bij welke bevindingen bel je direct 112? Bij bewusteloosheid, geen ademhaling, geen pols, ernstige benauwdheid, shock.' Sluit af: 'ABCDE wordt automatisme door veel te oefenen.'" }
         ],
         discussionQuestions: [
-          { question: "Waarom is de volgorde ABCDE belangrijk?", expectedAnswers: ["Prioriteit levensbedreigend", "Systematische aanpak", "Niets overslaan"] },
-          { question: "Wanneer schakel je hulp in?", expectedAnswers: ["Bij twijfel altijd", "Bij verslechtering", "Bij afwijkende vitale functies"] }
+          { question: "Waarom is de volgorde ABCDE zo belangrijk?", expectedAnswers: ["Je pakt eerst de meest levensbedreigende problemen aan", "Systematische aanpak voorkomt dat je iets vergeet", "A-problemen zijn dodelijker dan B-problemen, B dodelijker dan C, etc.", "Onder stress ga je vanzelf terug naar de structuur"] },
+          { question: "Wanneer schakel je hulp in en hoe communiceer je dan?", expectedAnswers: ["Bij twijfel: ALTIJD hulp inschakelen", "Bij verslechtering ondanks je interventies", "Bij afwijkende vitale functies buiten normaalwaarden", "Gebruik SBAR voor duidelijke overdracht: Situatie-Background-Assessment-Recommendation"] },
+          { question: "Wat zijn de normaalwaarden die je moet kennen?", expectedAnswers: ["Ademfrequentie: 12-20 per minuut", "Saturatie: boven 94%", "Hartfrequentie: 60-100 per minuut", "Bloeddruk: boven 100 systolisch", "Capillaire refill: onder 2 seconden", "AVPU: Alert is normaal"] }
         ],
         groupWork: {
           title: "Simulatie: Allergische reactie na medicatie",
           durationMinutes: 15,
-          steps: ["Verdeel rollen: verpleegkundige, client, observator", "Start simulatie op teken docent", "Pas ABCDE toe", "Formuleer SBAR-melding", "Observator geeft feedback"]
+          steps: [
+            "Verdeel rollen: verpleegkundige (handelt), patiënt (speelt symptomen), observator (checkt ABCDE-kaart)",
+            "Lees het scenario: 'Mw. De Vries (68) krijgt antibiotica IV. Na 5 minuten: rode vlekken op romp, jeuk, benauwdheid, duizeligheid.'",
+            "Verpleegkundige past ABCDE toe en denkt HARDOP: 'Ik begin bij A, de luchtweg...'",
+            "Patiënt reageert realistisch: bij A 'Ik kan nog praten maar het voelt dik', bij B 'Ik ben zo benauwd'",
+            "Observator noteert: werd de juiste volgorde gevolgd? Werd niets overgeslagen? Was er duidelijke communicatie?",
+            "Formuleer samen een SBAR-melding voor de arts",
+            "Wissel na 5 minuten van rol zodat iedereen oefent"
+          ]
+        }
+      },
+      // Detailed content for teacher handbook
+      detailedContent: {
+        ABCDE: {
+          A: {
+            title: "Airway (Luchtweg)",
+            explanation: "De A staat voor Airway - de luchtweg. Hier check je of lucht vrij door de grote luchtwegen kan stromen. Een geblokkeerde luchtweg is direct levensbedreigend.",
+            causes: ["Teruggevallen tong (bij bewusteloze patiënt)", "Vreemd voorwerp (verslikking, tandprothese)", "Zwelling (anafylaxie, infectie, trauma)", "Bloeding of braaksel", "Laryngospasme"],
+            observations: ["Kan de patiënt praten? (vrije luchtweg = kan praten)", "Hoor je stridor of snurken?", "Zie je thoraxbewegingen zonder lucht?", "Is er speekselvloed of moeite met slikken?"],
+            actions: ["Kinlift of kaakstoot uitvoeren", "Stabiele zijligging", "Uitzuigen indien nodig", "Guedel/mayo bij bewusteloze"]
+          },
+          B: {
+            title: "Breathing (Ademhaling)",
+            explanation: "De B staat voor Breathing - ademhaling. Je beoordeelt of de zuurstofuitwisseling in de longen goed verloopt.",
+            causes: ["Astma/COPD-exacerbatie", "Pneumonie (longontsteking)", "Pneumothorax (klaplong)", "Longembolie", "Hartfalen met longoedeem", "Hyperventilatie"],
+            observations: ["Ademfrequentie (normaal 12-20/min)", "Saturatie (normaal >94%)", "Ademarbeid: neusvleugelen, intrekkingen?", "Cyanose (blauwe lippen/nagels)?", "Ausculteren: bijgeluiden?"],
+            actions: ["Rechtop zetten", "Zuurstof geven", "Vernevelaar bij bronchospasme"]
+          },
+          C: {
+            title: "Circulation (Bloedsomloop)",
+            explanation: "De C staat voor Circulation - bloedsomloop. Je beoordeelt of het hart voldoende bloed rondpompt naar alle organen.",
+            causes: ["Bloedverlies (intern/extern)", "Dehydratie", "Sepsis (bloedvergiftiging)", "Hartinfarct", "Hartritmestoornissen", "Anafylactische shock"],
+            observations: ["Hartfrequentie (normaal 60-100/min)", "Bloeddruk (normaal >100 systolisch)", "Capillaire refill (<2 sec is normaal)", "Huidkleur: bleek, grauw, gevlekt?", "Huid: koud, klam?"],
+            actions: ["Trendelenburg bij shock", "Infuus/vocht toedienen", "Bloeding stelpen", "Reanimatie bij circulatiestilstand"]
+          },
+          D: {
+            title: "Disability (Neurologisch)",
+            explanation: "De D staat voor Disability - neurologische status. Je beoordeelt de hersenfunctie.",
+            causes: ["Hypoglykemie (lage bloedsuiker)", "CVA (beroerte)", "Epileptisch insult", "Verhoogde intracraniële druk", "Intoxicatie (drugs, alcohol, medicatie)", "Hypoxie (zuurstoftekort)"],
+            observations: ["AVPU-score: Alert/Verbal/Pain/Unresponsive", "Pupillen: grootte, lichtreactie, symmetrie", "Glucosewaarde", "Motoriek: kan patiënt bewegen?"],
+            actions: ["Glucose geven bij hypo", "Stabiele zijligging bij insult", "Beschermen tegen letsel"]
+          },
+          E: {
+            title: "Exposure (Volledig onderzoek)",
+            explanation: "De E staat voor Exposure - volledige ontbloting en lichamelijk onderzoek. Je zoekt naar verborgen problemen.",
+            causes: ["Verborgen letsels", "Verborgen bloedingen", "Huidafwijkingen die op ernstige ziekte wijzen"],
+            observations: ["Volledig ontkleden (privacy waarborgen!)", "Van top tot teen inspecteren", "Temperatuur meten", "Huiduitslag, zwellingen, wonden, oedeem"],
+            actions: ["Hypothermie voorkomen (warm houden!)", "Waardigheid patiënt respecteren", "Systematisch werken"]
+          }
         }
       },
       recommendations: [
-        { id: "mat-abcde-1", title: "ABCDE-checklist acute situaties (B1-K1-W5)", fileName: "B1-K1-W5-abcde-checklist.txt", contentType: "Checklist", score: 0.726, snippet: "A – Airway: controleer of de luchtweg vrij is. B – Breathing: ademhaling, saturatie, benauwdheid..." },
-        { id: "mat-abcde-2", title: "Simulatiescenario allergische reactie (B1-K1-W5)", fileName: "B1-K1-W5-simulatie-allergie.txt", contentType: "Simulatie", score: 0.581, snippet: "Simulatie: Allergische reactie na medicatie. Rol 1: verpleegkundige, Rol 2: client, Rol 3: observator..." }
+        { id: "mat-abcde-1", title: "ABCDE-checklist acute situaties (B1-K1-W5)", fileName: "B1-K1-W5-abcde-checklist.txt", contentType: "Checklist", score: 0.726, snippet: "A – Airway: controleer of de luchtweg vrij is. Kan patiënt praten? Stridor? B – Breathing: ademfrequentie 12-20/min, saturatie >94%..." },
+        { id: "mat-abcde-2", title: "Simulatiescenario allergische reactie (B1-K1-W5)", fileName: "B1-K1-W5-simulatie-allergie.txt", contentType: "Simulatie", score: 0.581, snippet: "Scenario: Mw. De Vries (68) krijgt antibiotica IV. Na 5 min: rode vlekken, jeuk, benauwdheid, duizeligheid. Rollen: verpleegkundige, patiënt, observator..." }
       ],
       citations: [
-        { source: "mes", course_id: "mes:kd2026-vig-vp", item_index: 5, similarity: 0.92, text: "De beginnend beroepsbeoefenaar handelt in onvoorziene en/of acute situaties. Past ABCDE toe..." },
-        { source: "material", course_id: "material:16026510", item_index: 0, similarity: 0.73, text: "ABCDE-checklist: A – Airway: controleer of de luchtweg vrij is. B – Breathing: ademhaling, saturatie..." }
+        { source: "mes", course_id: "mes:kd2026-vig-vp", item_index: 5, similarity: 0.92, text: "De beginnend beroepsbeoefenaar handelt in onvoorziene en/of acute situaties. Past ABCDE toe, alarmeert adequaat, communiceert via SBAR..." },
+        { source: "material", course_id: "material:16026510", item_index: 0, similarity: 0.73, text: "ABCDE-checklist: A – Airway: controleer of de luchtweg vrij is, kinlift/kaakstoot. B – Breathing: ademfrequentie, saturatie, zuurstof geven..." }
       ]
     };
 
@@ -1826,41 +1960,166 @@
           keyConcepts: ["SBAR-communicatie", "MDO", "Rolverdeling", "Gezamenlijke besluitvorming", "Rapportage"]
         },
         teacherScript: [
-          { time: "0-5 min", phase: "Start", action: "Activeer", content: "Vraag: 'Met welke disciplines werk je samen in de praktijk? Hoe verloopt die samenwerking?'" },
-          { time: "5-10 min", phase: "Start", action: "Verbind", content: "Introduceer SBAR als communicatietool. Toon template." },
-          { time: "10-25 min", phase: "Kern", action: "Instructie", content: "Leg SBAR uit: Situatie, Background, Assessment, Recommendation. Geef voorbeelden." },
-          { time: "25-40 min", phase: "Kern", action: "Rollenspel", content: "Studenten voeren MDO-rollenspel uit in groepen van 4 (verpleegkundige, arts, fysiotherapeut, mantelzorger)." },
-          { time: "40-50 min", phase: "Afsluiting", action: "Reflectie", content: "Bespreek: Was de communicatie duidelijk? Werden alle belangen gehoord?" }
+          { time: "0-5 min", phase: "Start", action: "Activeer", content: "Vraag aan de klas: 'Met welke disciplines werk je samen in de praktijk? Noem er minimaal 3.' Verzamel antwoorden op bord (arts, fysiotherapeut, ergotherapeut, diëtist, maatschappelijk werk, etc.). Vervolgvraag: 'Wat maakt samenwerking soms lastig?' Bespreek kort: verschillende verwachtingen, onduidelijke communicatie, hiërarchie." },
+          { time: "5-10 min", phase: "Start", action: "Verbind", content: "Introduceer SBAR: 'SBAR is een communicatietool die oorspronkelijk uit de luchtvaart komt. Het zorgt voor gestructureerde, duidelijke overdracht zodat er geen misverstanden ontstaan.' Toon de SBAR-template op het bord. Link naar KD B1-K2-W2: samenwerken met andere zorgprofessionals." },
+          { time: "10-18 min", phase: "Kern", action: "Instructie SBAR", content: "Leg elke letter uitgebreid uit met voorbeelden:\n\nS = SITUATION (Situatie): 'Je vertelt WIE je bent en WAT er NU aan de hand is.' Format: 'Ik ben [naam], [functie] van [afdeling]. Ik bel over [patiënt], kamer [nr]. Het probleem is [kort en concreet].' Voorbeeld: 'Goedemiddag, ik ben Lisa, verpleegkundige van afdeling Interne. Ik bel over meneer Jansen, kamer 12. Hij is acuut benauwd geworden.'\n\nB = BACKGROUND (Achtergrond): 'Je geeft relevante voorgeschiedenis.' Format: 'De patiënt is opgenomen vanwege [reden]. Relevante voorgeschiedenis: [ziekten, allergieën]. Huidige behandeling: [medicatie].' Voorbeeld: 'Meneer Jansen ligt hier 3 dagen met een pneumonie. Hij heeft COPD en diabetes type 2. Hij krijgt antibiotica IV en prednison.'" },
+          { time: "18-25 min", phase: "Kern", action: "Instructie SBAR vervolg", content: "A = ASSESSMENT (Beoordeling): 'Je geeft jouw professionele inschatting.' Format: 'Ik heb vastgesteld: [observaties]. Vitale functies zijn: [waarden]. Ik denk dat er sprake is van [jouw analyse].' Voorbeeld: 'Zijn saturatie is nu 88% zonder zuurstof, temperatuur 39.4, ademfrequentie 28/min. Hij gebruikt hulpademhalingsspieren. Ik vermoed dat zijn pneumonie verslechtert.'\n\nR = RECOMMENDATION (Advies): 'Je vraagt concreet wat je nodig hebt.' Format: 'Ik vraag om [concrete actie]. Kunt u [specifieke vraag]? Wanneer kan ik u verwachten?' Voorbeeld: 'Ik heb hem rechtop gezet en zuurstof 3 liter gegeven. Kunt u zo snel mogelijk komen kijken? Of wilt u dat ik alvast een thoraxfoto laat maken?'\n\nLaat studenten het complete voorbeeld nazeggen." },
+          { time: "25-40 min", phase: "Kern", action: "Rollenspel MDO", content: "Verdeel in groepen van 4. Rollen: (1) Verpleegkundige: kent patiënt het beste, doet SBAR-overdracht, (2) Arts: stelt vragen, neemt beslissing, (3) Fysiotherapeut: adviseert over mobiliteit, (4) Mantelzorger: brengt perspectief patiënt in. Casus: 'Mw. De Boer (75) is opgenomen na een heupoperatie. Ze wil graag naar huis maar is nog instabiel bij lopen. Zoon maakt zich zorgen.' Opdracht: Voer een MDO van 10 minuten. Verpleegkundige opent met SBAR. Maak samen een plan: wanneer naar huis? Welke hulp nodig?" },
+          { time: "40-50 min", phase: "Afsluiting", action: "Nabespreking", content: "Bespreek per groep: 'Hoe ging de SBAR-overdracht? Was het duidelijk?' Vraag observaties: 'Werd iedereen gehoord? Wie nam de leiding? Hoe werd tot een besluit gekomen?' Veelgemaakte fouten: te lang verhaal bij S, mening geven bij B (hoort bij A), geen concrete vraag bij R. Sluit af: 'SBAR werkt alleen als je het echt gebruikt. Oefen in de praktijk!'" }
         ],
         discussionQuestions: [
-          { question: "Wat maakt SBAR effectief?", expectedAnswers: ["Gestructureerd", "Kort en bondig", "Duidelijke vraag"] },
-          { question: "Hoe ga je om met meningsverschillen in een MDO?", expectedAnswers: ["Luisteren", "Argumenten wegen", "Patient centraal"] }
+          { question: "Wat maakt SBAR zo effectief als communicatiemiddel?", expectedAnswers: ["Gestructureerd: je vergeet niets", "Kort en bondig: bespaart tijd", "Duidelijke vraag aan het eind: de ander weet wat je nodig hebt", "Universeel: werkt met alle disciplines", "Voorkomt miscommunicatie en aannames"] },
+          { question: "Hoe ga je om met meningsverschillen in een multidisciplinair overleg?", expectedAnswers: ["Luister eerst naar alle perspectieven zonder te onderbreken", "Vraag door: 'Waarom vind je dat?'", "Weeg argumenten: wat is het beste voor de patiënt?", "Zoek naar compromissen of tussenoplossingen", "Bij blijvend verschil: leg voor aan patiënt of betrek leidinggevende", "Documenteer de verschillende standpunten en het besluit"] },
+          { question: "Wanneer gebruik je SBAR en wanneer is een informeel gesprek voldoende?", expectedAnswers: ["SBAR bij: acute situaties, overdracht aan arts, telefonisch consult, escalatie", "Informeel bij: dagelijkse afstemming, bekende situaties, niet-urgent", "Bij twijfel: liever SBAR gebruiken dan te informeel communiceren"] }
         ],
         groupWork: {
-          title: "Rollenspel multidisciplinair overleg",
+          title: "Rollenspel: Multidisciplinair Overleg over ontslag Mw. De Boer",
           durationMinutes: 15,
-          steps: ["Verdeel rollen in je groep", "Lees de casus", "Voer het MDO uit", "Maak concrete afspraken", "Leg vast in zorgplan"]
+          steps: [
+            "Verdeel de rollen: verpleegkundige, arts, fysiotherapeut, mantelzorger (zoon). Lees je rolkaart.",
+            "Verpleegkundige: Je kent mw. De Boer het beste. Open het MDO met een SBAR: Situatie (75jr, heupoperatie 5 dagen geleden), Background (woont alleen, was zelfstandig), Assessment (loopt nog instabiel, is gemotiveerd), Recommendation (wat vind jij verstandig?).",
+            "Arts: Stel vragen over de medische situatie. Wanneer is het medisch verantwoord om naar huis te gaan?",
+            "Fysiotherapeut: Geef advies over mobiliteit. Ze heeft nog oefeningen nodig. Kan dat thuis? Is thuiszorg nodig?",
+            "Mantelzorger (zoon): Je maakt je zorgen. Je moeder wil graag naar huis, maar jij werkt fulltime. Wie vangt haar op?",
+            "Voer het MDO uit (10 min). Kom tot een concreet plan met datum en afspraken.",
+            "Leg de afspraken vast: Wie doet wat? Wanneer evalueren? Noteer in het zorgplan."
+          ]
         }
       },
+      // Detailed content for teacher handbook
+      detailedContent: {
+        SBAR: {
+          S: {
+            title: "Situation (Situatie)",
+            explanation: "De S staat voor Situatie. Je vertelt WIE je bent en WAT er NU aan de hand is. Dit is de opening van je gesprek.",
+            format: "Ik ben [naam], [functie] van [afdeling]. Ik bel over [patiënt naam], kamer [nummer]. Het probleem is [kort en concreet].",
+            example: "Goedemiddag, ik ben Lisa, verpleegkundige van afdeling Interne. Ik bel over meneer Jansen, kamer 12. Hij is acuut benauwd geworden.",
+            tips: ["Wees kort en concreet", "Noem direct de kern van het probleem", "Gebruik de naam en locatie van de patiënt"]
+          },
+          B: {
+            title: "Background (Achtergrond)",
+            explanation: "De B staat voor Background. Je geeft relevante voorgeschiedenis die de ander nodig heeft om de situatie te begrijpen.",
+            format: "De patiënt is opgenomen vanwege [reden]. Relevante voorgeschiedenis: [ziekten, allergieën]. Huidige behandeling: [medicatie, interventies].",
+            example: "Meneer Jansen is 3 dagen geleden opgenomen met een pneumonie. Hij heeft COPD en diabetes type 2. Hij krijgt antibiotica IV en prednison.",
+            tips: ["Alleen relevante informatie", "Geen meningen in dit deel (dat komt bij A)", "Kort maar volledig"]
+          },
+          A: {
+            title: "Assessment (Beoordeling)",
+            explanation: "De A staat voor Assessment. Je geeft jouw professionele inschatting van de situatie. Dit is waar je laat zien dat je klinisch kunt redeneren.",
+            format: "Ik heb het volgende vastgesteld: [observaties]. Vitale functies zijn: [waarden]. Ik denk dat er sprake is van [jouw analyse].",
+            example: "Zijn saturatie is nu 88% zonder zuurstof, temperatuur 39.4, ademfrequentie 28/min. Hij gebruikt hulpademhalingsspieren. Ik vermoed dat zijn pneumonie verslechtert.",
+            tips: ["Geef concrete meetwaarden", "Durf je mening te geven", "Het is oké om te zeggen 'ik vermoed' of 'ik maak me zorgen over'"]
+          },
+          R: {
+            title: "Recommendation (Advies)",
+            explanation: "De R staat voor Recommendation. Je vraagt concreet wat je nodig hebt. Dit is het belangrijkste deel - zonder duidelijke vraag weet de ander niet wat je verwacht.",
+            format: "Ik vraag/stel voor om [concrete actie]. Kunt u [specifieke vraag]? Wanneer kan ik u verwachten?",
+            example: "Ik heb hem alvast rechtop gezet en zuurstof 3 liter gegeven. Kunt u zo snel mogelijk komen kijken? Of wilt u dat ik alvast een thoraxfoto laat maken?",
+            tips: ["Wees concreet: wat wil je dat de ander doet?", "Geef aan wat je al gedaan hebt", "Vraag om een tijdsindicatie"]
+          }
+        },
+        completeExample: "Goedemiddag, met Lisa van Interne. [S] Ik bel over meneer Jansen, kamer 12. Hij is acuut benauwd geworden. [B] Hij ligt hier 3 dagen met een pneumonie, COPD-patiënt, krijgt antibiotica en prednison. [A] Zijn saturatie is gezakt naar 88%, temperatuur 39.4, hij ademt 28 keer per minuut. Ik vermoed verslechtering van de pneumonie. [R] Kunt u hem zo snel mogelijk komen beoordelen? Ik heb hem rechtop gezet en zuurstof gegeven."
+      },
       recommendations: [
-        { id: "mat-sbar-1", title: "SBAR-template overdracht (B1-K2-W2)", fileName: "B1-K2-W2-sbar-template.txt", contentType: "Template", score: 0.687, snippet: "SBAR-template: S – Situatie: Wie ben je en wat is de acute situatie? B – Background: Relevante achtergrond..." },
-        { id: "mat-sbar-2", title: "Rollenspel multidisciplinair overleg (B1-K2-W2)", fileName: "B1-K2-W2-rollenspel-mdo.txt", contentType: "Rollenspel", score: 0.623, snippet: "Rollenspel MDO: Rollen: verpleegkundige, arts, fysiotherapeut, mantelzorger. Opdracht: Bespreek de casus..." }
+        { id: "mat-sbar-1", title: "SBAR-template overdracht (B1-K2-W2)", fileName: "B1-K2-W2-sbar-template.txt", contentType: "Template", score: 0.687, snippet: "SBAR-template met invulvelden: S – Situatie: Ik ben..., ik bel over..., het probleem is... B – Background: Opgenomen vanwege..., voorgeschiedenis..., huidige behandeling..." },
+        { id: "mat-sbar-2", title: "Rollenspel MDO ontslag Mw. De Boer (B1-K2-W2)", fileName: "B1-K2-W2-rollenspel-mdo.txt", contentType: "Rollenspel", score: 0.623, snippet: "Casus: Mw. De Boer (75) na heupoperatie. Rollen: verpleegkundige (SBAR-overdracht), arts (medische beslissing), fysiotherapeut (mobiliteitsadvies), zoon (mantelzorgperspectief)..." }
       ],
       citations: [
-        { source: "mes", course_id: "mes:kd2026-vig-vp", item_index: 8, similarity: 0.88, text: "De beginnend beroepsbeoefenaar werkt samen met andere zorgprofessionals..." },
-        { source: "material", course_id: "material:b7697682", item_index: 0, similarity: 0.69, text: "SBAR-template: S – Situatie: Wie ben je en wat is de acute situatie?..." }
+        { source: "mes", course_id: "mes:kd2026-vig-vp", item_index: 8, similarity: 0.88, text: "De beginnend beroepsbeoefenaar werkt samen met andere zorgprofessionals. Communiceert effectief via gestructureerde overdracht (SBAR)..." },
+        { source: "material", course_id: "material:b7697682", item_index: 0, similarity: 0.69, text: "SBAR-template: S – Situatie: Ik ben [naam], [functie]. Ik bel over [patiënt]. Het probleem is [concreet]..." }
       ]
     };
 
-    // Demo for reflectie query
+    // Demo for reflectie query (B1-K3-W2) - NOW WITH FULL LESSON PLAN
     const demoReflectie = {
-      lessonPlan: null, // No lesson plan for material search
+      lessonPlan: {
+        kdAlignment: { code: "B1-K3-W2", title: "Evalueert de werkzaamheden en ontwikkelt zichzelf als professional" },
+        quickStart: {
+          oneLiner: "Studenten leren gestructureerd reflecteren op praktijksituaties met de STARR-methode en formuleren concrete verbeterpunten.",
+          timeAllocation: { start: 10, kern: 30, afsluiting: 10 },
+          keyConcepts: ["STARR-methode", "Feedback geven/ontvangen", "Leerdoelen", "Portfolio", "Professionele groei"]
+        },
+        teacherScript: [
+          { time: "0-5 min", phase: "Start", action: "Activeer", content: "Vraag aan de klas: 'Denk aan een moment in de praktijk dat je trots was, of juist onzeker of een beetje schrok. Wat gebeurde er? Deel in 1 zin met je buurman.' Laat 2-3 studenten kort delen. Dit zijn perfecte situaties om op te reflecteren!" },
+          { time: "5-10 min", phase: "Start", action: "Verbind", content: "Introduceer STARR: 'STARR is een reflectiemethode die je helpt om gestructureerd te leren van je ervaringen. Het verschil tussen 'iets meemaken' en 'ervan leren' zit in de reflectie. STARR staat voor: Situatie, Taak, Actie, Resultaat, Reflectie. De laatste R is het belangrijkst!' Link naar KD B1-K3-W2 en naar portfolio/stagegesprekken." },
+          { time: "10-15 min", phase: "Kern", action: "Instructie S+T", content: "Leg de eerste twee letters uit met een voorbeeld:\n\nS = SITUATIE: 'Beschrijf de situatie objectief, alsof je een filmcamera bent. Alleen feiten, nog geen mening!' Hulpvragen: Waar speelde dit? Wie waren erbij? Wat was de aanleiding? Wanneer? Voorbeeldzin: 'Op dinsdag tijdens de avonddienst in het verpleeghuis kreeg mevrouw De Vries (82) plotseling pijn op de borst. Ik was als enige verpleegkundige aanwezig, samen met twee verzorgenden.'\n\nT = TAAK: 'Beschrijf wat jouw rol en verantwoordelijkheid was.' Hulpvragen: Wat werd van jou verwacht? Wat was jouw functie? Voorbeeldzin: 'Als dienstdoende verpleegkundige was ik verantwoordelijk voor de medische beoordeling en het nemen van beslissingen over vervolgacties.'" },
+          { time: "15-22 min", phase: "Kern", action: "Instructie A+R1", content: "Leg de volgende twee letters uit:\n\nA = ACTIE: 'Beschrijf precies wat JIJ deed. Niet wat het team deed, maar jij!' Gebruik ik-taal, geen wij of men. Hulpvragen: Wat heb je gedaan? In welke volgorde? Welke keuzes maakte je? Voorbeeldzin: 'Ik ben direct naar mevrouw toegegaan en heb ABCDE toegepast. Ik heb haar vitale functies gemeten: bloeddruk 160/95, pols 110, saturatie 94%. Ik heb de huisarts gebeld via SBAR en nitroglycerine gegeven.'\n\nR = RESULTAAT: 'Beschrijf wat er gebeurde als gevolg van jouw acties.' Beschrijf ook onverwachte of negatieve resultaten! Voorbeeldzin: 'De huisarts kwam binnen 15 minuten en besloot mevrouw in te sturen. De ambulance was er na 20 minuten. Mevrouw was gerustgesteld door mijn uitleg. Achteraf bleek het een angina pectoris aanval.'" },
+          { time: "22-28 min", phase: "Kern", action: "Instructie R2", content: "Leg de laatste en BELANGRIJKSTE letter uit:\n\nR = REFLECTIE: 'Dit is waar je echt leert! Wat heb je geleerd van deze ervaring?' Hulpvragen: Wat ging goed en waarom? Wat had ik anders kunnen doen? Wat heb ik geleerd? Wat neem ik mee naar een volgende keer? Welke theorie of richtlijn is van toepassing?\n\nKoppel aan theorie en competenties! Voorbeeldzin: 'Ik ben tevreden dat ik rustig bleef en systematisch werkte met ABCDE. Door SBAR te gebruiken kon ik duidelijk communiceren. Wat ik anders zou doen: het ECG-apparaat sneller pakken. Ik merk dat ik onder druk goed functioneer, maar wil nog oefenen met acute hartklachten herkennen. Dit sluit aan bij KD B1-K1-W5.'\n\nBelangrijk: de Reflectie is GEEN samenvatting! Het gaat om diepgang en zelfinzicht." },
+          { time: "28-40 min", phase: "Kern", action: "Oefenen", content: "Studenten schrijven individueel een STARR-reflectie (12 min). Opdracht: 'Kies een situatie uit je stage of praktijkervaring. Gebruik het werkblad en schrijf voor elke letter minimaal 3 zinnen. Bij de Reflectie: koppel aan theorie of KD.' Loop rond, geef individuele tips. Veelgemaakte fouten: S en T door elkaar halen, A te kort, R is een samenvatting ipv reflectie." },
+          { time: "40-45 min", phase: "Afsluiting", action: "Peer Feedback", content: "In duo's: wissel reflecties uit. Feedbackopdracht: 'Lees elkaars reflectie. Geef 1 compliment (wat is goed?) en 1 tip (wat kan beter?). Let vooral op de R: is er echt gereflecteerd of alleen beschreven?' Regels voor feedback: wees specifiek, beschrijf gedrag niet persoon, geef concrete suggesties." },
+          { time: "45-50 min", phase: "Afsluiting", action: "Leerdoel formuleren", content: "Iedereen formuleert 1 concreet leerdoel voor de komende stageperiode op basis van hun reflectie. Format: 'Over [periode] wil ik [concreet gedrag] zodat [resultaat].' Voorbeeld: 'Over 4 weken wil ik bij elke acute situatie binnen 30 seconden het ECG-apparaat pakken, zodat ik sneller cardiale problemen kan uitsluiten.' Laat 2-3 studenten delen. Sluit af: 'Reflecteren is geen papiertje invullen - het is een vaardigheid die je moet oefenen!'" }
+        ],
+        discussionQuestions: [
+          { question: "Wat is het verschil tussen beschrijven en reflecteren?", expectedAnswers: ["Beschrijven = WAT er gebeurde (feiten, gebeurtenissen)", "Reflecteren = WAT JE ERVAN LEERT (inzicht, betekenis)", "Bij beschrijven blijf je aan de oppervlakte, bij reflecteren ga je de diepte in", "Reflecteren verbindt de ervaring aan theorie, richtlijnen of competenties", "Beschrijven kan iedereen, reflecteren vraagt zelfinzicht en eerlijkheid"] },
+          { question: "Hoe ontvang je feedback zonder defensief te worden?", expectedAnswers: ["Luister eerst helemaal uit zonder te onderbreken", "Vraag door: 'Kun je een voorbeeld geven?' of 'Wat bedoel je precies?'", "Bedank de ander voor de feedback (ook als je het er niet mee eens bent)", "Neem tijd om het te verwerken voordat je reageert", "Zie feedback als een cadeautje: iemand neemt de moeite om je te helpen verbeteren", "Je hoeft het niet meteen op te lossen - noteer het en denk er later over na"] },
+          { question: "Welke rol speelt reflecteren in je professionele ontwikkeling?", expectedAnswers: ["Je leert van je ervaringen in plaats van ze alleen mee te maken", "Je wordt bewust bekwaam: je weet niet alleen WAT je doet, maar ook WAAROM", "Je bouwt je portfolio op met bewijzen van je competenties", "Je bereidt je voor op stagegesprekken en voortgangsgesprekken", "Je ontwikkelt zelfinzicht: waar ben je goed in, waar moet je aan werken?", "Het is de basis van leven lang leren in de zorg"] }
+        ],
+        groupWork: {
+          title: "Peer Feedback Oefening op STARR-reflecties",
+          durationMinutes: 15,
+          steps: [
+            "Wissel je STARR-reflectie met een klasgenoot. Lees elkaars reflectie aandachtig door (2 min per reflectie).",
+            "Check per onderdeel: S - Is de situatie objectief beschreven? Alleen feiten? T - Is duidelijk wat de rol/verantwoordelijkheid was?",
+            "Check: A - Is beschreven wat de persoon ZELF deed? Staat er 'ik' en niet 'wij'? R - Is het resultaat beschreven, inclusief onverwachte uitkomsten?",
+            "Check de Reflectie (belangrijkst!): Is er ECHT gereflecteerd of alleen samengevat? Is er een koppeling met theorie/KD? Zijn er concrete verbeterpunten?",
+            "Geef feedback: 1 concreet compliment + 1 concrete tip. Wees specifiek! Niet: 'goed geschreven' maar: 'je hebt goed uitgelegd wat je voelde bij de A'",
+            "Bespreek samen: wat kunnen jullie van elkaar leren? Welke tips neem je mee?",
+            "Pas je eigen reflectie aan op basis van de feedback die je kreeg."
+          ]
+        }
+      },
+      // Detailed content for teacher handbook
+      detailedContent: {
+        STARR: {
+          S: {
+            title: "Situatie",
+            explanation: "Beschrijf de situatie objectief, alsof je een filmcamera bent. Alleen feiten, nog geen mening of gevoel!",
+            helpQuestions: ["Waar speelde dit zich af?", "Wie waren erbij betrokken?", "Wat was de aanleiding?", "Wanneer gebeurde dit?"],
+            example: "Op dinsdag tijdens de avonddienst in het verpleeghuis kreeg mevrouw De Vries (82) plotseling pijn op de borst. Ik was als enige verpleegkundige aanwezig, samen met twee verzorgenden.",
+            commonMistakes: ["Te veel details die niet relevant zijn", "Al meningen of gevoelens toevoegen", "De situatie en taak door elkaar halen"]
+          },
+          T: {
+            title: "Taak",
+            explanation: "Beschrijf wat jouw rol en verantwoordelijkheid was in deze situatie.",
+            helpQuestions: ["Wat werd er van jou verwacht?", "Wat was jouw functie op dat moment?", "Wie had de leiding?", "Welke verantwoordelijkheden had jij?"],
+            example: "Als dienstdoende verpleegkundige was ik verantwoordelijk voor de medische beoordeling en het nemen van beslissingen over vervolgacties.",
+            commonMistakes: ["Verwarren met de situatie", "Te algemeen blijven", "Verantwoordelijkheden onderschatten of overschatten"]
+          },
+          A: {
+            title: "Actie",
+            explanation: "Beschrijf precies wat JIJ deed (niet wat het team deed). Gebruik ik-taal, geen wij of men.",
+            helpQuestions: ["Wat heb je gedaan?", "In welke volgorde?", "Welke keuzes maakte je?", "Wat zei je?"],
+            example: "Ik ben direct naar mevrouw toegegaan en heb ABCDE toegepast. Ik heb haar vitale functies gemeten: bloeddruk 160/95, pols 110, saturatie 94%. Ik heb de huisarts gebeld via SBAR en nitroglycerine sublinguaal gegeven.",
+            commonMistakes: ["'Wij' gebruiken in plaats van 'ik'", "Te kort en vaag blijven", "Alleen het resultaat beschrijven, niet de stappen"]
+          },
+          R1: {
+            title: "Resultaat",
+            explanation: "Beschrijf het resultaat: wat gebeurde er als gevolg van jouw acties? Beschrijf ook onverwachte of negatieve resultaten.",
+            helpQuestions: ["Wat was de uitkomst?", "Hoe reageerden anderen?", "Werd het doel bereikt?", "Wat was het effect?"],
+            example: "De huisarts kwam binnen 15 minuten en besloot mevrouw te laten insturen naar het ziekenhuis. De ambulance was er na 20 minuten. Mevrouw was gerustgesteld door mijn uitleg. Achteraf bleek het een angina pectoris aanval te zijn.",
+            commonMistakes: ["Alleen positieve resultaten noemen", "Het resultaat verzinnen of aanpassen", "Te kort zijn over het effect op anderen"]
+          },
+          R2: {
+            title: "Reflectie",
+            explanation: "Dit is het belangrijkste deel! Wat heb je geleerd? Koppel aan theorie en competenties. Dit is GEEN samenvatting!",
+            helpQuestions: ["Wat ging goed en waarom?", "Wat had ik anders kunnen doen?", "Wat heb ik geleerd?", "Wat neem ik mee naar een volgende keer?", "Welke theorie/richtlijn is van toepassing?"],
+            example: "Ik ben tevreden dat ik rustig bleef en systematisch werkte met ABCDE. Door de SBAR te gebruiken kon ik duidelijk communiceren. Wat ik anders zou doen: ik had het ECG-apparaat sneller kunnen pakken. Ik merk dat ik onder druk goed functioneer, maar wil nog oefenen met acute hartklachten herkennen. Dit sluit aan bij KD B1-K1-W5: handelen in acute situaties.",
+            commonMistakes: ["Alleen samenvatten wat er gebeurde", "Geen koppeling met theorie of KD", "Geen concrete verbeterpunten formuleren", "Te oppervlakkig blijven: 'het ging goed'"]
+          }
+        },
+        feedbackRegels: {
+          geven: ["Wees specifiek: niet 'goed gedaan' maar 'je hebt duidelijk beschreven wat je voelde'", "Beschrijf gedrag, niet de persoon", "Geef concrete suggesties voor verbetering", "Balanceer positief en constructief"],
+          ontvangen: ["Luister uit zonder te onderbreken", "Vraag door als iets onduidelijk is", "Bedank voor de feedback", "Neem tijd om te verwerken", "Je hoeft het niet meteen op te lossen"]
+        }
+      },
       recommendations: [
-        { id: "mat-refl-1", title: "STARR-reflectie werkblad (B1-K3-W2)", fileName: "B1-K3-W2-starr-werkblad.txt", contentType: "Werkblad", score: 0.665, snippet: "STARR-reflectie: S – Situatie: wat gebeurde er? T – Taak: wat was jouw verantwoordelijkheid?..." },
-        { id: "mat-refl-2", title: "Reflectievragen stagegesprek (B1-K3-W2)", fileName: "B1-K3-W2-reflectievragen.txt", contentType: "Reflectie", score: 0.605, snippet: "Reflectievragen: 1) Welke situatie vond je lastig en waarom? 2) Wat deed je goed in het contact met de zorgvrager?..." }
+        { id: "mat-refl-1", title: "STARR-reflectie werkblad (B1-K3-W2)", fileName: "B1-K3-W2-starr-werkblad.txt", contentType: "Werkblad", score: 0.665, snippet: "STARR-werkblad met invulvelden en hulpvragen. S: Waar, wie, wat, wanneer? T: Jouw rol en verantwoordelijkheid. A: Wat deed JIJ precies (ik-taal)? R: Wat was het resultaat? R: Wat leer je hiervan?" },
+        { id: "mat-refl-2", title: "Reflectievragen voor stagegesprek (B1-K3-W2)", fileName: "B1-K3-W2-reflectievragen.txt", contentType: "Reflectie", score: 0.605, snippet: "Reflectievragen: 1) Welke situatie vond je lastig en waarom? 2) Wat deed je goed? 3) Wat zou je anders doen? 4) Welke competentie heb je ontwikkeld? 5) Wat is je leerdoel?" },
+        { id: "mat-refl-3", title: "Gids: Feedback geven en ontvangen (B1-K3-W2)", fileName: "B1-K3-W2-feedback-gids.txt", contentType: "Gids", score: 0.578, snippet: "Feedback geven: wees specifiek, beschrijf gedrag (niet persoon), geef concrete suggesties. Feedback ontvangen: luister uit, vraag door, bedank, verwerk later." }
       ],
       citations: [
-        { source: "mes", course_id: "mes:kd2026-vig-vp", item_index: 12, similarity: 0.85, text: "De beginnend beroepsbeoefenaar evalueert de werkzaamheden en ontwikkelt zichzelf als professional..." }
+        { source: "mes", course_id: "mes:kd2026-vig-vp", item_index: 12, similarity: 0.85, text: "De beginnend beroepsbeoefenaar evalueert de werkzaamheden en ontwikkelt zichzelf als professional. Reflecteert op het eigen handelen en formuleert verbeterpunten..." },
+        { source: "material", course_id: "material:refl-starr-01", item_index: 0, similarity: 0.66, text: "STARR-reflectie werkblad: S – Situatie: beschrijf objectief. T – Taak: jouw rol. A – Actie: wat deed JIJ. R – Resultaat: uitkomst. R – Reflectie: wat leer je, koppel aan theorie..." }
       ]
     };
 
@@ -1874,29 +2133,83 @@
           keyConcepts: ["Veilige zorg", "Eigen regie", "Zorgplan", "Hygiëne", "Rapportage"]
         },
         teacherScript: [
-          { time: "0-5 min", phase: "Start", action: "Activeer", content: "Bespreek: 'Welke zorghandeling vind je lastig? Wat kan er misgaan?'" },
-          { time: "5-10 min", phase: "Start", action: "Verbind", content: "Link naar het zorgplan: interventies staan beschreven, maar uitvoering vraagt aandacht." },
-          { time: "10-25 min", phase: "Kern", action: "Demonstratie", content: "Docent demonstreert bloeddruk meten: voorbereiding, uitleg aan cliënt, uitvoering, rapportage." },
-          { time: "25-45 min", phase: "Kern", action: "Oefenen", content: "Studenten oefenen in tweetallen. Partner speelt cliënt, observator checkt protocol." },
-          { time: "45-50 min", phase: "Afsluiting", action: "Reflectie", content: "Klassikale nabespreking: Wat ging goed? Waar moet je op letten? Hoe rapporteer je?" }
+          { time: "0-5 min", phase: "Start", action: "Activeer", content: "Vraag aan de klas: 'Welke zorghandeling vind je lastig om uit te voeren? En wat kan er misgaan als je niet oplet?' Verzamel antwoorden: bloeddruk meten, injecties geven, wondverzorging, katheterisatie, etc. Bespreek kort: elke handeling vraagt voorbereiding, uitleg en zorgvuldigheid." },
+          { time: "5-10 min", phase: "Start", action: "Verbind", content: "Link naar het zorgplan: 'In het zorgplan staat WELKE interventies nodig zijn. Maar hoe je ze uitvoert, dat is jullie vakmanschap.' Leg uit: 'Elke interventie heeft 4 fasen: Voorbereiding, Uitleg aan zorgvrager (eigen regie!), Uitvoering, Rapportage. Vergeet er geen!' Link naar KD B1-K1-W3." },
+          { time: "10-20 min", phase: "Kern", action: "Protocol bloeddruk", content: "Demonstreer bloeddruk meten met uitgebreid protocol:\n\nVOORBEREIDING:\n1. Was je handen volgens de 6-stappen methode (30 seconden met zeep, goed afspoelen, droogdeppen)\n2. Verzamel materiaal: bloeddrukmeter, juiste manchetmaat\n3. Controleer of apparatuur werkt (batterijen, slangetje)\n4. Kijk in zorgplan: zijn er bijzonderheden? (bijv. niet aan rechterarm door shunt)\n\nUITLEG AAN ZORGVRAGER (eigen regie!):\n5. Stel jezelf voor als dat nog niet is gebeurd\n6. Leg uit: 'Ik ga uw bloeddruk meten om te kijken hoe uw hart en bloedvaten werken'\n7. Vraag: 'Is dat goed?' (toestemming = informed consent)\n8. Vraag: 'Heeft u vragen of bijzonderheden?'" },
+          { time: "20-28 min", phase: "Kern", action: "Protocol vervolg", content: "UITVOERING:\n9. Laat zorgvrager minimaal 5 minuten rustig zitten\n10. Ondersteun de arm op harthoogte (tafel of kussen)\n11. Leg manchet 2-3 cm boven elleboogplooi\n12. Manchet niet te strak: 1-2 vingers eronder\n13. Start meting, vraag zorgvrager stil te zijn\n14. Wacht op resultaat\n\nNAZORG:\n15. Verwijder manchet voorzichtig\n16. Vertel het resultaat aan zorgvrager: 'Uw bloeddruk is 135/85'\n17. Leg uit wat normaal is: 'Normaal is rond de 120/80'\n18. Vraag: 'Heeft u nog vragen?'\n\nRAPPORTAGE:\n19. Noteer in dossier: datum, tijd, waarde, welke arm (L/R), houding (zittend/liggend), bijzonderheden\n20. Vergelijk met vorige metingen: trend?\n21. Bij afwijkende waarden: meld direct aan collega/arts" },
+          { time: "28-45 min", phase: "Kern", action: "Oefenen in tweetallen", content: "Studenten oefenen in tweetallen (wisselend na 8 min). Rollen: (1) Verzorgende: voert handeling uit volgens protocol, (2) Zorgvrager: speelt realistische reacties ('Niet aan die arm!', 'Wat gaat u doen?'), (3) Observator: checkt protocol met checklist. Geef de checklist uit met alle stappen. Observator let op: handhygiëne, uitleg vooraf, toestemming vragen, juiste techniek, nazorg, rapportage. Loop rond en geef feedback." },
+          { time: "45-50 min", phase: "Afsluiting", action: "Nabespreking", content: "Klassikale nabespreking. Vraag: 'Wat ging goed? Wat was lastig?' Bespreek veelgemaakte fouten: handhygiëne vergeten, geen toestemming gevraagd, manchet verkeerd geplaatst, resultaat niet uitgelegd aan zorgvrager. Benadruk: 'Eigen regie betekent dat je ALTIJD uitlegt en vraagt. Ook bij routinehandelingen!' Vraag: 'Hoe rapporteer je een afwijkende waarde?' Sluit af: 'Vakmanschap zit in de details - elke stap telt.'" }
         ],
         discussionQuestions: [
-          { question: "Hoe vraag je toestemming aan de zorgvrager?", expectedAnswers: ["Uitleggen wat je gaat doen", "Vragen of het goed is", "Alternatieven bieden"] },
-          { question: "Wat doe je als de zorgvrager weigert?", expectedAnswers: ["Respecteren", "Doorvragen naar reden", "Rapporteren en overleggen"] }
+          { question: "Hoe vraag je toestemming aan de zorgvrager (informed consent)?", expectedAnswers: ["Leg eerst uit WAT je gaat doen en WAAROM: 'Ik ga uw bloeddruk meten om te controleren hoe uw hart werkt'", "Gebruik begrijpelijke taal, geen vaktermen", "Vraag expliciet: 'Is dat goed?' of 'Mag ik beginnen?'", "Bied alternatieven als die er zijn: 'Wilt u liever zitten of liggen?'", "Geef tijd om na te denken en vragen te stellen", "Bij twijfel over wilsbekwaamheid: schakel collega of contactpersoon in"] },
+          { question: "Wat doe je als de zorgvrager weigert?", expectedAnswers: ["Respecteer de weigering - de zorgvrager heeft het recht om nee te zeggen", "Vraag door naar de reden: 'Mag ik vragen waarom u dit niet wilt?'", "Soms is er angst, pijn of een misverstand dat je kunt wegnemen", "Leg de consequenties uit zonder te dreigen: 'Als we uw bloeddruk niet meten, kan ik niet inschatten of...'", "Bied een alternatief moment aan: 'Zullen we het over een uurtje opnieuw proberen?'", "Documenteer de weigering en de reden in het dossier", "Overleg met collega of arts als de interventie medisch noodzakelijk is"] },
+          { question: "Waarom is handhygiëne zo belangrijk bij zorghandelingen?", expectedAnswers: ["Voorkomt overdracht van ziektekiemen tussen zorgvragers", "Beschermt de zorgvrager tegen infecties (vooral kwetsbare ouderen)", "Beschermt jezelf als zorgverlener", "Is de belangrijkste maatregel tegen zorginfecties", "6-stappen methode: palm, rug, tussen vingers, knokkels, duimen, nagels", "30 seconden met zeep OF handalcohol als handen niet zichtbaar vuil zijn", "VOOR en NA elk cliëntcontact, na handschoenen uit, voor schone handelingen"] }
         ],
         groupWork: {
-          title: "Praktijkoefening: ADL-ondersteuning",
+          title: "Praktijkoefening: Bloeddruk meten volgens protocol",
           durationMinutes: 20,
-          steps: ["Verdeel rollen: verzorgende, cliënt, observator", "Voer een wasbeurt bovenlichaam uit", "Gebruik de checklist voor feedback", "Wissel van rol", "Bespreek verbeterpunten"]
+          steps: [
+            "Verdeel rollen: verzorgende (voert uit), zorgvrager (speelt cliënt), observator (checkt met lijst). Na 8 minuten wisselen.",
+            "Verzorgende: Begin met handhygiëne (6 stappen, 30 sec). Verzamel materiaal, check apparatuur.",
+            "Verzorgende: Stel jezelf voor, leg uit wat je gaat doen: 'Ik ga uw bloeddruk meten om te kijken hoe uw hart werkt. Is dat goed?'",
+            "Zorgvrager: Reageer realistisch. Stel vragen ('Doet dat pijn?'), geef weerstand ('Liever niet aan die arm'), wees wat onrustig.",
+            "Verzorgende: Voer de meting uit volgens protocol. Vertel het resultaat. Vraag of er vragen zijn.",
+            "Verzorgende: Rapporteer hardop wat je zou noteren: datum, tijd, waarde, arm, houding, bijzonderheden.",
+            "Observator: Check met de checklist. Geef na afloop feedback: 1 compliment + 1 verbeterpunt."
+          ]
+        }
+      },
+      // Detailed content for teacher handbook
+      detailedContent: {
+        handhygiene: {
+          stappen: [
+            "Maak handen nat onder stromend water",
+            "Neem zeep en verdeel over handen",
+            "Stap 1: Wrijf palm tegen palm",
+            "Stap 2: Wrijf rechterpalm over linkerhandrug en vice versa",
+            "Stap 3: Wrijf palm tegen palm met vingers in elkaar",
+            "Stap 4: Wrijf rugkant vingers tegen palm andere hand",
+            "Stap 5: Wrijf duim in gesloten palm en vice versa",
+            "Stap 6: Draai vingertoppen in palm (nagels) en vice versa",
+            "Spoel af onder stromend water",
+            "Dep droog met papieren handdoek"
+          ],
+          wanneer: ["VOOR direct cliëntcontact", "VOOR schone/aseptische handelingen", "NA blootstelling aan lichaamsvloeistoffen", "NA cliëntcontact", "NA contact met cliëntomgeving"]
+        },
+        protocolBloeddruk: {
+          voorbereiding: ["Was handen (6-stappen methode)", "Verzamel materiaal: bloeddrukmeter, juiste manchetmaat", "Controleer apparatuur", "Check zorgplan voor bijzonderheden"],
+          uitleg: ["Stel jezelf voor", "Leg uit wat je gaat doen en waarom", "Vraag toestemming (informed consent)", "Vraag of er vragen zijn"],
+          uitvoering: ["Laat zorgvrager 5 min rustig zitten", "Ondersteun arm op harthoogte", "Leg manchet 2-3 cm boven elleboogplooi", "Manchet niet te strak (1-2 vingers)", "Start meting, vraag om stilte"],
+          nazorg: ["Verwijder manchet voorzichtig", "Vertel resultaat", "Leg uit wat normaal is", "Vraag of er vragen zijn"],
+          rapportage: ["Noteer: datum, tijd, waarde, arm, houding", "Vergelijk met vorige metingen", "Meld afwijkingen aan collega/arts"]
+        },
+        ADLcategorieën: {
+          wassen: "Hulp bij persoonlijke hygiëne: wassen gezicht, bovenlichaam, onderlichaam, haren wassen",
+          aankleden: "Hulp bij kleding: bovenkeding, onderkeding, schoeisel, hulpmiddelen",
+          eten: "Hulp bij voeding: maaltijdbereiding, eten aanreiken, voeden, drinken",
+          mobiliteit: "Hulp bij bewegen: transfers (bed-stoel), lopen, traplopen, rolstoel",
+          toiletgang: "Hulp bij toiletbezoek: naar toilet brengen, continentiezorg, katheter, stoma",
+          communicatie: "Ondersteuning bij communicatie: gehoor, zicht, spraak, hulpmiddelen"
+        },
+        eigenRegie: {
+          definitie: "Eigen regie betekent dat de zorgvrager zelf de regie houdt over zijn/haar leven en zorg, ook als er hulp nodig is.",
+          inPraktijk: [
+            "ALTIJD uitleggen wat je gaat doen voordat je begint",
+            "ALTIJD toestemming vragen (ook bij routinehandelingen)",
+            "Keuzes aanbieden waar mogelijk: 'Wilt u eerst uw gezicht of uw armen wassen?'",
+            "Respecteer tempo van de zorgvrager",
+            "Stimuleer zelfstandigheid: doe niet VOOR wat iemand ZELF kan",
+            "Accepteer weigering - de zorgvrager beslist"
+          ]
         }
       },
       recommendations: [
-        { id: "mat-zorg-1", title: "Checklist zorginterventies veilig uitvoeren (B1-K1-W3)", fileName: "B1-K1-W3-checklist-zorginterventies.txt", contentType: "Checklist", score: 0.712, snippet: "Checklist (praktijk): 1) Controleer zorgplan en afspraken. 2) Leg de interventie uit aan de zorgvrager (eigen regie)..." },
-        { id: "mat-zorg-2", title: "Protocol ADL-ondersteuning (B1-K1-W3)", fileName: "B1-K1-W3-protocol-adl.txt", contentType: "Protocol", score: 0.645, snippet: "ADL-ondersteuning: Voorbereiding, uitvoering, nazorg. Stap 1: Verzamel materialen en check privacy..." }
+        { id: "mat-zorg-1", title: "Checklist zorginterventies veilig uitvoeren (B1-K1-W3)", fileName: "B1-K1-W3-checklist-zorginterventies.txt", contentType: "Checklist", score: 0.712, snippet: "Checklist: 1) Handhygiëne uitgevoerd 2) Zorgplan geraadpleegd 3) Uitleg gegeven aan zorgvrager 4) Toestemming gevraagd 5) Correct uitgevoerd 6) Resultaat gecommuniceerd 7) Gerapporteerd" },
+        { id: "mat-zorg-2", title: "Protocol ADL-ondersteuning (B1-K1-W3)", fileName: "B1-K1-W3-protocol-adl.txt", contentType: "Protocol", score: 0.645, snippet: "ADL-protocol: Voorbereiding (materiaal, privacy), Uitleg (wat, waarom, toestemming), Uitvoering (veilig, eigen regie), Nazorg (comfort, observaties), Rapportage (dossier, bijzonderheden)" }
       ],
       citations: [
-        { source: "mes", course_id: "mes:kd2026-vig-vp", item_index: 3, similarity: 0.91, text: "De beginnend beroepsbeoefenaar voert de interventies uit zoals beschreven in het zorgplan, stimuleert de eigen regie van de zorgvrager..." },
-        { source: "material", course_id: "material:f3a92178", item_index: 0, similarity: 0.71, text: "Checklist zorginterventies: 1) Controleer zorgplan en afspraken. 2) Leg de interventie uit aan de zorgvrager..." }
+        { source: "mes", course_id: "mes:kd2026-vig-vp", item_index: 3, similarity: 0.91, text: "De beginnend beroepsbeoefenaar voert de interventies uit zoals beschreven in het zorgplan, stimuleert de eigen regie van de zorgvrager, hanteert hygiënerichtlijnen..." },
+        { source: "material", course_id: "material:f3a92178", item_index: 0, similarity: 0.71, text: "Checklist zorginterventies: 1) Handhygiëne (6 stappen) 2) Check zorgplan 3) Uitleg vooraf 4) Vraag toestemming 5) Voer uit volgens protocol 6) Communiceer resultaat 7) Rapporteer..." }
       ]
     };
 
@@ -1934,6 +2247,7 @@
     }
 
     function closeModal(event) {
+      // If event is provided, only close if clicking the overlay itself (not child elements)
       if (event && event.target !== event.currentTarget) return;
       document.getElementById('modalOverlay').classList.remove('active');
       state.modalCallback = null;
@@ -1972,6 +2286,23 @@
         'mes': 'Alleen MES'
       };
       showToast(`Scope: ${scopeNames[scope]}`, 'info');
+      
+      // Re-filter existing citations if a lesson plan is displayed
+      if (state.currentPlan && state.currentCitations) {
+        let filteredCitations = state.currentCitations;
+        if (scope === 'materials') {
+          filteredCitations = state.currentCitations.filter(c => c.source === 'material');
+        } else if (scope === 'mes') {
+          filteredCitations = state.currentCitations.filter(c => c.source === 'mes');
+        }
+        
+        if (filteredCitations && filteredCitations.length > 0) {
+          renderCitations(filteredCitations);
+        } else {
+          document.getElementById('sourcesEmpty').classList.remove('hidden');
+          document.getElementById('sourcesContent').classList.add('hidden');
+        }
+      }
     }
 
     function handleMaterialChange(materialId) {
@@ -2034,13 +2365,14 @@
     function clearChat() {
       state.messages = [];
       state.currentPlan = null;
+      state.currentCitations = null;
       document.getElementById('chatMessages').innerHTML = `
         <div class="empty-state" id="emptyState">
           <div class="empty-state-icon">💡</div>
           <h2>Welkom bij e-Xpert SAM</h2>
           <p>
-            Stel een vraag en krijg direct een compleet lesplan, afgestemd op het KD 2026. 
-            Kies een van de suggesties hieronder of typ je eigen vraag.
+            Vertel wat je wilt bereiken met je les, en ik maak een compleet lesplan voor je.
+            De KD-aansluiting regel ik automatisch. Kies een onderwerp hieronder of typ je eigen vraag.
           </p>
         </div>
       `;
@@ -2059,8 +2391,8 @@
 
     function useSuggestion(text) {
       document.getElementById('chatInput').value = text;
-      document.getElementById('chatInput').focus();
-      showToast('Suggestie ingevuld - klik Verstuur', 'info');
+      // Auto-send for smooth demo experience
+      sendMessage();
     }
 
     function handleInputKeydown(event) {
@@ -2071,22 +2403,64 @@
     }
 
     function detectQueryType(text) {
-      const lowerText = text.toLowerCase();
+      const lowerText = text.toLowerCase().trim();
       
-      if (lowerText.includes('abcde') || lowerText.includes('acute') || lowerText.includes('b1-k1-w5')) {
+      // Greetings and chitchat - detect FIRST before topic-specific queries
+      const greetings = ['hallo', 'hello', 'hi', 'hoi', 'hey', 'goedemorgen', 'goedemiddag', 'goedenavond', 
+                         'dag', 'hee', 'yo', 'welkom', 'bedankt', 'dank je', 'thanks', 'dankjewel',
+                         'wie ben jij', 'wat kun je', 'wat kan je', 'help', 'wat doe je', 'wie ben je',
+                         'wat is dit', 'hoe werkt dit', 'hoe werkt het', 'uitleg', 'introductie'];
+      if (greetings.some(g => lowerText === g || lowerText.startsWith(g + ' ') || lowerText.endsWith(' ' + g))) {
+        return 'greeting';
+      }
+      
+      // Short casual messages (under 15 chars without specific keywords)
+      if (lowerText.length < 15 && !lowerText.includes('les') && !lowerText.includes('plan') && 
+          !lowerText.includes('zorg') && !lowerText.includes('kd') && !lowerText.includes('b1-')) {
+        return 'greeting';
+      }
+      
+      // KD informational questions - "wat is het kd", "wat is kd", "leg uit kd", etc.
+      if ((lowerText.includes('wat is') && lowerText.includes('kd')) ||
+          (lowerText.includes('wat zijn') && lowerText.includes('kd')) ||
+          (lowerText.includes('leg uit') && lowerText.includes('kd')) ||
+          (lowerText.includes('uitleg') && lowerText.includes('kd')) ||
+          lowerText.includes('kwalificatiedossier') ||
+          (lowerText.includes('wat betekent') && (lowerText.includes('kd') || lowerText.includes('b1-'))) ||
+          (lowerText.includes('werkproces') && !lowerText.includes('lesplan') && !lowerText.includes('maak'))) {
+        return 'kd_info';
+      }
+      
+      // B1-K1-W5: Emergency/ABCDE - expanded with natural language keywords
+      if (lowerText.includes('abcde') || lowerText.includes('acute') || lowerText.includes('nood') || 
+          lowerText.includes('spoed') || lowerText.includes('alarm') || lowerText.includes('noodsituatie') ||
+          lowerText.includes('levensbedreigende') || lowerText.includes('reanimatie') || lowerText.includes('b1-k1-w5')) {
         return 'abcde';
       }
-      if (lowerText.includes('samenwerk') || lowerText.includes('sbar') || lowerText.includes('mdo') || lowerText.includes('b1-k2-w2')) {
+      // B1-K2-W2: Collaboration/SBAR - expanded with natural language keywords
+      if (lowerText.includes('samenwerk') || lowerText.includes('team') || lowerText.includes('sbar') || 
+          lowerText.includes('mdo') || lowerText.includes('overdracht') || lowerText.includes('communicat') ||
+          lowerText.includes('collega') || lowerText.includes('multidisciplin') || lowerText.includes('b1-k2-w2')) {
         return 'samenwerking';
       }
-      if (lowerText.includes('reflect') || lowerText.includes('starr') || lowerText.includes('stage') || lowerText.includes('b1-k3-w2')) {
+      // B1-K3-W2: Reflection - expanded with natural language keywords
+      if (lowerText.includes('reflect') || lowerText.includes('starr') || lowerText.includes('stage') || 
+          lowerText.includes('feedback') || lowerText.includes('leren van') || lowerText.includes('evalueren') ||
+          lowerText.includes('verbeterpunt') || lowerText.includes('ontwikkel') || lowerText.includes('portfolio') ||
+          lowerText.includes('b1-k3-w2')) {
         return 'reflectie';
       }
-      // B1-K1-W3: zorginterventies, ADL, verpleegtechnisch
-      if (lowerText.includes('interventie') || lowerText.includes('adl') || lowerText.includes('verpleegtechnisch') || lowerText.includes('b1-k1-w3') || lowerText.includes('bloeddruk') || lowerText.includes('wond')) {
+      // B1-K1-W3: Care interventions - expanded with natural language keywords
+      if (lowerText.includes('interventie') || lowerText.includes('adl') || lowerText.includes('verpleegtechnisch') || 
+          lowerText.includes('handeling') || lowerText.includes('bloeddruk') || lowerText.includes('wond') ||
+          lowerText.includes('medicijn') || lowerText.includes('verzorging') || lowerText.includes('uitvoeren') ||
+          lowerText.includes('veilig') || lowerText.includes('b1-k1-w3')) {
         return 'zorginterventies';
       }
-      if (lowerText.includes('zorgplan') || lowerText.includes('b1-k1-w2') || lowerText.includes('bijstellen')) {
+      // B1-K1-W2: Care plan - expanded with natural language keywords
+      if (lowerText.includes('zorgplan') || lowerText.includes('bijstellen') || lowerText.includes('doel') || 
+          lowerText.includes('signaler') || lowerText.includes('verandert') || lowerText.includes('aanpassen') ||
+          lowerText.includes('situatie verandert') || lowerText.includes('b1-k1-w2')) {
         return 'zorgplan';
       }
       // Default to zorgplan for demo
@@ -2123,6 +2497,59 @@
         let responseText, plan, recommendations, citations;
 
         switch (queryType) {
+          case 'greeting':
+            plan = null;
+            recommendations = null;
+            citations = null;
+            const greetingResponses = [
+              `Hallo! Ik ben **e-Xpert SAM**, je persoonlijke lesplan-assistent.
+
+Ik help je met het maken van lesplannen die aansluiten bij het **KD 2026**. Vertel me wat je je studenten wilt leren, en ik maak een compleet lesplan met:
+• Quick Start voor snelle voorbereiding
+• Docentenscript met tijdsindeling
+• Discussievragen en groepsopdrachten
+• Relevante materialen uit jullie database
+
+Kies een onderwerp uit de suggesties, of stel je eigen vraag!`,
+              `Hoi! Leuk dat je er bent. Ik ben **e-Xpert SAM**.
+
+Ik kan je helpen met lesplannen voor de Verpleegkundige opleiding. Vertel me welk onderwerp je wilt behandelen - bijvoorbeeld zorgplannen bijstellen, ABCDE-methodiek, of reflecteren - en ik maak een kant-en-klaar lesplan.
+
+Waar wil je een les over maken?`,
+              `Welkom bij **e-Xpert SAM**! 
+
+Ik ben hier om je te helpen met lesvoorbereiding. Geef me een onderwerp of vraag, en ik genereer een lesplan dat aansluit bij het kwalificatiedossier.
+
+Tip: klik op een van de suggesties hieronder om direct te starten!`
+            ];
+            responseText = greetingResponses[Math.floor(Math.random() * greetingResponses.length)];
+            // Show suggestion chips again for greetings
+            document.getElementById('suggestionChips').classList.remove('hidden');
+            break;
+
+          case 'kd_info':
+            plan = null;
+            recommendations = null;
+            citations = null;
+            responseText = `Het **KD** staat voor **Kwalificatiedossier** - dit is het landelijke document dat beschrijft wat een student moet kennen en kunnen om het diploma te behalen.
+
+**Voor VIG/VP (Verpleegkundige niveau 4) bevat het KD 2026:**
+
+• **Kerntaken** (K) - de hoofdtaken van het beroep
+• **Werkprocessen** (W) - de concrete activiteiten binnen elke kerntaak
+• **Beroepsspecifieke eisen** - vakkennis en vaardigheden
+
+**Voorbeelden van werkprocessen:**
+• **B1-K1-W2** - Zorgplan opstellen en bijstellen
+• **B1-K1-W3** - Zorginterventies uitvoeren
+• **B1-K1-W5** - Handelen in acute situaties (ABCDE)
+• **B1-K2-W2** - Samenwerken met zorgprofessionals
+• **B1-K3-W2** - Reflecteren en professioneel ontwikkelen
+
+Ik kan lesplannen maken die aansluiten bij elk werkproces. Kies een onderwerp hieronder of vraag om een specifiek KD-onderdeel!`;
+            document.getElementById('suggestionChips').classList.remove('hidden');
+            break;
+
           case 'abcde':
             plan = demoABCDE.lessonPlan;
             recommendations = demoABCDE.recommendations;
@@ -2146,16 +2573,14 @@ Bekijk het volledige lesplan rechts. Ik heb ook een SBAR-template en rollenspel-
             break;
 
           case 'reflectie':
-            plan = null;
+            plan = demoReflectie.lessonPlan;
             recommendations = demoReflectie.recommendations;
             citations = demoReflectie.citations;
-            responseText = `Ik heb **${recommendations.length} relevante materialen** gevonden over reflecteren en professionele ontwikkeling (B1-K3-W2).
+            responseText = `Ik heb een lesplan gemaakt voor **${plan.kdAlignment.code}** (${plan.kdAlignment.title}).
 
-**Gevonden materialen:**
-• STARR-reflectie werkblad - voor gestructureerde reflectie
-• Reflectievragen stagegesprek - voor begeleide reflectie
+Dit lesplan focust op gestructureerd reflecteren met de STARR-methode. Inclusief een peer feedback oefening waarin studenten elkaars reflecties bespreken.
 
-Klik op een materiaal om het te gebruiken in je les.`;
+Bekijk het volledige lesplan rechts. Ik heb ook werkbladen en reflectievragen gevonden.`;
             break;
 
           case 'zorginterventies':
@@ -2188,18 +2613,43 @@ Bekijk het volledige lesplan in het paneel rechts. Ik heb ook relevante material
           renderLessonPlan(plan);
           switchTab('lesplan');
         } else {
-          // No lesson plan - switch to materials tab
-          switchTab('materials');
+          // No lesson plan - clear and show empty state
+          state.currentPlan = null;
+          document.getElementById('lesplanEmpty').classList.remove('hidden');
+          document.getElementById('lesplanContent').classList.add('hidden');
+          // Don't switch tabs for info responses, stay on lesplan to show empty state
         }
         
-        // Show recommendations
-        if (recommendations && recommendations.length > 0) {
-          renderRecommendations(recommendations);
+        // Filter recommendations and citations by scope if set
+        let filteredRecommendations = recommendations;
+        let filteredCitations = citations;
+        
+        if (state.currentScope === 'materials' && citations) {
+          // Only show citations from 'material' source
+          filteredCitations = citations.filter(c => c.source === 'material');
+        } else if (state.currentScope === 'mes' && citations) {
+          // Only show citations from 'mes' source
+          filteredCitations = citations.filter(c => c.source === 'mes');
+        }
+        // 'all' scope shows everything (no filtering)
+        
+        // Show recommendations if available, otherwise clear
+        if (filteredRecommendations && filteredRecommendations.length > 0) {
+          renderRecommendations(filteredRecommendations);
+        } else {
+          document.getElementById('materialsEmpty').classList.remove('hidden');
+          document.getElementById('materialsContent').classList.add('hidden');
         }
         
-        // Show citations
-        if (citations && citations.length > 0) {
-          renderCitations(citations);
+        // Store original citations in state for re-filtering
+        state.currentCitations = citations;
+        
+        // Show citations if available, otherwise clear
+        if (filteredCitations && filteredCitations.length > 0) {
+          renderCitations(filteredCitations);
+        } else {
+          document.getElementById('sourcesEmpty').classList.remove('hidden');
+          document.getElementById('sourcesContent').classList.add('hidden');
         }
 
         state.isLoading = false;
@@ -2275,7 +2725,14 @@ Bekijk het volledige lesplan in het paneel rechts. Ik heb ook relevante material
             KD ${plan.kdAlignment.code}
           </div>
           <div class="lesson-plan-actions">
-            <button class="action-btn" onclick="window.print()" data-cta-id="cta-print-lesplan">
+            <button class="action-btn action-btn--download" onclick="openLesplanViewer()" data-cta-id="cta-open-lesplan-viewer">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+                <path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/>
+              </svg>
+              Bekijk volledig
+            </button>
+            <button class="action-btn" onclick="printLessonPlan()" data-cta-id="cta-print-lesplan">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M6 9V2h12v7M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2M6 14h12v8H6v-8z"/>
               </svg>
@@ -2544,6 +3001,1070 @@ Bekijk het volledige lesplan in het paneel rechts. Ik heb ook relevante material
       );
     }
 
+    function printLessonPlan() {
+      if (!state.currentPlan) {
+        showToast('Geen lesplan beschikbaar om te printen', 'warning');
+        return;
+      }
+      showToast('Lesplan wordt geprint...', 'info');
+      setTimeout(() => window.print(), 300);
+    }
+
+    function openLesplanViewer() {
+      if (!state.currentPlan) {
+        showToast('Geen lesplan beschikbaar', 'warning');
+        return;
+      }
+      
+      const plan = state.currentPlan;
+      const today = new Date().toLocaleDateString('nl-NL', { day: 'numeric', month: 'long', year: 'numeric' });
+      
+      // Generate the HTML content
+      const htmlContent = generateLesplanHTML(plan, today);
+      
+      // Open in new window
+      const newWindow = window.open('', '_blank');
+      newWindow.document.write(htmlContent);
+      newWindow.document.close();
+      
+      showToast('Lesplan geopend in nieuw tabblad', 'success');
+    }
+    
+    function generateLesplanHTML(plan, today) {
+      // Get detailed method content based on KD code
+      let methodContent = '';
+      const kdCode = plan.kdAlignment.code;
+      
+      if (kdCode === 'B1-K1-W5' && demoABCDE.detailedContent) {
+        methodContent = generateABCDEContent(demoABCDE.detailedContent.ABCDE);
+      } else if (kdCode === 'B1-K2-W2' && demoSamenwerking.detailedContent) {
+        methodContent = generateSBARContent(demoSamenwerking.detailedContent.SBAR);
+      } else if (kdCode === 'B1-K3-W2' && demoReflectie.detailedContent) {
+        methodContent = generateSTARRContent(demoReflectie.detailedContent.STARR);
+      } else if (kdCode === 'B1-K1-W2' && demoLessonPlan.detailedContent) {
+        methodContent = generateSMARTContent(demoLessonPlan.detailedContent.SMART, demoLessonPlan.detailedContent.klinischRedeneren);
+      } else if (kdCode === 'B1-K1-W3' && demoZorginterventies.detailedContent) {
+        methodContent = generateZorgContent(demoZorginterventies.detailedContent);
+      }
+      
+      return `<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lesplan ${plan.kdAlignment.code} - e-Xpert SAM</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #2563eb;
+      --primary-dark: #1d4ed8;
+      --success: #22c55e;
+      --warning: #f59e0b;
+      --gray-50: #f9fafb;
+      --gray-100: #f3f4f6;
+      --gray-200: #e5e7eb;
+      --gray-300: #d1d5db;
+      --gray-500: #6b7280;
+      --gray-700: #374151;
+      --gray-900: #111827;
+    }
+    
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--gray-50);
+      color: var(--gray-900);
+      line-height: 1.6;
+    }
+    
+    .header {
+      background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+      color: white;
+      padding: 2rem;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+    }
+    
+    .header-content {
+      max-width: 900px;
+      margin: 0 auto;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+    
+    .header h1 {
+      font-size: 1.5rem;
+      font-weight: 700;
+    }
+    
+    .header-subtitle {
+      opacity: 0.9;
+      font-size: 0.9rem;
+      margin-top: 0.25rem;
+    }
+    
+    .header-actions {
+      display: flex;
+      gap: 0.75rem;
+    }
+    
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.75rem 1.25rem;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      border: none;
+    }
+    
+    .btn-primary {
+      background: white;
+      color: var(--primary);
+    }
+    
+    .btn-primary:hover {
+      background: var(--gray-100);
+      transform: translateY(-1px);
+    }
+    
+    .btn-secondary {
+      background: rgba(255,255,255,0.2);
+      color: white;
+      border: 1px solid rgba(255,255,255,0.3);
+    }
+    
+    .btn-secondary:hover {
+      background: rgba(255,255,255,0.3);
+    }
+    
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 2rem;
+    }
+    
+    .toc {
+      background: white;
+      border-radius: 12px;
+      padding: 1.5rem 2rem;
+      margin-bottom: 2rem;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    
+    .toc h2 {
+      font-size: 1rem;
+      color: var(--gray-500);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 1rem;
+    }
+    
+    .toc-list {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+      gap: 0.5rem;
+      list-style: none;
+    }
+    
+    .toc-list a {
+      color: var(--primary);
+      text-decoration: none;
+      padding: 0.5rem;
+      border-radius: 6px;
+      display: block;
+      transition: background 0.2s;
+    }
+    
+    .toc-list a:hover {
+      background: var(--gray-100);
+    }
+    
+    .section {
+      background: white;
+      border-radius: 12px;
+      padding: 2rem;
+      margin-bottom: 1.5rem;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    
+    .section h2 {
+      font-size: 1.25rem;
+      color: var(--primary);
+      margin-bottom: 1.5rem;
+      padding-bottom: 0.75rem;
+      border-bottom: 2px solid var(--gray-100);
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+    
+    .section h2 .number {
+      background: var(--primary);
+      color: white;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.85rem;
+    }
+    
+    .section h3 {
+      font-size: 1rem;
+      color: var(--gray-700);
+      margin: 1.5rem 0 0.75rem;
+    }
+    
+    .quick-start-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+    
+    .quick-start-card {
+      background: var(--gray-50);
+      padding: 1rem;
+      border-radius: 8px;
+      text-align: center;
+    }
+    
+    .quick-start-card .time {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--primary);
+    }
+    
+    .quick-start-card .label {
+      font-size: 0.85rem;
+      color: var(--gray-500);
+    }
+    
+    .keywords {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-top: 1rem;
+    }
+    
+    .keyword {
+      background: var(--primary);
+      color: white;
+      padding: 0.35rem 0.75rem;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: 500;
+    }
+    
+    .script-item {
+      border-left: 3px solid var(--primary);
+      padding: 1rem 1.5rem;
+      margin-bottom: 1rem;
+      background: var(--gray-50);
+      border-radius: 0 8px 8px 0;
+    }
+    
+    .script-item.phase-start { border-left-color: var(--success); }
+    .script-item.phase-kern { border-left-color: var(--primary); }
+    .script-item.phase-afsluiting { border-left-color: var(--warning); }
+    
+    .script-header {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      margin-bottom: 0.5rem;
+    }
+    
+    .script-time {
+      background: var(--gray-200);
+      padding: 0.25rem 0.5rem;
+      border-radius: 4px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--gray-700);
+    }
+    
+    .script-phase {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--gray-500);
+    }
+    
+    .script-action {
+      font-weight: 600;
+      color: var(--gray-900);
+    }
+    
+    .script-content {
+      color: var(--gray-700);
+      font-size: 0.95rem;
+    }
+    
+    .question-card {
+      background: var(--gray-50);
+      border-radius: 8px;
+      padding: 1.25rem;
+      margin-bottom: 1rem;
+    }
+    
+    .question-card h4 {
+      color: var(--gray-900);
+      margin-bottom: 0.75rem;
+    }
+    
+    .question-card ul {
+      margin-left: 1.25rem;
+      color: var(--gray-600);
+    }
+    
+    .question-card li {
+      margin-bottom: 0.25rem;
+    }
+    
+    .assignment-box {
+      background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+      border: 1px solid #bae6fd;
+      border-radius: 12px;
+      padding: 1.5rem;
+    }
+    
+    .assignment-box h3 {
+      color: var(--primary);
+      margin-top: 0;
+    }
+    
+    .assignment-box ol {
+      margin-left: 1.25rem;
+      margin-top: 1rem;
+    }
+    
+    .assignment-box li {
+      margin-bottom: 0.5rem;
+    }
+    
+    .kd-check {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 0.75rem;
+    }
+    
+    .kd-check-item {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.75rem;
+      background: #f0fdf4;
+      border-radius: 6px;
+      font-size: 0.9rem;
+    }
+    
+    .kd-check-item .check {
+      color: var(--success);
+      font-size: 1.1rem;
+    }
+    
+    .method-section {
+      background: linear-gradient(135deg, #fefce8 0%, #fef9c3 100%);
+      border: 1px solid #fde047;
+      border-radius: 12px;
+      padding: 2rem;
+      margin-top: 2rem;
+    }
+    
+    .method-section h2 {
+      color: #854d0e;
+      border-bottom-color: #fde047;
+    }
+    
+    .method-letter {
+      background: white;
+      border-radius: 8px;
+      padding: 1.5rem;
+      margin-bottom: 1rem;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+    }
+    
+    .method-letter h3 {
+      color: var(--primary);
+      font-size: 1.1rem;
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    
+    .method-letter h3 .letter {
+      background: var(--primary);
+      color: white;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+    }
+    
+    .method-letter h4 {
+      font-size: 0.9rem;
+      color: var(--gray-700);
+      margin: 1rem 0 0.5rem;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+    
+    .method-letter ul {
+      margin-left: 1.25rem;
+      color: var(--gray-600);
+    }
+    
+    .method-letter li {
+      margin-bottom: 0.25rem;
+    }
+    
+    .normal-values {
+      background: #f0fdf4;
+      border: 1px solid #bbf7d0;
+      border-radius: 8px;
+      padding: 1rem;
+      margin-top: 1rem;
+    }
+    
+    .normal-values h4 {
+      color: #166534;
+      margin-bottom: 0.5rem;
+    }
+    
+    .normal-values ul {
+      margin-left: 1.25rem;
+      color: #166534;
+    }
+    
+    .footer {
+      text-align: center;
+      padding: 2rem;
+      color: var(--gray-500);
+      font-size: 0.85rem;
+    }
+    
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0,0,0,0.5);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    .modal-overlay.active {
+      display: flex;
+    }
+    
+    .modal {
+      background: white;
+      border-radius: 16px;
+      padding: 2rem;
+      max-width: 450px;
+      width: 90%;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    }
+    
+    .modal h3 {
+      font-size: 1.25rem;
+      margin-bottom: 1rem;
+    }
+    
+    .modal label {
+      display: block;
+      font-size: 0.9rem;
+      font-weight: 500;
+      color: var(--gray-700);
+      margin-bottom: 0.5rem;
+    }
+    
+    .modal input, .modal select {
+      width: 100%;
+      padding: 0.75rem;
+      border: 1px solid var(--gray-300);
+      border-radius: 8px;
+      font-size: 1rem;
+      margin-bottom: 1rem;
+    }
+    
+    .modal input:focus, .modal select:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    }
+    
+    .modal-actions {
+      display: flex;
+      gap: 0.75rem;
+      margin-top: 1.5rem;
+    }
+    
+    .modal-actions .btn {
+      flex: 1;
+    }
+    
+    .btn-cancel {
+      background: var(--gray-100);
+      color: var(--gray-700);
+    }
+    
+    .btn-save {
+      background: var(--primary);
+      color: white;
+    }
+    
+    .btn-save:hover {
+      background: var(--primary-dark);
+    }
+    
+    .toast {
+      position: fixed;
+      bottom: 2rem;
+      left: 50%;
+      transform: translateX(-50%) translateY(100px);
+      background: var(--gray-900);
+      color: white;
+      padding: 1rem 1.5rem;
+      border-radius: 8px;
+      font-weight: 500;
+      opacity: 0;
+      transition: all 0.3s;
+      z-index: 1001;
+    }
+    
+    .toast.show {
+      transform: translateX(-50%) translateY(0);
+      opacity: 1;
+    }
+    
+    @media print {
+      .header { position: static; box-shadow: none; }
+      .header-actions { display: none; }
+      .section { break-inside: avoid; box-shadow: none; border: 1px solid var(--gray-200); }
+      .toc { display: none; }
+      body { background: white; }
+    }
+    
+    @media (max-width: 600px) {
+      .header-content { flex-direction: column; align-items: flex-start; }
+      .quick-start-grid { grid-template-columns: 1fr; }
+      .kd-check { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <header class="header">
+    <div class="header-content">
+      <div>
+        <h1>📚 Docentenhandleiding</h1>
+        <div class="header-subtitle">${plan.kdAlignment.code} - ${plan.kdAlignment.title}</div>
+      </div>
+      <div class="header-actions">
+        <button class="btn btn-secondary" onclick="window.print()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M6 9V2h12v7M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/>
+            <rect x="6" y="14" width="12" height="8"/>
+          </svg>
+          Print
+        </button>
+        <button class="btn btn-primary" onclick="openSaveModal()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/>
+            <path d="M17 21v-8H7v8M7 3v5h8"/>
+          </svg>
+          Opslaan in Mijn lesplannen
+        </button>
+      </div>
+    </div>
+  </header>
+  
+  <div class="container">
+    <nav class="toc">
+      <h2>Inhoudsopgave</h2>
+      <ul class="toc-list">
+        <li><a href="#quickstart">1. Quick Start</a></li>
+        <li><a href="#lesopbouw">2. Lesopbouw</a></li>
+        <li><a href="#script">3. Docentenscript</a></li>
+        <li><a href="#discussie">4. Discussievragen</a></li>
+        <li><a href="#opdracht">5. Groepsopdracht</a></li>
+        <li><a href="#kd">6. KD-verantwoording</a></li>
+        <li><a href="#methode">7. Methodische uitwerking</a></li>
+      </ul>
+    </nav>
+    
+    <section class="section" id="quickstart">
+      <h2><span class="number">1</span> Quick Start - Snelle Voorbereiding</h2>
+      <p style="font-size: 1.05rem; color: var(--gray-700); margin-bottom: 1.5rem;">
+        <strong>Kern van de les:</strong> ${plan.quickStart.oneLiner}
+      </p>
+      <div class="quick-start-grid">
+        <div class="quick-start-card">
+          <div class="time">${plan.quickStart.timeAllocation.start}</div>
+          <div class="label">min. Start</div>
+        </div>
+        <div class="quick-start-card">
+          <div class="time">${plan.quickStart.timeAllocation.kern}</div>
+          <div class="label">min. Kern</div>
+        </div>
+        <div class="quick-start-card">
+          <div class="time">${plan.quickStart.timeAllocation.afsluiting}</div>
+          <div class="label">min. Afsluiting</div>
+        </div>
+      </div>
+      <h3>Kernbegrippen</h3>
+      <div class="keywords">
+        ${plan.quickStart.keyConcepts.map(k => `<span class="keyword">${k}</span>`).join('')}
+      </div>
+    </section>
+    
+    <section class="section" id="lesopbouw">
+      <h2><span class="number">2</span> Lesopbouw en Tijdsindeling</h2>
+      <p>Deze les is opgebouwd volgens het activerende directe instructiemodel:</p>
+      <div style="margin-top: 1rem; overflow-x: auto;">
+        <table style="width: 100%; border-collapse: collapse;">
+          <thead>
+            <tr style="background: var(--gray-100);">
+              <th style="padding: 0.75rem; text-align: left; border-bottom: 2px solid var(--gray-200);">Fase</th>
+              <th style="padding: 0.75rem; text-align: left; border-bottom: 2px solid var(--gray-200);">Tijd</th>
+              <th style="padding: 0.75rem; text-align: left; border-bottom: 2px solid var(--gray-200);">Doel</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td style="padding: 0.75rem; border-bottom: 1px solid var(--gray-100);">Start</td>
+              <td style="padding: 0.75rem; border-bottom: 1px solid var(--gray-100);">${plan.quickStart.timeAllocation.start} minuten</td>
+              <td style="padding: 0.75rem; border-bottom: 1px solid var(--gray-100);">Activeren voorkennis, verbinden met praktijk</td>
+            </tr>
+            <tr>
+              <td style="padding: 0.75rem; border-bottom: 1px solid var(--gray-100);">Kern</td>
+              <td style="padding: 0.75rem; border-bottom: 1px solid var(--gray-100);">${plan.quickStart.timeAllocation.kern} minuten</td>
+              <td style="padding: 0.75rem; border-bottom: 1px solid var(--gray-100);">Instructie, demonstratie en oefenen</td>
+            </tr>
+            <tr>
+              <td style="padding: 0.75rem;">Afsluiting</td>
+              <td style="padding: 0.75rem;">${plan.quickStart.timeAllocation.afsluiting} minuten</td>
+              <td style="padding: 0.75rem;">Reflectie, samenvatten, vooruitblik</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+    
+    <section class="section" id="script">
+      <h2><span class="number">3</span> Docentenscript - Stap voor stap</h2>
+      ${plan.teacherScript.map(item => `
+        <div class="script-item phase-${item.phase.toLowerCase()}">
+          <div class="script-header">
+            <span class="script-time">${item.time}</span>
+            <span class="script-phase">${item.phase}</span>
+            <span class="script-action">${item.action}</span>
+          </div>
+          <div class="script-content">${item.content}</div>
+        </div>
+      `).join('')}
+    </section>
+    
+    <section class="section" id="discussie">
+      <h2><span class="number">4</span> Discussievragen met Verwachte Antwoorden</h2>
+      ${plan.discussionQuestions.map((q, i) => `
+        <div class="question-card">
+          <h4>Vraag ${i + 1}: ${q.question}</h4>
+          <ul>
+            ${q.expectedAnswers.map(a => `<li>${a}</li>`).join('')}
+          </ul>
+        </div>
+      `).join('')}
+      <p style="color: var(--gray-500); font-style: italic; margin-top: 1rem;">
+        💡 Tip: Laat studenten eerst in duo's overleggen voordat je klassikaal bespreekt.
+      </p>
+    </section>
+    
+    <section class="section" id="opdracht">
+      <h2><span class="number">5</span> Groepsopdracht</h2>
+      <div class="assignment-box">
+        <h3>📋 ${plan.groupWork.title}</h3>
+        <p><strong>Duur:</strong> ${plan.groupWork.durationMinutes} minuten</p>
+        <ol>
+          ${plan.groupWork.steps.map(s => `<li>${s}</li>`).join('')}
+        </ol>
+      </div>
+    </section>
+    
+    <section class="section" id="kd">
+      <h2><span class="number">6</span> KD-verantwoording</h2>
+      <p style="margin-bottom: 1rem;">Dit lesplan sluit aan bij:</p>
+      <div style="background: var(--gray-50); padding: 1rem; border-radius: 8px; margin-bottom: 1.5rem;">
+        <strong>Kwalificatiedossier:</strong> VIG/VP 2026<br>
+        <strong>Werkproces:</strong> ${plan.kdAlignment.code}<br>
+        <strong>Titel:</strong> ${plan.kdAlignment.title}
+      </div>
+      <h3>Criteria check</h3>
+      <div class="kd-check">
+        ${(plan.kdAlignment.criteria || plan.quickStart.keyConcepts || []).map(c => `
+          <div class="kd-check-item">
+            <span class="check">✓</span>
+            <span>${c}</span>
+          </div>
+        `).join('')}
+      </div>
+    </section>
+    
+    ${methodContent}
+    
+    <footer class="footer">
+      <p>Gegenereerd door <strong>e-Xpert SAM</strong> | ${today}</p>
+      <p style="margin-top: 0.5rem;">© ${new Date().getFullYear()} - Koning Willem 1 College</p>
+    </footer>
+  </div>
+  
+  <div class="modal-overlay" id="saveModal" onclick="closeSaveModal(event)">
+    <div class="modal" onclick="event.stopPropagation()">
+      <h3>💾 Lesplan opslaan</h3>
+      <p style="color: var(--gray-500); margin-bottom: 1.5rem;">Sla dit lesplan op in je persoonlijke bibliotheek.</p>
+      
+      <label for="lesplanName">Naam lesplan</label>
+      <input type="text" id="lesplanName" value="${plan.kdAlignment.code} - ${plan.kdAlignment.title}" />
+      
+      <label for="classSelect">Klas (optioneel)</label>
+      <select id="classSelect">
+        <option value="">-- Selecteer een klas --</option>
+        <option value="vp4a">VP4A - Verpleegkunde jaar 4</option>
+        <option value="vp4b">VP4B - Verpleegkunde jaar 4</option>
+        <option value="vig3a">VIG3A - Verzorgende IG jaar 3</option>
+        <option value="vig3b">VIG3B - Verzorgende IG jaar 3</option>
+      </select>
+      
+      <label for="notesInput">Notities (optioneel)</label>
+      <input type="text" id="notesInput" placeholder="bijv. 'Aangepast voor blok 2'" />
+      
+      <div class="modal-actions">
+        <button class="btn btn-cancel" onclick="closeSaveModal()">Annuleren</button>
+        <button class="btn btn-save" onclick="saveLesplan()">Opslaan</button>
+      </div>
+    </div>
+  </div>
+  
+  <div class="toast" id="toast"></div>
+  
+  <script>
+    function openSaveModal() {
+      document.getElementById('saveModal').classList.add('active');
+    }
+    
+    function closeSaveModal(event) {
+      if (!event || event.target === event.currentTarget) {
+        document.getElementById('saveModal').classList.remove('active');
+      }
+    }
+    
+    function saveLesplan() {
+      const name = document.getElementById('lesplanName').value;
+      const classId = document.getElementById('classSelect').value;
+      const notes = document.getElementById('notesInput').value;
+      
+      // Mock save - in real implementation this would call the API
+      console.log('Saving lesplan:', { name, classId, notes });
+      
+      closeSaveModal();
+      showToast('✓ Lesplan opgeslagen in "Mijn lesplannen"');
+    }
+    
+    function showToast(message) {
+      const toast = document.getElementById('toast');
+      toast.textContent = message;
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 3000);
+    }
+    
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') closeSaveModal();
+    });
+  <\/script>
+</body>
+</html>`;
+    }
+    
+    function generateABCDEContent(abcde) {
+      return `
+    <section class="section method-section" id="methode">
+      <h2><span class="number">7</span> De ABCDE-Methode - Uitgebreide Uitleg</h2>
+      <p style="margin-bottom: 1.5rem;">De ABCDE-methode is een systematische aanpak voor acute situaties. Je werkt ALTIJD in deze volgorde omdat je eerst de meest levensbedreigende problemen aanpakt.</p>
+      
+      <div class="method-letter">
+        <h3><span class="letter">A</span> Airway (Luchtweg)</h3>
+        <p>${abcde.A.explanation}</p>
+        <h4>Mogelijke oorzaken</h4>
+        <ul>${abcde.A.causes.map(c => `<li>${c}</li>`).join('')}</ul>
+        <h4>Wat observeer je?</h4>
+        <ul>${abcde.A.observations.map(o => `<li>${o}</li>`).join('')}</ul>
+        <h4>Directe acties</h4>
+        <ul>${abcde.A.actions.map(a => `<li>${a}</li>`).join('')}</ul>
+      </div>
+      
+      <div class="method-letter">
+        <h3><span class="letter">B</span> Breathing (Ademhaling)</h3>
+        <p>${abcde.B.explanation}</p>
+        <h4>Mogelijke oorzaken</h4>
+        <ul>${abcde.B.causes.map(c => `<li>${c}</li>`).join('')}</ul>
+        <h4>Wat meet je?</h4>
+        <ul>${abcde.B.observations.map(o => `<li>${o}</li>`).join('')}</ul>
+        <h4>Directe acties</h4>
+        <ul>${abcde.B.actions.map(a => `<li>${a}</li>`).join('')}</ul>
+      </div>
+      
+      <div class="method-letter">
+        <h3><span class="letter">C</span> Circulation (Bloedsomloop)</h3>
+        <p>${abcde.C.explanation}</p>
+        <h4>Mogelijke oorzaken</h4>
+        <ul>${abcde.C.causes.map(c => `<li>${c}</li>`).join('')}</ul>
+        <h4>Wat meet je?</h4>
+        <ul>${abcde.C.observations.map(o => `<li>${o}</li>`).join('')}</ul>
+        <h4>Directe acties</h4>
+        <ul>${abcde.C.actions.map(a => `<li>${a}</li>`).join('')}</ul>
+      </div>
+      
+      <div class="method-letter">
+        <h3><span class="letter">D</span> Disability (Neurologisch)</h3>
+        <p>${abcde.D.explanation}</p>
+        <h4>Mogelijke oorzaken</h4>
+        <ul>${abcde.D.causes.map(c => `<li>${c}</li>`).join('')}</ul>
+        <h4>Wat meet je?</h4>
+        <ul>${abcde.D.observations.map(o => `<li>${o}</li>`).join('')}</ul>
+        <h4>Directe acties</h4>
+        <ul>${abcde.D.actions.map(a => `<li>${a}</li>`).join('')}</ul>
+      </div>
+      
+      <div class="method-letter">
+        <h3><span class="letter">E</span> Exposure (Volledig onderzoek)</h3>
+        <p>${abcde.E.explanation}</p>
+        <h4>Wat doe je?</h4>
+        <ul>${abcde.E.observations.map(o => `<li>${o}</li>`).join('')}</ul>
+        <h4>Directe acties</h4>
+        <ul>${abcde.E.actions.map(a => `<li>${a}</li>`).join('')}</ul>
+      </div>
+      
+      <div class="normal-values">
+        <h4>📊 Normaalwaarden om te onthouden</h4>
+        <ul>
+          <li>Ademfrequentie: 12-20 per minuut</li>
+          <li>Saturatie: boven 94%</li>
+          <li>Hartfrequentie: 60-100 per minuut</li>
+          <li>Bloeddruk: boven 100 systolisch</li>
+          <li>Capillaire refill: onder 2 seconden</li>
+          <li>AVPU: Alert is normaal</li>
+        </ul>
+      </div>
+    </section>`;
+    }
+    
+    function generateSBARContent(sbar) {
+      return `
+    <section class="section method-section" id="methode">
+      <h2><span class="number">7</span> De SBAR-Methode - Uitgebreide Uitleg</h2>
+      <p style="margin-bottom: 1.5rem;">SBAR is een gestructureerde communicatiemethode voor effectieve overdracht tussen zorgprofessionals.</p>
+      
+      <div class="method-letter">
+        <h3><span class="letter">S</span> Situation (Situatie)</h3>
+        <p>${sbar.S.explanation}</p>
+        <h4>Format</h4>
+        <p style="background: var(--gray-50); padding: 1rem; border-radius: 6px; font-style: italic;">${sbar.S.format}</p>
+      </div>
+      
+      <div class="method-letter">
+        <h3><span class="letter">B</span> Background (Achtergrond)</h3>
+        <p>${sbar.B.explanation}</p>
+        <h4>Format</h4>
+        <p style="background: var(--gray-50); padding: 1rem; border-radius: 6px; font-style: italic;">${sbar.B.format}</p>
+      </div>
+      
+      <div class="method-letter">
+        <h3><span class="letter">A</span> Assessment (Beoordeling)</h3>
+        <p>${sbar.A.explanation}</p>
+        <h4>Format</h4>
+        <p style="background: var(--gray-50); padding: 1rem; border-radius: 6px; font-style: italic;">${sbar.A.format}</p>
+      </div>
+      
+      <div class="method-letter">
+        <h3><span class="letter">R</span> Recommendation (Aanbeveling)</h3>
+        <p>${sbar.R.explanation}</p>
+        <h4>Format</h4>
+        <p style="background: var(--gray-50); padding: 1rem; border-radius: 6px; font-style: italic;">${sbar.R.format}</p>
+      </div>
+    </section>`;
+    }
+    
+    function generateSTARRContent(starr) {
+      return `
+    <section class="section method-section" id="methode">
+      <h2><span class="number">7</span> De STARR-Methode - Uitgebreide Uitleg</h2>
+      <p style="margin-bottom: 1.5rem;">STARR is een reflectiemethode die je helpt om gestructureerd te leren van je ervaringen.</p>
+      
+      <div class="method-letter">
+        <h3><span class="letter">S</span> Situatie</h3>
+        <p>${starr.S.explanation}</p>
+        <h4>Hulpvragen</h4>
+        <ul>${starr.S.helpQuestions.map(q => `<li>${q}</li>`).join('')}</ul>
+      </div>
+      
+      <div class="method-letter">
+        <h3><span class="letter">T</span> Taak</h3>
+        <p>${starr.T.explanation}</p>
+        <h4>Hulpvragen</h4>
+        <ul>${starr.T.helpQuestions.map(q => `<li>${q}</li>`).join('')}</ul>
+      </div>
+      
+      <div class="method-letter">
+        <h3><span class="letter">A</span> Actie</h3>
+        <p>${starr.A.explanation}</p>
+        <h4>Hulpvragen</h4>
+        <ul>${starr.A.helpQuestions.map(q => `<li>${q}</li>`).join('')}</ul>
+      </div>
+      
+      <div class="method-letter">
+        <h3><span class="letter">R</span> Resultaat</h3>
+        <p>${starr.R1.explanation}</p>
+        <h4>Hulpvragen</h4>
+        <ul>${starr.R1.helpQuestions.map(q => `<li>${q}</li>`).join('')}</ul>
+      </div>
+      
+      <div class="method-letter">
+        <h3><span class="letter">R</span> Reflectie</h3>
+        <p>${starr.R2.explanation}</p>
+        <h4>Hulpvragen</h4>
+        <ul>${starr.R2.helpQuestions.map(q => `<li>${q}</li>`).join('')}</ul>
+      </div>
+    </section>`;
+    }
+    
+    function generateSMARTContent(smart, klinisch) {
+      return `
+    <section class="section method-section" id="methode">
+      <h2><span class="number">7</span> SMART Doelen - Uitgebreide Uitleg</h2>
+      <p style="margin-bottom: 1.5rem;">SMART-criteria helpen bij het formuleren van concrete, meetbare zorgdoelen.</p>
+      
+      <div class="method-letter">
+        <h3><span class="letter">S</span> Specifiek</h3>
+        <p>${smart.S.explanation}</p>
+        <p style="background: #fee2e2; padding: 1rem; border-radius: 6px; margin-top: 0.5rem;"><strong>❌ Fout:</strong> ${smart.S.wrongExample}</p>
+        <p style="background: #dcfce7; padding: 1rem; border-radius: 6px; margin-top: 0.5rem;"><strong>✓ Goed:</strong> ${smart.S.correctExample}</p>
+      </div>
+      
+      <div class="method-letter">
+        <h3><span class="letter">M</span> Meetbaar</h3>
+        <p>${smart.M.explanation}</p>
+        <p style="background: #fee2e2; padding: 1rem; border-radius: 6px; margin-top: 0.5rem;"><strong>❌ Fout:</strong> ${smart.M.wrongExample}</p>
+        <p style="background: #dcfce7; padding: 1rem; border-radius: 6px; margin-top: 0.5rem;"><strong>✓ Goed:</strong> ${smart.M.correctExample}</p>
+      </div>
+      
+      <div class="method-letter">
+        <h3><span class="letter">A</span> Acceptabel</h3>
+        <p>${smart.A.explanation}</p>
+        <p style="background: #fee2e2; padding: 1rem; border-radius: 6px; margin-top: 0.5rem;"><strong>❌ Fout:</strong> ${smart.A.wrongExample}</p>
+        <p style="background: #dcfce7; padding: 1rem; border-radius: 6px; margin-top: 0.5rem;"><strong>✓ Goed:</strong> ${smart.A.correctExample}</p>
+      </div>
+      
+      <div class="method-letter">
+        <h3><span class="letter">R</span> Realistisch</h3>
+        <p>${smart.R.explanation}</p>
+        <p style="background: #fee2e2; padding: 1rem; border-radius: 6px; margin-top: 0.5rem;"><strong>❌ Fout:</strong> ${smart.R.wrongExample}</p>
+        <p style="background: #dcfce7; padding: 1rem; border-radius: 6px; margin-top: 0.5rem;"><strong>✓ Goed:</strong> ${smart.R.correctExample}</p>
+      </div>
+      
+      <div class="method-letter">
+        <h3><span class="letter">T</span> Tijdgebonden</h3>
+        <p>${smart.T.explanation}</p>
+        <p style="background: #fee2e2; padding: 1rem; border-radius: 6px; margin-top: 0.5rem;"><strong>❌ Fout:</strong> ${smart.T.wrongExample}</p>
+        <p style="background: #dcfce7; padding: 1rem; border-radius: 6px; margin-top: 0.5rem;"><strong>✓ Goed:</strong> ${smart.T.correctExample}</p>
+      </div>
+      
+      ${klinisch ? `
+      <h3 style="margin-top: 2rem; margin-bottom: 1rem;">Klinisch Redeneren - 5-Stappen Cyclus</h3>
+      <div class="method-letter">
+        <ol style="margin-left: 1.5rem;">
+          ${klinisch.stappen.map(s => `<li style="margin-bottom: 0.75rem;"><strong>${s.stap}:</strong> ${s.beschrijving}<br><em style="color: var(--gray-500);">Voorbeeld: ${s.voorbeeld}</em></li>`).join('')}
+        </ol>
+      </div>
+      ` : ''}
+    </section>`;
+    }
+    
+    function generateZorgContent(content) {
+      return `
+    <section class="section method-section" id="methode">
+      <h2><span class="number">7</span> Zorginterventies - Uitgebreide Uitleg</h2>
+      
+      ${content.handhygiene ? `
+      <div class="method-letter">
+        <h3>🧴 Handhygiëne - 6-Stappen Methode</h3>
+        <ol style="margin-left: 1.5rem;">
+          ${content.handhygiene.stappen.map(s => `<li style="margin-bottom: 0.5rem;">${s}</li>`).join('')}
+        </ol>
+        <div class="normal-values" style="margin-top: 1rem;">
+          <h4>⏱️ Wanneer?</h4>
+          <p>${content.handhygiene.momenten}</p>
+        </div>
+      </div>
+      ` : ''}
+      
+      ${content.protocolBloeddruk ? `
+      <div class="method-letter">
+        <h3>💉 Protocol Bloeddrukmeting</h3>
+        <h4>Voorbereiding</h4>
+        <ul>${content.protocolBloeddruk.voorbereiding.map(v => `<li>${v}</li>`).join('')}</ul>
+        <h4>Uitvoering</h4>
+        <ol style="margin-left: 1.5rem;">${content.protocolBloeddruk.uitvoering.map(u => `<li>${u}</li>`).join('')}</ol>
+        <h4>Normaalwaarden</h4>
+        <ul>${content.protocolBloeddruk.normaalwaarden.map(n => `<li>${n}</li>`).join('')}</ul>
+      </div>
+      ` : ''}
+      
+      ${content.ADLcategorieën ? `
+      <div class="method-letter">
+        <h3>🏠 ADL-categorieën</h3>
+        <ul>${content.ADLcategorieën.map(a => `<li>${a}</li>`).join('')}</ul>
+      </div>
+      ` : ''}
+      
+      ${content.eigenRegie ? `
+      <div class="method-letter">
+        <h3>🤝 Eigen Regie van de Zorgvrager</h3>
+        <p>${content.eigenRegie.definitie}</p>
+        <h4>Hoe stimuleer je dit?</h4>
+        <ul>${content.eigenRegie.hoe.map(h => `<li>${h}</li>`).join('')}</ul>
+      </div>
+      ` : ''}
+    </section>`;
+    }
+    
+    // Keep the old function name as alias for backward compatibility
+    // ========================================
+    // MATERIAL ACTIONS (kept for compatibility)
+    // ========================================
+    // Legacy alias
+    function downloadHandleiding() { openLesplanViewer(); }
+    
+    // Old downloadHandleiding code removed - now uses openLesplanViewer()
+    
     // ========================================
     // MATERIAL ACTIONS
     // ========================================
@@ -2603,11 +4124,18 @@ Bekijk het volledige lesplan in het paneel rechts. Ik heb ook relevante material
     // FOLLOW-UP RESPONSES
     // ========================================
     const followUpResponses = [
-      "Geen probleem! Wil je dat ik nog een **variatie** maak met een andere werkvorm? Of kan ik helpen met een **toetsvorm** die past bij dit onderwerp?",
-      "Zeker! Ik kan ook een **aangepaste versie** maken voor een kortere les (30 min) of juist een uitgebreidere variant (90 min). Wat heeft je voorkeur?",
-      "Goed idee! Ik kan dit lesplan **combineren** met een ander KD-onderdeel als je dat wilt. Welk werkproces wil je erbij betrekken?",
-      "Natuurlijk! Wil je dat ik de **moeilijkheidsgraad** aanpas voor niveau 3 of niveau 4? Of specifieke **differentiatie** toevoegen?",
-      "Prima! Ik kan ook een **PowerPoint-opzet** of **handout** genereren op basis van dit lesplan. Laat het weten!"
+      "Geen probleem! Wil je dat ik nog een **variatie** maak met een andere werkvorm?",
+      "Zeker! Ik kan ook een **aangepaste versie** maken voor 30 of 90 minuten. Wat heeft je voorkeur?",
+      "Goed idee! Wil je dat ik de **moeilijkheidsgraad** aanpas voor niveau 3 of niveau 4?",
+      "Natuurlijk! Ik kan ook een **PowerPoint-opzet** genereren op basis van dit lesplan.",
+      "Prima! Wil je dat ik een **toetsvorm** toevoeg die past bij dit onderwerp?",
+      "Tuurlijk! Ik kan de **casus** aanpassen naar een andere setting (thuiszorg, ziekenhuis, GGZ).",
+      "Ik kan ook extra **differentiatiemateriaal** toevoegen voor snelle en langzame leerlingen.",
+      "Zal ik een **handout** maken die studenten kunnen gebruiken tijdens de les?",
+      "Wil je dat ik **beoordelingscriteria** toevoeg voor de groepsopdracht?",
+      "Ik kan ook een **reflectieformulier** maken dat studenten na de les kunnen invullen.",
+      "Zal ik een **voorbereidingsopdracht** toevoegen die studenten thuis kunnen doen?",
+      "Wil je dat ik de les **interactiever** maak met meer activerende werkvormen?"
     ];
 
     let followUpIndex = 0;
@@ -2666,7 +4194,7 @@ Bekijk het volledige lesplan in het paneel rechts. Ik heb ook relevante material
       
       // Wait a bit then send first message
       setTimeout(() => {
-        document.getElementById('chatInput').value = 'Maak een lesplan voor B1-K1-W2 over het bijstellen van een zorgplan';
+        document.getElementById('chatInput').value = 'Hoe leer ik studenten een zorgplan bijstellen als de situatie verandert?';
         sendMessage();
       }, 500);
     }
@@ -2700,6 +4228,45 @@ Bekijk het volledige lesplan in het paneel rechts. Ik heb ook relevante material
     console.log('  runDemoSettings() - Open settings with material selection');
     console.log('');
     console.log('Or click any suggestion chip to try different queries');
+    
+    // Debug: Verify functions are defined
+    console.log('Functions loaded:', {
+      sendMessage: typeof sendMessage,
+      handleInputKeydown: typeof handleInputKeydown,
+      addMessage: typeof addMessage
+    });
+    
+    // Add event listeners as backup
+    document.addEventListener('DOMContentLoaded', function() {
+      console.log('DOM loaded, setting up event listeners');
+      
+      const input = document.getElementById('chatInput');
+      const sendBtn = document.getElementById('sendBtn');
+      
+      if (input) {
+        console.log('Chat input found');
+        input.addEventListener('keydown', function(e) {
+          console.log('Keydown event:', e.key);
+          if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            console.log('Enter pressed, calling sendMessage');
+            sendMessage();
+          }
+        });
+      } else {
+        console.error('Chat input NOT found!');
+      }
+      
+      if (sendBtn) {
+        console.log('Send button found');
+        sendBtn.addEventListener('click', function() {
+          console.log('Send button clicked');
+          sendMessage();
+        });
+      } else {
+        console.error('Send button NOT found!');
+      }
+    });
   </script>
 </body>
 </html>

@@ -1,0 +1,1705 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>9-Weken Lesplan Communicatie N3 | e-Xpert SAM</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #2563eb;
+      --primary-dark: #1d4ed8;
+      --primary-light: #3b82f6;
+      --success: #22c55e;
+      --success-light: #dcfce7;
+      --warning: #f59e0b;
+      --warning-light: #fef3c7;
+      --error: #ef4444;
+      --purple: #8b5cf6;
+      --purple-light: #ede9fe;
+      --cyan: #06b6d4;
+      --cyan-light: #cffafe;
+      --gray-50: #f9fafb;
+      --gray-100: #f3f4f6;
+      --gray-200: #e5e7eb;
+      --gray-300: #d1d5db;
+      --gray-400: #9ca3af;
+      --gray-500: #6b7280;
+      --gray-600: #4b5563;
+      --gray-700: #374151;
+      --gray-800: #1f2937;
+      --gray-900: #111827;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--gray-50);
+      color: var(--gray-900);
+      line-height: 1.6;
+    }
+
+    /* Header */
+    .header {
+      background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+      color: white;
+      padding: 2rem;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+    }
+
+    .header-content {
+      max-width: 1200px;
+      margin: 0 auto;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+
+    .header h1 {
+      font-size: 1.75rem;
+      font-weight: 700;
+    }
+
+    .header-subtitle {
+      opacity: 0.9;
+      font-size: 0.95rem;
+      margin-top: 0.25rem;
+    }
+
+    .header-meta {
+      display: flex;
+      gap: 1.5rem;
+      flex-wrap: wrap;
+    }
+
+    .meta-item {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: rgba(255,255,255,0.15);
+      padding: 0.5rem 1rem;
+      border-radius: 8px;
+      font-size: 0.85rem;
+    }
+
+    .header-actions {
+      display: flex;
+      gap: 0.75rem;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.75rem 1.25rem;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      border: none;
+      text-decoration: none;
+    }
+
+    .btn-primary {
+      background: white;
+      color: var(--primary);
+    }
+
+    .btn-primary:hover {
+      background: var(--gray-100);
+      transform: translateY(-1px);
+    }
+
+    .btn-secondary {
+      background: rgba(255,255,255,0.2);
+      color: white;
+      border: 1px solid rgba(255,255,255,0.3);
+    }
+
+    .btn-secondary:hover {
+      background: rgba(255,255,255,0.3);
+    }
+
+    /* Container */
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 2rem;
+    }
+
+    /* Quick Start Section */
+    .quick-start {
+      background: white;
+      border-radius: 16px;
+      padding: 2rem;
+      margin-bottom: 2rem;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      border: 1px solid var(--gray-200);
+    }
+
+    .quick-start h2 {
+      font-size: 1.25rem;
+      margin-bottom: 1.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .quick-start-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 1.5rem;
+    }
+
+    .quick-start-card {
+      background: var(--gray-50);
+      border-radius: 12px;
+      padding: 1.25rem;
+      border: 1px solid var(--gray-200);
+    }
+
+    .quick-start-card h3 {
+      font-size: 0.85rem;
+      color: var(--gray-500);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 0.75rem;
+    }
+
+    .quick-start-card p {
+      font-size: 0.95rem;
+      color: var(--gray-700);
+    }
+
+    .quick-start-card ul {
+      list-style: none;
+      font-size: 0.9rem;
+    }
+
+    .quick-start-card li {
+      padding: 0.25rem 0;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .quick-start-card li::before {
+      content: "•";
+      color: var(--primary);
+      font-weight: bold;
+    }
+
+    /* KD Coverage */
+    .kd-coverage {
+      background: var(--purple-light);
+      border-radius: 12px;
+      padding: 1.25rem;
+      border: 1px solid var(--purple);
+    }
+
+    .kd-coverage h3 {
+      color: var(--purple);
+    }
+
+    .kd-tag {
+      display: inline-block;
+      background: var(--purple);
+      color: white;
+      padding: 0.25rem 0.75rem;
+      border-radius: 6px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      margin: 0.25rem 0.25rem 0.25rem 0;
+    }
+
+    /* Week Cards */
+    .week-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+
+    .week-card {
+      background: white;
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      border: 1px solid var(--gray-200);
+      transition: box-shadow 0.2s, transform 0.2s;
+    }
+
+    .week-card:hover {
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+
+    .week-header {
+      background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+      color: white;
+      padding: 1.25rem 1.5rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .week-header.theme-samenwerking {
+      background: linear-gradient(135deg, var(--purple) 0%, #7c3aed 100%);
+    }
+
+    .week-header.theme-gespreksvaardigheden {
+      background: linear-gradient(135deg, var(--cyan) 0%, #0891b2 100%);
+    }
+
+    .week-header.theme-professioneel {
+      background: linear-gradient(135deg, var(--success) 0%, #16a34a 100%);
+    }
+
+    .week-number {
+      font-size: 0.85rem;
+      opacity: 0.9;
+    }
+
+    .week-title {
+      font-size: 1.25rem;
+      font-weight: 700;
+    }
+
+    .week-kd {
+      background: rgba(255,255,255,0.2);
+      padding: 0.35rem 0.75rem;
+      border-radius: 6px;
+      font-size: 0.8rem;
+      font-weight: 600;
+    }
+
+    .week-content {
+      padding: 1.5rem;
+    }
+
+    .week-oneliner {
+      font-size: 1rem;
+      color: var(--gray-700);
+      margin-bottom: 1.5rem;
+      padding-bottom: 1rem;
+      border-bottom: 1px solid var(--gray-200);
+    }
+
+    /* Teacher Script */
+    .teacher-script {
+      margin-bottom: 1.5rem;
+    }
+
+    .teacher-script h4 {
+      font-size: 0.9rem;
+      color: var(--gray-500);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .script-item {
+      display: grid;
+      grid-template-columns: 100px 90px 1fr;
+      gap: 1rem;
+      padding: 1rem;
+      border-radius: 8px;
+      margin-bottom: 0.5rem;
+      background: var(--gray-50);
+      border-left: 4px solid transparent;
+    }
+
+    .script-item.phase-start {
+      border-left-color: var(--success);
+      background: var(--success-light);
+    }
+
+    .script-item.phase-kern {
+      border-left-color: var(--primary);
+      background: #eff6ff;
+    }
+
+    .script-item.phase-afsluiting {
+      border-left-color: var(--warning);
+      background: var(--warning-light);
+    }
+
+    .script-time {
+      font-weight: 600;
+      font-size: 0.85rem;
+      color: var(--gray-600);
+    }
+
+    .script-action {
+      font-weight: 600;
+      font-size: 0.85rem;
+      color: var(--primary);
+    }
+
+    .script-content {
+      font-size: 0.9rem;
+      color: var(--gray-700);
+      line-height: 1.7;
+    }
+
+    /* Key Concepts */
+    .key-concepts {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .concept-tag {
+      background: var(--cyan-light);
+      color: var(--cyan);
+      padding: 0.35rem 0.75rem;
+      border-radius: 6px;
+      font-size: 0.8rem;
+      font-weight: 600;
+    }
+
+    /* Materials */
+    .materials {
+      background: var(--gray-50);
+      border-radius: 12px;
+      padding: 1.25rem;
+      border: 1px solid var(--gray-200);
+    }
+
+    .materials h4 {
+      font-size: 0.85rem;
+      color: var(--gray-500);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 0.75rem;
+    }
+
+    .material-item {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.5rem 0;
+      font-size: 0.9rem;
+    }
+
+    .material-icon {
+      width: 32px;
+      height: 32px;
+      background: white;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid var(--gray-200);
+    }
+
+    /* Discussion Questions */
+    .discussion {
+      margin-top: 1.5rem;
+      padding-top: 1.5rem;
+      border-top: 1px solid var(--gray-200);
+    }
+
+    .discussion h4 {
+      font-size: 0.85rem;
+      color: var(--gray-500);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 1rem;
+    }
+
+    .discussion-item {
+      background: var(--gray-50);
+      border-radius: 8px;
+      padding: 1rem;
+      margin-bottom: 0.75rem;
+    }
+
+    .discussion-item strong {
+      color: var(--gray-800);
+      display: block;
+      margin-bottom: 0.5rem;
+    }
+
+    .discussion-item p {
+      font-size: 0.85rem;
+      color: var(--gray-600);
+    }
+
+    /* Group Work */
+    .group-work {
+      background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+      border-radius: 12px;
+      padding: 1.25rem;
+      margin-top: 1.5rem;
+      border: 1px solid #fbbf24;
+    }
+
+    .group-work h4 {
+      font-size: 0.9rem;
+      color: var(--gray-800);
+      margin-bottom: 0.75rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .group-work ol {
+      padding-left: 1.25rem;
+      font-size: 0.9rem;
+      color: var(--gray-700);
+    }
+
+    .group-work li {
+      margin-bottom: 0.5rem;
+    }
+
+    /* Time Allocation */
+    .time-allocation {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+    }
+
+    .time-block {
+      flex: 1;
+      padding: 0.75rem;
+      border-radius: 8px;
+      text-align: center;
+      font-size: 0.8rem;
+    }
+
+    .time-block.start {
+      background: var(--success-light);
+      color: #166534;
+    }
+
+    .time-block.kern {
+      background: #eff6ff;
+      color: var(--primary-dark);
+    }
+
+    .time-block.afsluiting {
+      background: var(--warning-light);
+      color: #92400e;
+    }
+
+    .time-block strong {
+      display: block;
+      font-size: 1.1rem;
+      margin-bottom: 0.25rem;
+    }
+
+    /* Overview Table */
+    .overview-table {
+      background: white;
+      border-radius: 16px;
+      padding: 2rem;
+      margin-bottom: 2rem;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      border: 1px solid var(--gray-200);
+    }
+
+    .overview-table h2 {
+      font-size: 1.25rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .overview-table table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .overview-table th {
+      text-align: left;
+      padding: 1rem;
+      background: var(--gray-50);
+      font-size: 0.85rem;
+      color: var(--gray-500);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      border-bottom: 2px solid var(--gray-200);
+    }
+
+    .overview-table td {
+      padding: 1rem;
+      border-bottom: 1px solid var(--gray-200);
+      font-size: 0.9rem;
+    }
+
+    .overview-table tr:hover {
+      background: var(--gray-50);
+    }
+
+    /* Print Styles */
+    @media print {
+      .header { position: relative; }
+      .btn { display: none; }
+      .week-card { break-inside: avoid; }
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .script-item {
+        grid-template-columns: 1fr;
+        gap: 0.5rem;
+      }
+      .header-meta { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <header class="header">
+    <div class="header-content">
+      <div>
+        <h1>📚 Communicatie in de Zorg</h1>
+        <p class="header-subtitle">9-Weken Lesplan | MBO Niveau 3 Verzorgende IG</p>
+      </div>
+      <div class="header-meta">
+        <div class="meta-item">
+          <span>📅</span>
+          <span>9 weken</span>
+        </div>
+        <div class="meta-item">
+          <span>⏱️</span>
+          <span>2 uur/week (120 min)</span>
+        </div>
+        <div class="meta-item">
+          <span>🎓</span>
+          <span>Niveau 3</span>
+        </div>
+      </div>
+      <div class="header-actions">
+        <button class="btn btn-secondary" onclick="window.print()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9V2h12v7M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2M6 14h12v8H6v-8z"/></svg>
+          Print
+        </button>
+        <button class="btn btn-primary" onclick="document.getElementById('weekCards').scrollIntoView({behavior: 'smooth'})">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12l7 7 7-7"/></svg>
+          Naar lesplannen
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <div class="container">
+    <!-- Quick Start -->
+    <section class="quick-start">
+      <h2>⚡ Quick Start</h2>
+      <div class="quick-start-grid">
+        <div class="quick-start-card">
+          <h3>Doelstelling</h3>
+          <p>Studenten ontwikkelen professionele communicatievaardigheden voor de zorgsector: van basisprincipes tot complexe gesprekstechnieken en samenwerking in teams.</p>
+        </div>
+        <div class="quick-start-card">
+          <h3>Kernthema's</h3>
+          <ul>
+            <li>Zender-ontvanger model</li>
+            <li>Verbale & non-verbale communicatie</li>
+            <li>Luisteren, samenvatten, doorvragen (LSD)</li>
+            <li>SBAR-overdracht</li>
+            <li>Feedback geven & ontvangen</li>
+          </ul>
+        </div>
+        <div class="quick-start-card kd-coverage">
+          <h3>KD 2026 Dekking</h3>
+          <div>
+            <span class="kd-tag">B1-K1-W6</span>
+            <span class="kd-tag">B1-K2-W1</span>
+            <span class="kd-tag">B1-K2-W2</span>
+            <span class="kd-tag">B1-K3-W2</span>
+          </div>
+          <p style="margin-top: 0.75rem; font-size: 0.85rem;">Informatie geven • Afstemmen met mantelzorgers • Samenwerken met zorgprofessionals • Reflecteren</p>
+        </div>
+        <div class="quick-start-card">
+          <h3>Structuur per les</h3>
+          <ul>
+            <li><strong>Start (20 min)</strong> - Activeren & verbinden</li>
+            <li><strong>Kern (80 min)</strong> - Instructie & oefenen</li>
+            <li><strong>Afsluiting (20 min)</strong> - Check & vooruitblik</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- Overview Table -->
+    <section class="overview-table">
+      <h2>📋 Overzicht 9 Weken</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Week</th>
+            <th>Thema</th>
+            <th>KD Code</th>
+            <th>Kernbegrippen</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>1</strong></td>
+            <td>Basis van communicatie</td>
+            <td>B1-K1-W6</td>
+            <td>Zender, ontvanger, coderen, decoderen, referentiekader</td>
+          </tr>
+          <tr>
+            <td><strong>2</strong></td>
+            <td>Verbale & non-verbale communicatie</td>
+            <td>B1-K1-W6</td>
+            <td>Lichaamstaal, intonatie, congruent, incongruent</td>
+          </tr>
+          <tr>
+            <td><strong>3</strong></td>
+            <td>De vier aspecten van communicatie</td>
+            <td>B1-K1-W6</td>
+            <td>Inhoud, expressie, relatie, appel</td>
+          </tr>
+          <tr>
+            <td><strong>4</strong></td>
+            <td>Ruis en miscommunicatie</td>
+            <td>B1-K2-W1</td>
+            <td>Externe ruis, interne ruis, semantische ruis, projectie</td>
+          </tr>
+          <tr>
+            <td><strong>5</strong></td>
+            <td>Luisteren, Samenvatten, Doorvragen</td>
+            <td>B1-K2-W1</td>
+            <td>LSD-techniek, actief luisteren, open vragen</td>
+          </tr>
+          <tr>
+            <td><strong>6</strong></td>
+            <td>Feedback geven en ontvangen</td>
+            <td>B1-K3-W2</td>
+            <td>IK-boodschap, gedrag-effect, sandwich-methode</td>
+          </tr>
+          <tr>
+            <td><strong>7</strong></td>
+            <td>SBAR-communicatie</td>
+            <td>B1-K2-W2</td>
+            <td>Situation, Background, Assessment, Recommendation</td>
+          </tr>
+          <tr>
+            <td><strong>8</strong></td>
+            <td>Communiceren met mantelzorgers</td>
+            <td>B1-K2-W1</td>
+            <td>Samenwerking, verwachtingen, grenzen, informeren</td>
+          </tr>
+          <tr>
+            <td><strong>9</strong></td>
+            <td>Integratie & toetsvoorbereiding</td>
+            <td>Alle KD's</td>
+            <td>Praktijksimulatie, portfolio, zelfbeoordeling</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- Week Cards -->
+    <div class="week-grid" id="weekCards">
+
+      <!-- WEEK 1 -->
+      <article class="week-card">
+        <div class="week-header">
+          <div>
+            <span class="week-number">Week 1</span>
+            <h3 class="week-title">Basis van communicatie</h3>
+          </div>
+          <span class="week-kd">B1-K1-W6</span>
+        </div>
+        <div class="week-content">
+          <p class="week-oneliner">Studenten begrijpen hoe communicatie werkt als uitwisseling van boodschappen tussen zender en ontvanger, en herkennen hun eigen referentiekader.</p>
+          
+          <div class="time-allocation">
+            <div class="time-block start"><strong>20 min</strong>Start</div>
+            <div class="time-block kern"><strong>80 min</strong>Kern</div>
+            <div class="time-block afsluiting"><strong>20 min</strong>Afsluiting</div>
+          </div>
+
+          <div class="key-concepts">
+            <span class="concept-tag">Zender</span>
+            <span class="concept-tag">Ontvanger</span>
+            <span class="concept-tag">Coderen</span>
+            <span class="concept-tag">Decoderen</span>
+            <span class="concept-tag">Referentiekader</span>
+            <span class="concept-tag">Kanaal/Medium</span>
+          </div>
+
+          <div class="teacher-script">
+            <h4>📋 Docentenscript</h4>
+            
+            <div class="script-item phase-start">
+              <span class="script-time">0-10 min</span>
+              <span class="script-action">Activeer</span>
+              <div class="script-content">
+                <strong>Stille post:</strong> Fluister een zin in het oor van de eerste student: "Mevrouw De Vries heeft pijn in haar rug en wil graag een extra kussen." Laat het doorgeven. Vergelijk het eindresultaat met het begin. Vraag: "Wat ging er mis? Waarom veranderde de boodschap?"
+              </div>
+            </div>
+
+            <div class="script-item phase-start">
+              <span class="script-time">10-20 min</span>
+              <span class="script-action">Verbind</span>
+              <div class="script-content">
+                Introduceer het zender-ontvanger model: "Communicatie is het uitwisselen van boodschappen. De zender bedenkt iets (coderen) en de ontvanger interpreteert het (decoderen). Jullie zagen net dat er ruis kan ontstaan." Teken het model op het bord met: Zender → Boodschap → Kanaal → Ontvanger → Feedback.
+              </div>
+            </div>
+
+            <div class="script-item phase-kern">
+              <span class="script-time">20-40 min</span>
+              <span class="script-action">Instructie</span>
+              <div class="script-content">
+                <strong>Coderen en decoderen:</strong> Leg uit dat coderen = je gedachte omzetten in woorden of gebaren. Decoderen = woorden/gebaren interpreteren. <br><br>
+                <strong>Praktijkvoorbeeld:</strong> "Een zorgvrager zegt: 'Het gaat wel.' Maar ze kijkt weg en haar stem trilt. Wat is de boodschap die ze codeert? Wat decodeer jij? Dit verschil is cruciaal in de zorg."
+              </div>
+            </div>
+
+            <div class="script-item phase-kern">
+              <span class="script-time">40-60 min</span>
+              <span class="script-action">Instructie</span>
+              <div class="script-content">
+                <strong>Referentiekader:</strong> "Je referentiekader is de bril waardoor je de wereld bekijkt - je achtergrond, ervaringen, cultuur, opvoeding." <br><br>
+                <strong>Oefening:</strong> Toon een foto van een oudere persoon in ziekenhuisbed. Vraag: "Wat zie je? Wat denk je dat deze persoon voelt?" Verzamel antwoorden en bespreek hoe verschillen in referentiekader tot verschillende interpretaties leiden.
+              </div>
+            </div>
+
+            <div class="script-item phase-kern">
+              <span class="script-time">60-100 min</span>
+              <span class="script-action">Oefening</span>
+              <div class="script-content">
+                <strong>Duo-oefening (40 min):</strong> Student A vertelt over een recente ervaring in de praktijk (3 min). Student B luistert en vat samen wat A bedoelde. A geeft feedback: "Klopt dat? Wat miste je?" Wissel om. <br><br>
+                <strong>Nabespreking:</strong> "Wat viel op? Waar ontstond verschil tussen wat je bedoelde en wat de ander begreep? Hoe komt dat?"
+              </div>
+            </div>
+
+            <div class="script-item phase-afsluiting">
+              <span class="script-time">100-120 min</span>
+              <span class="script-action">Check & Vooruitblik</span>
+              <div class="script-content">
+                <strong>Exit-ticket:</strong> Studenten schrijven op een post-it: "Eén ding dat je referentiekader vormt en dat invloed heeft op hoe je communiceert met zorgvragers." <br><br>
+                <strong>Vooruitblik:</strong> "Volgende week gaan we dieper in op het verschil tussen wat je zegt (verbaal) en wat je laat zien (non-verbaal). Let deze week in de praktijk op lichaamstaal!"
+              </div>
+            </div>
+          </div>
+
+          <div class="materials">
+            <h4>📦 Materialen</h4>
+            <div class="material-item">
+              <div class="material-icon">📄</div>
+              <span>Werkblad: Zender-ontvanger model invullen</span>
+            </div>
+            <div class="material-item">
+              <div class="material-icon">🖼️</div>
+              <span>Foto's voor referentiekader-oefening</span>
+            </div>
+            <div class="material-item">
+              <div class="material-icon">📝</div>
+              <span>Post-its voor exit-ticket</span>
+            </div>
+          </div>
+
+          <div class="discussion">
+            <h4>💬 Discussievragen</h4>
+            <div class="discussion-item">
+              <strong>Hoe kan een verschil in referentiekader tot miscommunicatie leiden in de zorg?</strong>
+              <p>Verwachte antwoorden: Verschillende culturele achtergronden, generatieverschillen, beroepsjargon vs. lekenwoorden, emotionele toestand van zorgvrager.</p>
+            </div>
+            <div class="discussion-item">
+              <strong>Waarom is het belangrijk om te checken of je boodschap goed is overgekomen?</strong>
+              <p>Verwachte antwoorden: Zorgvrager kan anders interpreteren, non-verbaal kan tegenstrijdig zijn, misverstanden kunnen gevolgen hebben voor zorg.</p>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <!-- WEEK 2 -->
+      <article class="week-card">
+        <div class="week-header">
+          <div>
+            <span class="week-number">Week 2</span>
+            <h3 class="week-title">Verbale & non-verbale communicatie</h3>
+          </div>
+          <span class="week-kd">B1-K1-W6</span>
+        </div>
+        <div class="week-content">
+          <p class="week-oneliner">Studenten herkennen en passen verbale en non-verbale communicatie toe, en begrijpen het belang van congruentie tussen beide.</p>
+          
+          <div class="time-allocation">
+            <div class="time-block start"><strong>20 min</strong>Start</div>
+            <div class="time-block kern"><strong>80 min</strong>Kern</div>
+            <div class="time-block afsluiting"><strong>20 min</strong>Afsluiting</div>
+          </div>
+
+          <div class="key-concepts">
+            <span class="concept-tag">Verbale communicatie</span>
+            <span class="concept-tag">Non-verbale communicatie</span>
+            <span class="concept-tag">Lichaamstaal</span>
+            <span class="concept-tag">Intonatie</span>
+            <span class="concept-tag">Congruent</span>
+            <span class="concept-tag">Incongruent</span>
+          </div>
+
+          <div class="teacher-script">
+            <h4>📋 Docentenscript</h4>
+            
+            <div class="script-item phase-start">
+              <span class="script-time">0-10 min</span>
+              <span class="script-action">Activeer</span>
+              <div class="script-content">
+                <strong>Demonstratie:</strong> Zeg "Wat fijn dat je er bent!" terwijl je zucht, wegkijkt en met je armen over elkaar staat. Vraag: "Geloofden jullie me? Waarom niet?" Bespreek: het verbale en non-verbale bericht waren incongruent.
+              </div>
+            </div>
+
+            <div class="script-item phase-start">
+              <span class="script-time">10-20 min</span>
+              <span class="script-action">Verbind</span>
+              <div class="script-content">
+                "Onderzoek toont aan dat 55% van communicatie via lichaamstaal gaat, 38% via stem/intonatie en slechts 7% via woorden (Mehrabian). In de zorg is dit extra belangrijk: zorgvragers letten op hoe je iets zegt, niet alleen wat." Link naar KD B1-K1-W6: informatie en advies geven.
+              </div>
+            </div>
+
+            <div class="script-item phase-kern">
+              <span class="script-time">20-45 min</span>
+              <span class="script-action">Instructie</span>
+              <div class="script-content">
+                <strong>Verbale communicatie:</strong> Woordkeuze, zinsbouw, tempo, volume, articulatie. <br><br>
+                <strong>Non-verbale communicatie:</strong>
+                <ul style="margin-top: 0.5rem; padding-left: 1.5rem;">
+                  <li><strong>Gezichtsuitdrukking:</strong> glimlach, gefronst voorhoofd, oogcontact</li>
+                  <li><strong>Houding:</strong> open (armen langs lichaam) vs. gesloten (armen over elkaar)</li>
+                  <li><strong>Gebaren:</strong> knikken, hoofd schudden, hand gebaren</li>
+                  <li><strong>Afstand:</strong> intieme zone (<0.5m), persoonlijke zone (0.5-1.2m), sociale zone (1.2-3.5m)</li>
+                  <li><strong>Aanraking:</strong> troostend klopje, hand vasthouden</li>
+                </ul>
+              </div>
+            </div>
+
+            <div class="script-item phase-kern">
+              <span class="script-time">45-65 min</span>
+              <span class="script-action">Oefening</span>
+              <div class="script-content">
+                <strong>Emotie raden (20 min):</strong> Groepjes van 4. Eén student krijgt een emotiekaart (blij, verdrietig, boos, bang, verbaasd, onzeker) en moet ZONDER woorden deze emotie uitbeelden. Anderen raden. Bespreek: welke non-verbale signalen waren duidelijk?
+              </div>
+            </div>
+
+            <div class="script-item phase-kern">
+              <span class="script-time">65-100 min</span>
+              <span class="script-action">Rollenspel</span>
+              <div class="script-content">
+                <strong>Congruent vs. Incongruent (35 min):</strong><br>
+                <strong>Situatie 1:</strong> Zorgvrager vraagt: "Komt het wel goed met mij?" Speel dit 2x: eerst incongruent (zeg "ja" maar kijk weg, onrustig), dan congruent (oogcontact, rustige stem, open houding).<br><br>
+                <strong>Situatie 2:</strong> Je moet slecht nieuws brengen: "Het bezoekuur is voorbij, uw familie moet gaan." Oefen met passende non-verbale communicatie: empathische stem, rustig tempo, open houding.
+              </div>
+            </div>
+
+            <div class="script-item phase-afsluiting">
+              <span class="script-time">100-120 min</span>
+              <span class="script-action">Check & Vooruitblik</span>
+              <div class="script-content">
+                <strong>Reflectie:</strong> "Noem één non-verbaal signaal dat je bij jezelf wilt verbeteren." <br><br>
+                <strong>Praktijkopdracht:</strong> Let deze week bewust op de lichaamstaal van zorgvragers. Noteer 2 voorbeelden waar non-verbale communicatie iets anders vertelde dan woorden.
+              </div>
+            </div>
+          </div>
+
+          <div class="group-work">
+            <h4>👥 Groepsopdracht: Video-analyse</h4>
+            <ol>
+              <li>Bekijk een fragment van een zorggesprek (of speel het na)</li>
+              <li>Noteer alle non-verbale signalen die je ziet (houding, gezicht, gebaren, afstand)</li>
+              <li>Beoordeel: is de communicatie congruent?</li>
+              <li>Bespreek: wat zou je anders doen?</li>
+            </ol>
+          </div>
+        </div>
+      </article>
+
+      <!-- WEEK 3 -->
+      <article class="week-card">
+        <div class="week-header">
+          <div>
+            <span class="week-number">Week 3</span>
+            <h3 class="week-title">De vier aspecten van communicatie</h3>
+          </div>
+          <span class="week-kd">B1-K1-W6</span>
+        </div>
+        <div class="week-content">
+          <p class="week-oneliner">Studenten analyseren boodschappen op vier niveaus: inhoud, expressie, relatie en appel (model van Schulz von Thun).</p>
+          
+          <div class="time-allocation">
+            <div class="time-block start"><strong>20 min</strong>Start</div>
+            <div class="time-block kern"><strong>80 min</strong>Kern</div>
+            <div class="time-block afsluiting"><strong>20 min</strong>Afsluiting</div>
+          </div>
+
+          <div class="key-concepts">
+            <span class="concept-tag">Inhoudelijk aspect</span>
+            <span class="concept-tag">Expressief aspect</span>
+            <span class="concept-tag">Relationeel aspect</span>
+            <span class="concept-tag">Appellerend aspect</span>
+            <span class="concept-tag">Vier-oren-model</span>
+          </div>
+
+          <div class="teacher-script">
+            <h4>📋 Docentenscript</h4>
+            
+            <div class="script-item phase-start">
+              <span class="script-time">0-10 min</span>
+              <span class="script-action">Activeer</span>
+              <div class="script-content">
+                <strong>Casus:</strong> Een zorgvrager zegt: "Het is hier koud." Vraag aan de klas: "Wat bedoelt deze persoon?" Verzamel antwoorden: raam dicht doen, deken halen, bijpraten, klagen. Bespreek: één zin, meerdere betekenissen!
+              </div>
+            </div>
+
+            <div class="script-item phase-start">
+              <span class="script-time">10-20 min</span>
+              <span class="script-action">Verbind</span>
+              <div class="script-content">
+                Introduceer het vier-oren-model van Schulz von Thun: "Elke boodschap heeft vier kanten. De zender zendt op vier niveaus, de ontvanger kan op vier niveaus luisteren." Teken het vierkant op het bord met de vier aspecten.
+              </div>
+            </div>
+
+            <div class="script-item phase-kern">
+              <span class="script-time">20-50 min</span>
+              <span class="script-action">Instructie</span>
+              <div class="script-content">
+                <strong>De vier aspecten uitgelegd:</strong><br><br>
+                <strong>1. Inhoud (zakelijk):</strong> Wat is de feitelijke informatie? "Het is 18 graden in deze kamer."<br><br>
+                <strong>2. Expressie (zelfopenbaring):</strong> Wat zegt dit over de zender? "Ik heb het koud, ik voel me niet lekker."<br><br>
+                <strong>3. Relatie:</strong> Wat zegt dit over hoe de zender tegen de ontvanger aankijkt? "Ik verwacht dat jij voor mij zorgt."<br><br>
+                <strong>4. Appel:</strong> Wat wil de zender dat de ontvanger doet? "Doe iets! Haal een deken, zet de verwarming hoger."
+              </div>
+            </div>
+
+            <div class="script-item phase-kern">
+              <span class="script-time">50-75 min</span>
+              <span class="script-action">Oefening</span>
+              <div class="script-content">
+                <strong>Analyseer deze uitspraken (groepjes van 3):</strong><br>
+                1. "Je bent laat met mijn medicijnen."<br>
+                2. "Mijn dochter komt vandaag niet op bezoek."<br>
+                3. "Zet de tv maar aan, ik verveel me."<br>
+                4. "De vorige verzorgende deed het anders."<br><br>
+                Per uitspraak: wat is de inhoud, expressie, relatie en appel? Presenteer 1 uitspraak per groep.
+              </div>
+            </div>
+
+            <div class="script-item phase-kern">
+              <span class="script-time">75-100 min</span>
+              <span class="script-action">Rollenspel</span>
+              <div class="script-content">
+                <strong>Op welk oor luister jij?</strong> Eén student zegt: "Mijn zoon belt nooit." Vier anderen reageren elk vanuit een ander aspect:<br>
+                - Inhoud: "Hoe vaak belt hij normaal?"<br>
+                - Expressie: "Je klinkt teleurgesteld."<br>
+                - Relatie: "Wil je dat ik contact met hem opneem?"<br>
+                - Appel: "Zal ik hem voor je bellen?"<br><br>
+                Bespreek welke reactie het meest passend is in de zorg.
+              </div>
+            </div>
+
+            <div class="script-item phase-afsluiting">
+              <span class="script-time">100-120 min</span>
+              <span class="script-action">Check & Vooruitblik</span>
+              <div class="script-content">
+                <strong>Reflectie:</strong> "Op welk oor luister jij het vaakst? Inhoud, expressie, relatie of appel?" <br><br>
+                <strong>Tip:</strong> In de zorg is het expressieve oor vaak het belangrijkst - check hoe de zorgvrager zich voelt voordat je in actie komt.
+              </div>
+            </div>
+          </div>
+
+          <div class="materials">
+            <h4>📦 Materialen</h4>
+            <div class="material-item">
+              <div class="material-icon">📄</div>
+              <span>Werkblad: Vier-aspecten-analyse</span>
+            </div>
+            <div class="material-item">
+              <div class="material-icon">🎴</div>
+              <span>Casuskaarten met uitspraken van zorgvragers</span>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <!-- WEEK 4 -->
+      <article class="week-card">
+        <div class="week-header theme-samenwerking">
+          <div>
+            <span class="week-number">Week 4</span>
+            <h3 class="week-title">Ruis en miscommunicatie</h3>
+          </div>
+          <span class="week-kd">B1-K2-W1</span>
+        </div>
+        <div class="week-content">
+          <p class="week-oneliner">Studenten herkennen verschillende vormen van ruis (extern, intern, semantisch, psychologisch) en leren miscommunicatie te voorkomen.</p>
+          
+          <div class="time-allocation">
+            <div class="time-block start"><strong>20 min</strong>Start</div>
+            <div class="time-block kern"><strong>80 min</strong>Kern</div>
+            <div class="time-block afsluiting"><strong>20 min</strong>Afsluiting</div>
+          </div>
+
+          <div class="key-concepts">
+            <span class="concept-tag">Externe ruis</span>
+            <span class="concept-tag">Interne ruis</span>
+            <span class="concept-tag">Semantische ruis</span>
+            <span class="concept-tag">Psychologische ruis</span>
+            <span class="concept-tag">Projectie</span>
+            <span class="concept-tag">Vooroordelen</span>
+          </div>
+
+          <div class="teacher-script">
+            <h4>📋 Docentenscript</h4>
+            
+            <div class="script-item phase-start">
+              <span class="script-time">0-10 min</span>
+              <span class="script-action">Activeer</span>
+              <div class="script-content">
+                <strong>Experiment:</strong> Lees een instructie voor terwijl je muziek aanzet en iemand door de klas laat lopen. Vraag daarna wat de instructie was. Bespreek: "Wat maakte het moeilijk om te luisteren? Dit noemen we ruis."
+              </div>
+            </div>
+
+            <div class="script-item phase-start">
+              <span class="script-time">10-20 min</span>
+              <span class="script-action">Verbind</span>
+              <div class="script-content">
+                "Ruis is alles wat de communicatie verstoort. In de zorg is dit extra belangrijk: een zorgvrager die pijn heeft, kan jouw uitleg niet goed volgen. Een familielid in paniek hoort alleen wat ze wil horen." Link naar B1-K2-W1: afstemmen met informele zorgverleners.
+              </div>
+            </div>
+
+            <div class="script-item phase-kern">
+              <span class="script-time">20-50 min</span>
+              <span class="script-action">Instructie</span>
+              <div class="script-content">
+                <strong>Vier soorten ruis:</strong><br><br>
+                <strong>1. Externe ruis:</strong> Omgevingsfactoren - lawaai, slechte verlichting, afleiding. Voorbeeld: gesprek op drukke gang.<br><br>
+                <strong>2. Interne ruis:</strong> Fysieke toestand - pijn, vermoeidheid, honger, koorts. Voorbeeld: zorgvrager met hoofdpijn kan niet concentreren.<br><br>
+                <strong>3. Semantische ruis:</strong> Woorden anders begrijpen - vakjargon, dialect, anderstalig. Voorbeeld: "We gaan u mobiliseren" → zorgvrager denkt aan telefoon.<br><br>
+                <strong>4. Psychologische ruis:</strong> Emoties, vooroordelen, aannames. Voorbeeld: familielid is boos en hoort alleen kritiek.
+              </div>
+            </div>
+
+            <div class="script-item phase-kern">
+              <span class="script-time">50-75 min</span>
+              <span class="script-action">Casuswerk</span>
+              <div class="script-content">
+                <strong>Herken de ruis (groepjes van 3):</strong><br><br>
+                <strong>Casus 1:</strong> Je legt uit hoe medicijnen ingenomen moeten worden. De zorgvrager knikt maar doet het thuis verkeerd. Welke ruis? (semantisch: "op nuchtere maag" niet begrepen)<br><br>
+                <strong>Casus 2:</strong> Een mantelzorger reageert geïrriteerd op je advies. Later blijkt ze al 3 nachten niet geslapen te hebben. Welke ruis? (intern)<br><br>
+                <strong>Casus 3:</strong> Je legt iets uit aan een oudere meneer. Hij zegt "ja ja" maar stelt later dezelfde vragen. Je denkt: "Hij luistert niet." Welke ruis kan er spelen? (slechthorendheid = extern, jouw aanname = psychologisch)
+              </div>
+            </div>
+
+            <div class="script-item phase-kern">
+              <span class="script-time">75-100 min</span>
+              <span class="script-action">Strategieën</span>
+              <div class="script-content">
+                <strong>Hoe voorkom/verminder je ruis?</strong><br>
+                - Externe: zoek rustige plek, zet tv uit, ga op ooghoogte zitten<br>
+                - Interne: check of het een goed moment is, houd rekening met pijn/vermoeidheid<br>
+                - Semantische: gebruik eenvoudige taal, check begrip, vermijd jargon<br>
+                - Psychologische: wees je bewust van je aannames, vraag door, oordeel niet<br><br>
+                <strong>Oefening:</strong> Herschrijf vakjargon naar begrijpelijke taal:<br>
+                "Uw ADL-ondersteuning wordt opgeschaald" → ?<br>
+                "We gaan uw vochtbalans monitoren" → ?
+              </div>
+            </div>
+
+            <div class="script-item phase-afsluiting">
+              <span class="script-time">100-120 min</span>
+              <span class="script-action">Check & Vooruitblik</span>
+              <div class="script-content">
+                <strong>Exit-ticket:</strong> "Beschrijf een situatie uit je praktijk waar ruis de communicatie verstoorde. Welk type ruis was het?" <br><br>
+                <strong>Vooruitblik:</strong> "Volgende week leren we de LSD-techniek: Luisteren, Samenvatten, Doorvragen - dé tool om miscommunicatie te voorkomen."
+              </div>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <!-- WEEK 5 -->
+      <article class="week-card">
+        <div class="week-header theme-gespreksvaardigheden">
+          <div>
+            <span class="week-number">Week 5</span>
+            <h3 class="week-title">LSD: Luisteren, Samenvatten, Doorvragen</h3>
+          </div>
+          <span class="week-kd">B1-K2-W1</span>
+        </div>
+        <div class="week-content">
+          <p class="week-oneliner">Studenten passen de LSD-techniek toe om actief te luisteren, begrip te checken en dieper door te vragen naar de behoeften van de zorgvrager.</p>
+          
+          <div class="time-allocation">
+            <div class="time-block start"><strong>20 min</strong>Start</div>
+            <div class="time-block kern"><strong>80 min</strong>Kern</div>
+            <div class="time-block afsluiting"><strong>20 min</strong>Afsluiting</div>
+          </div>
+
+          <div class="key-concepts">
+            <span class="concept-tag">Actief luisteren</span>
+            <span class="concept-tag">Samenvatten</span>
+            <span class="concept-tag">Open vragen</span>
+            <span class="concept-tag">Gesloten vragen</span>
+            <span class="concept-tag">Doorvragen</span>
+            <span class="concept-tag">Empathie</span>
+          </div>
+
+          <div class="teacher-script">
+            <h4>📋 Docentenscript</h4>
+            
+            <div class="script-item phase-start">
+              <span class="script-time">0-10 min</span>
+              <span class="script-action">Activeer</span>
+              <div class="script-content">
+                <strong>Oefening "Slecht luisteren":</strong> Vraag een vrijwilliger om te vertellen over hun weekend. Demonstreer slecht luisteren: kijk op je telefoon, onderbreek, verander van onderwerp. Vraag de klas: "Hoe voelde dit?" Bespreek het belang van actief luisteren.
+              </div>
+            </div>
+
+            <div class="script-item phase-start">
+              <span class="script-time">10-20 min</span>
+              <span class="script-action">Verbind</span>
+              <div class="script-content">
+                "LSD staat voor Luisteren, Samenvatten, Doorvragen. Het is een gesprekstechniek die ervoor zorgt dat je de ander écht begrijpt voordat je reageert. In de zorg voorkomt dit verkeerde aannames en bouw je vertrouwen op."
+              </div>
+            </div>
+
+            <div class="script-item phase-kern">
+              <span class="script-time">20-45 min</span>
+              <span class="script-action">Instructie L</span>
+              <div class="script-content">
+                <strong>L = Luisteren (actief):</strong><br>
+                - <strong>Oogcontact:</strong> kijk de ander aan (maar niet staren)<br>
+                - <strong>Lichaamstaal:</strong> open houding, licht naar voren leunen<br>
+                - <strong>Hummen:</strong> "hm-hm", "ja", knikken<br>
+                - <strong>Niet onderbreken:</strong> laat de ander uitpraten<br>
+                - <strong>Stiltes:</strong> geef ruimte, niet direct invullen<br><br>
+                <strong>Valkuilen:</strong> al nadenken over je antwoord, invullen wat de ander bedoelt, afleiden door omgeving.
+              </div>
+            </div>
+
+            <div class="script-item phase-kern">
+              <span class="script-time">45-60 min</span>
+              <span class="script-action">Instructie S</span>
+              <div class="script-content">
+                <strong>S = Samenvatten:</strong><br>
+                - Geef in eigen woorden terug wat je hebt gehoord<br>
+                - Check of je het goed begrepen hebt<br>
+                - Formuleringen: "Als ik het goed begrijp...", "Dus je zegt dat...", "Je bedoelt..."<br><br>
+                <strong>Voorbeeld:</strong><br>
+                Zorgvrager: "Ik slaap zo slecht de laatste tijd. Ik lig maar te piekeren over thuis, of het wel goed gaat met mijn man."<br>
+                Samenvatting: "Je slaapt slecht omdat je je zorgen maakt over je man thuis. Klopt dat?"
+              </div>
+            </div>
+
+            <div class="script-item phase-kern">
+              <span class="script-time">60-80 min</span>
+              <span class="script-action">Instructie D</span>
+              <div class="script-content">
+                <strong>D = Doorvragen:</strong><br>
+                - <strong>Open vragen:</strong> beginnen met wie, wat, waar, wanneer, hoe, waarom<br>
+                - <strong>Gesloten vragen:</strong> ja/nee antwoord (spaarzaam gebruiken)<br><br>
+                <strong>Voorbeelden doorvragen:</strong><br>
+                - "Kun je daar meer over vertellen?"<br>
+                - "Wat bedoel je precies met...?"<br>
+                - "Hoe voelt dat voor je?"<br>
+                - "Wat zou je het liefst willen?"<br><br>
+                <strong>Vermijd:</strong> suggestieve vragen ("Je bent toch niet bang?"), meerdere vragen tegelijk.
+              </div>
+            </div>
+
+            <div class="script-item phase-kern">
+              <span class="script-time">80-100 min</span>
+              <span class="script-action">Oefening</span>
+              <div class="script-content">
+                <strong>Trio-oefening LSD (20 min, 3 rondes):</strong><br>
+                - Student A: vertelt over een probleem/dilemma (2 min)<br>
+                - Student B: past LSD toe - luistert, vat samen, vraagt door (5 min)<br>
+                - Student C: observeert met checklist<br><br>
+                <strong>Checklist observer:</strong><br>
+                ☐ Oogcontact ☐ Open houding ☐ Niet onderbreken<br>
+                ☐ Samenvatting correct ☐ Open vragen gesteld ☐ Doorgevraagd<br><br>
+                Wissel rollen na elke ronde. Nabespreking: wat ging goed? Wat was lastig?
+              </div>
+            </div>
+
+            <div class="script-item phase-afsluiting">
+              <span class="script-time">100-120 min</span>
+              <span class="script-action">Check & Vooruitblik</span>
+              <div class="script-content">
+                <strong>Praktijkopdracht:</strong> Pas LSD minimaal 2x toe in de praktijk. Noteer: Wat was de situatie? Welke open vraag stelde je? Wat leverde het op?<br><br>
+                <strong>Vooruitblik:</strong> "Volgende week: feedback geven en ontvangen. Hoe zeg je iets moeilijks op een constructieve manier?"
+              </div>
+            </div>
+          </div>
+
+          <div class="group-work">
+            <h4>👥 Groepsopdracht: LSD in de praktijk</h4>
+            <ol>
+              <li>Bedenk een realistische zorgsituatie waar LSD nodig is</li>
+              <li>Schrijf een kort script met L, S en D momenten</li>
+              <li>Speel het voor aan de klas</li>
+              <li>Klasgenoten geven feedback met de checklist</li>
+            </ol>
+          </div>
+        </div>
+      </article>
+
+      <!-- WEEK 6 -->
+      <article class="week-card">
+        <div class="week-header theme-professioneel">
+          <div>
+            <span class="week-number">Week 6</span>
+            <h3 class="week-title">Feedback geven en ontvangen</h3>
+          </div>
+          <span class="week-kd">B1-K3-W2</span>
+        </div>
+        <div class="week-content">
+          <p class="week-oneliner">Studenten leren constructieve feedback te geven met de IK-boodschap en feedback te ontvangen zonder defensief te reageren.</p>
+          
+          <div class="time-allocation">
+            <div class="time-block start"><strong>20 min</strong>Start</div>
+            <div class="time-block kern"><strong>80 min</strong>Kern</div>
+            <div class="time-block afsluiting"><strong>20 min</strong>Afsluiting</div>
+          </div>
+
+          <div class="key-concepts">
+            <span class="concept-tag">IK-boodschap</span>
+            <span class="concept-tag">JIJ-boodschap</span>
+            <span class="concept-tag">Gedrag-Effect</span>
+            <span class="concept-tag">Constructieve feedback</span>
+            <span class="concept-tag">Feedback ontvangen</span>
+          </div>
+
+          <div class="teacher-script">
+            <h4>📋 Docentenscript</h4>
+            
+            <div class="script-item phase-start">
+              <span class="script-time">0-10 min</span>
+              <span class="script-action">Activeer</span>
+              <div class="script-content">
+                <strong>Twee reacties:</strong> "Jij bent altijd te laat! Je bent onbetrouwbaar!" vs. "Ik merk dat je de laatste drie keer later kwam dan afgesproken. Ik maak me daar zorgen over, want de zorgvrager moet dan wachten." Vraag: "Welke reactie zou jij liever krijgen? Waarom?"
+              </div>
+            </div>
+
+            <div class="script-item phase-start">
+              <span class="script-time">10-20 min</span>
+              <span class="script-action">Verbind</span>
+              <div class="script-content">
+                "Feedback is essentieel voor professionele groei. Maar hoe je het brengt, bepaalt of de ander er iets mee kan. Een JIJ-boodschap valt aan, een IK-boodschap opent het gesprek." Link naar KD B1-K3-W2: evalueert werkzaamheden en ontwikkelt zichzelf.
+              </div>
+            </div>
+
+            <div class="script-item phase-kern">
+              <span class="script-time">20-45 min</span>
+              <span class="script-action">Instructie</span>
+              <div class="script-content">
+                <strong>De IK-boodschap (4 stappen):</strong><br><br>
+                <strong>1. Beschrijf het gedrag</strong> (concreet, observeerbaar):<br>
+                "Ik zag dat je de medicijnen gaf zonder te controleren..."<br><br>
+                <strong>2. Beschrijf het effect</strong> (op jou, de situatie, de zorgvrager):<br>
+                "...dat maakt mij ongerust, want er kan iets misgaan."<br><br>
+                <strong>3. Geef je gevoel aan</strong> (optioneel maar krachtig):<br>
+                "Ik voel me daar onzeker bij."<br><br>
+                <strong>4. Doe een verzoek</strong> (concreet, positief geformuleerd):<br>
+                "Wil je voortaan de controle hardop uitvoeren, zodat we het allebei zeker weten?"
+              </div>
+            </div>
+
+            <div class="script-item phase-kern">
+              <span class="script-time">45-65 min</span>
+              <span class="script-action">Oefening</span>
+              <div class="script-content">
+                <strong>Van JIJ naar IK (individueel, 10 min):</strong><br>
+                Herschrijf deze JIJ-boodschappen naar IK-boodschappen:<br><br>
+                1. "Je luistert nooit naar me!"<br>
+                2. "Je rapport klopt niet, je bent slordig."<br>
+                3. "Je bent altijd zo chaotisch!"<br>
+                4. "Je had me moeten bellen, dat is toch logisch!"<br><br>
+                <strong>Bespreek in duo's:</strong> Check elkaars herschrijving. Is het concreet? Gaat het over gedrag, niet over de persoon?
+              </div>
+            </div>
+
+            <div class="script-item phase-kern">
+              <span class="script-time">65-85 min</span>
+              <span class="script-action">Feedback ontvangen</span>
+              <div class="script-content">
+                <strong>Hoe ontvang je feedback constructief?</strong><br>
+                1. <strong>Luister</strong> zonder te onderbreken<br>
+                2. <strong>Vraag door</strong> als iets onduidelijk is<br>
+                3. <strong>Bedank</strong> voor de feedback (ook als het pijn doet)<br>
+                4. <strong>Reflecteer:</strong> wat kan ik ermee? Wat herken ik?<br>
+                5. <strong>Reageer:</strong> vertel wat je ermee gaat doen<br><br>
+                <strong>Valkuilen:</strong> In de verdediging schieten, excuses maken, terugschieten ("Ja maar jij..."), negeren.
+              </div>
+            </div>
+
+            <div class="script-item phase-kern">
+              <span class="script-time">85-100 min</span>
+              <span class="script-action">Rollenspel</span>
+              <div class="script-content">
+                <strong>Feedbackgesprek (trio's):</strong><br>
+                <strong>Situatie:</strong> Collega heeft de rapportage niet goed ingevuld, waardoor jij in de problemen kwam bij de overdracht.<br><br>
+                - Student A: geeft feedback (IK-boodschap)<br>
+                - Student B: ontvangt feedback (constructief)<br>
+                - Student C: observeert<br><br>
+                Wissel rollen. Observer let op: Was het concreet? Over gedrag? Effect benoemd? Hoe reageerde de ontvanger?
+              </div>
+            </div>
+
+            <div class="script-item phase-afsluiting">
+              <span class="script-time">100-120 min</span>
+              <span class="script-action">Check & Vooruitblik</span>
+              <div class="script-content">
+                <strong>Reflectie:</strong> "Wat vind je lastiger: feedback geven of ontvangen? Waarom?"<br><br>
+                <strong>Praktijkopdracht:</strong> Geef deze week één keer bewust feedback aan een collega of medestudent. Noteer hoe het ging.
+              </div>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <!-- WEEK 7 -->
+      <article class="week-card">
+        <div class="week-header theme-samenwerking">
+          <div>
+            <span class="week-number">Week 7</span>
+            <h3 class="week-title">SBAR-communicatie</h3>
+          </div>
+          <span class="week-kd">B1-K2-W2</span>
+        </div>
+        <div class="week-content">
+          <p class="week-oneliner">Studenten passen de SBAR-methode toe voor gestructureerde, professionele overdracht aan andere zorgprofessionals.</p>
+          
+          <div class="time-allocation">
+            <div class="time-block start"><strong>20 min</strong>Start</div>
+            <div class="time-block kern"><strong>80 min</strong>Kern</div>
+            <div class="time-block afsluiting"><strong>20 min</strong>Afsluiting</div>
+          </div>
+
+          <div class="key-concepts">
+            <span class="concept-tag">Situation</span>
+            <span class="concept-tag">Background</span>
+            <span class="concept-tag">Assessment</span>
+            <span class="concept-tag">Recommendation</span>
+            <span class="concept-tag">Overdracht</span>
+            <span class="concept-tag">MDO</span>
+          </div>
+
+          <div class="teacher-script">
+            <h4>📋 Docentenscript</h4>
+            
+            <div class="script-item phase-start">
+              <span class="script-time">0-10 min</span>
+              <span class="script-action">Activeer</span>
+              <div class="script-content">
+                <strong>Fout voorbeeld:</strong> Lees voor: "Dokter, u moet komen! Er is iets met meneer, hij doet raar, en zijn familie is ook al gebeld, en gisteren was hij ook al niet lekker, komt u snel?"<br><br>
+                Vraag: "Als jij de arts was, wat weet je nu? Wat mis je?"
+              </div>
+            </div>
+
+            <div class="script-item phase-start">
+              <span class="script-time">10-20 min</span>
+              <span class="script-action">Verbind</span>
+              <div class="script-content">
+                "SBAR komt uit de luchtvaart waar miscommunicatie fataal kan zijn. In de zorg gebruiken we het voor overdracht aan artsen, collega's, en in MDO's. Het zorgt ervoor dat je snel, volledig en professioneel communiceert." Link naar KD B1-K2-W2.
+              </div>
+            </div>
+
+            <div class="script-item phase-kern">
+              <span class="script-time">20-50 min</span>
+              <span class="script-action">Instructie SBAR</span>
+              <div class="script-content">
+                <strong>S = Situation (Situatie):</strong><br>
+                "Ik ben [naam], [functie] van [afdeling]. Ik bel over [patiënt], kamer [nr]. Het probleem is [kort en concreet]."<br><br>
+                <strong>B = Background (Achtergrond):</strong><br>
+                "Opgenomen vanwege [reden]. Voorgeschiedenis: [relevant]. Huidige behandeling: [medicatie]."<br><br>
+                <strong>A = Assessment (Beoordeling):</strong><br>
+                "Ik heb gemeten: [vitale waarden]. Ik zie: [observaties]. Ik denk dat: [jouw inschatting]."<br><br>
+                <strong>R = Recommendation (Advies):</strong><br>
+                "Ik stel voor: [concrete actie]. Kunt u [vraag]? Wanneer kan ik u verwachten?"<br><br>
+                <strong>Compleet voorbeeld:</strong> Lees het SBAR-voorbeeld van meneer Jansen met pneumonie voor.
+              </div>
+            </div>
+
+            <div class="script-item phase-kern">
+              <span class="script-time">50-80 min</span>
+              <span class="script-action">Oefening</span>
+              <div class="script-content">
+                <strong>SBAR schrijven (20 min, individueel):</strong><br>
+                <strong>Casus:</strong> Mevrouw De Wit (82) woont alleen en krijgt thuiszorg. Je komt 's ochtends en merkt dat ze verward is, haar naam niet goed weet, en de vloer is nat (ze is gevallen?). Bloeddruk 100/60, pols 95, temp niet gemeten.<br><br>
+                Schrijf een SBAR-bericht om de huisarts te bellen.<br><br>
+                <strong>Nabespreking (10 min):</strong> Lees 2-3 SBAR's voor. Check: Is de S kort genoeg? Is de A jouw inschatting? Is de R een concrete vraag?
+              </div>
+            </div>
+
+            <div class="script-item phase-kern">
+              <span class="script-time">80-100 min</span>
+              <span class="script-action">Rollenspel</span>
+              <div class="script-content">
+                <strong>Telefonische SBAR (duo's):</strong><br>
+                Student A = verpleegkundige, belt met SBAR<br>
+                Student B = arts, stelt doorvragen<br><br>
+                <strong>Casus:</strong> Meneer Bakker (70) post-operatief heupoperatie dag 2. Je merkt dat zijn been rood en warm is, hij heeft koorts (38.5°C) en meer pijn dan gisteren (VAS 7).<br><br>
+                Voer het telefoongesprek. Wissel rollen.
+              </div>
+            </div>
+
+            <div class="script-item phase-afsluiting">
+              <span class="script-time">100-120 min</span>
+              <span class="script-action">Check & Vooruitblik</span>
+              <div class="script-content">
+                <strong>SBAR-template:</strong> Deel het SBAR-template uit voor in de praktijk.<br><br>
+                <strong>Praktijkopdracht:</strong> Gebruik SBAR bij je eerstvolgende overdracht of telefoontje naar een arts. Neem het template mee.
+              </div>
+            </div>
+          </div>
+
+          <div class="materials">
+            <h4>📦 Materialen</h4>
+            <div class="material-item">
+              <div class="material-icon">📄</div>
+              <span>SBAR-template (invulformulier)</span>
+            </div>
+            <div class="material-item">
+              <div class="material-icon">🎴</div>
+              <span>Casuskaarten met patiëntsituaties</span>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <!-- WEEK 8 -->
+      <article class="week-card">
+        <div class="week-header theme-samenwerking">
+          <div>
+            <span class="week-number">Week 8</span>
+            <h3 class="week-title">Communiceren met mantelzorgers</h3>
+          </div>
+          <span class="week-kd">B1-K2-W1</span>
+        </div>
+        <div class="week-content">
+          <p class="week-oneliner">Studenten leren effectief te communiceren met mantelzorgers, om te gaan met emoties en verwachtingen, en grenzen te bewaken.</p>
+          
+          <div class="time-allocation">
+            <div class="time-block start"><strong>20 min</strong>Start</div>
+            <div class="time-block kern"><strong>80 min</strong>Kern</div>
+            <div class="time-block afsluiting"><strong>20 min</strong>Afsluiting</div>
+          </div>
+
+          <div class="key-concepts">
+            <span class="concept-tag">Mantelzorgers</span>
+            <span class="concept-tag">Verwachtingsmanagement</span>
+            <span class="concept-tag">Emoties opvangen</span>
+            <span class="concept-tag">Grenzen stellen</span>
+            <span class="concept-tag">Samenwerking</span>
+          </div>
+
+          <div class="teacher-script">
+            <h4>📋 Docentenscript</h4>
+            
+            <div class="script-item phase-start">
+              <span class="script-time">0-10 min</span>
+              <span class="script-action">Activeer</span>
+              <div class="script-content">
+                <strong>Stellingen:</strong> "Mantelzorgers weten altijd wat het beste is voor de zorgvrager" - eens/oneens? "Mantelzorgers zijn je collega's" - eens/oneens? Bespreek: mantelzorgers zijn cruciale partners, maar de relatie is anders dan met professionals.
+              </div>
+            </div>
+
+            <div class="script-item phase-start">
+              <span class="script-time">10-20 min</span>
+              <span class="script-action">Verbind</span>
+              <div class="script-content">
+                "Mantelzorgers zijn mensen die langdurig en onbetaald zorgen voor een naaste. Ze zijn vaak moe, bezorgd en hebben soms andere verwachtingen dan jij. Goed communiceren met hen is essentieel voor goede zorg." Link naar KD B1-K2-W1.
+              </div>
+            </div>
+
+            <div class="script-item phase-kern">
+              <span class="script-time">20-45 min</span>
+              <span class="script-action">Instructie</span>
+              <div class="script-content">
+                <strong>Uitdagingen met mantelzorgers:</strong><br>
+                1. <strong>Emoties:</strong> verdriet, boosheid, schuldgevoel, uitputting<br>
+                2. <strong>Verwachtingen:</strong> anders dan wat mogelijk/wenselijk is<br>
+                3. <strong>Kennis:</strong> ze kennen de zorgvrager goed, maar zijn geen professionals<br>
+                4. <strong>Grenzen:</strong> ze willen helpen maar soms té veel of verkeerd<br><br>
+                <strong>Communicatieprincipes:</strong><br>
+                - Erken hun rol en expertise over de persoon<br>
+                - Luister naar hun zorgen (LSD!)<br>
+                - Wees duidelijk over wat wel en niet kan<br>
+                - Betrek ze bij beslissingen waar gepast<br>
+                - Signaleer overbelasting en verwijs naar ondersteuning
+              </div>
+            </div>
+
+            <div class="script-item phase-kern">
+              <span class="script-time">45-70 min</span>
+              <span class="script-action">Casuswerk</span>
+              <div class="script-content">
+                <strong>Casus 1: De kritische dochter</strong><br>
+                Dochter: "Mijn moeder krijgt haar eten altijd koud. En gisteren lag ze in een natte luier. Dit is toch geen zorg?"<br>
+                → Hoe reageer je? (erkennen, doorvragen, uitleggen, afspraken maken)<br><br>
+                <strong>Casus 2: De overbezorgde echtgenoot</strong><br>
+                Echtgenoot blijft de hele dag bij zijn vrouw, vraagt constant om aandacht, belt 's nachts.<br>
+                → Hoe ga je hiermee om? (gesprek over zijn zorgen, grenzen, verwijzen naar ondersteuning)<br><br>
+                <strong>Casus 3: De afwezige familie</strong><br>
+                Familie komt nooit op bezoek, maar belt elke dag met kritische vragen.<br>
+                → Hoe communiceer je? (niet oordelen, informeren, uitnodigen voor gesprek)
+              </div>
+            </div>
+
+            <div class="script-item phase-kern">
+              <span class="script-time">70-100 min</span>
+              <span class="script-action">Rollenspel</span>
+              <div class="script-content">
+                <strong>Moeilijk gesprek met mantelzorger (groepjes van 3):</strong><br><br>
+                <strong>Situatie:</strong> Je moet aan de zoon van meneer Jansen vertellen dat zijn vader niet meer thuis kan wonen vanwege veiligheid (hij dwaalt 's nachts). De zoon wil dat zijn vader thuis blijft.<br><br>
+                - Student A: verzorgende (leidt gesprek)<br>
+                - Student B: zoon (emotioneel, wil andere oplossing)<br>
+                - Student C: observeert communicatietechnieken<br><br>
+                Let op: erkennen, LSD, duidelijk zijn, samen naar oplossingen zoeken.
+              </div>
+            </div>
+
+            <div class="script-item phase-afsluiting">
+              <span class="script-time">100-120 min</span>
+              <span class="script-action">Check & Vooruitblik</span>
+              <div class="script-content">
+                <strong>Reflectie:</strong> "Wat vind je het moeilijkst in contact met mantelzorgers? Wat neem je mee uit deze les?"<br><br>
+                <strong>Vooruitblik:</strong> "Volgende week: alles komt samen! We oefenen met praktijksimulaties en bereiden voor op de toets."
+              </div>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <!-- WEEK 9 -->
+      <article class="week-card">
+        <div class="week-header theme-professioneel">
+          <div>
+            <span class="week-number">Week 9</span>
+            <h3 class="week-title">Integratie & Toetsvoorbereiding</h3>
+          </div>
+          <span class="week-kd">Alle KD's</span>
+        </div>
+        <div class="week-content">
+          <p class="week-oneliner">Studenten integreren alle geleerde communicatievaardigheden in realistische praktijksimulaties en reflecteren op hun ontwikkeling.</p>
+          
+          <div class="time-allocation">
+            <div class="time-block start"><strong>20 min</strong>Start</div>
+            <div class="time-block kern"><strong>80 min</strong>Kern</div>
+            <div class="time-block afsluiting"><strong>20 min</strong>Afsluiting</div>
+          </div>
+
+          <div class="key-concepts">
+            <span class="concept-tag">Praktijksimulatie</span>
+            <span class="concept-tag">Integratie</span>
+            <span class="concept-tag">Zelfreflectie</span>
+            <span class="concept-tag">Portfolio</span>
+            <span class="concept-tag">Feedback</span>
+          </div>
+
+          <div class="teacher-script">
+            <h4>📋 Docentenscript</h4>
+            
+            <div class="script-item phase-start">
+              <span class="script-time">0-10 min</span>
+              <span class="script-action">Activeer</span>
+              <div class="script-content">
+                <strong>Terugblik:</strong> "We hebben 8 weken gewerkt aan communicatie. Laten we snel de kernbegrippen langsgaan." Maak een mindmap op het bord met bijdragen van studenten: zender/ontvanger, verbaal/non-verbaal, vier aspecten, ruis, LSD, feedback, SBAR, mantelzorgers.
+              </div>
+            </div>
+
+            <div class="script-item phase-start">
+              <span class="script-time">10-20 min</span>
+              <span class="script-action">Verbind</span>
+              <div class="script-content">
+                "Vandaag gaan we alles combineren in realistische scenario's. Dit is ook hoe de toets eruitziet: je krijgt een situatie en moet laten zien dat je professioneel communiceert." Leg de beoordelingscriteria uit.
+              </div>
+            </div>
+
+            <div class="script-item phase-kern">
+              <span class="script-time">20-80 min</span>
+              <span class="script-action">Praktijksimulaties</span>
+              <div class="script-content">
+                <strong>Simulatie 1 (20 min): Intake met nieuwe zorgvrager</strong><br>
+                Je ontmoet mevrouw Bakker (78) voor het eerst. Ze is bang, haar man is net overleden, ze wil eigenlijk niet verzorgd worden. Voer een intakegesprek.<br>
+                → Gebruik: non-verbaal, LSD, vier aspecten, omgaan met emoties.<br><br>
+
+                <strong>Simulatie 2 (20 min): Overdracht aan arts</strong><br>
+                Je belt de huisarts omdat meneer Visser verward is, koorts heeft, en gevallen is vannacht.<br>
+                → Gebruik: SBAR, professionele houding.<br><br>
+
+                <strong>Simulatie 3 (20 min): Gesprek met mantelzorger</strong><br>
+                De dochter van mevrouw De Jong komt klagen dat haar moeder "altijd vuil is" en "nooit op tijd eten krijgt." Ze is emotioneel en dreigt met een klacht.<br>
+                → Gebruik: LSD, feedback ontvangen, grenzen, samenwerking.
+              </div>
+            </div>
+
+            <div class="script-item phase-kern">
+              <span class="script-time">80-100 min</span>
+              <span class="script-action">Peer feedback</span>
+              <div class="script-content">
+                <strong>Feedbackronde:</strong> Na elke simulatie geven observerende studenten feedback met het format:<br>
+                - "Ik zag dat je... [concreet gedrag]"<br>
+                - "Het effect daarvan was... [positief/te verbeteren]"<br>
+                - "Mijn tip voor volgende keer: [concreet]"<br><br>
+                Docent vult aan met koppeling naar theorie en KD-criteria.
+              </div>
+            </div>
+
+            <div class="script-item phase-afsluiting">
+              <span class="script-time">100-120 min</span>
+              <span class="script-action">Zelfreflectie & Afsluiting</span>
+              <div class="script-content">
+                <strong>Portfolio-opdracht:</strong> Schrijf een reflectie (1 A4) over je ontwikkeling in communicatie dit blok. Gebruik STARR:<br>
+                - Situatie: beschrijf een leermoment<br>
+                - Taak: wat moest je doen?<br>
+                - Actie: wat deed je?<br>
+                - Resultaat: wat was het effect?<br>
+                - Reflectie: wat heb je geleerd? Wat doe je volgende keer anders?<br><br>
+                <strong>Afsluiting:</strong> "Communicatie is geen trucje maar een vaardigheid die je blijft ontwikkelen. Succes met de toets en in de praktijk!"
+              </div>
+            </div>
+          </div>
+
+          <div class="group-work">
+            <h4>📋 Toetsinformatie</h4>
+            <ol>
+              <li><strong>Vorm:</strong> Praktijktoets (15 minuten) + mondelinge verantwoording (5 minuten)</li>
+              <li><strong>Situatie:</strong> Je krijgt een zorgsituatie en moet een gesprek voeren</li>
+              <li><strong>Beoordelingscriteria:</strong> Non-verbale houding, LSD-toepassing, structuur (SBAR indien van toepassing), omgaan met emoties, professionele taal</li>
+              <li><strong>Voorbereiding:</strong> Oefen alle casussen uit de lessen, neem het SBAR-template door, reflecteer op je sterke punten en ontwikkelpunten</li>
+            </ol>
+          </div>
+        </div>
+      </article>
+
+    </div>
+  </div>
+
+  <footer style="background: var(--gray-100); padding: 2rem; text-align: center; margin-top: 3rem; border-top: 1px solid var(--gray-200);">
+    <p style="color: var(--gray-500); font-size: 0.9rem;">
+      📚 Gegenereerd door <strong>e-Xpert SAM</strong> | Gebaseerd op MBO Communicatie N3 & KD 2026 VIG/VP<br>
+      <span style="font-size: 0.8rem;">ExpertCollege © 2026</span>
+    </p>
+  </footer>
+
+  <script>
+    // Smooth scroll for navigation
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+      anchor.addEventListener('click', function (e) {
+        e.preventDefault();
+        document.querySelector(this.getAttribute('href')).scrollIntoView({
+          behavior: 'smooth'
+        });
+      });
+    });
+  </script>
+</body>
+</html>
