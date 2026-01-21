@@ -183,8 +183,9 @@
   max-width: 85%;
   padding: 10px 12px;
   border-radius: 14px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: #334155;
+  color: #ffffff;
   white-space: pre-wrap;
   line-height: 1.35;
   font-size: 14px;
@@ -198,7 +199,7 @@
 
 .bubbleMeta {
   font-size: 11px;
-  color: rgba(255, 255, 255, 0.65);
+  color: #e2e8f0;
   margin-bottom: 6px;
   font-weight: 600;
 }
@@ -496,10 +497,10 @@
 }
 
 .messageAssistant .messageText {
-  background: #1e293b;
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: #334155;
+  border: 1px solid rgba(255, 255, 255, 0.2);
   border-top-left-radius: 4px;
-  color: #f1f5f9;
+  color: #ffffff;
 }
 
 /* Typing indicator */
@@ -507,8 +508,8 @@
   display: flex;
   gap: 6px;
   padding: 16px;
-  background: #1e293b;
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: #334155;
+  border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 16px;
   border-top-left-radius: 4px;
 }
