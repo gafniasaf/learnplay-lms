@@ -61,6 +61,12 @@ const config: Config = {
     '^@/hooks/useMCP$': '<rootDir>/src/hooks/__mocks__/useMCP.ts',
     '^\\.\\./useMCP$': '<rootDir>/src/hooks/__mocks__/useMCP.ts',
     '^\\./useMCP$': '<rootDir>/src/hooks/__mocks__/useMCP.ts',
+    // Mock env.ts to avoid import.meta.env issues (Jest can't parse import.meta)
+    '^@/lib/env$': '<rootDir>/src/lib/__mocks__/env.ts',
+    '^\\.\\./lib/env$': '<rootDir>/src/lib/__mocks__/env.ts',
+    '^\\./env$': '<rootDir>/src/lib/__mocks__/env.ts',
+    // Mock supabase client to avoid import.meta.env issues
+    '^@/integrations/supabase/client$': '<rootDir>/src/integrations/supabase/__mocks__/client.ts',
     '^@/(.*)$': '<rootDir>/src/$1',
     '\\.(css|less|scss|sass)$': 'identity-obj-proxy',
   },
