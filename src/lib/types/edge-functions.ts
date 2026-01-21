@@ -175,12 +175,23 @@ type TeacherChatKdCheck = {
   score: { passed: number; total: number };
 };
 
+type TeacherChatCuratedMaterial = {
+  id: string;
+  title: string;
+  course_name?: string;
+  category?: string;
+  preview?: string;
+  kd_codes: string[];
+  hasContent: boolean;
+};
+
 export type TeacherChatAssistantResponse =
   | {
       ok: true;
       answer: string;
       citations: TeacherChatCitation[];
       recommendations?: TeacherChatRecommendation[];
+      curatedMaterials?: TeacherChatCuratedMaterial[];
       lessonPlan?: TeacherChatLessonPlan;
       kdCheck?: TeacherChatKdCheck;
       requestId?: string;

@@ -158,6 +158,19 @@ type KdWerkproces = {
   kerntaak?: string;
 };
 
+type CuratedMaterialResult = {
+  id: string;
+  title: string;
+  course_name?: string;
+  category?: string;
+  preview?: string;
+  kd_codes: string[];
+  storage_bucket?: string;
+  storage_path?: string;
+  score: number;
+  fullContent?: string;
+};
+
 function buildKdCheck(kdCode: string): KdCheck {
   const code = String(kdCode || "").toUpperCase().trim();
   const mapping: Record<string, string[]> = {
@@ -263,6 +276,186 @@ function selectKdMatches(queryText: string, items: KdWerkproces[]): KdWerkproces
 
 function normalizeText(input: string): string {
   return String(input || "").toLowerCase().trim();
+}
+
+// === CURATED MATERIAL SEARCH ===
+
+async function searchCuratedMaterials(args: {
+  organizationId: string;
+  query: string;
+  limit?: number;
+  topic_tag?: string;
+}): Promise<CuratedMaterialResult[]> {
+  const { organizationId, query, limit = 10, topic_tag } = args;
+  const q = normalizeText(query);
+
+  if (!q) return [];
+
+  // Query entity_records with entity="curated-material"
+  let dbQuery = adminSupabase
+    .from("entity_records")
+    .select("id, data, meta")
+    .eq("organization_id", organizationId)
+    .eq("entity", "curated-material")
+    .limit(100); // Get more to filter locally
+
+  if (topic_tag) {
+    // Filter by topic_tag if provided (stored in meta.topic_tag)
+    dbQuery = dbQuery.eq("meta->topic_tag", topic_tag);
+  }
+
+  const { data: records, error } = await dbQuery;
+
+  if (error) {
+    console.error("[searchCuratedMaterials] DB error:", error);
+    return [];
+  }
+
+  if (!records || records.length === 0) return [];
+
+  // Score and filter results based on query match
+  const scored = records.map((record: any) => {
+    const data = record.data || {};
+    const meta = record.meta || {};
+
+    const title = String(data.title || "").toLowerCase();
+    const courseName = String(data.course_name || meta.course_name || "").toLowerCase();
+    const category = String(data.category || meta.category || "").toLowerCase();
+    const preview = String(data.preview || "").toLowerCase();
+    const kdCodes = Array.isArray(data.kd_codes) ? data.kd_codes : [];
+
+    // Calculate relevance score
+    let score = 0;
+    const queryWords = q.split(/\s+/).filter(Boolean);
+
+    for (const word of queryWords) {
+      if (title.includes(word)) score += 10;
+      if (courseName.includes(word)) score += 5;
+      if (category.includes(word)) score += 3;
+      if (preview.includes(word)) score += 2;
+      // Check KD codes
+      for (const kd of kdCodes) {
+        if (String(kd).toLowerCase().includes(word)) score += 4;
+      }
+    }
+
+    // Boost for exact phrase match
+    if (title.includes(q)) score += 20;
+    if (preview.includes(q)) score += 10;
+
+    return {
+      id: record.id,
+      title: data.title || "Untitled",
+      course_name: data.course_name || meta.course_name,
+      category: data.category || meta.category,
+      preview: data.preview,
+      kd_codes: kdCodes,
+      storage_bucket: data.storage_bucket || meta.storage_bucket,
+      storage_path: data.storage_path || meta.storage_path,
+      score,
+    };
+  });
+
+  // Filter and sort by score
+  const results = scored
+    .filter((r: CuratedMaterialResult) => r.score > 0)
+    .sort((a: CuratedMaterialResult, b: CuratedMaterialResult) => b.score - a.score)
+    .slice(0, limit);
+
+  return results;
+}
+
+async function fetchMaterialContent(args: {
+  storageBucket: string;
+  storagePath: string;
+  maxLength?: number;
+}): Promise<string> {
+  const { storageBucket, storagePath, maxLength = 8000 } = args;
+
+  try {
+    const { data, error } = await adminSupabase.storage
+      .from(storageBucket)
+      .download(storagePath);
+
+    if (error || !data) {
+      console.error("[fetchMaterialContent] Storage error:", error);
+      return "";
+    }
+
+    let text = await data.text();
+
+    // Strip HTML tags if content is HTML
+    if (text.includes("<") && text.includes(">")) {
+      text = stripHtmlTags(text);
+    }
+
+    // Truncate if needed
+    if (text.length > maxLength) {
+      text = text.slice(0, maxLength) + "\n... [content truncated]";
+    }
+
+    return text;
+  } catch (err) {
+    console.error("[fetchMaterialContent] Error:", err);
+    return "";
+  }
+}
+
+function stripHtmlTags(html: string): string {
+  // Remove script and style contents completely
+  let text = html.replace(/<script[^>]*>[\s\S]*?<\/script>/gi, "");
+  text = text.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, "");
+
+  // Replace common block elements with newlines
+  text = text.replace(/<\/(p|div|h[1-6]|li|tr|br)>/gi, "\n");
+  text = text.replace(/<br\s*\/?>/gi, "\n");
+
+  // Remove remaining tags
+  text = text.replace(/<[^>]+>/g, " ");
+
+  // Decode common HTML entities
+  text = text.replace(/&nbsp;/g, " ");
+  text = text.replace(/&amp;/g, "&");
+  text = text.replace(/&lt;/g, "<");
+  text = text.replace(/&gt;/g, ">");
+  text = text.replace(/&quot;/g, '"');
+  text = text.replace(/&#39;/g, "'");
+
+  // Clean up whitespace
+  text = text.replace(/\s+/g, " ");
+  text = text.replace(/\n\s+/g, "\n");
+  text = text.replace(/\n{3,}/g, "\n\n");
+
+  return text.trim();
+}
+
+function detectMaterialSearchIntent(queryText: string): boolean {
+  const q = normalizeText(queryText);
+  if (!q) return false;
+
+  const triggers = [
+    // Dutch - existence questions
+    "hebben we", "heb je", "zijn er", "is er",
+    "hebben jullie", "heeft de school",
+    // Dutch - search for modules/materials
+    "zoek module", "zoek materiaal", "zoek content",
+    "zoek e-learning", "zoek elearning",
+    "modules over", "materiaal over", "content over",
+    "e-learning over", "elearning over",
+    // Dutch - specific content types
+    "opgaven over", "oefeningen over", "lesmateriaal over",
+    "teksten over", "theorie over",
+    // Dutch - inventory questions
+    "welke modules", "welke e-learning", "welke materialen",
+    "wat voor modules", "wat voor materiaal",
+    // English equivalents
+    "do we have", "do you have", "are there",
+    "search module", "search material", "search content",
+    "modules about", "material about", "content about",
+    "exercises about", "assignments about",
+  ];
+
+  return triggers.some(t => q.includes(t));
 }
 
 function detectRecommendationIntent(queryText: string): boolean {
@@ -421,7 +614,10 @@ ADVIES VOOR COMBIKLASSEN:
 4. Gebruik dezelfde casussen, laat N4 extra analyseren
 `.trim();
 
-async function generateLessonPlan(args: { queryText: string }): Promise<LessonPlan> {
+async function generateLessonPlan(args: { 
+  queryText: string;
+  materialContent?: string;  // Optional content from curated materials
+}): Promise<LessonPlan> {
   const kdItems = loadKdContext();
   const matches = selectKdMatches(args.queryText, kdItems);
   const primary = matches[0] || { code: "KD-ONBEKEND", titel: "Onbekend KD-onderdeel" };
@@ -439,15 +635,20 @@ async function generateLessonPlan(args: { queryText: string }): Promise<LessonPl
     "Je bent een MBO-curriculumontwikkelaar voor Verpleegkunde/VIG.",
     "Output ALLEEN geldige JSON. Geen markdown, geen extra tekst.",
     "KORT: max 20 woorden per content veld, max 5 teacherScript items.",
-  ].join("\n");
+    args.materialContent ? "Gebruik het beschikbare materiaal als basis voor je lesplan." : "",
+  ].filter(Boolean).join("\n");
 
   const prompt = [
     `Lesplan 45min voor: ${args.queryText}`,
     `KD: ${primary.code} - ${primary.titel}`,
     "",
+    // Include material content if available
+    args.materialContent ? "=== BESCHIKBAAR MATERIAAL ===" : "",
+    args.materialContent ? args.materialContent : "",
+    args.materialContent ? "" : "",
     "JSON (KORTE teksten):",
     `{"quickStart":{"oneLiner":"max 15 woorden","keyConcepts":["3 begrippen"],"timeAllocation":{"start":10,"kern":25,"afsluiting":10}},"teacherScript":[{"time":"0:00","phase":"start","action":"OPEN","content":"max 20 woorden"}],"discussionQuestions":[{"question":"vraag","expectedAnswers":["antwoord"]}],"groupWork":{"title":"titel","steps":["stap 1","stap 2"],"durationMinutes":10},"kdAlignment":{"code":"${primary.code}","title":"${primary.titel}"}}`,
-  ].join("\n");
+  ].filter(Boolean).join("\n");
 
   // Retry logic for robustness
   let lastError = "";
@@ -701,8 +902,39 @@ serve(async (req: Request): Promise<Response> => {
       const OPENAI_API_KEY = requireEnv("OPENAI_API_KEY");
       const EMBEDDING_MODEL = Deno.env.get("OPENAI_EMBEDDING_MODEL") || "text-embedding-3-small";
 
+      // First, search for curated materials to use in lesson plan generation
+      let lessonPlanMaterials: CuratedMaterialResult[] = [];
+      let materialContentForPlan = "";
+      try {
+        lessonPlanMaterials = await searchCuratedMaterials({
+          organizationId,
+          query: queryText,
+          limit: 5,
+        });
+
+        // Fetch content from top 2 materials for lesson plan context
+        if (lessonPlanMaterials.length > 0) {
+          const contentChunks = await Promise.all(
+            lessonPlanMaterials.slice(0, 2).map(async (m) => {
+              if (m.storage_bucket && m.storage_path) {
+                const content = await fetchMaterialContent({
+                  storageBucket: m.storage_bucket,
+                  storagePath: m.storage_path,
+                  maxLength: 3000,
+                });
+                return content ? `[${m.title}]\n${content}` : null;
+              }
+              return null;
+            })
+          );
+          materialContentForPlan = contentChunks.filter(Boolean).join("\n\n---\n\n");
+        }
+      } catch (e) {
+        console.error(`[teacher-chat-assistant] lesson_material_search_error (${requestId}):`, e);
+      }
+
       const [lessonPlan, embedding] = await Promise.all([
-        generateLessonPlan({ queryText }),
+        generateLessonPlan({ queryText, materialContent: materialContentForPlan || undefined }),
         generateEmbedding(queryText, { apiKey: OPENAI_API_KEY, model: EMBEDDING_MODEL }),
       ]);
 
@@ -765,6 +997,7 @@ serve(async (req: Request): Promise<Response> => {
 
     const wantsRecommendations = detectRecommendationIntent(queryText);
     const wantsKdInfo = detectKdQueryIntent(queryText);
+    const wantsMaterialSearch = detectMaterialSearchIntent(queryText);
 
     let citations: Citation[] = [];
     if (scope === "materials") {
@@ -793,6 +1026,59 @@ serve(async (req: Request): Promise<Response> => {
       } catch (e) {
         console.error(`[teacher-chat-assistant] recommendations_error (${requestId}):`, e);
         recommendations = [];
+      }
+    }
+
+    // Search curated materials if intent detected
+    let curatedMaterials: CuratedMaterialResult[] = [];
+    let curatedContext = "";
+    if (wantsMaterialSearch) {
+      try {
+        curatedMaterials = await searchCuratedMaterials({
+          organizationId,
+          query: queryText,
+          limit: 10,
+        });
+
+        // Fetch full content for top 3 materials
+        const materialsWithContent = await Promise.all(
+          curatedMaterials.slice(0, 3).map(async (m) => {
+            if (m.storage_bucket && m.storage_path) {
+              const content = await fetchMaterialContent({
+                storageBucket: m.storage_bucket,
+                storagePath: m.storage_path,
+                maxLength: 4000,
+              });
+              return { ...m, fullContent: content || undefined };
+            }
+            return m;
+          })
+        );
+
+        // Update curatedMaterials with content
+        curatedMaterials = [
+          ...materialsWithContent,
+          ...curatedMaterials.slice(3),
+        ];
+
+        // Build context for LLM
+        if (curatedMaterials.length > 0) {
+          curatedContext = "=== GEVONDEN E-LEARNING MODULES ===\n\n" +
+            curatedMaterials.map((m, i) => {
+              const parts = [
+                `[M${i + 1}] ${m.title}`,
+                m.course_name ? `Cursus: ${m.course_name}` : null,
+                m.category ? `Categorie: ${m.category}` : null,
+                m.kd_codes.length ? `KD: ${m.kd_codes.join(", ")}` : null,
+                m.preview ? `Preview: ${m.preview}` : null,
+                m.fullContent ? `\nInhoud:\n${m.fullContent}` : null,
+              ].filter(Boolean);
+              return parts.join("\n");
+            }).join("\n\n---\n\n");
+        }
+      } catch (e) {
+        console.error(`[teacher-chat-assistant] curated_search_error (${requestId}):`, e);
+        curatedMaterials = [];
       }
     }
 
@@ -832,9 +1118,17 @@ serve(async (req: Request): Promise<Response> => {
       "",
       "Je rol:",
       "- Je vindt en selecteert materiaal uit de beschikbare bronnen",
+      "- Je hebt toegang tot duizenden e-learning modules in het systeem",
       "- Je hebt kennis van het KD 2026 (kwalificatiedossier) voor VIG/VP",
       "- Je adviseert, maar maakt zelf geen nieuwe content",
       "- Als je iets niet weet of bronnen ontbreken, geef je dat eerlijk toe",
+      "",
+      "Wanneer een docent vraagt of we materiaal/modules/e-learning HEBBEN over een onderwerp:",
+      "- Check de GEVONDEN E-LEARNING MODULES sectie hieronder",
+      "- Geef een duidelijk antwoord met aantallen en titels",
+      '- Bijvoorbeeld: "Ja, ik heb 5 modules gevonden over de cel: [M1] Celstructuur, [M2] Celdeling..."',
+      "- Vermeld relevante KD-codes en cursus-informatie",
+      "- Als je ook de inhoud hebt kunnen ophalen, geef dan concrete voorbeelden uit het materiaal",
       "",
       "Wanneer een docent vraagt om materiaal te vinden/zoeken/aanbevelen:",
       "- Verwijs naar de AANBEVELINGEN lijst hieronder met natuurlijke zinnen",
@@ -854,6 +1148,10 @@ serve(async (req: Request): Promise<Response> => {
       // KD context (only when KD query detected)
       wantsKdInfo ? KD_COMBI_CONTEXT : "",
       wantsKdInfo ? "" : "",
+      // Curated material search results
+      curatedContext || "",
+      curatedContext ? "" : "",
+      // Material recommendations
       recommendations.length ? "=== AANBEVELINGEN (MATERIALEN) ===" : "",
       recContext || "",
       recommendations.length ? "" : "",
@@ -881,6 +1179,15 @@ serve(async (req: Request): Promise<Response> => {
       answer: llmResp.text,
       citations: citations.slice(0, 12),
       recommendations,
+      curatedMaterials: curatedMaterials.length > 0 ? curatedMaterials.map(m => ({
+        id: m.id,
+        title: m.title,
+        course_name: m.course_name,
+        category: m.category,
+        preview: m.preview,
+        kd_codes: m.kd_codes,
+        hasContent: !!m.fullContent,
+      })) : undefined,
       requestId,
     }, 200);
   } catch (error) {
