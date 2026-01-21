@@ -493,6 +493,7 @@ const App = () => {
                       <Route path="/admin" element={<Navigate to="/admin/book-monitor" replace />} />
                       <Route path="/admin/book-monitor" element={<AdminBookMonitor />} />
                       {/* Legacy DAWR route aliases (parity redirects) */}
+                      <Route path="/courses" element={<Navigate to="/admin/courses" replace />} />
                       <Route path="/admin/courses" element={<AdminCourseSelector />} />
                       <Route path="/admin/courses/select" element={<AdminCourseSelector />} />
                       <Route path="/admin/course-versions" element={<AdminCourseSelector />} />
