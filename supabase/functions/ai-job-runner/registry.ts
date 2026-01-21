@@ -23,6 +23,7 @@ import { StandardsIngest } from './strategies/standards_ingest.ts';
 import { StandardsMap } from './strategies/standards_map.ts';
 import { StandardsExport } from './strategies/standards_export.ts';
 import { MesCorpusIndex } from './strategies/mes_corpus_index.ts';
+import { BookContentIndex } from './strategies/book_content_index.ts';
 
 export const JobRegistry: Record<string, JobExecutor> = {
   'book_ingest_version': new GeneratedBookIngestVersion(),
@@ -47,4 +48,5 @@ export const JobRegistry: Record<string, JobExecutor> = {
   'standards_map': new StandardsMap(),
   'standards_export': new StandardsExport(),
   'mes_corpus_index': new MesCorpusIndex(),
+  'book_content_index': new BookContentIndex(),
 };

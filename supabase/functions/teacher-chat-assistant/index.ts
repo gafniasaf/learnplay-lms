@@ -740,7 +740,7 @@ async function retrievePrefix(args: {
     }))
     .filter((r) => r.course_id && Number.isFinite(r.item_index) && r.item_index >= 0 && r.text.trim())
     .map((r) => ({
-      source: args.prefix.startsWith("mes:") ? "mes" : "material",
+      source: args.prefix.startsWith("mes:") ? "mes" : args.prefix.startsWith("book:") ? "book" : "material",
       course_id: r.course_id,
       item_index: r.item_index,
       similarity: r.similarity,
@@ -949,11 +949,14 @@ serve(async (req: Request): Promise<Response> => {
       } else if (scope === "mes") {
         citations = await retrievePrefix({ organizationId, prefix: "mes:", embedding, limit: topK });
       } else {
-        const [mat, mes] = await Promise.all([
-          retrievePrefix({ organizationId, prefix: materialId ? `material:${materialId}` : "material:", embedding, limit: Math.ceil(topK / 2) + 2 }),
-          retrievePrefix({ organizationId, prefix: "mes:", embedding, limit: Math.ceil(topK / 2) + 2 }),
+        // Search materials, MES, and books in parallel
+        const perSource = Math.ceil(topK / 3) + 2;
+        const [mat, mes, book] = await Promise.all([
+          retrievePrefix({ organizationId, prefix: materialId ? `material:${materialId}` : "material:", embedding, limit: perSource }),
+          retrievePrefix({ organizationId, prefix: "mes:", embedding, limit: perSource }),
+          retrievePrefix({ organizationId, prefix: "book:", embedding, limit: perSource }),
         ]);
-        citations = [...mat, ...mes]
+        citations = [...mat, ...mes, ...book]
           .sort((a, b) => b.similarity - a.similarity)
           .slice(0, topK);
       }
@@ -1006,11 +1009,14 @@ serve(async (req: Request): Promise<Response> => {
     } else if (scope === "mes") {
       citations = await retrievePrefix({ organizationId, prefix: "mes:", embedding, limit: topK });
     } else {
-      const [mat, mes] = await Promise.all([
-        retrievePrefix({ organizationId, prefix: materialId ? `material:${materialId}` : "material:", embedding, limit: Math.ceil(topK / 2) + 2 }),
-        retrievePrefix({ organizationId, prefix: "mes:", embedding, limit: Math.ceil(topK / 2) + 2 }),
+      // Search materials, MES, and books in parallel
+      const perSource = Math.ceil(topK / 3) + 2;
+      const [mat, mes, book] = await Promise.all([
+        retrievePrefix({ organizationId, prefix: materialId ? `material:${materialId}` : "material:", embedding, limit: perSource }),
+        retrievePrefix({ organizationId, prefix: "mes:", embedding, limit: perSource }),
+        retrievePrefix({ organizationId, prefix: "book:", embedding, limit: perSource }),
       ]);
-      citations = [...mat, ...mes]
+      citations = [...mat, ...mes, ...book]
         .sort((a, b) => b.similarity - a.similarity)
         .slice(0, topK);
     }
