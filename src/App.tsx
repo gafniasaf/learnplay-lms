@@ -57,6 +57,7 @@ const AdminBookStudioBookDetail = lazy(() => import("./pages/admin/BookStudioBoo
 const AdminBookStudioVersions = lazy(() => import("./pages/admin/BookStudioVersions"));
 const AdminBookStudioChapterEditor = lazy(() => import("./pages/admin/BookStudioChapterEditor"));
 const AdminBookMonitor = lazy(() => import("./pages/admin/BookMonitor"));
+const Courses = lazy(() => import("./pages/Courses"));
 const StudentDashboard = lazy(() => import("./pages/student/Dashboard"));
 const StudentAssignments = lazy(() => import("./pages/student/Assignments"));
 const StudentAchievements = lazy(() => import("./pages/student/Achievements"));
@@ -493,7 +494,7 @@ const App = () => {
                       <Route path="/admin" element={<Navigate to="/admin/book-monitor" replace />} />
                       <Route path="/admin/book-monitor" element={<AdminBookMonitor />} />
                       {/* Legacy DAWR route aliases (parity redirects) */}
-                      <Route path="/courses" element={<Navigate to="/admin/courses" replace />} />
+                      <Route path="/courses" element={<Courses />} />
                       <Route path="/admin/courses" element={<AdminCourseSelector />} />
                       <Route path="/admin/courses/select" element={<AdminCourseSelector />} />
                       <Route path="/admin/course-versions" element={<AdminCourseSelector />} />
