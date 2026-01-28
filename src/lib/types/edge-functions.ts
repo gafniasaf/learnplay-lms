@@ -126,7 +126,7 @@ export interface RecommendMesContentResponse {
 }
 
 type TeacherChatCitation = {
-  source: "material" | "mes";
+  source: "material" | "mes" | "book";
   course_id: string;
   item_index: number;
   similarity: number;
@@ -134,15 +134,20 @@ type TeacherChatCitation = {
 };
 
 type TeacherChatRecommendation = {
-  material_id: string;
+  source: "library-material" | "curated" | "mes";
+  id: string;
   title: string;
   score: number;
   snippet?: string;
+  why?: string;
+  url?: string;
   file_name?: string;
   content_type?: string;
   storage_bucket?: string;
   storage_path?: string;
   updated_at?: string;
+  material_id?: string;
+  course_id?: string;
 };
 
 type TeacherChatLessonPlan = {

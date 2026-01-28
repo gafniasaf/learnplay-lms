@@ -100,6 +100,8 @@ describe("TeacherGPT Chat (contract)", () => {
       citations: [],
       recommendations: [
         {
+          source: "library-material",
+          id: "mat-1",
           material_id: "mat-1",
           title: "SBAR template overdracht",
           score: 0.69,

@@ -44,6 +44,37 @@ async function generateEmbedding(text: string, opts: { apiKey: string; model: st
   return emb as number[];
 }
 
+type IndexDocMeta = { title?: string; url?: string; indexed_at?: string; chunk_count?: number };
+
+async function loadMesIndexMeta(organizationId: string): Promise<Record<string, IndexDocMeta> | null> {
+  const indexPath = `${organizationId}/mes-corpus/index.json`;
+  const { data, error } = await adminSupabase.storage.from("materials").download(indexPath);
+  if (error || !data) return null;
+  try {
+    const text = await data.text();
+    const json = text ? JSON.parse(text) : null;
+    const docs = json?.documents;
+    if (!docs || typeof docs !== "object") return null;
+    return docs as Record<string, IndexDocMeta>;
+  } catch {
+    return null;
+  }
+}
+
+function truncateSnippet(text: string, maxLen: number = 280): string {
+  const value = String(text || "").trim();
+  if (!value) return "";
+  return value.length > maxLen ? `${value.slice(0, maxLen)}…` : value;
+}
+
+function deriveMesCourseId(docId: string): string | undefined {
+  const id = String(docId || "").trim();
+  if (!id) return undefined;
+  if (id.toLowerCase().startsWith("mes-")) return id;
+  if (/^\d+$/.test(id)) return `mes-${id}`;
+  return undefined;
+}
+
 type ChatMessage = { role: "user" | "assistant"; content: string };
 
 function parseMessages(raw: unknown): ChatMessage[] {
@@ -112,7 +143,7 @@ async function isOrgAdminOrEditor(args: { userId?: string; organizationId: strin
 }
 
 type Citation = {
-  source: "material" | "mes";
+  source: "material" | "mes" | "book";
   course_id: string;
   item_index: number;
   similarity: number;
@@ -129,6 +160,26 @@ type MaterialRecommendation = {
   storage_bucket?: string;
   storage_path?: string;
   updated_at?: string;
+};
+
+type RecommendationSource = "library-material" | "curated" | "mes";
+
+type UnifiedRecommendation = {
+  source: RecommendationSource;
+  id: string;
+  title: string;
+  score: number;
+  snippet?: string;
+  why?: string;
+  url?: string;
+  file_name?: string;
+  content_type?: string;
+  storage_bucket?: string;
+  storage_path?: string;
+  updated_at?: string;
+  // Back-compat for library-material selections
+  material_id?: string;
+  course_id?: string;
 };
 
 type LessonPlan = {
@@ -830,6 +881,104 @@ async function retrieveMaterialRecommendations(args: {
   });
 }
 
+function toLibraryMaterialRecommendations(materials: MaterialRecommendation[]): UnifiedRecommendation[] {
+  return materials.map((m) => ({
+    source: "library-material",
+    id: m.material_id,
+    material_id: m.material_id,
+    title: m.title,
+    score: Number.isFinite(m.score) ? m.score : 0,
+    snippet: m.snippet,
+    why: m.snippet,
+    file_name: m.file_name,
+    content_type: m.content_type,
+    storage_bucket: m.storage_bucket,
+    storage_path: m.storage_path,
+    updated_at: m.updated_at,
+  }));
+}
+
+function toCuratedRecommendations(materials: CuratedMaterialResult[], maxPreview = 260): UnifiedRecommendation[] {
+  return materials.map((m) => {
+    const preview = truncateSnippet(m.preview || "", maxPreview);
+    const kdHint = Array.isArray(m.kd_codes) && m.kd_codes.length ? `KD: ${m.kd_codes.join(", ")}` : "";
+    const why = preview || kdHint || undefined;
+    return {
+      source: "curated",
+      id: m.id,
+      title: m.title,
+      score: Number.isFinite(m.score) ? m.score : 0,
+      snippet: preview || undefined,
+      why,
+      storage_bucket: m.storage_bucket,
+      storage_path: m.storage_path,
+    };
+  });
+}
+
+async function recommendMesModules(args: {
+  organizationId: string;
+  embedding: number[];
+  limit: number;
+}): Promise<UnifiedRecommendation[]> {
+  const raw = await retrievePrefix({
+    organizationId: args.organizationId,
+    prefix: "mes:",
+    embedding: args.embedding,
+    limit: Math.min(80, Math.max(args.limit * 8, 24)),
+  });
+
+  const byDoc = new Map<string, { doc_id: string; best: number; snippet: string }>();
+  for (const c of raw) {
+    const courseId = String(c.course_id || "");
+    if (!courseId.startsWith("mes:")) continue;
+    const docId = courseId.slice("mes:".length).trim();
+    if (!docId) continue;
+    const existing = byDoc.get(docId);
+    if (!existing || c.similarity > existing.best) {
+      byDoc.set(docId, { doc_id: docId, best: c.similarity, snippet: c.text });
+    }
+  }
+
+  const meta = await loadMesIndexMeta(args.organizationId);
+
+  return Array.from(byDoc.values())
+    .sort((a, b) => b.best - a.best)
+    .slice(0, Math.max(1, Math.min(12, args.limit)))
+    .map((d) => {
+      const title = meta?.[d.doc_id]?.title || d.doc_id;
+      const url = meta?.[d.doc_id]?.url;
+      const snippet = truncateSnippet(d.snippet || "");
+      const courseId = deriveMesCourseId(d.doc_id);
+      return {
+        source: "mes",
+        id: d.doc_id,
+        title,
+        score: Number.isFinite(d.best) ? d.best : 0,
+        snippet: snippet || undefined,
+        why: snippet || undefined,
+        url,
+        course_id: courseId,
+      };
+    });
+}
+
+function mergeRecommendations(lists: UnifiedRecommendation[][], limit = 12): UnifiedRecommendation[] {
+  const byKey = new Map<string, UnifiedRecommendation>();
+  for (const list of lists) {
+    for (const rec of list) {
+      const key = `${rec.source}:${rec.id}`;
+      const existing = byKey.get(key);
+      if (!existing || (rec.score || 0) > (existing.score || 0)) {
+        byKey.set(key, rec);
+      }
+    }
+  }
+  return Array.from(byKey.values())
+    .sort((a, b) => (b.score || 0) - (a.score || 0))
+    .slice(0, Math.max(1, limit));
+}
+
 serve(async (req: Request): Promise<Response> => {
   const requestId = crypto.randomUUID();
 
@@ -961,22 +1110,43 @@ serve(async (req: Request): Promise<Response> => {
           .slice(0, topK);
       }
 
-      let recommendations: MaterialRecommendation[] = [];
-      if (scope !== "mes") {
-        try {
-          recommendations = await retrieveMaterialRecommendations({ organizationId, embedding, limit: 8 });
-        } catch (e) {
-          console.error(`[teacher-chat-assistant] recommendations_error (${requestId}):`, e);
-          recommendations = [];
-        }
+      const allowMes = scope !== "materials";
+      const allowCurated = scope !== "mes";
+      const allowLibrary = scope !== "mes";
+
+      let libraryRecommendations: UnifiedRecommendation[] = [];
+      let mesRecommendations: UnifiedRecommendation[] = [];
+      const curatedRecommendations = allowCurated ? toCuratedRecommendations(lessonPlanMaterials) : [];
+
+      try {
+        const [libraryRaw, mesRaw] = await Promise.all([
+          allowLibrary ? retrieveMaterialRecommendations({ organizationId, embedding, limit: 6 }) : Promise.resolve([]),
+          allowMes ? recommendMesModules({ organizationId, embedding, limit: 6 }) : Promise.resolve([]),
+        ]);
+        libraryRecommendations = toLibraryMaterialRecommendations(libraryRaw);
+        mesRecommendations = mesRaw;
+      } catch (e) {
+        console.error(`[teacher-chat-assistant] recommendations_error (${requestId}):`, e);
       }
+
+      const recommendations = mergeRecommendations(
+        [curatedRecommendations, mesRecommendations, libraryRecommendations],
+        12,
+      );
+
+      const counts = {
+        total: recommendations.length,
+        curated: curatedRecommendations.length,
+        mes: mesRecommendations.length,
+        library: libraryRecommendations.length,
+      };
 
       const answer = [
         "Ik heb een lesplan opgesteld dat past bij je vraag.",
         `KD-focus: ${lessonPlan.kdAlignment.code} — ${lessonPlan.kdAlignment.title}.`,
-        recommendations.length
-          ? `Ik heb ook ${recommendations.length} materialen gevonden die je direct kunt gebruiken.`
-          : "Ik heb geen materialen gevonden die direct matchen—probeer een concretere zoekterm of selecteer een materiaal.",
+        counts.total
+          ? `Ik heb ook ${counts.total} e-learning modules gevonden (${counts.curated} uit de database${counts.mes ? `, ${counts.mes} uit ExpertCollege` : ""}${counts.library ? `, ${counts.library} uit je eigen materiaal` : ""}).`
+          : "Ik heb geen modules gevonden die direct matchen—probeer een concretere zoekterm.",
         "Bekijk lesplan, materialen en bronnen in het paneel rechts.",
       ].join(" ");
 
@@ -1021,19 +1191,12 @@ serve(async (req: Request): Promise<Response> => {
         .slice(0, topK);
     }
 
-    let recommendations: MaterialRecommendation[] = [];
-    if (wantsRecommendations && scope !== "mes") {
-      try {
-        recommendations = await retrieveMaterialRecommendations({
-          organizationId,
-          embedding,
-          limit: 8,
-        });
-      } catch (e) {
-        console.error(`[teacher-chat-assistant] recommendations_error (${requestId}):`, e);
-        recommendations = [];
-      }
-    }
+    const allowMes = scope !== "materials";
+    const allowCurated = scope !== "mes";
+    const allowLibrary = scope !== "mes";
+    const shouldRecommend = wantsRecommendations || wantsMaterialSearch;
+
+    let recommendations: UnifiedRecommendation[] = [];
 
     // Search curated materials if intent detected
     let curatedMaterials: CuratedMaterialResult[] = [];
@@ -1088,6 +1251,41 @@ serve(async (req: Request): Promise<Response> => {
       }
     }
 
+    if (shouldRecommend) {
+      let curatedBase: CuratedMaterialResult[] = [];
+      if (allowCurated) {
+        if (curatedMaterials.length > 0) {
+          curatedBase = curatedMaterials;
+        } else {
+          try {
+            curatedBase = await searchCuratedMaterials({
+              organizationId,
+              query: queryText,
+              limit: 10,
+            });
+          } catch (e) {
+            console.error(`[teacher-chat-assistant] curated_recs_error (${requestId}):`, e);
+            curatedBase = [];
+          }
+        }
+      }
+
+      try {
+        const [libraryRaw, mesRecs] = await Promise.all([
+          wantsRecommendations && allowLibrary
+            ? retrieveMaterialRecommendations({ organizationId, embedding, limit: 6 })
+            : Promise.resolve([]),
+          allowMes ? recommendMesModules({ organizationId, embedding, limit: 6 }) : Promise.resolve([]),
+        ]);
+        const libraryRecs = toLibraryMaterialRecommendations(libraryRaw);
+        const curatedRecs = allowCurated ? toCuratedRecommendations(curatedBase) : [];
+        recommendations = mergeRecommendations([curatedRecs, mesRecs, libraryRecs], 12);
+      } catch (e) {
+        console.error(`[teacher-chat-assistant] recommendations_error (${requestId}):`, e);
+        recommendations = [];
+      }
+    }
+
     const citedContext = citations
       .slice(0, 12)
       .map((c, i) => {
@@ -1103,13 +1301,15 @@ serve(async (req: Request): Promise<Response> => {
           .map((r, i) => {
             const n = i + 1;
             const score = Number.isFinite(r.score) ? r.score.toFixed(3) : "0.000";
+            const sourceLabel = r.source === "mes" ? "MES" : r.source === "curated" ? "E-learning" : "Material";
             const metaParts = [
               r.file_name ? `file: ${r.file_name}` : null,
               r.content_type ? `type: ${r.content_type}` : null,
+              r.url ? `url: ${r.url}` : null,
             ].filter(Boolean);
             const meta = metaParts.length ? ` (${metaParts.join(", ")})` : "";
-            const snip = r.snippet ? `\nSnippet: ${r.snippet}` : "";
-            return `[R${n}] ${r.title}${meta} (score ${score})${snip}`;
+            const why = r.why ? `\nWaarom: ${r.why}` : r.snippet ? `\nSnippet: ${r.snippet}` : "";
+            return `[R${n}] [${sourceLabel}] ${r.title}${meta} (score ${score})${why}`;
           })
           .join("\n\n")
       : "";

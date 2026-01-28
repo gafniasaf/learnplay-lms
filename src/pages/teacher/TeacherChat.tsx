@@ -50,6 +50,33 @@ function safeText(v: unknown): string {
   return typeof v === "string" ? v : "";
 }
 
+function recommendationKey(r: Recommendation): string {
+  const source = r.source || "material";
+  const baseId = String((r as any).material_id || r.id || r.title || "rec");
+  return `${source}-${baseId}`;
+}
+
+function recommendationSourceLabel(r: Recommendation): string {
+  if (r.source === "mes") return "MES";
+  if (r.source === "curated") return "E-learning";
+  return "Materiaal";
+}
+
+function recommendationMaterialId(r: Recommendation): string {
+  const legacyId = String((r as any).material_id || "").trim();
+  const baseId = String(r.id || "").trim();
+  if (r.source && r.source !== "library-material") return "";
+  return (legacyId || baseId || "").trim();
+}
+
+function recommendationCourseId(r: Recommendation): string {
+  const raw = String((r as any).course_id || r.id || "").trim();
+  if (!raw) return "";
+  if (raw.toLowerCase().startsWith("mes-")) return raw;
+  if (/^\d+$/.test(raw)) return `mes-${raw}`;
+  return "";
+}
+
 function buildKdCheck(kdCode: string): KdCheck {
   const code = String(kdCode || "").toUpperCase().trim();
   const mapping: Record<string, string[]> = {
@@ -982,32 +1009,66 @@ export default function TeacherChat() {
             {activeTab === "materials" ? (
               <>
                 {currentRecommendations.length ? (
-                  currentRecommendations.map((r) => (
-                    <div key={r.material_id} className={styles.card}>
-                      <h3 className={styles.cardTitle}>{r.title}</h3>
-                      <div className={styles.muted}>
-                        {r.file_name ? r.file_name : "Material"}
-                        {r.content_type ? ` · ${r.content_type}` : ""}
-                        {Number.isFinite(r.score) ? ` · score ${(r.score as number).toFixed(2)}` : ""}
+                  currentRecommendations.map((r) => {
+                    const materialId = recommendationMaterialId(r);
+                    const courseId = recommendationCourseId(r);
+                    const url = typeof (r as any).url === "string" ? String((r as any).url) : "";
+                    const snippet = (r as any).why || r.snippet;
+                    const sourceLabel = recommendationSourceLabel(r);
+                    return (
+                      <div key={recommendationKey(r)} className={styles.card}>
+                        <h3 className={styles.cardTitle}>{r.title}</h3>
+                        <div className={styles.muted}>
+                          {sourceLabel}
+                          {r.file_name ? ` · ${r.file_name}` : ""}
+                          {r.content_type ? ` · ${r.content_type}` : ""}
+                          {Number.isFinite(r.score) ? ` · score ${(r.score as number).toFixed(2)}` : ""}
+                        </div>
+                        {snippet ? <div style={{ marginTop: 10 }}>{snippet}</div> : null}
+                        <div className={styles.row} style={{ marginTop: 10 }}>
+                          {materialId ? (
+                            <button
+                              type="button"
+                              className={styles.btn}
+                              onClick={() => onUseMaterial(materialId)}
+                              data-cta-id="cta-teachergpt-chat-recommendation-use"
+                              data-action="click"
+                            >
+                              Gebruik dit materiaal
+                            </button>
+                          ) : null}
+                          {r.source === "mes" && courseId ? (
+                            <a
+                              className={styles.btn}
+                              href={`/admin/library-courses/${encodeURIComponent(courseId)}`}
+                              target="_blank"
+                              rel="noreferrer"
+                              data-cta-id="cta-teachergpt-chat-recommendation-open"
+                              data-action="navigate"
+                            >
+                              Open module
+                            </a>
+                          ) : null}
+                          {r.source === "mes" && !courseId && url ? (
+                            <a
+                              className={styles.btn}
+                              href={url}
+                              target="_blank"
+                              rel="noreferrer"
+                              data-cta-id="cta-teachergpt-chat-recommendation-open-url"
+                              data-action="navigate"
+                            >
+                              Open bron
+                            </a>
+                          ) : null}
+                        </div>
                       </div>
-                      {r.snippet ? <div style={{ marginTop: 10 }}>{r.snippet}</div> : null}
-                      <div className={styles.row} style={{ marginTop: 10 }}>
-                        <button
-                          type="button"
-                          className={styles.btn}
-                          onClick={() => onUseMaterial(r.material_id)}
-                          data-cta-id="cta-teachergpt-chat-recommendation-use"
-                          data-action="click"
-                        >
-                          Gebruik dit materiaal
-                        </button>
-                      </div>
-                    </div>
-                  ))
+                    );
+                  })
                 ) : (
                   <div className={styles.card}>
                     <h3 className={styles.cardTitle}>Geen materialen</h3>
-                    <div className={styles.muted}>Vraag om materialen of maak eerst een lesplan (scope ≠ MES).</div>
+                    <div className={styles.muted}>Vraag om modules of maak eerst een lesplan.</div>
                   </div>
                 )}
               </>
