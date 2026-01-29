@@ -511,7 +511,7 @@ export default function TeacherChat() {
               data-cta-id="cta-teachergpt-chat-scope-mes"
               data-action="click"
             >
-              MES
+              e-Learning
             </button>
           </div>
 
@@ -555,9 +555,9 @@ export default function TeacherChat() {
                 data-cta-id="cta-teachergpt-chat-settings-scope"
                 data-action="select"
               >
-                <option value="all">Alles (Materialen + MES)</option>
+                <option value="all">Alles (Materialen + e-Learning)</option>
                 <option value="materials">Alleen Materialen</option>
-                <option value="mes">Alleen MES</option>
+                <option value="mes">Alleen e-Learning</option>
               </select>
             </div>
 
