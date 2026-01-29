@@ -197,9 +197,9 @@
 
 .bubbleUser {
   margin-left: auto;
-  background: #2563eb;
-  border-color: #2563eb;
-  color: #ffffff;
+  background: #3b82f6;
+  border-color: #3b82f6;
+  color: #ffffff !important;
 }
 
 .bubbleMeta {
@@ -508,9 +508,9 @@
 }
 
 .messageUser .messageText {
-  background: #2563eb;
+  background: #3b82f6;
   border-top-right-radius: 4px;
-  color: #ffffff;
+  color: #ffffff !important;
 }
 
 .messageAssistant .messageText {
