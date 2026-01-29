@@ -6,8 +6,8 @@
   bottom: 0;
   display: flex;
   flex-direction: column;
-  background: #0f172a;
-  color: #f8fafc;
+  background: #f8fafc;
+  color: #1e293b;
   overflow: hidden;
 }
 
@@ -17,8 +17,8 @@
   justify-content: space-between;
   gap: 12px;
   padding: 12px 16px;
-  background: #1e293b;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  background: #ffffff;
+  border-bottom: 1px solid #e2e8f0;
   flex-shrink: 0;
 }
 
@@ -38,6 +38,7 @@
   place-items: center;
   font-weight: 700;
   flex: 0 0 auto;
+  color: #ffffff;
 }
 
 .brandText {
@@ -47,11 +48,12 @@
 .title {
   font-weight: 700;
   line-height: 1.1;
+  color: #1e293b;
 }
 
 .subtitle {
   font-size: 12px;
-  color: #94a3b8;
+  color: #64748b;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -69,13 +71,13 @@
   gap: 6px;
   padding: 4px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.06);
+  background: #f1f5f9;
 }
 
 .scopeBtn {
   border: none;
   background: transparent;
-  color: #94a3b8;
+  color: #64748b;
   border-radius: 999px;
   padding: 6px 12px;
   cursor: pointer;
@@ -89,9 +91,9 @@
 }
 
 .btn {
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  background: transparent;
-  color: #f8fafc;
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+  color: #1e293b;
   border-radius: 10px;
   padding: 8px 10px;
   cursor: pointer;
@@ -102,6 +104,7 @@
 .btnPrimary {
   background: #2563eb;
   border-color: #2563eb;
+  color: #ffffff;
 }
 
 .btn:disabled {
@@ -111,8 +114,8 @@
 
 .settings {
   padding: 12px 16px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-  background: #1e293b;
+  border-bottom: 1px solid #e2e8f0;
+  background: #ffffff;
   flex-shrink: 0;
 }
 
@@ -133,7 +136,7 @@
   font-size: 11px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: #94a3b8;
+  color: #64748b;
 }
 
 .selectRow {
@@ -147,9 +150,9 @@
   width: 100%;
   padding: 10px 12px;
   border-radius: 10px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  background: rgba(0, 0, 0, 0.2);
-  color: #f8fafc;
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+  color: #1e293b;
 }
 
 .main {
@@ -164,8 +167,9 @@
   min-height: 0;
   display: flex;
   flex-direction: column;
-  border-right: 1px solid rgba(255, 255, 255, 0.1);
+  border-right: 1px solid #e2e8f0;
   overflow: hidden;
+  background: #f8fafc;
 }
 
 .messages {
@@ -183,9 +187,9 @@
   max-width: 85%;
   padding: 10px 12px;
   border-radius: 14px;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  background: #334155;
-  color: #ffffff;
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+  color: #1e293b;
   white-space: pre-wrap;
   line-height: 1.35;
   font-size: 14px;
@@ -195,18 +199,19 @@
   margin-left: auto;
   background: #2563eb;
   border-color: #2563eb;
+  color: #ffffff;
 }
 
 .bubbleMeta {
   font-size: 11px;
-  color: #e2e8f0;
+  color: #64748b;
   margin-bottom: 6px;
   font-weight: 600;
 }
 
 .inputBar {
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
-  background: #1e293b;
+  border-top: 1px solid #e2e8f0;
+  background: #ffffff;
   padding: 12px 16px;
   display: flex;
   flex-direction: column;
@@ -223,12 +228,16 @@
 .chip {
   padding: 6px 12px;
   border-radius: 999px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  background: rgba(255, 255, 255, 0.06);
-  color: #f8fafc;
+  border: 1px solid #e2e8f0;
+  background: #f1f5f9;
+  color: #1e293b;
   cursor: pointer;
   font-weight: 600;
   font-size: 12px;
+}
+
+.chip:hover {
+  background: #e2e8f0;
 }
 
 .row {
@@ -241,13 +250,13 @@
   min-height: 0;
   display: flex;
   flex-direction: column;
-  background: #1e293b;
+  background: #ffffff;
   overflow: hidden;
 }
 
 .tabs {
   display: flex;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  border-bottom: 1px solid #e2e8f0;
   flex-shrink: 0;
 }
 
@@ -256,14 +265,14 @@
   padding: 10px 12px;
   background: transparent;
   border: none;
-  color: #94a3b8;
+  color: #64748b;
   cursor: pointer;
   font-weight: 700;
   font-size: 13px;
 }
 
 .tabActive {
-  color: #f8fafc;
+  color: #1e293b;
   border-bottom: 2px solid #2563eb;
 }
 
@@ -276,9 +285,9 @@
 }
 
 .card {
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid #e2e8f0;
   border-radius: 12px;
-  background: rgba(255, 255, 255, 0.03);
+  background: #ffffff;
   padding: 12px;
   margin-bottom: 10px;
 }
@@ -287,10 +296,11 @@
   margin: 0 0 6px;
   font-size: 14px;
   font-weight: 800;
+  color: #1e293b;
 }
 
 .muted {
-  color: #94a3b8;
+  color: #64748b;
   font-size: 12px;
 }
 
@@ -309,9 +319,9 @@
   align-items: center;
   justify-content: space-between;
   gap: 10px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  background: rgba(255, 255, 255, 0.04);
-  color: #f8fafc;
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+  color: #1e293b;
   border-radius: 10px;
   padding: 10px 12px;
   cursor: pointer;
@@ -320,12 +330,17 @@
   text-align: left;
 }
 
+.sectionToggleBtn:hover {
+  background: #f1f5f9;
+}
+
 .sectionBody {
   margin-top: 10px;
   display: grid;
   gap: 10px;
   font-size: 13px;
   line-height: 1.35;
+  color: #1e293b;
 }
 
 .badge {
@@ -334,10 +349,11 @@
   gap: 6px;
   padding: 4px 10px;
   border-radius: 999px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid #e2e8f0;
+  background: #f1f5f9;
   font-size: 12px;
   font-weight: 800;
+  color: #1e293b;
 }
 
 .kdCheckRow {
@@ -351,9 +367,9 @@
   width: 18px;
   height: 18px;
   border-radius: 999px;
-  background: rgba(34, 197, 94, 0.2);
-  border: 1px solid rgba(34, 197, 94, 0.5);
-  color: #22c55e;
+  background: rgba(34, 197, 94, 0.15);
+  border: 1px solid rgba(34, 197, 94, 0.4);
+  color: #16a34a;
   display: grid;
   place-items: center;
   font-weight: 900;
@@ -369,15 +385,15 @@
 }
 
 .scoreOk {
-  color: #22c55e;
+  color: #16a34a;
   font-weight: 900;
 }
 
 .errorBanner {
-  background: rgba(239, 68, 68, 0.12);
-  border-bottom: 1px solid rgba(239, 68, 68, 0.35);
+  background: rgba(239, 68, 68, 0.1);
+  border-bottom: 1px solid rgba(239, 68, 68, 0.25);
   padding: 10px 16px;
-  color: #fecaca;
+  color: #dc2626;
   font-weight: 700;
   font-size: 13px;
   flex-shrink: 0;
@@ -390,9 +406,9 @@
   justify-content: center;
   width: 36px;
   height: 36px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  background: transparent;
-  color: #94a3b8;
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+  color: #64748b;
   border-radius: 10px;
   cursor: pointer;
   transition: background 0.2s, color 0.2s;
@@ -400,8 +416,8 @@
 
 .settingsBtn:hover,
 .settingsBtnActive {
-  background: rgba(255, 255, 255, 0.08);
-  color: #f8fafc;
+  background: #f1f5f9;
+  color: #1e293b;
 }
 
 /* Empty state */
@@ -419,7 +435,7 @@
   width: 80px;
   height: 80px;
   border-radius: 50%;
-  background: linear-gradient(135deg, rgba(37, 99, 235, 0.2) 0%, rgba(139, 92, 246, 0.2) 100%);
+  background: linear-gradient(135deg, rgba(37, 99, 235, 0.15) 0%, rgba(139, 92, 246, 0.15) 100%);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -431,11 +447,12 @@
   margin: 0 0 8px;
   font-size: 20px;
   font-weight: 700;
+  color: #1e293b;
 }
 
 .emptyState p {
   margin: 0;
-  color: #cbd5e1;
+  color: #64748b;
   font-size: 14px;
   max-width: 400px;
   line-height: 1.5;
@@ -497,10 +514,10 @@
 }
 
 .messageAssistant .messageText {
-  background: #334155;
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
   border-top-left-radius: 4px;
-  color: #ffffff;
+  color: #1e293b;
 }
 
 /* Typing indicator */
@@ -508,8 +525,8 @@
   display: flex;
   gap: 6px;
   padding: 16px;
-  background: #334155;
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
   border-radius: 16px;
   border-top-left-radius: 4px;
 }
@@ -547,13 +564,13 @@
 
 /* Gradient sections */
 .quickStartSection {
-  background: linear-gradient(135deg, rgba(37, 99, 235, 0.1) 0%, rgba(139, 92, 246, 0.1) 100%);
-  border-color: rgba(37, 99, 235, 0.2);
+  background: linear-gradient(135deg, rgba(37, 99, 235, 0.08) 0%, rgba(139, 92, 246, 0.08) 100%);
+  border-color: rgba(37, 99, 235, 0.15);
 }
 
 .kdCheckSection {
-  background: linear-gradient(135deg, rgba(34, 197, 94, 0.08) 0%, rgba(16, 185, 129, 0.08) 100%);
-  border-color: rgba(34, 197, 94, 0.2);
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.06) 0%, rgba(16, 185, 129, 0.06) 100%);
+  border-color: rgba(34, 197, 94, 0.15);
 }
 
 /* Time allocation blocks */
@@ -566,15 +583,15 @@
 .timeBlock {
   flex: 1;
   padding: 10px 12px;
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
   border-radius: 10px;
   text-align: center;
 }
 
 .timeBlockLabel {
   font-size: 11px;
-  color: #94a3b8;
+  color: #64748b;
   text-transform: uppercase;
   letter-spacing: 0.05em;
   margin-bottom: 4px;
@@ -583,13 +600,14 @@
 .timeBlockValue {
   font-size: 16px;
   font-weight: 700;
-  color: #f8fafc;
+  color: #1e293b;
 }
 
 /* Section chevron */
 .sectionChevron {
   transition: transform 0.2s ease;
   flex-shrink: 0;
+  color: #64748b;
 }
 
 .sectionChevronOpen {
@@ -620,4 +638,3 @@
     display: none;
   }
 }
-
