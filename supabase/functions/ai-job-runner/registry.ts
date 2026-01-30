@@ -18,12 +18,12 @@ import { GeneratedPlanMatrixRun } from './strategies/gen-plan_matrix_run.ts';
 import { MaterialIngest } from './strategies/material_ingest.ts';
 import { MaterialAnalyze } from './strategies/material_analyze.ts';
 import { LessonkitBuild } from './strategies/lessonkit_build.ts';
+import { GenerateLessonPlan } from './strategies/generate_lesson_plan.ts';
 import { CuratedArabicVariantBuild } from './strategies/curated_arabic_variant_build.ts';
 import { StandardsIngest } from './strategies/standards_ingest.ts';
 import { StandardsMap } from './strategies/standards_map.ts';
 import { StandardsExport } from './strategies/standards_export.ts';
 import { MesCorpusIndex } from './strategies/mes_corpus_index.ts';
-import { BookContentIndex } from './strategies/book_content_index.ts';
 
 export const JobRegistry: Record<string, JobExecutor> = {
   'book_ingest_version': new GeneratedBookIngestVersion(),
@@ -43,10 +43,10 @@ export const JobRegistry: Record<string, JobExecutor> = {
   'material_ingest': new MaterialIngest(),
   'material_analyze': new MaterialAnalyze(),
   'lessonkit_build': new LessonkitBuild(),
+  'generate_lesson_plan': new GenerateLessonPlan(),
   'curated_arabic_variant_build': new CuratedArabicVariantBuild(),
   'standards_ingest': new StandardsIngest(),
   'standards_map': new StandardsMap(),
   'standards_export': new StandardsExport(),
   'mes_corpus_index': new MesCorpusIndex(),
-  'book_content_index': new BookContentIndex(),
 };

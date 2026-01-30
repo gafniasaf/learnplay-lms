@@ -28,9 +28,9 @@ describe('JOB_MODES configuration', () => {
     expect(JOB_MODES.mes_corpus_index).toBe('async');
   });
 
-  it('has all 22 job types defined', () => {
+  it('has all 23 job types defined', () => {
     const jobTypes = Object.keys(JOB_MODES);
-    expect(jobTypes).toHaveLength(22);
+    expect(jobTypes).toHaveLength(23);
     expect(jobTypes).toContain('draft_assignment_plan');
     expect(jobTypes).toContain('ai_course_generate');
     expect(jobTypes).toContain('guard_course');
@@ -48,6 +48,7 @@ describe('JOB_MODES configuration', () => {
     expect(jobTypes).toContain('material_ingest');
     expect(jobTypes).toContain('material_analyze');
     expect(jobTypes).toContain('lessonkit_build');
+    expect(jobTypes).toContain('generate_lesson_plan');
     expect(jobTypes).toContain('curated_arabic_variant_build');
     expect(jobTypes).toContain('standards_ingest');
     expect(jobTypes).toContain('standards_map');

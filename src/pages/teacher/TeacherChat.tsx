@@ -26,6 +26,7 @@ type ChatMessage = {
   lessonPlan?: LessonPlan;
   kdCheck?: KdCheck;
   requestId?: string;
+  jobId?: string;
 };
 
 type SavedLessonKit = {
@@ -158,6 +159,7 @@ const SUGGESTIONS: Array<{ cta: string; label: string; prompt: string }> = [
 
 export default function TeacherChat() {
   const mcp = useMCP();
+  const mountedRef = useRef(true);
 
   const [scope, setScope] = useState<Scope>("all");
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -192,6 +194,113 @@ export default function TeacherChat() {
 
   const messagesRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
+
+  const pollLessonPlanJob = useCallback(
+    async (jobId: string, assistantMsgId: string, baseAnswer: string) => {
+      const startedAt = Date.now();
+      const hardTimeoutMs = 6 * 60 * 1000; // 6 minutes
+      let delayMs = 1500;
+      let lastProgressText = "";
+
+      while (mountedRef.current && Date.now() - startedAt < hardTimeoutMs) {
+        try {
+          const res: any = await mcp.callGet<any>("lms.getJob", { id: jobId, eventsLimit: "50" });
+          if (!res || res.ok !== true) {
+            throw new Error(typeof res?.error?.message === "string" ? res.error.message : "Failed to load job");
+          }
+
+          const job = res.job || {};
+          const status = String(job.status || "").toLowerCase();
+          const events = Array.isArray(res.events) ? res.events : [];
+          const lastEvent = events.length ? events[events.length - 1] : null;
+          const progress = typeof lastEvent?.progress === "number" ? lastEvent.progress : null;
+          const progressMsg = typeof lastEvent?.message === "string" ? lastEvent.message : "";
+
+          const progressText =
+            progressMsg && progress !== null
+              ? `${progressMsg} (${Math.max(0, Math.min(100, Math.floor(progress)))}%)`
+              : progressMsg || "";
+
+          if (progressText && progressText !== lastProgressText && status !== "done") {
+            lastProgressText = progressText;
+            setMessages((prev) =>
+              prev.map((m) => {
+                if (m.id !== assistantMsgId) return m;
+                return {
+                  ...m,
+                  content: `${baseAnswer}\n\nStatus: ${progressText}`,
+                };
+              }),
+            );
+          }
+
+          if (status === "done") {
+            const result: any = job.result || {};
+            if (result?.ok !== true) {
+              throw new Error(typeof result?.error === "string" ? result.error : "Job completed without a valid result");
+            }
+
+            const lessonPlan: LessonPlan | undefined =
+              result.lessonPlan && typeof result.lessonPlan === "object" ? (result.lessonPlan as LessonPlan) : undefined;
+            const kdFromResult: KdCheck | undefined =
+              result.kdCheck && typeof result.kdCheck === "object" ? (result.kdCheck as KdCheck) : undefined;
+            const kdCheck =
+              kdFromResult ?? (lessonPlan?.kdAlignment?.code ? buildKdCheck(String(lessonPlan.kdAlignment.code)) : undefined);
+
+            setMessages((prev) =>
+              prev.map((m) => {
+                if (m.id !== assistantMsgId) return m;
+                return {
+                  ...m,
+                  content: safeText(result.answer) || m.content,
+                  citations: Array.isArray(result.citations) ? result.citations : m.citations,
+                  recommendations: Array.isArray(result.recommendations) ? result.recommendations : m.recommendations,
+                  lessonPlan,
+                  kdCheck,
+                };
+              }),
+            );
+
+            if (lessonPlan) {
+              setSavedLessonKit(null);
+              setActiveTab("lesplan");
+            }
+
+            return;
+          }
+
+          if (status === "failed" || status === "dead_letter") {
+            const errText = typeof job.error === "string" ? job.error : "Lesplan job failed";
+            setMessages((prev) =>
+              prev.map((m) => {
+                if (m.id !== assistantMsgId) return m;
+                return { ...m, content: `${baseAnswer}\n\nFout: ${errText}` };
+              }),
+            );
+            toast.error("Lesplan genereren mislukt", { description: errText });
+            return;
+          }
+        } catch (e) {
+          // Best-effort: keep polling on transient failures.
+        }
+
+        await new Promise((r) => setTimeout(r, delayMs));
+        delayMs = Math.min(5000, Math.floor(delayMs * 1.4));
+      }
+
+      if (mountedRef.current) {
+        toast.message("Lesplan duurt langer dan verwacht", { description: "Hij staat nog in de wachtrij. Probeer straks opnieuw." });
+      }
+    },
+    [mcp],
+  );
 
   const refreshMaterials = useCallback(async () => {
     setLoadingMaterials(true);
@@ -308,6 +417,7 @@ export default function TeacherChat() {
         lessonPlan,
         kdCheck,
         requestId: safeText(okResp.requestId) || undefined,
+        jobId: safeText((okResp as any).jobId) || undefined,
       };
 
       // New lesson plan → require a fresh “Gebruiken” action to persist it.
@@ -317,6 +427,11 @@ export default function TeacherChat() {
       }
 
       setMessages((prev) => [...prev, assistantMsg]);
+
+      // Async lesson-plan pipeline: if jobId is present but no lessonPlan yet, poll for completion.
+      if (assistantMsg.jobId && !assistantMsg.lessonPlan) {
+        void pollLessonPlanJob(assistantMsg.jobId, assistantMsg.id, assistantMsg.content);
+      }
 
       // Compat/backfill: older deployments returned empty citations/recommendations for lesson-plan flows.
       // If needed, do one extra retrieval call and attach results to the same assistant message so the right panel stays “1 klik”.
@@ -373,7 +488,7 @@ export default function TeacherChat() {
     } finally {
       setSending(false);
     }
-  }, [draft, materialId, mcp, messages, scope, sending]);
+  }, [draft, materialId, mcp, messages, pollLessonPlanJob, scope, sending]);
 
   const onInputKeyDown = useCallback(
     (e: ReactKeyboardEvent<HTMLInputElement>) => {

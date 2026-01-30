@@ -428,6 +428,17 @@
       "prompt_template": "Build a grounded lesson kit from the provided material/course context. Return JSON {\"lesson_kit\": json, \"status\": \"ready\"|\"failed\", \"notes\": string}."
     },
     {
+      "id": "generate_lesson_plan",
+      "target_entity": "JobTicket",
+      "execution_mode": "async",
+      "ui": {
+        "label": "Generate Lesson Plan",
+        "icon": "WandSparkles",
+        "placement": "teacher"
+      },
+      "prompt_template": "Generate a grounded lesson plan for the teacher request in payload.queryText. Return JSON {\"ok\": boolean, \"answer\": string, \"lessonPlan\": json, \"recommendations\": json[]}."
+    },
+    {
       "id": "curated_arabic_variant_build",
       "target_entity": "CuratedMaterial",
       "execution_mode": "async",

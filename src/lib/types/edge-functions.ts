@@ -200,6 +200,8 @@ export type TeacherChatAssistantResponse =
       lessonPlan?: TeacherChatLessonPlan;
       kdCheck?: TeacherChatKdCheck;
       requestId?: string;
+      // Optional async pipeline support (lesson-plan jobs)
+      jobId?: string;
     }
   | {
       ok: false;

@@ -71,13 +71,11 @@ export function getModel(): string {
   }
 }
 
-async function withTimeout<T>(p: Promise<T>, ms: number): Promise<T> {
+async function fetchWithTimeout(input: RequestInfo | URL, init: RequestInit, ms: number): Promise<Response> {
   const ctrl = new AbortController();
   const t = setTimeout(() => ctrl.abort(), ms);
   try {
-    // @ts-ignore - pass signal only to fetch branches
-    (p as any).signal = ctrl.signal;
-    return await p;
+    return await fetch(input, { ...init, signal: ctrl.signal });
   } finally {
     clearTimeout(t);
   }
@@ -119,8 +117,9 @@ export async function generateJson(
             ],
       } as any;
 
-      const resp = await withTimeout(
-        fetch('https://api.anthropic.com/v1/messages', {
+      const resp = await fetchWithTimeout(
+        'https://api.anthropic.com/v1/messages',
+        {
           method: 'POST',
           headers: {
             'x-api-key': Deno.env.get('ANTHROPIC_API_KEY')!,
@@ -128,7 +127,7 @@ export async function generateJson(
             'anthropic-version': '2023-06-01',
           },
           body: JSON.stringify(body),
-        }),
+        },
         timeoutMs,
       );
       if (!resp.ok) {
@@ -159,8 +158,9 @@ export async function generateJson(
     }
 
     if (PROVIDER === 'openai') {
-      const resp = await withTimeout(
-        fetch('https://api.openai.com/v1/chat/completions', {
+      const resp = await fetchWithTimeout(
+        'https://api.openai.com/v1/chat/completions',
+        {
           method: 'POST',
           headers: {
             Authorization: `Bearer ${Deno.env.get('OPENAI_API_KEY')}`,
@@ -177,7 +177,7 @@ export async function generateJson(
             max_tokens: maxTokens,
             stop: stopSequences,
           }),
-        }),
+        },
         timeoutMs,
       );
       if (!resp.ok) {
@@ -197,8 +197,9 @@ export async function generateJson(
       const deployment = getModel();
       if (!base) return { ok: false, error: 'azure_endpoint_missing' };
       const url = `${base}/openai/deployments/${deployment}/chat/completions?api-version=2024-06-01`;
-      const resp = await withTimeout(
-        fetch(url, {
+      const resp = await fetchWithTimeout(
+        url,
+        {
           method: 'POST',
           headers: {
             'api-key': Deno.env.get('AZURE_OPENAI_API_KEY')!,
@@ -214,7 +215,7 @@ export async function generateJson(
             response_format: { type: 'json_object' },
             stop: stopSequences,
           }),
-        }),
+        },
         timeoutMs,
       );
       if (!resp.ok) {
@@ -252,8 +253,9 @@ export async function chat(
   try {
     if (PROVIDER === 'anthropic') {
       const converted = messages.map(m => ({ role: m.role, content: [{ type: 'text', text: m.content }] }));
-      const resp = await withTimeout(
-        fetch('https://api.anthropic.com/v1/messages', {
+      const resp = await fetchWithTimeout(
+        'https://api.anthropic.com/v1/messages',
+        {
           method: 'POST',
           headers: {
             'x-api-key': Deno.env.get('ANTHROPIC_API_KEY')!,
@@ -261,7 +263,7 @@ export async function chat(
             'anthropic-version': '2023-06-01',
           },
           body: JSON.stringify({ model: getModel(), max_tokens: maxTokens, temperature, system, messages: converted, stop_sequences: stopSequences }),
-        }),
+        },
         timeoutMs,
       );
       if (!resp.ok) return { ok: false, error: await resp.text() };
@@ -275,8 +277,9 @@ export async function chat(
     }
 
     if (PROVIDER === 'openai') {
-      const resp = await withTimeout(
-        fetch('https://api.openai.com/v1/chat/completions', {
+      const resp = await fetchWithTimeout(
+        'https://api.openai.com/v1/chat/completions',
+        {
           method: 'POST',
           headers: {
             Authorization: `Bearer ${Deno.env.get('OPENAI_API_KEY')}`,
@@ -289,7 +292,7 @@ export async function chat(
             max_tokens: maxTokens,
             stop: stopSequences,
           }),
-        }),
+        },
         timeoutMs,
       );
       if (!resp.ok) return { ok: false, error: await resp.text() };
@@ -304,8 +307,9 @@ export async function chat(
       const deployment = getModel();
       if (!base) return { ok: false, error: 'azure_endpoint_missing' };
       const url = `${base}/openai/deployments/${deployment}/chat/completions?api-version=2024-06-01`;
-      const resp = await withTimeout(
-        fetch(url, {
+      const resp = await fetchWithTimeout(
+        url,
+        {
           method: 'POST',
           headers: {
             'api-key': Deno.env.get('AZURE_OPENAI_API_KEY')!,
@@ -317,7 +321,7 @@ export async function chat(
             max_tokens: maxTokens,
             stop: stopSequences,
           }),
-        }),
+        },
         timeoutMs,
       );
       if (!resp.ok) return { ok: false, error: await resp.text() };
