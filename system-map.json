@@ -1,0 +1,1806 @@
+{
+  "generatedAt": "2026-01-30T05:55:51.763Z",
+  "routes": [
+    {
+      "path": "*",
+      "componentName": "NotFound",
+      "sourceFile": "Unknown (inferred from App.tsx/routes.generated.tsx)"
+    },
+    {
+      "path": "/",
+      "componentName": "Navigate",
+      "sourceFile": "Unknown (inferred from App.tsx/routes.generated.tsx)"
+    },
+    {
+      "path": "/",
+      "componentName": "Page11",
+      "sourceFile": "Unknown (inferred from App.tsx/routes.generated.tsx)"
+    },
+    {
+      "path": "/about",
+      "componentName": "Page0",
+      "sourceFile": "Unknown (inferred from App.tsx/routes.generated.tsx)"
+    },
+    {
+      "path": "/admin",
+      "componentName": "Navigate",
+      "sourceFile": "Unknown (inferred from App.tsx/routes.generated.tsx)"
+    },
+    {
+      "path": "/admin/ai-pipeline",
+      "componentName": "AdminAIPipelineV2",
+      "sourceFile": "Unknown (inferred from App.tsx/routes.generated.tsx)"
+    },
+    {
+      "path": "/admin/ai-pipeline",
+      "componentName": "Page1",
+      "sourceFile": "Unknown (inferred from App.tsx/routes.generated.tsx)"
+    },
+    {
+      "path": "/admin/book-monitor",
+      "componentName": "AdminBookMonitor",
+      "sourceFile": "Unknown (inferred from App.tsx/routes.generated.tsx)"
+    },
+    {
+      "path": "/admin/book-monitor",
+      "componentName": "Page2",
+      "sourceFile": "Unknown (inferred from App.tsx/routes.generated.tsx)"
+    },
+    {
+      "path": "/admin/book-studio",
+      "componentName": "AdminBookStudioLibrary",
+      "sourceFile": "Unknown (inferred from App.tsx/routes.generated.tsx)"
+    },
+    {
+      "path": "/admin/book-studio/:bookId",
+      "componentName": "AdminBookStudioBookDetail",
+      "sourceFile": "Unknown (inferred from App.tsx/routes.generated.tsx)"
+    },
+    {
+      "path": "/admin/book-studio/:bookId/chapters/:chapterIndex",
+      "componentName": "AdminBookStudioChapterEditor",
+      "sourceFile": "Unknown (inferred from App.tsx/routes.generated.tsx)"
+    },
+    {
+      "path": "/admin/book-studio/:bookId/versions",
+      "componentName": "AdminBookStudioVersions",
+      "sourceFile": "Unknown (inferred from App.tsx/routes.generated.tsx)"
+    },
+    {
+      "path": "/admin/book-studio/generate",
+      "componentName": "AdminBookStudioGenerate",
+      "sourceFile": "Unknown (inferred from App.tsx/routes.generated.tsx)"
+    },
+    {
+      "path": "/admin/books/:bookId/runs/:runId",
+      "componentName": "AdminBookRunDetail",
+      "sourceFile": "Unknown (inferred from App.tsx/routes.generated.tsx)"
+    },
+    {
+      "path": "/admin/books/:bookId/runs/:runId",
+      "componentName": "Page7",
+      "sourceFile": "Unknown (inferred from App.tsx/routes.generated.tsx)"
+    },
+    {
+      "path": "/admin/books/missing-images",
+      "componentName": "AdminBookMissingImages",
+      "sourceFile": "Unknown (inferred from App.tsx/routes.generated.tsx)"
+    },
+    {
+      "path": "/admin/console",
+      "componentName": "Page3",
+      "sourceFile": "Unknown (inferred from App.tsx/routes.generated.tsx)"
+    },
+    {
+      "path": "/admin/course-versions",
+      "componentName": "AdminCourseSelector",
+      "sourceFile": "Unknown (inferred from App.tsx/routes.generated.tsx)"
+    },
+    {
+      "path": "/admin/courses",
+      "componentName": "AdminCourseSelector",
+      "sourceFile": "Unknown (inferred from App.tsx/routes.generated.tsx)"
+    },
+    {
+      "path": "/admin/courses/select",
+      "componentName": "AdminCourseSelector",
+      "sourceFile": "Unknown (inferred from App.tsx/routes.generated.tsx)"
+    },
+    {
+      "path": "/admin/editor/:courseId",
+      "componentName": "AdminCourseEditorV3",
+      "sourceFile": "Unknown (inferred from App.tsx/routes.generated.tsx)"
+    },
+    {
+      "path": "/admin/expertcollege-exercise-generation/:courseId",
+      "componentName": "AdminExpertcollegeExerciseGenerationEditor",
+      "sourceFile": "Unknown (inferred from App.tsx/routes.generated.tsx)"
+    },
+    {
+      "path": "/admin/expertcollege-exercise-generation/select",
+      "componentName": "AdminExpertcollegeExerciseGenerationSelector",
+      "sourceFile": "Unknown (inferred from App.tsx/routes.generated.tsx)"
+    },
+    {
+      "path": "/admin/import-legacy",
+      "componentName": "AdminImportLegacyCourse",
+      "sourceFile": "Unknown (inferred from App.tsx/routes.generated.tsx)"
+    },
+    {
+      "path": "/admin/jobs",
+      "componentName": "Page4",
+      "sourceFile": "Unknown (inferred from App.tsx/routes.generated.tsx)"
+    },
+    {
+      "path": "/admin/library-courses",
+      "componentName": "AdminLibraryCourses",
+      "sourceFile": "Unknown (inferred from App.tsx/routes.generated.tsx)"
+    },
+    {
+      "path": "/admin/library-courses/:courseId",
+      "componentName": "AdminLibraryCourseDetail",
+      "sourceFile": "Unknown (inferred from App.tsx/routes.generated.tsx)"
+    },
+    {
+      "path": "/admin/logs",
+      "componentName": "AdminLogs",
+      "sourceFile": "Unknown (inferred from App.tsx/routes.generated.tsx)"
+    },
+    {
+      "path": "/admin/media-manager",
+      "componentName": "AdminMediaManager",
+      "sourceFile": "Unknown (inferred from App.tsx/routes.generated.tsx)"
+    },
+    {
+      "path": "/admin/metrics",
+      "componentName": "AdminMetrics",
+      "sourceFile": "Unknown (inferred from App.tsx/routes.generated.tsx)"
+    },
+    {
+      "path": "/admin/system-health",
+      "componentName": "Page5",
+      "sourceFile": "Unknown (inferred from App.tsx/routes.generated.tsx)"
+    },
+    {
+      "path": "/admin/tag-approval",
+      "componentName": "AdminTagApprovalQueue",
+      "sourceFile": "Unknown (inferred from App.tsx/routes.generated.tsx)"
+    },
+    {
+      "path": "/auth",
+      "componentName": "Auth",
+      "sourceFile": "Unknown (inferred from App.tsx/routes.generated.tsx)"
+    },
+    {
+      "path": "/auth",
+      "componentName": "Page6",
+      "sourceFile": "Unknown (inferred from App.tsx/routes.generated.tsx)"
+    },
+    {
+      "path": "/auth/reset-password",
+      "componentName": "ResetPassword",
+      "sourceFile": "Unknown (inferred from App.tsx/routes.generated.tsx)"
+    },
+    {
+      "path": "/catalog-builder",
+      "componentName": "Page9",
+      "sourceFile": "Unknown (inferred from App.tsx/routes.generated.tsx)"
+    },
+    {
+      "path": "/catalog-builder/media",
+      "componentName": "Page8",
+      "sourceFile": "Unknown (inferred from App.tsx/routes.generated.tsx)"
+    },
+    {
+      "path": "/courses",
+      "componentName": "Courses",
+      "sourceFile": "Unknown (inferred from App.tsx/routes.generated.tsx)"
+    },
+    {
+      "path": "/crm/contacts",
+      "componentName": "CrmContacts",
+      "sourceFile": "Unknown (inferred from App.tsx/routes.generated.tsx)"
+    },
+    {
+      "path": "/crm/dashboard",
+      "componentName": "CrmDashboard",
+      "sourceFile": "Unknown (inferred from App.tsx/routes.generated.tsx)"
+    },
+    {
+      "path": "/dawn-captures-landing-html",
+      "componentName": "Page10",
+      "sourceFile": "Unknown (inferred from App.tsx/routes.generated.tsx)"
+    },
+    {
+      "path": "/demo/generic",
+      "componentName": "GenericList",
+      "sourceFile": "Unknown (inferred from App.tsx/routes.generated.tsx)"
+    },
+    {
+      "path": "/demo/generic/board",
+      "componentName": "GenericBoard",
+      "sourceFile": "Unknown (inferred from App.tsx/routes.generated.tsx)"
+    },
+    {
+      "path": "/embed/thanks",
+      "componentName": "EmbedThanks",
+      "sourceFile": "Unknown (inferred from App.tsx/routes.generated.tsx)"
+    },
+    {
+      "path": "/kids",
+      "componentName": "Kids",
+      "sourceFile": "Unknown (inferred from App.tsx/routes.generated.tsx)"
+    },
+    {
+      "path": "/messages",
+      "componentName": "Page12",
+      "sourceFile": "Unknown (inferred from App.tsx/routes.generated.tsx)"
+    },
+    {
+      "path": "/messages/inbox",
+      "componentName": "MessagesInbox",
+      "sourceFile": "Unknown (inferred from App.tsx/routes.generated.tsx)"
+    },
+    {
+      "path": "/parent/dashboard",
+      "componentName": "ParentDashboard",
+      "sourceFile": "Unknown (inferred from App.tsx/routes.generated.tsx)"
+    },
+    {
+      "path": "/parent/dashboard",
+      "componentName": "Page13",
+      "sourceFile": "Unknown (inferred from App.tsx/routes.generated.tsx)"
+    },
+    {
+      "path": "/parent/goals",
+      "componentName": "ParentGoals",
+      "sourceFile": "Unknown (inferred from App.tsx/routes.generated.tsx)"
+    },
+    {
+      "path": "/parent/goals",
+      "componentName": "Page14",
+      "sourceFile": "Unknown (inferred from App.tsx/routes.generated.tsx)"
+    },
+    {
+      "path": "/parent/link-child",
+      "componentName": "ParentLinkChild",
+      "sourceFile": "Unknown (inferred from App.tsx/routes.generated.tsx)"
+    },
+    {
+      "path": "/parent/subjects",
+      "componentName": "ParentSubjects",
+      "sourceFile": "Unknown (inferred from App.tsx/routes.generated.tsx)"
+    },
+    {
+      "path": "/parent/subjects",
+      "componentName": "Page15",
+      "sourceFile": "Unknown (inferred from App.tsx/routes.generated.tsx)"
+    },
+    {
+      "path": "/parent/timeline",
+      "componentName": "ParentTimeline",
+      "sourceFile": "Unknown (inferred from App.tsx/routes.generated.tsx)"
+    },
+    {
+      "path": "/parent/timeline",
+      "componentName": "Page16",
+      "sourceFile": "Unknown (inferred from App.tsx/routes.generated.tsx)"
+    },
+    {
+      "path": "/parent/topics",
+      "componentName": "ParentTopics",
+      "sourceFile": "Unknown (inferred from App.tsx/routes.generated.tsx)"
+    },
+    {
+      "path": "/parents",
+      "componentName": "Parents",
+      "sourceFile": "Unknown (inferred from App.tsx/routes.generated.tsx)"
+    },
+    {
+      "path": "/play",
+      "componentName": "Play",
+      "sourceFile": "Unknown (inferred from App.tsx/routes.generated.tsx)"
+    },
+    {
+      "path": "/play",
+      "componentName": "Page19",
+      "sourceFile": "Unknown (inferred from App.tsx/routes.generated.tsx)"
+    },
+    {
+      "path": "/play/:courseId",
+      "componentName": "Play",
+      "sourceFile": "Unknown (inferred from App.tsx/routes.generated.tsx)"
+    },
+    {
+      "path": "/play/:courseId/welcome",
+      "componentName": "Play",
+      "sourceFile": "Unknown (inferred from App.tsx/routes.generated.tsx)"
+    },
+    {
+      "path": "/play/media",
+      "componentName": "Page18",
+      "sourceFile": "Unknown (inferred from App.tsx/routes.generated.tsx)"
+    },
+    {
+      "path": "/play/welcome",
+      "componentName": "Play",
+      "sourceFile": "Unknown (inferred from App.tsx/routes.generated.tsx)"
+    },
+    {
+      "path": "/play/welcome",
+      "componentName": "Page20",
+      "sourceFile": "Unknown (inferred from App.tsx/routes.generated.tsx)"
+    },
+    {
+      "path": "/results",
+      "componentName": "Page17",
+      "sourceFile": "Unknown (inferred from App.tsx/routes.generated.tsx)"
+    },
+    {
+      "path": "/schools",
+      "componentName": "Schools",
+      "sourceFile": "Unknown (inferred from App.tsx/routes.generated.tsx)"
+    },
+    {
+      "path": "/settings",
+      "componentName": "Page21",
+      "sourceFile": "Unknown (inferred from App.tsx/routes.generated.tsx)"
+    },
+    {
+      "path": "/student/achievements",
+      "componentName": "StudentAchievements",
+      "sourceFile": "Unknown (inferred from App.tsx/routes.generated.tsx)"
+    },
+    {
+      "path": "/student/achievements",
+      "componentName": "Page22",
+      "sourceFile": "Unknown (inferred from App.tsx/routes.generated.tsx)"
+    },
+    {
+      "path": "/student/assignments",
+      "componentName": "StudentAssignments",
+      "sourceFile": "Unknown (inferred from App.tsx/routes.generated.tsx)"
+    },
+    {
+      "path": "/student/assignments",
+      "componentName": "Page23",
+      "sourceFile": "Unknown (inferred from App.tsx/routes.generated.tsx)"
+    },
+    {
+      "path": "/student/dashboard",
+      "componentName": "StudentDashboard",
+      "sourceFile": "Unknown (inferred from App.tsx/routes.generated.tsx)"
+    },
+    {
+      "path": "/student/dashboard",
+      "componentName": "Page24",
+      "sourceFile": "Unknown (inferred from App.tsx/routes.generated.tsx)"
+    },
+    {
+      "path": "/student/goals",
+      "componentName": "StudentGoals",
+      "sourceFile": "Unknown (inferred from App.tsx/routes.generated.tsx)"
+    },
+    {
+      "path": "/student/goals",
+      "componentName": "Page25",
+      "sourceFile": "Unknown (inferred from App.tsx/routes.generated.tsx)"
+    },
+    {
+      "path": "/student/join-class",
+      "componentName": "StudentJoinClass",
+      "sourceFile": "Unknown (inferred from App.tsx/routes.generated.tsx)"
+    },
+    {
+      "path": "/student/join-class",
+      "componentName": "Page26",
+      "sourceFile": "Unknown (inferred from App.tsx/routes.generated.tsx)"
+    },
+    {
+      "path": "/student/timeline",
+      "componentName": "StudentTimeline",
+      "sourceFile": "Unknown (inferred from App.tsx/routes.generated.tsx)"
+    },
+    {
+      "path": "/student/timeline",
+      "componentName": "Page27",
+      "sourceFile": "Unknown (inferred from App.tsx/routes.generated.tsx)"
+    },
+    {
+      "path": "/teacher",
+      "componentName": "Navigate",
+      "sourceFile": "Unknown (inferred from App.tsx/routes.generated.tsx)"
+    },
+    {
+      "path": "/teacher/analytics",
+      "componentName": "TeacherAnalytics",
+      "sourceFile": "Unknown (inferred from App.tsx/routes.generated.tsx)"
+    },
+    {
+      "path": "/teacher/assignment-progress",
+      "componentName": "TeacherAssignments",
+      "sourceFile": "Unknown (inferred from App.tsx/routes.generated.tsx)"
+    },
+    {
+      "path": "/teacher/assignments",
+      "componentName": "TeacherAssignments",
+      "sourceFile": "Unknown (inferred from App.tsx/routes.generated.tsx)"
+    },
+    {
+      "path": "/teacher/class-progress",
+      "componentName": "TeacherClassProgress",
+      "sourceFile": "Unknown (inferred from App.tsx/routes.generated.tsx)"
+    },
+    {
+      "path": "/teacher/classes",
+      "componentName": "TeacherClasses",
+      "sourceFile": "Unknown (inferred from App.tsx/routes.generated.tsx)"
+    },
+    {
+      "path": "/teacher/dashboard",
+      "componentName": "TeacherDashboard",
+      "sourceFile": "Unknown (inferred from App.tsx/routes.generated.tsx)"
+    },
+    {
+      "path": "/teacher/kw1c-cockpit",
+      "componentName": "TeacherKw1cCockpit",
+      "sourceFile": "Unknown (inferred from App.tsx/routes.generated.tsx)"
+    },
+    {
+      "path": "/teacher/lesson-kits",
+      "componentName": "TeacherLessonKits",
+      "sourceFile": "Unknown (inferred from App.tsx/routes.generated.tsx)"
+    },
+    {
+      "path": "/teacher/materials",
+      "componentName": "TeacherMaterials",
+      "sourceFile": "Unknown (inferred from App.tsx/routes.generated.tsx)"
+    },
+    {
+      "path": "/teacher/standards",
+      "componentName": "TeacherStandards",
+      "sourceFile": "Unknown (inferred from App.tsx/routes.generated.tsx)"
+    },
+    {
+      "path": "/teacher/students",
+      "componentName": "TeacherStudents",
+      "sourceFile": "Unknown (inferred from App.tsx/routes.generated.tsx)"
+    },
+    {
+      "path": "/teacher/teachergpt/chat",
+      "componentName": "TeacherChat",
+      "sourceFile": "Unknown (inferred from App.tsx/routes.generated.tsx)"
+    },
+    {
+      "path": "/teacher/teachergpt/mes",
+      "componentName": "TeacherMesRecommendations",
+      "sourceFile": "Unknown (inferred from App.tsx/routes.generated.tsx)"
+    }
+  ],
+  "capabilities": [
+    {
+      "id": "add-class-member",
+      "type": "edge-function",
+      "description": "Discovered in supabase/functions directory",
+      "inputs": {
+        "classId": "string",
+        "studentEmail": "string"
+      },
+      "outputs": {
+        "ok": "boolean"
+      }
+    },
+    {
+      "id": "adopt-media",
+      "type": "edge-function",
+      "description": "Discovered in supabase/functions directory"
+    },
+    {
+      "id": "ai_course_generate",
+      "type": "job",
+      "description": "Act as an instructional designer. Using {{subject}}, {{difficulty}}, and {{multimedia_manifest}}, output a full HTML/JSON pack with sections, objectives, CTA copy, and audio/video transcript references."
+    },
+    {
+      "id": "ai-generate-media",
+      "type": "edge-function",
+      "description": "Discovered in supabase/functions directory"
+    },
+    {
+      "id": "ai-job-batch-runner",
+      "type": "edge-function",
+      "description": "Discovered in supabase/functions directory"
+    },
+    {
+      "id": "ai-job-runner",
+      "type": "edge-function",
+      "description": "Discovered in supabase/functions directory"
+    },
+    {
+      "id": "ai-rewrite-text",
+      "type": "edge-function",
+      "description": "Discovered in supabase/functions directory"
+    },
+    {
+      "id": "apply-course-patch",
+      "type": "edge-function",
+      "description": "Discovered in supabase/functions directory"
+    },
+    {
+      "id": "apply-job-result",
+      "type": "edge-function",
+      "description": "Discovered in supabase/functions directory"
+    },
+    {
+      "id": "approve-tag-suggestion",
+      "type": "edge-function",
+      "description": "Discovered in supabase/functions directory"
+    },
+    {
+      "id": "archive-course",
+      "type": "edge-function",
+      "description": "Discovered in supabase/functions directory"
+    },
+    {
+      "id": "blueprint-library",
+      "type": "edge-function",
+      "description": "Discovered in supabase/functions directory"
+    },
+    {
+      "id": "book_generate_chapter",
+      "type": "job",
+      "description": "Generate content for a single chapter in a skeleton-first book pipeline (no image generation). Return JSON {\"bookId\": string, \"bookVersionId\": string, \"chapterIndex\": number}."
+    },
+    {
+      "id": "book_generate_full",
+      "type": "job",
+      "description": "Generate a full book using a skeleton-first pipeline (no image generation). Return JSON {\"bookId\": string, \"bookVersionId\": string, \"chapterCount\": number}."
+    },
+    {
+      "id": "book_generate_glossary",
+      "type": "job",
+      "description": "Generate a glossary / begrippenlijst for a canonical book version. Return JSON {\"bookId\": string, \"bookVersionId\": string}."
+    },
+    {
+      "id": "book_generate_index",
+      "type": "job",
+      "description": "Generate an index term list for a canonical book version (no page numbers yet). Return JSON {\"bookId\": string, \"bookVersionId\": string}."
+    },
+    {
+      "id": "book_generate_section",
+      "type": "job",
+      "description": "Generate content for a single section in a skeleton-first book pipeline (internal). Return JSON {\"bookId\": string, \"bookVersionId\": string, \"chapterIndex\": number, \"sectionIndex\": number}."
+    },
+    {
+      "id": "book_ingest_version",
+      "type": "job",
+      "description": "Create a versioned canonical book record from uploaded inputs. Return JSON {\"book_version_id\": string, \"canonical_path\": string}."
+    },
+    {
+      "id": "book_normalize_voice",
+      "type": "job",
+      "description": "Rewrite the generated book content to match the N3 (student-friendly) voice while preserving structure and correctness. Return JSON {\"bookId\": string, \"bookVersionId\": string}."
+    },
+    {
+      "id": "book_render_chapter",
+      "type": "job",
+      "description": "Enqueue a chapter render job for a canonical book version. Return JSON {\"run_id\": string, \"chapter_index\": number}."
+    },
+    {
+      "id": "book_render_full",
+      "type": "job",
+      "description": "Enqueue a full book render job for a canonical book version. Return JSON {\"run_id\": string}."
+    },
+    {
+      "id": "book-artifact-url",
+      "type": "edge-function",
+      "description": "Discovered in supabase/functions directory"
+    },
+    {
+      "id": "book-claim-job",
+      "type": "edge-function",
+      "description": "Discovered in supabase/functions directory"
+    },
+    {
+      "id": "book-create-overlay",
+      "type": "edge-function",
+      "description": "Discovered in supabase/functions directory"
+    },
+    {
+      "id": "book-enqueue-render",
+      "type": "edge-function",
+      "description": "Discovered in supabase/functions directory"
+    },
+    {
+      "id": "book-export-studytexts",
+      "type": "edge-function",
+      "description": "Discovered in supabase/functions directory"
+    },
+    {
+      "id": "book-generation-control",
+      "type": "edge-function",
+      "description": "Discovered in supabase/functions directory",
+      "inputs": {
+        "bookId": "string",
+        "bookVersionId": "string",
+        "action": "string",
+        "note": "string"
+      },
+      "outputs": {
+        "ok": "boolean",
+        "control": "json"
+      }
+    },
+    {
+      "id": "book-ingest-version",
+      "type": "edge-function",
+      "description": "Discovered in supabase/functions directory"
+    },
+    {
+      "id": "book-job-apply-result",
+      "type": "edge-function",
+      "description": "Discovered in supabase/functions directory"
+    },
+    {
+      "id": "book-job-heartbeat",
+      "type": "edge-function",
+      "description": "Discovered in supabase/functions directory"
+    },
+    {
+      "id": "book-job-progress",
+      "type": "edge-function",
+      "description": "Discovered in supabase/functions directory"
+    },
+    {
+      "id": "book-job-upload-url",
+      "type": "edge-function",
+      "description": "Discovered in supabase/functions directory"
+    },
+    {
+      "id": "book-library-generate-image",
+      "type": "edge-function",
+      "description": "Discovered in supabase/functions directory"
+    },
+    {
+      "id": "book-library-image-url",
+      "type": "edge-function",
+      "description": "Discovered in supabase/functions directory"
+    },
+    {
+      "id": "book-library-storage-url",
+      "type": "edge-function",
+      "description": "Discovered in supabase/functions directory"
+    },
+    {
+      "id": "book-library-upload-url",
+      "type": "edge-function",
+      "description": "Discovered in supabase/functions directory"
+    },
+    {
+      "id": "book-library-upsert-index",
+      "type": "edge-function",
+      "description": "Discovered in supabase/functions directory"
+    },
+    {
+      "id": "book-list",
+      "type": "edge-function",
+      "description": "Discovered in supabase/functions directory"
+    },
+    {
+      "id": "book-register-derived-course",
+      "type": "edge-function",
+      "description": "Discovered in supabase/functions directory"
+    },
+    {
+      "id": "book-save-overlay",
+      "type": "edge-function",
+      "description": "Discovered in supabase/functions directory"
+    },
+    {
+      "id": "book-version-input-urls",
+      "type": "edge-function",
+      "description": "Discovered in supabase/functions directory"
+    },
+    {
+      "id": "book-version-save-figure-placements",
+      "type": "edge-function",
+      "description": "Discovered in supabase/functions directory"
+    },
+    {
+      "id": "book-version-save-skeleton",
+      "type": "edge-function",
+      "description": "Discovered in supabase/functions directory"
+    },
+    {
+      "id": "book-version-upload-url",
+      "type": "edge-function",
+      "description": "Discovered in supabase/functions directory"
+    },
+    {
+      "id": "chat-course-assistant",
+      "type": "edge-function",
+      "description": "Discovered in supabase/functions directory"
+    },
+    {
+      "id": "compile_mockups",
+      "type": "job",
+      "description": "Compile supplied mockup HTML into React routes. Ensure every data-cta-id is preserved. Return JSON {\"success\": boolean, \"files_generated\": string[], \"errors\": string[]}."
+    },
+    {
+      "id": "create-child-code",
+      "type": "edge-function",
+      "description": "Discovered in supabase/functions directory",
+      "inputs": {
+        "studentId": "string"
+      },
+      "outputs": {
+        "code": "string",
+        "expiresAt": "string"
+      }
+    },
+    {
+      "id": "create-class",
+      "type": "edge-function",
+      "description": "Discovered in supabase/functions directory",
+      "inputs": {
+        "name": "string",
+        "description": "string"
+      },
+      "outputs": {
+        "class": "json"
+      }
+    },
+    {
+      "id": "create-tag",
+      "type": "edge-function",
+      "description": "Discovered in supabase/functions directory"
+    },
+    {
+      "id": "curated_arabic_variant_build",
+      "type": "job",
+      "description": "Generate an Arabic (RTL) variant of a pre-rendered curated material pack. Arabic output must include Dutch keywords in blue parentheses for terminology learning. Return JSON {\"ok\": boolean, \"curated_material_id\": string, \"language_variant\": \"ar\"}."
+    },
+    {
+      "id": "delete-course",
+      "type": "edge-function",
+      "description": "Discovered in supabase/functions directory"
+    },
+    {
+      "id": "delete-job",
+      "type": "edge-function",
+      "description": "Discovered in supabase/functions directory"
+    },
+    {
+      "id": "download-release",
+      "type": "edge-function",
+      "description": "Discovered in supabase/functions directory"
+    },
+    {
+      "id": "draft_assignment_plan",
+      "type": "job",
+      "description": "You are an adaptive learning coach. Given {{title}}, {{subject}}, {{learner_id}}, and recent session context, propose the next best set of activities. Return JSON {\"summary\": string, \"suggested_actions\": string[], \"updated_fields\": {\"ai_variant_id\": string, \"status\": string}}."
+    },
+    {
+      "id": "editor-auto-fix",
+      "type": "edge-function",
+      "description": "Discovered in supabase/functions directory",
+      "inputs": {
+        "courseId": "string",
+        "apply": "boolean"
+      },
+      "outputs": {
+        "ok": "boolean"
+      }
+    },
+    {
+      "id": "editor-co-pilot",
+      "type": "edge-function",
+      "description": "Discovered in supabase/functions directory",
+      "inputs": {
+        "action": "string",
+        "subject": "string",
+        "format": "string",
+        "courseId": "string",
+        "locale": "string"
+      },
+      "outputs": {
+        "jobId": "string"
+      }
+    },
+    {
+      "id": "editor-repair-course",
+      "type": "edge-function",
+      "description": "Discovered in supabase/functions directory",
+      "inputs": {
+        "courseId": "string",
+        "apply": "boolean"
+      },
+      "outputs": {
+        "ok": "boolean",
+        "preview": "json"
+      }
+    },
+    {
+      "id": "editor-variants-audit",
+      "type": "edge-function",
+      "description": "Discovered in supabase/functions directory"
+    },
+    {
+      "id": "editor-variants-missing",
+      "type": "edge-function",
+      "description": "Discovered in supabase/functions directory",
+      "inputs": {
+        "courseId": "string",
+        "apply": "boolean"
+      },
+      "outputs": {
+        "ok": "boolean",
+        "preview": "json"
+      }
+    },
+    {
+      "id": "enqueue-course-media",
+      "type": "edge-function",
+      "description": "Discovered in supabase/functions directory"
+    },
+    {
+      "id": "enqueue-course-missing-images",
+      "type": "edge-function",
+      "description": "Discovered in supabase/functions directory"
+    },
+    {
+      "id": "enqueue-job",
+      "type": "edge-function",
+      "description": "Discovered in supabase/functions directory"
+    },
+    {
+      "id": "enrich-hints",
+      "type": "edge-function",
+      "description": "Discovered in supabase/functions directory",
+      "inputs": {
+        "courseId": "string",
+        "itemIds": "json"
+      },
+      "outputs": {
+        "ok": "boolean",
+        "courseId": "string",
+        "updatedItemIds": "json",
+        "count": "number"
+      }
+    },
+    {
+      "id": "env-audit",
+      "type": "edge-function",
+      "description": "Discovered in supabase/functions directory"
+    },
+    {
+      "id": "export-gradebook",
+      "type": "edge-function",
+      "description": "Discovered in supabase/functions directory"
+    },
+    {
+      "id": "fix-schema",
+      "type": "edge-function",
+      "description": "Discovered in supabase/functions directory"
+    },
+    {
+      "id": "game-log-attempt",
+      "type": "edge-function",
+      "description": "Discovered in supabase/functions directory",
+      "inputs": {
+        "roundId": "string",
+        "itemId": "number",
+        "isCorrect": "boolean",
+        "latencyMs": "number",
+        "finalize": "boolean"
+      },
+      "outputs": {
+        "attemptId": "string"
+      }
+    },
+    {
+      "id": "game-start-round",
+      "type": "edge-function",
+      "description": "Discovered in supabase/functions directory",
+      "inputs": {
+        "courseId": "string",
+        "level": "number",
+        "assignmentId": "string"
+      },
+      "outputs": {
+        "sessionId": "string",
+        "roundId": "string"
+      }
+    },
+    {
+      "id": "generate_lesson_plan",
+      "type": "job",
+      "description": "Generate a grounded lesson plan for the teacher request in payload.queryText. Return JSON {\"ok\": boolean, \"answer\": string, \"lessonPlan\": json, \"recommendations\": json[]}."
+    },
+    {
+      "id": "generate-assignment",
+      "type": "edge-function",
+      "description": "Discovered in supabase/functions directory",
+      "inputs": {
+        "topic": "string"
+      },
+      "outputs": {
+        "jobId": "string"
+      }
+    },
+    {
+      "id": "generate-class-code",
+      "type": "edge-function",
+      "description": "Discovered in supabase/functions directory",
+      "inputs": {
+        "classId": "string",
+        "refreshCode": "boolean"
+      },
+      "outputs": {
+        "code": "string",
+        "expiresAt": "string"
+      }
+    },
+    {
+      "id": "generate-course",
+      "type": "edge-function",
+      "description": "Discovered in supabase/functions directory"
+    },
+    {
+      "id": "generate-hint",
+      "type": "edge-function",
+      "description": "Discovered in supabase/functions directory",
+      "inputs": {
+        "courseId": "string",
+        "itemId": "number"
+      },
+      "outputs": {
+        "ok": "boolean",
+        "courseId": "string",
+        "itemId": "number",
+        "hint": "string"
+      }
+    },
+    {
+      "id": "generate-image",
+      "type": "edge-function",
+      "description": "Discovered in supabase/functions directory"
+    },
+    {
+      "id": "generate-remediation",
+      "type": "edge-function",
+      "description": "Discovered in supabase/functions directory",
+      "inputs": {
+        "subject": "string",
+        "itemsPerGroup": "number"
+      },
+      "outputs": {
+        "jobId": "string"
+      }
+    },
+    {
+      "id": "generate-variants-audit",
+      "type": "edge-function",
+      "description": "Discovered in supabase/functions directory",
+      "inputs": {
+        "courseId": "string"
+      },
+      "outputs": {
+        "ok": "boolean",
+        "coverage": "number"
+      }
+    },
+    {
+      "id": "get-analytics",
+      "type": "edge-function",
+      "description": "Discovered in supabase/functions directory",
+      "inputs": {
+        "courseId": "string",
+        "range": "string"
+      },
+      "outputs": {
+        "dailyData": "json",
+        "summary": "json"
+      }
+    },
+    {
+      "id": "get-assignment-progress",
+      "type": "edge-function",
+      "description": "Discovered in supabase/functions directory"
+    },
+    {
+      "id": "get-class-ko-summary",
+      "type": "edge-function",
+      "description": "Discovered in supabase/functions directory"
+    },
+    {
+      "id": "get-class-progress",
+      "type": "edge-function",
+      "description": "Discovered in supabase/functions directory"
+    },
+    {
+      "id": "get-class-roster",
+      "type": "edge-function",
+      "description": "Discovered in supabase/functions directory"
+    },
+    {
+      "id": "get-course",
+      "type": "edge-function",
+      "description": "Discovered in supabase/functions directory"
+    },
+    {
+      "id": "get-course-job",
+      "type": "edge-function",
+      "description": "Discovered in supabase/functions directory"
+    },
+    {
+      "id": "get-course-version-snapshot",
+      "type": "edge-function",
+      "description": "Discovered in supabase/functions directory"
+    },
+    {
+      "id": "get-dashboard",
+      "type": "edge-function",
+      "description": "Discovered in supabase/functions directory"
+    },
+    {
+      "id": "get-domain-growth",
+      "type": "edge-function",
+      "description": "Discovered in supabase/functions directory",
+      "inputs": {
+        "studentId": "string"
+      },
+      "outputs": {
+        "domains": "json"
+      }
+    },
+    {
+      "id": "get-job",
+      "type": "edge-function",
+      "description": "Discovered in supabase/functions directory"
+    },
+    {
+      "id": "get-job-metrics",
+      "type": "edge-function",
+      "description": "Discovered in supabase/functions directory"
+    },
+    {
+      "id": "get-knowledge-objective",
+      "type": "edge-function",
+      "description": "Discovered in supabase/functions directory"
+    },
+    {
+      "id": "get-org-config",
+      "type": "edge-function",
+      "description": "Discovered in supabase/functions directory"
+    },
+    {
+      "id": "get-recommended-courses",
+      "type": "edge-function",
+      "description": "Discovered in supabase/functions directory",
+      "inputs": {
+        "koId": "string",
+        "studentId": "string"
+      },
+      "outputs": {
+        "courses": "json"
+      }
+    },
+    {
+      "id": "get-record",
+      "type": "edge-function",
+      "description": "Discovered in supabase/functions directory"
+    },
+    {
+      "id": "get-student-assignments",
+      "type": "edge-function",
+      "description": "Discovered in supabase/functions directory"
+    },
+    {
+      "id": "get-student-skills",
+      "type": "edge-function",
+      "description": "Discovered in supabase/functions directory",
+      "inputs": {
+        "studentId": "string",
+        "domain": "string",
+        "status": "string"
+      },
+      "outputs": {
+        "skills": "json",
+        "totalCount": "number"
+      }
+    },
+    {
+      "id": "get-user-roles",
+      "type": "edge-function",
+      "description": "Discovered in supabase/functions directory"
+    },
+    {
+      "id": "guard_course",
+      "type": "job",
+      "description": "Review the provided course blueprint for missing CTAs, accessibility violations, and policy blockers. Respond with JSON {\"summary\": string, \"violations\": string[], \"status\": \"passed\"|\"failed\"}."
+    },
+    {
+      "id": "health",
+      "type": "edge-function",
+      "description": "Discovered in supabase/functions directory"
+    },
+    {
+      "id": "import-legacy-course",
+      "type": "edge-function",
+      "description": "Discovered in supabase/functions directory"
+    },
+    {
+      "id": "invite-student",
+      "type": "edge-function",
+      "description": "Discovered in supabase/functions directory",
+      "inputs": {
+        "orgId": "string",
+        "classId": "string",
+        "email": "string"
+      },
+      "outputs": {
+        "inviteId": "string",
+        "success": "boolean"
+      }
+    },
+    {
+      "id": "job-status",
+      "type": "edge-function",
+      "description": "Discovered in supabase/functions directory"
+    },
+    {
+      "id": "jobs-reconciler",
+      "type": "edge-function",
+      "description": "Discovered in supabase/functions directory"
+    },
+    {
+      "id": "join-class",
+      "type": "edge-function",
+      "description": "Discovered in supabase/functions directory",
+      "inputs": {
+        "code": "string"
+      },
+      "outputs": {
+        "success": "boolean",
+        "classId": "string"
+      }
+    },
+    {
+      "id": "lessonkit_build",
+      "type": "job",
+      "description": "Build a grounded lesson kit from the provided material/course context. Return JSON {\"lesson_kit\": json, \"status\": \"ready\"|\"failed\", \"notes\": string}."
+    },
+    {
+      "id": "link-child",
+      "type": "edge-function",
+      "description": "Discovered in supabase/functions directory",
+      "inputs": {
+        "code": "string"
+      },
+      "outputs": {
+        "success": "boolean",
+        "childId": "string"
+      }
+    },
+    {
+      "id": "list-assignments",
+      "type": "edge-function",
+      "description": "Discovered in supabase/functions directory"
+    },
+    {
+      "id": "list-assignments-student",
+      "type": "edge-function",
+      "description": "Discovered in supabase/functions directory"
+    },
+    {
+      "id": "list-classes",
+      "type": "edge-function",
+      "description": "Discovered in supabase/functions directory"
+    },
+    {
+      "id": "list-conversations",
+      "type": "edge-function",
+      "description": "Discovered in supabase/functions directory",
+      "inputs": {},
+      "outputs": {
+        "conversations": "json"
+      }
+    },
+    {
+      "id": "list-course-jobs",
+      "type": "edge-function",
+      "description": "Discovered in supabase/functions directory"
+    },
+    {
+      "id": "list-course-versions",
+      "type": "edge-function",
+      "description": "Discovered in supabase/functions directory"
+    },
+    {
+      "id": "list-courses",
+      "type": "edge-function",
+      "description": "Discovered in supabase/functions directory"
+    },
+    {
+      "id": "list-edge-logs",
+      "type": "edge-function",
+      "description": "Discovered in supabase/functions directory"
+    },
+    {
+      "id": "list-jobs",
+      "type": "edge-function",
+      "description": "Discovered in supabase/functions directory"
+    },
+    {
+      "id": "list-media-jobs",
+      "type": "edge-function",
+      "description": "Discovered in supabase/functions directory"
+    },
+    {
+      "id": "list-messages",
+      "type": "edge-function",
+      "description": "Discovered in supabase/functions directory",
+      "inputs": {
+        "conversationWith": "string",
+        "limit": "number"
+      },
+      "outputs": {
+        "messages": "json",
+        "nextCursor": "string"
+      }
+    },
+    {
+      "id": "list-org-students",
+      "type": "edge-function",
+      "description": "Discovered in supabase/functions directory"
+    },
+    {
+      "id": "list-records",
+      "type": "edge-function",
+      "description": "Discovered in supabase/functions directory"
+    },
+    {
+      "id": "list-tag-suggestions",
+      "type": "edge-function",
+      "description": "Discovered in supabase/functions directory"
+    },
+    {
+      "id": "manage-media",
+      "type": "edge-function",
+      "description": "Discovered in supabase/functions directory"
+    },
+    {
+      "id": "material_analyze",
+      "type": "job",
+      "description": "Analyze the ingested material and produce a teacher-facing summary plus recommended next actions. Return JSON {\"summary\": string, \"key_concepts\": string[], \"suggested_assignments\": string[]}."
+    },
+    {
+      "id": "material_ingest",
+      "type": "job",
+      "description": "Ingest the uploaded material at {{storage_path}} into chunks and embeddings. Return JSON {\"material_id\": string, \"chunk_count\": number}."
+    },
+    {
+      "id": "mcp-metrics-proxy",
+      "type": "edge-function",
+      "description": "Discovered in supabase/functions directory",
+      "inputs": {
+        "type": "string"
+      },
+      "outputs": {
+        "ok": "boolean"
+      }
+    },
+    {
+      "id": "media-runner",
+      "type": "edge-function",
+      "description": "Discovered in supabase/functions directory"
+    },
+    {
+      "id": "mes_corpus_index",
+      "type": "job",
+      "description": "Index MES corpus documents into org-scoped embeddings for semantic search. Return JSON {\"indexed\": number}."
+    },
+    {
+      "id": "parent-children",
+      "type": "edge-function",
+      "description": "Discovered in supabase/functions directory"
+    },
+    {
+      "id": "parent-dashboard",
+      "type": "edge-function",
+      "description": "Discovered in supabase/functions directory"
+    },
+    {
+      "id": "parent-goals",
+      "type": "edge-function",
+      "description": "Discovered in supabase/functions directory"
+    },
+    {
+      "id": "parent-subjects",
+      "type": "edge-function",
+      "description": "Discovered in supabase/functions directory"
+    },
+    {
+      "id": "parent-timeline",
+      "type": "edge-function",
+      "description": "Discovered in supabase/functions directory"
+    },
+    {
+      "id": "parent-topics",
+      "type": "edge-function",
+      "description": "Discovered in supabase/functions directory"
+    },
+    {
+      "id": "plan_matrix_run",
+      "type": "job",
+      "description": "Execute the LearnPlay regression checklist (CTA clicks, guard job, accessibility). Return JSON {\"total_tests\": number, \"passed\": number, \"failed\": number, \"details\": [{\"name\": string, \"status\": string, \"notes\": string}]}."
+    },
+    {
+      "id": "process-pending-jobs",
+      "type": "edge-function",
+      "description": "Discovered in supabase/functions directory"
+    },
+    {
+      "id": "publish-course",
+      "type": "edge-function",
+      "description": "Discovered in supabase/functions directory"
+    },
+    {
+      "id": "recommend-mes-content",
+      "type": "edge-function",
+      "description": "Discovered in supabase/functions directory",
+      "inputs": {
+        "query": "string",
+        "limit": "number"
+      },
+      "outputs": {
+        "ok": "boolean",
+        "results": "json"
+      }
+    },
+    {
+      "id": "reject-tag-suggestion",
+      "type": "edge-function",
+      "description": "Discovered in supabase/functions directory"
+    },
+    {
+      "id": "remove-class-member",
+      "type": "edge-function",
+      "description": "Discovered in supabase/functions directory",
+      "inputs": {
+        "classId": "string",
+        "studentId": "string"
+      },
+      "outputs": {
+        "ok": "boolean"
+      }
+    },
+    {
+      "id": "requeue-job",
+      "type": "edge-function",
+      "description": "Discovered in supabase/functions directory"
+    },
+    {
+      "id": "requeue-media-jobs",
+      "type": "edge-function",
+      "description": "Discovered in supabase/functions directory"
+    },
+    {
+      "id": "restore-course-version",
+      "type": "edge-function",
+      "description": "Discovered in supabase/functions directory"
+    },
+    {
+      "id": "resume-session",
+      "type": "edge-function",
+      "description": "Discovered in supabase/functions directory"
+    },
+    {
+      "id": "save-course",
+      "type": "edge-function",
+      "description": "Discovered in supabase/functions directory"
+    },
+    {
+      "id": "save-course-json",
+      "type": "edge-function",
+      "description": "Discovered in supabase/functions directory"
+    },
+    {
+      "id": "save-plan",
+      "type": "edge-function",
+      "description": "Discovered in supabase/functions directory"
+    },
+    {
+      "id": "save-record",
+      "type": "edge-function",
+      "description": "Discovered in supabase/functions directory"
+    },
+    {
+      "id": "school-dashboard",
+      "type": "edge-function",
+      "description": "Discovered in supabase/functions directory"
+    },
+    {
+      "id": "search-courses",
+      "type": "edge-function",
+      "description": "Discovered in supabase/functions directory"
+    },
+    {
+      "id": "search-curated-materials",
+      "type": "edge-function",
+      "description": "Discovered in supabase/functions directory",
+      "inputs": {
+        "query": "string",
+        "kd_code": "string",
+        "material_type": "string",
+        "category": "string",
+        "mbo_level": "string",
+        "source": "string",
+        "language_variant": "string",
+        "mbo_track": "string",
+        "module_family": "string",
+        "topic_tag": "string",
+        "exercise_format": "string",
+        "scenario_present": "boolean",
+        "law_topic": "string",
+        "communication_context": "string",
+        "limit": "number"
+      },
+      "outputs": {
+        "ok": "boolean",
+        "results": "json"
+      }
+    },
+    {
+      "id": "send-message",
+      "type": "edge-function",
+      "description": "Discovered in supabase/functions directory",
+      "inputs": {
+        "recipientId": "string",
+        "content": "string"
+      },
+      "outputs": {
+        "messageId": "string",
+        "success": "boolean"
+      }
+    },
+    {
+      "id": "standards_export",
+      "type": "job",
+      "description": "Export the standards mapping {{mapping_id}} to CSV and return JSON {\"export_path\": string}."
+    },
+    {
+      "id": "standards_ingest",
+      "type": "job",
+      "description": "Ingest the uploaded standards document at {{storage_path}} and parse it into standards items. Return JSON {\"standards_document_id\": string, \"item_count\": number}."
+    },
+    {
+      "id": "standards_map",
+      "type": "job",
+      "description": "Map the ingested material {{material_id}} to the standards document {{standards_document_id}} using embeddings. Return JSON {\"mapping_id\": string, \"matches\": number}."
+    },
+    {
+      "id": "student-achievements",
+      "type": "edge-function",
+      "description": "Discovered in supabase/functions directory"
+    },
+    {
+      "id": "student-dashboard",
+      "type": "edge-function",
+      "description": "Discovered in supabase/functions directory"
+    },
+    {
+      "id": "student-goals",
+      "type": "edge-function",
+      "description": "Discovered in supabase/functions directory"
+    },
+    {
+      "id": "student-timeline",
+      "type": "edge-function",
+      "description": "Discovered in supabase/functions directory"
+    },
+    {
+      "id": "sync-study-text-images",
+      "type": "edge-function",
+      "description": "Discovered in supabase/functions directory"
+    },
+    {
+      "id": "teacher-chat-assistant",
+      "type": "edge-function",
+      "description": "Discovered in supabase/functions directory",
+      "inputs": {
+        "messages": "json",
+        "scope": "string",
+        "materialId": "string"
+      },
+      "outputs": {
+        "ok": "boolean",
+        "answer": "string",
+        "citations": "json",
+        "recommendations": "json",
+        "lessonPlan": "json",
+        "kdCheck": "json",
+        "error": "json",
+        "httpStatus": "number",
+        "requestId": "string"
+      }
+    },
+    {
+      "id": "ui-audit",
+      "type": "edge-function",
+      "description": "Discovered in supabase/functions directory"
+    },
+    {
+      "id": "update-course",
+      "type": "edge-function",
+      "description": "Discovered in supabase/functions directory"
+    },
+    {
+      "id": "update-mastery",
+      "type": "edge-function",
+      "description": "Discovered in supabase/functions directory",
+      "inputs": {
+        "studentId": "string",
+        "koId": "string",
+        "exerciseScore": "number"
+      },
+      "outputs": {
+        "oldMastery": "number",
+        "newMastery": "number"
+      }
+    },
+    {
+      "id": "validate-course-structure",
+      "type": "edge-function",
+      "description": "Discovered in supabase/functions directory",
+      "inputs": {
+        "courseId": "string"
+      },
+      "outputs": {
+        "ok": "boolean"
+      }
+    }
+  ],
+  "entities": [
+    {
+      "name": "LearnerProfile",
+      "slug": "learner-profile",
+      "fields": [
+        "full_name",
+        "avatar_url",
+        "grade_level",
+        "weekly_goal_minutes",
+        "current_assignment_id",
+        "goal_status",
+        "insights_snapshot"
+      ]
+    },
+    {
+      "name": "Book",
+      "slug": "book",
+      "fields": [
+        "title",
+        "level",
+        "source"
+      ]
+    },
+    {
+      "name": "BookVersion",
+      "slug": "book-version",
+      "fields": [
+        "book_id",
+        "book_version_id",
+        "schema_version",
+        "exported_at",
+        "canonical_path",
+        "figures_path",
+        "design_tokens_path",
+        "status"
+      ]
+    },
+    {
+      "name": "BookRun",
+      "slug": "book-run",
+      "fields": [
+        "book_id",
+        "book_version_id",
+        "overlay_id",
+        "target",
+        "status",
+        "progress_pct",
+        "result"
+      ]
+    },
+    {
+      "name": "Assignment",
+      "slug": "assignment",
+      "fields": [
+        "title",
+        "status",
+        "subject",
+        "due_date",
+        "adaptive_cluster_id",
+        "ai_variant_id",
+        "learner_id",
+        "teacher_id",
+        "rubric",
+        "attachments"
+      ]
+    },
+    {
+      "name": "CourseBlueprint",
+      "slug": "course-blueprint",
+      "fields": [
+        "title",
+        "subject",
+        "difficulty",
+        "catalog_path",
+        "multimedia_manifest",
+        "guard_status",
+        "published",
+        "notes",
+        "game_type"
+      ]
+    },
+    {
+      "name": "GameSession",
+      "slug": "game-session",
+      "fields": [
+        "assignment_id",
+        "course_id",
+        "level",
+        "status",
+        "start_time",
+        "end_time",
+        "score",
+        "accuracy",
+        "content_version"
+      ]
+    },
+    {
+      "name": "MessageThread",
+      "slug": "message-thread",
+      "fields": [
+        "title",
+        "participant_ids",
+        "last_message",
+        "unread_counts",
+        "pinned"
+      ]
+    },
+    {
+      "name": "JobTicket",
+      "slug": "job-ticket",
+      "fields": [
+        "job_type",
+        "status",
+        "payload",
+        "result",
+        "target_id"
+      ]
+    },
+    {
+      "name": "MasteryState",
+      "slug": "mastery-state",
+      "fields": [
+        "student_id",
+        "ko_id",
+        "mastery",
+        "status",
+        "evidence_count",
+        "last_practiced"
+      ]
+    },
+    {
+      "name": "StudentGoal",
+      "slug": "student-goal",
+      "fields": [
+        "student_id",
+        "title",
+        "target_minutes",
+        "progress_minutes",
+        "status",
+        "due_at"
+      ]
+    },
+    {
+      "name": "ClassMembership",
+      "slug": "class-membership",
+      "fields": [
+        "class_id",
+        "user_id",
+        "role"
+      ]
+    },
+    {
+      "name": "LibraryCourse",
+      "slug": "library-course",
+      "fields": [
+        "title",
+        "source",
+        "source_course_id",
+        "locale",
+        "category_path",
+        "education_level",
+        "course_ref",
+        "status"
+      ]
+    },
+    {
+      "name": "LibraryMaterial",
+      "slug": "library-material",
+      "fields": [
+        "title",
+        "source",
+        "file_name",
+        "content_type",
+        "storage_path",
+        "status",
+        "analysis_summary"
+      ]
+    },
+    {
+      "name": "LessonKit",
+      "slug": "lesson-kit",
+      "fields": [
+        "title",
+        "material_id",
+        "source_course_id",
+        "locale",
+        "status",
+        "kit",
+        "guard_report"
+      ]
+    },
+    {
+      "name": "StandardsDocument",
+      "slug": "standards-document",
+      "fields": [
+        "title",
+        "source",
+        "locale",
+        "file_name",
+        "content_type",
+        "storage_path",
+        "status",
+        "item_count",
+        "items",
+        "ingest_summary"
+      ]
+    },
+    {
+      "name": "StandardsMapping",
+      "slug": "standards-mapping",
+      "fields": [
+        "title",
+        "standards_document_id",
+        "material_id",
+        "status",
+        "mapping",
+        "export"
+      ]
+    },
+    {
+      "name": "SessionEvent",
+      "slug": "session-event",
+      "fields": [
+        "assignment_id",
+        "question_ref",
+        "outcome",
+        "duration_seconds",
+        "transcript",
+        "confidence_score"
+      ]
+    },
+    {
+      "name": "GoalUpdate",
+      "slug": "goal-update",
+      "fields": [
+        "learner_id",
+        "week_of",
+        "target_minutes",
+        "note"
+      ]
+    }
+  ]
+}
