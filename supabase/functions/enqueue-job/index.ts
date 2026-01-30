@@ -131,6 +131,7 @@ serve(async (req: Request): Promise<Response> => {
       "book_render_chapter",
       "book_render_full",
       "lessonkit_build",
+      "generate_lesson_plan",
       "curated_arabic_variant_build",
       "material_ingest",
       "material_analyze",
