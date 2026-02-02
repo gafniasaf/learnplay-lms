@@ -280,7 +280,9 @@ export class GenerateMultiWeekPlan implements JobExecutor {
 
       const attempt = (state.weekAttempts ?? 0) + 1;
       const weekSummary = state.plan.overview[index];
-      await emitAgentJobEvent(jobId, "generating", 30, `Generating week ${index + 1} of ${totalWeeks} (attempt ${attempt})`, {
+      // Keep progress monotonic (avoid resetting to 30% each week).
+      const startProgress = 30 + Math.floor((index / totalWeeks) * 55);
+      await emitAgentJobEvent(jobId, "generating", startProgress, `Generating week ${index + 1} of ${totalWeeks} (attempt ${attempt})`, {
         step: "week",
         week: index + 1,
         attempt,
@@ -355,12 +357,12 @@ export class GenerateMultiWeekPlan implements JobExecutor {
 
         // Validate: week plan must select ONLY from the approved materials list (if any),
         // and must reference selected materials in the teacher script.
-        const selectedMaterials = (weekPlan.materials || []).map((m) => String(m || "").trim()).filter((m) => m);
+        let selectedMaterials = (weekPlan.materials || []).map((m) => String(m || "").trim()).filter((m) => m);
         if (approvedMaterialTitles.length === 0) {
           // No approved materials were found for this week; do NOT allow the LLM to invent any.
-          if (selectedMaterials.length) {
-            throw new Error(`BLOCKED: Week plan referenced materials but no approved materials were provided: ${selectedMaterials.join(" | ")}`);
-          }
+          // Instead of blocking the whole job, drop any model-proposed materials and continue.
+          // (We still keep the plan content; the Materials panel remains empty.)
+          selectedMaterials = [];
         } else {
           const allowed = new Set(approvedMaterialTitles);
           const unknown = selectedMaterials.filter((m) => !allowed.has(m));
