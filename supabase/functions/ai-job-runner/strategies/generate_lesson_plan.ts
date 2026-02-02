@@ -5,11 +5,13 @@ import {
   generateEmbedding,
   generateLessonPlan,
   mergeRecommendations,
+  pickRelevantCuratedMaterials,
   recommendMesModules,
   requireEnv,
   retrieveMaterialRecommendations,
   retrievePrefix,
   searchCuratedMaterials,
+  searchCuratedMaterialsSmart,
   toCuratedRecommendations,
   toLibraryMaterialRecommendations,
   buildKdCheck,
@@ -18,6 +20,9 @@ import {
   type LessonPlan,
   type UnifiedRecommendation,
 } from "../../_shared/teacher-utils.ts";
+
+const MIN_SIMILARITY = 0.25;
+const MES_TEST_PREFIX = "mes:e2e-";
 
 type ChatMessage = { role: "user" | "assistant"; content: string };
 
@@ -172,14 +177,30 @@ export class GenerateLessonPlan implements JobExecutor {
       }).catch(() => {});
 
       try {
-        const lessonPlanMaterials = await searchCuratedMaterials({
+        const candidates = await searchCuratedMaterialsSmart({
           organizationId,
-          query: state.queryText,
-          limit: 5,
+          queryText: state.queryText,
+          limit: 24,
+          timeoutMs: 25_000,
         });
 
-        // Quality-first: fetch content from up to 2 top curated materials (bounded).
-        let materialContentForPlan = "";
+        const lessonPlanMaterials = await pickRelevantCuratedMaterials({
+          queryText: state.queryText,
+          candidates,
+          limit: 3,
+          timeoutMs: 25_000,
+        });
+
+        const approvedTitles = lessonPlanMaterials
+          .map((m) => (typeof m.title === "string" ? m.title.trim() : ""))
+          .filter((t) => t);
+
+        const approvedList = approvedTitles.length
+          ? ["GOEDGEKEURDE MATERIALEN (kies alleen uit deze lijst; gebruik exacte titels; verzin niets):", ...approvedTitles.map((t) => `- ${t}`), ""].join("\n")
+          : "";
+
+        // Quality-first: fetch content from up to 2 selected curated materials (bounded).
+        let materialContentForPlan = approvedList;
         const top = lessonPlanMaterials.slice(0, 2);
         if (top.length) {
           const chunks: string[] = [];
@@ -193,7 +214,7 @@ export class GenerateLessonPlan implements JobExecutor {
             if (!content) continue;
             chunks.push(`[${m.title}]\n${content}`);
           }
-          materialContentForPlan = chunks.join("\n\n---\n\n");
+          materialContentForPlan = [approvedList, chunks.join("\n\n---\n\n")].filter(Boolean).join("\n\n");
         }
 
         await emitAgentJobEvent(jobId, "generating", 30, "Materials retrieved", {
@@ -242,6 +263,39 @@ export class GenerateLessonPlan implements JobExecutor {
           // Keep bounded per attempt; job can retry via yield
           timeoutMs: 50_000,
         });
+
+        // Enforce: lessonPlan.materials can only reference approved curated titles (if any).
+        const approvedTitles = (Array.isArray(state.lessonPlanMaterials) ? state.lessonPlanMaterials : [])
+          .map((m: any) => String(m?.title || "").trim())
+          .filter((t: string) => t);
+        const approvedByNorm = new Map<string, string>(approvedTitles.map((t) => [t.toLowerCase(), t]));
+        const selected = Array.isArray((lessonPlan as any)?.materials) ? (lessonPlan as any).materials : [];
+        const selectedNorm = selected.map((m: any) => String(m || "").trim()).filter((m: string) => m);
+
+        if (approvedTitles.length === 0) {
+          if (selectedNorm.length) {
+            throw new Error(`BLOCKED: Lesson plan referenced materials but no approved materials were provided: ${selectedNorm.join(" | ")}`);
+          }
+        } else {
+          const unknown = selectedNorm.filter((m: string) => !approvedByNorm.has(m.toLowerCase()));
+          if (unknown.length) {
+            throw new Error(`BLOCKED: Lesson plan referenced non-approved materials: ${unknown.join(" | ")}`);
+          }
+          if (selectedNorm.length === 0) {
+            throw new Error("BLOCKED: Lesson plan did not select any approved materials");
+          }
+          const scriptText = (lessonPlan.teacherScript || [])
+            .map((s: any) => `${String(s?.action || "")} ${String(s?.content || "")}`)
+            .join(" ")
+            .toLowerCase();
+          const canonicalSelected = selectedNorm.map((m: string) => approvedByNorm.get(m.toLowerCase()) || m);
+          const hasAnyReference = canonicalSelected.some((m: string) => scriptText.includes(m.toLowerCase()));
+          if (!hasAnyReference) {
+            throw new Error("BLOCKED: Lesson plan did not reference selected materials in teacherScript");
+          }
+          // Normalize to canonical titles
+          (lessonPlan as any).materials = canonicalSelected;
+        }
 
         const kdCheck = buildKdCheck(lessonPlan.kdAlignment.code);
 
@@ -326,6 +380,11 @@ export class GenerateLessonPlan implements JobExecutor {
             .sort((a, b) => b.similarity - a.similarity)
             .slice(0, topK);
         }
+        citations = citations.filter((c) => {
+          if (!Number.isFinite(c.similarity) || c.similarity < MIN_SIMILARITY) return false;
+          if (c.source === "mes" && String(c.course_id || "").toLowerCase().startsWith(MES_TEST_PREFIX)) return false;
+          return true;
+        });
 
         // --- recommendations ---
         const allowMes = state.scope !== "materials";
@@ -354,12 +413,18 @@ export class GenerateLessonPlan implements JobExecutor {
         };
 
         const lessonPlan = state.lessonPlan;
+        const sourceBits = [
+          counts.curated ? `${counts.curated} uit de database` : null,
+          counts.mes ? `${counts.mes} uit ExpertCollege` : null,
+          counts.library ? `${counts.library} uit je eigen materiaal` : null,
+        ].filter(Boolean);
+
         const answer = [
           "Ik heb een lesplan opgesteld dat past bij je vraag.",
           `KD-focus: ${lessonPlan.kdAlignment.code} — ${lessonPlan.kdAlignment.title}.`,
           counts.total
-            ? `Ik heb ook ${counts.total} e-learning modules gevonden (${counts.curated} uit de database${counts.mes ? `, ${counts.mes} uit ExpertCollege` : ""}${counts.library ? `, ${counts.library} uit je eigen materiaal` : ""}).`
-            : "Ik heb geen modules gevonden die direct matchen—probeer een concretere zoekterm.",
+            ? `Ik heb ook ${counts.total} relevante bronnen gevonden (${sourceBits.join(", ")}).`
+            : "Ik heb geen bronnen gevonden die direct matchen—probeer een concretere zoekterm.",
           "Bekijk lesplan, materialen en bronnen in het paneel rechts.",
         ].join(" ");
 
@@ -367,6 +432,10 @@ export class GenerateLessonPlan implements JobExecutor {
           step: "finalize",
           recommendations: counts,
         }).catch(() => {});
+
+        const qualityFlags = Array.isArray(state.lessonPlan?.qualityFlags)
+          ? Array.from(new Set(state.lessonPlan?.qualityFlags))
+          : [];
 
         return {
           ok: true,
@@ -376,6 +445,7 @@ export class GenerateLessonPlan implements JobExecutor {
           recommendations,
           lessonPlan,
           kdCheck: state.kdCheck ?? buildKdCheck(lessonPlan.kdAlignment.code),
+          quality_flags: qualityFlags,
         };
       } catch (e) {
         if (attempt < 3 && isAbortTimeout(e)) {

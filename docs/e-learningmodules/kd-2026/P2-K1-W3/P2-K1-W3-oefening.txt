@@ -1,0 +1,117 @@
+Oefening: Prioriteren bij drukte
+
+1. Leerdoel
+Na deze oefening kun je:
+- Taken prioriteren op basis van urgentie en ernst
+- Keuzes maken onder tijdsdruk
+- Je keuzes onderbouwen
+- Taken delegeren aan collega's
+
+2. Benodigdheden
+- Scenario-overzicht
+- Prioriteringsmatrix
+- Pen en papier
+- Timer
+
+3. Instructie
+Je krijgt een scenario met meerdere taken die tegelijk aandacht vragen. Je moet prioriteren en delegeren.
+
+Stap 1: Lees het scenario (5 minuten)
+Lees alle informatie door.
+
+Stap 2: Maak een prioriteitenlijst (10 minuten)
+Rangschik de taken van hoog naar laag. Onderbouw je keuzes.
+
+Stap 3: Maak een plan (5 minuten)
+Wat doe je zelf? Wat delegeer je? Aan wie?
+
+Stap 4: Bespreek (10 minuten)
+Vergelijk je prioriteiten met een partner. Bespreek de verschillen.
+
+4. Scenario: Chaotische ochtend
+
+Je bent verpleegkundige en coördineert de ochtendienst op een verpleegafdeling. Het is 10:00 uur.
+
+Je team:
+- Jijzelf (verpleegkundige)
+- Collega A (verzorgende IG, ervaren)
+- Collega B (verzorgende IG, net van vakantie)
+- Stagiaire (2e jaar, mag geen medicatie)
+
+De situatie:
+Op dit moment vragen de volgende zaken aandacht:
+
+TAAK 1: Bellen arts
+Mevrouw Jansen (kamer 3) heeft sinds gisteren 38.5°C koorts. De arts moet terugbellen maar dat is nog niet gebeurd. Ze wacht op een belletje.
+
+TAAK 2: Medicatieronde
+De ochtendmedicatie is nog niet volledig uitgereikt. 4 van de 8 bewoners moeten nog.
+
+TAAK 3: Bezoek van familie
+De dochter van meneer De Vries (kamer 7) staat bij de balie. Ze wil nu spreken over de zorg van haar vader. Ze is boos.
+
+TAAK 4: Nieuwe opname
+Over 30 minuten komt er een nieuwe bewoner. De kamer is nog niet klaar en de papieren moeten worden doorgenomen.
+
+TAAK 5: Valincident
+Collega B komt melden dat mevrouw Bakker (kamer 5) net is gevallen. Ze lijkt niet gewond maar is geschrokken.
+
+TAAK 6: Alarm
+Het alarm van meneer Pietersen (kamer 2) gaat af. Hij belt vaak "voor niks" maar je weet het niet zeker.
+
+5. Prioriteringsmatrix
+
+Taak | Urgentie (1-5) | Ernst (1-5) | Totaal | Wie?
+
+1. Arts bellen | ___ | ___ | ___ | ___
+2. Medicatie | ___ | ___ | ___ | ___
+3. Familie | ___ | ___ | ___ | ___
+4. Opname | ___ | ___ | ___ | ___
+5. Val | ___ | ___ | ___ | ___
+6. Alarm | ___ | ___ | ___ | ___
+
+Urgentie: 1 = kan wachten, 5 = moet nu
+Ernst: 1 = laag risico, 5 = hoog risico
+
+6. Delegatieplan
+
+Wat doe ik zelf (verpleegkundige taken)?
+1. ___________________________
+2. ___________________________
+
+Wat doet collega A?
+1. ___________________________
+2. ___________________________
+
+Wat doet collega B?
+1. ___________________________
+
+Wat doet de stagiaire?
+1. ___________________________
+
+Wat kan wachten?
+1. ___________________________
+
+7. Beoordelingspunten
+De docent/begeleider let op:
+[ ] Student herkent urgentie correct
+[ ] Potentieel gevaarlijke situaties krijgen voorrang
+[ ] Student delegeert passend bij competenties
+[ ] Student houdt overzicht
+[ ] Keuzes zijn onderbouwd
+[ ] Student is realistisch over wat kan
+
+8. Nabespreking
+Bespreek in de groep:
+- Welke taak kreeg de hoogste prioriteit? Waarom?
+- Waar was je het oneens met je partner?
+- Wat laat je liggen en waarom?
+- Hoe communiceer je je keuzes naar het team?
+
+Voorbeelduitwerking:
+1. Alarm (6) - direct checken: kan iets ernstigs zijn
+2. Val (5) - direct beoordelen: bewoner controleren
+3. Medicatie (2) - kritisch: kan niet wachten tot middag
+4. Arts bellen (1) - belangrijk maar niet acuut
+5. Familie (3) - belangrijk maar kan 10 minuten wachten
+6. Opname (4) - kan voorbereid worden maar is niet direct

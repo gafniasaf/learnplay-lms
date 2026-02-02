@@ -1,0 +1,134 @@
+Simulatiescenario: Acute allergische reactie
+
+1. Inleiding
+In de zorg kun je te maken krijgen met acute allergische reacties. Een allergische reactie kan mild zijn, zoals jeuk of huiduitslag. Maar het kan ook ernstig zijn, zoals anafylaxie. Bij anafylaxie reageert het lichaam zo heftig dat de luchtwegen kunnen dichtknijpen en de bloeddruk kan dalen. Dit is levensbedreigend en vraagt om snel handelen.
+
+Dit scenario helpt je om te oefenen met het herkennen en handelen bij een acute allergische reactie. Je leert de signalen te herkennen, de juiste stappen te nemen en goed te communiceren met je team.
+
+2. Wat je moet weten
+Een allergische reactie ontstaat wanneer het afweersysteem overreageert op een stof. Veelvoorkomende oorzaken zijn:
+- Medicijnen (vooral antibiotica en pijnstillers)
+- Voedsel (noten, schaaldieren, melk, ei)
+- Insectenbeten of -steken
+- Latex
+- Contrastmiddelen bij onderzoeken
+
+Signalen van een milde allergische reactie:
+- Jeuk
+- Rode huid of bultjes (urticaria)
+- Zwelling rond ogen of lippen
+- Niezen of loopneus
+
+Signalen van een ernstige allergische reactie (anafylaxie):
+- Benauwdheid of piepende ademhaling
+- Zwelling van tong of keel
+- Moeilijk slikken of praten
+- Duizeligheid of flauwvallen
+- Snelle, zwakke pols
+- Misselijkheid of braken
+- Angst of onrust
+
+Bij anafylaxie kunnen symptomen binnen minuten verergeren. Snel handelen kan levens redden.
+
+3. Het scenario
+Lees het scenario en bedenk wat je zou doen.
+
+Setting:
+Je werkt op een verpleegafdeling. Het is 10:00 uur. Mevrouw Jansen (68 jaar) heeft net een antibioticakuur gestart voor een urineweginfectie. Twintig minuten na het innemen van de eerste tablet belt ze.
+
+Situatie:
+Je komt bij mevrouw Jansen. Ze zit rechtop in bed en zegt: "Ik voel me raar. Mijn keel voelt dik en ik krijg moeilijk lucht." Je ziet dat haar gezicht gezwollen is, vooral rond de ogen en lippen. Ze heeft rode vlekken in haar hals. Ze ademt snel en je hoort een piepend geluid.
+
+Vraag jezelf af:
+- Wat zie je?
+- Wat denk je dat er aan de hand is?
+- Wat doe je eerst?
+
+4. Werken in de praktijk: Stappenplan
+
+Stap 1: Herken de situatie
+Je ziet: gezwollen gezicht, rode vlekken, benauwdheid, piepende ademhaling kort na medicatie. Dit wijst op een acute allergische reactie, mogelijk anafylaxie.
+
+Stap 2: Blijf kalm en stel gerust
+Zeg tegen mevrouw Jansen: "Ik zie dat u last heeft. Ik ga u helpen. Probeer rustig te ademen."
+
+Stap 3: Roep hulp
+Druk op de alarmknop of roep een collega. Bij vermoeden van anafylaxie is dit urgent.
+
+Stap 4: ABCDE-beoordeling
+A - Luchtweg: Ze kan nog praten, maar de keel voelt dik. De luchtweg is bedreigd.
+B - Ademhaling: Snel, piepend. Verhoogd risico.
+C - Circulatie: Controleer pols en bloeddruk. Let op tekenen van shock.
+D - Bewustzijn: Is ze alert? Verward?
+E - Huid: Rode vlekken, zwelling. Bekijk het hele lichaam.
+
+Stap 5: Positie
+Bij benauwdheid: laat de zorgvrager rechtop zitten.
+Bij lage bloeddruk zonder benauwdheid: benen omhoog.
+Bij braken of bewusteloosheid: stabiele zijligging.
+
+Stap 6: Medicatie (volgens protocol)
+Bij anafylaxie is adrenaline het belangrijkste medicijn. Dit wordt gegeven door een arts of volgens protocol met een auto-injector (EpiPen). Ken het protocol van je werkplek.
+
+Stap 7: Monitor en rapporteer
+Blijf bij de zorgvrager. Meet vitale functies elke 5 minuten. Rapporteer met SBAR aan de arts.
+
+SBAR-voorbeeld:
+S: Mevrouw Jansen heeft een acute allergische reactie na antibiotica.
+B: Gestart met amoxicilline voor urineweginfectie, eerste gift 20 minuten geleden.
+A: Gezwollen gezicht, piepende ademhaling, frequentie 28, saturatie 92%, pols 110, bloeddruk 95/60.
+R: Verzoek om direct beoordeling, vermoeden anafylaxie.
+
+5. Samenwerken en communiceren
+Bij een acute situatie werk je als team. Verdeel taken:
+- Eén persoon blijft bij de zorgvrager en doet ABCDE
+- Eén persoon belt de arts of 112
+- Eén persoon haalt de noodmedicatie
+- Eén persoon noteert tijden en handelingen
+
+Communiceer kort en duidelijk. Herhaal opdrachten om misverstanden te voorkomen.
+
+Na de acute fase:
+- Documenteer alles in het dossier
+- Meld het incident (VIM)
+- Noteer de allergie in het dossier en op de allergielijst
+- Bespreek de situatie na met het team (debriefing)
+
+6. Discussievragen voor nabespreking
+Gebruik deze vragen om het scenario te bespreken:
+
+1. Hoe herkende je dat dit een ernstige allergische reactie was?
+2. Wat deed je eerst en waarom?
+3. Hoe communiceerde je met mevrouw Jansen?
+4. Hoe verliep de samenwerking met je team?
+5. Wat zou je een volgende keer anders doen?
+6. Ken je het protocol voor anafylaxie op jouw werkplek?
+
+7. Veelgemaakte fouten en aandachtspunten
+Veelgemaakte fouten:
+- Symptomen niet serieus nemen ("het zal wel meevallen")
+- Te lang wachten met hulp inschakelen
+- Vergeten de allergie te documenteren
+- Geen debriefing na de situatie
+
+Aandachtspunten:
+- Ken de locatie van noodmedicatie en AED
+- Weet hoe een EpiPen werkt
+- Vraag altijd naar allergieën voordat je medicatie geeft
+- Neem elke allergische reactie serieus
+
+8. Checklist acute allergische reactie
+
+[ ] Signalen herkend (huidreactie, zwelling, benauwdheid)
+[ ] Hulp ingeroepen
+[ ] ABCDE-beoordeling uitgevoerd
+[ ] Zorgvrager in juiste positie gebracht
+[ ] Vitale functies gemeten en genoteerd
+[ ] Arts/112 geïnformeerd (SBAR)
+[ ] Protocol anafylaxie gevolgd (indien van toepassing)
+[ ] Zorgvrager continu gemonitord
+[ ] Allergie gedocumenteerd in dossier
+[ ] Incident gemeld (VIM)
+
+9. Samenvatting
+Acute allergische reacties kunnen levensbedreigend zijn. Door snel te herkennen en gestructureerd te handelen met ABCDE kun je levens redden. Ken de signalen, ken het protocol van je werkplek en oefen regelmatig. Goede communicatie met je team is essentieel. Vergeet niet om na de situatie te documenteren en te evalueren.

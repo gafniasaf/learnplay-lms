@@ -13,6 +13,19 @@ const SUPABASE_ANON_KEY = requireEnv("SUPABASE_ANON_KEY");
 
 const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
+function parseIntEnv(key: string, fallback: number, min: number, max: number): number {
+  const raw = Deno.env.get(key);
+  const parsed = raw ? Number.parseInt(raw, 10) : NaN;
+  const value = Number.isFinite(parsed) ? parsed : fallback;
+  return Math.min(Math.max(value, min), max);
+}
+
+function computeBackoffMs(attempt: number, baseMs: number, maxMs: number): number {
+  const safeAttempt = Number.isFinite(attempt) ? Math.max(1, Math.floor(attempt)) : 1;
+  const raw = baseMs * Math.pow(2, safeAttempt - 1);
+  return Math.min(raw, maxMs);
+}
+
 async function courseReality(courseId: string) {
   let hasCourseJson = false;
 
@@ -113,7 +126,7 @@ serve(
     // Reconcile agent jobs (factory queue)
     const { data: agentJobs, error: agentErr } = await admin
       .from("ai_agent_jobs")
-      .select("id, job_type, status, error, last_heartbeat, started_at, created_at")
+      .select("id, job_type, status, error, last_heartbeat, started_at, created_at, retry_count, max_retries")
       .eq("status", "processing")
       .limit(200);
 
@@ -127,14 +140,57 @@ serve(
       const isStalled = Number.isFinite(updatedAtMs) && Date.now() - updatedAtMs > AGENT_STALL_MS;
 
       if (isStalled) {
-        await admin
+        const retryCount = typeof (job as any).retry_count === "number" ? (job as any).retry_count : 0;
+        const maxRetries = typeof (job as any).max_retries === "number" ? (job as any).max_retries : 3;
+        const baseBackoffMs = parseIntEnv("AGENT_JOB_RETRY_BASE_MS", 30_000, 1_000, 60 * 60 * 1000);
+        const maxBackoffMs = parseIntEnv("AGENT_JOB_RETRY_MAX_MS", 10 * 60_000, 5_000, 24 * 60 * 60 * 1000);
+        const attempt = retryCount + 1;
+        const backoffMs = computeBackoffMs(attempt, baseBackoffMs, maxBackoffMs);
+        const nextAttemptAt = new Date(Date.now() + backoffMs).toISOString();
+
+        if (retryCount >= maxRetries) {
+          const { error: dlErr } = await admin
+            .from("ai_agent_jobs")
+            .update({
+              status: "dead_letter",
+              error: "Reconciler: job stalled (max retries exceeded)",
+              completed_at: new Date().toISOString(),
+            })
+            .eq("id", job.id);
+          if (dlErr) {
+            results.push({ jobId: job.id, jobType: (job as any).job_type, action: "agent_deadletter_failed", error: dlErr.message });
+            continue;
+          }
+          try {
+            await emitAgentJobEvent(String(job.id), "failed", 100, "Reconciler: dead-lettered after stalls", {
+              jobType: (job as any).job_type,
+              last_heartbeat: (job as any).last_heartbeat || null,
+            });
+          } catch {
+            // best-effort
+          }
+          results.push({ jobId: job.id, jobType: (job as any).job_type, action: "agent_dead_letter_stalled" });
+          continue;
+        }
+
+        const { error: updateErr } = await admin
           .from("ai_agent_jobs")
-          .update({ status: "failed", error: "Reconciler: job stalled", completed_at: new Date().toISOString() })
+          .update({
+            status: "failed",
+            error: "Reconciler: job stalled",
+            completed_at: new Date().toISOString(),
+            next_attempt_at: nextAttemptAt,
+          })
           .eq("id", job.id);
+        if (updateErr) {
+          results.push({ jobId: job.id, jobType: (job as any).job_type, action: "agent_update_failed", error: updateErr.message });
+          continue;
+        }
         try {
           await emitAgentJobEvent(String(job.id), "failed", 100, "Reconciler: job stalled", {
             jobType: (job as any).job_type,
             last_heartbeat: (job as any).last_heartbeat || null,
+            nextAttemptAt,
           });
         } catch {
           // best-effort

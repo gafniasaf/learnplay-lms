@@ -627,6 +627,261 @@
   height: 18px;
 }
 
+.sectionHeading {
+  margin: 0 0 8px;
+  font-size: 13px;
+  font-weight: 800;
+  color: #1e293b;
+}
+
+.quickStartGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 10px;
+}
+
+.quickStartCard {
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+  border-radius: 10px;
+  padding: 10px;
+  font-size: 12px;
+  color: #1e293b;
+}
+
+.quickStartLabel {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #64748b;
+  margin-bottom: 6px;
+}
+
+.quickStartList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.quickStartList li {
+  padding: 2px 0;
+}
+
+.kdTagRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.kdTag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 6px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  background: #7c3aed;
+  color: #ffffff;
+}
+
+.overviewTableWrap {
+  overflow-x: auto;
+}
+
+.overviewTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.overviewTable th {
+  text-align: left;
+  padding: 8px;
+  background: #f8fafc;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-size: 11px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.overviewTable td {
+  padding: 8px;
+  border-bottom: 1px solid #e2e8f0;
+  color: #1e293b;
+}
+
+.weekGrid {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.weekCard {
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  background: #ffffff;
+  overflow: hidden;
+}
+
+.weekHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 12px;
+  background: #2563eb;
+  color: #ffffff;
+}
+
+.weekHeaderThemeSamenwerking {
+  background: #7c3aed;
+}
+
+.weekHeaderThemeGespreksvaardigheden {
+  background: #0891b2;
+}
+
+.weekHeaderThemeProfessioneel {
+  background: #16a34a;
+}
+
+.weekNumber {
+  font-size: 11px;
+  opacity: 0.9;
+}
+
+.weekTitle {
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.weekKd {
+  background: rgba(255, 255, 255, 0.2);
+  padding: 2px 6px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.weekContent {
+  padding: 12px;
+  display: grid;
+  gap: 12px;
+}
+
+.weekOneliner {
+  font-size: 13px;
+  color: #334155;
+  border-bottom: 1px solid #e2e8f0;
+  padding-bottom: 8px;
+}
+
+.keyConcepts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.conceptTag {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 6px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  background: #cffafe;
+  color: #0e7490;
+}
+
+.teacherScript {
+  display: grid;
+  gap: 8px;
+}
+
+.scriptItem {
+  display: grid;
+  grid-template-columns: 80px 90px 1fr;
+  gap: 8px;
+  padding: 8px;
+  border-radius: 8px;
+  background: #f8fafc;
+  border-left: 3px solid transparent;
+}
+
+.scriptItemStart {
+  border-left-color: #16a34a;
+  background: #dcfce7;
+}
+
+.scriptItemKern {
+  border-left-color: #2563eb;
+  background: #eff6ff;
+}
+
+.scriptItemAfsluiting {
+  border-left-color: #f59e0b;
+  background: #fef3c7;
+}
+
+.scriptTime {
+  font-weight: 700;
+  font-size: 11px;
+  color: #475569;
+}
+
+.scriptAction {
+  font-weight: 700;
+  font-size: 11px;
+  color: #1e40af;
+}
+
+.scriptContent {
+  font-size: 12px;
+  color: #334155;
+}
+
+.weekSection {
+  display: grid;
+  gap: 6px;
+}
+
+.materialList {
+  margin: 0;
+  padding-left: 18px;
+  font-size: 12px;
+  color: #334155;
+}
+
+.discussionItem {
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 8px;
+  background: #f8fafc;
+}
+
+.groupWork {
+  border: 1px solid #fbbf24;
+  border-radius: 8px;
+  padding: 8px;
+  background: #fef3c7;
+}
+
+.groupWork ol {
+  margin: 6px 0 0;
+  padding-left: 18px;
+}
+
+@media print {
+  .btn {
+    display: none;
+  }
+  .weekCard {
+    break-inside: avoid;
+  }
+}
+
 @media (max-width: 1000px) {
   .settingsGrid {
     grid-template-columns: 1fr;

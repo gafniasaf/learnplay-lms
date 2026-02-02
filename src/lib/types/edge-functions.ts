@@ -174,6 +174,56 @@ type TeacherChatLessonPlan = {
   kdAlignment: { code: string; title: string };
 };
 
+type TeacherChatWeekPlan = {
+  week: number;
+  title: string;
+  kdCode: string;
+  oneLiner: string;
+  keyConcepts: string[];
+  theme?: string;
+  timeAllocation: { start: number; kern: number; afsluiting: number };
+  teacherScript: Array<{
+    timeRange: string;
+    phase: "start" | "kern" | "afsluiting";
+    action: string;
+    content: string;
+    activity?: string;
+  }>;
+  materials: string[];
+  discussionQuestions: Array<{
+    question: string;
+    expectedAnswers: string[];
+  }>;
+  groupWork?: {
+    title: string;
+    steps: string[];
+    durationMinutes: number;
+  };
+  practiceAssignment?: string;
+};
+
+type TeacherChatMultiWeekPlan = {
+  meta: {
+    title: string;
+    duration: { weeks: number; hoursPerWeek: number };
+    level: "n3" | "n4" | "combi";
+    kdCoverage: string[];
+  };
+  quickStart: {
+    objective: string;
+    themes: string[];
+    structure: { start: number; kern: number; afsluiting: number };
+  };
+  overview: Array<{
+    week: number;
+    title: string;
+    kdCode: string;
+    keyConcepts: string[];
+    theme?: string;
+  }>;
+  weeks: TeacherChatWeekPlan[];
+};
+
 type TeacherChatKdCheck = {
   code: string;
   items: Array<{ ok: boolean; text: string }>;
@@ -198,6 +248,7 @@ export type TeacherChatAssistantResponse =
       recommendations?: TeacherChatRecommendation[];
       curatedMaterials?: TeacherChatCuratedMaterial[];
       lessonPlan?: TeacherChatLessonPlan;
+      multiWeekPlan?: TeacherChatMultiWeekPlan;
       kdCheck?: TeacherChatKdCheck;
       requestId?: string;
       // Optional async pipeline support (lesson-plan jobs)
@@ -356,6 +407,24 @@ export interface ListJobsResponse {
     error?: string | null;
     payload?: Record<string, any>;
     result?: Record<string, any>;
+  }>;
+}
+
+export interface ListAlertsResponse {
+  ok: boolean;
+  alerts: Array<{
+    id: string;
+    organization_id: string;
+    alert_key: string;
+    type: string;
+    severity: string;
+    message: string;
+    meta?: Record<string, any>;
+    count?: number;
+    created_at: string;
+    updated_at?: string;
+    last_seen_at?: string;
+    resolved_at?: string | null;
   }>;
 }
 

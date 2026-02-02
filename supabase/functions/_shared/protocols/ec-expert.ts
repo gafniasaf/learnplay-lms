@@ -23,6 +23,14 @@ KERN:
 - Vermijd academische formuleringen (zoals "bij analyse", "primair bepaald door"). Schrijf actief en concreet.
 - Voorkom discussie: precies 1 correct antwoord; afleiders klinken logisch maar zijn ondubbelzinnig fout in deze context.
 
+KRITIEKE REGEL - GEEN AMBIGUITEIT:
+- Het correcte antwoord moet 100% waar zijn in ALLE gevallen, niet "meestal waar" of "in de meeste gevallen waar".
+- Afleiders moeten 100% fout zijn in ALLE gevallen, niet "soms waar" of "in sommige gevallen waar".
+- Vermijd generaliseringen waar uitzonderingen bestaan (bijv. "alle organen worden..." als sommige organen anders zijn).
+- Als een biologisch/medisch feit uitzonderingen heeft, formuleer de vraag specifieker (bijv. "De meeste viscera worden..." i.p.v. "Organen worden...").
+- Test jezelf: kan een student met correcte kennis een andere optie verdedigen? Zo ja → herschrijf de vraag of opties.
+- Vermijd kwantificerende overlap: als optie A zegt "sommige X" en optie B zegt "alle X", dan sluit A de waarheid van B niet uit → maak opties wederzijds uitsluitend.
+
 VASTE OUTPUTREGELS:
 - Output ALLEEN geldige JSON (geen markdown of extra tekst).
 - Alle tekst is Nederlands.
@@ -107,6 +115,26 @@ function containsSuggestiveAbsoluteWord(s: string): boolean {
 function containsAllQuantifier(s: string): boolean {
   const t = normalizeForCompare(s);
   return /\b(alle|allemaal)\b/.test(t);
+}
+
+function containsQuantifier(s: string): { has: boolean; type: "all" | "some" | "most" | null } {
+  const t = normalizeForCompare(s);
+  if (/\b(alle|allemaal|elk|elke|ieder|iedere)\b/.test(t)) return { has: true, type: "all" };
+  if (/\b(sommige|enkele|bepaalde|een aantal)\b/.test(t)) return { has: true, type: "some" };
+  if (/\b(de meeste|meeste|veel|vaak|doorgaans|gewoonlijk)\b/.test(t)) return { has: true, type: "most" };
+  return { has: false, type: null };
+}
+
+function detectQuantifierOverlap(options: string[]): boolean {
+  // Detect if options use different quantifiers that don't logically exclude each other
+  // e.g., "sommige organen..." vs "alle organen..." - both could be true
+  const types = new Set<string>();
+  for (const opt of options) {
+    const q = containsQuantifier(opt);
+    if (q.has && q.type) types.add(q.type);
+  }
+  // If we have multiple different quantifier types, there's potential overlap
+  return types.size > 1;
 }
 
 function containsSuggestiveIntensifier(s: string): boolean {
@@ -562,6 +590,38 @@ function lintExercise(ex: any, idx: number, ctx?: { studyText?: string }): LintI
     });
   }
 
+  // Check for quantifier overlap (sommige/alle/de meeste) which creates ambiguity
+  if (detectQuantifierOverlap(options)) {
+    issues.push({
+      code: "quantifier_overlap",
+      severity: "error",
+      location: `${locationBase} → Antwoordopties`,
+      message: "Antwoordopties gebruiken verschillende kwantoren (sommige/alle/de meeste) die elkaar niet logisch uitsluiten. Kies een andere invalshoek die geen kwantificering vereist.",
+    });
+  }
+
+  // Check for generalizing biological/medical statements that likely have exceptions
+  const bioMedGeneralization = /\b(organen|cellen|weefsels|spieren|zenuwen|hormonen|enzymen|receptoren|bloedvaten)\s+(worden|zijn|hebben|ontvangen|produceren)\b/i;
+  for (const opt of options) {
+    if (bioMedGeneralization.test(opt) && !/(sommige|bepaalde|de meeste|specifieke|bepaald type)/i.test(opt)) {
+      issues.push({
+        code: "biomed_generalization",
+        severity: "warn",
+        location: `${locationBase} → Antwoordopties`,
+        message: "Antwoordoptie generaliseert over biologische/medische entiteiten zonder specificatie. Dit kan leiden tot ambiguïteit als er uitzonderingen bestaan. Overweeg specifiekere formulering.",
+      });
+      break; // Only warn once per exercise
+    }
+  }
+  if (bioMedGeneralization.test(stem) && !/(sommige|bepaalde|de meeste|specifieke|bepaald type)/i.test(stem)) {
+    issues.push({
+      code: "biomed_generalization_stem",
+      severity: "warn",
+      location: `${locationBase} → Vraag/Stelling`,
+      message: "Vraag/stelling generaliseert over biologische/medische entiteiten. Als er uitzonderingen bestaan, specificeer dan (bijv. 'De meeste viscera...' i.p.v. 'Organen...').",
+    });
+  }
+
   // Protocol: avoid ambiguous distractors (must be wholly false, no debate).
   if (options.length >= 3 && typeof correctIndex === "number" && correctIndex >= 0 && correctIndex < options.length) {
     const correct = options[correctIndex] || "";
@@ -706,6 +766,15 @@ Harde eisen:
 - Alle tekst is Nederlands.
 - Voeg geen nieuwe feiten toe die niet uit de studietekst volgen.
 
+KRITIEKE REGEL - GEEN AMBIGUÏTEIT (hoogste prioriteit):
+- Het correcte antwoord moet 100% waar zijn in ALLE gevallen, zonder enige uitzondering.
+- Elke afleider moet 100% fout zijn in ALLE gevallen, zonder enige uitzondering.
+- VERBODEN: generaliseringen waar uitzonderingen bestaan (bijv. "organen worden door beide systemen geïnnerveerd" als sommige organen maar door één systeem worden geïnnerveerd).
+- Als een biologisch/medisch feit uitzonderingen heeft, maak de vraag specifieker of kies een ander aspect om te toetsen.
+- Afleiders die "deels waar" of "in sommige gevallen waar" zijn, zijn NIET toegestaan.
+- Test elke optie: kan een student met correcte vakkennis deze optie verdedigen? Zo ja → herschrijf de hele oefening.
+- Vermijd kwantificerende overlap: "sommige X" vs "alle X" vs "de meeste X" sluiten elkaar niet logisch uit → kies een compleet andere invalshoek.
+
 Controlepunten (kort):
 - Eén kenniselement per oefening.
 - Distractors moeten 100% fout zijn (geen gedeeltelijk waar, geen "ook waar maar minder compleet", geen ambiguity).
@@ -811,6 +880,15 @@ type QualityAuditResult = {
 const EC_EXPERT_QUALITY_AUDIT_SYSTEM_PROMPT = `Je bent een extreem strenge kwaliteitscontroleur voor ExpertCollege (maximale strictheid).
 
 Doel: afdwingen dat afleiders logisch klinken maar 100% fout zijn, zonder suggestieve/extreme taal.
+
+KRITIEKE REGEL - GEEN AMBIGUÏTEIT (hoogste prioriteit):
+- Het correcte antwoord moet 100% waar zijn in ALLE gevallen, zonder enige uitzondering.
+- Elke afleider moet 100% fout zijn in ALLE gevallen, zonder enige uitzondering.
+- VERBODEN: generaliseringen waar uitzonderingen bestaan.
+- Als een biologisch/medisch feit uitzonderingen heeft, is de vraag ONGELDIG → herschrijf met specifieker onderwerp.
+- Afleiders die "deels waar" of "in sommige gevallen waar" zijn, zijn NIET toegestaan.
+- Test elke optie: kan een student met correcte vakkennis deze optie verdedigen? Zo ja → ONGELDIG.
+- Vermijd kwantificerende overlap: "sommige X" vs "alle X" vs "de meeste X" → kies een compleet andere invalshoek.
 
 Harde eisen (MOETEN):
 - Output ALLEEN geldige JSON (geen markdown).
@@ -1179,6 +1257,18 @@ EISEN PER OEFENING:
 - Gebruik bij voorkeur de je-vorm.
 - Optioneel: begin met een korte "Theorie:" of "Casus:" (1-2 zinnen) als dat helpt.
 - Maak dit géén getallenquiz. Kies bij voorkeur een leerdoel met tekstuele opties (begrippen/rollen/taken/definities).
+
+KRITIEK - GEEN AMBIGUÏTEIT (dit is de belangrijkste eis):
+- Het correcte antwoord moet 100% waar zijn in ALLE gevallen, zonder uitzonderingen.
+- Elke afleider moet 100% fout zijn in ALLE gevallen, zonder uitzonderingen.
+- Vermijd generaliseringen waar uitzonderingen bestaan. Als een regel niet 100% geldt, maak de vraag specifieker.
+- Voorbeeld FOUT: "Doelorganen worden door beide systemen geïnnerveerd" (sommige wel, sommige niet → ambigue).
+- Voorbeeld GOED: "De meeste viscera ontvangen zowel sympathische als parasympathische innervatie" (specifieker, minder discussie).
+- Test elke optie: kan een student met correcte vakkennis deze optie verdedigen als waar? Zo ja → herschrijf.
+- Vermijd kwantificerende overlap: "sommige X" vs "alle X" sluiten elkaar niet uit → kies een andere invalshoek.
+- Afleiders moeten plausibel klinken maar EXPLICIET tegengesproken worden door de studietekst.
+
+OVERIGE EISEN:
 - Afleiders: plausibel, zelfde format/lengte, maar ondubbelzinnig fout in deze context.
 - Vermijd suggestieve/extreme woorden in antwoordopties: altijd/nooit/uitsluitend/alleen/enkel/slechts/volledig/exact.
 - Vermijd hedges in afleiders: meestal/soms/vaak/in principe/in enkele gevallen.

@@ -1,0 +1,104 @@
+Casus: Complicatie na verpleegtechnische handeling
+
+1. Leerdoel
+Na deze casus kun je:
+- Complicaties na verpleegtechnische handelingen herkennen
+- Snel en adequaat handelen bij complicaties
+- Juist rapporteren en melden
+- Reflecteren op je eigen handelen
+
+2. De situatie
+Setting:
+Je werkt als verzorgende IG in een revalidatiecentrum. Je hebt zojuist een subcutane injectie gegeven.
+
+Zorgvrager:
+Mevrouw Van der Berg, 67 jaar
+Diagnose: diabetes type 2, nu opgenomen voor revalidatie na heupoperatie
+Medicatie: Insuline Lantus 16 E, 1x daags om 22:00 uur
+Normaal: alertheid goed, praat graag, geen bekende allergieën
+
+3. Wat er gebeurt
+Je hebt om 22:00 uur de insuline-injectie gegeven in de buik van mevrouw Van der Berg. Je hebt de 5 juistheden gecontroleerd, de huid gedesinfecteerd en de injectie volgens protocol gegeven.
+
+5 minuten later:
+Je bent nog op de afdeling als een collega je roept. "Kun je even bij mevrouw Van der Berg kijken? Ze klaagt over jeuk."
+
+Je gaat naar haar kamer en ziet:
+- Mevrouw Van der Berg zit rechtop in bed
+- Ze krabt aan haar armen en buik
+- Ze zegt: "Ik voel me een beetje raar"
+- Je ziet rode vlekken op haar armen en hals
+- Ze is wat bleek en zweet licht
+
+Je vraagt: "Hoe voelt u zich?"
+Zij zegt: "Benauwd. En die jeuk... Dit had ik nog nooit."
+
+4. Vragen bij de casus
+
+Vraag 1: Wat is hier aan de hand?
+Wat denk je dat er gebeurt? Welke mogelijke verklaringen zijn er?
+
+Vraag 2: Wat doe je eerst?
+Beschrijf stap voor stap je eerste acties. Prioriteer.
+
+Vraag 3: Wie betrek je?
+Wie moet je direct informeren? In welke volgorde?
+
+Vraag 4: Wat observeer je?
+Welke observaties doe je om de situatie te beoordelen?
+
+Vraag 5: Hoe rapporteer je dit?
+Schrijf een korte, feitelijke rapportage van wat er is gebeurd.
+
+5. Aanvullende informatie
+Na 2 minuten observeren:
+- Bloeddruk: 110/70 mmHg (normaal voor haar: 130/80)
+- Pols: 98/min (normaal: 72/min)
+- Saturatie: 96%
+- Mevrouw zegt dat de benauwdheid erger wordt
+
+De dienstdoende verpleegkundige komt kijken en zegt:
+"Dit lijkt op een allergische reactie. Bel de arts, nu."
+
+Later blijkt:
+- Mevrouw had nog nooit eerder insuline Lantus gehad (ze gebruikte voorheen tabletten)
+- Ze blijkt allergisch te zijn voor een hulpstof in de insuline
+- Na behandeling met antihistaminica herstelt ze volledig
+
+6. Observatiepunten voor de docent
+[ ] Student herkent signalen van allergische reactie
+[ ] Student handelt snel en roept hulp
+[ ] Student blijft bij de zorgvrager
+[ ] Student doet relevante observaties (vitale functies)
+[ ] Student rapporteert feitelijk en volledig
+[ ] Student reflecteert op eigen handelen
+
+7. Nabespreking
+Discussievragen:
+- Wat had je anders kunnen doen?
+- Had je dit kunnen voorkomen?
+- Hoe belangrijk is het om na een handeling nog even te observeren?
+- Wanneer is een allergische reactie levensbedreigend?
+- Hoe meld je dit incident (VIM)?
+
+Verdieping:
+- Wat is het verschil tussen een lokale en systemische allergische reactie?
+- Welke medicijnen worden vaak gegeven bij een allergische reactie?
+
+8. Modelantwoorden (voor docent)
+Vraag 2 - Eerste acties:
+1. Blijf bij mevrouw, stel haar gerust
+2. Roep een collega (niet weggaan)
+3. Laat de verpleegkundige/arts bellen
+4. Meet vitale functies
+5. Observeer de symptomen (erger of beter?)
+6. Maak adrenaline-auto-injector klaar (als aanwezig)
+
+Vraag 3 - Wie informeren:
+1. Direct: verpleegkundige op de afdeling
+2. Via verpleegkundige: dienstdoende arts
+3. Na afloop: leidinggevende, VIM-melding
+4. Familie informeren (in overleg)
+
+Vraag 5 - Rapportage:
+"22:00 uur insuline Lantus 16 E subcutaan toegediend in buik. 22:05 uur: jeuk, rode vlekken armen/hals, benauwdheid, zweten. Verpleegkundige gealarmeerd, arts gebeld. Vitale functies: RR 110/70, pols 98/min, sat 96%. Behandeling gestart door arts. 22:30 uur klachten afgenomen na antihistaminica."

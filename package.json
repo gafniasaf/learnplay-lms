@@ -37,6 +37,7 @@
     "test:guard": "npx tsx scripts/test-guard-plan.ts",
     "test:export": "npx tsx scripts/test-export-flow.ts",
     "test:cta-smoke": "npx tsx scripts/smoke-ctas.ts",
+    "soak:jobs": "npx tsx scripts/soak-fault-injection.ts",
     "test:contracts": "jest --testPathPattern=contracts/ --verbose",
     "test:all": "npm run test && npm run test:contracts && npm run test:integration && npm run e2e",
     "typecheck": "tsc -p tsconfig.app.json --noEmit",

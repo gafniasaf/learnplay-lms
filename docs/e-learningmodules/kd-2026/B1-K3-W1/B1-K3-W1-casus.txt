@@ -1,0 +1,110 @@
+Casus: Implementatie slimme medicijndispenser
+
+1. Leerdoel
+Na deze casus kun je:
+- Kritisch meedenken over de invoering van een nieuw hulpmiddel
+- Verschillende perspectieven (zorgvrager, team, organisatie) meenemen
+- Praktische oplossingen bedenken voor implementatieproblemen
+- Een bijdrage leveren aan het innovatieproces
+
+2. De situatie
+Setting:
+Je werkt in een wijkteam thuiszorg. Het team bestaat uit 8 collega's: 4 verzorgenden IG en 4 verpleegkundigen. Jullie verzorgen ongeveer 60 cliënten in de wijk, waarvan veel ouderen die thuis medicatie gebruiken.
+
+De aanleiding:
+De teamleider heeft in een werkoverleg aangekondigd dat de organisatie wil gaan werken met een slimme medicijndispenser. Dit is een apparaat dat:
+- Medicatie op het juiste tijdstip uitgeeft
+- Een alarm geeft als de medicatie niet is ingenomen
+- Via een app een signaal stuurt naar de thuiszorg als er iets misgaat
+- Bijhoudt of en wanneer medicatie is ingenomen
+
+De organisatie wil dit hulpmiddel inzetten bij cliënten die zelfstandig medicatie innemen maar waarbij vergeten een risico is.
+
+3. De reacties in het team
+Tijdens het werkoverleg komen verschillende reacties:
+
+Collega A (enthousiast):
+"Dit kan echt helpen! We hebben meerdere cliënten die regelmatig vergeten. Vorige week moest ik drie keer extra langs bij mevrouw De Vries."
+
+Collega B (kritisch):
+"Maar werkt dit wel bij onze doelgroep? Veel van onze cliënten zijn niet zo handig met technologie. En wat als het apparaat kapotgaat?"
+
+Collega C (bezorgd):
+"Ik vraag me af of dit niet ten koste gaat van het persoonlijk contact. Nu kom ik langs om te helpen met medicatie, dan praat ik ook even."
+
+Collega D (praktisch):
+"Wie gaat dit allemaal vullen en instellen? En wat als een cliënt het alarm niet hoort?"
+
+De teamleider vraagt jullie om mee te denken over de implementatie.
+
+4. Vragen bij de casus
+Beantwoord de volgende vragen:
+
+Vraag 1: Voordelen en nadelen
+Noem 3 voordelen en 3 nadelen van de slimme medicijndispenser voor:
+a) De cliënten
+b) Het zorgteam
+
+Vraag 2: Geschikte cliënten
+Voor welk type cliënt zou dit hulpmiddel geschikt zijn? En voor wie juist niet? Bedenk concrete criteria.
+
+Vraag 3: De zorgen van collega C
+Collega C maakt zich zorgen over het verlies van persoonlijk contact. Hoe zou je dit kunnen ondervangen?
+
+Vraag 4: Implementatieplan
+De teamleider vraagt om een voorstel voor de implementatie. Beschrijf in 5 stappen hoe jullie dit zouden aanpakken.
+
+Vraag 5: Evaluatie
+Hoe zou je na 3 maanden evalueren of de medicijndispenser een succes is? Welke informatie zou je verzamelen?
+
+5. Aanvullende informatie
+De organisatie geeft de volgende informatie:
+
+Kosten:
+- Aanschaf dispenser: €150 per stuk
+- Maandelijkse abonnementskosten (app + monitoring): €15
+- Instructie door leverancier: gratis bij aanschaf
+
+Technische eisen:
+- Cliënt moet WiFi hebben (of mobiel signaal)
+- Dispenser moet wekelijks gevuld worden
+- Batterij gaat ongeveer 2 weken mee
+
+Ervaringen elders:
+Een collega-organisatie gebruikt de dispenser al een jaar. Zij melden:
+- 80% van de cliënten is tevreden
+- Aantal vergeten medicaties daalde met 60%
+- Bij 15% van de cliënten bleek het niet te werken (te complex, te veel weerstand)
+- Vullen kost gemiddeld 10 minuten per week per cliënt
+
+6. Observatiepunten voor de docent
+Bij bespreking of rollenspel let je op:
+[ ] Student weegt verschillende perspectieven af
+[ ] Student benoemt zowel kansen als risico's
+[ ] Student denkt aan de positie van de cliënt
+[ ] Student komt met praktische, haalbare voorstellen
+[ ] Student kan omgaan met weerstand of kritiek van collega's
+[ ] Student toont begrip voor het implementatieproces
+
+7. Nabespreking
+Discussievragen:
+- Welke argumenten vonden jullie het zwaarst wegen?
+- Hoe ga je om met collega's die tegen innovatie zijn?
+- Wat zou jij doen als een cliënt het hulpmiddel niet wil?
+- Hoe past deze casus bij werkproces B1-K3-W1 (innoveren van zorg)?
+
+Verdieping:
+- Welke andere zorgtechnologieën ken je uit de praktijk?
+- Wat zijn algemene succesfactoren voor het invoeren van nieuwe hulpmiddelen?
+
+8. Modelantwoorden (voor docent)
+Vraag 2 - Criteria geschikte cliënt:
+Geschikt: zelfstandig wonend, vergeetachtig maar cognitief in staat instructies te volgen, regelmatige medicatie-inname nodig, open voor technologie
+Niet geschikt: ernstige dementie, zeer beperkt gehoor (alarm), veel wisselende medicatie, sterke weerstand
+
+Vraag 4 - Implementatiestappen:
+1. Selecteer 3-5 geschikte cliënten voor pilot (met hun toestemming)
+2. Train teamleden in gebruik en vullen
+3. Start met pilot van 4 weken, met extra controlebezoeken
+4. Verzamel feedback van cliënten en team
+5. Evalueer en besluit over uitrol naar meer cliënten

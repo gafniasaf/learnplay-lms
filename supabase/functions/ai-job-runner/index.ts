@@ -11,6 +11,19 @@ interface JobRequestBody {
   queue?: "course" | "agent" | "any";
 }
 
+function parseIntEnv(key: string, fallback: number, min: number, max: number): number {
+  const raw = Deno.env.get(key);
+  const parsed = raw ? Number.parseInt(raw, 10) : NaN;
+  const value = Number.isFinite(parsed) ? parsed : fallback;
+  return Math.min(Math.max(value, min), max);
+}
+
+function computeBackoffMs(attempt: number, baseMs: number, maxMs: number): number {
+  const safeAttempt = Number.isFinite(attempt) ? Math.max(1, Math.floor(attempt)) : 1;
+  const raw = baseMs * Math.pow(2, safeAttempt - 1);
+  return Math.min(raw, maxMs);
+}
+
 function isRecord(v: unknown): v is Record<string, unknown> {
   return !!v && typeof v === "object" && !Array.isArray(v);
 }
@@ -25,6 +38,14 @@ function isYieldResult(result: unknown): result is {
   if (!isRecord(result)) return false;
   return (result as any).yield === true;
 }
+
+// Long-running job types that should be handled by queue-pump (Fly.io) instead of Edge Functions.
+// Edge Functions have a 60s timeout which is insufficient for these jobs.
+const LONG_RUNNING_JOB_TYPES = [
+  "generate_multi_week_plan",
+  "book_generate_full",
+  "book_generate_chapter",
+];
 
 serve(async (req: Request): Promise<Response> => {
   if (req.method === "OPTIONS") {
@@ -213,7 +234,7 @@ serve(async (req: Request): Promise<Response> => {
       // Atomically claim the target job only if it is queued.
       const { data: claimed, error: claimErr } = await admin
         .from("ai_agent_jobs")
-        .update({ status: "processing", started_at: nowIso, last_heartbeat: nowIso })
+        .update({ status: "processing", started_at: nowIso, last_heartbeat: nowIso, next_attempt_at: null })
         .eq("id", targetJobId)
         .eq("status", "queued")
         .select("*")
@@ -272,6 +293,27 @@ serve(async (req: Request): Promise<Response> => {
 
     const jobId = String(agentJob.id);
     const jobType = String(agentJob.job_type || "");
+
+    // Skip long-running jobs - release back to queue for queue-pump (Fly.io) to handle.
+    // Edge Functions have a 60s timeout which is insufficient for these job types.
+    if (LONG_RUNNING_JOB_TYPES.includes(jobType)) {
+      try {
+        await admin
+          .from("ai_agent_jobs")
+          .update({
+            status: "queued",
+            started_at: null,
+            last_heartbeat: null,
+          })
+          .eq("id", jobId);
+      } catch {
+        // best-effort - if release fails, reconciler will eventually handle it
+      }
+      return new Response(JSON.stringify({ ok: true, processed: false, message: `Skipped long-running job type: ${jobType}`, skippedJobId: jobId }), {
+        status: 200,
+        headers: stdHeaders(req, { "Content-Type": "application/json", "X-Request-Id": requestId }),
+      });
+    }
     const jobOrgId = String(agentJob.organization_id || "");
     const payload = (agentJob.payload && typeof agentJob.payload === "object") ? agentJob.payload : {};
     const ctx = { requestId, jobId, jobType };
@@ -374,6 +416,7 @@ serve(async (req: Request): Promise<Response> => {
               started_at: null,
               completed_at: null,
               last_heartbeat: null,
+              next_attempt_at: null,
               // Push to the back of the queue to avoid starvation.
               created_at: nowIso,
             })
@@ -418,6 +461,14 @@ serve(async (req: Request): Promise<Response> => {
             status: "failed",
             error: msg,
             completed_at: new Date().toISOString(),
+            next_attempt_at: (() => {
+              const baseBackoffMs = parseIntEnv("AGENT_JOB_RETRY_BASE_MS", 30_000, 1_000, 60 * 60 * 1000);
+              const maxBackoffMs = parseIntEnv("AGENT_JOB_RETRY_MAX_MS", 10 * 60_000, 5_000, 24 * 60 * 60 * 1000);
+              const retryCount = typeof agentJob?.retry_count === "number" ? agentJob.retry_count : 0;
+              const attempt = retryCount + 1;
+              const backoffMs = computeBackoffMs(attempt, baseBackoffMs, maxBackoffMs);
+              return new Date(Date.now() + backoffMs).toISOString();
+            })(),
           })
           .eq("id", jobId);
       } catch {

@@ -44,6 +44,13 @@ export interface LLMProvider {
   }): Promise<{ ok: true; text: string; metrics: LLMCallMetrics } | { ok: false; error: string; metrics: LLMCallMetrics }>;
 }
 
+function parseIntEnv(key: string, fallback: number, min: number, max: number): number {
+  const raw = Deno.env.get(key);
+  const parsed = raw ? Number.parseInt(raw, 10) : NaN;
+  const value = Number.isFinite(parsed) ? parsed : fallback;
+  return Math.min(Math.max(value, min), max);
+}
+
 function pickProvider(): AIProvider {
   const explicit = (Deno.env.get('AI_PROVIDER') || '').toLowerCase();
   if (explicit === 'anthropic' || explicit === 'openai' || explicit === 'azure_openai') return explicit as AIProvider;
@@ -53,6 +60,12 @@ function pickProvider(): AIProvider {
 }
 
 const PROVIDER = pickProvider();
+const PROVIDER_STATE: Record<AIProvider, { failures: number; lastFailureAt: number }> = {
+  anthropic: { failures: 0, lastFailureAt: 0 },
+  openai: { failures: 0, lastFailureAt: 0 },
+  azure_openai: { failures: 0, lastFailureAt: 0 },
+  none: { failures: 0, lastFailureAt: 0 },
+};
 
 export function getProvider(): AIProvider {
   return PROVIDER;
@@ -71,6 +84,91 @@ export function getModel(): string {
   }
 }
 
+function getModelFor(provider: AIProvider): string {
+  switch (provider) {
+    case 'anthropic':
+      return Deno.env.get('ANTHROPIC_MODEL') || 'claude-sonnet-4-5';
+    case 'openai':
+      return Deno.env.get('OPENAI_COURSE_MODEL') || Deno.env.get('OPENAI_CHAT_MODEL') || 'gpt-5.1-mini';
+    case 'azure_openai':
+      return Deno.env.get('AZURE_OPENAI_DEPLOYMENT') || 'gpt-5.1';
+    default:
+      return 'none';
+  }
+}
+
+function parseProviderList(raw: string): AIProvider[] {
+  return raw
+    .split(',')
+    .map((p) => p.trim().toLowerCase())
+    .filter(Boolean)
+    .map((p) => (p === 'anthropic' || p === 'openai' || p === 'azure_openai' ? (p as AIProvider) : 'none'))
+    .filter((p) => p !== 'none');
+}
+
+function isProviderConfigured(provider: AIProvider): boolean {
+  if (provider === 'anthropic') return !!Deno.env.get('ANTHROPIC_API_KEY');
+  if (provider === 'openai') return !!Deno.env.get('OPENAI_API_KEY');
+  if (provider === 'azure_openai') return !!Deno.env.get('AZURE_OPENAI_ENDPOINT') && !!Deno.env.get('AZURE_OPENAI_API_KEY');
+  return false;
+}
+
+function getProviderOrder(): AIProvider[] {
+  const primary = PROVIDER;
+  const fallbackRaw = Deno.env.get('AI_PROVIDER_FALLBACKS') || '';
+  const fallbacks = parseProviderList(fallbackRaw);
+  const order = [primary, ...fallbacks];
+  const unique: AIProvider[] = [];
+  for (const p of order) {
+    if (!unique.includes(p)) unique.push(p);
+  }
+  if (!unique.length || unique[0] === 'none') {
+    const available: AIProvider[] = [];
+    if (isProviderConfigured('anthropic')) available.push('anthropic');
+    if (isProviderConfigured('openai')) available.push('openai');
+    if (isProviderConfigured('azure_openai')) available.push('azure_openai');
+    return available;
+  }
+  return unique.filter((p) => isProviderConfigured(p));
+}
+
+function isRetryableError(message: string): boolean {
+  const s = String(message || '').toLowerCase();
+  return (
+    s.includes('timeout') ||
+    s.includes('timed out') ||
+    s.includes('rate limit') ||
+    s.includes('429') ||
+    s.includes('502') ||
+    s.includes('503') ||
+    s.includes('overloaded') ||
+    s.includes('temporarily')
+  );
+}
+
+function shouldSkipProvider(provider: AIProvider): boolean {
+  const threshold = parseIntEnv('AI_CIRCUIT_BREAKER_THRESHOLD', 3, 1, 20);
+  const cooldownMs = parseIntEnv('AI_CIRCUIT_BREAKER_COOLDOWN_MS', 120_000, 5_000, 60 * 60 * 1000);
+  const state = PROVIDER_STATE[provider];
+  if (!state) return false;
+  if (state.failures < threshold) return false;
+  return Date.now() - state.lastFailureAt < cooldownMs;
+}
+
+function recordFailure(provider: AIProvider): void {
+  const state = PROVIDER_STATE[provider];
+  if (!state) return;
+  state.failures += 1;
+  state.lastFailureAt = Date.now();
+}
+
+function recordSuccess(provider: AIProvider): void {
+  const state = PROVIDER_STATE[provider];
+  if (!state) return;
+  state.failures = 0;
+  state.lastFailureAt = 0;
+}
+
 async function fetchWithTimeout(input: RequestInfo | URL, init: RequestInit, ms: number): Promise<Response> {
   const ctrl = new AbortController();
   const t = setTimeout(() => ctrl.abort(), ms);
@@ -81,7 +179,8 @@ async function fetchWithTimeout(input: RequestInfo | URL, init: RequestInit, ms:
   }
 }
 
-export async function generateJson(
+async function callProviderGenerateJson(
+  provider: AIProvider,
   opts: {
     system: string;
     prompt: string;
@@ -91,18 +190,16 @@ export async function generateJson(
     timeoutMs?: number;
     prefillJson?: boolean;
   }
-): Promise<{ ok: true; text: string; metrics?: LLMCallMetrics } | { ok: false; error: string; metrics?: LLMCallMetrics } > {
+): Promise<{ ok: true; text: string; metrics?: LLMCallMetrics } | { ok: false; error: string; metrics?: LLMCallMetrics }> {
   const { system, prompt, temperature = 0.3, maxTokens = 3600, stopSequences, timeoutMs = 110000, prefillJson = true } = opts;
-
-  if (PROVIDER === 'none') return { ok: false, error: 'no_provider' };
-
+  const model = getModelFor(provider);
   const startTime = Date.now();
-  let attempts = 1;
+  const attempts = 1;
 
   try {
-    if (PROVIDER === 'anthropic') {
+    if (provider === 'anthropic') {
       const body = {
-        model: getModel(),
+        model,
         max_tokens: maxTokens,
         temperature,
         system,
@@ -132,7 +229,7 @@ export async function generateJson(
       );
       if (!resp.ok) {
         const latency_ms = Date.now() - startTime;
-        return { ok: false, error: await resp.text(), metrics: { provider: 'anthropic', model: getModel(), latency_ms, attempts, success: false } };
+        return { ok: false, error: await resp.text(), metrics: { provider, model, latency_ms, attempts, success: false } };
       }
       const data = await resp.json();
       let text = (Array.isArray(data?.content) ? data.content : [])
@@ -140,9 +237,6 @@ export async function generateJson(
         .map((b: any) => b.text)
         .join('\n');
 
-      // Anthropic "prefill" trick: we seeded the assistant with '{' as the last message.
-      // The model often continues from that prefix WITHOUT re-emitting it in the response,
-      // so we must re-add it to produce valid JSON.
       if (prefillJson) {
         const trimmedStart = text.trimStart();
         if (trimmedStart && !trimmedStart.startsWith('{')) {
@@ -153,11 +247,11 @@ export async function generateJson(
       }
       const latency_ms = Date.now() - startTime;
       const tokens = data?.usage?.input_tokens + data?.usage?.output_tokens;
-      if (!text?.trim()) return { ok: false, error: 'empty', metrics: { provider: 'anthropic', model: getModel(), tokens, latency_ms, attempts, success: false } };
-      return { ok: true, text, metrics: { provider: 'anthropic', model: getModel(), tokens, latency_ms, attempts, success: true } };
+      if (!text?.trim()) return { ok: false, error: 'empty', metrics: { provider, model, tokens, latency_ms, attempts, success: false } };
+      return { ok: true, text, metrics: { provider, model, tokens, latency_ms, attempts, success: true } };
     }
 
-    if (PROVIDER === 'openai') {
+    if (provider === 'openai') {
       const resp = await fetchWithTimeout(
         'https://api.openai.com/v1/chat/completions',
         {
@@ -167,7 +261,7 @@ export async function generateJson(
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            model: getModel(),
+            model,
             messages: [
               { role: 'system', content: system },
               { role: 'user', content: prompt },
@@ -182,21 +276,20 @@ export async function generateJson(
       );
       if (!resp.ok) {
         const latency_ms = Date.now() - startTime;
-        return { ok: false, error: await resp.text(), metrics: { provider: 'openai', model: getModel(), latency_ms, attempts, success: false } };
+        return { ok: false, error: await resp.text(), metrics: { provider, model, latency_ms, attempts, success: false } };
       }
       const data = await resp.json();
       const text = data?.choices?.[0]?.message?.content;
       const latency_ms = Date.now() - startTime;
       const tokens = data?.usage?.prompt_tokens + data?.usage?.completion_tokens;
-      if (!text?.trim()) return { ok: false, error: 'empty', metrics: { provider: 'openai', model: getModel(), tokens, latency_ms, attempts, success: false } };
-      return { ok: true, text, metrics: { provider: 'openai', model: getModel(), tokens, latency_ms, attempts, success: true } };
+      if (!text?.trim()) return { ok: false, error: 'empty', metrics: { provider, model, tokens, latency_ms, attempts, success: false } };
+      return { ok: true, text, metrics: { provider, model, tokens, latency_ms, attempts, success: true } };
     }
 
-    if (PROVIDER === 'azure_openai') {
+    if (provider === 'azure_openai') {
       const base = Deno.env.get('AZURE_OPENAI_ENDPOINT');
-      const deployment = getModel();
       if (!base) return { ok: false, error: 'azure_endpoint_missing' };
-      const url = `${base}/openai/deployments/${deployment}/chat/completions?api-version=2024-06-01`;
+      const url = `${base}/openai/deployments/${model}/chat/completions?api-version=2024-06-01`;
       const resp = await fetchWithTimeout(
         url,
         {
@@ -220,20 +313,191 @@ export async function generateJson(
       );
       if (!resp.ok) {
         const latency_ms = Date.now() - startTime;
-        return { ok: false, error: await resp.text(), metrics: { provider: 'azure_openai', model: getModel(), latency_ms, attempts, success: false } };
+        return { ok: false, error: await resp.text(), metrics: { provider, model, latency_ms, attempts, success: false } };
       }
       const data = await resp.json();
       const text = data?.choices?.[0]?.message?.content;
       const latency_ms = Date.now() - startTime;
       const tokens = data?.usage?.prompt_tokens + data?.usage?.completion_tokens;
-      if (!text?.trim()) return { ok: false, error: 'empty', metrics: { provider: 'azure_openai', model: getModel(), tokens, latency_ms, attempts, success: false } };
-      return { ok: true, text, metrics: { provider: 'azure_openai', model: getModel(), tokens, latency_ms, attempts, success: true } };
+      if (!text?.trim()) return { ok: false, error: 'empty', metrics: { provider, model, tokens, latency_ms, attempts, success: false } };
+      return { ok: true, text, metrics: { provider, model, tokens, latency_ms, attempts, success: true } };
     }
 
     return { ok: false, error: 'unsupported_provider' };
   } catch (e: any) {
     const latency_ms = Date.now() - startTime;
-    return { ok: false, error: e?.message || String(e), metrics: { provider: PROVIDER, model: getModel(), latency_ms, attempts, success: false, error: e?.message || String(e) } };
+    return { ok: false, error: e?.message || String(e), metrics: { provider, model, latency_ms, attempts, success: false, error: e?.message || String(e) } };
+  }
+}
+
+export async function generateJson(
+  opts: {
+    system: string;
+    prompt: string;
+    maxTokens?: number;
+    temperature?: number;
+    stopSequences?: string[];
+    timeoutMs?: number;
+    prefillJson?: boolean;
+  }
+): Promise<{ ok: true; text: string; metrics?: LLMCallMetrics } | { ok: false; error: string; metrics?: LLMCallMetrics } > {
+  const { system, prompt, temperature = 0.3, maxTokens = 3600, stopSequences, timeoutMs = 110000, prefillJson = true } = opts;
+
+  const providers = getProviderOrder();
+  if (!providers.length) return { ok: false, error: 'no_provider' };
+
+  let attempts = 0;
+  let lastError = 'generation_failed';
+  let lastMetrics: LLMCallMetrics | undefined;
+  for (const provider of providers) {
+    if (shouldSkipProvider(provider)) continue;
+    attempts += 1;
+    const res = await callProviderGenerateJson(provider, {
+      system,
+      prompt,
+      maxTokens,
+      temperature,
+      stopSequences,
+      timeoutMs,
+      prefillJson,
+    });
+    if (res.ok) {
+      recordSuccess(provider);
+      if (res.metrics) res.metrics.attempts = attempts;
+      return res;
+    }
+    lastError = res.error || 'generation_failed';
+    if (res.metrics) lastMetrics = res.metrics;
+    recordFailure(provider);
+    if (!isRetryableError(lastError)) {
+      continue;
+    }
+  }
+
+  return { ok: false, error: lastError, metrics: lastMetrics };
+}
+
+async function callProviderChat(
+  provider: AIProvider,
+  opts: {
+    system?: string;
+    messages: ChatMessage[];
+    maxTokens?: number;
+    temperature?: number;
+    stopSequences?: string[];
+    timeoutMs?: number;
+  }
+): Promise<{ ok: true; text: string; metrics?: LLMCallMetrics } | { ok: false; error: string; metrics?: LLMCallMetrics }> {
+  const { system = '', messages, temperature = 0.7, maxTokens = 1200, stopSequences, timeoutMs = 60000 } = opts;
+  const model = getModelFor(provider);
+  const startTime = Date.now();
+  const attempts = 1;
+
+  try {
+    if (provider === 'anthropic') {
+      const converted = messages.map(m => ({ role: m.role, content: [{ type: 'text', text: m.content }] }));
+      const resp = await fetchWithTimeout(
+        'https://api.anthropic.com/v1/messages',
+        {
+          method: 'POST',
+          headers: {
+            'x-api-key': Deno.env.get('ANTHROPIC_API_KEY')!,
+            'content-type': 'application/json',
+            'anthropic-version': '2023-06-01',
+          },
+          body: JSON.stringify({ model, max_tokens: maxTokens, temperature, system, messages: converted, stop_sequences: stopSequences }),
+        },
+        timeoutMs,
+      );
+      if (!resp.ok) {
+        const latency_ms = Date.now() - startTime;
+        return { ok: false, error: await resp.text(), metrics: { provider, model, latency_ms, attempts, success: false } };
+      }
+      const data = await resp.json();
+      const text = (Array.isArray(data?.content) ? data.content : [])
+        .filter((b: any) => b?.type === 'text' && b?.text)
+        .map((b: any) => b.text)
+        .join('\n\n');
+      if (!text?.trim()) {
+        const latency_ms = Date.now() - startTime;
+        return { ok: false, error: 'empty', metrics: { provider, model, latency_ms, attempts, success: false } };
+      }
+      const latency_ms = Date.now() - startTime;
+      return { ok: true, text, metrics: { provider, model, latency_ms, attempts, success: true } };
+    }
+
+    if (provider === 'openai') {
+      const resp = await fetchWithTimeout(
+        'https://api.openai.com/v1/chat/completions',
+        {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${Deno.env.get('OPENAI_API_KEY')}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model,
+            messages: [system ? { role: 'system', content: system } : undefined, ...messages].filter(Boolean),
+            temperature,
+            max_tokens: maxTokens,
+            stop: stopSequences,
+          }),
+        },
+        timeoutMs,
+      );
+      if (!resp.ok) {
+        const latency_ms = Date.now() - startTime;
+        return { ok: false, error: await resp.text(), metrics: { provider, model, latency_ms, attempts, success: false } };
+      }
+      const data = await resp.json();
+      const text = data?.choices?.[0]?.message?.content;
+      if (!text?.trim()) {
+        const latency_ms = Date.now() - startTime;
+        return { ok: false, error: 'empty', metrics: { provider, model, latency_ms, attempts, success: false } };
+      }
+      const latency_ms = Date.now() - startTime;
+      return { ok: true, text, metrics: { provider, model, latency_ms, attempts, success: true } };
+    }
+
+    if (provider === 'azure_openai') {
+      const base = Deno.env.get('AZURE_OPENAI_ENDPOINT');
+      if (!base) return { ok: false, error: 'azure_endpoint_missing' };
+      const url = `${base}/openai/deployments/${model}/chat/completions?api-version=2024-06-01`;
+      const resp = await fetchWithTimeout(
+        url,
+        {
+          method: 'POST',
+          headers: {
+            'api-key': Deno.env.get('AZURE_OPENAI_API_KEY')!,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            messages: [system ? { role: 'system', content: system } : undefined, ...messages].filter(Boolean),
+            temperature,
+            max_tokens: maxTokens,
+            stop: stopSequences,
+          }),
+        },
+        timeoutMs,
+      );
+      if (!resp.ok) {
+        const latency_ms = Date.now() - startTime;
+        return { ok: false, error: await resp.text(), metrics: { provider, model, latency_ms, attempts, success: false } };
+      }
+      const data = await resp.json();
+      const text = data?.choices?.[0]?.message?.content;
+      if (!text?.trim()) {
+        const latency_ms = Date.now() - startTime;
+        return { ok: false, error: 'empty', metrics: { provider, model, latency_ms, attempts, success: false } };
+      }
+      const latency_ms = Date.now() - startTime;
+      return { ok: true, text, metrics: { provider, model, latency_ms, attempts, success: true } };
+    }
+
+    return { ok: false, error: 'unsupported_provider' };
+  } catch (e: any) {
+    const latency_ms = Date.now() - startTime;
+    return { ok: false, error: e?.message || String(e), metrics: { provider, model, latency_ms, attempts, success: false, error: e?.message || String(e) } };
   }
 }
 
@@ -248,91 +512,30 @@ export async function chat(
   }
 ): Promise<{ ok: true; text: string } | { ok: false; error: string } > {
   const { system = '', messages, temperature = 0.7, maxTokens = 1200, stopSequences, timeoutMs = 60000 } = opts;
-  if (PROVIDER === 'none') return { ok: false, error: 'no_provider' };
+  const providers = getProviderOrder();
+  if (!providers.length) return { ok: false, error: 'no_provider' };
 
-  try {
-    if (PROVIDER === 'anthropic') {
-      const converted = messages.map(m => ({ role: m.role, content: [{ type: 'text', text: m.content }] }));
-      const resp = await fetchWithTimeout(
-        'https://api.anthropic.com/v1/messages',
-        {
-          method: 'POST',
-          headers: {
-            'x-api-key': Deno.env.get('ANTHROPIC_API_KEY')!,
-            'content-type': 'application/json',
-            'anthropic-version': '2023-06-01',
-          },
-          body: JSON.stringify({ model: getModel(), max_tokens: maxTokens, temperature, system, messages: converted, stop_sequences: stopSequences }),
-        },
-        timeoutMs,
-      );
-      if (!resp.ok) return { ok: false, error: await resp.text() };
-      const data = await resp.json();
-      const text = (Array.isArray(data?.content) ? data.content : [])
-        .filter((b: any) => b?.type === 'text' && b?.text)
-        .map((b: any) => b.text)
-        .join('\n\n');
-      if (!text?.trim()) return { ok: false, error: 'empty' };
-      return { ok: true, text };
+  let lastError = 'generation_failed';
+  for (const provider of providers) {
+    if (shouldSkipProvider(provider)) continue;
+    const res = await callProviderChat(provider, {
+      system,
+      messages,
+      temperature,
+      maxTokens,
+      stopSequences,
+      timeoutMs,
+    });
+    if (res.ok) {
+      recordSuccess(provider);
+      return { ok: true, text: res.text };
     }
-
-    if (PROVIDER === 'openai') {
-      const resp = await fetchWithTimeout(
-        'https://api.openai.com/v1/chat/completions',
-        {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${Deno.env.get('OPENAI_API_KEY')}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            model: getModel(),
-            messages: [system ? { role: 'system', content: system } : undefined, ...messages].filter(Boolean),
-            temperature,
-            max_tokens: maxTokens,
-            stop: stopSequences,
-          }),
-        },
-        timeoutMs,
-      );
-      if (!resp.ok) return { ok: false, error: await resp.text() };
-      const data = await resp.json();
-      const text = data?.choices?.[0]?.message?.content;
-      if (!text?.trim()) return { ok: false, error: 'empty' };
-      return { ok: true, text };
+    lastError = res.error || 'generation_failed';
+    recordFailure(provider);
+    if (!isRetryableError(lastError)) {
+      continue;
     }
-
-    if (PROVIDER === 'azure_openai') {
-      const base = Deno.env.get('AZURE_OPENAI_ENDPOINT');
-      const deployment = getModel();
-      if (!base) return { ok: false, error: 'azure_endpoint_missing' };
-      const url = `${base}/openai/deployments/${deployment}/chat/completions?api-version=2024-06-01`;
-      const resp = await fetchWithTimeout(
-        url,
-        {
-          method: 'POST',
-          headers: {
-            'api-key': Deno.env.get('AZURE_OPENAI_API_KEY')!,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            messages: [system ? { role: 'system', content: system } : undefined, ...messages].filter(Boolean),
-            temperature,
-            max_tokens: maxTokens,
-            stop: stopSequences,
-          }),
-        },
-        timeoutMs,
-      );
-      if (!resp.ok) return { ok: false, error: await resp.text() };
-      const data = await resp.json();
-      const text = data?.choices?.[0]?.message?.content;
-      if (!text?.trim()) return { ok: false, error: 'empty' };
-      return { ok: true, text };
-    }
-
-    return { ok: false, error: 'unsupported_provider' };
-  } catch (e: any) {
-    return { ok: false, error: e?.message || String(e) };
   }
+
+  return { ok: false, error: lastError };
 }

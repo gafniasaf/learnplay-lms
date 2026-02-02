@@ -453,6 +453,12 @@ export const JobPayloadSchema = z.discriminatedUnion('jobType', [
   }),
 
   z.object({
+    jobType: z.literal('generate_multi_week_plan'),
+    learnerprofileId: z.string().uuid().optional(), 
+    payload: z.record(z.any()).optional().describe("Input for generate_multi_week_plan")
+  }),
+
+  z.object({
     jobType: z.literal('curated_arabic_variant_build'),
     learnerprofileId: z.string().uuid().optional(), 
     payload: z.record(z.any()).optional().describe("Input for curated_arabic_variant_build")
@@ -1156,6 +1162,7 @@ export const JOB_MODES = {
   "material_analyze": "async",
   "lessonkit_build": "async",
   "generate_lesson_plan": "async",
+  "generate_multi_week_plan": "async",
   "curated_arabic_variant_build": "async",
   "standards_ingest": "async",
   "standards_map": "async",

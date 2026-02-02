@@ -15,6 +15,7 @@ type TeacherChatOkResponse = Extract<TeacherChatAssistantResponse, { ok: true }>
 type Citation = TeacherChatOkResponse["citations"][number];
 type Recommendation = NonNullable<TeacherChatOkResponse["recommendations"]>[number];
 type LessonPlan = NonNullable<TeacherChatOkResponse["lessonPlan"]>;
+type MultiWeekPlan = NonNullable<TeacherChatOkResponse["multiWeekPlan"]>;
 type KdCheck = NonNullable<TeacherChatOkResponse["kdCheck"]>;
 
 type ChatMessage = {
@@ -24,6 +25,7 @@ type ChatMessage = {
   citations?: Citation[];
   recommendations?: Recommendation[];
   lessonPlan?: LessonPlan;
+  multiWeekPlan?: MultiWeekPlan;
   kdCheck?: KdCheck;
   requestId?: string;
   jobId?: string;
@@ -51,6 +53,57 @@ function safeText(v: unknown): string {
   return typeof v === "string" ? v : "";
 }
 
+function asStringArray(v: unknown, max = 50): string[] {
+  if (!v) return [];
+  if (Array.isArray(v)) {
+    return v
+      .map((x) => (typeof x === "string" ? x : String(x ?? "")))
+      .map((s) => s.trim())
+      .filter((s) => s)
+      .slice(0, max);
+  }
+  if (typeof v === "string") {
+    const s = v.trim();
+    if (!s) return [];
+    // Best-effort: sometimes LLMs return JSON-ish strings.
+    if (s.startsWith("[") && s.endsWith("]")) {
+      try {
+        const parsed = JSON.parse(s);
+        return asStringArray(parsed, max);
+      } catch {
+        // fall through
+      }
+    }
+    // Split common human formats.
+    if (s.includes("\n")) {
+      return s
+        .split(/\r?\n/g)
+        .map((p) => p.trim())
+        .filter((p) => p)
+        .slice(0, max);
+    }
+    if (s.includes(",")) {
+      return s
+        .split(",")
+        .map((p) => p.trim())
+        .filter((p) => p)
+        .slice(0, max);
+    }
+    return [s].slice(0, max);
+  }
+  return [];
+}
+
+function safeJoin(v: unknown, sep = ", "): string {
+  return asStringArray(v).join(sep);
+}
+
+function isMultiWeekPlan(value: unknown): value is MultiWeekPlan {
+  if (!value || typeof value !== "object") return false;
+  const plan = value as MultiWeekPlan;
+  return Array.isArray(plan.overview) && Array.isArray(plan.weeks) && !!plan.meta;
+}
+
 function recommendationKey(r: Recommendation): string {
   const source = r.source || "material";
   const baseId = String((r as any).material_id || r.id || r.title || "rec");
@@ -75,6 +128,14 @@ function recommendationCourseId(r: Recommendation): string {
   if (!raw) return "";
   if (raw.toLowerCase().startsWith("mes-")) return raw;
   if (/^\d+$/.test(raw)) return `mes-${raw}`;
+  return "";
+}
+
+function weekThemeClass(theme: string | undefined): string {
+  const t = String(theme || "").toLowerCase();
+  if (t.includes("samenwerking")) return styles.weekHeaderThemeSamenwerking;
+  if (t.includes("gespreksvaard")) return styles.weekHeaderThemeGespreksvaardigheden;
+  if (t.includes("professioneel") || t.includes("reflectie")) return styles.weekHeaderThemeProfessioneel;
   return "";
 }
 
@@ -222,6 +283,8 @@ export default function TeacherChat() {
           const lastEvent = events.length ? events[events.length - 1] : null;
           const progress = typeof lastEvent?.progress === "number" ? lastEvent.progress : null;
           const progressMsg = typeof lastEvent?.message === "string" ? lastEvent.message : "";
+          const jobResult = job.result || {};
+          const partialPlan = isMultiWeekPlan((jobResult as any)?.partialPlan) ? (jobResult as any).partialPlan as MultiWeekPlan : null;
 
           const progressText =
             progressMsg && progress !== null
@@ -241,14 +304,30 @@ export default function TeacherChat() {
             );
           }
 
+          if (partialPlan && status !== "done") {
+            setMessages((prev) =>
+              prev.map((m) => {
+                if (m.id !== assistantMsgId) return m;
+                return {
+                  ...m,
+                  multiWeekPlan: partialPlan,
+                };
+              }),
+            );
+            setActiveTab("lesplan");
+          }
+
           if (status === "done") {
             const result: any = job.result || {};
             if (result?.ok !== true) {
               throw new Error(typeof result?.error === "string" ? result.error : "Job completed without a valid result");
             }
 
+            const multiWeekPlan: MultiWeekPlan | undefined = isMultiWeekPlan(result?.multiWeekPlan)
+              ? (result.multiWeekPlan as MultiWeekPlan)
+              : undefined;
             const lessonPlan: LessonPlan | undefined =
-              result.lessonPlan && typeof result.lessonPlan === "object" ? (result.lessonPlan as LessonPlan) : undefined;
+              !multiWeekPlan && result.lessonPlan && typeof result.lessonPlan === "object" ? (result.lessonPlan as LessonPlan) : undefined;
             const kdFromResult: KdCheck | undefined =
               result.kdCheck && typeof result.kdCheck === "object" ? (result.kdCheck as KdCheck) : undefined;
             const kdCheck =
@@ -263,12 +342,13 @@ export default function TeacherChat() {
                   citations: Array.isArray(result.citations) ? result.citations : m.citations,
                   recommendations: Array.isArray(result.recommendations) ? result.recommendations : m.recommendations,
                   lessonPlan,
+                  multiWeekPlan,
                   kdCheck,
                 };
               }),
             );
 
-            if (lessonPlan) {
+            if (lessonPlan || multiWeekPlan) {
               setSavedLessonKit(null);
               setActiveTab("lesplan");
             }
@@ -336,9 +416,25 @@ export default function TeacherChat() {
   }, [messages]);
 
   const currentLessonPlan = latestAssistant?.lessonPlan ?? null;
+  const currentMultiWeekPlan = latestAssistant?.multiWeekPlan ?? null;
   const currentKdCheck = latestAssistant?.kdCheck ?? null;
   const currentRecommendations = Array.isArray(latestAssistant?.recommendations) ? latestAssistant?.recommendations ?? [] : [];
   const currentCitations = Array.isArray(latestAssistant?.citations) ? latestAssistant?.citations ?? [] : [];
+
+  const weekPlanByNumber = useMemo(() => {
+    const map = new Map<number, MultiWeekPlan["weeks"][number]>();
+    if (!currentMultiWeekPlan?.weeks) return map;
+    for (const week of currentMultiWeekPlan.weeks) {
+      if (typeof week?.week === "number") {
+        map.set(week.week, week);
+      }
+    }
+    return map;
+  }, [currentMultiWeekPlan]);
+
+  const multiWeekIncomplete =
+    !!currentMultiWeekPlan &&
+    currentMultiWeekPlan.weeks.length < (currentMultiWeekPlan.overview?.length ?? 0);
 
   const selectedMaterial = useMemo(
     () => materials.find((m) => String(m.id || "") === String(materialId || "")) || null,
@@ -397,8 +493,12 @@ export default function TeacherChat() {
       }
 
       const okResp = resp as TeacherChatOkResponse;
+      const multiWeekPlan: MultiWeekPlan | undefined =
+        okResp.multiWeekPlan && typeof okResp.multiWeekPlan === "object"
+          ? (okResp.multiWeekPlan as MultiWeekPlan)
+          : undefined;
       const lessonPlan: LessonPlan | undefined =
-        okResp.lessonPlan && typeof okResp.lessonPlan === "object"
+        !multiWeekPlan && okResp.lessonPlan && typeof okResp.lessonPlan === "object"
           ? (okResp.lessonPlan as LessonPlan)
           : undefined;
       const kdFromApi: KdCheck | undefined =
@@ -415,13 +515,14 @@ export default function TeacherChat() {
         citations: Array.isArray(okResp.citations) ? okResp.citations : [],
         recommendations: Array.isArray(okResp.recommendations) ? okResp.recommendations : [],
         lessonPlan,
+        multiWeekPlan,
         kdCheck,
         requestId: safeText(okResp.requestId) || undefined,
         jobId: safeText((okResp as any).jobId) || undefined,
       };
 
       // New lesson plan → require a fresh “Gebruiken” action to persist it.
-      if (assistantMsg.lessonPlan) {
+      if (assistantMsg.lessonPlan || assistantMsg.multiWeekPlan) {
         setSavedLessonKit(null);
         setActiveTab("lesplan");
       }
@@ -500,17 +601,19 @@ export default function TeacherChat() {
   );
 
   const onUseLessonPlan = useCallback(async () => {
-    if (!currentLessonPlan || savingLessonKit) return;
+    if ((!currentLessonPlan && !currentMultiWeekPlan) || savingLessonKit) return;
     setSavingLessonKit(true);
     try {
       const lastUser = [...messages].reverse().find((m) => m.role === "user")?.content ?? "";
-      const title = [
-        "Lesplan",
-        currentLessonPlan.kdAlignment.code ? `(${currentLessonPlan.kdAlignment.code})` : null,
-        safeText(currentLessonPlan.quickStart?.oneLiner) ? `— ${safeText(currentLessonPlan.quickStart.oneLiner)}` : null,
-      ]
-        .filter(Boolean)
-        .join(" ")
+      const title = (currentMultiWeekPlan?.meta?.title?.trim()
+        ? currentMultiWeekPlan.meta.title.trim()
+        : [
+          "Lesplan",
+          currentLessonPlan?.kdAlignment?.code ? `(${currentLessonPlan.kdAlignment.code})` : null,
+          safeText(currentLessonPlan?.quickStart?.oneLiner) ? `— ${safeText(currentLessonPlan?.quickStart?.oneLiner)}` : null,
+        ]
+          .filter(Boolean)
+          .join(" "))
         .slice(0, 140);
 
       const values: Record<string, unknown> = {
@@ -520,12 +623,13 @@ export default function TeacherChat() {
         material_id: scope !== "mes" ? (materialId || undefined) : undefined,
         source_course_id: currentCitations?.[0]?.course_id ? String(currentCitations[0].course_id) : undefined,
         kit: {
-          kind: "teachergpt_lesson_plan_v1",
+          kind: currentMultiWeekPlan ? "teachergpt_multi_week_plan_v1" : "teachergpt_lesson_plan_v1",
           createdAt: new Date().toISOString(),
           scope,
           query: lastUser,
           selectedMaterialId: materialId || undefined,
-          lessonPlan: currentLessonPlan,
+          lessonPlan: currentLessonPlan ?? null,
+          multiWeekPlan: currentMultiWeekPlan ?? null,
           recommendations: currentRecommendations,
           citations: currentCitations,
         },
@@ -550,7 +654,7 @@ export default function TeacherChat() {
     } finally {
       setSavingLessonKit(false);
     }
-  }, [currentCitations, currentKdCheck, currentLessonPlan, currentRecommendations, materialId, mcp, messages, savingLessonKit, scope]);
+  }, [currentCitations, currentKdCheck, currentLessonPlan, currentMultiWeekPlan, currentRecommendations, materialId, mcp, messages, savingLessonKit, scope]);
 
   const onSaveKdCheck = useCallback(async () => {
     if (!currentKdCheck || savingKdCheck) return;
@@ -904,7 +1008,256 @@ export default function TeacherChat() {
 
           <div className={styles.panel}>
             {activeTab === "lesplan" ? (
-              currentLessonPlan ? (
+              currentMultiWeekPlan ? (
+                <>
+                  <div className={styles.card}>
+                    <h3 className={styles.cardTitle}>
+                      {safeText(currentMultiWeekPlan.meta?.title) || "Lessenserie"}
+                    </h3>
+                    <div className={styles.muted}>
+                      {(currentMultiWeekPlan.meta?.duration?.weeks ?? currentMultiWeekPlan.overview?.length ?? 0)} weken ·{" "}
+                      {(currentMultiWeekPlan.meta?.duration?.hoursPerWeek ?? 0)} uur/week · Niveau{" "}
+                      {String(currentMultiWeekPlan.meta?.level || "n3").toUpperCase()}
+                    </div>
+
+                    <div className={styles.row} style={{ marginTop: 10 }}>
+                      <button
+                        type="button"
+                        className={styles.btn}
+                        onClick={() => window.print()}
+                        data-cta-id="cta-teachergpt-chat-lesplan-print"
+                        data-action="click"
+                      >
+                        Print
+                      </button>
+                      <button
+                        type="button"
+                        className={[styles.btn, styles.btnPrimary].join(" ")}
+                        onClick={() => void onUseLessonPlan()}
+                        disabled={savingLessonKit || multiWeekIncomplete}
+                        data-cta-id="cta-teachergpt-chat-lesplan-use"
+                        data-action="click"
+                      >
+                        {savingLessonKit ? <Loader2 className="h-4 w-4 animate-spin" /> : "Gebruiken"}
+                      </button>
+                    </div>
+
+                    {savedLessonKit ? (
+                      <div className={styles.muted} style={{ marginTop: 8 }}>
+                        Opgeslagen als Lesson Kit: <strong>{savedLessonKit.id}</strong>
+                      </div>
+                    ) : null}
+                    {multiWeekIncomplete ? (
+                      <div className={styles.muted} style={{ marginTop: 6 }}>
+                        Lesplan wordt nog aangevuld. Je kunt het opslaan zodra alle weken klaar zijn.
+                      </div>
+                    ) : null}
+                  </div>
+
+                  <div className={styles.card}>
+                    <h4 className={styles.sectionHeading}>Quick Start</h4>
+                    <div className={styles.quickStartGrid}>
+                      <div className={styles.quickStartCard}>
+                        <div className={styles.quickStartLabel}>Doelstelling</div>
+                        <div>{safeText(currentMultiWeekPlan.quickStart?.objective)}</div>
+                      </div>
+                      <div className={styles.quickStartCard}>
+                        <div className={styles.quickStartLabel}>Kernthema's</div>
+                        <ul className={styles.quickStartList}>
+                            {asStringArray(currentMultiWeekPlan.quickStart?.themes).map((t, idx) => (
+                              <li key={`${t}-${idx}`}>{t}</li>
+                            ))}
+                        </ul>
+                      </div>
+                      <div className={styles.quickStartCard}>
+                        <div className={styles.quickStartLabel}>KD dekking</div>
+                        <div className={styles.kdTagRow}>
+                            {asStringArray(currentMultiWeekPlan.meta?.kdCoverage).map((kd, idx) => (
+                              <span key={`${kd}-${idx}`} className={styles.kdTag}>
+                                {kd}
+                              </span>
+                            ))}
+                        </div>
+                      </div>
+                      <div className={styles.quickStartCard}>
+                        <div className={styles.quickStartLabel}>Structuur per les</div>
+                        <div className={styles.timeAllocation}>
+                          <div className={styles.timeBlock}>
+                            <div className={styles.timeBlockLabel}>Start</div>
+                            <div className={styles.timeBlockValue}>{currentMultiWeekPlan.quickStart?.structure?.start ?? 0} min</div>
+                          </div>
+                          <div className={styles.timeBlock}>
+                            <div className={styles.timeBlockLabel}>Kern</div>
+                            <div className={styles.timeBlockValue}>{currentMultiWeekPlan.quickStart?.structure?.kern ?? 0} min</div>
+                          </div>
+                          <div className={styles.timeBlock}>
+                            <div className={styles.timeBlockLabel}>Afsluiting</div>
+                            <div className={styles.timeBlockValue}>{currentMultiWeekPlan.quickStart?.structure?.afsluiting ?? 0} min</div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className={styles.card}>
+                    <h4 className={styles.sectionHeading}>
+                      Overzicht {currentMultiWeekPlan.overview?.length ?? 0} weken
+                    </h4>
+                    <div className={styles.overviewTableWrap}>
+                      <table className={styles.overviewTable}>
+                        <thead>
+                          <tr>
+                            <th>Week</th>
+                            <th>Thema</th>
+                            <th>KD</th>
+                            <th>Kernbegrippen</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {(currentMultiWeekPlan.overview ?? []).map((row, idx) => (
+                            <tr key={`${row.week}-${idx}`}>
+                              <td>{row.week}</td>
+                              <td>{row.title}</td>
+                              <td>{row.kdCode}</td>
+                              <td>{safeJoin((row as any)?.keyConcepts) || "—"}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+
+                  <div className={styles.weekGrid}>
+                    {(currentMultiWeekPlan.overview ?? []).map((week) => {
+                      const weekPlan = weekPlanByNumber.get(week.week);
+                      const headerClass = [styles.weekHeader, weekThemeClass(week.theme)].join(" ").trim();
+                      return (
+                        <div key={`week-${week.week}`} className={styles.weekCard}>
+                          <div className={headerClass}>
+                            <div>
+                              <div className={styles.weekNumber}>Week {week.week}</div>
+                              <div className={styles.weekTitle}>{week.title}</div>
+                            </div>
+                            <div className={styles.weekKd}>{week.kdCode}</div>
+                          </div>
+                          <div className={styles.weekContent}>
+                            {weekPlan ? (
+                              <>
+                                <div className={styles.weekOneliner}>
+                                  {safeText(weekPlan.oneLiner) || safeText(week.title)}
+                                </div>
+
+                                <div className={styles.timeAllocation}>
+                                  <div className={styles.timeBlock}>
+                                    <div className={styles.timeBlockLabel}>Start</div>
+                                    <div className={styles.timeBlockValue}>{weekPlan.timeAllocation?.start ?? 0} min</div>
+                                  </div>
+                                  <div className={styles.timeBlock}>
+                                    <div className={styles.timeBlockLabel}>Kern</div>
+                                    <div className={styles.timeBlockValue}>{weekPlan.timeAllocation?.kern ?? 0} min</div>
+                                  </div>
+                                  <div className={styles.timeBlock}>
+                                    <div className={styles.timeBlockLabel}>Afsluiting</div>
+                                    <div className={styles.timeBlockValue}>{weekPlan.timeAllocation?.afsluiting ?? 0} min</div>
+                                  </div>
+                                </div>
+
+                                <div className={styles.keyConcepts}>
+                                  {asStringArray(
+                                    Array.isArray((weekPlan as any)?.keyConcepts) && (weekPlan as any).keyConcepts.length
+                                      ? (weekPlan as any).keyConcepts
+                                      : (week as any)?.keyConcepts,
+                                  ).map((k, idx) => (
+                                    <span key={`${k}-${idx}`} className={styles.conceptTag}>
+                                      {k}
+                                    </span>
+                                  ))}
+                                </div>
+
+                                <div className={styles.weekSection}>
+                                  <div className={styles.sectionHeading}>Docentenscript</div>
+                                  <div className={styles.teacherScript}>
+                                    {(Array.isArray((weekPlan as any)?.teacherScript) ? (weekPlan as any).teacherScript : []).map(
+                                      (s: any, idx: number) => (
+                                      <div
+                                        key={`${s.timeRange}-${idx}`}
+                                        className={[
+                                          styles.scriptItem,
+                                          s.phase === "start"
+                                            ? styles.scriptItemStart
+                                            : s.phase === "afsluiting"
+                                              ? styles.scriptItemAfsluiting
+                                              : styles.scriptItemKern,
+                                        ].join(" ")}
+                                      >
+                                        <div className={styles.scriptTime}>{s.timeRange || s.phase}</div>
+                                        <div className={styles.scriptAction}>{s.action}</div>
+                                        <div className={styles.scriptContent}>{s.content}</div>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+
+                                <div className={styles.weekSection}>
+                                  <div className={styles.sectionHeading}>Materialen</div>
+                                  {asStringArray((weekPlan as any)?.materials).length ? (
+                                    <ul className={styles.materialList}>
+                                      {asStringArray((weekPlan as any)?.materials).map((m, idx) => (
+                                        <li key={`${m}-${idx}`}>{m}</li>
+                                      ))}
+                                    </ul>
+                                  ) : (
+                                    <div className={styles.muted}>Geen materialen gevonden.</div>
+                                  )}
+                                </div>
+
+                                <div className={styles.weekSection}>
+                                  <div className={styles.sectionHeading}>Discussievragen</div>
+                                  {(Array.isArray((weekPlan as any)?.discussionQuestions) ? (weekPlan as any).discussionQuestions : []).map(
+                                    (q: any, idx: number) => (
+                                    <div key={`${q.question}-${idx}`} className={styles.discussionItem}>
+                                      <strong>{safeText(q?.question) || String(q?.question || "")}</strong>
+                                      <div className={styles.muted}>
+                                        Verwachte antwoorden: {safeJoin(q?.expectedAnswers) || "—"}
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+
+                                {weekPlan.groupWork ? (
+                                  <div className={styles.weekSection}>
+                                    <div className={styles.sectionHeading}>Groepsopdracht</div>
+                                    <div className={styles.groupWork}>
+                                      <strong>{safeText(weekPlan.groupWork?.title)}</strong>
+                                      <div className={styles.muted}>
+                                        Duur: {weekPlan.groupWork?.durationMinutes ?? 0} min
+                                      </div>
+                                      <ol>
+                                        {asStringArray((weekPlan as any)?.groupWork?.steps).map((step, idx) => (
+                                          <li key={`${step}-${idx}`}>{step}</li>
+                                        ))}
+                                      </ol>
+                                    </div>
+                                  </div>
+                                ) : null}
+
+                                {weekPlan.practiceAssignment ? (
+                                  <div className={styles.weekSection}>
+                                    <div className={styles.sectionHeading}>Praktijkopdracht</div>
+                                    <div>{weekPlan.practiceAssignment}</div>
+                                  </div>
+                                ) : null}
+                              </>
+                            ) : (
+                              <div className={styles.muted}>Week {week.week} wordt nog gegenereerd…</div>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </>
+              ) : currentLessonPlan ? (
                 <>
                   <div className={styles.card}>
                     <h3 className={styles.cardTitle}>
@@ -972,7 +1325,7 @@ export default function TeacherChat() {
                           </div>
                         </div>
                         <div className={styles.row} style={{ flexWrap: "wrap" }}>
-                          {(currentLessonPlan.quickStart?.keyConcepts ?? []).map((k, idx) => (
+                          {asStringArray(currentLessonPlan.quickStart?.keyConcepts).map((k, idx) => (
                             <span key={`${k}-${idx}`} className={styles.badge}>
                               {k}
                             </span>
@@ -995,7 +1348,8 @@ export default function TeacherChat() {
                     </button>
                     {openSections.teacherScript ? (
                       <div className={styles.sectionBody}>
-                        {(currentLessonPlan.teacherScript ?? []).map((s, idx) => (
+                        {(Array.isArray((currentLessonPlan as any)?.teacherScript) ? (currentLessonPlan as any).teacherScript : []).map(
+                          (s: any, idx: number) => (
                           <div key={`${s.time}-${idx}`} className={styles.card} style={{ marginBottom: 0 }}>
                             <div className={styles.muted}>
                               {s.time} · {s.phase} · {s.action}
@@ -1020,13 +1374,16 @@ export default function TeacherChat() {
                     </button>
                     {openSections.discussion ? (
                       <div className={styles.sectionBody}>
-                        {(currentLessonPlan.discussionQuestions ?? []).map((q, idx) => (
+                        {(Array.isArray((currentLessonPlan as any)?.discussionQuestions)
+                          ? (currentLessonPlan as any).discussionQuestions
+                          : []
+                        ).map((q: any, idx: number) => (
                           <div key={`${q.question}-${idx}`} className={styles.card} style={{ marginBottom: 0 }}>
                             <div>
-                              <strong>{q.question}</strong>
+                              <strong>{safeText(q?.question) || String(q?.question || "")}</strong>
                             </div>
                             <div className={styles.muted} style={{ marginTop: 6 }}>
-                              Verwachte antwoorden: {(q.expectedAnswers ?? []).join(", ")}
+                              Verwachte antwoorden: {safeJoin(q?.expectedAnswers) || "—"}
                             </div>
                           </div>
                         ))}
@@ -1055,7 +1412,7 @@ export default function TeacherChat() {
                             </div>
                           </div>
                           <ol style={{ margin: 0, paddingLeft: 18 }}>
-                            {(currentLessonPlan.groupWork?.steps ?? []).map((step, idx) => (
+                            {asStringArray((currentLessonPlan as any)?.groupWork?.steps).map((step, idx) => (
                               <li key={`${step}-${idx}`}>{step}</li>
                             ))}
                           </ol>
@@ -1137,7 +1494,7 @@ export default function TeacherChat() {
                           {sourceLabel}
                           {r.file_name ? ` · ${r.file_name}` : ""}
                           {r.content_type ? ` · ${r.content_type}` : ""}
-                          {Number.isFinite(r.score) ? ` · score ${(r.score as number).toFixed(2)}` : ""}
+                          {Number.isFinite(r.score) ? ` · score ${Math.round(r.score as number)}%` : ""}
                         </div>
                         {snippet ? <div style={{ marginTop: 10 }}>{snippet}</div> : null}
                         <div className={styles.row} style={{ marginTop: 10 }}>

@@ -1964,6 +1964,11 @@ export class BookGenerateSection implements JobExecutor {
       typeof draftAttemptRaw === "number" && Number.isFinite(draftAttemptRaw)
         ? Math.max(0, Math.floor(draftAttemptRaw))
         : 0;
+    const rescueAttemptRaw = (p as any).__rescueAttempt;
+    const rescueAttempt =
+      typeof rescueAttemptRaw === "number" && Number.isFinite(rescueAttemptRaw)
+        ? Math.max(0, Math.floor(rescueAttemptRaw))
+        : 0;
     const prevDraftFailureReasonRaw = (p as any).__draftFailureReason;
     const prevDraftFailureReason =
       typeof prevDraftFailureReasonRaw === "string" && prevDraftFailureReasonRaw.trim()
@@ -2682,6 +2687,40 @@ export class BookGenerateSection implements JobExecutor {
       const MAX_DRAFT_ATTEMPTS = 4;
       const nextAttempt = draftAttempt + 1;
       if (nextAttempt > MAX_DRAFT_ATTEMPTS) {
+        const MAX_RESCUE_ATTEMPTS = 2;
+        const nextRescue = rescueAttempt + 1;
+        if (nextRescue <= MAX_RESCUE_ATTEMPTS) {
+          const nextTokens = Math.max(1200, Math.floor(sectionMaxTokens * 0.7));
+          await emitAgentJobEvent(jobId, "generating", 26, "Rescue mode: relaxing constraints and retrying", {
+            chapterIndex,
+            sectionIndex,
+            rescueAttempt: nextRescue,
+            prevLayoutProfile: layoutProfile,
+            prevMicroheadingDensity: microheadingDensity,
+            prevMaxTokens: sectionMaxTokens,
+            nextMaxTokens: nextTokens,
+          }).catch(() => {});
+
+          const mustFill = parseSparseUnderTitle(reason);
+          const mustBox = parseMissingBoxTarget(reason);
+          return {
+            yield: true,
+            message: "Rescue mode: retrying with relaxed constraints",
+            payloadPatch: {
+              __rescueAttempt: nextRescue,
+              __draftAttempt: 0,
+              __draftFailureReason: reason.slice(0, 800),
+              __llmTimeoutAttempt: 0,
+              sectionMaxTokens: nextTokens,
+              layoutProfile: "sparse",
+              microheadingDensity: "low",
+              ...(mustFill ? { __draftMustFillTitle: mustFill } : {}),
+              ...(mustBox ? { __draftMustBoxKind: mustBox.kind, __draftMustBoxTitle: mustBox.title } : {}),
+              ...(forceSplitLockedOutlineForRetry ? { splitLockedOutline: true } : {}),
+            },
+          };
+        }
+
         throw new Error(`BLOCKED: Draft did not meet requirements after ${MAX_DRAFT_ATTEMPTS} attempts: ${reason.slice(0, 800)}`);
       }
 

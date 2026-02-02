@@ -1,0 +1,98 @@
+Oefening: SBAR-overdracht
+
+1. Leerdoel
+Na deze oefening kun je:
+- De SBAR-structuur toepassen bij telefonische overdracht
+- Relevante informatie beknopt samenvatten
+- Een duidelijke aanbeveling formuleren
+- Rustig en professioneel communiceren
+
+2. Benodigdheden
+- Scenario-kaarten
+- SBAR-format (zie onder)
+- Telefoon of doen alsof
+- Pen en papier
+- Timer
+
+3. Instructie
+Je gaat oefenen met SBAR-overdrachten. Werk in tweetallen.
+
+Stap 1: Lees het scenario
+Eén persoon is de verzorgende die belt, de ander is de verpleegkundige of arts.
+
+Stap 2: Bereid de SBAR voor (2 minuten)
+Schrijf kort op wat je gaat zeggen.
+
+Stap 3: Voer het gesprek (2-3 minuten)
+De verzorgende belt en geeft de SBAR-overdracht. De ontvanger mag doorvragen.
+
+Stap 4: Feedback
+Wat ging goed? Wat kan beter?
+
+Stap 5: Wissel van rol
+Doe hetzelfde met een ander scenario.
+
+4. SBAR-format
+
+S - SITUATIE
+Wie ben je?
+Over wie gaat het?
+Wat is er aan de hand?
+
+"Goedemiddag, met [naam], verzorgende van afdeling [X].
+Ik bel over [naam zorgvrager], kamer [X].
+[Kort wat er aan de hand is]."
+
+B - BACKGROUND
+Relevante voorgeschiedenis
+Actuele diagnose
+Recente veranderingen
+
+"De achtergrond is: [leeftijd, diagnose, relevante info].
+[Wat is er de afgelopen tijd gebeurd]."
+
+A - ASSESSMENT
+Wat denk jij dat er aan de hand is?
+Wat heb je gemeten/gezien?
+
+"Mijn beoordeling is:
+[Wat heb je gemeten: temperatuur, bloeddruk, etc.]
+[Wat zie/hoor je]
+Ik denk dat..."
+
+R - RECOMMENDATION
+Wat vraag je?
+Wat stel je voor?
+
+"Mijn vraag is: [wat wil je dat de ander doet]
+Is het mogelijk om [concreet voorstel]?"
+
+5. Scenario's
+
+Scenario 1: Koorts
+Mevrouw Bakker (76 jaar, diabetes, hartfalen) heeft sinds vanmiddag 38.8°C koorts. Ze is suffer dan normaal en heeft minder gegeten. Bloeddruk 100/60 (normaal 130/80), pols 98.
+
+Scenario 2: Onrust
+Meneer Van der Berg (84 jaar, dementie) is sinds gisteren zeer onrustig. Hij loopt de hele dag heen en weer, eet niet en heeft vannacht niet geslapen. Geen koorts. Je vraagt je af of er iets lichamelijks speelt.
+
+Scenario 3: Val
+Mevrouw Jansen (80 jaar, osteoporose) is gevallen in de badkamer. Ze klaagt over pijn aan haar pols en kan haar hand niet goed bewegen. Er is geen hoofdletsel, ze was niet bewusteloos.
+
+Scenario 4: Medicatie
+Meneer De Wit (72 jaar, COPD) vraagt of zijn puffer een andere kleur heeft. Als je checkt, zie je dat de apotheek een ander merk heeft geleverd. De werkzame stof is hetzelfde, maar meneer is in de war.
+
+6. Beoordelingspunten
+De docent/begeleider let op:
+[ ] Student volgt SBAR-structuur
+[ ] Informatie is relevant en beknopt
+[ ] Assessment is onderbouwd
+[ ] Recommendation is duidelijk
+[ ] Student spreekt rustig en professioneel
+[ ] Student kan omgaan met doorvragen
+
+7. Nabespreking
+Bespreek in de groep:
+- Wat vond je het moeilijkst aan SBAR?
+- Hoe voorkom je dat je te veel of te weinig informatie geeft?
+- Wat doe je als de arts het niet eens is met je beoordeling?
+- In welke situaties gebruik je SBAR in de praktijk?

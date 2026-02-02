@@ -1,0 +1,1149 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>e-Xpert SAM Workshop | Je lesplan in 1 klik</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    :root {
+      --primary: #2563eb;
+      --primary-dark: #1d4ed8;
+      --secondary: #10b981;
+      --accent: #f59e0b;
+      --dark: #1e293b;
+      --light: #f8fafc;
+      --gray: #64748b;
+      --gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+
+    @font-face {
+      font-family: 'Inter';
+      src: url('https://fonts.gstatic.com/s/inter/v13/UcCO3FwrK3iLTeHuS_fvQtMwCp50KnMw2boKoduKmMEVuLyfAZ9hiJ-Ek-_EeA.woff2') format('woff2');
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--dark);
+      color: var(--light);
+      overflow: hidden;
+      height: 100vh;
+    }
+
+    /* Presentation container */
+    .presentation {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+    }
+
+    /* Individual slides */
+    .slide {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: 60px 80px;
+      opacity: 0;
+      visibility: hidden;
+      transform: translateX(100px);
+      transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .slide.active {
+      opacity: 1;
+      visibility: visible;
+      transform: translateX(0);
+    }
+
+    .slide.prev {
+      transform: translateX(-100px);
+    }
+
+    /* Slide backgrounds */
+    .slide--title {
+      background: var(--gradient);
+    }
+
+    .slide--content {
+      background: linear-gradient(180deg, #0f172a 0%, #1e293b 100%);
+    }
+
+    .slide--demo {
+      background: linear-gradient(135deg, #0f172a 0%, #1e3a5f 100%);
+    }
+
+    .slide--question {
+      background: linear-gradient(135deg, #1e3a8a 0%, #3730a3 100%);
+    }
+
+    .slide--end {
+      background: var(--gradient);
+    }
+
+    /* Typography */
+    h1 {
+      font-size: 3.5rem;
+      font-weight: 800;
+      margin-bottom: 1rem;
+      text-align: center;
+      line-height: 1.1;
+    }
+
+    h2 {
+      font-size: 2.5rem;
+      font-weight: 700;
+      margin-bottom: 2rem;
+      color: var(--light);
+    }
+
+    h3 {
+      font-size: 1.5rem;
+      font-weight: 600;
+      color: var(--accent);
+      margin-bottom: 1rem;
+    }
+
+    p {
+      font-size: 1.25rem;
+      line-height: 1.6;
+      color: rgba(255,255,255,0.9);
+      max-width: 800px;
+      text-align: center;
+    }
+
+    .subtitle {
+      font-size: 1.5rem;
+      color: rgba(255,255,255,0.8);
+      margin-bottom: 2rem;
+    }
+
+    /* Badges */
+    .badge-container {
+      display: flex;
+      gap: 1rem;
+      margin-top: 2rem;
+    }
+
+    .badge {
+      padding: 0.5rem 1rem;
+      background: rgba(255,255,255,0.15);
+      border-radius: 9999px;
+      font-size: 0.875rem;
+      backdrop-filter: blur(10px);
+    }
+
+    /* Cards */
+    .card-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 1.5rem;
+      width: 100%;
+      max-width: 1200px;
+    }
+
+    .card {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 16px;
+      padding: 1.5rem;
+      backdrop-filter: blur(10px);
+      transition: all 0.3s ease;
+    }
+
+    .card:hover {
+      background: rgba(255,255,255,0.1);
+      transform: translateY(-4px);
+      border-color: var(--primary);
+    }
+
+    .card-icon {
+      font-size: 2rem;
+      margin-bottom: 0.75rem;
+    }
+
+    .card h4 {
+      font-size: 1.125rem;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+    }
+
+    .card p {
+      font-size: 0.95rem;
+      text-align: left;
+      color: rgba(255,255,255,0.7);
+    }
+
+    /* Lists */
+    .feature-list {
+      list-style: none;
+      text-align: left;
+      max-width: 700px;
+    }
+
+    .feature-list li {
+      display: flex;
+      align-items: flex-start;
+      gap: 1rem;
+      padding: 1rem 0;
+      font-size: 1.25rem;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+
+    .feature-list li:last-child {
+      border-bottom: none;
+    }
+
+    .feature-list .icon {
+      font-size: 1.5rem;
+      flex-shrink: 0;
+    }
+
+    /* Comparison */
+    .comparison {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 2rem;
+      width: 100%;
+      max-width: 1100px;
+    }
+
+    .comparison-box {
+      background: rgba(255,255,255,0.05);
+      border-radius: 16px;
+      padding: 2rem;
+      border: 2px solid transparent;
+    }
+
+    .comparison-box--bad {
+      border-color: #ef4444;
+    }
+
+    .comparison-box--good {
+      border-color: #10b981;
+    }
+
+    .comparison-box h4 {
+      font-size: 1rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 1.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .comparison-box--bad h4 {
+      color: #ef4444;
+    }
+
+    .comparison-box--good h4 {
+      color: #10b981;
+    }
+
+    .comparison-box .prompt {
+      background: rgba(0,0,0,0.3);
+      border-radius: 8px;
+      padding: 1.25rem;
+      font-family: 'Monaco', 'Consolas', monospace;
+      font-size: 0.95rem;
+      line-height: 1.6;
+      color: rgba(255,255,255,0.9);
+    }
+
+    /* Formula box */
+    .formula-box {
+      background: linear-gradient(135deg, rgba(37,99,235,0.2) 0%, rgba(139,92,246,0.2) 100%);
+      border: 2px solid var(--primary);
+      border-radius: 16px;
+      padding: 2.5rem;
+      max-width: 800px;
+      text-align: center;
+    }
+
+    .formula-box code {
+      display: block;
+      font-family: 'Monaco', 'Consolas', monospace;
+      font-size: 1.1rem;
+      line-height: 2;
+      color: var(--light);
+      text-align: left;
+    }
+
+    .formula-box .highlight {
+      color: var(--accent);
+      font-weight: 600;
+    }
+
+    /* Lesson plan */
+    .lesson-plan {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 16px;
+      padding: 2rem;
+      max-width: 900px;
+      width: 100%;
+    }
+
+    .lesson-plan-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1.5rem;
+      padding-bottom: 1rem;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+
+    .lesson-plan-header h3 {
+      margin: 0;
+      color: var(--light);
+    }
+
+    .lesson-plan-meta {
+      display: flex;
+      gap: 1rem;
+    }
+
+    .lesson-plan-meta span {
+      background: rgba(255,255,255,0.1);
+      padding: 0.25rem 0.75rem;
+      border-radius: 6px;
+      font-size: 0.875rem;
+    }
+
+    .phase {
+      background: rgba(255,255,255,0.02);
+      border-left: 3px solid var(--primary);
+      padding: 1rem 1.5rem;
+      margin-bottom: 0.75rem;
+      border-radius: 0 8px 8px 0;
+    }
+
+    .phase:nth-child(2) { border-left-color: var(--secondary); }
+    .phase:nth-child(3) { border-left-color: var(--accent); }
+    .phase:nth-child(4) { border-left-color: #8b5cf6; }
+
+    .phase h4 {
+      font-size: 1rem;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+      color: var(--light);
+    }
+
+    .phase ul {
+      list-style: none;
+      font-size: 0.9rem;
+      color: rgba(255,255,255,0.7);
+    }
+
+    .phase ul li {
+      padding: 0.25rem 0;
+      padding-left: 1.25rem;
+      position: relative;
+    }
+
+    .phase ul li::before {
+      content: "•";
+      position: absolute;
+      left: 0;
+      color: rgba(255,255,255,0.4);
+    }
+
+    /* KD Check */
+    .kd-check {
+      background: rgba(16, 185, 129, 0.1);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      border-radius: 16px;
+      padding: 2rem;
+      max-width: 700px;
+    }
+
+    .kd-check-item {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      padding: 0.75rem 0;
+      font-size: 1.1rem;
+    }
+
+    .kd-check-item .check {
+      color: #10b981;
+      font-size: 1.25rem;
+    }
+
+    /* Takeaways */
+    .takeaway-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 1.5rem;
+      max-width: 900px;
+    }
+
+    .takeaway {
+      background: rgba(255,255,255,0.05);
+      border-radius: 12px;
+      padding: 1.5rem;
+      display: flex;
+      gap: 1rem;
+      align-items: flex-start;
+    }
+
+    .takeaway-number {
+      background: var(--primary);
+      color: white;
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+
+    .takeaway h4 {
+      font-size: 1rem;
+      margin-bottom: 0.25rem;
+    }
+
+    .takeaway p {
+      font-size: 0.9rem;
+      text-align: left;
+      color: rgba(255,255,255,0.6);
+    }
+
+    /* Navigation */
+    .nav {
+      position: fixed;
+      bottom: 30px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      background: rgba(0,0,0,0.5);
+      padding: 0.75rem 1.5rem;
+      border-radius: 9999px;
+      backdrop-filter: blur(10px);
+      z-index: 100;
+    }
+
+    .nav-btn {
+      background: none;
+      border: none;
+      color: white;
+      font-size: 1.5rem;
+      cursor: pointer;
+      padding: 0.5rem;
+      opacity: 0.7;
+      transition: opacity 0.2s;
+    }
+
+    .nav-btn:hover {
+      opacity: 1;
+    }
+
+    .nav-btn:disabled {
+      opacity: 0.2;
+      cursor: not-allowed;
+    }
+
+    .slide-counter {
+      font-size: 0.875rem;
+      color: rgba(255,255,255,0.6);
+      min-width: 60px;
+      text-align: center;
+    }
+
+    /* Progress bar */
+    .progress {
+      position: fixed;
+      top: 0;
+      left: 0;
+      height: 4px;
+      background: var(--primary);
+      transition: width 0.3s ease;
+      z-index: 100;
+    }
+
+    /* Keyboard hint */
+    .keyboard-hint {
+      position: fixed;
+      bottom: 100px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 0.75rem;
+      color: rgba(255,255,255,0.3);
+    }
+
+    .keyboard-hint kbd {
+      background: rgba(255,255,255,0.1);
+      padding: 0.25rem 0.5rem;
+      border-radius: 4px;
+      margin: 0 0.25rem;
+    }
+
+    /* Animations */
+    @keyframes fadeInUp {
+      from {
+        opacity: 0;
+        transform: translateY(30px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .slide.active .animate {
+      animation: fadeInUp 0.6s ease forwards;
+    }
+
+    .slide.active .animate:nth-child(1) { animation-delay: 0.1s; }
+    .slide.active .animate:nth-child(2) { animation-delay: 0.2s; }
+    .slide.active .animate:nth-child(3) { animation-delay: 0.3s; }
+    .slide.active .animate:nth-child(4) { animation-delay: 0.4s; }
+    .slide.active .animate:nth-child(5) { animation-delay: 0.5s; }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .slide {
+        padding: 40px 24px;
+      }
+      h1 { font-size: 2rem; }
+      h2 { font-size: 1.75rem; }
+      .comparison { grid-template-columns: 1fr; }
+      .takeaway-grid { grid-template-columns: 1fr; }
+      .card-grid { grid-template-columns: 1fr; }
+    }
+
+    /* Interactive elements */
+    .vote-section {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+      width: 100%;
+      max-width: 700px;
+    }
+
+    .vote-option {
+      background: rgba(255,255,255,0.05);
+      border: 2px solid rgba(255,255,255,0.1);
+      border-radius: 12px;
+      padding: 1rem 1.5rem;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .vote-option:hover {
+      background: rgba(255,255,255,0.1);
+      border-color: var(--primary);
+    }
+
+    .vote-option.selected {
+      background: rgba(37,99,235,0.2);
+      border-color: var(--primary);
+    }
+
+    .vote-option .number {
+      background: rgba(255,255,255,0.1);
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
+    }
+
+    .vote-option.selected .number {
+      background: var(--primary);
+    }
+
+    .vote-option-content h4 {
+      font-size: 0.95rem;
+      margin-bottom: 0.25rem;
+    }
+
+    .vote-option-content p {
+      font-size: 0.8rem;
+      text-align: left;
+      color: rgba(255,255,255,0.5);
+    }
+
+    /* Question prompt */
+    .question-prompt {
+      font-size: 2rem;
+      font-weight: 600;
+      text-align: center;
+      max-width: 700px;
+      line-height: 1.4;
+    }
+
+    .discussion-starters {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      margin-top: 2rem;
+      justify-content: center;
+    }
+
+    .discussion-starter {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.1);
+      padding: 0.75rem 1.25rem;
+      border-radius: 9999px;
+      font-size: 0.95rem;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .discussion-starter:hover {
+      background: rgba(255,255,255,0.1);
+      border-color: var(--accent);
+    }
+
+    /* Timer */
+    .timer {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: rgba(0,0,0,0.5);
+      padding: 0.5rem 1rem;
+      border-radius: 8px;
+      font-size: 0.875rem;
+      display: none;
+      z-index: 100;
+    }
+
+    .timer.active {
+      display: block;
+    }
+
+    /* Fullscreen button */
+    .fullscreen-btn {
+      position: fixed;
+      top: 20px;
+      left: 20px;
+      background: rgba(0,0,0,0.5);
+      border: none;
+      color: white;
+      padding: 0.5rem 1rem;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 0.875rem;
+      z-index: 100;
+      transition: background 0.2s;
+    }
+
+    .fullscreen-btn:hover {
+      background: rgba(0,0,0,0.7);
+    }
+  </style>
+</head>
+<body>
+  <div class="progress" id="progress"></div>
+  
+  <button class="fullscreen-btn" onclick="toggleFullscreen()">⛶ Volledig scherm</button>
+
+  <div class="presentation" id="presentation">
+    
+    <!-- Slide 1: Title -->
+    <section class="slide slide--title active" data-slide="1">
+      <h1 class="animate" style="opacity:0">e-Xpert SAM</h1>
+      <p class="subtitle animate" style="opacity:0">Je lesplan in 1 klik</p>
+      <p class="animate" style="opacity:0">Klik op een onderwerp → ontvang een compleet KD-proof lesplan met docentenhandleiding</p>
+      <div class="badge-container animate" style="opacity:0">
+        <span class="badge">🎯 MBO-docenten VIG & Verpleegkunde</span>
+        <span class="badge">📊 Geen prompts nodig</span>
+        <span class="badge">⏱️ 60 minuten</span>
+      </div>
+    </section>
+
+    <!-- Slide 2: Problem -->
+    <section class="slide slide--content" data-slide="2">
+      <h2 class="animate" style="opacity:0">Herken je dit?</h2>
+      <div class="card-grid animate" style="opacity:0">
+        <div class="card">
+          <div class="card-icon">⏰</div>
+          <h4>"Ik heb geen tijd om alles uit te werken"</h4>
+          <p>Lesvoorbereiding kost uren die je niet hebt</p>
+        </div>
+        <div class="card">
+          <div class="card-icon">📋</div>
+          <h4>"Klopt mijn les wel met het nieuwe KD?"</h4>
+          <p>Het KD 2026 is complex en verandert veel</p>
+        </div>
+        <div class="card">
+          <div class="card-icon">🔄</div>
+          <h4>"Ik maak steeds hetzelfde soort lessen"</h4>
+          <p>Creativiteit kost energie die op is</p>
+        </div>
+        <div class="card">
+          <div class="card-icon">❓</div>
+          <h4>"AI klinkt interessant, maar waar begin ik?"</h4>
+          <p>ChatGPT geprobeerd, maar het resultaat was matig</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Slide 3: Solution -->
+    <section class="slide slide--content" data-slide="3">
+      <h2 class="animate" style="opacity:0">Wat als je dit kon doen?</h2>
+      <div class="animate" style="opacity:0; display: flex; align-items: center; gap: 2rem; margin: 2rem 0;">
+        <div style="text-align: center;">
+          <div style="font-size: 4rem; margin-bottom: 0.5rem;">👆</div>
+          <div style="font-weight: 600;">Klik op onderwerp</div>
+          <div style="font-size: 0.875rem; color: rgba(255,255,255,0.5);">1 klik</div>
+        </div>
+        <div style="font-size: 2rem; color: var(--primary);">→</div>
+        <div style="text-align: center;">
+          <div style="font-size: 4rem; margin-bottom: 0.5rem;">🤖</div>
+          <div style="font-weight: 600;">e-Xpert SAM</div>
+          <div style="font-size: 0.875rem; color: rgba(255,255,255,0.5);">5 seconden</div>
+        </div>
+        <div style="font-size: 2rem; color: var(--primary);">→</div>
+        <div style="text-align: center;">
+          <div style="font-size: 4rem; margin-bottom: 0.5rem;">📋</div>
+          <div style="font-weight: 600;">Compleet lesplan</div>
+          <div style="font-size: 0.875rem; color: rgba(255,255,255,0.5);">+ Docentenhandleiding</div>
+        </div>
+      </div>
+      <p class="animate" style="opacity:0; margin-top: 2rem;">Geen prompts schrijven — kies een suggestie en ontvang direct je lesplan</p>
+    </section>
+
+    <!-- Slide 4: What is SAM -->
+    <section class="slide slide--content" data-slide="4">
+      <h2 class="animate" style="opacity:0">e-Xpert SAM levert...</h2>
+      <ul class="feature-list animate" style="opacity:0">
+        <li>
+          <span class="icon">📋</span>
+          <span><strong>Quick Start</strong> — kernpunten in 1 minuut</span>
+        </li>
+        <li>
+          <span class="icon">📝</span>
+          <span><strong>Docentenscript</strong> — stap-voor-stap met tijdsindeling</span>
+        </li>
+        <li>
+          <span class="icon">💬</span>
+          <span><strong>Discussievragen</strong> — met verwachte antwoorden</span>
+        </li>
+        <li>
+          <span class="icon">👥</span>
+          <span><strong>Groepsopdracht</strong> — direct uitvoerbaar</span>
+        </li>
+        <li>
+          <span class="icon">✅</span>
+          <span><strong>KD-check</strong> — automatische verantwoording</span>
+        </li>
+        <li>
+          <span class="icon">📚</span>
+          <span><strong>Methodische uitwerking</strong> — ABCDE, SBAR, STARR, SMART</span>
+        </li>
+      </ul>
+    </section>
+
+    <!-- Slide 5: Suggestion chips -->
+    <section class="slide slide--content" data-slide="5">
+      <h2 class="animate" style="opacity:0">Klik op een suggestie-chip</h2>
+      <p class="animate" style="opacity:0; margin-bottom: 1.5rem;">In e-Xpert SAM zie je deze knoppen — 1 klik = compleet lesplan</p>
+      <div class="vote-section animate" style="opacity:0">
+        <div class="vote-option" onclick="selectOption(this)">
+          <span class="number">📋</span>
+          <div class="vote-option-content">
+            <h4>Zorgplan bijstellen</h4>
+            <p>Als de situatie verandert • B1-K1-W2 • SMART-doelen</p>
+          </div>
+        </div>
+        <div class="vote-option" onclick="selectOption(this)">
+          <span class="number">🩺</span>
+          <div class="vote-option-content">
+            <h4>Zorghandelingen uitvoeren</h4>
+            <p>Veilig en met eigen regie • B1-K1-W3 • Protocol bloeddruk</p>
+          </div>
+        </div>
+        <div class="vote-option" onclick="selectOption(this)">
+          <span class="number">🚨</span>
+          <div class="vote-option-content">
+            <h4>Noodsituaties herkennen</h4>
+            <p>ABCDE-methodiek • B1-K1-W5 • Uitgebreide theorie</p>
+          </div>
+        </div>
+        <div class="vote-option" onclick="selectOption(this)">
+          <span class="number">🤝</span>
+          <div class="vote-option-content">
+            <h4>Samenwerken in het team</h4>
+            <p>SBAR-communicatie • B1-K2-W2 • MDO rollenspel</p>
+          </div>
+        </div>
+        <div class="vote-option" onclick="selectOption(this)">
+          <span class="number">🎯</span>
+          <div class="vote-option-content">
+            <h4>Reflecteren op je werk</h4>
+            <p>STARR-methode • B1-K3-W2 • Feedback geven/ontvangen</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Slide 6: Old way vs New way -->
+    <section class="slide slide--content" data-slide="6">
+      <h2 class="animate" style="opacity:0">Geen prompts meer nodig</h2>
+      <div class="comparison animate" style="opacity:0">
+        <div class="comparison-box comparison-box--bad">
+          <h4>❌ ChatGPT / Oude manier</h4>
+          <div class="prompt">"Maak een lesplan van 90 minuten voor niveau 4 Verpleegkunde over het bijstellen van een zorgplan bij veranderde zorgvraag. Casus: oudere cliënt met progressieve dementie. Werkvormen: casusanalyse. KD: B1-K1-W2"<br><br>→ Veel typen<br>→ Resultaat wisselend<br>→ Geen KD-check</div>
+        </div>
+        <div class="comparison-box comparison-box--good">
+          <h4>✅ e-Xpert SAM</h4>
+          <div class="prompt" style="text-align: center; padding: 2rem;">
+            <div style="background: rgba(37,99,235,0.3); padding: 1rem 1.5rem; border-radius: 12px; display: inline-block; margin-bottom: 1rem;">
+              📋 Zorgplan bijstellen
+            </div>
+            <br><br>
+            → 1 klik<br>
+            → Altijd compleet lesplan<br>
+            → Automatische KD-verantwoording
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Slide 7: What you get -->
+    <section class="slide slide--content" data-slide="7">
+      <h2 class="animate" style="opacity:0">Wat krijg je bij elke klik?</h2>
+      <div class="card-grid animate" style="opacity:0">
+        <div class="card">
+          <div class="card-icon">⚡</div>
+          <h4>Quick Start</h4>
+          <p>Kernpunten van de les, tijdsindeling (Start/Kern/Afsluiting), kernbegrippen</p>
+        </div>
+        <div class="card">
+          <div class="card-icon">📝</div>
+          <h4>Docentenscript</h4>
+          <p>Stap-voor-stap instructies met exacte tijden en wat je zegt/doet</p>
+        </div>
+        <div class="card">
+          <div class="card-icon">💬</div>
+          <h4>Discussievragen</h4>
+          <p>Vragen om te stellen + verwachte antwoorden van studenten</p>
+        </div>
+        <div class="card">
+          <div class="card-icon">👥</div>
+          <h4>Groepsopdracht</h4>
+          <p>Rollenspelen, casussen, oefeningen — inclusief instructies</p>
+        </div>
+        <div class="card">
+          <div class="card-icon">📄</div>
+          <h4>"Bekijk volledig" knop</h4>
+          <p>Open een mooie printbare versie met alles erin + opslaan naar "Mijn lesplannen"</p>
+        </div>
+        <div class="card">
+          <div class="card-icon">📚</div>
+          <h4>Methodische uitwerking</h4>
+          <p>Volledige theorie: ABCDE, SBAR, STARR, SMART met voorbeelden</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Slide 8: Demo intro -->
+    <section class="slide slide--demo" data-slide="8">
+      <h2 class="animate" style="opacity:0">🎬 Live Demo</h2>
+      <p class="animate" style="opacity:0; margin-bottom: 2rem;">We klikken op deze suggestie-chip:</p>
+      <div class="formula-box animate" style="opacity:0; text-align: center;">
+        <div style="background: rgba(37,99,235,0.4); padding: 1.5rem 2.5rem; border-radius: 16px; display: inline-block; margin-bottom: 1.5rem;">
+          <span style="font-size: 2rem; margin-right: 0.75rem;">🤝</span>
+          <span style="font-size: 1.5rem; font-weight: 600;">Samenwerken in het team</span>
+          <div style="font-size: 0.9rem; color: rgba(255,255,255,0.7); margin-top: 0.5rem;">SBAR-communicatie • B1-K2-W2</div>
+        </div>
+        <p style="font-size: 1rem; color: rgba(255,255,255,0.8); margin-top: 1rem;">
+          Dit genereert een compleet lesplan over MDO en SBAR-overdracht<br>
+          met rollenspelen, feedbackrondes en methodische uitwerking
+        </p>
+      </div>
+    </section>
+
+    <!-- Slide 9: Demo result -->
+    <section class="slide slide--demo" data-slide="9">
+      <h2 class="animate" style="opacity:0">📋 Wat je krijgt (rechter paneel)</h2>
+      <div class="lesson-plan animate" style="opacity:0">
+        <div class="lesson-plan-header">
+          <h3>B1-K2-W2: Samenwerken in het team</h3>
+          <div class="lesson-plan-meta">
+            <span>⏱️ 50 min</span>
+            <span style="background: rgba(34,197,94,0.2); color: #22c55e;">✓ KD-check</span>
+            <span style="background: var(--primary); cursor: pointer;">📄 Bekijk volledig</span>
+          </div>
+        </div>
+        <div class="phase">
+          <h4>⚡ Quick Start</h4>
+          <ul>
+            <li>Kernbegrippen: SBAR, MDO, Rolverdeling, Rapportage</li>
+            <li>Start: 10 min | Kern: 30 min | Afsluiting: 10 min</li>
+          </ul>
+        </div>
+        <div class="phase">
+          <h4>📝 Docentenscript</h4>
+          <ul>
+            <li>[0-5 min] Activeer: "Met welke disciplines werk je samen?"</li>
+            <li>[5-10 min] Introduceer SBAR met template op bord</li>
+            <li>[10-25 min] Instructie S-B-A-R met voorbeelden</li>
+            <li>[25-40 min] Rollenspel MDO in groepen van 4</li>
+          </ul>
+        </div>
+        <div class="phase">
+          <h4>💬 Discussievragen + 👥 Groepsopdracht</h4>
+          <ul>
+            <li>Vraag: "Wanneer schakel je een arts in?" → Verwacht antwoord: ...</li>
+            <li>Opdracht: MDO over ontslag Mw. De Boer (15 min)</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- Slide 10: Bekijk volledig -->
+    <section class="slide slide--content" data-slide="10">
+      <h2 class="animate" style="opacity:0">📄 "Bekijk volledig" opent een nieuw tabblad</h2>
+      <div class="card-grid animate" style="opacity:0">
+        <div class="card">
+          <div class="card-icon">📑</div>
+          <h4>Inhoudsopgave</h4>
+          <p>Klikbare links naar elke sectie</p>
+        </div>
+        <div class="card">
+          <div class="card-icon">⚡</div>
+          <h4>Quick Start</h4>
+          <p>Tijdsblokken, kernbegrippen, lesopzet</p>
+        </div>
+        <div class="card">
+          <div class="card-icon">📝</div>
+          <h4>Volledig docentenscript</h4>
+          <p>Elke stap uitgeschreven met tijden</p>
+        </div>
+        <div class="card">
+          <div class="card-icon">📚</div>
+          <h4>Methodische uitwerking</h4>
+          <p>SBAR met alle letters uitgelegd, voorbeelden, tips</p>
+        </div>
+        <div class="card">
+          <div class="card-icon">🖨️</div>
+          <h4>Print knop</h4>
+          <p>Direct printen met nette opmaak</p>
+        </div>
+        <div class="card">
+          <div class="card-icon">💾</div>
+          <h4>Opslaan in "Mijn lesplannen"</h4>
+          <p>Naam, klas en notities toevoegen</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Slide 11: Methodische uitwerkingen -->
+    <section class="slide slide--content" data-slide="11">
+      <h2 class="animate" style="opacity:0">Elke methode volledig uitgewerkt</h2>
+      <div class="card-grid animate" style="opacity:0">
+        <div class="card">
+          <div class="card-icon">🔴</div>
+          <h4>ABCDE-methodiek</h4>
+          <p>Airway, Breathing, Circulation, Disability, Exposure — elk met oorzaken, observaties, acties</p>
+        </div>
+        <div class="card">
+          <div class="card-icon">📞</div>
+          <h4>SBAR-communicatie</h4>
+          <p>Situation, Background, Assessment, Recommendation — met voorbeeldzinnen en tips</p>
+        </div>
+        <div class="card">
+          <div class="card-icon">🪞</div>
+          <h4>STARR-reflectie</h4>
+          <p>Situatie, Taak, Actie, Resultaat, Reflectie — hulpvragen en veelgemaakte fouten</p>
+        </div>
+        <div class="card">
+          <div class="card-icon">🎯</div>
+          <h4>SMART-doelen</h4>
+          <p>Specifiek, Meetbaar, Acceptabel, Realistisch, Tijdgebonden — ❌ Fout vs ✓ Goed voorbeelden</p>
+        </div>
+      </div>
+      <p class="animate" style="opacity:0; margin-top: 2rem;">💡 De theorie die je anders zelf zou moeten uitschrijven — nu automatisch erbij</p>
+    </section>
+
+    <!-- Slide 12: Takeaways -->
+    <section class="slide slide--content" data-slide="12">
+      <h2 class="animate" style="opacity:0">📦 Wat neem je mee?</h2>
+      <div class="takeaway-grid animate" style="opacity:0">
+        <div class="takeaway">
+          <div class="takeaway-number">1</div>
+          <div>
+            <h4>Geen prompts nodig</h4>
+            <p>Klik op een suggestie-chip → compleet lesplan</p>
+          </div>
+        </div>
+        <div class="takeaway">
+          <div class="takeaway-number">2</div>
+          <div>
+            <h4>Alles erin</h4>
+            <p>Script, discussievragen, opdrachten, KD-check, theorie</p>
+          </div>
+        </div>
+        <div class="takeaway">
+          <div class="takeaway-number">3</div>
+          <div>
+            <h4>"Bekijk volledig" voor print/opslag</h4>
+            <p>Mooie opmaak, opslaan naar Mijn lesplannen</p>
+          </div>
+        </div>
+        <div class="takeaway">
+          <div class="takeaway-number">4</div>
+          <div>
+            <h4>Probeer het nu</h4>
+            <p>e-Xpert SAM staat klaar — open de link</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Slide 13: Questions -->
+    <section class="slide slide--question" data-slide="13">
+      <p class="question-prompt animate" style="opacity:0">❓ Welke vraag of twijfel heb je nog?</p>
+      <div class="discussion-starters animate" style="opacity:0">
+        <span class="discussion-starter">"Wat zou jou tegenhouden om dit te proberen?"</span>
+        <span class="discussion-starter">"Voor welke les zou je dit als eerste gebruiken?"</span>
+        <span class="discussion-starter">"Welke collega zou hier ook baat bij hebben?"</span>
+      </div>
+    </section>
+
+    <!-- Slide 14: End -->
+    <section class="slide slide--end" data-slide="14">
+      <h1 class="animate" style="opacity:0">Bedankt!</h1>
+      <p class="subtitle animate" style="opacity:0">Veel succes met e-Xpert SAM</p>
+      <div class="badge-container animate" style="opacity:0">
+        <span class="badge">🔗 Open de mockup en probeer het zelf!</span>
+      </div>
+      <p class="animate" style="opacity:0; margin-top: 3rem;">☕ Vragen? → Loop naar mij toe</p>
+    </section>
+
+  </div>
+
+  <!-- Navigation -->
+  <nav class="nav">
+    <button class="nav-btn" id="prevBtn" onclick="prevSlide()">←</button>
+    <span class="slide-counter"><span id="currentSlide">1</span> / <span id="totalSlides">14</span></span>
+    <button class="nav-btn" id="nextBtn" onclick="nextSlide()">→</button>
+  </nav>
+
+  <div class="keyboard-hint">
+    <kbd>←</kbd> <kbd>→</kbd> of <kbd>Space</kbd> om te navigeren
+  </div>
+
+  <script>
+    let currentSlide = 1;
+    const totalSlides = 14;
+    const slides = document.querySelectorAll('.slide');
+    const progress = document.getElementById('progress');
+    const currentSlideEl = document.getElementById('currentSlide');
+    const prevBtn = document.getElementById('prevBtn');
+    const nextBtn = document.getElementById('nextBtn');
+
+    function updateSlide() {
+      slides.forEach((slide, index) => {
+        slide.classList.remove('active', 'prev');
+        if (index + 1 === currentSlide) {
+          slide.classList.add('active');
+        } else if (index + 1 < currentSlide) {
+          slide.classList.add('prev');
+        }
+      });
+
+      // Update progress
+      const progressPercent = ((currentSlide - 1) / (totalSlides - 1)) * 100;
+      progress.style.width = progressPercent + '%';
+
+      // Update counter
+      currentSlideEl.textContent = currentSlide;
+
+      // Update buttons
+      prevBtn.disabled = currentSlide === 1;
+      nextBtn.disabled = currentSlide === totalSlides;
+    }
+
+    function nextSlide() {
+      if (currentSlide < totalSlides) {
+        currentSlide++;
+        updateSlide();
+      }
+    }
+
+    function prevSlide() {
+      if (currentSlide > 1) {
+        currentSlide--;
+        updateSlide();
+      }
+    }
+
+    function selectOption(el) {
+      document.querySelectorAll('.vote-option').forEach(opt => opt.classList.remove('selected'));
+      el.classList.add('selected');
+    }
+
+    function toggleFullscreen() {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen();
+      } else {
+        document.exitFullscreen();
+      }
+    }
+
+    // Keyboard navigation
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowRight' || e.key === ' ') {
+        e.preventDefault();
+        nextSlide();
+      } else if (e.key === 'ArrowLeft') {
+        e.preventDefault();
+        prevSlide();
+      } else if (e.key === 'f' || e.key === 'F') {
+        toggleFullscreen();
+      }
+    });
+
+    // Click navigation (click right side = next, left side = prev)
+    document.getElementById('presentation').addEventListener('click', (e) => {
+      const rect = e.currentTarget.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      if (x > rect.width * 0.7) {
+        nextSlide();
+      } else if (x < rect.width * 0.3) {
+        prevSlide();
+      }
+    });
+
+    // Touch navigation
+    let touchStartX = 0;
+    document.addEventListener('touchstart', (e) => {
+      touchStartX = e.touches[0].clientX;
+    });
+
+    document.addEventListener('touchend', (e) => {
+      const touchEndX = e.changedTouches[0].clientX;
+      const diff = touchStartX - touchEndX;
+      if (diff > 50) nextSlide();
+      else if (diff < -50) prevSlide();
+    });
+
+    // Initialize
+    updateSlide();
+  </script>
+</body>
+</html>

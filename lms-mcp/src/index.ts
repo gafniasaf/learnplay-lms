@@ -8,6 +8,8 @@ import { listLibraryCourses } from "./handlers/listLibraryCourses.js";
 import { searchLibraryCourses } from "./handlers/searchLibraryCourses.js";
 import { getLibraryCourseContent } from "./handlers/getLibraryCourseContent.js";
 import { queryKD } from "./handlers/queryKD.js";
+import { listAlerts } from "./handlers/listAlerts.js";
+import { alertDetector } from "./handlers/alertDetector.js";
 
 const METHODS = [
   "lms.health",
@@ -39,6 +41,8 @@ const METHODS = [
   "lms.recommendMesContent",
   "lms.teacherChatAssistant",
   "lms.queryKD",
+  "lms.listAlerts",
+  "lms.alertDetector",
 ] as const;
 
 const BOOK_METHODS: Record<string, { edgeFunction: string; method: "GET" | "POST" }> = {
@@ -151,6 +155,14 @@ const server = http.createServer(async (req, res) => {
       }
       case "lms.queryKD": {
         const result = await queryKD({ params });
+        return send(res, 200, { ok: true, result });
+      }
+      case "lms.listAlerts": {
+        const result = await listAlerts({ params });
+        return send(res, 200, { ok: true, result });
+      }
+      case "lms.alertDetector": {
+        const result = await alertDetector({ params });
         return send(res, 200, { ok: true, result });
       }
       default:

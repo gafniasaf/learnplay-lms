@@ -1,0 +1,46 @@
+[TITEL]: Oefening [WERKPROCES_TITEL]
+
+1. Leerdoel
+Na deze oefening kun je:
+- [Leerdoel 1]
+- [Leerdoel 2]
+- [Leerdoel 3]
+
+2. Benodigdheden
+- [Materiaal/hulpmiddel 1]
+- [Materiaal/hulpmiddel 2]
+- Pen en papier voor notities
+
+3. Instructie
+Lees de instructie zorgvuldig door voordat je begint.
+
+Stap 1: [Actie]
+[Gedetailleerde instructie]
+
+Stap 2: [Actie]
+[Gedetailleerde instructie]
+
+Stap 3: [Actie]
+[Gedetailleerde instructie]
+
+4. Opdracht
+[Beschrijving van de concrete opdracht die de student moet uitvoeren]
+
+Beantwoord de volgende vragen:
+1. [Vraag 1]
+2. [Vraag 2]
+3. [Vraag 3]
+
+5. Beoordelingspunten
+De docent/begeleider let op:
+[ ] [Criterium 1]
+[ ] [Criterium 2]
+[ ] [Criterium 3]
+[ ] [Criterium 4]
+
+6. Nabespreking
+Bespreek na afloop:
+- Wat ging goed?
+- Wat vond je lastig?
+- Wat zou je een volgende keer anders doen?
+- Hoe sluit dit aan bij de praktijk?

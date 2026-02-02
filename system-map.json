@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-01-30T05:55:51.763Z",
+  "generatedAt": "2026-02-01T15:50:27.828Z",
   "routes": [
     {
       "path": "*",
@@ -521,6 +521,11 @@
       "description": "Discovered in supabase/functions directory"
     },
     {
+      "id": "alert-detector",
+      "type": "edge-function",
+      "description": "Discovered in supabase/functions directory"
+    },
+    {
       "id": "apply-course-patch",
       "type": "edge-function",
       "description": "Discovered in supabase/functions directory"
@@ -917,6 +922,11 @@
       "description": "Generate a grounded lesson plan for the teacher request in payload.queryText. Return JSON {\"ok\": boolean, \"answer\": string, \"lessonPlan\": json, \"recommendations\": json[]}."
     },
     {
+      "id": "generate_multi_week_plan",
+      "type": "job",
+      "description": "Generate a multi-week lesson plan based on payload.queryText. Return JSON {\"ok\": boolean, \"answer\": string, \"multiWeekPlan\": json, \"recommendations\": json[]}."
+    },
+    {
       "id": "generate-assignment",
       "type": "edge-function",
       "description": "Discovered in supabase/functions directory",
@@ -1181,6 +1191,11 @@
         "success": "boolean",
         "childId": "string"
       }
+    },
+    {
+      "id": "list-alerts",
+      "type": "edge-function",
+      "description": "Discovered in supabase/functions directory"
     },
     {
       "id": "list-assignments",
@@ -1463,6 +1478,11 @@
         "messageId": "string",
         "success": "boolean"
       }
+    },
+    {
+      "id": "slack-notify",
+      "type": "edge-function",
+      "description": "Discovered in supabase/functions directory"
     },
     {
       "id": "standards_export",

@@ -21,6 +21,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { createLogger } from '@/lib/logger';
 import { getCourseJob } from '@/lib/api/jobs';
 import { isDevAgentMode } from '@/lib/api/common';
+import { makeCourseIdFromSubject } from '@/lib/courseIds';
 
 const logger = createLogger('AIPipelineV2');
 import { useNavigate } from 'react-router-dom';
@@ -50,15 +51,6 @@ const MODE_OPTIONS = [
 // UX: AI pipeline should open clean by default.
 // Only resume a job automatically if it's *recent* and still running.
 const AUTO_RESUME_MAX_AGE_MS = 15 * 60 * 1000; // 15 minutes
-
-function slugifyCourseId(input: string): string {
-  return input
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 80) || `course`;
-}
 
 export default function AIPipelineV2() {
   const [state, setState] = useState<GeneratorState>('idle');
@@ -248,7 +240,7 @@ export default function AIPipelineV2() {
     setAuthError(null);
     setCreating(true);
     try {
-      const courseId = `${slugifyCourseId(subject)}-${Date.now()}`;
+      const courseId = makeCourseIdFromSubject(subject);
       const result = await enqueueJob('ai_course_generate', {
         course_id: courseId,
         subject: subject.trim(),

@@ -1,0 +1,41 @@
+[TITEL]: Theorie [WERKPROCES_TITEL]
+
+1. Inleiding
+Korte introductie in eenvoudige taal (B1-niveau). Waarom dit onderwerp belangrijk is voor de zorgvrager en het team. Leg de link met de dagelijkse praktijk.
+
+2. Wat je moet weten
+Uitleg van kernbegrippen en basiskennis. Korte alinea's, eenvoudige zinnen. Gebruik voorbeelden uit de zorgpraktijk.
+
+Belangrijke begrippen:
+- [Begrip 1]: uitleg
+- [Begrip 2]: uitleg
+- [Begrip 3]: uitleg
+
+3. Werken in de praktijk
+Stap-voor-stap uitleg of aanpak. Gebruik duidelijke volgorde en korte zinnen.
+
+Stap 1: [Actie]
+[Toelichting]
+
+Stap 2: [Actie]
+[Toelichting]
+
+Stap 3: [Actie]
+[Toelichting]
+
+4. Samenwerken en communiceren
+Hoe je dit onderwerp bespreekt met de zorgvrager, naasten en collega's. Welke informatie deel je? Hoe stem je af?
+
+5. Veelgemaakte fouten en aandachtspunten
+Waar je op let om veilig en professioneel te werken.
+
+Veelgemaakte fouten:
+- [Fout 1]
+- [Fout 2]
+
+Aandachtspunten:
+- [Punt 1]
+- [Punt 2]
+
+6. Samenvatting
+Korte herhaling van de kern in 3-5 zinnen.

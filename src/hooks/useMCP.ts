@@ -350,6 +350,37 @@ export function useMCP() {
     }
   };
 
+  const listAlerts = async (params: { includeResolved?: boolean; limit?: number } = {}) => {
+    setLoading(true);
+    try {
+      if (shouldUseMCPProxy()) {
+        return await callMCP<{ ok: boolean; alerts: any[] }>('lms.listAlerts', params as Record<string, unknown>);
+      }
+      const query: Record<string, string> = {};
+      if (typeof params.includeResolved === 'boolean') {
+        query.includeResolved = params.includeResolved ? 'true' : 'false';
+      }
+      if (typeof params.limit === 'number') {
+        query.limit = String(params.limit);
+      }
+      return await callEdgeFunctionGet<{ ok: boolean; alerts: any[] }>('list-alerts', query);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const runAlertDetector = async (params: { windowMinutes?: number } = {}) => {
+    setLoading(true);
+    try {
+      if (shouldUseMCPProxy()) {
+        return await callMCP<{ ok: boolean; active: string[] }>('lms.alertDetector', params as Record<string, unknown>);
+      }
+      return await callEdgeFunction<Record<string, unknown>, { ok: boolean; active: string[] }>('alert-detector', params as Record<string, unknown>);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Generic call method (GET)
   const callGet = async <T = unknown>(method: string, params: Record<string, string> = {}): Promise<T> => {
     setLoading(true);
@@ -878,7 +909,12 @@ export function useMCP() {
       if (shouldUseMCPProxy()) {
         return await callMCP<TeacherChatAssistantResponse>('lms.teacherChatAssistant', args as unknown as Record<string, unknown>);
       }
-      return await callEdgeFunction<Record<string, unknown>, TeacherChatAssistantResponse>('teacher-chat-assistant', args as unknown as Record<string, unknown>);
+      // TeacherChat can trigger embedding + LLM calls; 30s default is too short.
+      return await callEdgeFunction<Record<string, unknown>, TeacherChatAssistantResponse>(
+        'teacher-chat-assistant',
+        args as unknown as Record<string, unknown>,
+        { timeoutMs: 90000 }
+      );
     } finally {
       setLoading(false);
     }
@@ -1367,6 +1403,8 @@ export function useMCP() {
     requeueJob,
     deleteJob,
     getJobMetrics,
+    listAlerts,
+    runAlertDetector,
     // Game session methods
     startGameRound,
     logGameAttempt,

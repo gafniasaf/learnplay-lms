@@ -1,0 +1,126 @@
+Oefening: PES-diagnose formuleren
+
+1. Leerdoel
+Na deze oefening kun je:
+- Gegevens clusteren en analyseren
+- Een verpleegkundige diagnose formuleren in PES-structuur
+- Onderscheid maken tussen medische en verpleegkundige diagnoses
+- Passende interventies bedenken bij een diagnose
+
+2. Benodigdheden
+- NANDA-I overzicht (of app)
+- PES-werkblad
+- Casuskaarten
+- Pen en papier
+
+3. Instructie
+Je gaat oefenen met het formuleren van verpleegkundige diagnoses.
+
+Stap 1: Lees de casus (5 minuten)
+Kies één casus en lees de gegevens door.
+
+Stap 2: Cluster de gegevens (5 minuten)
+Groepeer de gegevens die bij elkaar horen.
+
+Stap 3: Formuleer een diagnose (10 minuten)
+Stel een verpleegkundige diagnose in PES-structuur.
+
+Stap 4: Plan interventies (5 minuten)
+Bedenk 3 verpleegkundige interventies bij je diagnose.
+
+Stap 5: Bespreek (10 minuten)
+Bespreek je diagnose met een partner. Geef elkaar feedback.
+
+4. Casussen
+
+Casus A: Mevrouw Jansen
+Leeftijd: 68 jaar
+Medische diagnose: COPD gold III
+Situatie: opgenomen na exacerbatie
+
+Gegevens:
+- Saturatie 91% met 2 liter zuurstof
+- Ademfrequentie 24/min
+- Gebruikt hulpademhalingsspieren
+- Zegt: "Ik ben zo benauwd, ik durf niet te bewegen"
+- Komt niet uit bed
+- Eet weinig ("geen trek, te moe")
+- Slaapt slecht ("wakker van de benauwdheid")
+- Angstige blik
+- Vraagt vaak of het wel goed gaat
+
+Casus B: Meneer De Vries
+Leeftijd: 75 jaar
+Medische diagnose: CVA rechts, 2 weken geleden
+Situatie: revalidatie-afdeling
+
+Gegevens:
+- Linkszijdige hemiparese
+- Kan niet zelfstandig eten (linksbijdig neglect)
+- Morst veel bij drinken
+- Verslikte zich gisteren in water
+- BMI gedaald van 24 naar 22 in 2 weken
+- Zegt: "Ik voel me nutteloos"
+- Wil niet naar de gemeenschappelijke ruimte
+- Zijn vrouw maakt zich zorgen
+- Was altijd actief en zelfstandig
+
+5. PES-werkblad
+
+Casus: ___________________
+
+GEGEVENS CLUSTEREN
+Cluster 1 (thema: _________):
+- _________________________
+- _________________________
+- _________________________
+
+Cluster 2 (thema: _________):
+- _________________________
+- _________________________
+- _________________________
+
+VERPLEEGKUNDIGE DIAGNOSE (PES)
+
+P (Probleem):
+_________________________
+
+E (Etiologie - gerelateerd aan):
+_________________________
+
+S (Symptomen - blijkend uit):
+_________________________
+_________________________
+
+Volledige diagnose in één zin:
+"_________________________
+gerelateerd aan _________________________
+blijkend uit _________________________"
+
+INTERVENTIES
+1. _________________________
+2. _________________________
+3. _________________________
+
+6. Beoordelingspunten
+De docent/begeleider let op:
+[ ] Gegevens zijn logisch geclusterd
+[ ] Diagnose is verpleegkundig (niet medisch)
+[ ] PES-structuur is correct toegepast
+[ ] Symptomen ondersteunen de diagnose
+[ ] Interventies zijn passend en verpleegkundig
+[ ] Student kan keuze onderbouwen
+
+7. Nabespreking
+Bespreek in de groep:
+- Welke diagnoses kwamen jullie tegen?
+- Waren er meerdere mogelijke diagnoses?
+- Hoe koos je de belangrijkste?
+- Wat is het verschil met de medische diagnose?
+
+Voorbeeldantwoorden:
+Casus A mogelijk: "Ineffectieve ademhaling gerelateerd aan bronchospasme en angst blijkend uit verhoogde ademfrequentie, gebruik hulpspieren, saturatie 91%, vermoeidheid"
+of: "Angst gerelateerd aan benauwdheid blijkend uit angstige blik, niet durven bewegen, frequent om geruststelling vragen"
+
+Casus B mogelijk: "Risico op ondervoeding gerelateerd aan slikstoornis en verminderde inname blijkend uit gewichtsverlies, verslikken, morsen bij eten"
+of: "Situationele lage eigenwaarde gerelateerd aan verlies van zelfstandigheid blijkend uit uitspraken over nutteloosheid, sociale terugtrekking"

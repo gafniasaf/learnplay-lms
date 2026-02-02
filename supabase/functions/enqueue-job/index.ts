@@ -132,6 +132,7 @@ serve(async (req: Request): Promise<Response> => {
       "book_render_full",
       "lessonkit_build",
       "generate_lesson_plan",
+      "generate_multi_week_plan",
       "curated_arabic_variant_build",
       "material_ingest",
       "material_analyze",
@@ -229,10 +230,11 @@ serve(async (req: Request): Promise<Response> => {
     // ─────────────────────────────────────────────────────────────────────────
 
     // Derive required fields from payload (accept a couple legacy key names)
-    const courseId =
+    const courseIdRaw =
       (typeof (payload as any).course_id === "string" && (payload as any).course_id) ||
       (typeof (payload as any).courseId === "string" && (payload as any).courseId) ||
       null;
+    const courseId = typeof courseIdRaw === "string" ? courseIdRaw.trim() : null;
     const subject =
       (typeof (payload as any).subject === "string" && (payload as any).subject) || null;
     const gradeBand =
@@ -261,6 +263,19 @@ serve(async (req: Request): Promise<Response> => {
 
     if (!courseId) {
       return json({ ok: false, error: { code: "invalid_request", message: "course_id is required in payload" }, httpStatus: 400, requestId }, 200);
+    }
+    // Keep `course_id` aligned with backend `idStr` constraints (used by CourseSchema and storage paths).
+    // This prevents late-stage `schema_error` failures during generation.
+    if (!/^[a-z0-9-]{1,64}$/i.test(courseId)) {
+      return json({
+        ok: false,
+        error: {
+          code: "invalid_request",
+          message: "course_id must be 1-64 chars and contain only letters, numbers, and hyphens",
+        },
+        httpStatus: 400,
+        requestId,
+      }, 200);
     }
     if (!subject) {
       return json({ ok: false, error: { code: "invalid_request", message: "subject is required in payload" }, httpStatus: 400, requestId }, 200);

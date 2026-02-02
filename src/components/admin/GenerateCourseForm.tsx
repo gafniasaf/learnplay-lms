@@ -14,6 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { useMCP } from "@/hooks/useMCP";
 import { getCourseJob } from "@/lib/api/jobs";
+import { makeCourseIdFromSubject } from "@/lib/courseIds";
 
 interface GenerateCourseFormProps {
   onGenerated: (course: any) => void;
@@ -53,8 +54,8 @@ export const GenerateCourseForm = ({ onGenerated }: GenerateCourseFormProps) => 
     setResult(null);
     
     try {
-      // Generate course_id from subject
-      const courseId = subject.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+      // Generate a backend-safe course_id (<= 64 chars, alnum/hyphen only)
+      const courseId = makeCourseIdFromSubject(subject);
       
       // Enqueue job via MCP
       const jobResult = await enqueueJob('ai_course_generate', {

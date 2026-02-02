@@ -6,7 +6,7 @@ primary_region = "REPLACE_ME_REGION"
 
 [processes]
   # No inbound service; this is a background worker loop.
-  worker = "node worker.mjs"
+  worker = "node dist/runner.js"
 
 [[vm]]
   size = "shared-cpu-1x"

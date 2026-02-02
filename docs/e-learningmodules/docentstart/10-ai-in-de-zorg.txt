@@ -1,0 +1,67 @@
+AI in de zorg: kansen, grenzen en bias
+
+1. Inleiding
+AI betekent kunstmatige intelligentie. Het is software die patronen herkent en helpt bij taken. In de zorg wordt AI steeds vaker gebruikt. Denk aan planning, beeldanalyse of het samenvatten van dossiers. AI kan helpen, maar AI is geen mens. Je blijft altijd zelf verantwoordelijk.
+
+Het is belangrijk om te weten wat AI wel en niet kan. Zo gebruik je het op een veilige en verantwoorde manier. Dit onderwerp hoort bij digitale veiligheid en kwaliteit van zorg.
+
+2. Wat is AI?
+AI is een verzamelnaam voor slimme software. Het kan grote hoeveelheden informatie verwerken. Het kan bijvoorbeeld sneller patronen zien dan mensen. Toch is AI niet perfect. Het werkt op basis van data en regels. Als die data niet goed is, is de uitkomst ook niet goed.
+
+3. Kansen van AI in de zorg
+AI kan de zorg ondersteunen op verschillende manieren:
+- signaleren van risico's in dossiers
+- helpen bij planning en roosters
+- ondersteunen bij beeldonderzoek
+- voorstellen doen voor zorgpaden
+
+AI kan tijd besparen. Daardoor is er meer tijd voor contact met de zorgvrager. Het kan ook fouten verminderen, als het goed wordt gebruikt.
+
+4. Grenzen van AI
+AI heeft ook grenzen. Het kent geen emoties en begrijpt de context niet zoals een mens. Het kan ook geen morele keuzes maken. Daarom is AI altijd ondersteunend en nooit leidend.
+
+AI kan fouten maken, bijvoorbeeld als gegevens ontbreken. Ook kan AI iets voorstellen dat niet past bij de zorgvrager. Daarom moet je altijd kritisch blijven.
+
+5. Wat is bias?
+Bias betekent: een vertekening in de uitkomst. AI leert van data uit het verleden. Als die data niet eerlijk of compleet is, wordt de AI ook niet eerlijk.
+
+Voorbeeld:
+Als een systeem vooral is getraind op gegevens van jonge mensen, kan het minder goed werken bij ouderen. Dan kan de uitkomst onbetrouwbaar zijn.
+
+Bias kan leiden tot ongelijkheid in zorg. Daarom moet je de uitkomst altijd beoordelen.
+
+6. Werken met AI in de praktijk
+Als je AI gebruikt, volg je vaste regels:
+- gebruik alleen toegestane systemen
+- deel geen privacygevoelige informatie buiten het systeem
+- controleer de uitkomst
+- gebruik je professionele oordeel
+
+AI is een hulpmiddel, geen vervanging van jouw kennis.
+
+7. Privacy en veiligheid
+AI werkt vaak met gegevens. Dat betekent dat privacy belangrijk is. Je mag alleen werken met systemen die voldoen aan de AVG. Je gebruikt geen prive-apps of openbare tools om patientgegevens te verwerken.
+
+Als je twijfelt, vraag je het aan je leidinggevende. Veiligheid gaat altijd voor.
+
+8. Verantwoordelijkheid blijft bij jou
+Ook als AI iets voorstelt, ben jij verantwoordelijk. Jij beslist wat je doet. Je checkt of het klopt en of het past bij de zorgvrager.
+
+Je kunt je verantwoordelijkheid niet overdragen aan een systeem. Dat hoort bij professioneel handelen.
+
+9. Voorbeelden uit de zorgpraktijk
+AI kan bijvoorbeeld voorstellen doen voor een planning. Jij controleert of het past bij de situatie. AI kan ook helpen om signalen in een dossier te zien. Jij bepaalt of er actie nodig is.
+
+Zo blijft de mens centraal. AI ondersteunt, maar beslist niet.
+
+10. Veelgemaakte fouten
+Veelgemaakte fouten zijn:
+- AI blind vertrouwen
+- privacyregels vergeten
+- uitkomsten niet controleren
+- AI gebruiken buiten toestemming
+
+Je voorkomt dit door kritisch te blijven en je aan de regels te houden.
+
+11. Samenvatting
+AI kan de zorg ondersteunen en tijd besparen. Het heeft ook grenzen en kan bias bevatten. Daarom blijf je altijd kritisch en verantwoordelijk. Je gebruikt AI veilig, met respect voor privacy, en je controleert de uitkomst. Zo blijft de zorg mensgericht en betrouwbaar.

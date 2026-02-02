@@ -1,0 +1,64 @@
+[TITEL]: Casus [WERKPROCES_TITEL]
+
+1. Leerdoel
+Na deze casus kun je:
+- [Leerdoel 1]
+- [Leerdoel 2]
+- [Leerdoel 3]
+
+2. De situatie
+Setting:
+[Beschrijf de werkomgeving: afdeling, tijdstip, wie er aanwezig is]
+
+Zorgvrager:
+[Naam], [leeftijd] jaar
+[Relevante achtergrond: diagnose, woonsituatie, sociale context]
+
+Wat er gebeurt:
+[Beschrijf de situatie die zich voordoet - concreet en realistisch]
+
+3. Observaties
+Wat je ziet en hoort:
+- [Observatie 1]
+- [Observatie 2]
+- [Observatie 3]
+
+Beschikbare informatie:
+- [Gegeven 1, bijv. vitale functies]
+- [Gegeven 2, bijv. medicatie]
+- [Gegeven 3, bijv. zorgplan-info]
+
+4. Vragen bij de casus
+Beantwoord de volgende vragen:
+
+Vraag 1: Wat is hier aan de hand?
+[Ruimte voor antwoord]
+
+Vraag 2: Wat doe je als eerste?
+[Ruimte voor antwoord]
+
+Vraag 3: Welke informatie heb je nog nodig?
+[Ruimte voor antwoord]
+
+Vraag 4: Wie betrek je hierbij en waarom?
+[Ruimte voor antwoord]
+
+Vraag 5: Hoe rapporteer je dit?
+[Ruimte voor antwoord]
+
+5. Observatiepunten voor de docent
+Bij bespreking of simulatie let je op:
+[ ] [Observatiepunt 1]
+[ ] [Observatiepunt 2]
+[ ] [Observatiepunt 3]
+[ ] [Observatiepunt 4]
+
+6. Nabespreking
+Discussievragen:
+- Hoe heb je de situatie ingeschat?
+- Welke keuzes heb je gemaakt en waarom?
+- Wat zou je een volgende keer anders doen?
+- Hoe sluit dit aan bij het werkproces [KD-CODE]?
+
+Modelantwoorden (voor docent):
+[Korte samenvatting van verwachte aanpak en belangrijkste punten]

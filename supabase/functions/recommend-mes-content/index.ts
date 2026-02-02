@@ -11,6 +11,8 @@ if (!SUPABASE_URL || !SERVICE_ROLE_KEY) {
 }
 
 const adminSupabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, { auth: { persistSession: false } });
+const MIN_SIMILARITY = 0.25;
+const MES_TEST_DOC_PREFIX = "e2e-";
 
 function requireEnv(name: string): string {
   const v = Deno.env.get(name);
@@ -129,7 +131,9 @@ serve(async (req: Request): Promise<Response> => {
       const courseId = typeof r?.course_id === "string" ? r.course_id : "";
       if (!courseId.startsWith("mes:")) continue;
       const docId = courseId.slice("mes:".length) || courseId;
+      if (docId.toLowerCase().startsWith(MES_TEST_DOC_PREFIX)) continue;
       const sim = Number(r?.similarity ?? 0);
+      if (!Number.isFinite(sim) || sim < MIN_SIMILARITY) continue;
       const idx = Number.isFinite(Number(r?.item_index)) ? Number(r?.item_index) : -1;
       const text = typeof r?.text_content === "string" ? r.text_content : "";
       if (!text.trim() || idx < 0) continue;

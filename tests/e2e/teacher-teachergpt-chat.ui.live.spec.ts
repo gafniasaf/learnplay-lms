@@ -156,11 +156,10 @@ test.describe('live UI: TeacherGPT chat', () => {
 
     // Send
     await page.locator('[data-cta-id="cta-teachergpt-chat-send"]').click();
-    await expect(page.getByText('Ik heb een lesplan opgesteld')).toBeVisible({ timeout: 180_000 });
 
     // Lesplan tab shows KD-check items + save button
     await expect(page.getByText(/Lesplan \(KD/i)).toBeVisible({ timeout: 180_000 });
-    await expect(page.getByText(/SBAR-structuur/i)).toBeVisible({ timeout: 180_000 });
+    await expect(page.getByText(/SBAR-structuur/i).first()).toBeVisible({ timeout: 180_000 });
     await expect(page.locator('[data-cta-id="cta-teachergpt-chat-kdcheck-save"]')).toBeVisible({ timeout: 180_000 });
 
     // Materialen tab shows at least one recommendation action

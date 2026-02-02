@@ -19,6 +19,7 @@ import { MaterialIngest } from './strategies/material_ingest.ts';
 import { MaterialAnalyze } from './strategies/material_analyze.ts';
 import { LessonkitBuild } from './strategies/lessonkit_build.ts';
 import { GenerateLessonPlan } from './strategies/generate_lesson_plan.ts';
+import { GenerateMultiWeekPlan } from './strategies/generate_multi_week_plan.ts';
 import { CuratedArabicVariantBuild } from './strategies/curated_arabic_variant_build.ts';
 import { StandardsIngest } from './strategies/standards_ingest.ts';
 import { StandardsMap } from './strategies/standards_map.ts';
@@ -44,6 +45,7 @@ export const JobRegistry: Record<string, JobExecutor> = {
   'material_analyze': new MaterialAnalyze(),
   'lessonkit_build': new LessonkitBuild(),
   'generate_lesson_plan': new GenerateLessonPlan(),
+  'generate_multi_week_plan': new GenerateMultiWeekPlan(),
   'curated_arabic_variant_build': new CuratedArabicVariantBuild(),
   'standards_ingest': new StandardsIngest(),
   'standards_map': new StandardsMap(),

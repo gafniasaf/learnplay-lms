@@ -1,0 +1,84 @@
+De verpleegkundige diagnose stellen
+
+1. Inleiding
+Als mbo-verpleegkundige stel je verpleegkundige diagnoses. Dit is een belangrijk verschil met verzorgende IG. Een verpleegkundige diagnose beschrijft de reactie van de zorgvrager op een gezondheidsprobleem. Op basis van deze diagnose plan je verpleegkundige interventies. Dit werkproces gaat over het proces van klinisch redeneren dat leidt tot een verpleegkundige diagnose.
+
+2. Wat je moet weten
+Wat is een verpleegkundige diagnose?
+Een verpleegkundige diagnose is een uitspraak over een actueel of potentieel gezondheidsprobleem van de zorgvrager, waarop je als verpleegkundige kunt interveniëren.
+
+Onderdelen (PES-structuur):
+- P (Probleem): het gezondheidsprobleem
+- E (Etiologie): de oorzaak of gerelateerde factoren
+- S (Symptomen): de kenmerken die je ziet
+
+Voorbeeld:
+"Verstoorde slaap (P) gerelateerd aan pijn (E), zoals blijkt uit vermoeidheid overdag en frequent wakker worden (S)"
+
+Het klinisch redeneerproces:
+1. Verzamelen van gegevens (anamnese, observatie, meting)
+2. Analyseren en interpreteren
+3. Hypotheses vormen (wat zou er aan de hand kunnen zijn?)
+4. Toetsen van hypotheses
+5. Formuleren van de diagnose
+6. Plannen van interventies
+7. Uitvoeren en evalueren
+
+NANDA-I classificatie:
+Dit is een internationaal systeem voor verpleegkundige diagnoses. Elke diagnose heeft:
+- Een definitie
+- Bepalende kenmerken
+- Gerelateerde factoren
+- Risicofactoren (bij risicodiagnoses)
+
+Soorten diagnoses:
+- Actuele diagnose: het probleem is nu aanwezig
+- Risico-diagnose: er is kans op een probleem
+- Welzijnsdiagnose: bereidheid tot verbetering
+
+3. Werken in de praktijk
+Stap 1: Verzamel gegevens
+Voer anamnese uit, observeer, meet vitale functies, lees het dossier.
+
+Stap 2: Cluster de gegevens
+Groepeer gerelateerde bevindingen. Wat hoort bij elkaar?
+
+Stap 3: Analyseer en interpreteer
+Wat betekenen deze gegevens? Vergelijk met wat normaal is.
+
+Stap 4: Formuleer hypotheses
+Welke verpleegkundige diagnoses zouden kunnen passen?
+
+Stap 5: Toets je hypotheses
+Komt de diagnose overeen met de NANDA-kenmerken? Kloppen de symptomen?
+
+Stap 6: Stel de diagnose
+Formuleer in PES-structuur. Wees specifiek.
+
+Stap 7: Plan interventies
+Welke verpleegkundige acties passen bij deze diagnose?
+
+4. Samenwerken en communiceren
+De verpleegkundige diagnose is de basis voor je zorgplan. Bespreek je diagnose met:
+- De zorgvrager: klopt dit met hoe u het ervaart?
+- Collega verpleegkundigen: voor second opinion
+- Arts: voor afstemming met medische diagnose
+- Team: voor afstemming van interventies
+
+Documenteer de diagnose in het zorgplan, zodat collega's weten wat de focus is.
+
+5. Veelgemaakte fouten
+- Diagnose stellen zonder voldoende gegevens
+- Medische diagnose en verpleegkundige diagnose verwarren
+- Te algemene diagnose ("pijn" zonder specificatie)
+- Symptomen beschrijven in plaats van de diagnose
+- Niet evalueren of de diagnose nog klopt
+
+Aandachtspunten:
+- Een diagnose kan veranderen als de situatie verandert
+- Meerdere diagnoses zijn mogelijk
+- Prioriteer: welke diagnose heeft de meeste impact?
+- De zorgvrager is expert over zijn eigen beleving
+
+6. Samenvatting
+De verpleegkundige diagnose is het resultaat van klinisch redeneren. Je verzamelt gegevens, analyseert en formuleert een diagnose in PES-structuur. Dit vormt de basis voor gerichte verpleegkundige interventies. De NANDA-I classificatie biedt een gestandaardiseerde taal voor verpleegkundige diagnoses.

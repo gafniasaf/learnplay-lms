@@ -439,6 +439,17 @@
       "prompt_template": "Generate a grounded lesson plan for the teacher request in payload.queryText. Return JSON {\"ok\": boolean, \"answer\": string, \"lessonPlan\": json, \"recommendations\": json[]}."
     },
     {
+      "id": "generate_multi_week_plan",
+      "target_entity": "JobTicket",
+      "execution_mode": "async",
+      "ui": {
+        "label": "Generate Multi-Week Lesson Plan",
+        "icon": "CalendarDays",
+        "placement": "teacher"
+      },
+      "prompt_template": "Generate a multi-week lesson plan based on payload.queryText. Return JSON {\"ok\": boolean, \"answer\": string, \"multiWeekPlan\": json, \"recommendations\": json[]}."
+    },
+    {
       "id": "curated_arabic_variant_build",
       "target_entity": "CuratedMaterial",
       "execution_mode": "async",

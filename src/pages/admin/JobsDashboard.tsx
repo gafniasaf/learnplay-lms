@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
 import { RefreshCw, RotateCcw, Clock, AlertCircle, CheckCircle2, XCircle, Trash2 } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -48,6 +49,20 @@ interface AgentJob {
   last_heartbeat?: string | null;
 }
 
+interface AlertRecord {
+  id: string;
+  alert_key: string;
+  type: string;
+  severity: string;
+  message: string;
+  meta?: Record<string, any>;
+  count?: number;
+  created_at: string;
+  updated_at?: string;
+  last_seen_at?: string;
+  resolved_at?: string | null;
+}
+
 export default function JobsDashboard() {
   const location = useLocation();
   const navigate = useNavigate();
@@ -60,6 +75,7 @@ export default function JobsDashboard() {
   const [courseJobs, setCourseJobs] = useState<Job[]>([]);
   const [mediaJobs, setMediaJobs] = useState<Job[]>([]);
   const [agentJobs, setAgentJobs] = useState<AgentJob[]>([]);
+  const [alerts, setAlerts] = useState<AlertRecord[]>([]);
   const [metrics, setMetrics] = useState<{ courseJobs: any; mediaJobs: any } | null>(null);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
@@ -77,8 +93,9 @@ export default function JobsDashboard() {
   const loadJobs = useCallback(async () => {
     setLoading(true);
     try {
+      await mcp.runAlertDetector({ windowMinutes: Math.max(60, sinceHours * 60) }).catch(() => undefined);
       // Fetch jobs via edge functions
-      const [courseRes, mediaRes, agentRes, metricsRes] = await Promise.all([
+      const [courseRes, mediaRes, agentRes, metricsRes, alertsRes] = await Promise.all([
         mcp.listCourseJobs({
           status: filterStatus || undefined,
           sinceHours: sinceHours > 0 ? sinceHours : undefined,
@@ -93,6 +110,7 @@ export default function JobsDashboard() {
           limit: 100,
         }),
         mcp.getJobMetrics(sinceHours),
+        mcp.listAlerts({ includeResolved: false, limit: 50 }),
       ]);
 
       if ((courseRes as { ok: boolean }).ok) setCourseJobs((courseRes as { jobs: Job[] }).jobs);
@@ -101,6 +119,9 @@ export default function JobsDashboard() {
       if ((metricsRes as { ok: boolean }).ok) {
         const m = metricsRes as { courseJobs: unknown; mediaJobs: unknown };
         setMetrics({ courseJobs: m.courseJobs, mediaJobs: m.mediaJobs });
+      }
+      if ((alertsRes as { ok: boolean }).ok) {
+        setAlerts(((alertsRes as any).alerts || []) as AlertRecord[]);
       }
     } catch (error) {
       console.warn('[JobsDashboard] Error loading jobs:', error);
@@ -112,7 +133,7 @@ export default function JobsDashboard() {
     } finally {
       setLoading(false);
     }
-  }, [filterText, filterStatus, sinceHours, toast]);
+  }, [filterText, filterStatus, sinceHours, toast, mcp]);
 
   const handleRequeueJob = async (jobId: string, jobTable: 'ai_course_jobs' | 'ai_media_jobs' | 'ai_agent_jobs') => {
     try {
@@ -224,6 +245,13 @@ export default function JobsDashboard() {
     );
   };
 
+  const getSeverityBadge = (severity: string) => {
+    const s = severity?.toLowerCase();
+    if (s === "critical") return <Badge variant="destructive">critical</Badge>;
+    if (s === "warning") return <Badge variant="outline">warning</Badge>;
+    return <Badge variant="secondary">{s || "info"}</Badge>;
+  };
+
   const formatDuration = (ms?: number) => {
     if (!ms) return "—";
     if (ms < 1000) return `${ms}ms`;
@@ -233,6 +261,45 @@ export default function JobsDashboard() {
   const formatDate = (dateStr?: string) => {
     if (!dateStr) return "—";
     return new Date(dateStr).toLocaleString();
+  };
+
+  const renderAlertsTable = (items: AlertRecord[]) => {
+    if (!items.length) {
+      return (
+        <Alert>
+          <AlertDescription>No active alerts detected.</AlertDescription>
+        </Alert>
+      );
+    }
+
+    return (
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Severity</TableHead>
+            <TableHead>Type</TableHead>
+            <TableHead>Message</TableHead>
+            <TableHead>Count</TableHead>
+            <TableHead>Last Seen</TableHead>
+            <TableHead>Status</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {items.map((alert) => (
+            <TableRow key={alert.id}>
+              <TableCell>{getSeverityBadge(alert.severity)}</TableCell>
+              <TableCell className="font-mono text-xs">{alert.type}</TableCell>
+              <TableCell className="max-w-md">
+                <div className="truncate" title={alert.message}>{alert.message}</div>
+              </TableCell>
+              <TableCell>{alert.count ?? 1}</TableCell>
+              <TableCell>{formatDate(alert.last_seen_at || alert.updated_at || alert.created_at)}</TableCell>
+              <TableCell>{alert.resolved_at ? "resolved" : "active"}</TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    );
   };
 
   const renderJobTable = (jobs: Job[], jobTable: 'ai_course_jobs' | 'ai_media_jobs') => (
@@ -571,10 +638,11 @@ export default function JobsDashboard() {
       </Card>
 
       <Tabs defaultValue="course" className="w-full">
-        <TabsList className="grid w-full max-w-xl grid-cols-3">
+        <TabsList className="grid w-full max-w-2xl grid-cols-4">
           <TabsTrigger value="course">Course Jobs ({courseJobs.length})</TabsTrigger>
           <TabsTrigger value="media">Media Jobs ({mediaJobs.length})</TabsTrigger>
           <TabsTrigger value="agent">Agent Jobs ({filteredAgentJobs.length})</TabsTrigger>
+          <TabsTrigger value="alerts">Alerts ({alerts.length})</TabsTrigger>
         </TabsList>
 
         <TabsContent value="course" className="space-y-4">
@@ -618,6 +686,18 @@ export default function JobsDashboard() {
               <CardDescription>Factory queue jobs (BookGen, lessonkit_build, ingest, etc.)</CardDescription>
             </CardHeader>
             <CardContent>{renderAgentJobTable(filteredAgentJobs)}</CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="alerts" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Active Alerts</CardTitle>
+              <CardDescription>Job queue health signals</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {renderAlertsTable(alerts)}
+            </CardContent>
           </Card>
         </TabsContent>
       </Tabs>

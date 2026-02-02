@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8">
+  <title>KW1C Cockpit - Ignite Zero</title>
+  <link rel="stylesheet" href="../_base.css">
+</head>
+<body data-route="/teacher/kw1c-cockpit" data-entity="TeacherDashboard">
+  <header class="header">
+    <h1>Docent Cockpit (KW1C)</h1>
+    <div class="header-actions">
+      <button data-cta-id="cta-kw1c-to-teacher-dashboard" data-action="navigate" data-target="/teacher/dashboard">Naar dashboard</button>
+      <button data-cta-id="cta-kw1c-open-teachergpt-chat" data-action="navigate" data-target="/teacher/teachergpt/chat">e-Xpert SAM</button>
+    </div>
+  </header>
+
+  <main class="container">
+    <section class="card">
+      <h2>Overzicht</h2>
+      <div class="stats-row">
+        <div class="stat-card" data-cta-id="cta-kw1c-open-classes" data-action="navigate" data-target="/teacher/classes">
+          <span class="stat-value" data-field="total_classes">0</span>
+          <span class="stat-label">Klassen</span>
+        </div>
+        <div class="stat-card" data-cta-id="cta-kw1c-open-students" data-action="navigate" data-target="/teacher/students">
+          <span class="stat-value" data-field="total_students">0</span>
+          <span class="stat-label">Studenten</span>
+        </div>
+        <div class="stat-card" data-cta-id="cta-kw1c-open-materials" data-action="navigate" data-target="/teacher/materials">
+          <span class="stat-value" data-field="total_materials">0</span>
+          <span class="stat-label">Materialen</span>
+        </div>
+        <div class="stat-card" data-cta-id="cta-kw1c-open-standards" data-action="navigate" data-target="/teacher/standards">
+          <span class="stat-value" data-field="total_standards_docs">0</span>
+          <span class="stat-label">KD documenten</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Curated materialen (alleen zoeken &amp; aanbevelen)</h2>
+      <p class="muted">
+        Deze cockpit genereert niets live. Casuïstiek, werkopdrachten en examenvragen worden vooraf gebouwd in een kwaliteits-pipeline.
+      </p>
+
+      <div class="action-grid">
+        <label>
+          Zoekvraag
+          <input data-field="query" data-cta-id="cta-kw1c-query" data-action="edit" placeholder="bijv. COPD, zuurstof, WP2.3" />
+        </label>
+
+        <label>
+          KD code (optioneel)
+          <input data-field="kd_code" data-cta-id="cta-kw1c-kd-code" data-action="edit" placeholder="bijv. WP2.3" />
+        </label>
+
+        <label>
+          Type
+          <select data-field="material_type" data-cta-id="cta-kw1c-type" data-action="select">
+            <option value="">Alles</option>
+            <option value="casus">Casuïstiek</option>
+            <option value="werkopdracht">Werkopdracht</option>
+            <option value="examen">Examenvraag</option>
+          </select>
+        </label>
+
+        <label>
+          Taalvariant
+          <select data-field="language_variant" data-cta-id="cta-kw1c-language" data-action="select">
+            <option value="b2">B2</option>
+            <option value="b1">B1</option>
+            <option value="a2">A2</option>
+            <option value="ar">Arabisch (met NL termen)</option>
+          </select>
+        </label>
+
+        <button class="btn-primary" data-cta-id="cta-kw1c-search" data-action="action" type="button">
+          Zoeken
+        </button>
+
+        <button class="btn-secondary" data-cta-id="cta-kw1c-refresh" data-action="action" type="button">
+          Refresh
+        </button>
+      </div>
+
+      <div class="card" style="margin-top: 1rem;">
+        <h3>Resultaten</h3>
+        <p class="muted">
+          Alleen vooraf gebouwde items. Als er niets is, zie je een lege lijst (geen live generatie).
+        </p>
+        <ul data-list="curated_results">
+          <li>
+            <strong data-field="result_title">—</strong>
+            <span class="muted" data-field="result_meta">—</span>
+            <button data-cta-id="cta-kw1c-open-result" data-action="action" type="button">Open</button>
+          </li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Tools</h2>
+      <div class="action-grid">
+        <button data-cta-id="cta-kw1c-open-lesson-kits" data-action="navigate" data-target="/teacher/lesson-kits" class="action-btn">
+          Lesson Kits
+        </button>
+        <button data-cta-id="cta-kw1c-open-mes" data-action="navigate" data-target="/teacher/teachergpt/mes" class="action-btn">
+          MES aanbevelingen
+        </button>
+      </div>
+    </section>
+  </main>
+</body>
+</html>
+

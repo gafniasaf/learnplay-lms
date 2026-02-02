@@ -31,6 +31,9 @@ if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
   throw new Error("SUPABASE_URL and SUPABASE_ANON_KEY are required");
 }
 
+const MIN_SIMILARITY = 0.25;
+const MES_TEST_PREFIX = "mes:e2e-";
+
 type ChatMessage = { role: "user" | "assistant"; content: string };
 
 function parseMessages(raw: unknown): ChatMessage[] {
@@ -212,6 +215,58 @@ function detectRecommendationIntent(queryText: string): boolean {
   return false;
 }
 
+type MultiWeekIntent = { weeks: number; hoursPerWeek: number; level: "n3" | "n4" | "combi" };
+
+function parseWeeksCount(queryText: string): number | null {
+  const q = normalizeText(queryText);
+  if (!q) return null;
+  const match = q.match(/(\d+)\s*weken?/i);
+  if (match) {
+    const n = Number(match[1]);
+    return Number.isFinite(n) && n >= 2 ? Math.floor(n) : null;
+  }
+  if (q.includes("lessenserie") || q.includes("lessenreeks") || q.includes("weekplan") || q.includes("weekplanning")) {
+    return 9;
+  }
+  return null;
+}
+
+function parseHoursPerWeek(queryText: string): number {
+  const q = normalizeText(queryText);
+  const hourMatch = q.match(/(\d+(?:[.,]\d+)?)\s*(uur|u)\b/i);
+  if (hourMatch) {
+    const raw = hourMatch[1].replace(",", ".");
+    const hours = Number(raw);
+    if (Number.isFinite(hours) && hours > 0) return hours;
+  }
+  const minMatch = q.match(/(\d+)\s*(min|minuten|minutes)\b/i);
+  if (minMatch) {
+    const minutes = Number(minMatch[1]);
+    if (Number.isFinite(minutes) && minutes > 0) return Math.max(0.5, minutes / 60);
+  }
+  return 2;
+}
+
+function parseLevel(queryText: string): "n3" | "n4" | "combi" {
+  const q = normalizeText(queryText);
+  const hasN3 = /\bn3\b|niveau\s*3/.test(q);
+  const hasN4 = /\bn4\b|niveau\s*4/.test(q);
+  const hasCombi = q.includes("combi") || q.includes("combiklas") || q.includes("combigroep");
+  if (hasCombi || (hasN3 && hasN4)) return "combi";
+  if (hasN4) return "n4";
+  return "n3";
+}
+
+function detectMultiWeekIntent(queryText: string): MultiWeekIntent | null {
+  const weeks = parseWeeksCount(queryText);
+  if (!weeks) return null;
+  return {
+    weeks,
+    hoursPerWeek: parseHoursPerWeek(queryText),
+    level: parseLevel(queryText),
+  };
+}
+
 function detectLessonPlanIntent(queryText: string): boolean {
   const q = normalizeText(queryText);
   if (!q) return false;
@@ -256,6 +311,14 @@ function detectKdQueryIntent(queryText: string): boolean {
   ];
 
   return kdTriggers.some((t) => q.includes(t));
+}
+
+function filterCitations(items: Citation[]): Citation[] {
+  return items.filter((c) => {
+    if (!Number.isFinite(c.similarity) || c.similarity < MIN_SIMILARITY) return false;
+    if (c.source === "mes" && String(c.course_id || "").toLowerCase().startsWith(MES_TEST_PREFIX)) return false;
+    return true;
+  });
 }
 
 // Pre-computed KD knowledge for combiklas analysis
@@ -374,7 +437,63 @@ serve(async (req: Request): Promise<Response> => {
     }
 
     const queryText = latestUserMessage(messages);
+    const multiWeekIntent = detectMultiWeekIntent(queryText);
     const wantsLessonPlan = detectLessonPlanIntent(queryText);
+    if (multiWeekIntent) {
+      requireEnv("OPENAI_API_KEY");
+
+      const topK = Math.min(20, Math.max(3, Number.isFinite(Number(body?.topK)) ? Math.floor(Number(body.topK)) : 8));
+      const jobPayload = {
+        step: "init",
+        queryText,
+        messages,
+        scope,
+        materialId,
+        topK,
+        weeks: multiWeekIntent.weeks,
+        hoursPerWeek: multiWeekIntent.hoursPerWeek,
+        level: multiWeekIntent.level,
+      };
+
+      const insert: Record<string, unknown> = {
+        organization_id: organizationId,
+        job_type: "generate_multi_week_plan",
+        status: "queued",
+        payload: jobPayload,
+      };
+      if (auth.type === "user" && auth.userId) {
+        insert.created_by = auth.userId;
+      } else if (auth.type === "agent" && auth.userId) {
+        insert.created_by = auth.userId;
+      }
+
+      const { data: created, error: createErr } = await adminSupabase
+        .from("ai_agent_jobs")
+        .insert(insert)
+        .select("id")
+        .single();
+
+      if (createErr || !created?.id) {
+        console.error(`[teacher-chat-assistant] enqueue_multi_week_plan_failed (${requestId}):`, createErr);
+        return json({
+          ok: false,
+          error: { code: "internal_error", message: "Failed to enqueue multi-week lesson plan job" },
+          httpStatus: 500,
+          requestId,
+        }, 200);
+      }
+
+      const jobId = String((created as any).id);
+      return json({
+        ok: true,
+        answer: `Ik maak een lessenserie van ${multiWeekIntent.weeks} weken. Dit kan een paar minuten duren. Ik laat het weten zodra het klaar is.`,
+        citations: [],
+        recommendations: [],
+        requestId,
+        jobId,
+      }, 200);
+    }
+
     if (wantsLessonPlan) {
       // Async, quality-first pipeline: enqueue a long-running job (yield/requeue supported).
       // The UI can poll `get-job?id=<jobId>` for result + progress events.
@@ -461,6 +580,7 @@ serve(async (req: Request): Promise<Response> => {
         .sort((a, b) => b.similarity - a.similarity)
         .slice(0, topK);
     }
+    citations = filterCitations(citations);
 
     const allowMes = scope !== "materials";
     const allowCurated = scope !== "mes";

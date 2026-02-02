@@ -13,6 +13,7 @@ import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { useJobQuota } from '@/hooks/useJobQuota';
 import { useMCP } from '@/hooks/useMCP';
+import { makeCourseIdFromSubject } from '@/lib/courseIds';
 
 const GRADE_OPTIONS = ['K-2', '3-5', '6-8', '9-12', 'College', 'All'];
 const MODE_OPTIONS = [
@@ -43,7 +44,7 @@ export function QuickStartPanel({ onJobCreated }: QuickStartPanelProps) {
     setCreating(true);
 
     try {
-      const courseId = `${subject.toLowerCase().replace(/\s+/g, '-')}-${Date.now()}`;
+      const courseId = makeCourseIdFromSubject(subject);
 
       const payload: Record<string, unknown> = {
         course_id: courseId,

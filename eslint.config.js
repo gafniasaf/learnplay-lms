@@ -14,7 +14,9 @@ export default tseslint.config(
     ignores: [
       "dist",
       ".tmp/**",
+      "coverage/**",
       "lms-mcp/dist/**",
+      "queue-pump/dist/**",
       "supabase/functions/**",
       "reports/**",
       "test-results/**",
@@ -89,6 +91,21 @@ export default tseslint.config(
       "@typescript-eslint/no-explicit-any": "off",
       "ignite-zero/no-direct-supabase-ui": "off", // Backend handlers can access Supabase directly
       "no-empty": "off", // Allow empty catch blocks in handlers
+    },
+  },
+  {
+    // queue-pump is a backend worker service; it can access Supabase directly.
+    files: ["queue-pump/src/**/*.{ts,tsx}"],
+    languageOptions: {
+      ecmaVersion: 2020,
+      globals: globals.node,
+    },
+    rules: {
+      "ignite-zero/no-direct-supabase-ui": "off",
+      "ignite-zero/no-direct-edge-calls": "off",
+      "no-empty": "off",
+      "@typescript-eslint/no-var-requires": "off",
+      "@typescript-eslint/no-require-imports": "off",
     },
   },
 );

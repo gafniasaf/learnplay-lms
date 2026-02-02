@@ -172,6 +172,18 @@ serve(withCors(async (req) => {
       query = query.or(`title.ilike.%${search}%,subject.ilike.%${search}%,id.ilike.%${search}%`);
     }
 
+    // Exclude test/smoke/e2e courses from catalog (unless explicitly searching for them)
+    // Filter by ID patterns only (title may be null for valid courses)
+    const isTestSearch = search && /\b(test|smoke|e2e|verify)\b/i.test(search);
+    if (!isTestSearch) {
+      query = query
+        .not('id', 'ilike', 'e2e-%')
+        .not('id', 'ilike', '%e2e-%')
+        .not('id', 'ilike', 'smoke-%')
+        .not('id', 'ilike', 'verify-live-%')
+        .not('id', 'ilike', 'test-%');
+    }
+
     // Apply sorting
     switch (sort) {
       case 'title_asc':

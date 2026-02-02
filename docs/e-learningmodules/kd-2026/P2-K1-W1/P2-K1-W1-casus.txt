@@ -1,0 +1,113 @@
+Casus: Klinisch redeneren bij complexe zorgvrager
+
+1. Leerdoel
+Na deze casus kun je:
+- Systematisch klinisch redeneren toepassen
+- Meerdere verpleegkundige diagnoses prioriteren
+- Onderscheid maken tussen actuele en risico-diagnoses
+- Een verpleegplan opstellen met onderbouwing
+
+2. De situatie
+Setting:
+Je werkt als verpleegkundige op een medium care afdeling van een ziekenhuis.
+
+Zorgvrager:
+Mevrouw Van Houten, 72 jaar
+Opnamedatum: 2 dagen geleden
+Medische diagnose: pneumonie, diabetes mellitus type 2, hartfalen
+
+3. Gegevens bij opname
+Voorgeschiedenis:
+- Diabetes sinds 15 jaar, insuline-afhankelijk
+- Hartfalen NYHA klasse II
+- Hypertensie
+- Artrose knieën
+- Alleenwonend sinds overlijden echtgenoot (1 jaar geleden)
+
+Reden opname:
+- Koorts (39.2°C), productieve hoest, benauwdheid
+- Thuis gevallen door duizeligheid
+- Dochter vond haar in de war
+
+4. Actuele gegevens (dag 3)
+Vitale functies:
+- Temperatuur: 37.8°C (was 39.2°C bij opname)
+- Bloeddruk: 145/90 mmHg
+- Pols: 92/min, regelmatig
+- Ademfrequentie: 22/min
+- Saturatie: 94% met 2 liter O2
+- Bloedsuiker: 14.2 mmol/l (nuchter)
+
+Observaties:
+- Hoest nog productief, groenig sputum
+- Kortademig bij lopen naar toilet
+- Wil niet uit bed komen ("te moe")
+- Eet 50% van maaltijden
+- Drinkt weinig spontaan
+- Huilt soms, zegt: "Ik word niet meer beter"
+- Vraagt vaak naar haar man
+- 's Nachts onrustig, roept
+- Huid droog, turgor verminderd
+- Rode plek op stuit (niet-wegdrukbaar)
+
+Labwaarden:
+- CRP: 120 (dalend, was 180)
+- Creatinine: licht verhoogd
+- Natrium: 132 (licht verlaagd)
+
+5. Vragen bij de casus
+
+Vraag 1: Gegevens clusteren
+Maak minimaal 3 clusters van gerelateerde gegevens. Geef elk cluster een thema.
+
+Vraag 2: Verpleegkundige diagnoses
+Formuleer minimaal 3 verpleegkundige diagnoses (actueel of risico) in PES-structuur.
+
+Vraag 3: Prioriteren
+Rangschik je diagnoses op urgentie. Welke pak je als eerste aan? Onderbouw je keuze.
+
+Vraag 4: Interventies
+Kies je prioriteit 1 diagnose. Beschrijf 4 concrete verpleegkundige interventies.
+
+Vraag 5: Evaluatiecriteria
+Hoe weet je of je interventies werken? Noem meetbare criteria.
+
+6. Aanvullende informatie
+De dochter vertelt:
+- Moeder at en dronk thuis al weken slecht
+- Ze vergeet haar insuline soms
+- Sinds vaders overlijden is ze veranderd
+- Ze wil niet naar dagbesteding of hulp accepteren
+
+De arts zegt:
+- Pneumonie reageert op antibiotica
+- Ontslag over 2-3 dagen als het zo doorgaat
+- Vraagt om verpleegkundige inschatting over ontslag naar huis
+
+7. Observatiepunten voor de docent
+[ ] Student clustert gegevens systematisch
+[ ] Diagnoses zijn verpleegkundig en in PES-structuur
+[ ] Student herkent zowel fysieke als psychosociale problemen
+[ ] Prioritering is onderbouwd
+[ ] Interventies zijn concreet en verpleegkundig
+[ ] Student denkt aan evaluatiecriteria
+[ ] Student ziet de complexiteit en samenhang
+
+8. Nabespreking
+Discussievragen:
+- Welke diagnose vonden jullie het belangrijkst? Waarom?
+- Hoe hangen de diagnoses met elkaar samen?
+- Wat zou je de arts adviseren over ontslag?
+- Welke disciplines betrek je bij deze zorgvrager?
+
+9. Modelantwoorden (voor docent)
+Vraag 2 - Mogelijke diagnoses:
+1. "Dreigende huiddefect (decubitus) gerelateerd aan immobiliteit en verminderde voedingstoestand blijkend uit niet-wegdrukbare roodheid op stuit, weinig uit bed komen, verminderde inname"
+
+2. "Risico op vochttekort gerelateerd aan koorts, verminderde inname en diureticagebruik blijkend uit verminderde huidturgor, laag natrium, weinig spontaan drinken"
+
+3. "Rouw gerelateerd aan verlies van echtgenoot blijkend uit huilen, uitspraken over niet beter worden, vragen naar echtgenoot, veranderd gedrag sinds overlijden"
+
+4. "Ineffectieve ademhaling gerelateerd aan pneumonie en hartfalen blijkend uit verhoogde ademfrequentie, kortademigheid bij inspanning, zuurstofdependentie"
+
+5. "Verminderde zelfzorg gerelateerd aan vermoeidheid en somberheid blijkend uit weinig willen eten/drinken, niet uit bed komen, niet meer voor zichzelf willen zorgen"

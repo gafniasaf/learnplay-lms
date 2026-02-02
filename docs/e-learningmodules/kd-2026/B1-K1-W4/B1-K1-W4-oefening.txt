@@ -1,0 +1,109 @@
+Oefening: Medicatiecheck met de 5 juistheden
+
+1. Leerdoel
+Na deze oefening kun je:
+- De 5 juistheden systematisch controleren
+- Fouten in medicatievoorschriften herkennen
+- Correct handelen bij twijfel of fouten
+- Het belang van dubbelcontrole uitleggen
+
+2. Benodigdheden
+- Oefenmedicatie (lege verpakkingen of placebo)
+- Medicatieoverzichten (voorbeelden)
+- Checklist 5 juistheden
+- Pen en papier
+
+3. Instructie
+Je gaat oefenen met het controleren van medicatie volgens de 5 juistheden.
+
+Stap 1: Bestudeer de voorbeeldsituaties
+Hieronder staan 5 situaties. Bij elke situatie controleer je of de 5 juistheden kloppen.
+
+Stap 2: Vul de checklist in
+Noteer bij elke situatie wat er wel en niet klopt.
+
+Stap 3: Bepaal je actie
+Wat zou je doen in elke situatie? Geef je de medicatie of niet?
+
+4. Voorbeeldsituaties
+
+Situatie 1:
+Zorgvrager: Mevrouw Jansen, kamer 12
+Medicatie op medicatielijst: Metformine 500 mg, 2x daags bij de maaltijd
+Je hebt in je hand: Metformine 500 mg
+Tijdstip: 8:00 uur, voor het ontbijt
+Toedieningsweg: oraal
+
+Situatie 2:
+Zorgvrager: Meneer De Vries, kamer 8
+Medicatie op medicatielijst: Insuline Lantus 20 E, 1x daags om 22:00 uur
+Je hebt in je hand: Insuline Novorapid 20 E
+Tijdstip: 22:00 uur
+Toedieningsweg: subcutane injectie
+
+Situatie 3:
+Zorgvrager: Mevrouw Bakker, kamer 15
+Medicatie op medicatielijst: Paracetamol 1000 mg, max 4x daags bij pijn
+Je hebt in je hand: Paracetamol 500 mg
+Tijdstip: 14:00 uur, mevrouw heeft pijn
+Vorige gift: 10:00 uur (1000 mg)
+
+Situatie 4:
+Zorgvrager: Meneer Pietersen, kamer 3
+Medicatie op medicatielijst: Omeprazol 20 mg, 1x daags 's ochtends nuchter
+Je hebt in je hand: Omeprazol 20 mg
+Tijdstip: 8:30 uur, na het ontbijt
+Toedieningsweg: oraal
+
+Situatie 5:
+Zorgvrager: Mevrouw Smit, kamer 22
+Medicatie op medicatielijst: Oogdruppels Timolol 0,5%, 2x daags beide ogen
+Je hebt in je hand: Oogdruppels Timolol 0,5%, op naam van mevrouw Smit
+Tijdstip: 8:00 uur
+Je ziet op de verpakking: "Na openen 4 weken houdbaar" (geopend 5 weken geleden)
+
+5. Checklist 5 juistheden
+
+Situatie ___
+
+[ ] Juiste zorgvrager
+Naam op medicatie = naam zorgvrager?
+Kamernummer geverifieerd?
+
+[ ] Juiste medicijn
+Naam medicijn klopt met voorschrift?
+Sterkte klopt?
+
+[ ] Juiste dosering
+Aantal/hoeveelheid klopt?
+
+[ ] Juiste tijdstip
+Tijdstip klopt met voorschrift?
+Tijd sinds vorige gift voldoende?
+
+[ ] Juiste toedieningsweg
+Oraal/injectie/uitwendig klopt?
+
+Conclusie: [ ] Mag gegeven worden [ ] Niet geven, want: ___________
+
+6. Beoordelingspunten
+De docent/begeleider let op:
+[ ] Student controleert alle 5 juistheden
+[ ] Student herkent de fouten
+[ ] Student stopt bij twijfel
+[ ] Student weet wat te doen bij een fout
+[ ] Student begrijpt het belang van dubbelcontrole
+
+7. Nabespreking
+Bespreek in de groep:
+- Welke fouten heb je gevonden?
+- Wat zou je in elke situatie doen?
+- Wanneer vraag je om dubbelcontrole?
+- Wat doe je als je per ongeluk verkeerd hebt gegeven?
+
+Antwoorden:
+1. Klopt
+2. Fout: verkeerd medicijn (Lantus ≠ Novorapid)
+3. Fout: verkeerde dosering (500 mg i.p.v. 1000 mg)
+4. Fout: verkeerd tijdstip (niet nuchter)
+5. Fout: medicijn over houdbaarheid

@@ -1,0 +1,85 @@
+ABCDE-methodiek bij acute situaties
+
+1. Inleiding
+In de zorg kun je te maken krijgen met acute situaties. Denk aan een zorgvrager die plotseling benauwd wordt, niet meer reageert of flauwvalt. In zulke momenten is snel en gestructureerd handelen belangrijk. De ABCDE-methodiek helpt je om stap voor stap te werken. Je mist geen belangrijke signalen en je weet wat je eerst moet doen.
+
+ABCDE staat voor Airway, Breathing, Circulation, Disability en Exposure. Je werkt altijd in deze volgorde. Eerst controleer je de luchtweg, dan de ademhaling, dan de circulatie, dan het bewustzijn en tot slot bekijk je het hele lichaam. Deze volgorde is niet willekeurig. Een probleem met de luchtweg is het meest urgent. Zonder vrije luchtweg kan iemand niet ademen.
+
+2. Wat je moet weten
+De ABCDE-methodiek is een internationale standaard. Zowel in het ziekenhuis als in de thuiszorg en verpleeghuizen wordt deze methode gebruikt. Het doel is om snel te beoordelen hoe ernstig de situatie is en om levensbedreigende problemen direct aan te pakken.
+
+De vijf stappen:
+
+A - Airway (luchtweg)
+Is de luchtweg vrij? Kan de zorgvrager praten of hoesten? Hoor je snurken, gorgelen of piepen? Een vrije luchtweg is de eerste voorwaarde voor leven.
+
+B - Breathing (ademhaling)
+Ademt de zorgvrager? Hoe snel? Hoe diep? Zie je de borstkas bewegen? Meet de zuurstofsaturatie als je een meter hebt. Normale ademhaling is 12-20 keer per minuut.
+
+C - Circulation (bloedsomloop)
+Hoe is de pols? Snel, langzaam, zwak of sterk? Hoe ziet de huid eruit? Bleek, grauw, klam? Meet de bloeddruk als dat kan. Let op tekenen van shock.
+
+D - Disability (bewustzijn)
+Is de zorgvrager wakker en alert? Reageert hij op aanspreken? Reageert hij alleen op pijn? Of reageert hij helemaal niet? Gebruik de AVPU-schaal: Alert, Voice, Pain, Unresponsive.
+
+E - Exposure (blootstelling)
+Bekijk het hele lichaam. Zoek naar wonden, bloedingen, huidafwijkingen of andere bijzonderheden. Houd de zorgvrager warm om onderkoeling te voorkomen.
+
+3. Werken in de praktijk
+Bij een acute situatie volg je deze stappen:
+
+Stap 1: Veiligheid
+Zorg dat de omgeving veilig is voor jou en de zorgvrager. Roep om hulp als dat nodig is.
+
+Stap 2: A - Airway
+Spreek de zorgvrager aan. Kan hij antwoorden? Kijk in de mond. Is er iets dat de luchtweg blokkeert? Breng zo nodig het hoofd in de juiste positie (kin omhoog, hoofd iets naar achteren).
+
+Stap 3: B - Breathing
+Tel de ademhaling gedurende 15 seconden en vermenigvuldig met 4. Kijk of de borstkas gelijkmatig beweegt. Meet de saturatie. Geef zuurstof als dat is afgesproken en nodig is.
+
+Stap 4: C - Circulation
+Voel de pols aan de pols of hals. Tel de hartslag. Bekijk de huid: kleur, temperatuur, vochtigheid. Meet de bloeddruk. Let op bloedingen.
+
+Stap 5: D - Disability
+Bepaal het bewustzijnsniveau met AVPU. Controleer de pupillen als je dat kunt. Let op verwardheid of onrust.
+
+Stap 6: E - Exposure
+Ontbloot het lichaam om alles te kunnen zien. Zoek naar verborgen problemen. Dek de zorgvrager daarna weer toe.
+
+Stap 7: Melden en overdragen
+Geef je bevindingen door met SBAR. Bel 112 of de arts als de situatie daarom vraagt. Blijf bij de zorgvrager en blijf observeren.
+
+4. Samenwerken en communiceren
+Bij acute situaties werk je samen. Eén persoon leidt de ABCDE, anderen helpen met meten, bellen en noteren. Communiceer kort en duidelijk. Gebruik SBAR bij overdracht aan arts of ambulance.
+
+Voorbeeld SBAR bij acute situatie:
+S: Zorgvrager reageert niet meer en ademt oppervlakkig.
+B: Bekend met hartfalen, gebruikt diuretica.
+A: Saturatie 85%, ademhaling 28, pols zwak en snel, niet aanspreekbaar.
+R: Graag direct beoordeling, ik denk aan acute verslechtering.
+
+5. Veelgemaakte fouten en aandachtspunten
+Veelgemaakte fouten:
+- Stappen overslaan of in verkeerde volgorde doen
+- Te lang wachten met hulp inschakelen
+- Vergeten om te blijven observeren na eerste beoordeling
+- Geen saturatie of bloeddruk meten terwijl dat wel kan
+
+Aandachtspunten:
+- Oefen regelmatig met ABCDE, zodat het automatisch gaat
+- Ken de alarmnummers en protocollen van je werkplek
+- Houd materialen zoals saturatiemeter en bloeddrukmeter binnen handbereik
+- Blijf kalm en werk systematisch
+
+6. Checklist ABCDE
+
+[ ] A - Is de luchtweg vrij? Kan de zorgvrager praten?
+[ ] B - Ademt de zorgvrager? Frequentie? Saturatie?
+[ ] C - Hoe is de pols? Bloeddruk? Huidkleur?
+[ ] D - Bewustzijnsniveau (AVPU)?
+[ ] E - Hele lichaam bekeken? Bijzonderheden?
+[ ] Hulp ingeschakeld indien nodig?
+[ ] Bevindingen gerapporteerd (SBAR)?
+
+7. Samenvatting
+De ABCDE-methodiek is een vaste structuur voor het beoordelen van acute situaties. Je werkt van A naar E en pakt problemen direct aan. Door systematisch te werken mis je niets en kun je snel de juiste hulp inschakelen. Oefen regelmatig zodat je in een echte situatie weet wat je moet doen.

@@ -1,0 +1,105 @@
+Casus: Verbetervoorstel evidence-based
+
+1. Leerdoel
+Na deze casus kun je:
+- Een verbeterpunt signaleren en analyseren
+- Evidence zoeken ter onderbouwing
+- Een verbetervoorstel formuleren
+- Het voorstel presenteren aan je team
+
+2. De situatie
+Setting:
+Je werkt als verpleegkundige op een afdeling geriatrie in een ziekenhuis. Je bent lid van de werkgroep kwaliteit.
+
+Het probleem:
+De afgelopen 3 maanden zijn er 8 valincidenten geweest op de afdeling. Bij 3 daarvan raakten patiënten gewond (2x heupfractuur, 1x hoofdwond). De teamleider vraagt of jij een verbetervoorstel kunt maken.
+
+3. De analyse
+Je hebt de VIM-meldingen doorgenomen:
+
+Tijdstippen:
+- 5 van de 8 vallen waren 's nachts of vroeg in de ochtend
+- 3 waren rondom toiletgang
+
+Patiënten:
+- 7 van de 8 patiënten hadden cognitieve problemen (delier of dementie)
+- 6 gebruikten slaap- of kalmeringsmedicatie
+- 4 waren recent opgenomen (<3 dagen)
+
+Omstandigheden:
+- 4 patiënten gingen zelf uit bed zonder te bellen
+- 2 gleden uit op de badkamervloer
+- 2 vielen bij een transfer
+
+Huidige situatie:
+- Er is een protocol valpreventie, maar collega's zeggen dat ze het niet goed kennen
+- Valrisico wordt bij opname gescoord maar niet herhaald
+- Er zijn bedhekken maar die mogen niet zomaar omhoog
+- De verlichting op de gang is 's nachts gedimd
+
+4. Vragen bij de casus
+
+Vraag 1: Analyse
+Wat zijn de belangrijkste risicofactoren die je ziet? Maak een top 3.
+
+Vraag 2: Evidence zoeken
+Welke bronnen zou je raadplegen om te zoeken naar best practices? Noem er 3.
+
+Vraag 3: Mogelijke interventies
+Bedenk minimaal 4 interventies die de valincidenten zouden kunnen verminderen.
+
+Vraag 4: Verbetervoorstel
+Schrijf een kort verbetervoorstel (max 10 zinnen) dat je aan de teamleider zou presenteren.
+
+Vraag 5: Implementatie
+Hoe zou je zorgen dat het verbetervoorstel ook echt wordt uitgevoerd?
+
+5. Aanvullende informatie
+Na een literatuursearch vind je:
+
+Richtlijn valpreventie (V&VN):
+- Valrisicoscreening bij opname én bij verandering conditie
+- Multifactoriële interventies effectiever dan enkelvoudige
+- Medicatiereview bij risicopatiënten
+- Omgevingsaanpassingen (verlichting, vrijheidsbeperkende maatregelen vermijden)
+
+Onderzoek uit 2023:
+- Sensormatten onder bed verminderen nachtelijke vallen met 30%
+- Purposeful hourly rounding (elk uur even checken) vermindert vallen met 25%
+
+Ervaringen andere afdelingen:
+- Afdeling B gebruikt sinds half jaar bedsensoren en heeft minder vallen
+- Afdeling C heeft de valscreening in het opnameprotocol gezet
+
+6. Observatiepunten voor de docent
+[ ] Student analyseert de data systematisch
+[ ] Student zoekt naar evidence (niet alleen mening)
+[ ] Interventies zijn evidence-based
+[ ] Voorstel is concreet en haalbaar
+[ ] Student denkt aan implementatie
+[ ] Student betrekt het team bij de oplossing
+
+7. Nabespreking
+Discussievragen:
+- Hoe overtuig je collega's om iets nieuws te proberen?
+- Wat doe je als er geen budget is voor sensoren?
+- Hoe meet je of je interventie werkt?
+- Wat is de rol van de patiënt en familie bij valpreventie?
+
+8. Modelantwoorden (voor docent)
+Vraag 1 - Top 3 risicofactoren:
+1. Cognitieve problemen (7/8 patiënten)
+2. Nachtelijke timing / toiletgang (5/8 situaties)
+3. Slaap-/kalmeringsmedicatie (6/8 patiënten)
+
+Vraag 3 - Interventies:
+1. Herscreening valrisico bij verandering conditie
+2. Sensormatten bij hoogrisicogroep
+3. Medicatiereview i.s.m. apotheker
+4. Purposeful rounding (elk uur even checken) 's nachts
+5. Verbeterde verlichting naar toilet
+6. Scholing team over protocol
+7. Familie informeren en betrekken
+
+Vraag 4 - Verbetervoorstel:
+"Uit analyse van de VIM-meldingen blijkt dat de meeste valincidenten 's nachts plaatsvinden bij patiënten met cognitieve problemen. Ik stel voor om drie maatregelen te nemen: (1) herhaalde valrisicoscreening na opname en bij verandering, (2) pilot met sensormatten bij de 5 hoogrisicopatiënten, en (3) invoeren van nachtelijke rondes elk uur. Op basis van de literatuur kan dit het aantal vallen met 25-30% verminderen. Ik stel voor dit 3 maanden uit te proberen en dan te evalueren."

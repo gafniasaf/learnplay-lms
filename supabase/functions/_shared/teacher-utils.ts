@@ -16,6 +16,9 @@ export function requireEnv(name: string): string {
   return v;
 }
 
+const MIN_SIMILARITY = 0.25;
+const MES_TEST_DOC_PREFIX = "e2e-";
+
 export function normalizeText(input: string): string {
   return String(input || "").toLowerCase().trim();
 }
@@ -125,6 +128,7 @@ export type LessonPlan = {
   discussionQuestions: Array<{ question: string; expectedAnswers: string[] }>;
   groupWork?: { title: string; steps: string[]; durationMinutes: number };
   kdAlignment: { code: string; title: string };
+  qualityFlags?: string[];
   // Enhanced fields for comprehensive lesson planning
   assignments?: Array<{
     type: "huiswerk" | "praktijk" | "reflectie" | "toets" | "portfolio";
@@ -136,6 +140,54 @@ export type LessonPlan = {
   assessmentCriteria?: string[]; // What the student should demonstrate
   differentiationTips?: { n3?: string; n4?: string }; // Tips for mixed-level classes
   materials?: string[]; // Required materials/resources
+};
+
+export type MultiWeekOverview = {
+  meta: {
+    title: string;
+    duration: { weeks: number; hoursPerWeek: number };
+    level: "n3" | "n4" | "combi";
+    kdCoverage: string[];
+  };
+  quickStart: {
+    objective: string;
+    themes: string[];
+    structure: { start: number; kern: number; afsluiting: number };
+  };
+  overview: Array<{
+    week: number;
+    title: string;
+    kdCode: string;
+    keyConcepts: string[];
+    theme?: string;
+  }>;
+  qualityFlags?: string[];
+};
+
+export type WeekPlan = {
+  week: number;
+  title: string;
+  kdCode: string;
+  oneLiner: string;
+  keyConcepts: string[];
+  theme?: string;
+  timeAllocation: { start: number; kern: number; afsluiting: number };
+  teacherScript: Array<{
+    timeRange: string;
+    phase: "start" | "kern" | "afsluiting";
+    action: string;
+    content: string;
+    activity?: string;
+  }>;
+  materials: string[];
+  discussionQuestions: Array<{ question: string; expectedAnswers: string[] }>;
+  groupWork?: { title: string; steps: string[]; durationMinutes: number };
+  practiceAssignment?: string;
+  qualityFlags?: string[];
+};
+
+export type MultiWeekLessonPlan = MultiWeekOverview & {
+  weeks: WeekPlan[];
 };
 
 export type KdCheckItem = { ok: boolean; text: string };
@@ -356,6 +408,264 @@ export async function searchCuratedMaterials(args: {
   return results;
 }
 
+// === LLM RELEVANCE PICKER (for approved curated materials) ===
+//
+// Curated materials are assumed to be pre-generated + human-approved.
+// This helper uses the LLM to select which approved materials are actually relevant for a given request/week.
+// It may return [] when none of the candidates are suitable (preferred over picking irrelevant items).
+export async function pickRelevantCuratedMaterials(args: {
+  queryText: string;
+  weekTitle?: string;
+  weekTheme?: string;
+  keyConcepts?: string[];
+  candidates: CuratedMaterialResult[];
+  limit?: number;
+  timeoutMs?: number;
+}): Promise<CuratedMaterialResult[]> {
+  const limit = Math.max(0, Math.min(5, Math.floor(args.limit ?? 3)));
+  const candidates = Array.isArray(args.candidates) ? args.candidates : [];
+  if (candidates.length === 0 || limit === 0) return [];
+
+  // Keep prompt bounded; we'll let the LLM pick from a reasonable candidate set.
+  const pool = candidates.slice(0, 12);
+  const byId = new Map(pool.map((c) => [String(c.id || ""), c]));
+
+  const system = [
+    "Je bent een docent die uit GOEDGEKEURDE (menselijke) lesmaterialen selecteert.",
+    "Kies alleen materialen die DIRECT bruikbaar zijn voor de gevraagde les/week.",
+    "Als niets goed past: kies 0 materialen (liever leeg dan irrelevante selectie).",
+    "Output ALLEEN geldige JSON. Geen markdown.",
+  ].join("\n");
+
+  const prompt = [
+    `Docentvraag: ${args.queryText}`,
+    args.weekTitle ? `Week titel: ${args.weekTitle}` : "",
+    args.weekTheme ? `Week thema: ${args.weekTheme}` : "",
+    args.keyConcepts && args.keyConcepts.length ? `Kernbegrippen: ${args.keyConcepts.join(", ")}` : "",
+    "",
+    `Kies maximaal ${limit} materialen uit de lijst hieronder.`,
+    "Return JSON: { selectedIds: string[] }",
+    "",
+    "Materialen:",
+    pool
+      .map((m) => {
+        const preview = truncateSnippet(String(m.preview || ""), 260);
+        const kd = Array.isArray(m.kd_codes) && m.kd_codes.length ? m.kd_codes.join(", ") : "";
+        const bits = [
+          `- id: ${m.id}`,
+          `  title: ${m.title}`,
+          preview ? `  preview: ${preview}` : "",
+          m.category ? `  category: ${m.category}` : "",
+          m.course_name ? `  course_name: ${m.course_name}` : "",
+          kd ? `  kd_codes: ${kd}` : "",
+        ].filter(Boolean);
+        return bits.join("\n");
+      })
+      .join("\n\n"),
+  ].filter(Boolean).join("\n");
+
+  const timeoutMs = Number.isFinite(args.timeoutMs) ? Math.max(5_000, Math.floor(args.timeoutMs!)) : 25_000;
+  let lastError = "selection_failed";
+
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const res = await generateJson({
+      system,
+      prompt,
+      maxTokens: 700,
+      temperature: 0.1,
+      timeoutMs,
+    });
+    if (!res.ok) {
+      lastError = res.error || "generation_failed";
+      continue;
+    }
+
+    let parsed = parseJsonWithFixes(res.text);
+    if (!parsed || typeof parsed !== "object") {
+      const repairedJson = await repairJsonWithLLM({
+        schemaHint: "Schema: { selectedIds: string[] }",
+        rawText: res.text,
+        timeoutMs,
+      });
+      if (repairedJson && typeof repairedJson === "object") {
+        parsed = repairedJson;
+      }
+    }
+
+    if (!parsed || typeof parsed !== "object") {
+      lastError = "invalid_json_structure";
+      continue;
+    }
+
+    const rawIds = Array.isArray((parsed as any).selectedIds) ? (parsed as any).selectedIds : [];
+    const selected: CuratedMaterialResult[] = [];
+    const seen = new Set<string>();
+
+    for (const id of rawIds) {
+      const key = String(id || "").trim();
+      if (!key || seen.has(key)) continue;
+      const m = byId.get(key);
+      if (!m) continue;
+      seen.add(key);
+      selected.push(m);
+      if (selected.length >= limit) break;
+    }
+
+    return selected;
+  }
+
+  console.warn("[pickRelevantCuratedMaterials] failed:", lastError);
+  return [];
+}
+
+// LLM query expansion to improve recall for curated-material retrieval.
+// Returns a small set of short, high-signal queries (typically Dutch + synonyms/abbreviations).
+async function expandCuratedSearchQueriesWithLLM(args: {
+  queryText: string;
+  weekTitle?: string;
+  weekTheme?: string;
+  keyConcepts?: string[];
+  timeoutMs: number;
+}): Promise<string[]> {
+  const system = [
+    "Je bent een zoekterm-generator voor een database met Nederlandstalige MBO e-learningmodules (curated-materials).",
+    "Doel: maximale recall met korte, concrete zoektermen.",
+    "Output ALLEEN geldige JSON. Geen markdown.",
+  ].join("\n");
+
+  const prompt = [
+    `Docentvraag: ${args.queryText}`,
+    args.weekTitle ? `Week titel: ${args.weekTitle}` : "",
+    args.weekTheme ? `Week thema: ${args.weekTheme}` : "",
+    args.keyConcepts && args.keyConcepts.length ? `Kernbegrippen: ${args.keyConcepts.join(", ")}` : "",
+    "",
+    "Maak 4-8 zoekqueries (2-6 woorden) die waarschijnlijk in titels/categorieën/preview/keywords voorkomen.",
+    "Regels:",
+    "- Schrijf in het Nederlands (vertalen als input Engels is).",
+    "- Voeg synoniemen/varianten toe (bv. gesprek, gespreksvaardigheid, feedback, SBAR, overdracht, voorlichting).",
+    "- Geen zinnen, alleen zoektermen.",
+    "- Return JSON: { queries: string[] }",
+  ].filter(Boolean).join("\n");
+
+  let parsed: any | null = null;
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const res = await generateJson({
+      system,
+      prompt,
+      maxTokens: 500,
+      temperature: 0.2,
+      timeoutMs: args.timeoutMs,
+    });
+    if (!res.ok) continue;
+    parsed = parseJsonWithFixes(res.text);
+    if (parsed && typeof parsed === "object") break;
+    const repairedJson = await repairJsonWithLLM({
+      schemaHint: "Schema: { queries: string[] }",
+      rawText: res.text,
+      timeoutMs: args.timeoutMs,
+    });
+    if (repairedJson && typeof repairedJson === "object") {
+      parsed = repairedJson;
+      break;
+    }
+  }
+
+  const raw = Array.isArray(parsed?.queries) ? parsed.queries : [];
+  const cleaned = raw
+    .map((q: any) => String(q || "").trim())
+    .filter((q: string) => q.length >= 3)
+    .slice(0, 10);
+
+  // Dedupe (case-insensitive)
+  const out: string[] = [];
+  const seen = new Set<string>();
+  for (const q of cleaned) {
+    const k = q.toLowerCase();
+    if (seen.has(k)) continue;
+    seen.add(k);
+    out.push(q);
+    if (out.length >= 8) break;
+  }
+  return out;
+}
+
+export async function searchCuratedMaterialsSmart(args: {
+  organizationId: string;
+  queryText: string;
+  weekTitle?: string;
+  weekTheme?: string;
+  keyConcepts?: string[];
+  limit?: number;
+  topic_tag?: string;
+  timeoutMs?: number;
+}): Promise<CuratedMaterialResult[]> {
+  const limit = Math.min(50, Math.max(1, Number.isFinite(args.limit) ? Math.floor(args.limit!) : 16));
+  const baseQuery = String(args.queryText || "").trim();
+  if (!baseQuery) return [];
+
+  const timeoutMs = Number.isFinite(args.timeoutMs) ? Math.max(5_000, Math.floor(args.timeoutMs!)) : 25_000;
+
+  // 1) Start with the raw query
+  const first = await searchCuratedMaterials({
+    organizationId: args.organizationId,
+    query: baseQuery,
+    limit,
+    topic_tag: args.topic_tag,
+  });
+  if (first.length >= Math.min(limit, 6)) {
+    return first.slice(0, limit);
+  }
+
+  // 2) Expand with LLM to improve recall, then merge
+  const expanded = await expandCuratedSearchQueriesWithLLM({
+    queryText: baseQuery,
+    weekTitle: args.weekTitle,
+    weekTheme: args.weekTheme,
+    keyConcepts: args.keyConcepts,
+    timeoutMs,
+  });
+
+  const queries = [baseQuery, ...expanded].filter(Boolean);
+  const byId = new Map<string, { item: CuratedMaterialResult; score: number; hits: number }>();
+
+  for (const q of queries) {
+    const res = await searchCuratedMaterials({
+      organizationId: args.organizationId,
+      query: q,
+      limit: Math.min(30, Math.max(10, limit)),
+      topic_tag: args.topic_tag,
+    });
+    for (const r of res) {
+      const id = String(r.id || "");
+      if (!id) continue;
+      const existing = byId.get(id);
+      const baseScore = Number.isFinite(r.score) ? r.score : 0;
+      if (!existing) {
+        byId.set(id, { item: r, score: baseScore, hits: 1 });
+      } else {
+        existing.hits += 1;
+        existing.score = Math.max(existing.score, baseScore) + 2; // small boost for multi-query recall
+        // keep the richer item (prefer preview/storage fields if present)
+        existing.item = {
+          ...existing.item,
+          ...r,
+          preview: existing.item.preview || r.preview,
+          storage_bucket: existing.item.storage_bucket || r.storage_bucket,
+          storage_path: existing.item.storage_path || r.storage_path,
+          score: existing.score,
+        };
+      }
+    }
+  }
+
+  const merged = Array.from(byId.values())
+    .map((x) => ({ ...x.item, score: x.score }))
+    .sort((a, b) => (Number(b.score) || 0) - (Number(a.score) || 0))
+    .slice(0, limit);
+
+  return merged;
+}
+
 export async function fetchMaterialContent(args: {
   storageBucket: string;
   storagePath: string;
@@ -454,13 +764,17 @@ export async function generateLessonPlan(args: {
     "kdAlignment: {code, title}",
     "assignments: [{type, title, description}] (1 huiswerk/praktijk)",
     "eLearningTopics: [3 zoektermen]",
-    "materials: [benodigdheden]",
+    // IMPORTANT: "materials" refers to pre-approved, pre-generated lesson materials/resources.
+    // If no materials are provided in context, return [] (do not invent new materials).
+    "materials: [gebruikte goedgekeurde materialen] (kies alleen uit 'Materiaal' hierboven; gebruik exacte titels; verzin niets; anders [])",
   ].filter(Boolean).join("\n");
 
   const timeoutMs = Number.isFinite(args.timeoutMs) ? Math.max(5_000, Math.floor(args.timeoutMs!)) : 45_000;
 
   // Retry logic for robustness - keep bounded per attempt
   let lastError = "";
+  let repaired = false;
+  let relaxed = false;
   for (let attempt = 0; attempt < 2; attempt++) {
     const res = await generateJson({
       system,
@@ -498,8 +812,18 @@ export async function generateLessonPlan(args: {
           .replace(/[\x00-\x1F\x7F]/g, " "); // Remove control chars
         parsed = JSON.parse(fixed);
       } catch {
-        lastError = `json_parse_failed: ${String(e)}`;
-        continue;
+        const repairedJson = await repairJsonWithLLM({
+          schemaHint: "Schema: quickStart, teacherScript, discussionQuestions, kdAlignment",
+          rawText: jsonText,
+          timeoutMs,
+        });
+        if (repairedJson && typeof repairedJson === "object") {
+          parsed = repairedJson;
+          repaired = true;
+        } else {
+          lastError = `json_parse_failed: ${String(e)}`;
+          continue;
+        }
       }
     }
 
@@ -508,11 +832,15 @@ export async function generateLessonPlan(args: {
       continue;
     }
 
-    // Validate required fields exist
-    if (!parsed.quickStart || !parsed.teacherScript) {
-      lastError = "missing_required_fields";
-      continue;
+    const hasQuickStart = !!parsed.quickStart;
+    const hasTeacherScript = Array.isArray(parsed.teacherScript) && parsed.teacherScript.length > 0;
+    if (!hasQuickStart || !hasTeacherScript) {
+      relaxed = true;
     }
+
+    const qualityFlags: string[] = [];
+    if (repaired) qualityFlags.push("json_repair");
+    if (relaxed) qualityFlags.push("relaxed_constraints");
 
     return {
       quickStart: parsed.quickStart || { oneLiner: "", keyConcepts: [], timeAllocation: { start: 10, kern: 25, afsluiting: 10 } },
@@ -526,10 +854,689 @@ export async function generateLessonPlan(args: {
       assessmentCriteria: Array.isArray(parsed.assessmentCriteria) ? parsed.assessmentCriteria : undefined,
       differentiationTips: parsed.differentiationTips || undefined,
       materials: Array.isArray(parsed.materials) ? parsed.materials : undefined,
+      qualityFlags: qualityFlags.length ? qualityFlags : undefined,
     } as LessonPlan;
   }
 
-  throw new Error(`lesson_plan_generation_failed after retries: ${lastError}`);
+  return await rescueLessonPlan({ queryText: args.queryText, kdCode: primary.code, kdTitle: primary.titel, timeoutMs });
+}
+
+function parseJsonWithFixes(rawText: string): any | null {
+  let jsonText = String(rawText || "").trim();
+  if (!jsonText) return null;
+  if (jsonText.startsWith("```")) {
+    const match = jsonText.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+    if (match) jsonText = match[1].trim();
+  }
+  try {
+    return JSON.parse(jsonText);
+  } catch (e) {
+    try {
+      const fixed = jsonText
+        .replace(/,\s*}/g, "}")
+        .replace(/,\s*]/g, "]")
+        .replace(/[\x00-\x1F\x7F]/g, " ");
+      return JSON.parse(fixed);
+    } catch {
+      return null;
+    }
+  }
+}
+
+function normalizeTimeAllocation(totalMinutes: number, raw?: Record<string, unknown>): { start: number; kern: number; afsluiting: number } {
+  const startRaw = typeof raw?.start === "number" ? raw?.start : Number(raw?.start);
+  const afsluitingRaw = typeof raw?.afsluiting === "number" ? raw?.afsluiting : Number(raw?.afsluiting);
+
+  // Better defaults for teachers: allocate ~15% start and ~10% closure.
+  const defaultStart = Math.max(5, Math.min(25, Math.round(totalMinutes * 0.15)));
+  const defaultAfsluiting = Math.max(5, Math.min(20, Math.round(totalMinutes * 0.1)));
+
+  let start = Number.isFinite(startRaw) ? Math.max(5, Math.floor(startRaw)) : defaultStart;
+  let afsluiting = Number.isFinite(afsluitingRaw) ? Math.max(5, Math.floor(afsluitingRaw)) : defaultAfsluiting;
+
+  let kern = totalMinutes - start - afsluiting;
+  if (kern < 10) {
+    // Make room for a meaningful core section.
+    start = 5;
+    afsluiting = 5;
+    kern = Math.max(10, totalMinutes - start - afsluiting);
+  }
+
+  return { start, kern, afsluiting };
+}
+
+function asStringArray(value: unknown, max = 12): string[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((v) => (typeof v === "string" ? v.trim() : ""))
+    .filter((v) => v)
+    .slice(0, max);
+}
+
+function extractKeyConcepts(queryText: string, max = 3): string[] {
+  const tokens = String(queryText || "")
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}\s-]/gu, " ")
+    .split(/\s+/)
+    .map((t) => t.trim())
+    .filter((t) => t.length > 3);
+  const uniq: string[] = [];
+  for (const t of tokens) {
+    if (!uniq.includes(t)) uniq.push(t);
+    if (uniq.length >= max) break;
+  }
+  return uniq;
+}
+
+async function repairJsonWithLLM(args: { schemaHint: string; rawText: string; timeoutMs: number }): Promise<any | null> {
+  const system = [
+    "Je bent een JSON-reparateur.",
+    "Output ALLEEN geldige JSON. Geen markdown.",
+  ].join("\n");
+  const prompt = [
+    args.schemaHint,
+    "",
+    "Herstel het volgende antwoord naar geldige JSON volgens de instructies.",
+    "Antwoord:",
+    args.rawText.slice(0, 6000),
+  ].join("\n");
+
+  const res = await generateJson({
+    system,
+    prompt,
+    maxTokens: 2000,
+    temperature: 0,
+    timeoutMs: args.timeoutMs,
+  });
+  if (!res.ok) return null;
+  return parseJsonWithFixes(res.text);
+}
+
+async function rescueLessonPlan(args: { queryText: string; kdCode: string; kdTitle: string; timeoutMs: number }): Promise<LessonPlan> {
+  const system = [
+    "Je bent een MBO-curriculumontwikkelaar voor Verpleegkunde/VIG.",
+    "Output ALLEEN geldige JSON. Geen markdown.",
+    "Gebruik korte zinnen. Houd de output compact.",
+  ].join("\n");
+  const prompt = [
+    `Lesplan (compact) voor: ${args.queryText}`,
+    `KD: ${args.kdCode} - ${args.kdTitle}`,
+    "",
+    "JSON met deze velden:",
+    "quickStart: {oneLiner, keyConcepts[3], timeAllocation:{start,kern,afsluiting}}",
+    "teacherScript: [{time, phase, action, content}] (3-4 stappen)",
+    "discussionQuestions: [{question, expectedAnswers}] (1-2 vragen)",
+    "kdAlignment: {code, title}",
+    // Keep consistent semantics: do not invent "materials".
+    "materials: [gebruikte goedgekeurde materialen] (als er geen materiaal/context is: [])",
+  ].join("\n");
+
+  let lastError = "rescue_failed";
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const res = await generateJson({
+      system,
+      prompt,
+      maxTokens: 1400,
+      temperature: 0.2,
+      timeoutMs: args.timeoutMs,
+    });
+    if (!res.ok) {
+      lastError = res.error || "generation_failed";
+      continue;
+    }
+
+    let parsed = parseJsonWithFixes(res.text);
+    let repaired = false;
+    if (!parsed || typeof parsed !== "object") {
+      const repairedJson = await repairJsonWithLLM({
+        schemaHint: "Schema: quickStart, teacherScript, discussionQuestions, kdAlignment, materials",
+        rawText: res.text,
+        timeoutMs: args.timeoutMs,
+      });
+      if (repairedJson && typeof repairedJson === "object") {
+        parsed = repairedJson;
+        repaired = true;
+      }
+    }
+    if (!parsed || typeof parsed !== "object") {
+      lastError = "invalid_json_structure";
+      continue;
+    }
+
+    const hasQuickStart = !!(parsed as any).quickStart;
+    const hasTeacherScript = Array.isArray((parsed as any).teacherScript) && (parsed as any).teacherScript.length > 0;
+    if (!hasQuickStart || !hasTeacherScript) {
+      lastError = "missing_required_fields";
+      continue;
+    }
+
+    const qualityFlags = ["rescue_prompt"];
+    if (repaired) qualityFlags.push("json_repair");
+
+    return {
+      quickStart: (parsed as any).quickStart,
+      teacherScript: Array.isArray((parsed as any).teacherScript) ? (parsed as any).teacherScript : [],
+      discussionQuestions: Array.isArray((parsed as any).discussionQuestions) ? (parsed as any).discussionQuestions : [],
+      groupWork: (parsed as any).groupWork,
+      kdAlignment: (parsed as any).kdAlignment || { code: args.kdCode, title: args.kdTitle },
+      materials: Array.isArray((parsed as any).materials) ? (parsed as any).materials : undefined,
+      qualityFlags,
+    };
+  }
+
+  throw new Error(`lesson_plan_rescue_failed:${lastError}`);
+}
+
+async function rescueMultiWeekOverview(args: {
+  queryText: string;
+  weeks: number;
+  hoursPerWeek: number;
+  level: "n3" | "n4" | "combi";
+  kdCode: string;
+  timeoutMs: number;
+}): Promise<MultiWeekOverview> {
+  const system = [
+    "Je bent een MBO-curriculumontwikkelaar voor Verpleegkunde/VIG.",
+    "Output ALLEEN geldige JSON. Geen markdown.",
+    "Houd de output compact en gestructureerd.",
+    "Vul ALLE velden. Geen lege arrays/lege strings.",
+    "Geen placeholders zoals 'Week 1' als titel — geef specifieke weektitels en thema's.",
+  ].join("\n");
+  const prompt = [
+    `Ontwerp een ${args.weeks}-weken lessenserie over: ${args.queryText}`,
+    `Niveau: ${args.level === "combi" ? "combiklas N3/N4" : args.level === "n4" ? "N4" : "N3"}`,
+    `Duur per week: ${args.hoursPerWeek} uur`,
+    `KD referentie: ${args.kdCode}`,
+    "",
+    "JSON met:",
+    "meta: { title (max 80 tekens), duration:{weeks,hoursPerWeek}, level, kdCoverage }",
+    "quickStart: { objective (1 zin), themes[4-6], structure:{start,kern,afsluiting} (som = minuten per week) }",
+    `overview: [${args.weeks} items] met { week, title (4-10 woorden), theme (1-4 woorden), kdCode, keyConcepts[3-6] }`,
+  ].join("\n");
+
+  let lastError = "rescue_failed";
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const res = await generateJson({
+      system,
+      prompt,
+      maxTokens: 1800,
+      temperature: 0.2,
+      timeoutMs: args.timeoutMs,
+    });
+    if (!res.ok) {
+      lastError = res.error || "generation_failed";
+      continue;
+    }
+
+    let parsed = parseJsonWithFixes(res.text);
+    let repaired = false;
+    if (!parsed || typeof parsed !== "object") {
+      const repairedJson = await repairJsonWithLLM({
+        schemaHint: "Schema: meta, quickStart, overview[]",
+        rawText: res.text,
+        timeoutMs: args.timeoutMs,
+      });
+      if (repairedJson && typeof repairedJson === "object") {
+        parsed = repairedJson;
+        repaired = true;
+      }
+    }
+    if (!parsed || typeof parsed !== "object") {
+      lastError = "invalid_json_structure";
+      continue;
+    }
+
+    const qualityFlags = ["rescue_prompt"];
+    if (repaired) qualityFlags.push("json_repair");
+
+    const metaRaw = (parsed as any).meta && typeof (parsed as any).meta === "object" ? (parsed as any).meta : {};
+    const quickRaw = (parsed as any).quickStart && typeof (parsed as any).quickStart === "object" ? (parsed as any).quickStart : {};
+    const rawOverview = Array.isArray((parsed as any).overview) ? ((parsed as any).overview as any[]) : [];
+    if (rawOverview.length < args.weeks) {
+      lastError = "missing_overview_items";
+      continue;
+    }
+
+    const normalizedOverview = rawOverview.map((item: any, idx: number) => ({
+      week: Number.isFinite(Number(item?.week)) ? Math.max(1, Math.floor(Number(item.week))) : idx + 1,
+      title: typeof item?.title === "string" ? item.title.trim() : "",
+      theme: typeof item?.theme === "string" ? item.theme.trim() : "",
+      kdCode: typeof item?.kdCode === "string" ? item.kdCode.trim() : args.kdCode,
+      keyConcepts: asStringArray(item?.keyConcepts, 8),
+    })).slice(0, args.weeks);
+
+    const placeholderTitleCount = normalizedOverview.filter((o) => /^week\s+\d+$/i.test(String(o.title || "").trim())).length;
+    const missingTitles = normalizedOverview.some((o) => !String(o.title || "").trim());
+    const missingThemes = normalizedOverview.some((o) => !String(o.theme || "").trim());
+    const missingConcepts = normalizedOverview.some((o) => !Array.isArray(o.keyConcepts) || o.keyConcepts.length < 3);
+    if (placeholderTitleCount > 0 || missingTitles || missingThemes || missingConcepts) {
+      lastError = "overview_low_quality";
+      continue;
+    }
+
+    const titleCandidate = typeof (metaRaw as any).title === "string" ? (metaRaw as any).title.trim() : "";
+    if (!titleCandidate || titleCandidate.toLowerCase().startsWith("lessenserie:")) {
+      lastError = "missing_meta_title";
+      continue;
+    }
+
+    const objective = typeof (quickRaw as any).objective === "string" ? (quickRaw as any).objective.trim() : "";
+    const themes = asStringArray((quickRaw as any).themes, 8);
+    if (!objective || themes.length < 4) {
+      lastError = "missing_quick_start";
+      continue;
+    }
+
+    return {
+      meta: {
+        title: titleCandidate.slice(0, 80),
+        duration: { weeks: args.weeks, hoursPerWeek: args.hoursPerWeek },
+        level: args.level,
+        kdCoverage: Array.isArray((metaRaw as any).kdCoverage) ? (metaRaw as any).kdCoverage : [args.kdCode],
+      },
+      quickStart: {
+        objective,
+        themes,
+        structure: normalizeTimeAllocation(Math.max(30, Math.floor(args.hoursPerWeek * 60)), (quickRaw as any).structure),
+      },
+      overview: normalizedOverview,
+      qualityFlags,
+    };
+  }
+
+  throw new Error(`multi_week_overview_rescue_failed:${lastError}`);
+}
+
+async function rescueWeekPlan(args: {
+  week: number;
+  title: string;
+  kdCode: string;
+  keyConcepts: string[];
+  totalMinutes: number;
+  seriesTitle: string;
+  level: "n3" | "n4" | "combi";
+  materialContext?: string;
+  timeoutMs: number;
+}): Promise<WeekPlan> {
+  const system = [
+    "Je bent een MBO-curriculumontwikkelaar voor Verpleegkunde/VIG.",
+    "Output ALLEEN geldige JSON. Geen markdown.",
+    "Houd de output compact.",
+  ].join("\n");
+  const prompt = [
+    `Week ${args.week}: ${args.title}`,
+    `Lessenserie: ${args.seriesTitle}`,
+    `KD: ${args.kdCode}`,
+    `Niveau: ${args.level === "combi" ? "combiklas N3/N4" : args.level === "n4" ? "N4" : "N3"}`,
+    `Duur: ${args.totalMinutes} minuten`,
+    `Kernbegrippen: ${(args.keyConcepts || []).join(", ")}`,
+    args.materialContext ? `Beschikbare materialen:\n${args.materialContext}` : "",
+    "",
+    "JSON met:",
+    "oneLiner",
+    "timeAllocation: {start,kern,afsluiting}",
+    "teacherScript: [{timeRange, phase, action, content}] (4-6 stappen)",
+    // IMPORTANT: do not invent materials. If no approved materials are provided, return [].
+    "materials: [titels van gebruikte goedgekeurde materialen] (kies alleen uit 'Beschikbare materialen' hierboven; gebruik exacte titels; anders [])",
+    "discussionQuestions: [{question, expectedAnswers[2-4]}] (2-3 vragen; expectedAnswers mag niet leeg zijn)",
+  ].filter(Boolean).join("\n");
+
+  let lastError = "rescue_failed";
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const res = await generateJson({
+      system,
+      prompt,
+      maxTokens: 1800,
+      temperature: 0.2,
+      timeoutMs: args.timeoutMs,
+    });
+    if (!res.ok) {
+      lastError = res.error || "generation_failed";
+      continue;
+    }
+
+    let parsed = parseJsonWithFixes(res.text);
+    let repaired = false;
+    if (!parsed || typeof parsed !== "object") {
+      const repairedJson = await repairJsonWithLLM({
+        schemaHint: "Schema: oneLiner, timeAllocation, teacherScript, materials, discussionQuestions",
+        rawText: res.text,
+        timeoutMs: args.timeoutMs,
+      });
+      if (repairedJson && typeof repairedJson === "object") {
+        parsed = repairedJson;
+        repaired = true;
+      }
+    }
+    if (!parsed || typeof parsed !== "object") {
+      lastError = "invalid_json_structure";
+      continue;
+    }
+
+    const timeAllocation = normalizeTimeAllocation(args.totalMinutes, (parsed as any).timeAllocation);
+    const teacherScript = Array.isArray((parsed as any).teacherScript) ? (parsed as any).teacherScript : [];
+    if (!teacherScript.length) {
+      lastError = "missing_teacher_script";
+      continue;
+    }
+    const discussionQuestionsRaw = Array.isArray((parsed as any).discussionQuestions) ? (parsed as any).discussionQuestions : [];
+    if (discussionQuestionsRaw.length < 1) {
+      lastError = "missing_discussion_questions";
+      continue;
+    }
+    const discussionQuestions = discussionQuestionsRaw.map((q: any) => ({
+      question: typeof q?.question === "string" ? q.question.trim() : "",
+      expectedAnswers: asStringArray(q?.expectedAnswers, 6),
+    }));
+    const hasEmptyExpectedAnswers = discussionQuestions.some((q: any) => q.question && (!q.expectedAnswers || q.expectedAnswers.length === 0));
+    if (hasEmptyExpectedAnswers) {
+      lastError = "missing_expected_answers";
+      continue;
+    }
+
+    const qualityFlags = ["rescue_prompt"];
+    if (repaired) qualityFlags.push("json_repair");
+
+    return {
+      week: args.week,
+      title: args.title,
+      kdCode: args.kdCode,
+      keyConcepts: args.keyConcepts || [],
+      theme: args.level === "combi" ? "combiklas" : args.level,
+      oneLiner: typeof (parsed as any).oneLiner === "string" ? (parsed as any).oneLiner.trim() : "",
+      timeAllocation,
+      teacherScript: teacherScript.map((step: any) => ({
+        timeRange: typeof step?.timeRange === "string" ? step.timeRange.trim() : "",
+        phase: step?.phase === "start" || step?.phase === "kern" || step?.phase === "afsluiting" ? step.phase : "kern",
+        action: typeof step?.action === "string" ? step.action.trim() : "Instructie",
+        content: typeof step?.content === "string" ? step.content.trim() : "",
+        activity: typeof step?.activity === "string" ? step.activity.trim() : undefined,
+      })),
+      materials: asStringArray((parsed as any).materials, 12),
+      discussionQuestions,
+      groupWork: (parsed as any).groupWork,
+      practiceAssignment: typeof (parsed as any).practiceAssignment === "string" ? (parsed as any).practiceAssignment.trim() : undefined,
+      qualityFlags,
+    };
+  }
+
+  throw new Error(`week_plan_rescue_failed:${lastError}`);
+}
+
+export async function generateMultiWeekOverview(args: {
+  queryText: string;
+  weeks: number;
+  hoursPerWeek: number;
+  level: "n3" | "n4" | "combi";
+  timeoutMs?: number;
+}): Promise<MultiWeekOverview> {
+  const kdItems = loadKdContext();
+  const matches = selectKdMatches(args.queryText, kdItems);
+  const primary = matches[0] || { code: "KD-ONBEKEND", titel: "Onbekend KD-onderdeel" };
+
+  const totalMinutes = Math.max(30, Math.floor(args.hoursPerWeek * 60));
+  const weeks = Math.max(2, Math.floor(args.weeks));
+
+  const system = [
+    "Je bent een MBO-docent/curriculumontwikkelaar voor Verpleegkunde/VIG.",
+    "Output ALLEEN geldige JSON. Geen markdown.",
+    "Schrijf concreet en praktijkgericht.",
+    "Vul ALLE velden. Geen lege arrays/lege strings.",
+    "Geen placeholders zoals 'Week 1' als titel — geef specifieke weektitels en thema's.",
+  ].join("\n");
+
+  const prompt = [
+    `Ontwerp een ${weeks}-weken lessenserie over: ${args.queryText}`,
+    `Niveau: ${args.level === "combi" ? "combiklas N3/N4" : args.level === "n4" ? "N4" : "N3"}`,
+    `Duur per week: ${args.hoursPerWeek} uur (${totalMinutes} min)`,
+    `KD referentie (gebruik waar relevant): ${primary.code} - ${primary.titel}`,
+    "",
+    "Output JSON met:",
+    "meta: { title (max 80 tekens), duration:{weeks,hoursPerWeek}, level, kdCoverage }",
+    "quickStart: { objective (1 zin), themes[4-6], structure:{start,kern,afsluiting} (som = minuten per week) }",
+    `overview: [${weeks} items] met { week, title (4-10 woorden), theme (1-4 woorden), kdCode, keyConcepts[3-6] }`,
+  ].join("\n");
+
+  const timeoutMs = Number.isFinite(args.timeoutMs) ? Math.max(5_000, Math.floor(args.timeoutMs!)) : 50_000;
+  let lastError = "";
+  let repaired = false;
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const res = await generateJson({
+      system,
+      prompt,
+      maxTokens: 3000,
+      temperature: 0.2,
+      timeoutMs,
+    });
+    if (!res.ok) {
+      lastError = res.error || "generation_failed";
+      continue;
+    }
+    let parsed = parseJsonWithFixes(res.text);
+    if (!parsed || typeof parsed !== "object") {
+      const repairedJson = await repairJsonWithLLM({
+        schemaHint: "Schema: meta, quickStart, overview[]",
+        rawText: res.text,
+        timeoutMs,
+      });
+      if (repairedJson && typeof repairedJson === "object") {
+        parsed = repairedJson;
+        repaired = true;
+      }
+    }
+    if (!parsed || typeof parsed !== "object") {
+      lastError = "invalid_json_structure";
+      continue;
+    }
+
+    const rawOverview = Array.isArray(parsed.overview) ? parsed.overview : [];
+    if (rawOverview.length < weeks) {
+      lastError = "missing_overview_items";
+      continue;
+    }
+
+    const normalizedOverview = rawOverview
+      .map((item: any, idx: number) => ({
+        week: Number.isFinite(Number(item?.week)) ? Math.max(1, Math.floor(Number(item.week))) : idx + 1,
+        title: typeof item?.title === "string" ? item.title.trim() : "",
+        kdCode: typeof item?.kdCode === "string" ? item.kdCode.trim() : primary.code,
+        keyConcepts: asStringArray(item?.keyConcepts, 10),
+        theme: typeof item?.theme === "string" ? item.theme.trim() : "",
+      }))
+      .slice(0, weeks);
+
+    const placeholderTitleCount = normalizedOverview.filter((o) => /^week\s+\d+$/i.test(String(o.title || "").trim())).length;
+    const missingTitles = normalizedOverview.some((o) => !String(o.title || "").trim());
+    const missingThemes = normalizedOverview.some((o) => !String(o.theme || "").trim());
+    const missingConcepts = normalizedOverview.some((o) => !Array.isArray(o.keyConcepts) || o.keyConcepts.length < 3);
+    if (placeholderTitleCount > 0 || missingTitles || missingThemes || missingConcepts) {
+      lastError = "overview_low_quality";
+      continue;
+    }
+
+    const kdCoverage = Array.from(
+      new Set(
+        normalizedOverview
+          .map((o) => String(o.kdCode || "").toUpperCase().trim())
+          .filter((code) => code),
+      ),
+    );
+
+    const metaRaw = parsed.meta && typeof parsed.meta === "object" ? parsed.meta : {};
+    const quickRaw = parsed.quickStart && typeof parsed.quickStart === "object" ? parsed.quickStart : {};
+
+    const titleCandidate = typeof (metaRaw as any).title === "string" ? (metaRaw as any).title.trim() : "";
+    if (!titleCandidate || titleCandidate.toLowerCase().startsWith("lessenserie:")) {
+      lastError = "missing_meta_title";
+      continue;
+    }
+
+    const meta = {
+      title: titleCandidate.slice(0, 80),
+      duration: { weeks, hoursPerWeek: args.hoursPerWeek },
+      level: args.level,
+      kdCoverage,
+    };
+
+    const objective = typeof (quickRaw as any).objective === "string" ? (quickRaw as any).objective.trim() : "";
+    const themes = asStringArray((quickRaw as any).themes, 8);
+    if (!objective || themes.length < 4) {
+      lastError = "missing_quick_start";
+      continue;
+    }
+
+    const quickStart = {
+      objective,
+      themes,
+      structure: normalizeTimeAllocation(totalMinutes, (quickRaw as any).structure),
+    };
+
+    return { meta, quickStart, overview: normalizedOverview, qualityFlags: repaired ? ["json_repair"] : undefined };
+  }
+
+  return await rescueMultiWeekOverview({
+    queryText: args.queryText,
+    weeks,
+    hoursPerWeek: args.hoursPerWeek,
+    level: args.level,
+    kdCode: primary.code,
+    timeoutMs,
+  });
+}
+
+export async function generateWeekPlan(args: {
+  week: number;
+  title: string;
+  kdCode: string;
+  keyConcepts: string[];
+  theme?: string;
+  totalMinutes: number;
+  seriesTitle: string;
+  level: "n3" | "n4" | "combi";
+  materialContext?: string;
+  timeoutMs?: number;
+}): Promise<WeekPlan> {
+  const system = [
+    "Je bent een MBO-curriculumontwikkelaar voor Verpleegkunde/VIG.",
+    "Output ALLEEN geldige JSON. Geen markdown.",
+    "Schrijf concreet en praktijkgericht.",
+  ].join("\n");
+
+  const prompt = [
+    `Genereer een gedetailleerd lesplan voor week ${args.week}: ${args.title}`,
+    `Lessenserie: ${args.seriesTitle}`,
+    `KD: ${args.kdCode}`,
+    `Niveau: ${args.level === "combi" ? "combiklas N3/N4" : args.level === "n4" ? "N4" : "N3"}`,
+    `Duur: ${args.totalMinutes} minuten`,
+    `Kernbegrippen: ${(args.keyConcepts || []).join(", ")}`,
+    args.materialContext ? `Beschikbare materialen (gebruik relevant):\n${args.materialContext}` : "",
+    "",
+    "Output JSON met:",
+    "oneLiner (max 30 woorden)",
+    "timeAllocation: {start,kern,afsluiting} (som = duur in minuten)",
+    "teacherScript: [{timeRange, phase, action, content, activity}] (6-8 stappen; verwijs expliciet naar gebruikte materialen in content met exacte titel)",
+    // IMPORTANT: do not invent materials. Materials must be chosen from the provided, approved materials list (if present).
+    "materials: [titels van gebruikte goedgekeurde materialen] (kies alleen uit de lijst hierboven; gebruik exacte titels; verzin niets; als er geen lijst is: [])",
+    "discussionQuestions: [{question, expectedAnswers}] (2-3 vragen)",
+    "groupWork: {title, steps, durationMinutes} (optioneel)",
+    "practiceAssignment: string (optioneel)",
+  ].filter(Boolean).join("\n");
+
+  const timeoutMs = Number.isFinite(args.timeoutMs) ? Math.max(5_000, Math.floor(args.timeoutMs!)) : 55_000;
+  let lastError = "";
+  let repaired = false;
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const res = await generateJson({
+      system,
+      prompt,
+      maxTokens: 3200,
+      temperature: 0.2,
+      timeoutMs,
+    });
+    if (!res.ok) {
+      lastError = res.error || "generation_failed";
+      continue;
+    }
+    let parsed = parseJsonWithFixes(res.text);
+    if (!parsed || typeof parsed !== "object") {
+      const repairedJson = await repairJsonWithLLM({
+        schemaHint: "Schema: oneLiner, timeAllocation, teacherScript, materials, discussionQuestions",
+        rawText: res.text,
+        timeoutMs,
+      });
+      if (repairedJson && typeof repairedJson === "object") {
+        parsed = repairedJson;
+        repaired = true;
+      }
+    }
+    if (!parsed || typeof parsed !== "object") {
+      lastError = "invalid_json_structure";
+      continue;
+    }
+
+    const timeAllocation = normalizeTimeAllocation(args.totalMinutes, parsed.timeAllocation);
+    const teacherScript = Array.isArray(parsed.teacherScript) ? parsed.teacherScript : [];
+    if (teacherScript.length < 4) {
+      lastError = "missing_teacher_script";
+      continue;
+    }
+    const discussionQuestionsRaw = Array.isArray(parsed.discussionQuestions) ? parsed.discussionQuestions : [];
+    if (discussionQuestionsRaw.length < 1) {
+      lastError = "missing_discussion_questions";
+      continue;
+    }
+    const discussionQuestions = discussionQuestionsRaw.map((q: any) => ({
+      question: typeof q?.question === "string" ? q.question.trim() : "",
+      expectedAnswers: asStringArray(q?.expectedAnswers, 6),
+    }));
+    const hasEmptyExpectedAnswers = discussionQuestions.some((q: any) => q.question && (!q.expectedAnswers || q.expectedAnswers.length === 0));
+    if (hasEmptyExpectedAnswers) {
+      lastError = "missing_expected_answers";
+      continue;
+    }
+    // For combi classes, ensure at least one explicit differentiation hint is present.
+    if (args.level === "combi") {
+      const scriptText = teacherScript.map((s: any) => `${String(s?.action || "")} ${String(s?.content || "")}`).join(" ").toLowerCase();
+      if (!scriptText.includes("n3") || !scriptText.includes("n4")) {
+        lastError = "missing_differentiation";
+        continue;
+      }
+    }
+
+    return {
+      week: args.week,
+      title: args.title,
+      kdCode: args.kdCode,
+      keyConcepts: args.keyConcepts || [],
+      theme: args.theme,
+      oneLiner: typeof parsed.oneLiner === "string" ? parsed.oneLiner.trim() : "",
+      timeAllocation,
+      teacherScript: teacherScript.map((step: any) => ({
+        timeRange: typeof step?.timeRange === "string" ? step.timeRange.trim() : "",
+        phase: step?.phase === "start" || step?.phase === "kern" || step?.phase === "afsluiting" ? step.phase : "kern",
+        action: typeof step?.action === "string" ? step.action.trim() : "Instructie",
+        content: typeof step?.content === "string" ? step.content.trim() : "",
+        activity: typeof step?.activity === "string" ? step.activity.trim() : undefined,
+      })),
+      materials: asStringArray(parsed.materials, 12),
+      discussionQuestions,
+      groupWork: parsed.groupWork,
+      practiceAssignment: typeof parsed.practiceAssignment === "string" ? parsed.practiceAssignment.trim() : undefined,
+      qualityFlags: repaired ? ["json_repair"] : undefined,
+    };
+  }
+
+  return await rescueWeekPlan({
+    week: args.week,
+    title: args.title,
+    kdCode: args.kdCode,
+    keyConcepts: args.keyConcepts,
+    totalMinutes: args.totalMinutes,
+    seriesTitle: args.seriesTitle,
+    level: args.level,
+    materialContext: args.materialContext,
+    timeoutMs,
+  });
 }
 
 export async function retrievePrefix(args: {
@@ -586,6 +1593,7 @@ export async function retrieveMaterialRecommendations(args: {
     if (!courseId.startsWith("material:")) continue;
     const materialId = courseId.slice("material:".length).trim();
     if (!materialId) continue;
+    if (!Number.isFinite(c.similarity) || c.similarity < MIN_SIMILARITY) continue;
 
     const existing = byMaterial.get(materialId);
     if (!existing || c.similarity > existing.best) {
@@ -698,6 +1706,8 @@ export async function recommendMesModules(args: {
     if (!courseId.startsWith("mes:")) continue;
     const docId = courseId.slice("mes:".length).trim();
     if (!docId) continue;
+    if (docId.toLowerCase().startsWith(MES_TEST_DOC_PREFIX)) continue;
+    if (!Number.isFinite(c.similarity) || c.similarity < MIN_SIMILARITY) continue;
     const existing = byDoc.get(docId);
     if (!existing || c.similarity > existing.best) {
       byDoc.set(docId, { doc_id: docId, best: c.similarity, snippet: c.text });
@@ -734,7 +1744,14 @@ export function mergeRecommendations(lists: UnifiedRecommendation[][], limit = 1
       const key = `${rec.source}:${rec.id}`;
       const existing = byKey.get(key);
       if (!existing || (rec.score || 0) > (existing.score || 0)) {
-        byKey.set(key, rec);
+        const normalized = {
+          ...rec,
+          score:
+            rec.source === "mes" || rec.source === "library-material"
+              ? Math.min(100, Math.round((rec.score || 0) * 100))
+              : Math.min(100, Math.round(rec.score || 0)),
+        };
+        byKey.set(key, normalized);
       }
     }
   }
