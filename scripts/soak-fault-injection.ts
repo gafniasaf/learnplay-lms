@@ -28,10 +28,8 @@ async function main() {
 
   const sb = createClient(supabaseUrl, serviceRole, { auth: { persistSession: false } });
 
-  const { data: orgRow, error: orgErr } = await sb.from("organizations").select("id").limit(1).maybeSingle();
-  if (orgErr) throw new Error(`Failed to load organizations: ${orgErr.message}`);
-  const organizationId = (process.env.ORGANIZATION_ID || (orgRow as any)?.id || "").toString();
-  if (!organizationId) throw new Error("No organization_id available.");
+  // Per ABSOLUTE NO-FALLBACK POLICY: require explicit org id for soak runs.
+  const organizationId = requireEnv("ORGANIZATION_ID").trim();
 
   const testRunId = `soak-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   const staleIso = isoMinutesAgo(45);
