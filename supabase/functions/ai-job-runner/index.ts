@@ -43,6 +43,7 @@ function isYieldResult(result: unknown): result is {
 // Edge Functions have a 60s timeout which is insufficient for these jobs.
 const LONG_RUNNING_JOB_TYPES = [
   "generate_multi_week_plan",
+  "teacher_chat_assistant",
   "book_generate_full",
   "book_generate_chapter",
 ];
