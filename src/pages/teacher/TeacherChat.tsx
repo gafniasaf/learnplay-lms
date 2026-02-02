@@ -266,7 +266,8 @@ export default function TeacherChat() {
   const pollLessonPlanJob = useCallback(
     async (jobId: string, assistantMsgId: string, baseAnswer: string) => {
       const startedAt = Date.now();
-      const hardTimeoutMs = 6 * 60 * 1000; // 6 minutes
+      // Multi-week plans can take >6 minutes (LLM + retries per week).
+      const hardTimeoutMs = 20 * 60 * 1000; // 20 minutes
       let delayMs = 1500;
       let lastProgressText = "";
 
