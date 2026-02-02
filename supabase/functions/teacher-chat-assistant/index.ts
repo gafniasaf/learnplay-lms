@@ -2,7 +2,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { stdHeaders, handleOptions } from "../_shared/cors.ts";
 import { authenticateRequest, requireOrganizationId } from "../_shared/auth.ts";
-import { chat as chatLLM, getProvider } from "../_shared/ai.ts";
+import { chat as chatLLM, generateJson, getProvider } from "../_shared/ai.ts";
 import {
   adminSupabase,
   buildKdCheck,
@@ -35,6 +35,93 @@ const MIN_SIMILARITY = 0.25;
 const MES_TEST_PREFIX = "mes:e2e-";
 
 type ChatMessage = { role: "user" | "assistant"; content: string };
+
+function parseJsonBestEffort(text: string): any | null {
+  if (!text) return null;
+  let t = String(text || "").trim();
+  if (!t) return null;
+  // Strip common wrappers
+  t = t.replace(/^```(?:json)?/i, "").replace(/```$/i, "").trim();
+  // Attempt to isolate the first JSON object
+  const start = t.indexOf("{");
+  const end = t.lastIndexOf("}");
+  if (start >= 0 && end > start) {
+    t = t.slice(start, end + 1);
+  }
+  // Fix trailing commas (best-effort)
+  t = t.replace(/,\s*}/g, "}").replace(/,\s*]/g, "]");
+  try {
+    return JSON.parse(t);
+  } catch {
+    return null;
+  }
+}
+
+type LLMPlanRoute = {
+  kind: "multi_week_plan" | "lesson_plan" | "other";
+  weeks?: number | null;
+  hoursPerWeek?: number | null;
+  level?: "n3" | "n4" | "combi" | null;
+  confidence?: number | null; // 0..1
+};
+
+async function routePlanIntentWithLLM(args: { queryText: string; timeoutMs: number }): Promise<LLMPlanRoute | null> {
+  const queryText = String(args.queryText || "").trim();
+  if (!queryText) return null;
+
+  const system = [
+    "Je bent een router voor een docent-assistent.",
+    "Doel: bepaal of de docent een (a) meerweekse lessenserie, (b) een enkel lesplan, of (c) iets anders vraagt.",
+    "Wees tolerant voor typefouten.",
+    "Output ALLEEN geldige JSON. Geen markdown. Geen uitleg.",
+  ].join("\n");
+
+  const prompt = [
+    `Vraag: ${queryText}`,
+    "",
+    "Return JSON met exact dit schema:",
+    '{ "kind": "multi_week_plan" | "lesson_plan" | "other", "weeks": number|null, "hoursPerWeek": number|null, "level": "n3"|"n4"|"combi"|null, "confidence": number|null }',
+    "",
+    "Regels:",
+    "- Als de vraag gaat over een lessenserie/weekplanning/programma over meerdere weken -> kind=multi_week_plan.",
+    "- Als de vraag gaat over één les -> kind=lesson_plan.",
+    "- Anders -> kind=other.",
+    "- Als weken niet expliciet is: weeks=null.",
+    "- Als uren/minuten per week niet expliciet is: hoursPerWeek=null.",
+    "- Als niveau (n3/n4/combi) niet expliciet is: level=null.",
+    "- confidence is 0..1 (schatting).",
+  ].join("\n");
+
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const res = await generateJson({
+      system,
+      prompt,
+      maxTokens: 240,
+      temperature: 0,
+      timeoutMs: Math.max(2_000, Math.floor(args.timeoutMs)),
+      prefillJson: true,
+    });
+    if (!res.ok) continue;
+    const parsed = parseJsonBestEffort(res.text);
+    if (!parsed || typeof parsed !== "object") continue;
+    const kindRaw = String((parsed as any).kind || "").trim();
+    const kind =
+      kindRaw === "multi_week_plan" || kindRaw === "lesson_plan" || kindRaw === "other" ? (kindRaw as LLMPlanRoute["kind"]) : null;
+    if (!kind) continue;
+    const weeksRaw = (parsed as any).weeks;
+    const hoursRaw = (parsed as any).hoursPerWeek;
+    const levelRaw = (parsed as any).level;
+    const confidenceRaw = (parsed as any).confidence;
+    const weeks = typeof weeksRaw === "number" && Number.isFinite(weeksRaw) ? weeksRaw : null;
+    const hoursPerWeek = typeof hoursRaw === "number" && Number.isFinite(hoursRaw) ? hoursRaw : null;
+    const level =
+      levelRaw === "n3" || levelRaw === "n4" || levelRaw === "combi" ? (levelRaw as LLMPlanRoute["level"]) : null;
+    const confidence =
+      typeof confidenceRaw === "number" && Number.isFinite(confidenceRaw) ? Math.max(0, Math.min(1, confidenceRaw)) : null;
+    return { kind, weeks, hoursPerWeek, level, confidence };
+  }
+  return null;
+}
 
 function parseMessages(raw: unknown): ChatMessage[] {
   if (!Array.isArray(raw)) throw new Error("BLOCKED: messages must be an array");
@@ -437,8 +524,21 @@ serve(async (req: Request): Promise<Response> => {
     }
 
     const queryText = latestUserMessage(messages);
-    const multiWeekIntent = detectMultiWeekIntent(queryText);
-    const wantsLessonPlan = detectLessonPlanIntent(queryText);
+    // LLM-first routing (typo tolerant). Deterministic parsing remains as a guardrail.
+    const llmRoute = await routePlanIntentWithLLM({ queryText, timeoutMs: 7_000 });
+    let multiWeekIntent: MultiWeekIntent | null =
+      llmRoute?.kind === "multi_week_plan"
+        ? {
+            weeks: Number.isFinite(llmRoute.weeks) && llmRoute.weeks ? Math.max(2, Math.min(18, Math.floor(llmRoute.weeks))) : parseWeeksCount(queryText) || 9,
+            hoursPerWeek:
+              Number.isFinite(llmRoute.hoursPerWeek) && llmRoute.hoursPerWeek
+                ? Math.max(0.5, Math.min(8, Number(llmRoute.hoursPerWeek)))
+                : parseHoursPerWeek(queryText),
+            level: (llmRoute.level || parseLevel(queryText)) as MultiWeekIntent["level"],
+          }
+        : detectMultiWeekIntent(queryText);
+    let wantsLessonPlan =
+      llmRoute?.kind === "lesson_plan" ? true : detectLessonPlanIntent(queryText);
     if (multiWeekIntent) {
       requireEnv("OPENAI_API_KEY");
 
