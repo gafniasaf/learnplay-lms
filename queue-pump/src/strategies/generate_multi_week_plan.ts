@@ -461,20 +461,32 @@ export class GenerateMultiWeekPlan implements JobExecutor {
         const allowCurated = state.scope !== "mes";
         const allowLibrary = state.scope !== "mes";
 
-        // Best-effort recommendations. If embeddings aren't available, we still return a high-quality plan.
         const topK = state.topK;
+        const embeddingModel = process.env.OPENAI_EMBEDDING_MODEL || "text-embedding-3-small";
+
+        // --- curated recommendations (no embedding needed) ---
+        const curatedBase = allowCurated
+          ? await searchCuratedMaterials({
+              organizationId,
+              query: state.queryText,
+              limit: 8,
+            })
+          : [];
+        const curatedRecommendations = allowCurated ? toCuratedRecommendations(curatedBase) : [];
+
+        // --- embedding-dependent retrieval (optional) ---
         let citations: Citation[] = [];
         let recommendations: UnifiedRecommendation[] = [];
+        let counts = { total: 0, curated: curatedRecommendations.length, mes: 0, library: 0 };
         let embeddingOk = false;
 
-        const OPENAI_API_KEY = typeof process.env.OPENAI_API_KEY === "string" ? process.env.OPENAI_API_KEY.trim() : "";
-        const EMBEDDING_MODEL = process.env.OPENAI_EMBEDDING_MODEL || "text-embedding-3-small";
-
-        if (OPENAI_API_KEY) {
+        const openAiKey = (process.env.OPENAI_API_KEY || "").trim();
+        if (openAiKey) {
           try {
-            const embedding = await generateEmbedding(state.queryText, { apiKey: OPENAI_API_KEY, model: EMBEDDING_MODEL });
+            const embedding = await generateEmbedding(state.queryText, { apiKey: openAiKey, model: embeddingModel });
             embeddingOk = true;
 
+            // citations
             if (state.scope === "materials") {
               const prefix = state.materialId ? `material:${state.materialId}` : "material:";
               citations = await retrievePrefix({ organizationId, prefix, embedding, limit: topK });
@@ -501,13 +513,6 @@ export class GenerateMultiWeekPlan implements JobExecutor {
               return true;
             });
 
-            const curatedBase = await searchCuratedMaterials({
-              organizationId,
-              query: state.queryText,
-              limit: 8,
-            });
-            const curatedRecommendations = allowCurated ? toCuratedRecommendations(curatedBase) : [];
-
             const [libraryRaw, mesRecommendations] = await Promise.all([
               allowLibrary ? retrieveMaterialRecommendations({ organizationId, embedding, limit: 6 }) : Promise.resolve([]),
               allowMes ? recommendMesModules({ organizationId, embedding, limit: 6 }) : Promise.resolve([]),
@@ -515,18 +520,30 @@ export class GenerateMultiWeekPlan implements JobExecutor {
 
             const libraryRecommendations = toLibraryMaterialRecommendations(libraryRaw);
             recommendations = mergeRecommendations([curatedRecommendations, mesRecommendations, libraryRecommendations], 12);
-          } catch {
-            // Embeddings/rec engine is optional; continue without it.
+            counts = {
+              total: recommendations.length,
+              curated: curatedRecommendations.length,
+              mes: mesRecommendations.length,
+              library: libraryRecommendations.length,
+            };
+          } catch (e) {
+            // Best-effort: keep curated recs even if embedding fails (invalid key, provider error, etc.)
+            const msg = e instanceof Error ? e.message : String(e);
+            await emitAgentJobEvent(jobId, "generating", 88, "Embedding/retrieval failed; continuing without citations", {
+              step: "finalize",
+              error: msg.slice(0, 500),
+            }).catch(() => {});
+            citations = [];
+            recommendations = curatedRecommendations.slice(0, 12);
+            counts = { total: recommendations.length, curated: curatedRecommendations.length, mes: 0, library: 0 };
             embeddingOk = false;
           }
+        } else {
+          // No OpenAI key available: still return plan + curated matches.
+          citations = [];
+          recommendations = curatedRecommendations.slice(0, 12);
+          counts = { total: recommendations.length, curated: curatedRecommendations.length, mes: 0, library: 0 };
         }
-
-        const counts = {
-          total: recommendations.length,
-          curated: recommendations.filter((r) => r.source === "curated").length,
-          mes: recommendations.filter((r) => r.source === "mes").length,
-          library: recommendations.filter((r) => r.source === "library-material").length,
-        };
 
         const sourceBits = [
           counts.curated ? `${counts.curated} uit de database` : null,
@@ -534,11 +551,11 @@ export class GenerateMultiWeekPlan implements JobExecutor {
           counts.library ? `${counts.library} uit je eigen materiaal` : null,
         ].filter(Boolean);
 
-        const recSentence = embeddingOk
-          ? counts.total
-            ? `Ik heb ook ${counts.total} relevante bronnen gevonden (${sourceBits.join(", ")}).`
-            : "Ik heb geen bronnen gevonden die direct matchen—probeer een concretere zoekterm."
-          : "Ik kon geen automatische bron-aanbevelingen ophalen (embedding-service niet beschikbaar), maar het lesplan is wél compleet.";
+        const recSentence = counts.total
+          ? `Ik heb ook ${counts.total} relevante bronnen gevonden (${sourceBits.join(", ")}).`
+          : embeddingOk
+            ? "Ik heb geen bronnen gevonden die direct matchen—probeer een concretere zoekterm."
+            : "Ik kon geen automatische bron-aanbevelingen ophalen (embedding-service niet beschikbaar), maar het lesplan is wél compleet.";
 
         const answer = [
           `Ik heb een lessenserie van ${state.plan.meta?.duration?.weeks ?? state.weeks} weken opgesteld.`,

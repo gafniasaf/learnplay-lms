@@ -8,7 +8,6 @@ import {
   mergeRecommendations,
   pickRelevantCuratedMaterials,
   recommendMesModules,
-  requireEnv,
   retrieveMaterialRecommendations,
   retrievePrefix,
   searchCuratedMaterials,
@@ -454,63 +453,89 @@ export class GenerateMultiWeekPlan implements JobExecutor {
       }
 
       try {
-        const OPENAI_API_KEY = requireEnv("OPENAI_API_KEY");
-        const EMBEDDING_MODEL = Deno.env.get("OPENAI_EMBEDDING_MODEL") || "text-embedding-3-small";
-        const embedding = await generateEmbedding(state.queryText, { apiKey: OPENAI_API_KEY, model: EMBEDDING_MODEL });
         const topK = state.topK;
-
-        let citations: Citation[] = [];
-        if (state.scope === "materials") {
-          const prefix = state.materialId ? `material:${state.materialId}` : "material:";
-          citations = await retrievePrefix({ organizationId, prefix, embedding, limit: topK });
-        } else if (state.scope === "mes") {
-          citations = await retrievePrefix({ organizationId, prefix: "mes:", embedding, limit: topK });
-        } else {
-          const perSource = Math.ceil(topK / 3) + 2;
-          const [mat, mes, book] = await Promise.all([
-            retrievePrefix({ organizationId, prefix: state.materialId ? `material:${state.materialId}` : "material:", embedding, limit: perSource }),
-            retrievePrefix({ organizationId, prefix: "mes:", embedding, limit: perSource }),
-            retrievePrefix({ organizationId, prefix: "book:", embedding, limit: perSource }),
-          ]);
-          citations = [...mat, ...mes, ...book]
-            .sort((a, b) => b.similarity - a.similarity)
-            .slice(0, topK);
-        }
-
-        citations = citations.filter((c) => {
-          if (!Number.isFinite(c.similarity) || c.similarity < MIN_SIMILARITY) return false;
-          if (c.source === "mes" && String(c.course_id || "").toLowerCase().startsWith(MES_TEST_PREFIX)) return false;
-          return true;
-        });
 
         const allowMes = state.scope !== "materials";
         const allowCurated = state.scope !== "mes";
         const allowLibrary = state.scope !== "mes";
 
-        const curatedBase = await searchCuratedMaterials({
-          organizationId,
-          query: state.queryText,
-          limit: 8,
-        });
+        // --- curated recommendations (no embedding needed) ---
+        const curatedBase = allowCurated
+          ? await searchCuratedMaterials({
+              organizationId,
+              query: state.queryText,
+              limit: 8,
+            })
+          : [];
         const curatedRecommendations = allowCurated ? toCuratedRecommendations(curatedBase) : [];
 
-        const [libraryRaw, mesRecommendations] = await Promise.all([
-          allowLibrary ? retrieveMaterialRecommendations({ organizationId, embedding, limit: 6 }) : Promise.resolve([]),
-          allowMes ? recommendMesModules({ organizationId, embedding, limit: 6 }) : Promise.resolve([]),
-        ]);
+        // --- embedding-dependent retrieval (optional) ---
+        let citations: Citation[] = [];
+        let recommendations: UnifiedRecommendation[] = [];
+        let counts = { total: 0, curated: curatedRecommendations.length, mes: 0, library: 0 };
+        let embeddingOk = false;
 
-        const libraryRecommendations = toLibraryMaterialRecommendations(libraryRaw);
-        const recommendations = mergeRecommendations(
-          [curatedRecommendations, mesRecommendations, libraryRecommendations],
-          12,
-        );
+        const openAiKey = (Deno.env.get("OPENAI_API_KEY") || "").trim();
+        const embeddingModel = Deno.env.get("OPENAI_EMBEDDING_MODEL") || "text-embedding-3-small";
 
-        const counts = {
-          total: recommendations.length,
-          curated: curatedRecommendations.length,
-          mes: mesRecommendations.length,
-          library: libraryRecommendations.length,
-        };
+        if (openAiKey) {
+          try {
+            const embedding = await generateEmbedding(state.queryText, { apiKey: openAiKey, model: embeddingModel });
+            embeddingOk = true;
+
+            // citations
+            if (state.scope === "materials") {
+              const prefix = state.materialId ? `material:${state.materialId}` : "material:";
+              citations = await retrievePrefix({ organizationId, prefix, embedding, limit: topK });
+            } else if (state.scope === "mes") {
+              citations = await retrievePrefix({ organizationId, prefix: "mes:", embedding, limit: topK });
+            } else {
+              const perSource = Math.ceil(topK / 3) + 2;
+              const [mat, mes, book] = await Promise.all([
+                retrievePrefix({ organizationId, prefix: state.materialId ? `material:${state.materialId}` : "material:", embedding, limit: perSource }),
+                retrievePrefix({ organizationId, prefix: "mes:", embedding, limit: perSource }),
+                retrievePrefix({ organizationId, prefix: "book:", embedding, limit: perSource }),
+              ]);
+              citations = [...mat, ...mes, ...book]
+                .sort((a, b) => b.similarity - a.similarity)
+                .slice(0, topK);
+            }
+
+            citations = citations.filter((c) => {
+              if (!Number.isFinite(c.similarity) || c.similarity < MIN_SIMILARITY) return false;
+              if (c.source === "mes" && String(c.course_id || "").toLowerCase().startsWith(MES_TEST_PREFIX)) return false;
+              return true;
+            });
+
+            const [libraryRaw, mesRecommendations] = await Promise.all([
+              allowLibrary ? retrieveMaterialRecommendations({ organizationId, embedding, limit: 6 }) : Promise.resolve([]),
+              allowMes ? recommendMesModules({ organizationId, embedding, limit: 6 }) : Promise.resolve([]),
+            ]);
+
+            const libraryRecommendations = toLibraryMaterialRecommendations(libraryRaw);
+            recommendations = mergeRecommendations([curatedRecommendations, mesRecommendations, libraryRecommendations], 12);
+            counts = {
+              total: recommendations.length,
+              curated: curatedRecommendations.length,
+              mes: mesRecommendations.length,
+              library: libraryRecommendations.length,
+            };
+          } catch (e) {
+            const msg = e instanceof Error ? e.message : String(e);
+            await emitAgentJobEvent(jobId, "generating", 88, "Embedding/retrieval failed; continuing without citations", {
+              step: "finalize",
+              error: msg.slice(0, 500),
+            }).catch(() => {});
+            citations = [];
+            recommendations = curatedRecommendations.slice(0, 12);
+            counts = { total: recommendations.length, curated: curatedRecommendations.length, mes: 0, library: 0 };
+            embeddingOk = false;
+          }
+        } else {
+          citations = [];
+          recommendations = curatedRecommendations.slice(0, 12);
+          counts = { total: recommendations.length, curated: curatedRecommendations.length, mes: 0, library: 0 };
+        }
 
         const sourceBits = [
           counts.curated ? `${counts.curated} uit de database` : null,
@@ -518,11 +543,15 @@ export class GenerateMultiWeekPlan implements JobExecutor {
           counts.library ? `${counts.library} uit je eigen materiaal` : null,
         ].filter(Boolean);
 
+        const recSentence = counts.total
+          ? `Ik heb ook ${counts.total} relevante bronnen gevonden (${sourceBits.join(", ")}).`
+          : embeddingOk
+            ? "Ik heb geen bronnen gevonden die direct matchen—probeer een concretere zoekterm."
+            : "Ik kon geen automatische bron-aanbevelingen ophalen (embedding-service niet beschikbaar), maar het lesplan is wél compleet.";
+
         const answer = [
           `Ik heb een lessenserie van ${state.plan.meta?.duration?.weeks ?? state.weeks} weken opgesteld.`,
-          counts.total
-            ? `Ik heb ook ${counts.total} relevante bronnen gevonden (${sourceBits.join(", ")}).`
-            : "Ik heb geen bronnen gevonden die direct matchen—probeer een concretere zoekterm.",
+          recSentence,
           "Bekijk het lesplan, materialen en bronnen in het paneel rechts.",
         ].join(" ");
 
