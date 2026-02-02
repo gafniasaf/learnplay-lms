@@ -3,27 +3,13 @@ import { emitAgentJobEvent } from "../job-events.js";
 import { parseIntEnv } from "../env.js";
 import {
   fetchMaterialContent,
-  generateEmbedding,
   generateLessonPlan,
-  mergeRecommendations,
   pickRelevantCuratedMaterials,
-  recommendMesModules,
-  requireEnv,
-  retrieveMaterialRecommendations,
-  retrievePrefix,
-  searchCuratedMaterials,
   searchCuratedMaterialsSmart,
-  toCuratedRecommendations,
-  toLibraryMaterialRecommendations,
   buildKdCheck,
-  type Citation,
   type CuratedMaterialResult,
   type LessonPlan,
-  type UnifiedRecommendation,
 } from "../teacher-utils.js";
-
-const MIN_SIMILARITY = 0.25;
-const MES_TEST_PREFIX = "mes:e2e-";
 
 type ChatMessage = { role: "user" | "assistant"; content: string };
 
@@ -357,105 +343,14 @@ export class GenerateLessonPlan implements JobExecutor {
       }
 
       try {
-        const embeddingModel = process.env.OPENAI_EMBEDDING_MODEL || "text-embedding-3-small";
-        const topK = state.topK;
-
-        // --- curated recommendations (no embedding needed) ---
-        const curatedBase = Array.isArray(state.lessonPlanMaterials) ? state.lessonPlanMaterials : [];
-        const curatedRecommendations = state.scope !== "mes" ? toCuratedRecommendations(curatedBase) : [];
-
-        // --- embedding-dependent retrieval (optional) ---
-        let citations: Citation[] = [];
-        let recommendations: UnifiedRecommendation[] = [];
-        let counts = { total: 0, curated: curatedRecommendations.length, mes: 0, library: 0 };
-
-        const openAiKey = (process.env.OPENAI_API_KEY || "").trim();
-        if (openAiKey) {
-          try {
-            const embedding = await generateEmbedding(state.queryText, { apiKey: openAiKey, model: embeddingModel });
-
-            // citations
-            if (state.scope === "materials") {
-              const prefix = state.materialId ? `material:${state.materialId}` : "material:";
-              citations = await retrievePrefix({ organizationId, prefix, embedding, limit: topK });
-            } else if (state.scope === "mes") {
-              citations = await retrievePrefix({ organizationId, prefix: "mes:", embedding, limit: topK });
-            } else {
-              const perSource = Math.ceil(topK / 3) + 2;
-              const [mat, mes, book] = await Promise.all([
-                retrievePrefix({
-                  organizationId,
-                  prefix: state.materialId ? `material:${state.materialId}` : "material:",
-                  embedding,
-                  limit: perSource,
-                }),
-                retrievePrefix({ organizationId, prefix: "mes:", embedding, limit: perSource }),
-                retrievePrefix({ organizationId, prefix: "book:", embedding, limit: perSource }),
-              ]);
-              citations = [...mat, ...mes, ...book].sort((a, b) => b.similarity - a.similarity).slice(0, topK);
-            }
-            citations = citations.filter((c) => {
-              if (!Number.isFinite(c.similarity) || c.similarity < MIN_SIMILARITY) return false;
-              if (c.source === "mes" && String(c.course_id || "").toLowerCase().startsWith(MES_TEST_PREFIX)) return false;
-              return true;
-            });
-
-            const allowMes = state.scope !== "materials";
-            const allowLibrary = state.scope !== "mes";
-
-            const [libraryRaw, mesRecommendations] = await Promise.all([
-              allowLibrary ? retrieveMaterialRecommendations({ organizationId, embedding, limit: 6 }) : Promise.resolve([]),
-              allowMes ? recommendMesModules({ organizationId, embedding, limit: 6 }) : Promise.resolve([]),
-            ]);
-            const libraryRecommendations = toLibraryMaterialRecommendations(libraryRaw);
-            recommendations = mergeRecommendations(
-              [curatedRecommendations, mesRecommendations, libraryRecommendations],
-              12,
-            );
-            counts = {
-              total: recommendations.length,
-              curated: curatedRecommendations.length,
-              mes: mesRecommendations.length,
-              library: libraryRecommendations.length,
-            };
-          } catch (e) {
-            // best-effort: keep curated recs even if embedding fails (invalid key, provider error, etc.)
-            const msg = e instanceof Error ? e.message : String(e);
-            await emitAgentJobEvent(jobId, "generating", 82, "Embedding/retrieval failed; continuing without citations", {
-              step: "finalize",
-              error: msg.slice(0, 500),
-            }).catch(() => {});
-            citations = [];
-            recommendations = curatedRecommendations.slice(0, 12);
-            counts = { total: recommendations.length, curated: curatedRecommendations.length, mes: 0, library: 0 };
-          }
-        } else {
-          // No OpenAI key available: still return plan + curated matches.
-          citations = [];
-          recommendations = curatedRecommendations.slice(0, 12);
-          counts = { total: recommendations.length, curated: curatedRecommendations.length, mes: 0, library: 0 };
-        }
-
+        // IMPORTANT: In TeacherChat we want assistant text to be LLM-generated content,
+        // not templated "system status" sentences about sources/retrieval.
         const lessonPlan = state.lessonPlan;
-        const sourceBits = [
-          counts.curated ? `${counts.curated} uit de database` : null,
-          counts.mes ? `${counts.mes} uit ExpertCollege` : null,
-          counts.library ? `${counts.library} uit je eigen materiaal` : null,
-        ].filter(Boolean);
+        const answer =
+          safeString(lessonPlan?.quickStart?.oneLiner).trim() ||
+          safeString(lessonPlan?.kdAlignment?.title).trim();
 
-        const answer = [
-          "Ik heb een lesplan opgesteld dat past bij je vraag.",
-          `KD-focus: ${lessonPlan.kdAlignment.code} — ${lessonPlan.kdAlignment.title}.`,
-          counts.total
-            ? `Ik heb ook ${counts.total} relevante bronnen gevonden (${sourceBits.join(", ")}).`
-            : "Ik heb geen bronnen gevonden die direct matchen—probeer een concretere zoekterm.",
-          "Bekijk lesplan, materialen en bronnen in het paneel rechts.",
-        ].join(" ");
-
-        await emitAgentJobEvent(jobId, "done", 100, "Lesson plan job complete", {
-          step: "finalize",
-          recommendations: counts,
-        }).catch(() => {});
+        await emitAgentJobEvent(jobId, "done", 100, "Lesson plan job complete", { step: "finalize" }).catch(() => {});
 
         const qualityFlags = Array.isArray(state.lessonPlan?.qualityFlags)
           ? Array.from(new Set(state.lessonPlan?.qualityFlags))
@@ -464,9 +359,9 @@ export class GenerateLessonPlan implements JobExecutor {
         return {
           ok: true,
           jobId,
-          answer,
-          citations: citations.slice(0, 12),
-          recommendations,
+          answer: answer || "(empty response)",
+          citations: [],
+          recommendations: [],
           lessonPlan,
           kdCheck: state.kdCheck ?? buildKdCheck(lessonPlan.kdAlignment.code),
           quality_flags: qualityFlags,

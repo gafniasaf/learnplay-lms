@@ -3,29 +3,16 @@ import { emitAgentJobEvent } from "../job-events.js";
 import { parseIntEnv } from "../env.js";
 import {
   fetchMaterialContent,
-  generateEmbedding,
   generateMultiWeekOverview,
   generateWeekPlan,
-  mergeRecommendations,
   pickRelevantCuratedMaterials,
-  recommendMesModules,
-  requireEnv,
-  retrieveMaterialRecommendations,
-  retrievePrefix,
-  searchCuratedMaterials,
   searchCuratedMaterialsSmart,
-  toCuratedRecommendations,
-  toLibraryMaterialRecommendations,
-  type Citation,
   type CuratedMaterialResult,
   type MultiWeekLessonPlan,
   type MultiWeekOverview,
-  type UnifiedRecommendation,
   type WeekPlan,
 } from "../teacher-utils.js";
 
-const MIN_SIMILARITY = 0.25;
-const MES_TEST_PREFIX = "mes:e2e-";
 const LLM_TIMEOUT_MS = parseIntEnv("QUEUE_PUMP_LLM_TIMEOUT_MS", 180_000, 10_000, 45 * 60 * 1000);
 
 type ChatMessage = { role: "user" | "assistant"; content: string };
@@ -457,116 +444,13 @@ export class GenerateMultiWeekPlan implements JobExecutor {
       }
 
       try {
-        const allowMes = state.scope !== "materials";
-        const allowCurated = state.scope !== "mes";
-        const allowLibrary = state.scope !== "mes";
+        // IMPORTANT: In TeacherChat we want the assistant text to be LLM-generated content,
+        // not templated "system status" sentences. The plan itself is the primary artifact.
+        const answer =
+          safeString(state.plan.quickStart?.objective).trim() ||
+          safeString(state.plan.meta?.title).trim();
 
-        const topK = state.topK;
-        const embeddingModel = process.env.OPENAI_EMBEDDING_MODEL || "text-embedding-3-small";
-
-        // --- curated recommendations (no embedding needed) ---
-        const curatedBase = allowCurated
-          ? await searchCuratedMaterials({
-              organizationId,
-              query: state.queryText,
-              limit: 8,
-            })
-          : [];
-        const curatedRecommendations = allowCurated ? toCuratedRecommendations(curatedBase) : [];
-
-        // --- embedding-dependent retrieval (optional) ---
-        let citations: Citation[] = [];
-        let recommendations: UnifiedRecommendation[] = [];
-        let counts = { total: 0, curated: curatedRecommendations.length, mes: 0, library: 0 };
-        let embeddingOk = false;
-
-        const openAiKey = (process.env.OPENAI_API_KEY || "").trim();
-        if (openAiKey) {
-          try {
-            const embedding = await generateEmbedding(state.queryText, { apiKey: openAiKey, model: embeddingModel });
-            embeddingOk = true;
-
-            // citations
-            if (state.scope === "materials") {
-              const prefix = state.materialId ? `material:${state.materialId}` : "material:";
-              citations = await retrievePrefix({ organizationId, prefix, embedding, limit: topK });
-            } else if (state.scope === "mes") {
-              citations = await retrievePrefix({ organizationId, prefix: "mes:", embedding, limit: topK });
-            } else {
-              const perSource = Math.ceil(topK / 3) + 2;
-              const [mat, mes, book] = await Promise.all([
-                retrievePrefix({
-                  organizationId,
-                  prefix: state.materialId ? `material:${state.materialId}` : "material:",
-                  embedding,
-                  limit: perSource,
-                }),
-                retrievePrefix({ organizationId, prefix: "mes:", embedding, limit: perSource }),
-                retrievePrefix({ organizationId, prefix: "book:", embedding, limit: perSource }),
-              ]);
-              citations = [...mat, ...mes, ...book].sort((a, b) => b.similarity - a.similarity).slice(0, topK);
-            }
-
-            citations = citations.filter((c) => {
-              if (!Number.isFinite(c.similarity) || c.similarity < MIN_SIMILARITY) return false;
-              if (c.source === "mes" && String(c.course_id || "").toLowerCase().startsWith(MES_TEST_PREFIX)) return false;
-              return true;
-            });
-
-            const [libraryRaw, mesRecommendations] = await Promise.all([
-              allowLibrary ? retrieveMaterialRecommendations({ organizationId, embedding, limit: 6 }) : Promise.resolve([]),
-              allowMes ? recommendMesModules({ organizationId, embedding, limit: 6 }) : Promise.resolve([]),
-            ]);
-
-            const libraryRecommendations = toLibraryMaterialRecommendations(libraryRaw);
-            recommendations = mergeRecommendations([curatedRecommendations, mesRecommendations, libraryRecommendations], 12);
-            counts = {
-              total: recommendations.length,
-              curated: curatedRecommendations.length,
-              mes: mesRecommendations.length,
-              library: libraryRecommendations.length,
-            };
-          } catch (e) {
-            // Best-effort: keep curated recs even if embedding fails (invalid key, provider error, etc.)
-            const msg = e instanceof Error ? e.message : String(e);
-            await emitAgentJobEvent(jobId, "generating", 88, "Embedding/retrieval failed; continuing without citations", {
-              step: "finalize",
-              error: msg.slice(0, 500),
-            }).catch(() => {});
-            citations = [];
-            recommendations = curatedRecommendations.slice(0, 12);
-            counts = { total: recommendations.length, curated: curatedRecommendations.length, mes: 0, library: 0 };
-            embeddingOk = false;
-          }
-        } else {
-          // No OpenAI key available: still return plan + curated matches.
-          citations = [];
-          recommendations = curatedRecommendations.slice(0, 12);
-          counts = { total: recommendations.length, curated: curatedRecommendations.length, mes: 0, library: 0 };
-        }
-
-        const sourceBits = [
-          counts.curated ? `${counts.curated} uit de database` : null,
-          counts.mes ? `${counts.mes} uit ExpertCollege` : null,
-          counts.library ? `${counts.library} uit je eigen materiaal` : null,
-        ].filter(Boolean);
-
-        const recSentence = counts.total
-          ? `Ik heb ook ${counts.total} relevante bronnen gevonden (${sourceBits.join(", ")}).`
-          : embeddingOk
-            ? "Ik heb geen bronnen gevonden die direct matchen—probeer een concretere zoekterm."
-            : "Ik kon geen automatische bron-aanbevelingen ophalen (embedding-service niet beschikbaar), maar het lesplan is wél compleet.";
-
-        const answer = [
-          `Ik heb een lessenserie van ${state.plan.meta?.duration?.weeks ?? state.weeks} weken opgesteld.`,
-          recSentence,
-          "Bekijk het lesplan, materialen en bronnen in het paneel rechts.",
-        ].join(" ");
-
-        await emitAgentJobEvent(jobId, "done", 100, "Multi-week lesson plan complete", {
-          step: "finalize",
-          recommendations: counts,
-        }).catch(() => {});
+        await emitAgentJobEvent(jobId, "done", 100, "Multi-week lesson plan complete", { step: "finalize" }).catch(() => {});
 
         const planFlags = [
           ...((state.plan as any)?.qualityFlags ?? []),
@@ -577,9 +461,9 @@ export class GenerateMultiWeekPlan implements JobExecutor {
         return {
           ok: true,
           jobId,
-          answer,
-          citations: citations.slice(0, 12),
-          recommendations,
+          answer: answer || "(empty response)",
+          citations: [],
+          recommendations: [],
           multiWeekPlan: state.plan,
           quality_flags: qualityFlags,
         };

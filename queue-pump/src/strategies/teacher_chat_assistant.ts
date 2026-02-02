@@ -2,25 +2,9 @@ import type { JobContext, JobExecutor } from "./types.js";
 import { emitAgentJobEvent } from "../job-events.js";
 import { parseIntEnv } from "../env.js";
 import { generateJson, chat } from "../ai.js";
-import {
-  buildKdCheck,
-  generateEmbedding,
-  mergeRecommendations,
-  recommendMesModules,
-  retrieveMaterialRecommendations,
-  retrievePrefix,
-  searchCuratedMaterials,
-  searchCuratedMaterialsSmart,
-  toCuratedRecommendations,
-  toLibraryMaterialRecommendations,
-  type Citation,
-  type UnifiedRecommendation,
-} from "../teacher-utils.js";
+import { buildKdCheck } from "../teacher-utils.js";
 import { GenerateLessonPlan } from "./generate_lesson_plan.js";
 import { GenerateMultiWeekPlan } from "./generate_multi_week_plan.js";
-
-const MIN_SIMILARITY = 0.25;
-const MES_TEST_PREFIX = "mes:e2e-";
 
 type ChatMessage = { role: "user" | "assistant"; content: string };
 type JobScope = "materials" | "mes" | "all";
@@ -179,95 +163,20 @@ async function executeChatAnswer(args: {
   topK: number;
 }): Promise<unknown> {
   const jobId = args.jobId;
-  const organizationId = args.organizationId;
   const queryText = args.queryText;
 
-  await emitAgentJobEvent(jobId, "generating", 10, "Analyzing question", { step: "chat_answer" }).catch(() => {});
-
-  const allowMes = args.scope !== "materials";
-  const allowCurated = args.scope !== "mes";
-  const allowLibrary = args.scope !== "mes";
-
-  // Best-effort citations/recommendations using embeddings (if configured).
-  let citations: Citation[] = [];
-  let recommendations: UnifiedRecommendation[] = [];
-  let embeddingOk = false;
-
-  const OPENAI_API_KEY = typeof process.env.OPENAI_API_KEY === "string" ? process.env.OPENAI_API_KEY.trim() : "";
-  const EMBEDDING_MODEL = process.env.OPENAI_EMBEDDING_MODEL || "text-embedding-3-small";
-
-  if (OPENAI_API_KEY) {
-    try {
-      const embedding = await generateEmbedding(queryText, { apiKey: OPENAI_API_KEY, model: EMBEDDING_MODEL });
-      embeddingOk = true;
-
-      await emitAgentJobEvent(jobId, "enriching", 25, "Retrieving citations", { step: "citations" }).catch(() => {});
-
-      if (args.scope === "materials") {
-        const prefix = args.materialId ? `material:${args.materialId}` : "material:";
-        citations = await retrievePrefix({ organizationId, prefix, embedding, limit: args.topK });
-      } else if (args.scope === "mes") {
-        citations = await retrievePrefix({ organizationId, prefix: "mes:", embedding, limit: args.topK });
-      } else {
-        const perSource = Math.ceil(args.topK / 3) + 2;
-        const [mat, mes, book] = await Promise.all([
-          retrievePrefix({ organizationId, prefix: args.materialId ? `material:${args.materialId}` : "material:", embedding, limit: perSource }),
-          retrievePrefix({ organizationId, prefix: "mes:", embedding, limit: perSource }),
-          retrievePrefix({ organizationId, prefix: "book:", embedding, limit: perSource }),
-        ]);
-        citations = [...mat, ...mes, ...book].sort((a, b) => b.similarity - a.similarity).slice(0, args.topK);
-      }
-
-      citations = citations.filter((c) => {
-        if (!Number.isFinite(c.similarity) || c.similarity < MIN_SIMILARITY) return false;
-        if (c.source === "mes" && String(c.course_id || "").toLowerCase().startsWith(MES_TEST_PREFIX)) return false;
-        return true;
-      });
-
-      await emitAgentJobEvent(jobId, "enriching", 35, "Building recommendations", { step: "recommendations" }).catch(() => {});
-
-      const curatedBase = allowCurated
-        ? await searchCuratedMaterialsSmart({ organizationId, queryText, limit: 24, timeoutMs: 25_000 })
-        : [];
-      const curatedRecommendations = allowCurated ? toCuratedRecommendations(curatedBase) : [];
-
-      const [libraryRaw, mesRecommendations] = await Promise.all([
-        allowLibrary ? retrieveMaterialRecommendations({ organizationId, embedding, limit: 6 }) : Promise.resolve([]),
-        allowMes ? recommendMesModules({ organizationId, embedding, limit: 6 }) : Promise.resolve([]),
-      ]);
-      const libraryRecommendations = toLibraryMaterialRecommendations(libraryRaw);
-      recommendations = mergeRecommendations([curatedRecommendations, mesRecommendations, libraryRecommendations], 12);
-    } catch {
-      embeddingOk = false;
-    }
-  }
-
-  await emitAgentJobEvent(jobId, "generating", 55, "Drafting answer", { step: "answer" }).catch(() => {});
-
-  const citationContext = citations.slice(0, 8).map((c) => `- [${c.source}] ${c.course_id} (sim=${c.similarity.toFixed(2)}): ${c.text}`).join("\n");
-  const recContext = recommendations
-    .slice(0, 10)
-    .map((r: any) => `- [${String(r.source || "material")}] ${String(r.title || r.id || "")}`.trim())
-    .filter(Boolean)
-    .join("\n");
+  // LLM-only chat response (no retrieval / no fallback sentences).
+  await emitAgentJobEvent(jobId, "generating", 10, "Drafting answer", { step: "chat_answer" }).catch(() => {});
 
   const system = [
     "Je bent e-Xpert SAM, een docent-assistent voor MBO Verpleegkunde/VIG.",
     "Antwoord in helder, praktisch Nederlands.",
-    "Als je bronnen/context hebt, verwijs er kort naar (zonder te hallucineren).",
     "Als iets onduidelijk is: stel 1 gerichte verduidelijkingsvraag.",
   ].join("\n");
 
-  const extra = [
-    embeddingOk ? "Context (citaten):\n" + (citationContext || "(geen)") : "Context (citaten): (embedding niet beschikbaar)",
-    "Aanbevelingen:\n" + (recContext || "(geen)"),
-  ].join("\n\n");
-
   const response = await chat({
     system,
-    messages: [
-      { role: "user", content: `${queryText}\n\n${extra}` },
-    ],
+    messages: args.messages.length ? args.messages : [{ role: "user", content: queryText }],
     maxTokens: 900,
     temperature: 0.4,
     timeoutMs: parseIntEnv("QUEUE_PUMP_LLM_TIMEOUT_MS", 180_000, 10_000, 45 * 60 * 1000),
@@ -279,24 +188,14 @@ async function executeChatAnswer(args: {
 
   const kdCheck = buildKdCheck(extractKdCode(queryText));
 
-  await emitAgentJobEvent(jobId, "done", 100, "Teacher chat response ready", {
-    step: "chat_answer",
-    citations: citations.length,
-    recommendations: recommendations.length,
-  }).catch(() => {});
-
-  const recSentence = embeddingOk
-    ? recommendations.length
-      ? `Ik heb ook ${recommendations.length} relevante bronnen gevonden.`
-      : "Ik heb geen bronnen gevonden die direct matchen—probeer een concretere zoekterm."
-    : "Ik kon geen automatische bron-aanbevelingen ophalen (embedding-service niet beschikbaar).";
+  await emitAgentJobEvent(jobId, "done", 100, "Teacher chat response ready", { step: "chat_answer" }).catch(() => {});
 
   return {
     ok: true,
     jobId,
-    answer: `${response.text.trim()}\n\n${recSentence}`.trim(),
-    citations: citations.slice(0, 12),
-    recommendations,
+    answer: response.text.trim(),
+    citations: [],
+    recommendations: [],
     kdCheck: kdCheck?.items?.length ? kdCheck : undefined,
   };
 }
