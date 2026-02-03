@@ -42,6 +42,7 @@ function isYieldResult(result: unknown): result is {
 // Long-running job types that should be handled by queue-pump (Fly.io) instead of Edge Functions.
 // Edge Functions have a 60s timeout which is insufficient for these jobs.
 const LONG_RUNNING_JOB_TYPES = [
+  "ai_course_generate",
   "generate_multi_week_plan",
   "teacher_chat_assistant",
   "book_generate_full",

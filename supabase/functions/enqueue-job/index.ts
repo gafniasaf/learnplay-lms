@@ -124,8 +124,10 @@ serve(async (req: Request): Promise<Response> => {
     // This keeps the system consistent with hybrid auth expectations.
     const organizationId = requireOrganizationId(auth);
 
-    // Supported job types: ai_course_generate uses ai_course_jobs; others use ai_agent_jobs.
+    // Supported job types: all use ai_agent_jobs (factory pipeline).
     const FACTORY_JOB_TYPES = [
+      // Course generation (migrated to Fly.io queue-pump for long-running support)
+      "ai_course_generate",
       // Books
       "book_ingest_version",
       "book_render_chapter",
@@ -153,7 +155,7 @@ serve(async (req: Request): Promise<Response> => {
     ];
     const isFactoryJob = FACTORY_JOB_TYPES.includes(body.jobType);
 
-    if (body.jobType !== "ai_course_generate" && !isFactoryJob) {
+    if (!isFactoryJob) {
       return json({ ok: false, error: { code: "invalid_request", message: `Unsupported jobType: ${body.jobType}` }, httpStatus: 400, requestId }, 200);
     }
 

@@ -1,4 +1,5 @@
 import type { JobExecutor } from "./strategies/types.js";
+import { AiCourseGenerate } from "./strategies/ai_course_generate.js";
 import { BookGenerateChapter } from "./strategies/book_generate_chapter.js";
 import { BookGenerateFull } from "./strategies/book_generate_full.js";
 import { BookGenerateSection } from "./strategies/book_generate_section.js";
@@ -7,6 +8,7 @@ import { GenerateMultiWeekPlan } from "./strategies/generate_multi_week_plan.js"
 import { TeacherChatAssistant } from "./strategies/teacher_chat_assistant.js";
 
 export const JobRegistry: Record<string, JobExecutor> = {
+  ai_course_generate: new AiCourseGenerate(),
   book_generate_chapter: new BookGenerateChapter(),
   book_generate_full: new BookGenerateFull(),
   book_generate_section: new BookGenerateSection(),
