@@ -167,30 +167,8 @@ export function useMCP() {
       // Dev/Preview safety net:
       // In some environments (Lovable iframe), there may be no separate queue worker.
       // If dev-agent mode is enabled and we just queued ai_course_generate, immediately kick generation.
-      if (result?.ok && result.jobId && jobType === "ai_course_generate" && isDevAgentMode()) {
-        const jobId = result.jobId;
-        const p: any = payload ?? {};
-        const generateBody: Record<string, unknown> = {
-          subject: typeof p.subject === "string" ? p.subject : "",
-          title: typeof p.title === "string" ? p.title : undefined,
-          gradeBand: typeof p.grade_band === "string" ? p.grade_band : (typeof p.gradeBand === "string" ? p.gradeBand : (typeof p.grade === "string" ? p.grade : "All Grades")),
-          grade: typeof p.grade === "string" ? p.grade : null,
-          itemsPerGroup: typeof p.items_per_group === "number" ? p.items_per_group : (typeof p.itemsPerGroup === "number" ? p.itemsPerGroup : 12),
-          mode: p.mode === "numeric" ? "numeric" : "options",
-          levelsCount: typeof p.levels_count === "number" ? p.levels_count : (typeof p.levelsCount === "number" ? p.levelsCount : undefined),
-        };
-
-        // Fire-and-forget
-        void callEdgeFunction("generate-course?jobId=" + encodeURIComponent(jobId), generateBody, { timeoutMs: 600000, maxRetries: 0 })
-          .then((resp: any) => {
-            if (resp?.success === false) {
-              console.warn("[enqueueJob] generate-course failed quickly", { jobId, error: resp?.error });
-              return;
-            }
-            console.log("[enqueueJob] generate-course kicked for jobId:", jobId);
-          })
-          .catch((e) => console.warn("[enqueueJob] generate-course kick failed:", e));
-      }
+      // NOTE: ai_course_generate jobs are now processed by the Fly.io queue-pump worker.
+      // No need to kick generate-course Edge function; the worker picks up jobs automatically.
 
       // Dev/Preview safety net (generic factory jobs):
       // If we queued a non-course async job (lessonkit/material/etc.) and no worker is running,

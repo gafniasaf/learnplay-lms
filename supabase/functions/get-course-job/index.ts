@@ -60,14 +60,48 @@ async function selectSingleJob(jobId: string) {
 
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
     try {
-      const { data: job, error: jobError } = await supabase
-        .from("ai_course_jobs")
+      // First check ai_agent_jobs (factory pipeline, including migrated ai_course_generate)
+      const { data: agentJob, error: agentError } = await supabase
+        .from("ai_agent_jobs")
         .select("*")
         .eq("id", jobId)
-        .single();
+        .maybeSingle();
 
-      if (jobError) throw jobError;
-      return { job, error: null as unknown };
+      if (agentJob) {
+        // Map ai_agent_jobs fields to ai_course_jobs-like response for compatibility
+        return {
+          job: {
+            id: agentJob.id,
+            status: agentJob.status,
+            job_type: agentJob.job_type,
+            payload: agentJob.payload,
+            result: agentJob.result,
+            error: agentJob.error_message,
+            created_at: agentJob.created_at,
+            updated_at: agentJob.updated_at,
+            // Map result_path from result JSON if present
+            result_path: agentJob.result?.result_path || agentJob.result?.storagePath || null,
+            course_id: agentJob.payload?.course_id || null,
+            organization_id: agentJob.organization_id,
+          },
+          error: null as unknown,
+        };
+      }
+
+      // If not found in ai_agent_jobs, check legacy ai_course_jobs table
+      if (!agentError || (agentError as any)?.code === "PGRST116") {
+        const { data: job, error: jobError } = await supabase
+          .from("ai_course_jobs")
+          .select("*")
+          .eq("id", jobId)
+          .single();
+
+        if (jobError) throw jobError;
+        return { job, error: null as unknown };
+      }
+
+      if (agentError) throw agentError;
+      return { job: null as any, error: null as unknown };
     } catch (e) {
       lastErr = e;
       const { message } = formatUnknownError(e);
